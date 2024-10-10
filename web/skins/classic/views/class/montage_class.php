@@ -1037,7 +1037,13 @@ $start_ = microtime(true);
       $where .= " (E.EndDateTime >='".$startDateTime."'";
       $where .= " AND E.StartDateTime <='".$endDateTime."')";
       //The last event that has not yet ended.
-      $where .= " OR (E.StartDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')";
+      if ($startDateTime == $endDateTime) {
+        // We receive an event that should be played at a specific moment.
+        $where .= " OR (E.StartDateTime <='".$startDateTime."' AND EndDateTime >='".$startDateTime."')";
+      } else {
+        // Display on the TimeLine scale
+        $where .= " OR (E.StartDateTime >='".$startDateTime."' AND E.EndDateTime IS NULL)";
+      }
       $where .= ")";
       //Sorting by E.StartDateTime is necessary for the correct thinning of events when forming the Timeline
       $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';

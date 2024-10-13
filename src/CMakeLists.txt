@@ -165,11 +165,15 @@ target_link_libraries(zm
   PRIVATE
     zm-core-interface)
 
+set(GSOAP_LIBRARIES ${GSOAP_CXX_LIBRARIES})
+if(HAVE_LIBOPENSSL)
+  set(GSOAP_LIBRARIES ${GSOAP_SSL_CXX_LIBRARIES})
+endif()
+
 if(GSOAP_FOUND)
   target_link_libraries(zm
     PUBLIC
-      ${GSOAP_CXX_LIBRARIES}
-      ${GSOAP_SSL_CXX_LIBRARIES}
+      ${GSOAP_LIBRARIES}
       ${OPENSSL_SSL_LIBRARY}
       ${OPENSSL_CRYPTO_LIBRARY})
 endif()

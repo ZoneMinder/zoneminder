@@ -1,0 +1,18 @@
+name: Install jsoncons
+description: Install jsoncons for building test application
+inputs:
+  version:
+    description: The desired jsoncons version to install
+    required: false
+    default: "0.168.7"
+runs:
+  using: composite
+  steps:
+    - run: |
+        cd /tmp
+        wget https://github.com/danielaparker/jsoncons/archive/v${{ inputs.version }}.tar.gz
+        tar -zxf /tmp/v${{ inputs.version }}.tar.gz
+        cd jsoncons-${{ inputs.version }}
+        cmake .
+        sudo cmake --install .
+      shell: bash

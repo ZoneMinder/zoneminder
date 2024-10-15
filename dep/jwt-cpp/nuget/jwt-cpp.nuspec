@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>jwt-cpp</id>
-    <version>0.6.0-nuget.3</version>
+    <version>0.7.0</version>
     <authors>Thalhammer; prince-chrismc</authors>
     <owners>Thalhammer; prince-chrismc</owners>
     <projectUrl>https://github.com/Thalhammer/jwt-cpp</projectUrl>

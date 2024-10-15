@@ -1,0 +1,54 @@
+name: Cross-Platform CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - if: matrix.os == 'windows-latest'
+        run: choco install openssl
+
+      - if: matrix.os == 'macos-latest'
+        run: sudo cp /usr/local/opt/openssl@1.1/lib/pkgconfig/*.pc /usr/local/lib/pkgconfig/
+
+      - uses: actions/checkout@v3
+      - run: cmake -E make_directory ${{ github.workspace }}/build
+
+      - name: configure
+        shell: bash # access regardless of the host operating system
+        working-directory: ${{ github.workspace }}/build
+        run: cmake $GITHUB_WORKSPACE -DJWT_BUILD_EXAMPLES=ON
+
+      - name: build
+        working-directory: ${{ github.workspace }}/build
+        shell: bash
+        run: cmake --build .
+
+      - if: matrix.os != 'windows-latest'
+        name: test
+        working-directory: ${{ github.workspace }}/build
+        shell: bash
+        run: |
+          ./example/rsa-create
+          ./example/rsa-verify
+
+      - if: matrix.os == 'windows-latest'
+        name: test
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          example\Debug\rsa-create.exe
+          example\Debug\rsa-verify.exe
+
+      - if: github.event_name == 'push' && always()
+        uses: ./.github/actions/badge
+        with:
+          category: cross-platform
+          label: ${{ matrix.os }}

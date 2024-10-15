@@ -808,6 +808,7 @@ a.flip {
 .monitor.alert img {
   border: 2px solid #ffa500;
 }
+.Monitor .alert, /* zone edit has this structure */
 .monitor.alert {
   color: #ffa500;
   padding: 0;

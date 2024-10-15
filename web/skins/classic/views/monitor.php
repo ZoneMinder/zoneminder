@@ -407,7 +407,8 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
-  $tabs['location'] = translate('Location');
+  if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
+    $tabs['location'] = translate('Location');
 }
 
 if ( isset($_REQUEST['tab']) )

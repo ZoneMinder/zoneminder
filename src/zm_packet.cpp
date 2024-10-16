@@ -107,6 +107,10 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     Error("Already have a frame?");
   } else {
     in_frame = zm_av_frame_alloc();
+    if (!in_frame) {
+      Error("Failed to allocate a frame!");
+      return 0;
+    }
   }
 
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base

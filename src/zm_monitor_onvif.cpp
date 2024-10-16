@@ -284,8 +284,9 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 #endif
 
 void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
-  if (alarms.empty()) return;
   #ifdef WITH_GSOAP
+    if (alarms.empty()) return;
+
     std::string note = "";
     for (auto it = alarms.begin(); it != alarms.end(); ++it) {
       note = it->first + "/" + it->second;

@@ -189,6 +189,7 @@ sub runServer {
     house_code=>$Config{ZM_X10_HOUSE_CODE},
     debug=>1
   );
+  Fatal("Failed to open x10 device at $Config{ZM_X10_DEVICE}") if !$x10;
 
   loadTasks();
 

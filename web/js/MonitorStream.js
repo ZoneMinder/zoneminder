@@ -41,7 +41,9 @@ function MonitorStream(monitorData) {
     this.buttons[name] = element;
   };
   this.gridstack = null;
-  this.setGridStack = function(gs) { this.gridstack = gs; };
+  this.setGridStack = function(gs) {
+    this.gridstack = gs;
+  };
 
   this.bottomElement = null;
   this.setBottomElement = function(e) {
@@ -727,7 +729,7 @@ function MonitorStream(monitorData) {
         if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
           analysisFPSValue.text(monitor.AnalysisFPS);
         }
-        
+
         if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
           captureFPSValue.text(monitor.CaptureFPS);
         }

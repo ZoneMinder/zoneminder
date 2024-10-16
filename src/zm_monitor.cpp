@@ -1857,7 +1857,7 @@ bool Monitor::Analyse() {
               if (snap->image) {
                 // decoder may not have been able to provide an image
                 if (!ref_image.Buffer()) {
-                  Debug(1, "Assigning instead of Detecting");
+                  Debug(1, "Assigning instead of Detecting %p", snap->image);
                   ref_image.Assign(*(snap->image));
                 } else {
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
@@ -2050,7 +2050,7 @@ bool Monitor::Analyse() {
                   last_alarm_count,
                   post_event_count,
                   static_cast<int64>(timestamp->tv_sec),
-                  static_cast<int64>(event->StartTime().tv_sec),
+                  static_cast<int64>(event ? event->StartTime().tv_sec : 0),
                   min_section_length);
             }
             if (Event::PreAlarmCount())

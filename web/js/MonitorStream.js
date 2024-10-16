@@ -35,7 +35,7 @@ function MonitorStream(monitorData) {
   };
 
   this.img_onerror = function() {
-    console.log('Image stream has been stoppd! stopping streamCmd');
+    console.log('Image stream has been stopped! Stopping streamCmd');
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
   this.img_onload = function() {

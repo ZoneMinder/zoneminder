@@ -368,6 +368,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
                 <?php
 # Note: The keys need to be actual column names
 $sort_fields = array(
+    ''              => translate('None'),
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
     'Cause'         => translate('AttrCause'),

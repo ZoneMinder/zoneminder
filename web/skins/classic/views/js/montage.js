@@ -3178,7 +3178,7 @@ function stopEvent(monitorId, fullStop = true, message='') {
         }
         //writeTextCanvas(monitorId, 'No Event');
         if (message) {
-          writeTextCanvas(monitorId, message);
+          writeTextCanvas(monitorId, message, 0.4);
         } else {
           writeTextCanvas(monitorId, 'No recording for this time', 0.4);
         }

@@ -921,7 +921,6 @@ $start_ = microtime(true);
             } else {
             }
           }
-//$addEvent = true;
           if ($addEvent) {
             if ($action == 'queryEventsForMonitor' || $action == 'queryNextEventForMonitor') {
               //Необходимо собрать SRC строку
@@ -1010,38 +1009,10 @@ $start_ = microtime(true);
   public static function buildQueryString($filter, array $monitorsId=[], $startDateTime, $endDateTime, string $actionRange, bool $fullResponse=false) {
     $oneMonitors = (count($monitorsId) == 1) ? true : false;
     $where = ' WHERE';
-    $whereForFindIncompleteEvents = ' ';
     if (count($monitorsId) == 0) {
       $where .= ' 1=1';
-      foreach ($displayMonitors as &$row) {
-        $whereForFindIncompleteEvents .= '
-          OR (Id = (SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = '.$row["Id"].' 
-            GROUP BY Id
-            ORDER BY Id DESC
-            LIMIT 1) AS EventId))';
-      }
     } else {
       $where .= ($oneMonitors) ? ' E.MonitorId='.$monitorsId[0] : ' (E.MonitorId IN ('.implode(',', $monitorsId).'))';
-      for ( $i = 0; $i < count($monitorsId); $i++ ) {
-        // Необходимо получить самое последнее событие и проверить завершилось оно или нет.
-        // Если оно не завершилось, то вернем ID события.
-        // Важно! Анализировать необходимо именно последнее событие, т.к. незавешенными (из за каких-то сбоев) могут быть и НЕ последине события, но нам они не нужны !!!
-        $whereForFindIncompleteEvents .= '
-          OR (Id = (SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = '.$monitorsId[$i].' 
-            GROUP BY Id
-            ORDER BY Id DESC
-            LIMIT 1) AS EventId))';
-			/*
-            if ( $i == '0' ) {
-              $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1'));
-            } else if ( $i == (count($displayMonitors)-1) ) {
-              $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1'));
-            } else {
-              $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or'));
-            }
-			*/
-      }
-
     }
     $select = 'SELECT';
     $join = '';
@@ -1051,248 +1022,7 @@ $start_ = microtime(true);
     $limit = '';
 
 /*
-SELECT Id, MonitorId, StartDateTime, EndDateTime
-      ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT NOW()) ELSE EndDateTime END AS _EndDateTime,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs
-          FROM Events AS E 
-#		  WHERE MonitorId=6 
-		  WHERE MonitorId IN (6,5,33) 
-		    AND (
-                (StartDateTime = (SELECT MAX(StartDateTime) FROM Events WHERE MonitorId = 6 AND EndDateTime IS NULL )) 
-                 OR  (StartDateTime = (SELECT MAX(StartDateTime) FROM Events WHERE MonitorId = 5 AND EndDateTime IS NULL)) 
-                 OR  (StartDateTime = (SELECT MAX(StartDateTime) FROM Events WHERE MonitorId = 33 AND EndDateTime IS NULL)) 
-            )
-          #GROUP BY Id, StartDateTime, EndDateTime, MonitorId
-		  ORDER BY StartDateTime ASC, MonitorId ASC;
-
-
-
-
-SELECT Id, MonitorId, StartDateTime, EndDateTime
-      ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT NOW()) ELSE EndDateTime END AS _EndDateTime,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs
-          FROM Events AS E 
-#		  WHERE MonitorId=6 
-		  WHERE MonitorId IN (6,5,33) 
-		    AND (
-                (Id = (SELECT MAX(Id) FROM Events WHERE MonitorId = 6 AND EndDateTime IS NULL )) 
-                 OR  (Id = (SELECT MAX(Id) FROM Events WHERE MonitorId = 5 AND EndDateTime IS NULL)) 
-                 OR  (Id = (SELECT MAX(Id) FROM Events WHERE MonitorId = 33 AND EndDateTime IS NULL)) 
-            )
-          #GROUP BY Id, StartDateTime, EndDateTime, MonitorId
-		  ORDER BY StartDateTime ASC, MonitorId ASC;
-
-
-
-
-SELECT MAX(Id), IF (EndDateTime IS NULL, NULL, Id) AS EId FROM Events AS M WHERE MonitorId = 6 
- GROUP BY Id, EndDateTime
- ORDER BY Id DESC
- LIMIT 1
-;
-SELECT MAX(Id), IF (EndDateTime IS NULL, NULL, Id) AS EId FROM Events AS M WHERE MonitorId = 5 
- GROUP BY Id, EndDateTime
- ORDER BY Id DESC
- LIMIT 1
-;
-SELECT MAX(Id), IF (EndDateTime IS NULL, NULL, Id) AS EId FROM Events AS M WHERE MonitorId = 33 
- GROUP BY Id, EndDateTime
- ORDER BY Id DESC
- LIMIT 1
-;
-SELECT Id, MonitorId, StartDateTime, EndDateTime
-      ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT NOW()) ELSE EndDateTime END AS _EndDateTime,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs
-          FROM Events AS E 
-#		  WHERE MonitorId=6 
-		  WHERE MonitorId IN (6,5,33) 
-		    AND (
-                (Id = (SELECT MAX(Id) AS M FROM Events WHERE MonitorId = 6 AND EndDateTime IS NULL) ) 
-                 OR  (Id = (SELECT MAX(Id) FROM Events WHERE MonitorId = 5 AND EndDateTime IS NULL)) 
-                 OR  (Id = (SELECT MAX(Id) FROM Events WHERE MonitorId = 33 AND EndDateTime IS NULL)) 
-            )
-          #GROUP BY Id, StartDateTime, EndDateTime, MonitorId
-		  ORDER BY StartDateTime ASC, MonitorId ASC;
-
-
-
-
-
-SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 6 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId
-;
-SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 5 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId
-;
-SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 33 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId
-;
-SELECT Id, MonitorId, StartDateTime, EndDateTime
-      ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT NOW()) ELSE EndDateTime END AS _EndDateTime,
-      CASE WHEN EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs
-          FROM Events AS E 
-#		  WHERE MonitorId=6 
-		  WHERE MonitorId IN (6,5,33) 
-		    AND (
-                (Id = (SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 6 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId) ) 
-                 OR  (Id = (SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 5 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId)) 
-                 OR  (Id = (SELECT EId FROM (SELECT MAX(Id), IF (EndDateTime IS NULL, Id, NULL) AS EId FROM Events WHERE MonitorId = 33 
- GROUP BY Id
- ORDER BY Id DESC
- LIMIT 1) AS EventId)) 
-            )
-          #GROUP BY Id, StartDateTime, EndDateTime, MonitorId
-		  ORDER BY StartDateTime ASC, MonitorId ASC;
-
-
-ОООО!!!!
-
-
-SELECT
-	*
-FROM
-	Events
-	INNER JOIN (
-		SELECT
-			MonitorId,
-			MAX(Id) AS Maxscore
-		FROM
-			Events
-        WHERE (MonitorId IN (5,6,22,33,37))
-        GROUP BY
-			MonitorId) AS topscore ON Events.MonitorId = topscore.MonitorId
-	AND Events.Id = topscore.Maxscore AND Events.EndDateTime IS NULL ;
-
-
-ООО!!!!!!!!!УУУУУУУУУУУУУУУУ
-
-
-
-SELECT
-	*
-FROM
-	Events
-	INNER JOIN (
-		SELECT
-			MonitorId,
-			MAX(Id) AS Maxscore
-		FROM
-			Events
-        WHERE (MonitorId IN (5,6,22,33,37))
-        GROUP BY
-			MonitorId) AS topscore ON Events.MonitorId = topscore.MonitorId
-	AND Events.Id = topscore.Maxscore AND Events.EndDateTime IS NULL 
-    
-    ;
-
-
-
-SELECT DISTINCT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.Frames, E.Width, E.Archived
-        ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-        #CASE WHEN E.EndDateTime IS NULL THEN NOW() ELSE E.EndDateTime END AS _EndDateTime,
-        CASE WHEN E.EndDateTime IS NULL THEN UNIX_TIMESTAMP(NOW()) ELSE UNIX_TIMESTAMP(E.EndDateTime) END AS EndTimeSecs
-       FROM Events AS E 
-       
-	INNER JOIN (
-		SELECT
-			MonitorId,
-			MAX(Id) AS Maxscore
-		FROM
-			Events
-        WHERE (MonitorId IN (5,6,22,33,37))
-        GROUP BY MonitorId) AS topscore ON 
-            (E.EndDateTime >='2024-10-13 23:30:00' AND E.StartDateTime <='2024-10-13 23:59:00')
-            OR (E.MonitorId = topscore.MonitorId
-	          AND (E.Id = topscore.Maxscore AND E.EndDateTime IS NULL 
-              AND E.StartDateTime >='2024-10-13 23:30:00' AND E.StartDateTime <='2024-10-13 23:59:00') 
-            )
-     
-       
-        WHERE E.MonitorId=5 AND ( 
-           (E.EndDateTime >='2024-10-13 21:10:00' AND E.StartDateTime <='2024-10-13 23:59:00') 
-          ) 
-         OR (
-              E.StartDateTime >='2024-10-13 17:10:00' AND E.StartDateTime <='2024-10-13 21:00:00'
-             )
-          ORDER BY E.StartDateTime ASC, E.MonitorId ASC
-
-    ;
-
-
-ВАУ !!! ВАУ!!!
 ++++++++++++++++
-
-SELECT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.Frames, E.Width, E.Archived
-        ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-        #CASE WHEN E.EndDateTime IS NULL THEN NOW() ELSE E.EndDateTime END AS _EndDateTime,
-        CASE WHEN E.EndDateTime IS NULL THEN UNIX_TIMESTAMP(NOW()) ELSE UNIX_TIMESTAMP(E.EndDateTime) END AS EndTimeSecs
-       FROM Events AS E 
-       
-	INNER JOIN (
-		SELECT
-			MonitorId,
-			MAX(Id) AS LastEvent
-		FROM
-			Events
-        WHERE (MonitorId IN (5,6,22,33,37))
-        GROUP BY
-			MonitorId) AS top ON (
-                E.MonitorId = top.MonitorId
-	            AND (
-                  (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime BETWEEN '2024-10-14 00:00:00' AND '2024-10-14 23:59:00') 
-                  OR 
-                  (E.EndDateTime >='2024-10-14 00:00:00' AND E.StartDateTime <='2024-10-14 23:59:00')
-                )
-           )
-        ORDER BY E.StartDateTime ASC
- 
-!!!!! ИЛИ МОЖНО WHERE ПЕРЕНЕСТИ ТАК:
-
-SELECT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.Frames, E.Width, E.Archived
-        ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-        #CASE WHEN E.EndDateTime IS NULL THEN NOW() ELSE E.EndDateTime END AS _EndDateTime,
-        CASE WHEN E.EndDateTime IS NULL THEN UNIX_TIMESTAMP(NOW()) ELSE UNIX_TIMESTAMP(E.EndDateTime) END AS EndTimeSecs
-       FROM Events AS E 
-       
-	INNER JOIN (
-		SELECT
-			MonitorId,
-			MAX(Id) AS LastEvent
-		FROM
-			Events
-
-        GROUP BY
-			MonitorId) AS top ON (
-                E.MonitorId = top.MonitorId
-	            AND (
-                  (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime BETWEEN '2024-10-14 00:00:00' AND '2024-10-14 23:59:00') 
-                  OR 
-                  (E.EndDateTime >='2024-10-14 00:00:00' AND E.StartDateTime <='2024-10-14 23:59:00')
-                )
-           )
-        WHERE (E.MonitorId IN (5,6,22,33,37))
-        ORDER BY E.StartDateTime ASC
-----------------
- !!!! ИЛИ ВООБЩЕ ПЕРЕНЕСТИ ВСЕ УСЛОВИЯ WHERE ВНИЗ 
- 
- +++++++++++++
- 
  SELECT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.Frames, E.Width, E.Archived
         ,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
         #CASE WHEN E.EndDateTime IS NULL THEN NOW() ELSE E.EndDateTime END AS _EndDateTime,
@@ -1316,12 +1046,8 @@ SELECT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.F
                   (E.EndDateTime >='2024-10-14 00:00:00' AND E.StartDateTime <='2024-10-14 00:59:00')
                 )
         ORDER BY E.StartDateTime ASC
-
- 
  -------------
-
 */
-
 
     if ($actionRange == 'range') {
       #SELECT Id, MonitorId, StartDateTime, EndDateTime, Cause 
@@ -1348,36 +1074,22 @@ SELECT E.Id, E.MonitorId, E.StartDateTime, E.EndDateTime, E.Cause, E.Length, E.F
             Events
           GROUP BY
             MonitorId) AS top ON (E.MonitorId = top.MonitorId)
-	";
-      if ($startDateTime == $endDateTime) {
-      $where .= "
-        (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime <='".$endDateTime."') 
-        OR 
-        (E.EndDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')
       ";
+      if ($startDateTime == $endDateTime) {
         // We receive an event that should be played at a specific moment.
-///       $where .= " OR (E.StartDateTime <='".$startDateTime."' AND EndDateTime >='".$startDateTime."')";
-//        $where .= " OR (E.StartDateTime <='".$startDateTime."' AND E.EndDateTime IS NULL)";
-        //$limit .= ' LIMIT 1';
+        $where .= "
+          (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime <='".$endDateTime."') 
+          OR 
+          (E.EndDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')
+        ";
         // Получаем ближайшую дату к дате по которой кликнули, т.к. могут быть сбойные события, которые не имеют даты окончания и могут "перекрывать" остальные события.
         $order .= ' ORDER BY E.StartDateTime DESC';
       } else {
-      $where .= "
-        (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime BETWEEN '".$startDateTime."' AND '".$endDateTime."') 
-        OR 
-        (E.EndDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')
-      ";
-        // Display on the TimeLine scale
-        // ВАЖНО!!! Попадают глючные незаконченные события. Например событие началось в августе, 
-        // а диапазон выбран с июля по ноябрь...
-        //$where .= " OR (E.StartDateTime >='".$startDateTime."' AND E.EndDateTime IS NULL)";
-        // https://stackoverflow.com/questions/32479255/sql-where-condition-for-the-most-recent-row
-//        $where .= " OR (E.StartDateTime >='".$startDateTime."' AND (SELECT MAX(B.StartDateTime) FROM Events AS B) AND E.EndDateTime IS NULL)";
-//        $where .= " (E.StartDateTime >='".$startDateTime."' AND (SELECT MAX(B.StartDateTime) FROM Events AS B) AND E.EndDateTime IS NULL)";
-        //$where .= " OR ((SELECT MAX(B.StartDateTime) FROM Events AS B) WHERE B.EndDateTime IS NULL)";
-        //Sorting by E.StartDateTime is necessary for the correct thinning of events when forming the Timeline
-        //$order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';
-///        $where .= $whereForFindIncompleteEvents;
+        $where .= "
+          (E.Id = top.LastEvent AND E.EndDateTime IS NULL AND E.StartDateTime BETWEEN '".$startDateTime."' AND '".$endDateTime."') 
+          OR 
+          (E.EndDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')
+        ";
         $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';
       }
       $where .= ")";

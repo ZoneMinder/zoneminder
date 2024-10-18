@@ -20,7 +20,8 @@
 
 // Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
 //
-//     Path is physical path to the image starting at the monitor id
+//     Path is physical path to the image.
+//     If "path" starts with "/" - then the link is relative to the root (ZM_PATH_WEB), if there is no slash at the beginning, then it is relative to the skin folder (ZM_SKIN_PATH)
 //
 //     Scale is optional and between 1 and 400 (percent),
 //          Omitted or 100 = no scaling done, image passed through directly
@@ -444,6 +445,9 @@ Output was: '.implode(PHP_EOL,$output) );
       return;
     }
   } # end if ! file_exists($path)
+} else {
+  $path = (strpos(validHtmlStr($_REQUEST['path']), '/') == 0) ? ZM_PATH_WEB.validHtmlStr($_REQUEST['path']) : ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/'.validHtmlStr($_REQUEST['path']);
+  if ( !file_exists($path) ) return;
 }
 
 # we now load the actual image to send

@@ -664,7 +664,7 @@ sub x10listen {
     } else {
       Debug("Not for out house code ".$event->house_code().' eq '.$Config{ZM_X10_HOUSE_CODE});
     } # end if correct house code
-    Info('Got event - '.$event->as_string());
+    Debug('Got event - '.$event->as_string());
   }
 } # end sub x10listen
 

@@ -485,6 +485,10 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  std::thread command_processor;
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
@@ -498,9 +502,6 @@ void MonitorStream::runStream() {
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
 
-  frame_count = 0;
-
-  temp_image_buffer = nullptr;
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
@@ -553,10 +554,6 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
-  std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {

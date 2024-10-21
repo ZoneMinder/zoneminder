@@ -73,7 +73,7 @@ int Monitor::AmcrestAPI::start() {
     if (m && (m->msg == CURLMSG_DONE)) {
       Warning("AMCREST Libcurl exited Early: %i", m->data.result);
     } else {
-      Debug(1, "AMCREST response code %d, response %s", response_code, amcrest_response.c_str());
+      Debug(1, "AMCREST response code %ld, response %s", response_code, amcrest_response.c_str());
     }
 
     curl_multi_wait(curl_multi, nullptr, 0, 300, nullptr);

@@ -187,7 +187,10 @@ void Monitor::ONVIF::WaitForMessage() {
           // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
           if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
-            alarms.erase(last_topic);
+            {
+              std::unique_lock<std::mutex> lck(alarms_mutex);
+              alarms.erase(last_topic);
+            }
               Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
             if (alarms.empty()) {
               alarmed = false;
@@ -285,6 +288,7 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 
 void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #ifdef WITH_GSOAP
+    std::unique_lock<std::mutex> lck(alarms_mutex);
     if (alarms.empty()) return;
 
     std::string note = "";

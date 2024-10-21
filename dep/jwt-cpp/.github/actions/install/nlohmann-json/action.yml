@@ -1,0 +1,18 @@
+name: Install nlohmann-json
+description: Install nlohmann-json for building test application
+inputs:
+  version:
+    description: The desired nlohmann-json version to install
+    required: false
+    default: "3.11.2"
+runs:
+  using: composite
+  steps:
+    - run: |
+        cd /tmp
+        wget https://github.com/nlohmann/json/archive/v${{ inputs.version }}.tar.gz
+        tar -zxf /tmp/v${{ inputs.version }}.tar.gz
+        cd json-${{ inputs.version }}
+        cmake .
+        sudo cmake --install .
+      shell: bash

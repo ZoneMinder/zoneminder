@@ -1152,7 +1152,7 @@ button.btn.btn-zoom-out {
   position: absolute;
   left: 3px;
   top: 3px;
-  z-index: 10;
+  z-index: 20;
   text-shadow:
     -1px -1px 0 #575757,
     1px -1px 0 #575757,
@@ -1166,7 +1166,7 @@ button.btn.btn-zoom-in {
   position: absolute;
   right: 3px;
   top: 3px;
-  z-index: 10;
+  z-index: 20;
   text-shadow:
     -1px -1px 0 #575757,
     1px -1px 0 #575757,

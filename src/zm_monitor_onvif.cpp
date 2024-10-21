@@ -162,7 +162,7 @@ void Monitor::ONVIF::WaitForMessage() {
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
-      Debug(1, "Result of getting  ONVIF messages= %d soap_fault_string=%s detail=%s",
+      Debug(1, "Result of getting ONVIF messages=%d soap_fault_string=%s detail=%s",
           result, soap_fault_string(soap), detail ? detail : "null");
       if (result != SOAP_EOF) { //Ignore the timeout error
         Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
@@ -187,9 +187,12 @@ void Monitor::ONVIF::WaitForMessage() {
           // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
           if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
-            alarms.erase(last_topic);
-            if(alarms.empty()) {
-              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+            {
+              std::unique_lock<std::mutex> lck(alarms_mutex);
+              alarms.erase(last_topic);
+            }
+              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
+            if (alarms.empty()) {
               alarmed = false;
             }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
@@ -199,18 +202,15 @@ void Monitor::ONVIF::WaitForMessage() {
           } else {
             // Event Start
             Info("Triggered Start on ONVIF");
-            if (alarms.count(last_topic) == 0 )
-            {
+            if (alarms.count(last_topic) == 0) {
               alarms[last_topic] = last_value;
-              last_active_topic = last_topic;
-              last_active_value = last_value;
               if (!alarmed) {
                 Info("Triggered Start Event on ONVIF");
                 alarmed = true;
-              // Why sleep?
-              std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+                // Why sleep?
+                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+              }
             }
-          }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
         } else {
@@ -286,10 +286,17 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 }
 #endif
 
-std::string Monitor::ONVIF::GetNoteText() {
-  std::string note = "";
+void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #ifdef WITH_GSOAP
-    note = last_active_topic + "/" + last_active_value;
+    std::unique_lock<std::mutex> lck(alarms_mutex);
+    if (alarms.empty()) return;
+
+    std::string note = "";
+    for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+      note = it->first + "/" + it->second;
+      noteSet.insert(note);
+    }
   #endif
-  return note;
+  return;
 }
+

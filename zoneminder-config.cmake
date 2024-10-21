@@ -41,6 +41,8 @@
 #cmakedefine HAVE_RFB_RFB_H 1
 #cmakedefine HAVE_LIBJWT 1
 #cmakedefine HAVE_RTSP_SERVER 1
+#cmakedefine MOSQUITTO_FOUND 1
+#cmakedefine MOSQUITTOPP_FOUND 1
 
 /* Few ZM options that are needed by the source code */
 #cmakedefine ZM_MEM_MAPPED 1

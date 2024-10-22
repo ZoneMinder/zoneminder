@@ -40,7 +40,7 @@ if ( !empty($_REQUEST['Resolution']) ) {
 
 $maxFPS = null;
 if ( !empty($_REQUEST['maxFPS']) ) {
-  $maxFPS = $_REQUEST['maxFPS'];
+  $maxFPS = validStr($_REQUEST['maxFPS']);
 }
 
 $monitorsId = [];
@@ -50,7 +50,7 @@ if ( !empty($_REQUEST['MonitorsId']) ) {
 
 $dateTime = '';
 if ( !empty($_REQUEST['dateTime']) ) {
-  $dateTime = $_REQUEST['dateTime'];
+  $dateTime = validStr($_REQUEST['dateTime']);
 }
 
 if ($message) {

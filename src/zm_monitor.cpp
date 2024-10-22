@@ -25,6 +25,7 @@
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
 #include "zm_monitorlink_expression.h"
+#include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
@@ -34,7 +35,6 @@
 #include "zm_utils.h"
 #include "zm_uri.h"
 #include "zm_zone.h"
-
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
@@ -717,6 +717,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
   Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+#else
+  Debug(1, "Not compiled with MQTT");
 #endif
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;

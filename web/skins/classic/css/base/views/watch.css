@@ -68,7 +68,8 @@
   display: inline-block;
 }
 
-#monitorStatus #monitorState {
+.monitorStatus > .monitorState {
+  display: inline;
 }
 
 #replayStatus {

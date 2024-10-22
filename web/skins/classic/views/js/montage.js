@@ -1063,7 +1063,16 @@ function initPageLive() {
     }, 10*1000);
     setInterval(function() {
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
-        for (let i=0, length = monitors.length; i < length; i++) monitors[i].pause();
+        for (let i=0, length = monitors.length; i < length; i++) {
+          const monitor = monitors[i];
+          const objStream = getStream(monitor.id);
+          if (!objStream) continue;
+          if (objStream.src) {
+            monitor.pause();
+          } else {
+            console.log("It is not possible to pause a monitor with ID='"+monitor.id+"'"+" because it does not have the SRC attribute.");
+          }
+        }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')

@@ -341,6 +341,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
   std::unordered_map<std::string, std::string> alarms;
+  std::mutex   alarms_mutex;
 #endif
    public:
     explicit ONVIF(Monitor *parent_);

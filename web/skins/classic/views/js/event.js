@@ -967,12 +967,12 @@ function drawProgressBar() {
 
 // Shows current stream progress.
 function updateProgressBar() {
+  if (!eventData) return;
   if (vid) {
-    if (!eventData) return;
     var currentTime = vid.currentTime();
     var progressDate = new Date(currentTime);
   } else {
-    if (!(eventData && streamStatus)) return;
+    if (!streamStatus) return;
     var currentTime = streamStatus.progress;
     var progressDate = new Date(eventData.StartDateTime);
     progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
@@ -988,7 +988,8 @@ function updateProgressBar() {
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   console.log('progress');
-  $j('#progressBar').click(function(e) {
+  const progressBar = $j('#progressBar');
+  progressBar.click(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
@@ -998,7 +999,7 @@ function progressBarNav() {
     console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
     streamSeek(seekTime);
   });
-  $j('#progressBar').mouseover(function(e) {
+  progressBar.mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
@@ -1012,11 +1013,11 @@ function progressBarNav() {
     indicator.style.left = x + 'px';
     indicator.setAttribute('title', seekTime);
   });
-  $j('#progressBar').mouseout(function(e) {
+  progressBar.mouseout(function(e) {
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'none';
   });
-  $j('#progressBar').mousemove(function(e) {
+  progressBar.mousemove(function(e) {
     const bar = $j(this);
 
     let x = e.pageX - bar.offset().left;
@@ -1034,7 +1035,7 @@ function progressBarNav() {
     indicator.style.left = x+'px';
     indicator.setAttribute('title', seekTime);
   });
-}
+} // end function progressBarNav
 
 function handleClick(event) {
   if (panZoomEnabled) {

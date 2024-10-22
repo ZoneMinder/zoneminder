@@ -360,46 +360,24 @@ sub Sql {
     if ( @auto_terms ) {
       $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
-    if ( !$filter_expr->{sort_field} ) {
-      $filter_expr->{sort_field} = 'StartDateTime';
-      $filter_expr->{sort_asc} = 0;
+    if ($filter_expr->{sort_field}) {
+      my $sort_column = '';
+      if ( $filter_expr->{sort_field} eq 'MonitorName' ) {
+        $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
+        FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+        $sort_column = 'M.Name';
+      } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
+        $sort_column = 'E.StartDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
+        $sort_column = 'E.EndDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
+        $sort_column = 'E.Length';
+      } else {
+        $sort_column = 'E.'.$filter_expr->{sort_field};
+      }
+      my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
+      $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     }
-    my $sort_column = '';
-    if ( $filter_expr->{sort_field} eq 'Id' ) {
-      $sort_column = 'E.Id';
-    } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
-      $sort_column = 'M.Name';
-    } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
-      $sort_column = 'E.Name';
-    } elsif ( $filter_expr->{sort_field} eq 'StartDateTime' ) {
-      $sort_column = 'E.StartDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
-      $sort_column = 'E.StartDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
-      $sort_column = 'E.EndDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'EndDateTime' ) {
-      $sort_column = 'E.EndDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
-      $sort_column = 'E.Length';
-    } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
-      $sort_column = 'E.Frames';
-    } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
-      $sort_column = 'E.AlarmFrames';
-    } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
-      $sort_column = 'E.TotScore';
-    } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
-      $sort_column = 'E.AvgScore';
-    } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
-      $sort_column = 'E.MaxScore';
-    } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
-      $sort_column = 'E.DiskSpace';
-    } else {
-      $sort_column = 'E.StartDateTime';
-    }
-    my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }

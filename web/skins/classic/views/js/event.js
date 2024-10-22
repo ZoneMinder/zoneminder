@@ -480,7 +480,8 @@ function getCmdResponse(respObj, respText) {
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   //$j('#zoomValue').html(streamStatus.zoom);
-  $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
+  const pz = zmPanZoom.panZoom[eventData.MonitorId];
+  if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
   //if (streamStatus.zoom == '1.0') {
   //  setButtonState('zoomOutBtn', 'unavail');
   //} else {

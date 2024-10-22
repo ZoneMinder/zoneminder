@@ -202,6 +202,7 @@ $Frame = null;
 $Event = null;
 $path = null;
 $media_type='image/jpeg';
+$no_generate_scaled_jpeg = false;
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -448,6 +449,7 @@ Output was: '.implode(PHP_EOL,$output) );
 } else {
   $path = (strpos(validHtmlStr($_REQUEST['path']), '/') == 0) ? ZM_PATH_WEB.validHtmlStr($_REQUEST['path']) : ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/'.validHtmlStr($_REQUEST['path']);
   if ( !file_exists($path) ) return;
+  $no_generate_scaled_jpeg = true; //Firstly, this is not necessary, and secondly, the image may be located in a write-locked directory.
 }
 
 # we now load the actual image to send
@@ -549,7 +551,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         imagedestroy($i);
         imagedestroy($iScale);
         $scaled_jpeg_data = ob_get_contents();
-        file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
+        if (!$no_generate_scaled_jpeg) file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 
         echo $scaled_jpeg_data;
       }

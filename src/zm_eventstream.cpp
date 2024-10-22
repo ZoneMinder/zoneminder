@@ -642,13 +642,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
 
-
   struct {
     uint64_t event_id;
     //Microseconds duration;
     double duration;
     //Microseconds progress;
     double progress;
+    double fps;
     int rate;
     int zoom;
     int scale;
@@ -667,6 +667,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
     status_data.zoom = zoom;
     status_data.scale = scale;
     status_data.paused = paused;
+
+    FPSeconds elapsed = now - last_fps_update;
+    if (elapsed.count() > 0) {
+      actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
+      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f", actual_fps, frame_count, last_frame_count,
+          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count());
+      last_frame_count = frame_count;
+      last_fps_update = now;
+    }
+
+    status_data.fps = actual_fps;
+
     Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
           status_data.event_id,
           FPSeconds(status_data.duration).count(),
@@ -1026,6 +1038,7 @@ void EventStream::runStream() {
         zm_terminate = true;
         break;
       }
+      frame_count++;
     }
 
     {

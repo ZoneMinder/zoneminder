@@ -423,6 +423,9 @@ if ($video_tag) {
 ?>
                   <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+<?php if (!$video_tag) { ?>
+                  <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
+<?php } ?>
                 </div>
               </div><!--eventVideo-->
             </div><!--wrapperEventVideo-->

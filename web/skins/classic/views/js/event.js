@@ -26,7 +26,7 @@ var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//S
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
-var streamCmdTimer = null;
+var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
@@ -444,8 +444,6 @@ function getCmdResponse(respObj, respText) {
 
   zmsBroke = false;
 
-  if (streamCmdTimer) streamCmdTimer = clearTimeout(streamCmdTimer);
-
   streamStatus = respObj.status;
   if (!streamStatus) {
     console.log('No status in respObj');
@@ -459,7 +457,7 @@ function getCmdResponse(respObj, respText) {
     //streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
-  var eventId = streamStatus.event;
+  const eventId = streamStatus.event;
   if (lastEventId) {
     if (eventId != lastEventId) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
@@ -491,6 +489,12 @@ function getCmdResponse(respObj, respText) {
     console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
     streamScale(currentScale);
   }
+  console.log(streamStatus.fps);
+  fps = document.getElementById('fpsValue');
+  if (fps) {
+    fps.innerHTML = streamStatus.fps;
+  }
+
 
   updateProgressBar();
 
@@ -498,7 +502,6 @@ function getCmdResponse(respObj, respText) {
     auth_hash = streamStatus.auth;
   } // end if have a new auth hash
 
-  streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -1390,7 +1393,7 @@ function initPage() {
       vid.playbackRate(rate/100);
     }
   } else {
-    streamCmdTimer = setTimeout(streamQuery, 500);
+    streamCmdInterval = setInterval(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
     if (canStreamNative) {
       if (!$j('#videoFeed')) {
         console.log('No element with id tag videoFeed found.');

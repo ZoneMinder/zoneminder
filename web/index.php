@@ -55,7 +55,7 @@ if (ZM_LOCALE_DEFAULT) {
   $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 }
 if (ZM_DATE_FORMAT_PATTERN) {
-  $dateFormatter->setPatter(ZM_DATE_FORMAT_PATTERN);
+  $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
 }
 if (ZM_DATETIME_FORMAT_PATTERN) {
   $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);

@@ -33,8 +33,20 @@ if ($action == 'delete') {
     $error_message .= 'You do not have System Edit permissions, you cannot delete files.<br/>';
     return;
   } // end if canEdit(System)
+
+  $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : ZM_DIR_EVENTS;
+  $is_ok_path = false;
+  foreach (ZM\Storage::find() as $storage) {
+    $rc = strstr($path, $storage->Path(), true);
+    if ((false !== $rc) and ($rc == '')) {
+      # Must be at the beginning
+      $is_ok_path = true;
+    }
+  }
+  $path_parts = pathinfo($path);
+
   foreach ($_REQUEST['files'] as $file) {
-    $full_path = $_REQUEST['path'].'/'.$file;
+    $full_path = $path.'/'.detaintPath($file);
     if (is_file($full_path)) {
       unlink($full_path);
     } else {

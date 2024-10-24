@@ -114,8 +114,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       while (rit != pktQueue.rend()) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
         if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          if (prev_packet->keyframe) break;
           packet_count ++;
+          if (prev_packet->keyframe) break;
         }
         ++rit;
       }

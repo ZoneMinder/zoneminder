@@ -136,6 +136,7 @@ height: 100%;
 }
 
 #monitorStatus #monitorState {
+  display: inline;
 }
 
 #dvrControls {

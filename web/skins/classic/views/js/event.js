@@ -502,7 +502,6 @@ function getCmdResponse(respObj, respText) {
   if (streamStatus.auth) {
     auth_hash = streamStatus.auth;
   } // end if have a new auth hash
-
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {

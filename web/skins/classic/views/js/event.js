@@ -491,7 +491,7 @@ function getCmdResponse(respObj, respText) {
     streamScale(currentScale);
   }
   console.log(streamStatus.fps);
-  fps = document.getElementById('fpsValue');
+  const fps = document.getElementById('fpsValue');
   if (fps) {
     fps.innerHTML = streamStatus.fps;
   }

@@ -173,7 +173,7 @@ if ($locale) {
     $locale = locale_get_default();
   }
 } else {
-  ZM\Warning('No locale set');
+  #ZM\Debug('Using system locale');
   $locale = locale_get_default();
 }
 

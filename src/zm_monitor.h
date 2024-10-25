@@ -738,7 +738,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if (!packetqueue.get_max_keyframe_interval()) {
-      Debug(4, "No keyframe interval.");
+      Debug(4, "Not ready because no keyframe interval.");
       return false;
     }
     if (decoding_image_count >= ready_count) {

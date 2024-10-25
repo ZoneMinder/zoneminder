@@ -491,7 +491,7 @@ function getCmdResponse(respObj, respText) {
     streamScale(currentScale);
   }
   console.log(streamStatus.fps);
-  fps = document.getElementById('fpsValue');
+  const fps = document.getElementById('fpsValue');
   if (fps) {
     fps.innerHTML = streamStatus.fps;
   }
@@ -502,7 +502,6 @@ function getCmdResponse(respObj, respText) {
   if (streamStatus.auth) {
     auth_hash = streamStatus.auth;
   } // end if have a new auth hash
-
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {

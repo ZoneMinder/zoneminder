@@ -42,27 +42,7 @@ if ( false ) {
   ob_end_clean();
 }
 
-global $dateFormatter;
-global $dateTimeFormatter;
-global $timeFormatter;
-$dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-$dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
-$timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 require_once('includes/config.php');
-if (ZM_LOCALE_DEFAULT) {
-  $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-  $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
-  $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
-}
-if (ZM_DATE_FORMAT_PATTERN) {
-  $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
-}
-if (ZM_DATETIME_FORMAT_PATTERN) {
-  $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
-}
-if (ZM_TIME_FORMAT_PATTERN) {
-  $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
-}
 require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');

@@ -2595,7 +2595,9 @@ int Monitor::Capture() {
   packet->timestamp = std::chrono::system_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d", captureResult, shared_data->image_count);
+  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
+      static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
+      );
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -2792,7 +2794,7 @@ bool Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
     } else {
-      Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());

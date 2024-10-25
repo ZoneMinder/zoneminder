@@ -163,41 +163,51 @@ $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFo
 require_once('database.php');
 require_once('logger.php');
 loadConfig();
+ZM\Logger::fetch()->initialise();
+
 $locale = ZM_LOCALE_DEFAULT;
-if (!$locale) {
+$locales = ResourceBundle::getLocales('');
+if ($locale) {
+  if (!array_search($locale, $locales)) {
+    ZM\Warning("Locale $locale does not seem to be valid.");
+    $locale = locale_get_default();
+  }
+} else {
+  ZM\Warning('No locale set');
   $locale = locale_get_default();
 }
 
-if ($locale) {
-  try {
-    if (ZM_TIMEZONE) {
-      $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
-      $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
-      $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
-    } else {
-      $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-      $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
-      $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
-    }
-  } catch(Exception $e) {
-    error_log($e->getMessage());
-    $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-    $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
-    $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+try {
+  if (ZM_TIMEZONE) {
+    $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
+    $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
+    $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
+  } else {
+    $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+    $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+    $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
   }
-} else {
-  Z\Debug("NO locale set");
+} catch(Exception $e) {
+  error_log($e->getMessage());
+  $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+  $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+  $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 }
-if (ZM_DATE_FORMAT_PATTERN) {
-  $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
+
+try {
+  # PHP 8.1.26 made these throw an exception if locale is invalid so have to try
+  if (ZM_DATE_FORMAT_PATTERN) {
+    $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
+  }
+  if (ZM_DATETIME_FORMAT_PATTERN) {
+    $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
+  }
+  if (ZM_TIME_FORMAT_PATTERN) {
+    $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
+  }
+} catch(\Error $e) {
+  error_log($e->getMessage());
 }
-if (ZM_DATETIME_FORMAT_PATTERN) {
-  $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
-}
-if (ZM_TIME_FORMAT_PATTERN) {
-  $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
-}
-ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
   'Id'        => 0,

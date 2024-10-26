@@ -1271,6 +1271,7 @@ class Filter extends ZM_Object {
           $options = [
             'Motion' => 'Motion',
             'ONVIF' => 'ONVIF',
+            'Linked' => 'Linked',
             'detected' => 'Any Object',
             'aplr' => 'Any license plate',
             'person'=>'Person',

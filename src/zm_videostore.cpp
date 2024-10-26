@@ -1329,8 +1329,8 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
     ipkt->pts = ipkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
 
-    Debug(2, "dts from timestamp, set to (%" PRId64 ") secs(%.2f)",
-        ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
+    Debug(2, "dts %" PRId64 " from timestamp %" PRId64 " secs(%.2f)",
+        ipkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
   }
 
   if (audio_first_dts == AV_NOPTS_VALUE) {
@@ -1397,7 +1397,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       opkt->dts = ipkt->dts;
     }
 
-    ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "after pts adjustment");
+    ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
     av_packet_rescale_ts(opkt.get(), audio_in_stream->time_base, audio_out_stream->time_base);
     ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(opkt.get(), audio_out_stream);

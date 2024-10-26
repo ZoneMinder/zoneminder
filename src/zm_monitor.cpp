@@ -3377,16 +3377,7 @@ int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) {
-    Debug(1, "Decoder stopping");
-    decoder->Stop();
-    Debug(1, "Decoder stopped");
-  }
-
-  if (convert_context) {
-    sws_freeContext(convert_context);
-    convert_context = nullptr;
-  }
+  if (decoder) decoder->Stop();
 
   if (analysis_thread) {
     analysis_thread->Stop();
@@ -3396,6 +3387,13 @@ int Monitor::Pause() {
   Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
+
+  if (decoder) decoder->Join();
+  if (convert_context) {
+    sws_freeContext(convert_context);
+    convert_context = nullptr;
+  }
+  if (analysis_thread) analysis_thread->Join();
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

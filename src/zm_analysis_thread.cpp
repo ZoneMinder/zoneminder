@@ -24,6 +24,9 @@ void AnalysisThread::Start() {
 void AnalysisThread::Stop() {
   terminate_ = true;
 }
+void AnalysisThread::Join() {
+  if (thread_.joinable()) thread_.join();
+}
 
 void AnalysisThread::Run() {
   while (!(terminate_ or zm_terminate)) {

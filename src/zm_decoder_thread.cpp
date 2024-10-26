@@ -23,6 +23,10 @@ void DecoderThread::Stop() {
   terminate_ = true;
 }
 
+void DecoderThread::Join() {
+  if (thread_.joinable()) thread_.join();
+}
+
 void DecoderThread::Run() {
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 

@@ -3375,9 +3375,6 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
@@ -3395,6 +3392,10 @@ int Monitor::Pause() {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
   }
+
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

@@ -293,9 +293,11 @@ int main(int argc, char *argv[]) {
         if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) {
           SystemTimePoint now = std::chrono::system_clock::now();
           monitors[i]->SetHeartbeatTime(now);
-          int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - monitors[i]->getLastViewed();
 
-          if (since_last_view > 10 and monitors[i]->Ready()) {
+          time_t last_viewed = monitors[i]->getLastViewed();
+          int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - last_viewed;
+          Debug(1, "Last view %jd= %" PRId64 " seconds since last view", last_viewed, since_last_view);
+          if (((!last_viewed) or (since_last_view > 10)) and (monitors[i]->GetLastWriteIndex() != monitors[i]->GetImageBufferCount())) {
             if (monitors[i]->getCamera()->isPrimed()) {
               monitors[i]->Pause();
             }
@@ -303,10 +305,12 @@ int main(int argc, char *argv[]) {
             result = 0;
             continue;
           } else if (!monitors[i]->getCamera()->isPrimed()) {
-            if (1 > (result = monitors[i]->Play()))
+            if (1 > (result = monitors[i]->Play())) {
+              Debug(1, "Failed to play");
               break;
+            }
           }
-        }
+        } // end if ONDEMAND
 
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",

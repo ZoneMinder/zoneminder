@@ -663,9 +663,14 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
+    const monitorId = stringToNumber(event.target.id);
+    if (monitorId && zmPanZoom.panZoom[monitorId]) {
+      zmPanZoom.panZoom[monitorId].reset();
+    } else {
+      console.err("No panZoom found for ", monitorId, event);
+    }
   }
-}
+} // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors

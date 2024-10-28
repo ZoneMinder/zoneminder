@@ -2751,11 +2751,11 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
+
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
     Debug(4, "Not video");
-    //packetqueue.unlock(packet_lock);
     delete packet_lock;
     return true; // Don't need decode
   }
@@ -2763,7 +2763,7 @@ bool Monitor::Decode() {
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
-        ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
+        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
         or
@@ -3388,12 +3388,19 @@ int Monitor::Pause() {
   // Wake everyone up
   packetqueue.stop();
 
-  if (decoder) decoder->Join();
-  if (convert_context) {
-    sws_freeContext(convert_context);
-    convert_context = nullptr;
+  if (decoder) {
+    Debug(1, "Joining decode");
+    decoder->Join();
+
+    if (convert_context) {
+      sws_freeContext(convert_context);
+      convert_context = nullptr;
+    }
   }
-  if (analysis_thread) analysis_thread->Join();
+  if (analysis_thread) {
+    Debug(1, "Joining analysis");
+    analysis_thread->Join();
+  }
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

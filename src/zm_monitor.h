@@ -685,7 +685,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     }
     return false;
   }
-
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
   inline bool Deleted() const { return deleted; }
@@ -767,17 +766,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
-      Debug(3, "Last viewed %" PRId64 " seconds ago",
-            static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
-            -
-            shared_data->last_viewed_time
-           );
-      return (
-               (
-                 static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
-                 -
-                 shared_data->last_viewed_time
-               ) > 10 ? false : true);
+      int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
+      Debug(3, "Last viewed %" PRId64 " seconds ago", intNow - shared_data->last_viewed_time);
+      return (((!shared_data->last_viewed_time) or ((intNow - shared_data->last_viewed_time)) > 10)) ? false : true;
     }
     return false;
   }

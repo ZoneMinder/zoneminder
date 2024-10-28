@@ -545,6 +545,7 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
     // reorder_queue is for avformat not codec
     av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
   }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 

@@ -840,8 +840,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   Microseconds GetCaptureDelay() const { return capture_delay; }
   Microseconds GetAlarmCaptureDelay() const { return alarm_capture_delay; }
-  unsigned int GetLastReadIndex() const;
-  unsigned int GetLastWriteIndex() const;
+  int GetLastReadIndex() const;
+  int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateFPS();

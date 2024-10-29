@@ -664,8 +664,6 @@ function MonitorStream(monitorData) {
               }
             }
             this.buttons.forceAlarmButton.prop('disabled', false);
-          } else {
-            console.log("No forceAlarmButton");
           }
         } // end if canEdit.Monitors
 
@@ -770,8 +768,6 @@ function MonitorStream(monitorData) {
             }
           }
           this.buttons.forceAlarmButton.prop('disabled', false);
-        } else {
-          console.log("No forceAlarmButton");
         }
       } else {
         console.log("Can't edit");

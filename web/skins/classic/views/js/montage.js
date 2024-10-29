@@ -1185,15 +1185,17 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
-    //Start monitors when show page
-    for (let i = 0, length = monitors.length; i < length; i++) {
-      const monitor = monitors[i];
+    if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+      //Start monitors when show page
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        const monitor = monitors[i];
 
-      const isOut = isOutOfViewport(monitor.getElement());
-      if ((!isOut.all) && !monitor.started) {
-        monitor.start();
-      }
-    }
+        const isOut = isOutOfViewport(monitor.getElement());
+        if ((!isOut.all) && !monitor.started) {
+          monitor.start();
+        }
+      } // end foreach monitor
+    } // end if not AYSW
   }
 };
 

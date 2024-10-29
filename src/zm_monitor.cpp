@@ -1378,11 +1378,11 @@ SystemTimePoint Monitor::GetTimestamp(int index) const {
   return {};
 }
 
-unsigned int Monitor::GetLastReadIndex() const {
+int Monitor::GetLastReadIndex() const {
   return ( shared_data->last_read_index != image_buffer_count ? shared_data->last_read_index : -1 );
 }
 
-unsigned int Monitor::GetLastWriteIndex() const {
+int Monitor::GetLastWriteIndex() const {
   return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
 }
 

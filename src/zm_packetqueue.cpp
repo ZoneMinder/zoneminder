@@ -114,8 +114,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       while (rit != pktQueue.rend()) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
         if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          if (prev_packet->keyframe) break;
           packet_count ++;
+          if (prev_packet->keyframe) break;
         }
         ++rit;
       }
@@ -295,7 +295,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
 
-  int keyframe_interval_count = 1;
+  int keyframe_interval_count = 0;
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
@@ -428,6 +428,7 @@ void PacketQueue::clear() {
   delete[] packet_counts;
   packet_counts = nullptr;
   max_stream_id = -1;
+  max_keyframe_interval_ = 0;
 
   Debug(1, "Packetqueue is clear, notifying");
   condition.notify_all();

@@ -666,8 +666,6 @@ function MonitorStream(monitorData) {
               }
             }
             this.buttons.forceAlarmButton.prop('disabled', false);
-          } else {
-            console.log("No forceAlarmButton");
           }
         } // end if canEdit.Monitors
 
@@ -772,8 +770,6 @@ function MonitorStream(monitorData) {
             }
           }
           this.buttons.forceAlarmButton.prop('disabled', false);
-        } else {
-          console.log("No forceAlarmButton");
         }
       } else {
         console.log("Can't edit");
@@ -866,9 +862,14 @@ function MonitorStream(monitorData) {
   }
   this.analyse_frames = true;
   this.show_analyse_frames = function(toggle) {
-    this.analyse_frames = toggle;
-    this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
-    this.streamCmdReq(this.streamCmdParms);
+    const streamImage = this.getElement();
+    if (streamImage.nodeName == 'IMG') {
+      this.analyse_frames = toggle;
+      this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
+      this.streamCmdReq(this.streamCmdParms);
+    } else {
+      console.log("Not streaming from zms, can't show analysis frames");
+    }
   };
 
   this.setMaxFPS = function(maxfps) {

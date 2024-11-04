@@ -807,9 +807,14 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
+    const monitorId = stringToNumber(event.target.id);
+    if (monitorId && zmPanZoom.panZoom[monitorId]) {
+      zmPanZoom.panZoom[monitorId].reset();
+    } else {
+      console.err("No panZoom found for ", monitorId, event);
+    }
   }
-}
+} // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
@@ -933,14 +938,16 @@ function initPage() {
       //onvisibilitychangeTriggered = false;
       //Start monitors when show page
       if (montageMode == 'Live') {
-        for (let i = 0, length = monitors.length; i < length; i++) {
-          const monitor = monitors[i];
-          const isOut = isOutOfViewport(monitor.getElement());
-          if ((!isOut.all) && !monitor.started && monitorDisplayedOnPage(monitor.id)) {
-            console.log("*********monitor.start() " + i + " in LIVE mode");
-            monitor.start();
-          }
-        }
+        if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+          for (let i = 0, length = monitors.length; i < length; i++) {
+            const monitor = monitors[i];
+            const isOut = isOutOfViewport(monitor.getElement());
+            if ((!isOut.all) && !monitor.started && monitorDisplayedOnPage(monitor.id)) {
+              console.log("*********monitor.start() " + i + " in LIVE mode");
+              monitor.start();
+            }
+          } // end foreach monitor
+        } // end if not AYSW
       } else { //inRecording
         if(eventsPlay) {
 console.log("*********startAllEvents in RECORDING mode");

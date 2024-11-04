@@ -292,7 +292,7 @@ class Monitor extends ZM_Object {
     'EventCloseMode'    => 'system',
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
-    'AnalysisFPSLimit'  =>  2,
+    'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2 ],
     'AnalysisUpdateDelay'  =>  0,
     'MaxFPS' => null,
     'AlarmMaxFPS' => null,

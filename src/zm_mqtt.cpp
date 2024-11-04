@@ -60,8 +60,8 @@ void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {
   Debug(1, "MQTT: Subscribed to topic ");
 }
 
-void MQTT::on_publish() {
-  Debug(1, "MQTT: on_publish ");
+void MQTT::on_publish(int mid) {
+  Debug(1, "MQTT: on_publish %d", mid);
 }
 
 void MQTT::send(const std::string &message) {

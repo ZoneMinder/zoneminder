@@ -716,7 +716,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
-  Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+  Debug(1, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
 #else
   Debug(1, "Not compiled with MQTT");
 #endif
@@ -1378,11 +1378,11 @@ SystemTimePoint Monitor::GetTimestamp(int index) const {
   return {};
 }
 
-unsigned int Monitor::GetLastReadIndex() const {
+int Monitor::GetLastReadIndex() const {
   return ( shared_data->last_read_index != image_buffer_count ? shared_data->last_read_index : -1 );
 }
 
-unsigned int Monitor::GetLastWriteIndex() const {
+int Monitor::GetLastWriteIndex() const {
   return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
 }
 
@@ -2595,7 +2595,9 @@ int Monitor::Capture() {
   packet->timestamp = std::chrono::system_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d", captureResult, shared_data->image_count);
+  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
+      static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
+      );
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -2749,11 +2751,11 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
+
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
     Debug(4, "Not video");
-    //packetqueue.unlock(packet_lock);
     delete packet_lock;
     return true; // Don't need decode
   }
@@ -2761,7 +2763,7 @@ bool Monitor::Decode() {
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
-        ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
+        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
         or
@@ -2792,7 +2794,7 @@ bool Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
     } else {
-      Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
@@ -3373,25 +3375,31 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
 
   // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) {
-    Debug(1, "Decoder stopping");
-    decoder->Stop();
-    Debug(1, "Decoder stopped");
-  }
-
-  if (convert_context) {
-    sws_freeContext(convert_context);
-    convert_context = nullptr;
-  }
+  if (decoder) decoder->Stop();
 
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
+  }
+
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+
+  if (decoder) {
+    Debug(1, "Joining decode");
+    decoder->Join();
+
+    if (convert_context) {
+      sws_freeContext(convert_context);
+      convert_context = nullptr;
+    }
+  }
+  if (analysis_thread) {
+    Debug(1, "Joining analysis");
+    analysis_thread->Join();
   }
 
   // Must close event before closing camera because it uses in_streams

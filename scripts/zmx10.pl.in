@@ -36,7 +36,7 @@ management of the ZM daemons based on the receipt of X10 signals.
 
 =head1 OPTIONS
 
- -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','status','shutdown'
+ -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
  -v, --verison                           - Pirnts the currently installed version of ZoneMinder

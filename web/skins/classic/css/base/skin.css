@@ -161,6 +161,9 @@ input[disabled] {
 .modal img {
     max-width: 100%;
 }
+.modal table {
+  width: 100%;
+}
 img {
   display: inline-block;
 }

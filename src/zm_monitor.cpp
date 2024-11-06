@@ -3396,6 +3396,7 @@ int Monitor::Pause() {
       sws_freeContext(convert_context);
       convert_context = nullptr;
     }
+    decoding_image_count = 0;
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");

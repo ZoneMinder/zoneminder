@@ -42,8 +42,7 @@ function parentGrpSelect($newGroup) {
   }
 
   $kids = get_children($newGroup);
-  if ( $newGroup->Id() )
-    $kids[] = $newGroup->Id();
+  if ( $newGroup->Id() ) $kids[] = $newGroup->Id();
   $sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
   $options = array(''=>'None');
 
@@ -61,7 +60,7 @@ function monitorList($newGroup) {
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
-      $result .= '<option value="' .$monitor['Id']. '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
+      $result .= '<option value="' .$monitor['Id']. '"' .( in_array($monitor['Id'], $monitorIds, true) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
     }
   }
   
@@ -116,7 +115,7 @@ if ( !empty($_REQUEST['gid']) ) {
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('Monitor') ?></th>
                 <td>
-                  <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configModalBtns">
+                  <select name="newGroup[MonitorIds][]" id="newGroupMonitorIds" class="chosen" multiple="multiple" data-on-change="configModalBtns">
                     <?php echo monitorList($newGroup) ?>
                   </select>
                 </td>

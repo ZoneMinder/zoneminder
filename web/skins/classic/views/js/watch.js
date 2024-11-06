@@ -1431,8 +1431,9 @@ function monitorsSetScale(id=null) {
 $j( window ).on("load", initPage);
 
 document.onvisibilitychange = () => {
+  // Always clear it because the return to visibility might happen before timeout
+  TimerHideShow = clearTimeout(TimerHideShow);
   if (document.visibilityState === "hidden") {
-    TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       if (monitorStream) {

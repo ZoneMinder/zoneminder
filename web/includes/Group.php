@@ -46,7 +46,10 @@ class Group extends ZM_Object {
   } // end public function depth
 
   public function MonitorIds( ) {
-    if ( ! property_exists($this, 'MonitorIds') ) {
+    if (!property_exists($this, 'MonitorIds')) {
+      if (!$this->{'Id'}) {
+        return $this->{'MonitorIds'} = [];
+      }
       $this->{'MonitorIds'} = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
     }
     return $this->{'MonitorIds'};

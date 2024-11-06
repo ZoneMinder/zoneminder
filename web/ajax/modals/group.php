@@ -56,7 +56,7 @@ function parentGrpSelect($newGroup) {
 function monitorList($newGroup) {
   $result = '';
 
-  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
+  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Deleted=false ORDER BY Sequence ASC');
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {

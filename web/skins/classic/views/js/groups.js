@@ -1,5 +1,6 @@
 // Manage the NEW Group button
 function newGroup() {
+  $j('#groupModal').remove();
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
         insertModalHtml('groupdModal', data.html);
@@ -20,6 +21,7 @@ function editGroup( element ) {
   if ( !gid ) {
     console.log('No group id found in editGroup');
   } else {
+    $j('#groupModal').remove();
     $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
         .done(function(data) {
           insertModalHtml('groupModal', data.html);

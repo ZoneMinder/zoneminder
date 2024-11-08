@@ -490,12 +490,10 @@ function getCmdResponse(respObj, respText) {
     console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
     streamScale(currentScale);
   }
-  console.log(streamStatus.fps);
   const fps = document.getElementById('fpsValue');
   if (fps) {
     fps.innerHTML = streamStatus.fps;
   }
-
 
   updateProgressBar();
 

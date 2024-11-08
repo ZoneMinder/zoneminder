@@ -253,6 +253,7 @@ function loadConfig( $defineConsts=true ) {
 } # end function loadConfig
 
 require_once('Server.php');
+global $Servers; # Ensure that it is global, api doesn't specifically make it so
 $Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 $thisServer = new ZM\Server();
 

@@ -663,9 +663,14 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
+    const monitorId = stringToNumber(event.target.id);
+    if (monitorId && zmPanZoom.panZoom[monitorId]) {
+      zmPanZoom.panZoom[monitorId].reset();
+    } else {
+      console.err("No panZoom found for ", monitorId, event);
+    }
   }
-}
+} // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
@@ -1180,15 +1185,17 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
-    //Start monitors when show page
-    for (let i = 0, length = monitors.length; i < length; i++) {
-      const monitor = monitors[i];
+    if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+      //Start monitors when show page
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        const monitor = monitors[i];
 
-      const isOut = isOutOfViewport(monitor.getElement());
-      if ((!isOut.all) && !monitor.started) {
-        monitor.start();
-      }
-    }
+        const isOut = isOutOfViewport(monitor.getElement());
+        if ((!isOut.all) && !monitor.started) {
+          monitor.start();
+        }
+      } // end foreach monitor
+    } // end if not AYSW
   }
 };
 

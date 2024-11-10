@@ -104,10 +104,35 @@ if ($path) {
             <tr>
               <th class="colSelect"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="files[]" data-on-click-this="updateFormCheckboxesByName"></th>
               <th class="colName"><?php echo translate('Filename') ?></th>
+              <th class="colMtime"><?php echo translate('Last Modified') ?></th>
+              <th class="colSize"><?php echo translate('Size') ?></th>
             </tr>
           </thead>
           <tbody>
 <?php
+function get_dir_size($dir_path) {
+  $size = 0;
+  $entries = is_readable($dir_path) ? scandir($dir_path) : array();
+  foreach ($entries as $file) {
+    if ($file == '.' || $file == '..') {
+      continue;
+    }
+    $full_path = $dir_path.'/'.$file;
+    if (@is_file($full_path)) {
+      $stat = stat($full_path);
+      if (!$stat) {
+        ZM\Error("Fail to stat $full_path");
+        continue;
+      }
+      $size += $stat[7];
+    } else if (@is_dir($full_path)) {
+      $size += get_dir_size($full_path);
+    }
+  } # end foreach
+  return $size;
+} # end function get_dir_size
+      
+
 if ($path) {
   $entries = is_readable($path) ? scandir($path) : array();
   foreach ($entries as $file) {
@@ -139,17 +164,25 @@ if ($parent != '') {
 </tr>';
 }
 foreach ($folders as $folder) {
-  $url = urlencode(($path?$path.'/':'').$folder);
+  $full_path = ($path?$path.'/':'').$folder;
+  $url = urlencode($full_path);
+  $stat = stat($full_path);
   echo '
 <tr>
   <td class="colSelect"><input type="checkbox" name="files[]" value="'.validHtmlStr($folder).'"/></td>
   <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($folder).'</a></td>
+  <td class="colMtime">'.$dateTimeFormatter->format($stat[9]).'</td>
+  <td class="colSize">'.human_filesize(get_dir_size($full_path)).'</td>
 </tr>';
 }
 foreach ($files as $file) {
-  $url = urlencode($path.'/'.$file);
+  $full_path = ($path?$path.'/':'').$file;
+  $url = urlencode($full_path);
+  $stat = stat($full_path);
   echo '<tr><td class="colSelect"><input type="checkbox" name="files[]" value="'.validHtmlStr($file).'"/></td>
      <td><span class="material-icons md-18">'.guess_material_icon($file).'</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($file).'</a></td>
+     <td class="colMtime">'.$dateTimeFormatter->format($stat[9]).'</td>
+     <td class="colSize">'.human_filesize($stat[7]).'</td>
      </tr>';
 }
 

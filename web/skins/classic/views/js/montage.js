@@ -667,7 +667,7 @@ function fullscreenchanged(event) {
     if (monitorId && zmPanZoom.panZoom[monitorId]) {
       zmPanZoom.panZoom[monitorId].reset();
     } else {
-      console.err("No panZoom found for ", monitorId, event);
+      console.error("No panZoom found for ", monitorId, event);
     }
   }
 } // end function fullscreenchanged(event)

@@ -29,6 +29,7 @@ $tabs = array();
 if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
+$tabs['auth'] = translate('Authentication');
 $tabs['config'] = translate('Config');
 if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
   $tabs['dnsmasq'] = translate('DHCP');

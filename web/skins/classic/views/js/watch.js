@@ -1012,8 +1012,6 @@ function initPage() {
     });
     setInterval(function() {
       idle += 10;
-    }, 10*1000);
-    setInterval(function() {
       if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
         streamCmdPause(true);
         const cycle_was = cycle;
@@ -1023,7 +1021,7 @@ function initPage() {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
-                $j('#AYSWYesBtn').on('click', function() {
+                ayswModal.on('hidden.bs.modal', function() {
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
                   idle = 0;

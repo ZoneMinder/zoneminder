@@ -132,7 +132,7 @@ while (!$zm_terminate) {
         Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
-          if ($control and $control->CanReboot() and $control->open()) {
+          if ($control and $control->CanReboot() and $control->ping() and $control->open()) {
             $control->reboot();
           }
         }

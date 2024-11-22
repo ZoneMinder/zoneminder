@@ -212,6 +212,9 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   zm_session_start();
   $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
   session_write_close();
+  ZM\Debug("Redirecting to $redirect");
+  header('Location: '.$redirect);
+  return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
   $redirect = '?view=privacy';

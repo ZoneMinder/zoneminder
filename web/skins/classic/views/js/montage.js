@@ -769,8 +769,9 @@ function initPage() {
     setInterval(function() {
       idle += 10;
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
-        for (let i=0, length = monitors.length; i < length; i++)
+        for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].pause();
+        }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')

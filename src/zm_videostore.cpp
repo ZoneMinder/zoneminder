@@ -150,8 +150,12 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      reorder_queue_size = std::stoul(entry->value);
-      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+      if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
+        Debug(1, "reorder_queue_size ignored for non-passthrough");
+      } else {
+        reorder_queue_size = std::stoul(entry->value);
+        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+      }
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     }
@@ -1253,7 +1257,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     frame->pkt_duration = 0;
 #endif
 
-    int64_t in_pts = zm_packet->timestamp.tv_sec * (uint64_t)1000000 + zm_packet->timestamp.tv_usec;
+    int64_t in_pts = (zm_packet->timestamp.tv_sec * (uint64_t)1000000) + zm_packet->timestamp.tv_usec;
     if (video_first_pts == AV_NOPTS_VALUE) {
       video_first_pts = in_pts;
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%" PRIi64 ") usecs(%" PRIi64 ")",
@@ -1269,7 +1273,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             frame_count,
             frame->pts,
             video_first_pts,
-            useconds,
+            in_pts,
             static_cast<int64>(zm_packet->timestamp.tv_sec),
             static_cast<int64>(zm_packet->timestamp.tv_usec),
             video_out_ctx->time_base.num,

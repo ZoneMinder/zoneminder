@@ -740,8 +740,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       Debug(4, "Not ready because no keyframe interval.");
       return false;
     }
-    if (decoding_image_count >= ready_count) {
-      Debug(4, "Ready because image_count(%d) >= ready_count(%d)", decoding_image_count, ready_count);
+    if (decoding_image_count > ready_count) {
+      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
       return true;
     }
     Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);

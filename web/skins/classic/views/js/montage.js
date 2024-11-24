@@ -811,7 +811,7 @@ function fullscreenchanged(event) {
     if (monitorId && zmPanZoom.panZoom[monitorId]) {
       zmPanZoom.panZoom[monitorId].reset();
     } else {
-      console.err("No panZoom found for ", monitorId, event);
+      console.error("No panZoom found for ", monitorId, event);
     }
   }
 } // end function fullscreenchanged(event)
@@ -1067,8 +1067,6 @@ function initPageLive() {
     });
     setInterval(function() {
       idle += 10;
-    }, 10*1000);
-    setInterval(function() {
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
         for (let i=0, length = monitors.length; i < length; i++) {
           const monitor = monitors[i];
@@ -1085,7 +1083,7 @@ function initPageLive() {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
-                $j('#AYSWYesBtn').on('click', function() {
+                ayswModal.on('hidden.bs.modal', function() {
                   for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
                   idle = 0;
                 });

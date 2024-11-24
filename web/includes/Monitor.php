@@ -652,7 +652,7 @@ class Monitor extends ZM_Object {
     } else if ($this->ServerId()) {
       $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json');
     } else {
-      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
+      Error('Server not assigned to Monitor '.$this->{'Id'}.' in a multi-server setup. Please assign a server to the Monitor.');
     }
   } // end function zmcControl
 

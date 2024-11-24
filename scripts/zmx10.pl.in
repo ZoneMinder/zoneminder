@@ -36,7 +36,7 @@ management of the ZM daemons based on the receipt of X10 signals.
 
 =head1 OPTIONS
 
- -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','status','shutdown'
+ -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
  -v, --verison                           - Pirnts the currently installed version of ZoneMinder
@@ -204,13 +204,13 @@ sub runServer {
   my $reload_count = 0;
   my $reload_limit = $Config{ZM_X10_DB_RELOAD_INTERVAL} / $timeout;
   while ( !$zm_terminate ) {
-    Debug("Selecting for $timeout");
+    Debug(2, "Selecting for $timeout");
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     #print( "Off select, NF:$nfound, ER:$!\n" );
     #print( vec( $rout, fileno(SERVER),1)."\n" );
     #print( vec( $rout, $x10->select_fds(),1)."\n" );
     if ( $nfound > 0 ) {
-      Debug("Nfound $nfound");
+      Debug(2, "Nfound $nfound");
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
         my $message = <CLIENT>;
@@ -281,10 +281,10 @@ sub runServer {
       if ( $! != EINTR ) {
         Fatal("Can't select: $!");
       } else {
-        Debug("Nfound $nfound $!");
+        Debug(2, "Nfound $nfound $!");
       }
     } else {
-      Debug("Select timed out");
+      Debug(2, "Select timed out");
       # Check for state changes
       foreach my $monitor_id ( sort(keys(%monitor_hash) ) ) {
         my $monitor = $monitor_hash{$monitor_id};

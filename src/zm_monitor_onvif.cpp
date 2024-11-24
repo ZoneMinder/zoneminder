@@ -259,7 +259,7 @@ void Monitor::ONVIF::WaitForMessage() {
 //ONVIF Set Credentials
 void Monitor::ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
-  soap_wsse_add_Timestamp(soap, nullptr, 10);
+  soap_wsse_add_Timestamp(soap, "Time", 10);
   soap_wsse_add_UsernameTokenDigest(soap, "Auth", parent->onvif_username.c_str(), parent->onvif_password.c_str());
 }
 

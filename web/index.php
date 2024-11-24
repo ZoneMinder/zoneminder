@@ -212,6 +212,9 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   zm_session_start();
   $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
   session_write_close();
+  ZM\Debug("Redirecting to $redirect");
+  header('Location: '.$redirect);
+  return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
   $redirect = '?view=privacy';
@@ -249,6 +252,10 @@ if ( $request ) {
 
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));
+if (!$view) {
+  ZM\Debug(1, "Empty view, defaulting to home view");
+  $view = getHomeView();
+}
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
   CSPHeaders($view, $cspNonce);

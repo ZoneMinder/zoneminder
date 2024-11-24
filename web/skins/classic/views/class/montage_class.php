@@ -1196,7 +1196,7 @@ $start_ = microtime(true);
               LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
               LEFT JOIN Tags AS T ON T.Id = ET.TagId 
             ';
-            $group .= ($group) ? ', ET.EventId' : ' GROUP BY ET.EventId';
+            //$group .= ($group) ? ', ET.EventId' : ' GROUP BY ET.EventId';
           }
         }
       }

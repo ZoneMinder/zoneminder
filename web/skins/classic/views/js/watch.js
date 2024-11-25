@@ -818,8 +818,10 @@ function streamPrepareStart(monitor=null) {
   });
 
   const el = document.querySelector('.imageFeed');
-  el.addEventListener('mouseenter', handleMouseEnter);
-  el.addEventListener('mouseleave', handleMouseLeave);
+  if (el) {
+    el.addEventListener('mouseenter', handleMouseEnter);
+    el.addEventListener('mouseleave', handleMouseLeave);
+  }
 
   const i = setInterval(function() {
     if (document.querySelector('[id ^= "liveStream"]').offsetHeight > 20) {

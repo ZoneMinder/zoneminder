@@ -37,8 +37,14 @@ if ($action == 'Save') {
     }
     # What other tests should we do?
 
-    if (isset($_REQUEST['newUser']['MonitorIds']) and is_array($_REQUEST['newUser']['MonitorIds']))
-      $_REQUEST['newUser']['MonitorIds'] = implode(',', $_REQUEST['newUser']['MonitorIds']);
+    if (isset($_REQUEST['newUser']['MonitorIds'])) {
+      if (is_array($_REQUEST['newUser']['MonitorIds'])) {
+        $_REQUEST['newUser']['MonitorIds'] = implode(',', $_REQUEST['newUser']['MonitorIds']);
+      }
+    } else {
+      # If nothing is selected, it won't exist in _REQUEST 
+      $_REQUEST['newUser']['MonitorIds'] = '';
+    }
     if (!empty($_REQUEST['newUser']['Password'])) {
       $_REQUEST['newUser']['Password'] = password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT);
     } else {

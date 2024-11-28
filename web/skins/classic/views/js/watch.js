@@ -636,7 +636,7 @@ function updatePresetLabels() {
 
 function changeControl(e) {
   const input = e.target;
-  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value)
+  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value+'&'+auth_relay)
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
@@ -654,9 +654,12 @@ function changeControl(e) {
 }
 
 function getSettingsModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId+'&'+auth_relay)
       .done(function(data) {
+        let modal = $j('#settingsModal');
+        if (modal.length) modal.remove();
         insertModalHtml('settingsModal', data.html);
+        modal = $j('#settingsModal');
         // Manage the Save button
         $j('#settingsSubmitModal').click(function(evt) {
           evt.preventDefault();
@@ -748,19 +751,22 @@ function controlSetClicked() {
 }
 
 function streamPrepareStart(monitor=null) {
-  if (canView.Control) {
-    // Load the settings modal into the DOM
-    if (monitorType == 'Local') getSettingsModal();
-  }
   // Only enable the settings button for local cameras
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
-    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
+    settingsBtn.prop('title', 'Disabled due to lack of Control View permission.');
   } else if (monitorType != 'Local') {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Settings only available for Local monitors.');
   } else {
+    // Load the settings modal into the DOM
     settingsBtn.prop('disabled', false);
+    getSettingsModal();
+    // Manage the SETTINGS button
+    bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
+      evt.preventDefault();
+      $j('#settingsModal').modal('show');
+    });
   }
 
   if ((monitorType != 'WebSite') && monitorData.length) {
@@ -812,8 +818,10 @@ function streamPrepareStart(monitor=null) {
   });
 
   const el = document.querySelector('.imageFeed');
-  el.addEventListener('mouseenter', handleMouseEnter);
-  el.addEventListener('mouseleave', handleMouseLeave);
+  if (el) {
+    el.addEventListener('mouseenter', handleMouseEnter);
+    el.addEventListener('mouseleave', handleMouseLeave);
+  }
 
   const i = setInterval(function() {
     if (document.querySelector('[id ^= "liveStream"]').offsetHeight > 20) {
@@ -988,11 +996,6 @@ function initPage() {
     window.location.reload(true);
   });
 
-  // Manage the SETTINGS button
-  bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
-    evt.preventDefault();
-    $j('#settingsModal').modal('show');
-  });
 
   bindButton('#cyclePlayBtn', 'click', null, cycleStart);
   bindButton('#cyclePauseBtn', 'click', null, cyclePause);

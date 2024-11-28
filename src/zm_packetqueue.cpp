@@ -190,22 +190,41 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           }
         }  // end foreach iterator
 
-        zm_packet->decoded = true; // Have to in case analysis is waiting on it
-        zm_packet->notify_all();
-
-        it = pktQueue.erase(it);
-        packet_counts[zm_packet->packet->stream_index] -= 1;
-        Debug(1,
-              "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
-              zm_packet->packet->stream_index,
-              zm_packet->image_index,
-              zm_packet->keyframe,
-              packet_counts[video_stream_id],
-              max_video_packet_count,
-              pktQueue.size());
-
-        if (zm_packet->packet->stream_index == video_stream_id)
+        if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
+          for ( it = pktQueue.begin(); *it !=zm_packet; ) {
+            std::shared_ptr <ZMPacket>packet_to_delete = *it;
+            packet_to_delete->decoded = true;
+            packet_to_delete->notify_all();
+            it = pktQueue.erase(it);
+          packet_counts[packet_to_delete->packet->stream_index] -= 1;
+          Debug(1,
+                "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
+                packet_to_delete->packet->stream_index,
+                packet_to_delete->image_index,
+                packet_to_delete->keyframe,
+                packet_counts[video_stream_id],
+                max_video_packet_count,
+                pktQueue.size());
+          }
           break;
+        } else {
+          zm_packet->decoded = true; // Have to in case analysis is waiting on it
+          zm_packet->notify_all();
+
+          it = pktQueue.erase(it);
+          packet_counts[zm_packet->packet->stream_index] -= 1;
+          Debug(1,
+                "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
+                zm_packet->packet->stream_index,
+                zm_packet->image_index,
+                zm_packet->keyframe,
+                packet_counts[video_stream_id],
+                max_video_packet_count,
+                pktQueue.size());
+
+          if (zm_packet->packet->stream_index == video_stream_id)
+            break;
+        } // end if erasing a whole gop
       }  // end while
     } else if (warned_count > 0) {
       warned_count--;

@@ -977,7 +977,11 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
     case 'FramesScore' :
       $sortColumn = 'F.Score';
       break;
+    case 'Notes' :
+      $sortColumn = 'E.Notes';
+      break;
     default:
+      ZM\Warning("Unsupported sort field ".$_REQUEST['sort_field']);
       $sortColumn = 'E.StartDateTime';
       break;
   }

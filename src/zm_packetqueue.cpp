@@ -187,6 +187,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           if (*(*iterator_it) == zm_packet) {
             Debug(1, "Bumping IT because it is at the front that we are deleting");
             ++(*iterator_it);
+          } else {
+            Debug(1, "Not Bumping IT because it is pointing at %d and we are %d", (*(*iterator_it))->image_index, zm_packet->image_index);
           }
         }  // end foreach iterator
 

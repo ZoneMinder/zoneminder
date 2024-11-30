@@ -119,7 +119,7 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="TotScore"><?php echo translate('TotalBrScore') ?></th>
               <th data-sortable="true" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="true" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
-              <th data-sortable="false" data-field="Storage"><?php echo translate('Storage') ?></th>
+              <th data-sortable="true" data-field="Storage"><?php echo translate('Storage') ?></th>
               <th data-sortable="true" data-field="DiskSpace"><?php echo translate('DiskSpace') ?></th>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
             </tr>

@@ -57,13 +57,6 @@ if (isset($_REQUEST['order'])) {
 $sort = $filter->sort_field();
 if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
-  if ($sort == 'EndDateTime') {
-    if ($order == 'ASC') {
-      $sort = 'EndDateTime IS NULL, EndDateTime';
-    } else {
-      $sort = 'EndDateTime IS NOT NULL, EndDateTime';
-    }
-  }
 }
 
 // Offset specifies the starting row to return, used for pagination
@@ -182,6 +175,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $sort = '';
     } else if ( $sort == 'Monitor' or $sort == 'MonitorName' ) {
       $sort = 'M.Name';
+    } else if ($sort == 'EndDateTime') {
+      if ($order == 'ASC') {
+        $sort = 'EndDateTime IS NULL, EndDateTime';
+      } else {
+        $sort = 'EndDateTime IS NOT NULL, EndDateTime';
+      }
     } else {
       $sort = 'E.'.$sort;
     }
@@ -191,7 +190,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $likes = array();
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $col_str = 'E.*, M.Name AS Monitor';
+  $col_str = 'E.*, 
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
+  CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
   if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();

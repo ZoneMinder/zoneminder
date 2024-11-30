@@ -179,7 +179,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
           for ( it = pktQueue.begin(); *it !=zm_packet; ) {
-            this->deletePacket(it);
+            it = this->deletePacket(it);
           }
           break;
         } else {

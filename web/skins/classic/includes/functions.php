@@ -111,8 +111,8 @@ echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
-  'css/bootstrap-table.min.css',
-  'css/bootstrap-table-page-jump-to.min.css',
+  'skins/classic/js/bootstrap-table-1.23.5/bootstrap-table.min.css',
+  'skins/classic/js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ));
 
 echo output_link_if_exists(array(
@@ -895,13 +895,13 @@ function xhtmlFooter() {
   <script src="<?php echo 'skins/'.$skin.'/js/bootstrap.min.js' ?>"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'js/bootstrap-table.min.js',
-  'js/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-export.min.js',
-  'js/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-cookie.min.js',
-  'js/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
+  'js/bootstrap-table-1.23.5/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.23.5/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.23.5/extensions/page-table-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.23.5/extensions/cookie/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-1.23.5/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

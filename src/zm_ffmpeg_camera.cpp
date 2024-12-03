@@ -609,14 +609,14 @@ int FfmpegCamera::Close() {
   mLastAudioPTS = 0;
 
   if (mVideoCodecContext) {
-    avcodec_close(mVideoCodecContext);
+    //avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = nullptr;
   }
 
   if (mAudioCodecContext and !mSecondInput) {
     // If second input, then these will get freed in FFmpeg_Input's destructor
-    avcodec_close(mAudioCodecContext);
+    //avcodec_close(mAudioCodecContext);
     avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = nullptr;
   }

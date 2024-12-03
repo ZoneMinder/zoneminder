@@ -440,7 +440,7 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
 
 void zm_free_codec(AVCodecContext **ctx) {
   if (*ctx) {
-    avcodec_close(*ctx);
+    //avcodec_close(*ctx);
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(ctx);
     *ctx = nullptr;

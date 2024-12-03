@@ -123,7 +123,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 int FFmpeg_Input::Close( ) {
   if (streams) {
     for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
-      avcodec_close(streams[i].context);
+      //avcodec_close(streams[i].context);
       avcodec_free_context(&streams[i].context);
       streams[i].context = nullptr;
     }

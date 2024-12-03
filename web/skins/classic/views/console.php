@@ -186,7 +186,7 @@ echo $navbar ?>
 
       <div class="middleButtons">
 <?php
-  if ($canEditMonitors) {
+  if ($canEditMonitors and (ZM_PATH_ARP or ZM_PATH_ARP_SCAN)) {
 ?>
         <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
         <i class="material-icons">wifi</i>

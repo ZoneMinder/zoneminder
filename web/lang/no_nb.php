@@ -459,204 +459,204 @@ $SLANG = array(
     'OpNotLike'             => 'inneholder ikke',
     'OptionalEncoderParam'  => 'Valgfrie Encoder Parametre',
     'OptionHelp'            => 'Valg Hjelp',
-    'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
-    'Options'               => 'Options',
-    'Order'                 => 'Order',
-    'OrEnterNewName'        => 'or enter new name',
-    'OverwriteExisting'     => 'Overwrite Existing',
-    'PanLeft'               => 'Pan Left',
-    'PanRight'              => 'Pan Right',
+    'OptionRestartWarning'  => 'Disse endringene trer kanskje ikke i kraft fullstendig\nmens systemet kjører. Når du har fullført\nfullført endringene, forsikre deg om at du\nstarter Zoneminder på nytt.',
+    'Options'               => 'Valg',
+    'Order'                 => 'Rekkefølge',
+    'OrEnterNewName'        => 'eller oppgi nytt navn',
+    'OverwriteExisting'     => 'Overskriv Eksisterende',
+    'PanLeft'               => 'Pan Venstre',
+    'PanRight'              => 'Pan Høyre',
     'PanTilt'               => 'Pan/Tilt',
-    'ParentGroup'           => 'Parent Group',
-    'PasswordsDifferent'    => 'The new and confirm passwords are different',
-    'PathToIndex'           => 'Path To Index',
-    'PathToZMS'             => 'Path To ZMS',
-    'PathToApi'             => 'Path To Api',
-    'PauseCycle'            => 'Pause Cycle',
-    'PhoneBW'               => 'Phone&nbsp;B/W',
+    'ParentGroup'           => 'Overordnet Gruppe',
+    'PasswordsDifferent'    => 'Nytt og bekreftet passord er ikke lik',
+    'PathToIndex'           => 'Sti Til Index',
+    'PathToZMS'             => 'Sti Til ZMS',
+    'PathToApi'             => 'Sti Til Api',
+    'PauseCycle'            => 'Pause Syklus',
+    'PhoneBW'               => 'Mobil&nbsp;Båndbr.',
     'PixelDiff'             => 'Pixel Diff',
-    'Pixels'                => 'pixels',
-    'PlayAll'               => 'Play All',
-    'PlayCycle'             => 'Play Cycle',
-    'PleaseWait'            => 'Please Wait',
-    'PostEventImageBuffer'  => 'Post Event Image Count',
-    'PreEventImageBuffer'   => 'Pre Event Image Count',
-    'PreserveAspect'        => 'Preserve Aspect Ratio',
-    'PreviousMonitor'       => 'Previous Monitor',
-    'PrivacyAbout'          => 'About',
-    'PrivacyAboutText'      => 'Since 2002, ZoneMinder has been the premier free and open-source Video Management System (VMS) solution for Linux platforms. ZoneMinder is supported by the community and is managed by those who choose to volunteer their spare time to the project. The best way to improve ZoneMinder is to get involved.',
-    'PrivacyContact'        => 'Contact',
-    'PrivacyContactText'    => 'Please contact us <a href="https://zoneminder.com/contact/">here</a> for any questions regarding our privacy policy or to have your information removed.<br><br>For support, there are three primary ways to engage with the community:<ul><li>The ZoneMinder <a href="https://forums.zoneminder.com/">user forum</a></li><li>The ZoneMinder <a href="https://zoneminder-chat.herokuapp.com/">Slack channel</a></li><li>The ZoneMinder <a href="https://github.com/ZoneMinder/zoneminder/issues">Github forum</a></li></ul><p>Our Github forum is only for bug reporting. Please use our user forum or slack channel for all other questions or comments.</p>',
+    'Pixels'                => 'pixler',
+    'PlayAll'               => 'Spill Alle',
+    'PlayCycle'             => 'Spill Syklus',
+    'PleaseWait'            => 'Vennligst Vent',
+    'PostEventImageBuffer'  => 'Etter Hendelse Bildeantall',
+    'PreEventImageBuffer'   => 'Før Hendelse Bildeantall',
+    'PreserveAspect'        => 'Bevar sideforhold',
+    'PreviousMonitor'       => 'Forrige Monitor',
+    'PrivacyAbout'          => 'Om',
+    'PrivacyAboutText'      => 'Siden 2002 har ZoneMinder vært den ledende gratis og åpen kildekode Video Management System (VMS)-løsningen for Linux-plattformer. ZoneMinder støttes av fellesskapet og administreres av de som velger å bruke fritiden sin til prosjektet. Den beste måten å forbedre ZoneMinder på er å engasjere seg.',
+    'PrivacyContact'        => 'Kontakt',
+    'PrivacyContactText'    => 'Vennligst kontakt oss <a href="https://zoneminder.com/contact/">her</a> for spørsmål knyttet til personvernerklæringen vår, eller for å fjerne din informasjon.<br><br>For støtte er det tre hovedmåter å bidra til fellesskapet:<ul><li>ZoneMinder <a href="https://forums.zoneminder.com/">brukerforum</a></li><li>ZoneMinder <a href="https://zoneminder-chat.herokuapp.com/">Slack-kanal</a></li><li>ZoneMinder <a href="https://github.com/ZoneMinder/zoneminder/issues">Github forum</a></li></ul><p>Vårt Github Forum er kun for rapportering av feil. For andre spørsmål og kommentarer skal brukerforumet eller slack-kanalen brukes.</p>',
     'PrivacyCookies'        => 'Cookies',
-    'PrivacyCookiesText'    => 'Whether you use a web browser or a mobile app to communicate with the ZoneMinder server, a ZMSESSID cookie is created on the client to uniquely identify a session with the ZoneMinder server. ZmCSS and zmSkin cookies are created to remember your style and skin choices.',
-    'PrivacyTelemetry'      => 'Telemetry',
-    'PrivacyTelemetryText'  => 'Because ZoneMinder is open-source, anyone can install it without registering. This makes it difficult to  answer questions such as: how many systems are out there, what is the largest system out there, what kind of systems are out there, or where are these systems located? Knowing the answers to these questions, helps users who ask us these questions, and it helps us set priorities based on the majority user base.',
-    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:
+    'PrivacyCookiesText'    => 'Enten du bruker en nettleser eller mobilapp for å kommunisere med Zoneminder-serveren, vil en ZMSESSID cookie bli opprettet på klienten for å unikt kunne identifisere en økt. ZmCSS og zmSkin cookies brukes for å huske dine valg for utseende.',
+    'PrivacyTelemetry'      => 'Telemetri',
+    'PrivacyTelemetryText'  => 'Siden Zoneminder er åpen kildekode, kan alle installere dette uten å registrere seg. Dette gjør det vanskelig å svare på spørsmål som: hvor mange system er aktive, hva er det største systemet som er installert, hvilke type systemer er aktive, og hvor er disse systemene lokalisert? Å vite svaret på disse spørsmålene hjelper brukerne som spør disse spørsmålene og det hjelper oss med å prioritere basert på brukermassen.',
+    'PrivacyTelemetryList'  => 'Zoneminder Telemetri Daemon samler følgende informasjon om systemet ditt:
     <ul>
-      <li>A unique identifier (UUID)</li>
-      <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!</li>
-      <li>Current time</li>
-      <li>Total number of monitors</li>
-      <li>Total number of events</li>
-      <li>System architecture</li>
-      <li>Operating system kernel, distro, and distro version</li>
-      <li>Version of ZoneMinder</li>
-      <li>Total amount of memory</li>
-      <li>Number of cpu cores</li>
+      <li>En unik identifikator (UUID)</li>
+      <li>Informasjon om byer er samlet inn via en spørring mot <a href="https://ipinfo.io/geo">ipinfo.io</a>. By, fylke, land, lengde og breddegrad lagres. Lengde og breddegrad er kun nøyaktig ned til by eller fylke!</li>
+      <li>Nåværende tid</li>
+      <li>Totalt antallmonitorer</li>
+      <li>Totalt antall hendelser</li>
+      <li>Systemarkitektur</li>
+      <li>Operativsystem kernel, distro, og distro versjon</li>
+      <li>Versjonen til ZoneMinder</li>
+      <li>Totalt minne</li>
+      <li>Antall CPU kjerner</li>
     </ul>',
-    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:
+    'PrivacyMonitorList'    => 'Følgende paramterte for hver monitor er samlet inn:
    <ul>
     <li>Id</li>
-    <li>Name</li>
-    <li>Manufacturer</li>
-    <li>Model</li>
+    <li>Navn</li>
+    <li>Produsent</li>
+    <li>Modell</li>
     <li>Type</li>
-    <li>Function</li>
-    <li>Width</li>
-    <li>Height</li>
-    <li>Colours</li>
-    <li>MaxFPS</li>
-    <li>AlarmMaxFPS</li>
+    <li>Funksjon</li>
+    <li>Bredde</li>
+    <li>Høyde</li>
+    <li>Farger</li>
+    <li>Maks FPS</li>
+    <li>Alarm Maks FPS</li>
    </ul>',
-    'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
+    'PrivacyConclusionText' => 'Vi samler <u>IKKE</u> inn bildespesifikke data fra dine kameraer. Vi vet ikke hva dine kamera ser. Disse dataene vil ikke bli solgt eller brukt til formål som ikke er spesifisert her. Ved å klikke aksepter, godtar du at data sendes for å bidra til å gjøre Zoneminder til et bedre produkt. Ved å klikke avvis, kan du fortsatt bruke Zoneminder og dens funksjoner.',
     'Probe'                 => 'Probe',
     'ProfileProbe'          => 'Stream Probe',
-    'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
-    'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
-    'RecordAudio'		       	=> 'Whether to store the audio stream when saving an event.',
-    'RefImageBlendPct'      => 'Reference Image Blend %ge',
-    'RemoteHostName'        => 'Host Name',
-    'RemoteHostPath'        => 'Path',
-    'RemoteHostSubPath'     => 'SubPath',
+    'ProfileProbeIntro'     => 'Listen under viser eksisterende strømme-profiler for det valgte kameraet.<br/><br/>Velg fra listen under.<br/><br/>Merk at Zoneminder ikke kan konfigurere flere profiler, og at å velge et kamera her kan overskrive verdier du allerede har konfigurert for gjeldende monitor.<br/><br/>',
+    'RecaptchaWarning'      => 'Din reCaptcha nøkkel er ugyldig. Vennligst korriger dette, ellers vil ikke reCaptchafungere', // added Sep 24 2015 - PP
+    'RecordAudio'		       	=> 'Skal lydstrømmen lagres når man lagrer en hendelse?',
+    'RefImageBlendPct'      => 'Referansebilde Blender-prosent',
+    'RemoteHostName'        => 'Tjenernavn',
+    'RemoteHostPath'        => 'Sti',
+    'RemoteHostSubPath'     => 'Understi',
     'RemoteHostPort'        => 'Port',
-    'RemoteImageColours'    => 'Image Colours',
-    'RemoteMethod'          => 'Method',
-    'RemoteProtocol'        => 'Protocol',
-    'ReplayAll'             => 'All Events',
-    'ReplayGapless'         => 'Gapless Events',
-    'ReplaySingle'          => 'Single Event',
-    'ReportEventAudit'      => 'Audit Events Report',
-    'ResetEventCounts'      => 'Reset Event Counts',
-    'RestrictedCameraIds'   => 'Restricted Camera Ids',
-    'RestrictedMonitors'    => 'Restricted Monitors',
-    'ReturnDelay'           => 'Return Delay',
-    'ReturnLocation'        => 'Return Location',
-    'RevokeAllTokens'       => 'Revoke All Tokens',
-    'RotateLeft'            => 'Rotate Left',
-    'RotateRight'           => 'Rotate Right',
-    'RTSPTransport'         => 'RTSP Transport Protocol',
-    'RunAudit'              => 'Run Audit Process',
-    'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
-    'RunMode'               => 'Run Mode',
-    'RunState'              => 'Run State',
-    'RunStats'              => 'Run Stats Process',
-    'RunTrigger'            => 'Run Trigger Process',
-    'RunEventNotification'  => 'Run Event Notification Process',
-    'SaveAs'                => 'Save as',
-    'SaveFilter'            => 'Save Filter',
-    'SaveJPEGs'             => 'Save JPEGs',
-    'Sectionlength'         => 'Section length',
-    'SelectMonitors'        => 'Select Monitors',
-    'SelectFormat'          => 'Select Format',
-    'SelectLog'             => 'Select Log',
-    'SelfIntersecting'      => 'Polygon edges must not intersect',
-    'SetNewBandwidth'       => 'Set New Bandwidth',
-    'SetPreset'             => 'Set Preset',
-    'ShowFilterWindow'      => 'Show Filter Window',
-    'ShowTimeline'          => 'Show Timeline',
-    'SignalCheckColour'     => 'Signal Check Colour',
-    'SignalCheckPoints'     => 'Signal Check Points',
-    'SkinDescription'       => 'Change the skin for this session',
-    'CSSDescription'        => 'Change the css for this session',
-    'SortAsc'               => 'Asc',
-    'SortBy'                => 'Sort by',
-    'SortDesc'              => 'Desc',
-    'SourceColours'         => 'Source Colours',
-    'SourcePath'            => 'Source Path',
-    'SourceType'            => 'Source Type',
-    'SpeedHigh'             => 'High Speed',
-    'SpeedLow'              => 'Low Speed',
-    'SpeedMedium'           => 'Medium Speed',
-    'SpeedTurbo'            => 'Turbo Speed',
-    'StatusUnknown'         => 'Unknown',
-    'StatusConnected'       => 'Capturing',
-    'StatusNotRunning'      => 'Not Running',
-    'StatusRunning'         => 'Not Capturing',
-    'StepBack'              => 'Step Back',
-    'StepForward'           => 'Step Forward',
-    'StepLarge'             => 'Large Step',
-    'StepMedium'            => 'Medium Step',
-    'StepNone'              => 'No Step',
-    'StepSmall'             => 'Small Step',
-    'StorageArea'           => 'Storage Area',
-    'StorageDoDelete'       => 'Do Deletes',
-    'StorageScheme'         => 'Scheme',
-    'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
-    'TargetColorspace'      => 'Target colorspace',
-    'TimeDelta'             => 'Time Delta',
-    'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
-    'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
-    'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
-    'TimelineTip4'          => 'Use the controls below to zoom out or navigate back and forward through the time range.',              // Added 2013.08.15.
-    'TimestampLabelFormat'  => 'Timestamp Label Format',
-    'TimestampLabelX'       => 'Timestamp Label X',
-    'TimestampLabelY'       => 'Timestamp Label Y',
-    'TimestampLabelSize'    => 'Font Size',
-    'TimeStamp'             => 'Time Stamp',
-    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
+    'RemoteImageColours'    => 'Bildefarger',
+    'RemoteMethod'          => 'Metode',
+    'RemoteProtocol'        => 'Protokoll',
+    'ReplayAll'             => 'Alle Hendelser',
+    'ReplayGapless'         => 'Sømløse Hendelser',
+    'ReplaySingle'          => 'Singel Hendelse',
+    'ReportEventAudit'      => 'Gjennomgå Hendelser',
+    'ResetEventCounts'      => 'Tilbakestill Hendelsestall',
+    'RestrictedCameraIds'   => 'Begrensede Kamera IDer',
+    'RestrictedMonitors'    => 'Begrensede Monitorer',
+    'ReturnDelay'           => 'Returforsinkelse',
+    'ReturnLocation'        => 'Returplassering',
+    'RevokeAllTokens'       => 'Opphev alle tokens',
+    'RotateLeft'            => 'Roter Venstre',
+    'RotateRight'           => 'Roter Høyre',
+    'RTSPTransport'         => 'RTSP Transport Protokoll',
+    'RunAudit'              => 'Kjør Hendelsesprosess',
+    'RunLocalUpdate'        => 'Vennligst kjør zmupdate.pl for å oppdatere',
+    'RunMode'               => 'Kjør Modus',
+    'RunState'              => 'Kjør Status',
+    'RunStats'              => 'Kjør Statistikkprosess',
+    'RunTrigger'            => 'Kjør Utløserprosess',
+    'RunEventNotification'  => 'Kjør Hendelse Varslingsprosess',
+    'SaveAs'                => 'Lagre som',
+    'SaveFilter'            => 'Lagre Filter',
+    'SaveJPEGs'             => 'Lagre JPEGs',
+    'Sectionlength'         => 'Seksjonslengde',
+    'SelectMonitors'        => 'Velg Monitorer',
+    'SelectFormat'          => 'Velg Format',
+    'SelectLog'             => 'Velg Logg',
+    'SelfIntersecting'      => 'Polygon-kanter må ikke krysse hverandre',
+    'SetNewBandwidth'       => 'Sett Ny Båndbredde',
+    'SetPreset'             => 'Sett Forhåndsvalg',
+    'ShowFilterWindow'      => 'Vis Filtervindu',
+    'ShowTimeline'          => 'Vis Tidslinje',
+    'SignalCheckColour'     => 'Signalsjekk Farge',
+    'SignalCheckPoints'     => 'Signalsjekk Punkter',
+    'SkinDescription'       => 'Endre utseende for denne økten',
+    'CSSDescription'        => 'Endre CSS for denne økten',
+    'SortAsc'               => 'Stigende',
+    'SortBy'                => 'Sorter etter',
+    'SortDesc'              => 'Synkende',
+    'SourceColours'         => 'Kilde Farger',
+    'SourcePath'            => 'Kilde Sti',
+    'SourceType'            => 'Kilde Type',
+    'SpeedHigh'             => 'Høy Hastighet',
+    'SpeedLow'              => 'Lav Hastighet',
+    'SpeedMedium'           => 'Medium Hastighet',
+    'SpeedTurbo'            => 'Turbo Hastighet',
+    'StatusUnknown'         => 'Ukjent',
+    'StatusConnected'       => 'Tar Opp',
+    'StatusNotRunning'      => 'Kjører ikke',
+    'StatusRunning'         => 'Tar Ikke Oppg',
+    'StepBack'              => 'Steg Tilbake',
+    'StepForward'           => 'Steg Frem',
+    'StepLarge'             => 'Stort Steg',
+    'StepMedium'            => 'Medium Steg',
+    'StepNone'              => 'Ingen Steg',
+    'StepSmall'             => 'Lite Steg',
+    'StorageArea'           => 'Lagringsområde',
+    'StorageDoDelete'       => 'Utfør Sletting',
+    'StorageScheme'         => 'Skjema',
+    'StreamReplayBuffer'    => 'Strøm Reprise Bildebuffer',
+    'TargetColorspace'      => 'Mål fargerom',
+    'TimeDelta'             => 'Tid Delta',
+    'TimelineTip1'          => 'Hold musepekeren over grafen for å vise bilde og hendelsesdetaljer.',              // Added 2013.08.15.
+    'TimelineTip2'          => 'Klikk på den fargede delen av en grafe, eller bildet for å vise hendelsen.',              // Added 2013.08.15.
+    'TimelineTip3'          => 'Klikk på bakgrunnen for å zoome til en mindre tidsperiode, basert på hvor du klikker.',              // Added 2013.08.15.
+    'TimelineTip4'          => 'Bruk kontrollene under for å zoome ut, eller navigere frem og tilbake i tidsområdet.',              // Added 2013.08.15.
+    'TimestampLabelFormat'  => 'Tidsstempel Format',
+    'TimestampLabelX'       => 'Tidsstempel Merke X',
+    'TimestampLabelY'       => 'Tidsstempel Merke Y',
+    'TimestampLabelSize'    => 'Tekststørrelse',
+    'TimeStamp'             => 'Tidsstempel',
+    'TooManyEventsForTimeline' => 'For mange hendelser for tidslinje. Reduser antall monitorer eller det synlige området for tidslinjen',
     'TotalBrScore'          => 'Total<br/>Score',
-    'TrackDelay'            => 'Track Delay',
-    'TrackMotion'           => 'Track Motion',
-    'TurboPanSpeed'         => 'Turbo Pan Speed',
-    'TurboTiltSpeed'        => 'Turbo Tilt Speed',
-    'TZUnset'               => 'Unset - use value in php.ini',
-    'UpdateAvailable'       => 'An update to ZoneMinder is available.',
-    'UpdateNotNecessary'    => 'No update is necessary.',
-    'UsedPlugins'	          => 'Used Plugins',
-    'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
-    'UseFilterExprsPre'     => 'Use&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
-    'UseFilter'             => 'Use Filter',
-    'VersionIgnore'         => 'Ignore this version',
-    'VersionRemindDay'      => 'Remind again in 1 day',
-    'VersionRemindHour'     => 'Remind again in 1 hour',
-    'VersionRemindNever'    => 'Don\'t remind about new versions',
-    'VersionRemindWeek'     => 'Remind again in 1 week',
-    'VersionRemindMonth'    => 'Remind again in 1 month',
-    'ViewMatches'           => 'View Matches',
-    'VideoFormat'           => 'Video Format',
-    'VideoGenFailed'        => 'Video Generation Failed!',
-    'VideoGenFiles'         => 'Existing Video Files',
-    'VideoGenNoFiles'       => 'No Video Files Found',
-    'VideoGenParms'         => 'Video Generation Parameters',
-    'VideoGenSucceeded'     => 'Video Generation Succeeded!',
-    'VideoSize'             => 'Video Size',
-    'VideoWriter'           => 'Video Writer',
-    'ViewAll'               => 'View All',
-    'ViewEvent'             => 'View Event',
-    'ViewPaged'             => 'View Paged',
-    'V4LCapturesPerFrame'  	=> 'Captures Per Frame',
-    'V4LMultiBuffer'		    => 'Multi Buffering',
-    'WarmupFrames'          => 'Warmup Frames',
-    'WebColour'             => 'Web Colour',
-    'WebSiteUrl'            => 'Website URL',
-    'WhiteBalance'          => 'White Balance',
-    'X10ActivationString'   => 'X10 Activation String',
-    'X10InputAlarmString'   => 'X10 Input Alarm String',
-    'X10OutputAlarmString'  => 'X10 Output Alarm String',
-    'YouNoPerms'            => 'You do not have permissions to access this resource.',
-    'ZoneAlarmColour'       => 'Alarm Colour (Red/Green/Blue)',
-    'ZoneArea'              => 'Zone Area',
-    'ZoneFilterSize'        => 'Filter Width/Height (pixels)',
-    'ZoneMinderLog'         => 'ZoneMinder Log',
-    'ZoneMinMaxAlarmArea'   => 'Min/Max Alarmed Area',
-    'ZoneMinMaxBlobArea'    => 'Min/Max Blob Area',
-    'ZoneMinMaxBlobs'       => 'Min/Max Blobs',
-    'ZoneMinMaxFiltArea'    => 'Min/Max Filtered Area',
-    'ZoneMinMaxPixelThres'  => 'Min/Max Pixel Threshold (0-255)',
-    'ZoneOverloadFrames'    => 'Overload Frame Ignore Count',
-    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
-    'ZoomIn'                => 'Zoom In',
-    'ZoomOut'               => 'Zoom Out',
+    'TrackDelay'            => 'Spor Forsinkelse',
+    'TrackMotion'           => 'Spor Bevegelse',
+    'TurboPanSpeed'         => 'Turbo Pan Hastighet',
+    'TurboTiltSpeed'        => 'Turbo Tilt Hastighet',
+    'TZUnset'               => 'Unset - bruk verdi i php.ini',
+    'UpdateAvailable'       => 'En oppdatering for Zoneminder er tilgjengelig.',
+    'UpdateNotNecessary'    => 'Ingen oppdatering nødvendig.',
+    'UsedPlugins'	          => 'Brukte Plugins',
+    'UseFilterExprsPost'    => '&nbsp;filter&nbsp;uttrykk', // This is used at the end of the phrase 'use N filter expressions'
+    'UseFilterExprsPre'     => 'Bruk&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
+    'UseFilter'             => 'Bruk Filter',
+    'VersionIgnore'         => 'Ignorer denne versjonen',
+    'VersionRemindDay'      => 'Påminn meg om 1 dag',
+    'VersionRemindHour'     => 'Påminn meg om 1 1 time',
+    'VersionRemindNever'    => 'Ikke påminn meg om nye versjoner',
+    'VersionRemindWeek'     => 'Påminn meg om 1 1 uke',
+    'VersionRemindMonth'    => 'Påminn meg om 1 1 måned',
+    'ViewMatches'           => 'Vis Treff',
+    'VideoFormat'           => 'Videoformat',
+    'VideoGenFailed'        => 'Videogenerering feilet!',
+    'VideoGenFiles'         => 'Eksisterende Videofiler',
+    'VideoGenNoFiles'       => 'Ingen Videofiler Funnet',
+    'VideoGenParms'         => 'Videogenerering Parametre',
+    'VideoGenSucceeded'     => 'Videogenerering Vellykket!',
+    'VideoSize'             => 'Videostørrelse',
+    'VideoWriter'           => 'Videoskriver',
+    'ViewAll'               => 'Vis Alle',
+    'ViewEvent'             => 'Vis Hendelse',
+    'ViewPaged'             => 'Vis sider',
+    'V4LCapturesPerFrame'  	=> 'Oppdaging Per Ramme',
+    'V4LMultiBuffer'		    => 'Multibuffer',
+    'WarmupFrames'          => 'Oppvarmingsrammer',
+    'WebColour'             => 'Webfarge',
+    'WebSiteUrl'            => 'Nettsted URL',
+    'WhiteBalance'          => 'Hvitbalanse',
+    'X10ActivationString'   => 'X10 Aktiveringsstreng',
+    'X10InputAlarmString'   => 'X10 Input Alarmstreng',
+    'X10OutputAlarmString'  => 'X10 Utput Alarmstreng',
+    'YouNoPerms'            => 'Du har ikke tillatelse til å vise denne ressursen.',
+    'ZoneAlarmColour'       => 'Alarmfarge (Rød/Grønn/Blå)',
+    'ZoneArea'              => 'Soneområde',
+    'ZoneFilterSize'        => 'Filter Bredde/Høyde (pixler)',
+    'ZoneMinderLog'         => 'ZoneMinder Logg',
+    'ZoneMinMaxAlarmArea'   => 'Min/Maks Alarmområde',
+    'ZoneMinMaxBlobArea'    => 'Min/Maks Blobområde',
+    'ZoneMinMaxBlobs'       => 'Min/Maks Blober',
+    'ZoneMinMaxFiltArea'    => 'Min/Maks Filterområde',
+    'ZoneMinMaxPixelThres'  => 'Min/Maks Pixel Grense (0-255)',
+    'ZoneOverloadFrames'    => 'Ignorer Rammer Etter Overbelastning',
+    'ZoneExtendAlarmFrames' => 'Utvidet Alarmramme Antall',
+    'ZoomIn'                => 'Zoom Inn',
+    'ZoomOut'               => 'Zoom Ut',
 // language names translation
     'es_la' => 'Spanish Latam',
     'es_CR' => 'Spanish Costa Rica',
@@ -681,19 +681,20 @@ $SLANG = array(
     'he_il' => 'Hebrew',
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
+    'no_nb' => 'Norwegian',
 
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $CLANG = array(
-    'CurrentLogin'          => 'Current login is \'%1$s\'',
+    'CurrentLogin'          => 'Gjeldende innlogging er \'%1$s\'',
     'EventCount'            => '%1$s %2$s', // For example '37 Events' (from Vlang below)
-    'LastEvents'            => 'Last %1$s %2$s', // For example 'Last 37 Events' (from Vlang below)
-    'LatestRelease'         => 'The latest release is v%1$s, you have v%2$s.',
+    'LastEvents'            => 'Siste %1$s %2$s', // For example 'Last 37 Events' (from Vlang below)
+    'LatestRelease'         => 'Siste versjon er v%1$s, you have v%2$s.',
     'MonitorCount'          => '%1$s %2$s', // For example '4 Monitors' (from Vlang below)
-    'MonitorFunction'       => 'Monitor %1$s Function',
-    'RunningRecentVer'      => 'You are running the most recent version of ZoneMinder, v%s.',
-    'VersionMismatch'       => 'Version mismatch, system is version %1$s, database is %2$s.',
+    'MonitorFunction'       => 'Monitor %1$s Funksjon',
+    'RunningRecentVer'      => 'Du kjører den siste versjonen av ZoneMinder, v%s.',
+    'VersionMismatch'       => 'Versjon samsvarer ikke, system er versjon %1$s, database er %2$s.',
 );
 
 // The next section allows you to describe a series of word ending and counts used to
@@ -730,8 +731,8 @@ $CLANG = array(
 
 // Variable arrays expressing plurality, see the zmVlang description above
 $VLANG = array(
-    'Event'                 => array( 0=>'Events', 1=>'Event', 2=>'Events' ),
-    'Monitor'               => array( 0=>'Monitors', 1=>'Monitor', 2=>'Monitors' ),
+    'Event'                 => array( 0=>'Hendelser', 1=>'Hendelse', 2=>'Hendelser' ),
+    'Monitor'               => array( 0=>'Monitorer', 1=>'Monitor', 2=>'Monitorer' ),
 );
 // You will need to choose or write a function that can correlate the plurality string arrays
 // with variable counts. This is used to conjugate the Vlang arrays above with a number passed
@@ -807,190 +808,189 @@ function zmVlang($langVarArray, $count) {
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-    'Help' => '
-      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
-      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
+    'Hjelp' => '
+      Parametre i dette felter blir formidlet til FFmpeg. Flere parametre kan skilles med ,~~
+      Eksempler (ikke skriv anførselstegn)~~~~
+      "allowed_media_types=video" Sett dataype til å spørre kamera (lyd, bilde, data)~~~~
+      "reorder_queue_size=nnn" Sett  antall pakker å buffre for håndtering av lagrede pakker
     '
 	),
   'OPTIONS_ENCODER_PARAMETERS' => array(
-    'Help' => '
-    Parameters passed to the encoding codec. name=value separated by either , or newline.~~
-    For example to changing quality, use the crf option.  1 is best, 51 is worst 23 is default.~~
+    'Hjelp' => '
+    Parametre blir formidlet til encoding codec. navn=verdi skilt med enten , eller ny linje.~~
+    Eksempel for å endre kvalitet, bruk crf valg.  1 er best, 51 er verst 23 er standard.~~
 ~~
     crf=23~~
     ~~
-    You might want to alter the movflags value to support different behaviours. Some people have troubles viewing videos due to the frag_keyframe option, but that option is supposed to allow viewing of incomplete events. See 
+    Du må kanskje endre movflags verdi for å større forskjellig oppførsel. Enkelte har problemer med å vise video grunnet frag_keyframe valget, men det valget er ment for å tillate visning av uferdige hendelser. Se 
     [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
-    for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
+    for mer informasjon.  ZoneMinder\'s standard er frag_keyframe,empty_moov~~
     ',
   ),
   'OPTIONS_DECODERHWACCELNAME' => array(
-    'Help' => '
-    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    'Hjelp' => '
+    Dette er tilsvarende til ffmpeg -hwaccel kommandolinje valget. Med intel graphics støtte, bruk "vaapi".  For NVIDIA cuda støtte bruk "cuda". For å sjekke støtten, kjør ffmpeg -hwaccels i kommandolinjen.'
     ),
   'OPTIONS_DECODERHWACCELDEVICE' => array(
-    'Help' => '
-    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    'Hjelp' => '
+    Dette er tilsvarende til ffmpeg -hwaccel_device kommandolinje valg.  Du trenger kun å spesifisere dette dersom du har flere GPU\'er. En typisk verdi for Intel VAAPI vil være /dev/dri/renderD128.'
     ),
     'OPTIONS_RTSPTrans' => array(
-      'Help' => '
-        This sets the RTSP Transport Protocol for FFmpeg.~~
-        TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~
-        UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some \'smearing\' while using UDP, if so try TCP~~
-        UDP Multicast - Use UDP Multicast as transport protocol~~
-        HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
+      'Hjelp' => '
+        Dette setter RTSP Transportprotokoll for FFmpeg.~~
+        TCP - Bruk TCP (interleaving within the RTSP control channel) som transportprotokoll.~~
+        UDP - Bruk UDP som transportprotokoll. Kameraer med høyere oppløsning opplever ofte \'tilgrising\' av bilde ved bruk av UDP, dersom dette oppleves, bruk TCP~~
+        UDP Multicast - Bruk UDP Multicast som transportprotokoll~~
+        HTTP - Bruk HTTP tunnellering som transportprotokoll, som er nyttig for bruk gjennom proxy.~~
       '
 	),
 	'OPTIONS_LIBVLC' => array(
-    'Help' => '
-      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
-      Examples (do not enter quotes)~~~~
-      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
-      "--verbose=2" Set verbosity of libVLC
+    'Hjelp' => '
+      Parametre i dette feltet formidles til libVLC. Flere parametre kan skilles med ,~~
+      Eksempel (ikke skriv anførselstegn)~~~~
+      "--rtp-client-port=nnn" Setter lokal port for rtp data~~~~
+      "--verbose=2" Setter verbositet for libVLC
       '
 	),
 	'OPTIONS_EXIF' => array(
-		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
+		'Hjelp' => 'Aktiver dette valget for å bake inn EXIT-data i hver JPEG ramme.'
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-    'Help' => '
-      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
-      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
-      value from the camera and use the value as entered in the monitor configuration~~~~
-      Generally this should be enabled. However, there are cases where the camera can get its
-      own URL incorrect, such as when the camera is streaming through a firewall
+    'Hjelp' => '
+    Noen ganger, under første RTSP handshake, vil kameraet sende en oppdatert media URL.
+      Aktiver denne for å be Zoneminder om å bruke denne URL\'en. Deaktiver valget for å ignorere
+      verdien fra kameraet og bruk verdign oppgitt i monitorkonfigurasjonen~~~~
+      Generelt sett bør denne være aktivert. Men, det finnes tilfeller hvor kameraet kan oppgi
+      feil URL, for eksempel dersom strømmen går gjennom en brannmur
     '
   ),
 	'OPTIONS_MAXFPS' => array(
-    'Help' => '
-      This field has certain limitations when used for non-local devices.~~
-      Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
-      and missed events~~
-      For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the
-      camera, instead. In the past it was advised to set a value higher than the frame rate of the camera
-      but this is no longer needed or a good idea.
-      Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera
-      for new images. In this case, it is safe to use the field.
+    'Hjelp' => '
+      Dette feltet har enkelse begrensninger for bruk med ikke-lokale enheter.~~
+      Dersom man ikke følger begrensningene kan man oppleve forsinkelser i live video, hakking
+      eller uoppdagete hendelser~~
+      For strømming med IP kameraet, ikke bruk dette feltet for å redusere bildeoppdateringsfrekvensen. Sette bildeoppdateringsfrekvens
+      i kameraet. Tidligere var anbefalingen å sette denne verdien høyere enn frekvensen i kameraet men
+      dette er ikke lenger nødvendig, eller en god ide.
+      Noen, som regel eldre, IP kamera støtter stillbilde modus. Da vil Zoneminder aktivt spørre kameraet
+      etter nye bilder. I dette tilfellet er det trygt å bruke dette feltet.
       '
 	),
 	'OPTIONS_ALARMMAXFPS' => array(
-    'Help' => '
-    This field has certain limitations when used for non-local devices.~~
-    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
-    and missed events~
-    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
-    setting, leaving this blank implies no limit.
+    'Hjelp' => '
+    Dette feltet har enkelse begrensninger for bruk med ikke-lokale enheter.~~
+    Dersom man ikke følger begrensningene kan man oppleve forsinkelser i live video, hakking
+    eller uoppdagete hendelser~~
+    Denne instillingen tillater å overskrive Maksimum FPS verdi dersom tilfellet inntreffer. Som ved Maksimum FPS 
+    instilling, å la denne stå tom tilsvarer ingen begrensing.
     '
 	),
 	'OPTIONS_LINKED_MONITORS' => array(
-    'Help' => '
-      This field allows you to select other monitors on your system that act as 
-      triggers for this monitor. So if you have a camera covering one aspect of 
-      your property you can force all cameras to record while that camera 
-      detects motion or other events. Click on ‘Select’ to choose linked monitors. 
-      Be very careful not to create circular dependencies with this feature 
-      because you will have infinitely persisting alarms which is almost 
-      certainly not what you want! To unlink monitors you can ctrl-click.
+    'Hjelp' => '
+      Dette feltet lar deg velge andre monitorer i systemet som kan fungere som
+      en utløser for denne monitoren. Dersom du har et kamera som dekker ett område
+      kan du tvinge alle kameraer til å ta opp video så lenge det kameraet oppdager
+      bevegelse eller andre hendelser. Klikk på ‘Velg’ for å velge linkede monitorer. 
+      Vær veldig forsikrig slik at du ikke lager en sirkulær avhengighet, hvor du ender opp med 
+      utløsere som jobber mot hverandre. For å fjerne en monitor kan du holde inne Ctrl og klikke.
       '
 	),
   'OPTIONS_CAPTURING' => array(
-    'Help' => 'When to do capturing:~~~~
-None: Do not run a process, do not do capturing.  Equivalent to the old Function == None~~~~
-Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbnail or rstp server connection) before connecting to the camera.~~~~
-Always: A zmc process will run and immediately connect and stay connected.~~~~
+    'Hjelp' => 'Når skal det tas opp:~~~~
+Ingen: Ikke kjør en prosess, ikke ta opp.~~~~
+Forespørsel: En ZMC prosess vil kjøre, men vil vente på forespørsel (Live visning, miniatyrbilde eller RTSP servertilkobling) før tilkobling til kamera.~~~~
+Alltid: En ZMC prosess vil kjøre og umiddelbart koble til og forbli tilkoblet.~~~~
 ',
   ),
   'OPTIONS_RTSPSERVER' => array(
-    'Help' => '
-     ZM supplies its own RTSP server that can re-stream RTSP or attempt to convert the
-     monitor stream into RTSP. This is useful if you want to use the ZM Host machines
-     resources instead of having multiple clients pulling from a single camera.~~~~
-     NOTE:~~
-     Options > Network > MIN_RTSP_PORT is configurable.
+    'Hjelp' => '
+     ZM har sin egen RTSP server som kan re-strømme RTSP eller forsøke å konvertere
+     monitorstrømmen til RTSP. Dette er nyttig om du ønsker å bruke ZM Tjenermaskinens
+     ressurser i stedet for å ha flere klienter som henter en strøm fra kameraet.~~~~
+     MERK:~~
+     Valg > Nettverk > MIN_RTSP_PORT er konfigurerbar.
      ',
     ),
   'OPTIONS_RTSPSTREAMNAME' => array(
-     'Help' => '
-     If RTSPServer is enabled, this will be the endpoint it will be available at.
-     For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
-     is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     'Hjelp' => '
+     Hvis RTSPServer er aktivert, vil dette bli endepunktet den er tilgjengelig på.
+     For eksempel, hvis dette er monitor ID 6, MIN_RTSP_PORT=20000 og RTSPServerName
+     er satt til "mitt_kamera", når du strømmen på rtsp://ZM_HOST:20006/mitt_kamera
      ',
     ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
-    'Help' => '
-      When to perform motion detection on the captured video.  
-      This setting sets the default state when the process starts up.
-      It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
-      When not enabled no motion detection or linked monitor checking will be performed and 
-      no events will be created.
+    'Hjelp' => '
+      Når skal det utføres bevegelsesdeteksjon på den lagrede videoen.
+      Denne instillingen setter en standardstatus når prosessen starter.
+      Den kan deretter slås på/av gjennom eksterne utløsere som zmtrigger, ZMU eller webgrensesnitt.
+      Når deaktivert, vil ingen bevegelsesoppdagelse eller monitor-sjekk utføres
+      og ingen hendelser vil opprettes.
       '
   ),
   'FUNCTION_DECODING' => array(
-    'Help' => '
-      When not performing motion detection and using H264Passthrough with no jpegs being saved, we can
-      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use.~~~~
-Always: every frame will be decoded, live view and thumbnails will be available.~~~~
-OnDemand: only do decoding when someone is watching.~~~~
-KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
-None: No frames will be decoded, live view and thumbnails will not be available~~~~
+    'Hjelp' => '
+      Når der ikke utføres bevegelsesdeteksjon og man benytter H264Passthrough uten lagring av JPEGS, kan vi
+      velge å ikke decode H264/H265 pakkene. Dette vil drastisk redusere CPU-bruken.~~~~
+      Alltid: hver ramme vil bli dekodet, live visning og miniatyrbilder er tilgjengelig~~~~
+      Forespørsel: utfører kun decoding når noen ser på.~~~~
+      KeyFrames: Kun keyframes vil bli decodet, så visnings bildeoppdateringsfrekvens vil være lav, anhengig av keyframe-intervall satt i kameraet.~~~~
+      Ingen: Ingen rammer vil bli decodet, live visning og miniatyrbilder er ikke tilgjengelig~~~~
 '
   ),
   'FUNCTION_RTSP2WEB_ENABLED' => array(
-    'Help' => '
-      Attempt to use RTSP2Web streaming server for h264/h265 live view. Experimental, but allows
-      for significantly better performance.'
+    'Hjelp' => '
+      Forsøk å bruke RTSP2Web strømmeserver for H264/H265 live visning. Eksperimentell, men tillater
+      vesentlig bedre ytelse.'
   ),
   'FUNCTION_RTSP2WEB_TYPE' => array(
-    'Help' => '
-      RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
-      Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+    'Hjelp' => '
+      RTSP2Web støtter MSE (Media Source Extensions), HLS (HTTP Live Streaming), og WebRTC.
+      Alle har sine fordeler, men WebRTC er muligens den med best ytelse, men også den som er mest kresen rundt kodeker.'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
-    'Help' => '
-      Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
-      for significantly better performance.'
+    'Hjelp' => '
+      Tillater å bruke Janus strømmeserver for H264/H265 live visning. Eksperimentell, men tillater
+      vesentlig bedre ytelse.'
   ),
   'FUNCTION_JANUS_AUDIO_ENABLED' => array(
-    'Help' => '
-      Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
-      but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+    'Hjelp' => '
+      Forsøk å aktivere lyd i Janus strømmen. Har ingen effekt for kamera uten støtte for lyd, 
+      men kan forhindre en strøm i fra å spille av dersom kameraet sender et lydformat som ikke er støttet av nettleseren.'
   ),
   'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
-    'Help' => '
-      Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
-      for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
+    'Hjelp' => '
+      Manuell setting av Profil-ID, som kan tvinge en nettleser til å forsøke å spille en gitt strøm. Forsøk "42e01f"
+      for en universell støttet verdi, eller la stå blank for å bruke Profil-IDIen oppgitt av kilden.'
   ),
   'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
-    'Help' => '
-      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
-      RTSP restream as the Janus source.'
+    'Hjelp' => '
+      Hvis kameraet ikke fungerer under Janus uten tillegsinstillinger, aktiver denne for å bruke ZoneMinder
+      RTSP restream som Janus kilde.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
-    'Help' => '
-    Override or set a timeout period in seconds for the RTSP session. Useful if you see a lot of 401
-    Unauthorized responses in janus logs. Set to 0 to use the timeout (if sent) from the source.'
+    'Hjelp' => '
+    Overstyr eller sett et utløpsintervall i sekunder for RTSP økten. Nyttig dersom du ser mange 401
+    Unauthorized responser i Janus logger. Sett til 0 for å bruke intervaller (hvis sendt) fra kilden.'
   ),
   'ImageBufferCount' => array(
-    'Help' => '
-    Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'
+    'Hjelp' => '
+    Antall råbilder tilgjengelig i /dev/shm. For øyeblikker bør denne settes i området 3-5. Brukt for live visning.'
   ),
   'MaxImageBufferCount' => array(
-    'Help' => '
-    Maximum number of video packets that will be held in the packet queue.
-    The packetqueue will normally manage itself, keeping Pre Event Count frames or all since last keyframe if using 
-    passthrough mode. You can set a maximum to prevent the monitor from consuming too much ram, but your events might
-    not have all the frames they should if your keyframe interval is larger than this value.
-    You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
+    'Hjelp' => '
+    Maks antall videopakker som holder i pakkekøen.
+    Pakkekøen vil normalt håndteres av seg selv, og tar vare på Før Hendelse rammeantall eller alle siden forrige keyframe dersom
+    man bruker passthrough modus. Du kan sette en maksimum for å forhindre en monitor fra å benytte for mye RAM, men hendelsene
+    har kanskje ikke alle rammene de skal ha dersom keyframe intervallet er høyere enn denne verdien.
+    Du vil se feil i feilloggen om dette, så påse at keyframe intervaller er lavt eller at du har nok RAM.
   '
   ),
 // Help for soap_wsa issue with chinesse cameras
    'OPTIONS_SOAP_wsa' => array(
-    'Help' => '
-     Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
-     <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
-     help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    'Hjelp' => '
+     Deaktiver dette valget dersom du får feilen ~~~ Couldnt do Renew Error 12 ActionNotSupported
+     <env:Text>The device do NOT support this feature</env:Text> ~~~ når du forsøker å aktivere/bruke ONVIF ~~det kan
+     hjelpe for å få det til å virke... det er bevist å virke på kinesiske kamera som ikke implementerer ONVIF fullstendig.
     '
    ),
 

@@ -824,7 +824,11 @@ function streamPrepareStart(monitor=null) {
   }
 
   const i = setInterval(function() {
-    if (document.querySelector('[id ^= "liveStream"]').offsetHeight > 20) {
+    const livestream = document.querySelector('[id ^= "liveStream"]');
+
+    if (!livestream) {
+      console.log("No id matching liveStream");
+    } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
       clearInterval(i);
       document.getElementById('monitor').classList.remove('hidden-shift');
@@ -1060,26 +1064,28 @@ function initPage() {
   });
   if (currentMonitor) {
     applyMonitorControllable();
+    streamPrepareStart(currentMonitor);
+
+    // Creating a ResizeObserver Instance
+    observer = new ResizeObserver((objResizes) => {
+      updateScale = true;
+    });
+
+    // Registering an observer on an element
+    $j('[id ^= "liveStream"]').each(function() {
+      observer.observe(this);
+    });
+
+    // Event listener for double click
+    //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+    var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+    Array.prototype.forEach.call(elStream, (el) => {
+      el.addEventListener('touchstart', doubleTouch);
+      el.addEventListener('dblclick', doubleClickOnStream);
+    });
+  } else {
+    alert("No monitor found for id "+monitorId);
   }
-  streamPrepareStart(currentMonitor);
-
-  // Creating a ResizeObserver Instance
-  observer = new ResizeObserver((objResizes) => {
-    updateScale = true;
-  });
-
-  // Registering an observer on an element
-  $j('[id ^= "liveStream"]').each(function() {
-    observer.observe(this);
-  });
-
-  // Event listener for double click
-  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
-  var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
-  Array.prototype.forEach.call(elStream, (el) => {
-    el.addEventListener('touchstart', doubleTouch);
-    el.addEventListener('dblclick', doubleClickOnStream);
-  });
 } // initPage
 
 function watchFullscreen() {

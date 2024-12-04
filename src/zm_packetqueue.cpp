@@ -177,50 +177,13 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           continue;
         }
 
-        for (
-          auto iterators_it = iterators.begin();
-          iterators_it != iterators.end();
-          ++iterators_it
-        ) {
-          auto iterator_it = *iterators_it;
-          // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
-          if (*(*iterator_it) == zm_packet) {
-            Debug(1, "Bumping IT because it is at the front that we are deleting");
-            ++(*iterator_it);
-          }
-        }  // end foreach iterator
-
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
           for ( it = pktQueue.begin(); *it !=zm_packet; ) {
-            std::shared_ptr <ZMPacket>packet_to_delete = *it;
-            packet_to_delete->decoded = true;
-            packet_to_delete->notify_all();
-            it = pktQueue.erase(it);
-          packet_counts[packet_to_delete->packet->stream_index] -= 1;
-          Debug(1,
-                "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
-                packet_to_delete->packet->stream_index,
-                packet_to_delete->image_index,
-                packet_to_delete->keyframe,
-                packet_counts[video_stream_id],
-                max_video_packet_count,
-                pktQueue.size());
+            it = this->deletePacket(it);
           }
           break;
         } else {
-          zm_packet->decoded = true; // Have to in case analysis is waiting on it
-          zm_packet->notify_all();
-
-          it = pktQueue.erase(it);
-          packet_counts[zm_packet->packet->stream_index] -= 1;
-          Debug(1,
-                "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
-                zm_packet->packet->stream_index,
-                zm_packet->image_index,
-                zm_packet->keyframe,
-                packet_counts[video_stream_id],
-                max_video_packet_count,
-                pktQueue.size());
+          this->deletePacket(it);
 
           if (zm_packet->packet->stream_index == video_stream_id)
             break;
@@ -236,6 +199,37 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
   return true;
 }  // end bool PacketQueue::queuePacket(ZMPacket* zm_packet)
+
+packetqueue_iterator PacketQueue::deletePacket(packetqueue_iterator it) {
+  auto zm_packet = *it;
+  for (
+      auto iterators_it = iterators.begin();
+      iterators_it != iterators.end();
+      ++iterators_it
+      ) {
+    auto iterator_it = *iterators_it;
+    // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
+    if (*(*iterator_it) == zm_packet) {
+      Debug(1, "Bumping IT because it is at the front that we are deleting");
+      ++(*iterator_it);
+    } else {
+      Debug(1, "Not Bumping IT because it is pointing at %d and we are %d", (*(*iterator_it))->image_index, zm_packet->image_index);
+    }
+  }  // end foreach iterator
+  zm_packet->decoded = true;
+  zm_packet->notify_all();
+
+  packet_counts[zm_packet->packet->stream_index] -= 1;
+  Debug(1,
+      "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
+      zm_packet->packet->stream_index,
+      zm_packet->image_index,
+      zm_packet->keyframe,
+      packet_counts[video_stream_id],
+      max_video_packet_count,
+      pktQueue.size());
+  return pktQueue.erase(it);
+}
 
 void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // Only do queueCleaning if we are adding a video keyframe, so that we guarantee that there is one.

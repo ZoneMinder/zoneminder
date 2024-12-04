@@ -680,6 +680,7 @@ $SLANG = array(
     'he_il' => 'Hebrew',
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
+    'no_nb' => 'Norwegian',
 
 );
 

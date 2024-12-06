@@ -334,7 +334,7 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 2;
-      Info("Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps);
+      Debug(1, "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps);
     }
 
     last_frame_sent = TV_2_FLOAT(now);
@@ -420,7 +420,7 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 1.5;
-      Warning("Frame send time %d msec too slow, throttling maxfps to %.2f",
+      Debug(1, "Frame send time %d msec too slow, throttling maxfps to %.2f",
           frameSendTime, maxfps);
     }
   }  // Not mpeg

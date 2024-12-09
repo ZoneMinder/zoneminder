@@ -49,6 +49,10 @@ if ($action == 'save') {
     if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
+   if (!empty($_REQUEST['newMonitor']['Id'])) { 
+     // Reuse existing but deleted monitor
+     $mid = validCardinal($_REQUEST['newMonitor']['Id']);
+   }
   }
 
   # For convenience
@@ -92,6 +96,7 @@ if ($action == 'save') {
       'TrackMotion' => 0,
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
+      'Deleted' => 0,
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
       'JanusEnabled' => 0,

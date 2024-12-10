@@ -509,7 +509,7 @@ function getNearEvents() {
   $filter_sql = $filter->sql();
 
   # When listing, it may make sense to list them in descending order.
-  # But when viewing Prev should timewise earlier and Next should be after.
+  # But when viewing Prev should be timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
@@ -520,18 +520,18 @@ function getNearEvents() {
   INNER JOIN Monitors AS M ON E.MonitorId = M.Id
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE '.$sortColumn.'
+  WHERE E.Id != ? AND '.$sortColumn.'
   '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .= ' AND E.StartDateTime < ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql .= ' AND E.StartDateTime <= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -545,18 +545,18 @@ function getNearEvents() {
   INNER JOIN Monitors AS M ON E.MonitorId = M.Id
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE '.$sortColumn.'
+  WHERE E.Id != ? AND '.$sortColumn.'
   '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .= ' AND E.StartDateTime > ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql .= ' AND E.StartDateTime >= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

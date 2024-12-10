@@ -162,7 +162,7 @@ function onPause() {
 
 function streamCmdPause(action) {
   onPause();
-  if (action) {
+  if (action && monitorStream) {
     monitorStream.pause();
   }
 }

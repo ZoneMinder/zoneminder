@@ -215,7 +215,7 @@ bool VideoStore::open() {
             (int32_t *)displaymatrix, sizeof(int32_t)*9, 0);
 #else
 #if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
-        av_stream_add_side_data(ffm->video_stream,
+        av_stream_add_side_data(video_out_stream,
             AV_PKT_DATA_DISPLAYMATRIX,
 					(uint8_t *)displaymatrix,
 					sizeof(*displaymatrix));

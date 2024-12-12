@@ -238,19 +238,20 @@ int main(int argc, char *argv[]) {
     result = 0;
 
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      monitor->LoadCamera();
-
-      if (!monitor->connect()) {
-        Warning("Couldn't connect to monitor %d", monitor->Id());
-      }
-      SystemTimePoint now = std::chrono::system_clock::now();
-      monitor->SetStartupTime(now);
-
       std::string sql = stringtf(
                           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
                           " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
                           monitor->Id());
       zmDbDo(sql);
+
+      monitor->LoadCamera();
+
+      while (!monitor->connect()) {
+        Warning("Couldn't connect to monitor %d", monitor->Id());
+        sleep(1);
+      }
+      SystemTimePoint now = std::chrono::system_clock::now();
+      monitor->SetStartupTime(now);
 
       if (monitor->StartupDelay() > 0) {
         Debug(1, "Doing startup sleep for %ds", monitor->StartupDelay());

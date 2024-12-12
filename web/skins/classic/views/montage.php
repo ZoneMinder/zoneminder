@@ -76,20 +76,28 @@ if ( isset($_COOKIE['zmMontageLayout']) ) {
 
 $options = array();
 
+$options['width'] = 'auto';
 if ( isset($_COOKIE['zmMontageWidth']) ) {
-  $_SESSION['zmMontageWidth'] = $options['width'] = validInt($_COOKIE['zmMontageWidth']);
+  if (isset($widths[$_COOKIE['zmMontageWidth']])) {
+    $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
+  } else {
+    unset($_COOKIE['zmMontageWidth']);
+    zm_setcookie('zmMontageWidth', 'auto');
+  }
 #} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
   #$options['width'] = $_SESSION['zmMontageWidth'];
-} else {
-  $options['width'] = 0;
 }
 
+$options['height'] = 'auto';
 if ( isset($_COOKIE['zmMontageHeight']) ) {
-  $_SESSION['zmMontageHeight'] = $options['height'] = validInt($_COOKIE['zmMontageHeight']);
+  if (isset($heights[$_COOKIE['zmMontageHeight']])) {
+    $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
+  } else {
+    unset($_COOKIE['zmMontageHeight']);
+    zm_setcookie('zmMontageHeight', 'auto');
+  }
 #else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
   #$options['height'] = $_SESSION['zmMontageHeight'];
-} else {
-  $options['height'] = 0;
 }
 
 $scale = '100';   # actual

@@ -292,7 +292,7 @@ $fields{model} = undef;
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
-    Importance => 'Normal',
+    Importance => q`'Normal'`,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,
     );

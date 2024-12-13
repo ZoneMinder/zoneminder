@@ -250,12 +250,16 @@ if ( $request ) {
   return;
 }
 
-# Add CSP Headers
-$cspNonce = bin2hex(zm_random_bytes(16));
 if (!$view) {
   ZM\Debug(1, "Empty view, defaulting to home view");
   $view = getHomeView();
+  header('Location: ?view='.$view);
+  return;
 }
+
+# Add CSP Headers
+$cspNonce = bin2hex(zm_random_bytes(16));
+
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
   CSPHeaders($view, $cspNonce);

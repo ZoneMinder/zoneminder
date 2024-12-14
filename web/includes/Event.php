@@ -440,7 +440,7 @@ class Event extends ZM_Object {
     $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
+    if ( !ZM_WEB_SCALE_THUMBS || !$scale || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
       $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;

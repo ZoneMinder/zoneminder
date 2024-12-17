@@ -2036,7 +2036,7 @@ function getStreamHTML($monitor, $options = array()) {
         #$options['width'] = $monitor->ViewWidth().'px';
         #$options['height'] = $monitor->ViewHeight().'px';
       }
-    } else {
+    } else if ($options['width'] != 'auto') {
       #ZM\Warning("Have width ".$options['width']);
       if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
         $scale = intval(100*$matches[1]/$monitor->ViewWidth());

@@ -25,7 +25,7 @@ if ( isset($_REQUEST['mid']) ) {
 } else if ( isset($_REQUEST['mids']) ) {
   $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
 } else {
-  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user->unviewableMonitorIds() ? ' WHERE Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')' : ''), 'Id', $user->viewableMonitorIds());
+  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false'.($user->unviewableMonitorIds() ? ' AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')' : ''), 'Id', $user->viewableMonitorIds());
 }
 
 if ( !($mids and count($mids)) ) {

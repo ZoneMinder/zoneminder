@@ -247,7 +247,7 @@ foreach ( $monitors as $monitor ) {
 ?>
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle"
           title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
-          style="<?php echo $options['width'] ? 'width:'.$options['width'].'px;':''?>"
+          style="<?php echo ($options['width'] and $options['width'] != 'auto') ? 'width:'.$options['width']:''?>"
 >
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
@@ -258,8 +258,6 @@ foreach ( $monitors as $monitor ) {
             >
             <?php
   $monitor_options = $options;
-  $monitor_options['width'] = $monitor_options['width']?$monitor_options['width'].'px' : null;
-  $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
   $monitor_options['mode'] = 'single';
 
   #ZM\Warning('Options: ' . print_r($monitor_options,true));
@@ -268,8 +266,8 @@ foreach ( $monitors as $monitor ) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      (isset($options['width']) ? $options['width'].'px' : reScale($monitor->ViewWidth(), $scale).'px' ),
-      ( isset($options['height']) ? $options['height'].'px' : reScale($monitor->ViewHeight(), $scale).'px' ),
+      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
+      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
       $monitor->Name()
     );
   } else {
@@ -279,15 +277,15 @@ foreach ( $monitors as $monitor ) {
     $height = null;
     $width = null;
     if ( $options['width'] ) {
-      $width = $options['width'];
+      $width = intval($options['width']);
       if ( !$options['height'] ) {
-        $scale = (int)( 100 * $options['width'] / $monitor->Width() );
+        $scale = (int)( 100 * $width / $monitor->Width() );
         $height = reScale($monitor->Height(), $scale);
       }
     } else if ( $options['height'] ) {
-      $height = $options['height'];
+      $height = intval($options['height']);
       if ( !$options['width'] ) {
-        $scale = (int)( 100 * $options['height'] / $monitor->Height() );
+        $scale = (int)( 100 * $height / $monitor->Height() );
         $width = reScale($monitor->Width(), $scale);
       }
     } else if ( $scale ) {

@@ -702,6 +702,7 @@ function endOfResize(e) {
  * Uses the #content element
  * figures out where bottomEl is in the viewport
  * does calculations
+ * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected

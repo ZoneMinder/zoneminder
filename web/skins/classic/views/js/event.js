@@ -42,7 +42,7 @@ var coordinateMouse = {
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
-var currentScale = 0; // Temporarily, because need to put things in order with the "scale" variable = "select" block
+var currentScale = 100; // Temporarily, because need to put things in order with the "scale" variable = "select" block
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -309,13 +309,13 @@ function changeScale() {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    currentScale = newSize.autoScale;
+    currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    currentScale = newSize.autoScale;
+    currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
     let w = 0;
@@ -1347,7 +1347,6 @@ function initPage() {
   // Load the event stats
   getStat();
   zmPanZoom.init();
-  changeStreamQuality();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1411,15 +1410,17 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
-  progressBarNav();
-  //if (scale == '0') changeScale();
-  changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
-
+  console.log('progress');
+  progressBarNav();
+  console.log('changescale');
+  changeScale();
+  console.log('changeStreamQality');
+  changeStreamQuality();
 
   // enable or disable buttons based on current selection and user rights
   renameBtn.prop('disabled', !canEdit.Events);

@@ -360,7 +360,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
       TimePoint::duration frame_send_time = send_end_time - send_start_time;
 
       if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
-        Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
+        Debug(1, "Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
              maxfps);
       }

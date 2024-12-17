@@ -26,6 +26,7 @@
 
 extern "C" {
 #include <libavutil/time.h>
+#include <libavutil/display.h>
 }
 
 #include <string>
@@ -192,7 +193,34 @@ bool VideoStore::open() {
       // Only set orientation if doing passthrough, otherwise the frame image will be rotated
       Monitor::Orientation orientation = monitor->getOrientation();
       if (orientation) {
+#if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
+        int32_t* displaymatrix = static_cast<int32_t*>(av_malloc(sizeof(int32_t)*9));
         Debug(3, "Have orientation %d", orientation);
+        if (orientation == Monitor::ROTATE_0) {
+        } else if (orientation == Monitor::ROTATE_90) {
+          av_display_rotation_set(displaymatrix, 90);
+        } else if (orientation == Monitor::ROTATE_180) {
+          av_display_rotation_set(displaymatrix, 180);
+        } else if (orientation == Monitor::ROTATE_270) {
+          av_display_rotation_set(displaymatrix, 270);
+        } else {
+          Warning("Unsupported Orientation(%d)", orientation);
+        }
+#endif
+#if LIBAVCODEC_VERSION_CHECK(60, 31, 102, 31, 102)
+        av_packet_side_data_add(
+            &video_out_stream->codecpar->coded_side_data,
+            &video_out_stream->codecpar->nb_coded_side_data,
+            AV_PKT_DATA_DISPLAYMATRIX,
+            (int32_t *)displaymatrix, sizeof(int32_t)*9, 0);
+#else
+#if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
+        av_stream_add_side_data(video_out_stream,
+            AV_PKT_DATA_DISPLAYMATRIX,
+					(uint8_t *)displaymatrix,
+					sizeof(*displaymatrix));
+#endif
+#endif
         if (orientation == Monitor::ROTATE_0) {
         } else if (orientation == Monitor::ROTATE_90) {
           ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);

@@ -671,8 +671,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
     FPSeconds elapsed = now - last_fps_update;
     if (elapsed.count() > 0) {
       actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
-      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f", actual_fps, frame_count, last_frame_count,
-          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count());
+      Debug(1, "actual_fps %f = old + frame_count %d - last %d / elapsed %.2f from %.2f - %.2f scale %d", actual_fps, frame_count, last_frame_count,
+          elapsed.count(), FPSeconds(now.time_since_epoch()).count(), FPSeconds(last_fps_update.time_since_epoch()).count(), scale);
       last_frame_count = frame_count;
       last_fps_update = now;
     }

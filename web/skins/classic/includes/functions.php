@@ -72,6 +72,7 @@ echo output_cache_busted_stylesheet_links(array(
 
 if ( $basename == 'montage' ) {
   echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+  echo output_link_if_exists(array('/assets/vis-timeline/styles/vis-timeline-graph2d.min.css'));
 }
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
@@ -1003,6 +1004,7 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));
+    echo output_script_if_exists(array('assets/vis-timeline/standalone/umd/vis-timeline-graph2d.min.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));

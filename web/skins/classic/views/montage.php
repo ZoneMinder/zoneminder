@@ -26,30 +26,10 @@ if (!canView('Stream')) {
 require_once('includes/MontageLayout.php');
 require_once('includes/Zone.php');
 
-$showControl = false;
-$showZones = false;
-if (isset($_REQUEST['showZones'])) {
-  if ($_REQUEST['showZones'] == 1) {
-    $showZones = true;
-  }
-}
-$widths = array( 
-  'auto'  => 'auto',
-  '160px' => '160px',
-  '320px' => '320px',
-  '352px' => '352px',
-  '640px' => '640px',
-  '1280px' => '1280px' );
-
-$heights = array( 
-  'auto'  => 'auto',
-  '240px' => '240px',
-  '270px' => '270px',
-  '320px' => '320px',
-  '480px' => '480px',
-  '720px' => '720px',
-  '1080px' => '1080px',
-);
+$Montage = new Skin\Montage();
+$options = $Montage::$options;
+$filterbar = $Montage::$resultMonitorFilters['filterBar'];
+$fieldsTable = $Montage::buildGlobalFilters ($liveMode = false);
 
 $monitorStatusPosition = array( 
   'insideImgBottom'  => translate('Inside bottom'),
@@ -63,91 +43,6 @@ if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
-}
-
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
-// layoutsById is used in the dropdown, so needs to be sorted
-$layoutsById = array();
-$presetLayoutsNames = array( //Order matters!
-  'Auto',
-  '1 Wide',
-  '2 Wide',
-  '3 Wide',
-  '4 Wide',
-  '6 Wide',
-  '8 Wide',
-  '12 Wide',
-  '16 Wide'
-);
-
-/* Create an array "Name"=>layouts to make it easier to find IDs by name */
-$layoutsByName = array();
-foreach ($layouts as $l) {
-  if ($l->Name() == 'Freeform') $l->Name('Auto');
-  $layoutsByName[$l->Name()] = $l;
-}
-
-/* Fill with preinstalled Layouts. They should always come first.
- * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
- */
-foreach ($presetLayoutsNames as $name) {
-  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in DB (rare case during update process)
-    $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
-}
-
-/* Add custom Layouts & assign objects instead of names for preset Layouts */
-foreach ($layouts as $l) {
-  $layoutsById[$l->Id()] = $l;
-}
-
-zm_session_start();
-
-$layout_id = 0;
-if (isset($_REQUEST['zmMontageLayout'])) {
-  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_REQUEST['zmMontageLayout']);
-} else if ( isset($_COOKIE['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
-} else if ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout_id = validCardinal($_SESSION['zmMontageLayout']);
-}
-if (!$layout_id || !isset($layoutsById[$layout_id])) {
-  $layout_id = $layoutsByName['Auto']->Id();
-}
-$layout = $layoutsById[$layout_id];
-$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
-
-$options = array();
-
-if (isset($_REQUEST['zmMontageWidth'])) {
-  $width = $_REQUEST['zmMontageWidth'];
-  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
-    $_SESSION['zmMontageWidth'] = $options['width'] = $width;
-} else if (isset($_COOKIE['zmMontageWidth'])) {
-  $width = $_COOKIE['zmMontageWidth'];
-  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
-    $_SESSION['zmMontageWidth'] = $options['width'] = $width;
-} else if (isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth']) {
-  $width = $_SESSION['zmMontageWidth'];
-  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
-    $options['width'] = $width;
-} else {
-  $options['width'] = 0;
-}
-
-if (isset($_REQUEST['zmMontageHeight'])) {
-  $height = $_REQUEST['zmMontageHeight'];
-  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
-    $_SESSION['zmMontageHeight'] = $options['height'] = $height;
-} else if (isset($_COOKIE['zmMontageHeight'])) {
-  $height = $_COOKIE['zmMontageHeight'];
-  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
-    $_SESSION['zmMontageHeight'] = $options['height'] = $height;
-} else if (isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight']) {
-  $height = $_SESSION['zmMontageHeight'];
-  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
-    $options['height'] = $height;
-} else {
-  $options['height'] = 0;
 }
 
 $scale = '';   # auto
@@ -164,6 +59,8 @@ scaleControl is no longer used!
 */
 }
 
+$Montage::setScale ($scale);
+
 $streamQualitySelected = '0';
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
@@ -172,75 +69,39 @@ if (isset($_REQUEST['streamQuality'])) {
 } else if (isset($_SESSION['zmStreamQuality']) ) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
+/*
+$archived = '';   # All
+if (isset($_REQUEST['Archived'])) {
+  $archived = $_REQUEST['Archived'];
+} else if (isset($_COOKIE['zmFilterArchived'])) {
+  $archived = $_COOKIE['zmFilterArchived'];
+}
+*/
 
-if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
-  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
-} else if (isset($_COOKIE['zmMontageRate'])) {
-  $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
+$speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
+
+if (isset($_REQUEST['speed'])) {
+  $defaultSpeed = validNum($_REQUEST['speed']);
+} else if (isset($_COOKIE['speed'])) {
+  $defaultSpeed = validNum($_COOKIE['speed']);
 } else {
-  $options['maxfps'] = ''; // unlimited
+  $defaultSpeed = 1.0;
 }
 
-session_write_close();
-
-include('_monitor_filters.php');
-$resultMonitorFilters = buildMonitorsFilters();
-$filterbar = $resultMonitorFilters['filterBar'];
-$displayMonitors = $resultMonitorFilters['displayMonitors'];
-
-$need_hls = false;
-$need_janus = false;
-$monitors = array();
-foreach ($displayMonitors as &$row) {
-  if ($row['Capturing'] == 'None')
-    continue;
-
-  $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-
-  if (ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'])
-    $showControl = true;
-  if (!isset($widths[$row['Width'].'px'])) {
-    $widths[$row['Width'].'px'] = $row['Width'].'px';
+$speedIndex = 5; // default to 1x
+for ( $i = 0; $i < count($speeds); $i++ ) {
+  if ( $speeds[$i] == $defaultSpeed ) {
+    $speedIndex = $i;
+    break;
   }
-  if (!isset($heights[$row['Height'].'px'])) {
-    $heights[$row['Height'].'px'] = $row['Height'].'px';
-  }
-  $monitor = $monitors[] = new ZM\Monitor($row);
-
-  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
-    $need_hls = true;
-  }
-  if ($monitor->JanusEnabled()) {
-    $need_janus = true;
-  }
-} # end foreach Monitor
-
-$default_layout = '';
-
-$monitorCount = count($monitors);
-if ($monitorCount <= 3) {
-  $default_layout = $monitorCount . ' Wide';
-} else if ($monitorCount <= 4) {
-  $default_layout = '2 Wide';
-} else if ($monitorCount <= 6) {
-  $default_layout = '3 Wide';
-} else if ($monitorCount%4 == 0) {
-  $default_layout = '4 Wide';
-} else if ($monitorCount%6 == 0) {
-  $default_layout = '6 Wide';
-} else {
-  $default_layout = '4 Wide';
 }
-
-$AutoLayoutName = $default_layout;
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div id="page">
-    <div id="header">
+<div id="page">
+  <div id="header">
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-сontrol-object="#mfbpanel" 
@@ -248,16 +109,21 @@ echo getNavBarHTML();
              data-flip-сontrol-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
              </a>'.PHP_EOL;
+    $html .= '<a id="block-timelineflip" class="flip" href="#" 
+             data-flip-сontrol-object="#timelinediv" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="timelineflip" class="material-icons md-18" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
+             </a>'.PHP_EOL;
     $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <div id="headerButtons">
 <?php
-if ($showControl) {
+if ($Montage::$showControl) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {
-  if ($showZones) {
+  if ($Montage::$showZones) {
   ?>
     <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
   <?php
@@ -269,9 +135,15 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get">
+      <form id="filters_form" method="get">
         <input type="hidden" name="view" value="montage"/>
-        <?php echo $filterbar ?>
+        <div id="filterbar"><?php echo $filterbar ?></div>
+
+
+
+        <div id="fieldsTable" class="hidden-shift"><?php echo $fieldsTable->simple_widget() ?></div>
+        <div id="ButtonsDiv"><!-- Заполняется через Ajax для Montage review (пока нет...)--></div>
+        <div id="SpeedDiv0"><!-- Заполняется через Ajax для Montage review пока нет...)--></div>
       </form>
       <div id="sizeControl">
         <form action="?view=montage" method="post">
@@ -305,21 +177,13 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
             <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
           </span>
-          <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
-            <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, 'auto'/*$options['width']*/, array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
-          </span>
-          <span id="heightControl" class="hidden"> <!-- OLD version, requires removal -->
-            <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, 'auto'/*$options['height']*/, array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
-          </span>
           <span id="scaleControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Scale') ?></label>
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?></label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $Montage::$layoutsById, $Montage::$layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
@@ -342,53 +206,96 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
         </form>
       </div>
     </div>
-  </div>
-  <div id="content">
-    <div id="monitors" class="grid-stack hidden-shift">
-<?php
-foreach ($monitors as $monitor) {
-  $monitor_options = $options;
-  #ZM\Debug('Options: ' . print_r($monitor_options,true));
 
-  if ($monitor->Type() == 'WebSite') {
-    echo getWebSiteUrl(
-      'liveStream'.$monitor->Id(),
-      $monitor->Path(),
-      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
-      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
-      $monitor->Name()
-    );
-  } else {
-    $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
-    $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'paused';
-    if (!$scale and ($layout->Name() != 'Auto')) {
-      if ($layout_is_preset) {
-        # We know the # of columns so can figure out a proper scale
-        if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
-          if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
-            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
-          }
-        }
-      } else {
-        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
-        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
-      }
-    }
-    echo $monitor->getStreamHTML($monitor_options);
-  }
-} # end foreach monitor
-?>
-      </div>
+    <div class="btn-group mr-2" role="group" aria-label="Second group">
+      <button type="button" class="btn btn-success btn-sm" data-on-click-this="setLiveMode"><?php echo translate('Live') ?></button>
+      <button type="button" class="btn btn-info btn-sm" data-on-click-this="setInRecordingMode"><?php echo translate('InRecording') ?></button>
+<!--      <button type="button" class="btn btn-info btn-sm" data-on-click-this="stopAllEvents">STOP</button>
+      <button type="button" class="btn btn-info btn-sm" data-on-click-this="playAllEvents">START</button>
+      <button type="button" class="btn btn-info btn-sm" data-on-click-this="fitTimeline">FIT</button>
+      <button type="button" class="btn btn-info btn-sm" data-on-click-this="clickinitGridStack">initGridStack</button>-->
     </div>
   </div>
+  <div id="wrapper-timeline">
+    <div id="timelinediv" style="background-color: #FFF;"><!-- Filled out via Ajax for viewing in the recording --></div>
+    <div id="buttonBlock">
+      <button type="button" id="moveLeftTimeline" title="<?php echo translate('Move left Timeline') ?>" data-on-click-true="moveLeftTimeline">
+        <i class="material-icons md-18">arrow_back_ios</i>
+      </button>
+      <button type="button" id="last_24H" data-on-click="click_last_24H"><?php echo translate('24 Hour') ?></button>
+      <button type="button" id="last_8H" data-on-click="click_last_8H"><?php echo translate('8 Hour') ?></button>
+      <button type="button" id="last_1H" data-on-click="click_last_1H"><?php echo translate('1 Hour') ?></button>
+      <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
+      <button type="button" id="moveRightTimeline" title="<?php echo translate('Move left Timeline') ?>" data-on-click-true="moveRightTimeline">
+        <i class="material-icons md-18">arrow_forward_ios</i>
+      </button>
+      <button type="button" id="timeMarkerInCenterScale" title="<?php echo translate('Time marker in center of the scale') ?>" data-on-click-true="timeMarkerInCenterScale">
+        <i class="material-icons md-18">center_focus_weak</i>
+      </button>
+
+        <div id="speedDiv" class="hidden-shift">
+          <label for="speedslider"><?php echo translate('Speed') ?></label>
+          <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1"/>
+          <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
+        </div>
+
+
+      <div id="dvrControls">
+        <!--<button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="unavail" disabled="disabled" data-on-click-true="streamPrev">
+          <i class="material-icons md-18">skip_previous</i>
+        </button>
+        <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamFastRev">
+          <i class="material-icons md-18">fast_rewind</i>
+        </button>
+        <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
+          <i class="material-icons md-18">chevron_left</i>
+        </button>-->
+        <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="inactive" disabled="disabled" style="display: none;"  data-on-click-true="clickedStop">
+          <i class="material-icons md-18">stop</i>
+        </button>
+        <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" disabled="disabled" style="display: none;" data-on-click="clickedPause">
+          <i class="material-icons md-18">pause</i>
+        </button>
+        <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" data-on-click="clickedPlay">
+          <i class="material-icons md-18">play_arrow</i>
+        </button>
+        <!--<button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="inactive" data-on-click-true="streamSlowFwd">
+          <i class="material-icons md-18">chevron_right</i>
+        </button>
+        <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamFastFwd">
+          <i class="material-icons md-18">fast_forward</i>
+        </button>-->
+        <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+          <i class="material-icons md-18">zoom_out</i>
+        </button>
+        <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
+          <i class="material-icons md-18">fullscreen</i>
+        </button>
+        <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="unavail" disabled="disabled" data-on-click-true="streamNext">
+          <i class="material-icons md-18">skip_next</i>-->
+        </button>
+      </div>
+    </div><!--#buttonBlock-->
+  </div>
+<!--<div id="alert-load-events" class="alert alert-info alert-dismissible fade show" role="alert">-->
+<div id="alert-load-events" class="alert alert-info" role="alert">
+  <h4 class="alert-heading"><?php echo translate('PleaseWait') ?></h4>
+  <?php echo translate('EventsLoading') ?>
+<!--  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>-->
+</div>
+  <div id="content">
+    <div id="monitors" class="grid-stack hidden-shift">
+      <!-- Filled with monitor blocks via AJAX -->
+    </div>
+  </div>
+</div>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
-<?php if ($need_janus) { ?>
+<?php if ($Montage::$need_janus) { ?>
   <script src="/javascript/janus/janus.js"></script>
 <?php } ?>
-<?php if ($need_hls) { ?>
+<?php if ($Montage::$need_hls) { ?>
   <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
@@ -412,4 +319,5 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
+<script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

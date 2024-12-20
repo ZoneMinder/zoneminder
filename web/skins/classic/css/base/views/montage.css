@@ -1,3 +1,7 @@
+h4.alert-heading {
+  font-size: 1.5rem;
+}
+
 #layout {
   margin-right: 10px;
 }
@@ -95,6 +99,124 @@
 
 .grid-monitor .ratioControl, .grid-monitor .ratioControl select {
   min-width: 130px;
+}
+
+/* +++ Timeline */
+#timelinediv {
+  text-align: justify;
+  margin-bottom: 1rem;
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+#timeline-current-time {
+  position: relative;
+  height: 1.3rem;
+  min-width: 200px;
+  /*line-height: 2rem;*/
+  font-weight: bold;
+  margin-bottom: 1rem;
+  padding: 3px;
+}
+
+#timeline-extra-info {
+  position: absolute;
+  bottom: 0;
+  height: 1.3rem;
+  min-width: 200px;
+  /*line-height: 2rem;*/
+  font-weight: bold;
+  margin: 3px;
+}
+
+.vis-item.vis-range.event_timeline {
+  background-color: var(--teal);
+  /*border-color: var(--teal);*/
+  border-color: var(--blue);
+}
+
+.vis-item.vis-range.bad_event_timeline {
+  background-color: #da0c0c;
+  /*border-color: #da0c0c;*/
+  border-color: var(--blue);
+  color: antiquewhite;
+}
+
+.vis-item.vis-range.vis-selected,
+.vis-item.vis-range.event_timeline.event-archived.vis-selected {
+  background-color: #fff785;
+  border-color: #ffc200;
+  color: #1a1a1a;
+  z-index: 2;
+}
+
+.vis-item.vis-range.event_timeline.event-archived,
+.vis-item.vis-range.bad_event_timeline.event-archived {
+  background-color: var(--yellow);
+  border-color: var(--danger);
+}
+
+/* +++ Making it more compact */
+#timelinediv .vis-item .vis-item-content {
+  padding: 2px;
+}
+
+#timelinediv .vis-item  {
+  top: 2px !important;
+}
+/*vis-item vis-range event_timeline vis-readonly*/
+/* --- Making it more compact */
+
+.vis-label.monitor-group-timeline {
+  min-width: 170px; /* Required to place additional information in the free space of the Timeline */
+  max-width: 40vw; /* Required for narrow screens */
+}
+
+#alert-load-events {
+  position: absolute;
+  width: 100%;
+  /*opacity: 0;*/
+  display: none;
+}
+/* --- Timeline */
+
+#dvrControls {
+  white-space: nowrap;
+  float: inline-end;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+#buttonBlock {
+  position: relative;
+  padding-left: 1rem;
+}
+
+#buttonBlock button{
+  margin-bottom: 1rem;
+  vertical-align: top;
+}
+
+#moveLeftTimeline, #moveRightTimeline, #timeline-current-time, #downloadVideo, #last_24H, #last_8H, #last_1H, #downloadVideo {
+  float: left;
+}
+
+#speedDiv {
+  /*float: left;*/
+  float: none;
+  position: relative;
+  display: inline-block;
+  /*width: 260px;*/
+}
+
+#speedDiv #speedslider {
+  top: 10px;
+  position: relative;
+}
+
+#speedDiv #speedslideroutput {
+  width: 60px;
+  display: inline-block;
 }
 
 .grid-stack-item-content.modeEditingMonitor {

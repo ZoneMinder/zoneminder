@@ -432,6 +432,10 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
 
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
+  if (!mVideoCodecContext->width) {
+    mVideoCodecContext->width = width;
+    mVideoCodecContext->height = height;
+  }
 
   if ( use_hwaccel && (hwaccel_name != "") ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

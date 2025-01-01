@@ -60,12 +60,6 @@ my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
 my $uri;
 
-sub credentials {
-  my $self = shift;
-  $$self{username} = shift;
-  $$self{password} = shift;
-Debug("Setting credentials to $$self{username}/$$self{password}");
-}
 
 sub open {
   my $self = shift;

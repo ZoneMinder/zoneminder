@@ -569,6 +569,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State      state;
   SystemTimePoint start_time;
   SystemTimePoint last_fps_time;
+  SystemTimePoint last_status_time;
   SystemTimePoint last_analysis_fps_time;
   SystemTimePoint auto_resume_time;
   unsigned int      last_motion_score;

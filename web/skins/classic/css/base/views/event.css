@@ -113,9 +113,15 @@ height: 100%;
 }
 
 #videoFeed {
-    display: inline-block;
+    /*display: inline-block;*/
+    display: inline-grid;
     position: relative;
     text-align: center;
+}
+
+#videoFeed .button_zoom,
+[id^="videoFeedStream"] {
+  grid-area: 1/1;
 }
 
 #monitorStatus {

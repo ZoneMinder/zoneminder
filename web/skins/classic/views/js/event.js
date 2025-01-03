@@ -1704,12 +1704,14 @@ function initPage() {
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+        //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
+        $j('#button_zoom' + id).removeClass('hidden');
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
-        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+        //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
+        $j('#button_zoom' + id).addClass('hidden');
       }
   );
 

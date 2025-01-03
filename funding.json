@@ -1,0 +1,65 @@
+{
+  "version": "v1.0.0",
+  "entity": {
+    "type": "organisation",
+    "role": "owner",
+    "name": "ZoneMinder Inc",
+    "email": "isaac@zoneminder.com",
+    "phone": "16478835483",
+    "description": "A Canadian corporation to hold and maintain the assets relating to the ZoneMinder CCTV project.",
+    "webpageUrl": {
+      "url": "https://zoneminder.com"
+    }
+  },
+  "projects": [
+    {
+      "guid": "zoneminder",
+      "name": "ZoneMinder",
+      "description": "A full-featured, open source, state-of-the-art video surveillance software system.",
+      "webpageUrl": {
+        "url": "https://zoneminder.com"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/ZoneMinder/zoneminder"
+      },
+      "licenses": [
+        "GPL-v2"
+      ],
+      "tags": [
+        "video",
+        "security",
+        "cameras"
+      ]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "TD",
+        "type": "bank",
+        "address": "Account: 5212751 Transit No: 29842 Institution: 004"
+      },
+      {
+        "guid": "paypal",
+        "type": "payment-provider",
+        "address": "paypal@zoneminder.com"
+      }
+    ],
+    "plans": [
+      {
+        "guid": "myplan",
+        "status": "active",
+        "name": "Infrastructure costs, support, development",
+        "description": "Not really sure this plan part is about.",
+        "amount": 10000,
+        "currency": "USD",
+        "frequency": "yearly",
+        "channels": [
+          "TD",
+          "paypal"
+        ]
+      }
+    ],
+    "history": []
+  }
+}

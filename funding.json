@@ -8,7 +8,8 @@
     "phone": "16478835483",
     "description": "A Canadian corporation to hold and maintain the assets relating to the ZoneMinder CCTV project.",
     "webpageUrl": {
-      "url": "https://zoneminder.com"
+      "url": "https://www.zoneminder.com",
+      "wellKnown": "https://www.zoneminder.com/.well-known/funding-manifest-urls"
     }
   },
   "projects": [
@@ -17,10 +18,12 @@
       "name": "ZoneMinder",
       "description": "A full-featured, open source, state-of-the-art video surveillance software system.",
       "webpageUrl": {
-        "url": "https://zoneminder.com"
+        "url": "https://www.zoneminder.com",
+        "wellKnown": "https://www.zoneminder.com/.well-known/funding-manifest-urls"
       },
       "repositoryUrl": {
-        "url": "https://github.com/ZoneMinder/zoneminder"
+        "url": "https://github.com/zoneminder/zoneminder",
+        "wellKnown": "https://github.com/zoneminder/zoneminder/blob/master/.well-known/funding-manifest-urls"
       },
       "licenses": [
         "GPL-v2"
@@ -35,14 +38,16 @@
   "funding": {
     "channels": [
       {
-        "guid": "TD",
+        "guid": "bank",
         "type": "bank",
-        "address": "Account: 5212751 Transit No: 29842 Institution: 004"
+        "address": "Account: 5212751 Transit No: 29842 Institution: 004",
+        "description": ""
       },
       {
         "guid": "paypal",
         "type": "payment-provider",
-        "address": "paypal@zoneminder.com"
+        "address": "paypal@zoneminder.com",
+        "description": ""
       }
     ],
     "plans": [
@@ -55,7 +60,7 @@
         "currency": "USD",
         "frequency": "yearly",
         "channels": [
-          "TD",
+          "bank",
           "paypal"
         ]
       }

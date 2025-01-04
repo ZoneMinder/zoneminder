@@ -1144,7 +1144,7 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
 .block-button-center {
   display: inline-block;
   position: relative;
-  margin: 0 auto;
+  margin: 0 20%;
   top: 2px;
   z-index: 10;
 }

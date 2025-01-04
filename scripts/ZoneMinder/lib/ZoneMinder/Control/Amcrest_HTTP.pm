@@ -102,7 +102,7 @@ sub open {
     $$self{base_url} = $uri->canonical();
     $$self{address} = $uri->host_port();
     Debug("User auth $$self{username} $$self{password} " . $uri->authority() . ' ' . $uri->host_port());
-    $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password');
+    $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
     chomp $$self{base_url};
     Debug("Base_url is ".$$self{base_url});
   } else {

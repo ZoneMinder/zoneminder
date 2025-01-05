@@ -59,9 +59,9 @@ sub open {
 
   if ($self->{Monitor}->{ControlAddress}
       and
-    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+    $self->{Monitor}->{ControlAddress} ne 'user:pass@ip'
       and
-    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+    $self->{Monitor}->{ControlAddress} ne 'user:port@ip'
   ) {
 
     if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
@@ -70,7 +70,7 @@ sub open {
     }
     my $uri = URI->new($self->{Monitor}->{ControlAddress});
 
-    $$self{realm} = 'Login to ' . $self->{Monitor}->{ControlDevice};
+    $$self{realm} = 'Login to ' . $self->{Monitor}->{ControlDevice} if $self->{Monitor}->{ControlDevice};
     if ($self->{Monitor}->{ControlAddress}) {
       if ( $uri->userinfo()) {
         @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
@@ -85,8 +85,8 @@ sub open {
       $$self{base_url} = $uri->canonical();
       Debug('Using initial credentials for '.$uri->host_port().join(',', '', @$self{'realm', 'username', 'password'}).", base_url: $$self{base_url} auth:".$uri->authority());
     }
- } elsif ( $self->{Monitor}{Path}) {
-    my $uri = URI->new($self->{Monitor}{Path});
+ } elsif ( $self->{Monitor}->{Path}) {
+    my $uri = URI->new($self->{Monitor}->{Path});
     Debug("Using Path for credentials: $self->{Monitor}{Path} " . $uri->userinfo());
       if ( $uri->userinfo()) {
         @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
@@ -111,14 +111,10 @@ sub open {
 
   my $url = $$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType';
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->get_realm($url);
-
-  if ( $res->is_success ) {
+  if ($self->get_realm($url)) {
     $self->{state} = 'open';
     return !undef;
-  } else {
-    Error("Failed to get $url ".$res->status_line());
-  } # end if $res->status_line() eq '401 Unauthorized'
+  }
 
   $self->{state} = 'closed';
   return undef;

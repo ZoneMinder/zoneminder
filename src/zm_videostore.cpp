@@ -51,6 +51,7 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -614,6 +615,27 @@ void VideoStore::flush_codecs() {
       av_packet_rescale_ts(pkt.get(),
           video_out_ctx->time_base,
           video_out_stream->time_base);
+      if (video_out_ctx->codec_id == AV_CODEC_ID_AV1) {
+        if (pkt.duration <= 0)
+        {
+          if (video_last_pts != AV_NOPTS_VALUE)
+          {
+            pkt.duration = pkt.pts - video_last_pts;
+            Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+                pkt.pts,
+                video_last_pts,
+                pkt.pts - video_last_pts,
+                pkt.duration
+                );
+            if (pkt.duration <= 0) {
+              pkt.duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+            }
+          } else {
+            pkt.duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+          }
+        }
+        video_last_pts = pkt.pts;
+      }
       write_packet(pkt.get(), video_out_stream);
     } // while have buffered frames
     Debug(1, "Done writing buffered video.");

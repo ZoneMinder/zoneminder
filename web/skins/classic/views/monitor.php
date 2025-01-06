@@ -983,20 +983,21 @@ include('_monitor_source_nvsocket.php');
               </td>
             </tr>
             <tr class="OutputCodec">
-              <td><?php echo translate('OutputCodec') ?></td>
+              <td class="text-right pr-3"><?php echo translate('OutputCodec') ?></td>
               <td>
 <?php
 $videowriter_codecs = array(
   '0' => translate('Auto'),
   '27' => 'h264',
   '173' => 'h265/hevc',
+  '226' => 'av1',
 );
 echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
 ?>
               </td>
             </tr>
             <tr class="Encoder">
-              <td><?php echo translate('Encoder') ?></td>
+              <td class="text-right pr-3"><?php echo translate('Encoder') ?></td>
               <td>
 <?php
 $videowriter_encoders = array(
@@ -1009,10 +1010,11 @@ $videowriter_encoders = array(
   'libx265' => 'libx265',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_vaapi' => 'hevc_vaapi',
+  'libaom-av1' => 'libaom-av1',
 );
- echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
+echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">
-              <td><?php echo translate('OutputContainer') ?></td>
+              <td class="text-right pr-3"><?php echo translate('OutputContainer') ?></td>
               <td>
 <?php
 $videowriter_containers = array(
@@ -1024,13 +1026,13 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
-            <tr>
+            <tr class="OptionalEncoderParam">
               <td class="text-right pr-3"><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></td>
               <td>
-              <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
+              <textarea name="newMonitor[EncoderParameters]" width=40 rows="<?php echo count(explode("\n", $monitor->EncoderParameters()))+2; ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               </td>
             </tr>
-            <tr><td class="text-right pr-3"><?php echo translate('RecordAudio') ?></td><td>
+            <tr class="RecordAudio"><td class="text-right pr-3"><?php echo translate('RecordAudio'); echo makeHelpLink('OPTIONS_RECORDAUDIO') ?></td><td>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>

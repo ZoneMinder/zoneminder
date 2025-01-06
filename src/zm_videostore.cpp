@@ -616,25 +616,25 @@ void VideoStore::flush_codecs() {
           video_out_ctx->time_base,
           video_out_stream->time_base);
       if (video_out_ctx->codec_id == AV_CODEC_ID_AV1) {
-        if (pkt.duration <= 0)
+        if (pkt->duration <= 0)
         {
           if (video_last_pts != AV_NOPTS_VALUE)
           {
-            pkt.duration = pkt.pts - video_last_pts;
+            pkt->duration = pkt->pts - video_last_pts;
             Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-                pkt.pts,
+                pkt->pts,
                 video_last_pts,
-                pkt.pts - video_last_pts,
-                pkt.duration
+                pkt->pts - video_last_pts,
+                pkt->duration
                 );
-            if (pkt.duration <= 0) {
-              pkt.duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+            if (pkt->duration <= 0) {
+              pkt->duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
             }
           } else {
-            pkt.duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+            pkt->duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
           }
         }
-        video_last_pts = pkt.pts;
+        video_last_pts = pkt->pts;
       }
       write_packet(pkt.get(), video_out_stream);
     } // while have buffered frames

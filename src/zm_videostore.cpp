@@ -512,17 +512,6 @@ bool VideoStore::open() {
       }  // end if
       audio_out_ctx->codec_tag = 0;
 #endif
-
-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
-      /* Seems like technically we could have multple channels, so let's not implement this for ffmpeg 5 */
-#else
-      if (audio_out_ctx->channels > 1) {
-        Warning("Audio isn't mono, changing it.");
-        audio_out_ctx->channels = 1;
-      } else {
-        Debug(3, "Audio is mono");
-      }
-#endif
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {

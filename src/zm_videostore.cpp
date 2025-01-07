@@ -373,8 +373,8 @@ bool VideoStore::open() {
 
   reorder_queues[video_out_stream->index] = {};
 
-  video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
   if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+    video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
     Monitor::Orientation orientation = monitor->getOrientation();
     if (orientation) {
@@ -420,6 +420,9 @@ bool VideoStore::open() {
         Warning("Unsupported Orientation(%d)", orientation);
       }
     } // end if orientation
+  } else {
+    // encode
+    video_out_stream->time_base = AV_TIME_BASE_Q;
   }  // end if passthrough
 
   if (audio_in_stream and audio_in_ctx) {
@@ -1318,8 +1321,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     } else {
       uint64_t useconds = in_pts - video_first_pts;
       frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
-      Debug(2,
-            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%" PRIi64 ") usecs(%" PRIi64 ") @ %d/%d",
+      Debug(2, 
+            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%" PRIi64 ".%" PRIi64 ") @ %d/%d",
             frame_count,
             frame->pts,
             video_first_pts,
@@ -1345,12 +1348,13 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
     if (opkt->dts != AV_NOPTS_VALUE)
       opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
-    Debug(1, "Timebase conversions using %d/%d -> %d/%d",
+    Debug(2, "Timebase conversions using %d/%d -> %d/%d",
         video_out_ctx->time_base.num,
         video_out_ctx->time_base.den,
         video_out_stream->time_base.num,
         video_out_stream->time_base.den);
 
+#if 0
     int64_t duration = 0;
     if (zm_packet->in_frame) {
 
@@ -1369,7 +1373,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 #endif
             video_in_stream->time_base,
             video_out_stream->time_base);
-        Debug(1, "duration from ipkt: = duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+        Warning( "duration from ipkt: = duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
             zm_packet->in_frame->duration,
 #else
@@ -1386,7 +1390,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               zm_packet->in_frame->pts - video_last_pts,
               video_in_stream->time_base,
               video_out_stream->time_base);
-        Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+        Warning( "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
             zm_packet->in_frame->pts,
             video_last_pts,
             zm_packet->in_frame->pts - video_last_pts,
@@ -1406,9 +1410,24 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }  // end if in_frmae->pkt_duration
       video_last_pts = zm_packet->in_frame->pts;
     } else {
+
       //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
     }  // end if in_frmae
-    opkt->duration = duration;
+#endif
+    
+    if (video_last_pts != AV_NOPTS_VALUE) {
+      opkt->duration = opkt->pts - video_last_pts;
+      Debug(2, "duration calc: pts %" PRId64 " - last_pts %" PRId64 " = %" PRId64 ,
+          opkt->pts,
+          video_last_pts,
+          opkt->duration
+          );
+    } else {
+      Debug(2, "Setting duration to %" PRId64 " dts is %" PRId64 " pts is %" PRId64, opkt->duration, opkt->dts, opkt->pts);
+    }
+
+    video_last_pts = opkt->pts;
+    Debug(2, "Setting video_last_pts to %" PRId64 " because it's the first packet", video_last_pts);
   } else { // Passthrough
     AVPacket *ipkt = zm_packet->packet.get();
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");
@@ -1418,7 +1437,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
-        Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
+        Warning( "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;
       }
       opkt->dts = ipkt->dts - video_first_dts;
@@ -1446,7 +1465,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   if (audio_first_dts == AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
-    Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
+    Debug(1, "audio first_dts to %" PRId64, audio_first_dts);
   }
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
@@ -1536,7 +1555,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {
         // Commonly seen
-        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
+        Warning( "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
             pkt->dts, stream->index, last_dts[stream->index], reorder_queue_size);
         // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
         pkt->dts = last_dts[stream->index]+last_duration[stream->index]-1;
@@ -1562,7 +1581,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
 
   ZM_DUMP_STREAM_PACKET(stream, pkt, "finished pkt");
-  Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
+  Debug(2, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
       stream->index, next_dts[stream->index], last_dts[stream->index]);
 
   int ret = av_interleaved_write_frame(oc, pkt);

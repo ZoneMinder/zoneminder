@@ -769,8 +769,6 @@ function MonitorStream(monitorData) {
           }
           this.buttons.forceAlarmButton.prop('disabled', false);
         }
-      } else {
-        console.log("Can't edit");
       } // end if canEdit.Monitors
 
       this.setAlarmState(monitor.Status);

@@ -68,6 +68,9 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
     case AV_HWDEVICE_TYPE_VAAPI:
       fmt = AV_PIX_FMT_VAAPI;
       break;
+    case AV_HWDEVICE_TYPE_NI_QUADRA:
+      fmt = AV_PIX_FMT_NI_QUAD;
+      break;
     case AV_HWDEVICE_TYPE_DXVA2:
       fmt = AV_PIX_FMT_DXVA2_VLD;
       break;
@@ -405,6 +408,35 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
+// Adding preferential selection of hardware accelerated decoders for netint hardware, if available -- like h264_mmal above.
+  if ( mVideoStream->
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      codecpar
+#else
+      codec
+#endif
+      ->codec_id == AV_CODEC_ID_H264 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_ni_quadra_dec")) == nullptr ) {
+      Debug(1, "Failed to find decoder (h264_ni_quadra_dec)");
+    } else {
+      Debug(1, "Success finding decoder (h264_ni_quadra_dec)");
+    }
+  }
+
+  if ( mVideoStream->
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      codecpar
+#else
+      codec
+#endif
+      ->codec_id == AV_CODEC_ID_H265 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h265_ni_quadra_dec")) == nullptr ) {
+      Debug(1, "Failed to find decoder (h265_ni_quadra_dec)");
+    } else {
+      Debug(1, "Success finding decoder (h265_ni_quadra_dec)");
+    }
+  }
+
   if ( !mVideoCodec ) {
     mVideoCodec = avcodec_find_decoder(mVideoStream->
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -493,6 +525,7 @@ int FfmpegCamera::OpenFfmpeg() {
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
       if ( ret < 0 and hwaccel_device != "" ) {
+	Debug(1, "Failed to created hwdevice for %s with error %s -- retrying", hwaccel_device.c_str(), av_make_error_string(ret).c_str());
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
       }
       if ( ret < 0 ) {

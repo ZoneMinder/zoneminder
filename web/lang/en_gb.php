@@ -652,7 +652,7 @@ $SLANG = array(
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
-	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
+    'RecordAudio'           => 'Record Audio?', // Edited to streamline UI label column size. Description moves to popup help text in OPTIONS_RECORDAUDIO - RkR
     'Real'                  => 'Real',
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
@@ -1004,6 +1004,10 @@ $OLANG = array(
     for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
     ',
   ),
+  'OPTIONS_RECORDAUDIO' => array(
+    'Help' => '
+    Whether to store the audio stream when saving an event.'
+    ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

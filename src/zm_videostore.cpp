@@ -42,15 +42,20 @@ extern "C" {
 VideoStore::CodecData VideoStore::codec_data[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA },
+  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA },
   { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
 
   { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA },
+  { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA },
   { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
@@ -276,9 +281,11 @@ bool VideoStore::open() {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
           Debug(1, "Setting up hwdevice");
-          ret = av_hwdevice_ctx_create(&hw_device_ctx,
-              codec_data[i].hwdevice_type,
-              nullptr, nullptr, 0);
+	  if (codec_data[i].hwdevice_type == AV_HWDEVICE_TYPE_NI_QUADRA) {
+		ret = av_hwdevice_ctx_create(&hw_device_ctx, codec_data[i].hwdevice_type, "-1", nullptr, 0);
+	  } else {
+		ret = av_hwdevice_ctx_create(&hw_device_ctx, codec_data[i].hwdevice_type, nullptr, nullptr, 0);
+	  }
           if (0>ret) {
             Error("Failed to create hwdevice_ctx");
             continue;
@@ -1307,7 +1314,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     frame->pkt_duration = 0;
 #endif
 
-    int64_t in_pts = (zm_packet->timestamp.tv_sec * (uint64_t)1000000) + zm_packet->timestamp.tv_usec;
+    //Setup to copy the pts from the incoming frame, instead of recclulating it.
+    //int64_t in_pts = (zm_packet->timestamp.tv_sec * (uint64_t)1000000) + zm_packet->timestamp.tv_usec;
+    int64_t in_pts = zm_packet->in_frame->pts;
     if (video_first_pts == AV_NOPTS_VALUE) {
       video_first_pts = in_pts;
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%" PRIi64 ") usecs(%" PRIi64 ")",
@@ -1317,7 +1326,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       frame->pts = 0;
     } else {
       uint64_t useconds = in_pts - video_first_pts;
-      frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
+      // ensuring both the output stream and context have a properly scaled time_base based on the input stream, rather than the hardcoded default used earlier (AV_TIME_BASE_Q)
+      frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
       Debug(2,
             "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%" PRIi64 ") usecs(%" PRIi64 ") @ %d/%d",
             frame_count,
@@ -1330,85 +1340,177 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             video_out_ctx->time_base.den);
     }
 
-    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
-    if (ret <= 0) {
-      if (ret < 0) {
-        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+    av_init_packet(opkt);
+    opkt->data = nullptr;
+    opkt->size = 0;
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    if (video_out_ctx->codec_id == AV_CODEC_ID_AV1) {
+      /*
+      Debug(1, "Entering NetInt Patched Code. RkR1");
+      if (hw_frame)
+      {
+          int ref_count[4] = {0};
+          ref_count[0] = hw_frame->buf[0] ? av_buffer_get_ref_count(hw_frame->buf[0]) : -1;
+          ref_count[1] = hw_frame->buf[1] ? av_buffer_get_ref_count(hw_frame->buf[1]) : -1;
+          ref_count[2] = hw_frame->buf[2] ? av_buffer_get_ref_count(hw_frame->buf[2]) : -1;
+          ref_count[3] = hw_frame->buf[3] ? av_buffer_get_ref_count(hw_frame->buf[3]) : -1;
+          Debug(1, "hw_frame: before zm_send_frame_internal ref_count %d %d %d %d",
+              ref_count[0], ref_count[1], ref_count[2], ref_count[3]
+              );
       }
-      return ret;
-    }
-    pkt_guard.acquire(opkt);
-    ZM_DUMP_PACKET(opkt, "packet returned by codec");
+      */
+      int ret = zm_send_frame_internal(video_out_ctx, frame);
+      if (ret <= 0) {
+        if (ret < 0) {
+          Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+        }
+        if (hw_frame) av_frame_free(&hw_frame);
+        return ret;
+      }
+    
+      // NETINT - add receive packets loop, similar to FFmpeg do_video_out
+      while (1) {
+        av_init_packet(opkt);
+        opkt->data = nullptr;
+        opkt->size = 0;
+          
+        int ret = zm_receive_packet_internal(video_out_ctx, frame, *opkt);
+    
+        if (ret <= 0) {
+          if (ret < 0) {
+            Error("Could not receive packet (error '%s')", av_make_error_string(ret).c_str());
+          } 
+          if (hw_frame)
+          {
+            /*
+            int ref_count[4] = {0};
+            ref_count[0] = hw_frame->buf[0] ? av_buffer_get_ref_count(hw_frame->buf[0]) : -1;
+            ref_count[1] = hw_frame->buf[1] ? av_buffer_get_ref_count(hw_frame->buf[1]) : -1;
+            ref_count[2] = hw_frame->buf[2] ? av_buffer_get_ref_count(hw_frame->buf[2]) : -1;
+            ref_count[3] = hw_frame->buf[3] ? av_buffer_get_ref_count(hw_frame->buf[3]) : -1;
+            Debug(1, "hw_frame: before av_frame_free ref_count %d %d %d %d",
+                ref_count[0], ref_count[1], ref_count[2], ref_count[3]
+                );  
+            */
+            av_frame_free(&hw_frame);
+          } 
+          return ret;
+        }
 
-    // Need to adjust pts/dts values from codec time to stream time
-    if (opkt->pts != AV_NOPTS_VALUE)
-      opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-    if (opkt->dts != AV_NOPTS_VALUE)
-      opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
-    Debug(1, "Timebase conversions using %d/%d -> %d/%d",
-        video_out_ctx->time_base.num,
-        video_out_ctx->time_base.den,
-        video_out_stream->time_base.num,
-        video_out_stream->time_base.den);
+ 	ZM_DUMP_PACKET((*opkt), "packet returned by codec");
 
-    int64_t duration = 0;
-    if (zm_packet->in_frame) {
-
-      if (
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-          zm_packet->in_frame->duration
-#else
-          zm_packet->in_frame->pkt_duration
-#endif
-         ) {
-        duration = av_rescale_q(
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-            zm_packet->in_frame->duration,
-#else
-            zm_packet->in_frame->pkt_duration,
-#endif
-            video_in_stream->time_base,
-            video_out_stream->time_base);
-        Debug(1, "duration from ipkt: = duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-            zm_packet->in_frame->duration,
-#else
-            zm_packet->in_frame->pkt_duration,
-#endif
-            duration,
-            video_in_stream->time_base.num,
-            video_in_stream->time_base.den,
+        // Need to adjust pts/dts values from codec time to stream time
+        if (opkt->pts != AV_NOPTS_VALUE)
+          opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
+        if (opkt->dts != AV_NOPTS_VALUE)
+          opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
+        Debug(1, "Timebase conversions using %d/%d -> %d/%d",
+            video_out_ctx->time_base.num,
+            video_out_ctx->time_base.den,
             video_out_stream->time_base.num,
-            video_out_stream->time_base.den
-            );
-      } else if (video_last_pts != AV_NOPTS_VALUE) {
-        duration = av_rescale_q(
-              zm_packet->in_frame->pts - video_last_pts,
+            video_out_stream->time_base.den);
+
+        int64_t duration = 0;
+        if (video_last_pts != AV_NOPTS_VALUE)
+        {
+          duration = opkt->pts - video_last_pts;
+          Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+              opkt->pts,
+              video_last_pts,
+              opkt->pts - video_last_pts,
+              duration
+              );
+          if (duration <= 0) {
+            duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+          }
+        } else if (zm_packet->in_frame) {
+          if (zm_packet->in_frame->pkt_duration) {
+            duration = av_rescale_q(
+                zm_packet->in_frame->pkt_duration,
+                video_in_stream->time_base,
+                video_out_stream->time_base);
+            Debug(1, "duration from ipkt: pts(%" PRId64 ") = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+                zm_packet->in_frame->pts,
+                zm_packet->in_frame->pkt_duration,
+                duration,
+                video_in_stream->time_base.num,
+                video_in_stream->time_base.den,
+                video_out_stream->time_base.num,
+                video_out_stream->time_base.den
+                );
+          }
+        }
+        video_last_pts = opkt->pts;
+        opkt->duration = duration;
+
+        write_packet(opkt, video_out_stream);
+        zm_av_packet_unref(opkt);
+      }
+    }
+    else
+#endif
+    {
+      int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
+      if (ret <= 0) {
+        if (ret < 0) {
+          Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+        }
+        if (hw_frame) av_frame_free(&hw_frame);
+        return ret;
+      }
+      ZM_DUMP_PACKET((*opkt), "packet returned by codec");
+
+      // Need to adjust pts/dts values from codec time to stream time
+      if (opkt->pts != AV_NOPTS_VALUE)
+        opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
+      if (opkt->dts != AV_NOPTS_VALUE)
+        opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
+      Debug(1, "Timebase conversions using %d/%d -> %d/%d",
+          video_out_ctx->time_base.num,
+          video_out_ctx->time_base.den,
+          video_out_stream->time_base.num,
+          video_out_stream->time_base.den);
+
+      int64_t duration = 0;
+      if (zm_packet->in_frame) {
+        if (zm_packet->in_frame->pkt_duration) {
+          duration = av_rescale_q(
+              zm_packet->in_frame->pkt_duration,
               video_in_stream->time_base,
               video_out_stream->time_base);
-        Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-            zm_packet->in_frame->pts,
-            video_last_pts,
-            zm_packet->in_frame->pts - video_last_pts,
-            duration
-            );
-        if (duration <= 0) {
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-          duration = zm_packet->in_frame->duration ?
-            zm_packet->in_frame->duration :
-            av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
-#else
-          duration = zm_packet->in_frame->pkt_duration ?
-            zm_packet->in_frame->pkt_duration :
-            av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
-#endif
-        }
-      }  // end if in_frmae->pkt_duration
-      video_last_pts = zm_packet->in_frame->pts;
-    } else {
-      //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
-    }  // end if in_frmae
-    opkt->duration = duration;
+          Debug(1, "duration from ipkt: pts(%" PRId64 ") = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+              zm_packet->in_frame->pts,
+              zm_packet->in_frame->pkt_duration,
+              duration,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
+              video_out_stream->time_base.num,
+              video_out_stream->time_base.den
+              );
+        } else if (video_last_pts != AV_NOPTS_VALUE) {
+          duration = av_rescale_q(
+                zm_packet->in_frame->pts - video_last_pts,
+                video_in_stream->time_base,
+                video_out_stream->time_base);
+          Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+              zm_packet->in_frame->pts,
+              video_last_pts,
+              zm_packet->in_frame->pts - video_last_pts,
+              duration
+              );
+          if (duration <= 0) {
+            duration = zm_packet->in_frame->pkt_duration ?
+              zm_packet->in_frame->pkt_duration :
+              av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+          }
+        }  // end if in_frmae->pkt_duration
+        video_last_pts = zm_packet->in_frame->pts;
+      } else {
+        //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
+      }  // end if in_frmae
+      opkt->duration = duration;
+    }
   } else { // Passthrough
     AVPacket *ipkt = zm_packet->packet.get();
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");

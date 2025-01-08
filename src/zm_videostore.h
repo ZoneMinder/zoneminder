@@ -22,6 +22,7 @@ extern "C"  {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   #include "libavutil/hwcontext.h"
 #endif
+#include "libavutil/buffer.h"
 }
 
 #if HAVE_LIBAVCODEC

@@ -160,9 +160,18 @@ function initPage() {
       if ( this.value == 1 /* Encode */ ) {
         $j('.OutputCodec').show();
         $j('.Encoder').show();
+        $j('.OutputContainer').show();
+        $j('.OptionalEncoderParam').show();
+        $j('.RecordAudio').show();
+
       } else {
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
+        $j('.OutputContainer').hide();
+        $j('.OptionalEncoderParamPreset').hide();
+        $j('.OptionalEncoderParam').hide();
+        $j('.RecordAudio').hide();
+
       }
     };
     el.onchange();

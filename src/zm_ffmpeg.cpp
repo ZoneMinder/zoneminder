@@ -557,6 +557,41 @@ int zm_send_packet_receive_frame(
 #endif
 }  // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
+// NETINT - the following functions break send_frame and receive_packet to separate functions
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+int zm_send_frame_internal(AVCodecContext *ctx, AVFrame *frame) {
+  int ret;
+  if (( (ret = avcodec_send_frame(ctx, frame)) < 0 ) and frame) {
+    Error("Could not send frame (error '%s')",
+          av_make_error_string(ret).c_str());
+    return ret;
+  }
+  return 1;
+}
+
+/* Returns < 0 on error, 0 if codec not ready, 1 on success
+ */
+int zm_receive_packet_internal(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
+  int ret;
+  if ((ret = avcodec_receive_packet(ctx, &packet)) < 0) {
+    if (AVERROR(EAGAIN) == ret) {
+      // The codec may need more samples than it has, perfectly valid
+      Debug(2, "Codec not ready to give us a packet");
+      return 0;
+    } else if (frame) {
+      // May get EOF if frame is NULL because it signals flushing
+      Error("Could not recieve packet (error %d = '%s')", ret,
+            av_make_error_string(ret).c_str());
+    }
+    zm_av_packet_unref(&packet);
+    return ret;
+  }
+  return 1;
+}
+#endif
+
+
+
 /* Returns < 0 on error, 0 if codec not ready, 1 on success
  */
 int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {

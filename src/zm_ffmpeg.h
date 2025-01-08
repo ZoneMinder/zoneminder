@@ -474,6 +474,11 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
 int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
 int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+int zm_send_frame_internal(AVCodecContext *ctx, AVFrame *frame);
+int zm_receive_packet_internal(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet);
+#endif
+
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)

@@ -859,8 +859,6 @@ include('_monitor_source_nvsocket.php');
         <tr>
           <td class="text-right pr-3"><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</td>
           <td>
-            <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1"/>
-            <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1"/>
 <?php 
         $resolutions =  
           array(
@@ -900,6 +898,20 @@ include('_monitor_source_nvsocket.php');
           }
         }
         echo htmlselect('dimensions_select', $resolutions, $selected);
+?>
+<?php
+          if ( $monitor->Width() and $monitor->Height() ) {
+?>
+            <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1"/>
+            <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1"/>
+<?php
+          }
+         else {
+?>
+            <input type="number" name="newMonitor[Width]" value="" min="1"/>
+            <input type="number" name="newMonitor[Height]" value="" min="1"/>
+<?php
+          }
 ?>
           </td>
         </tr>
@@ -1004,13 +1016,16 @@ $videowriter_encoders = array(
   'auto' => translate('Auto'),
   'libx264' => 'libx264',
   'h264' => 'h264',
+  'h264_ni_quadra_enc' => 'h264_ni_quadra_enc',
   'h264_nvenc' => 'h264_nvenc',
   'h264_omx' => 'h264_omx',
   'h264_vaapi' => 'h264_vaapi',
   'libx265' => 'libx265',
+  'h265_ni_quadra_enc' => 'h265_ni_quadra_enc',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_vaapi' => 'hevc_vaapi',
   'libaom-av1' => 'libaom-av1',
+  'av1_ni_quadra_enc' => 'av1_ni_quadra_enc',
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">

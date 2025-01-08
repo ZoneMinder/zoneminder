@@ -467,6 +467,7 @@ bool VideoStore::open() {
       }  // end if found AAC codec
     } else {
       Debug(2, "Got AAC");
+      zm_dump_codecpar(audio_in_stream->codecpar);
 
       // normally we want to pass params from codec in here
       // but since we are doing audio passthrough we don't care
@@ -510,8 +511,10 @@ bool VideoStore::open() {
         audio_out_stream = nullptr;
         return false;
       }  // end if
-      audio_out_ctx->codec_tag = 0;
 #endif
+        audio_out_ctx->codec_tag = 0;
+        audio_out_stream->codecpar->codec_tag = 0;
+      zm_dump_codecpar(audio_out_stream->codecpar);
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {

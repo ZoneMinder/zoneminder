@@ -16,6 +16,7 @@ extern "C"  {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #include <libavutil/hwcontext.h>
 #endif
+#include "libavutil/buffer.h"
 }
 
 class Monitor;
@@ -34,6 +35,7 @@ class VideoStore {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
     const AVHWDeviceType hwdevice_type;
 #endif
+    const char *hwdevice_default;
   };
 
   static struct CodecData codec_data[];

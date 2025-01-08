@@ -841,11 +841,13 @@ $decoders = array(
   'h264_cuvid' => 'h264_cuvid',
   'h264_nvmpi' => 'h264_nvmpi',
   'h264_mmal'   => 'h264_mmal',
+  'h264_ni_quadra_dec' => 'h264_ni_quadra',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'h265_ni_quadra_dec' => 'h265_ni_quadra',
   'hevc_cuvid' => 'hevc_cuvid',
   'hevc_nvmpi' => 'hevc_nvmpi',
   'hevc_qsv' => 'hevc_qsv',
@@ -861,6 +863,7 @@ $decoders = array(
   'av1' => 'av1',
   'av1_qsv' => 'av1_qsv',
   'av1_cuvid' => 'av1_cuvid',
+  'av1_ni_quadra_dec' => 'av1_ni_quadra',
 );
 echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
@@ -1149,11 +1152,13 @@ $videowriter_encoders = array(
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_nvenc' => 'h264_nvenc',
+  'h264_ni_quadra_enc' => 'h264_ni_quadra',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'h265_ni_quadra_enc' => 'h265_ni_quadra',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_qsv' => 'hevc_qsv',
   'hevc_vaapi' => 'hevc_vaapi',
@@ -1161,11 +1166,24 @@ $videowriter_encoders = array(
   'vp9-qsv' => 'vp9-qsv',
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
-  'av1_qsv' => 'av1_qsv'
+  'av1_qsv' => 'av1_qsv',
+  'av1_ni_quadra_enc' => 'av1_ni_quadra'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>
             </li>
+            <li class="EncoderHWAccelName">
+              <label>
+                <?php echo translate('EncoderHWAccelName'); echo makeHelpLink('OPTIONS_ENCODERHWACCELNAME') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelName]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelName()) ?>"/>
+            <li>
+            <li class="EncoderHWAccelDevice">
+              <label><?php echo translate('EncoderHWAccelDevice') ?>
+                  <?php echo makeHelpLink('OPTIONS_ENCODERHWACCELDEVICE') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelDevice()) ?>"/>
+            <li>
             <li class="OutputContainer">
               <label><?php echo translate('OutputContainer') ?></label>
 <?php

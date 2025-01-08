@@ -107,14 +107,17 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
+  // ret == 0 means EAGAIN
   int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
-  if (ret < 0) {
-    if (AVERROR(EAGAIN) != ret) {
+  if (ret <= 0) {
+    if (ret < 0) {
       Warning("Unable to receive frame : code %d %s.",
               ret, av_make_error_string(ret).c_str());
     }
     in_frame = nullptr;
     return 0;
+  } else {
+    Debug(1, "Ret from zm_send_packet_receive_frame %d", ret);
   }
   int bytes_consumed = ret;
   if (ret > 0) {

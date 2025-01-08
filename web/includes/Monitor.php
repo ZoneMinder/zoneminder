@@ -264,6 +264,8 @@ class Monitor extends ZM_Object {
     'VideoWriter' =>  '2',
     'OutputCodec' =>  '0',
     'Encoder'     =>  'auto',
+    'EncoderHWAccelName'  =>  null,
+    'EncoderHWAccelDevice'  =>  null,
     'OutputContainer' => null,
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),

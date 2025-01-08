@@ -93,7 +93,7 @@ std::string load_monitor_sql =
   "`Deinterlacing`, "
   "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
-  "`OutputCodec`, `Encoder`, `OutputContainer`, "
+  "`OutputCodec`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
   "`RecordAudio`, WallClockTimestamps,"
   "`Brightness`, `Contrast`, `Hue`, `Colour`, "
   "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
@@ -220,6 +220,8 @@ Monitor::Monitor() :
   encoderparams(""),
   output_codec(0),
   encoder(""),
+  encoder_hwaccel_name(""),
+  encoder_hwaccel_device(""),
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
   record_audio(false),
@@ -541,6 +543,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   encoder = dbrow[col] ? dbrow[col] : "";
+  col++;
+  encoder_hwaccel_name = dbrow[col] ? dbrow[col] : "";
+  col++;
+  encoder_hwaccel_device = dbrow[col] ? dbrow[col] : "";
   col++;
   output_container = dbrow[col] ? dbrow[col] : "";
   col++;

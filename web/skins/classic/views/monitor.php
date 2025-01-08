@@ -1002,7 +1002,7 @@ $videowriter_codecs = array(
   '0' => translate('Auto'),
   '27' => 'h264',
   '173' => 'h265/hevc',
-  '226' => 'av1',
+  '32797' => 'av1',
 );
 echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
 ?>

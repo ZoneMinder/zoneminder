@@ -1170,6 +1170,18 @@ $videowriter_encoders = array(
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>
             </li>
+            <li class="EncoderHWAccelName">
+              <label>
+                <?php echo translate('EncoderHWAccelName'); echo makeHelpLink('OPTIONS_ENCODERHWACCELNAME') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelName]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelName()) ?>"/>
+            <li>
+            <li class="EncoderHWAccelDevice">
+              <label><?php echo translate('EncoderHWAccelDevice') ?>
+                  <?php echo makeHelpLink('OPTIONS_ENCODERHWACCELDEVICE') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelDevice()) ?>"/>
+            <li>
             <li class="OutputContainer">
               <label><?php echo translate('OutputContainer') ?></label>
 <?php

@@ -69,6 +69,10 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
     return AV_PIX_FMT_CUDA;
   case AV_HWDEVICE_TYPE_QSV:
     return AV_PIX_FMT_VAAPI;
+#ifdef AV_HWDEVICE_TYPE_NI_QUADRA
+  case AV_HWDEVICE_TYPE_NI_QUADRA:
+    return AV_PIX_FMT_NI_QUAD;
+#endif
 #ifdef AV_HWDEVICE_TYPE_MMAL
   case AV_HWDEVICE_TYPE_MMAL:
     return AV_PIX_FMT_MMAL;
@@ -507,6 +511,8 @@ int FfmpegCamera::OpenFfmpeg() {
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
                                    (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
       if (ret < 0 and hwaccel_device != "") {
+        Debug(1, "Failed to create hwdevice for %s with error %s -- retrying",
+            hwaccel_device.c_str(), av_make_error_string(ret).c_str());
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
       }
       if (ret < 0) {

@@ -1208,14 +1208,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end if hwaccel
 #endif
 
-    //zm_packet->out_frame->coded_picture_number = frame_count;
-    //zm_packet->out_frame->display_picture_number = frame_count;
-    //zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
-    // Do this to allow the encoder to choose whether to use I/P/B frame
-    //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    //zm_packet->out_frame->key_frame = zm_packet->keyframe;
-    //frame->pkt_duration = 0;
-
     if (video_first_pts == AV_NOPTS_VALUE) {
       video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
@@ -1242,13 +1234,20 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     //int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
     int ret = avcodec_send_frame(video_out_ctx, frame);
-    if (ret <= 0) {
-      if (ret < 0) {
-        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      }
+    if (ret < 0) {
+      Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       return ret;
     }
-    while (0 == avcodec_receive_packet(video_out_ctx, opkt.get())) {
+    while (true) {
+      ret = avcodec_receive_packet(video_out_ctx, opkt.get());
+      if (ret < 0) {
+        if (ret != AVERROR(EAGAIN)) {
+          Error("Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
+        } else {
+          Debug(1, "Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
+        }
+        return ret;
+      }
       pkt_guard.acquire(opkt);
       ZM_DUMP_PACKET(opkt, "packet returned by codec");
 
@@ -1305,7 +1304,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
   }  // end if codec matches
-
 
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )

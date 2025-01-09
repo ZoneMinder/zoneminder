@@ -380,7 +380,7 @@ bool VideoStore::open() {
       }  // end foreach codec
 
       if (!video_out_codec) {
-        Error("Can't open video codec!");
+        Error("Can't open any video codecs!");
         return false;
       }  // end if can't open codec
       Debug(2, "Success opening codec");
@@ -1129,7 +1129,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           chosen_codec_data->sw_pix_fmt,
           video_out_ctx->width,
           video_out_ctx->height
-        );
+          );
       } else if (!zm_packet->in_frame) {
         Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
         return 0;
@@ -1165,18 +1165,19 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end if hwaccel
 #endif
 
-    if (video_first_pts == AV_NOPTS_VALUE) {
-      video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
-      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
+    if (monitor->WallClockTimestamps() or !(zm_packet->in_frame || zm_packet->packet)) {
+      if (video_first_pts == AV_NOPTS_VALUE) {
+        video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+        Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
             video_first_pts,
             FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
 
-      frame->pts = 0;
-    } else {
-      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
-                                zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
-      frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
-      Debug(2,
+        frame->pts = 0;
+      } else {
+        Microseconds useconds = std::chrono::duration_cast<Microseconds>(
+            zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
+        frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
+        Debug(2,
             "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->timestamp(%" PRIi64 " - first %" PRId64 " us %" PRId64 " ) @ %d/%d",
             frame_count,
             frame->pts,
@@ -1185,6 +1186,47 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(useconds).count()),
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den);
+      }
+    } else {
+      if (zm_packet->in_frame) {
+        if (video_first_pts == AV_NOPTS_VALUE) {
+          video_first_pts = zm_packet->in_frame->pts;
+          Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
+          frame->pts = 0;
+        } else {
+          frame->pts = av_rescale_q(zm_packet->in_frame->pts - video_first_pts, zm_packet->in_frame->time_base, video_out_ctx->time_base);
+          Debug(2,
+              "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
+              frame_count,
+              frame->pts,
+              zm_packet->in_frame->pts,
+              video_first_pts,
+              zm_packet->in_frame->time_base.num,
+              zm_packet->in_frame->time_base.den,
+              video_out_ctx->time_base.num,
+              video_out_ctx->time_base.den);
+        }
+      } else if (zm_packet->packet) {
+        if (video_first_pts == AV_NOPTS_VALUE) {
+          video_first_pts = zm_packet->packet->pts;
+          Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
+          frame->pts = 0;
+        } else {
+          frame->pts = av_rescale_q(zm_packet->packet->pts-video_first_pts, video_in_stream->time_base, video_out_ctx->time_base);
+          Debug(2,
+              "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
+              frame_count,
+              frame->pts,
+              zm_packet->packet->pts,
+              video_first_pts,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
+              video_out_ctx->time_base.num,
+              video_out_ctx->time_base.den);
+        }
+      } else {
+        Error("No pts from any source.");
+      }
     }
 
     // Some hwaccel codecs may get full if we only receive one pkt for one frame

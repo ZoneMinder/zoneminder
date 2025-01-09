@@ -1220,15 +1220,15 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
           frame->pts = 0;
         } else {
-          frame->pts = av_rescale_q(zm_packet->in_frame->pts - video_first_pts, zm_packet->in_frame->time_base, video_out_ctx->time_base);
+          frame->pts = av_rescale_q(zm_packet->in_frame->pts - video_first_pts, video_in_stream->time_base, video_out_ctx->time_base);
           Debug(2,
               "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
               frame_count,
               frame->pts,
               zm_packet->in_frame->pts,
               video_first_pts,
-              zm_packet->in_frame->time_base.num,
-              zm_packet->in_frame->time_base.den,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
               video_out_ctx->time_base.num,
               video_out_ctx->time_base.den);
         }

@@ -170,10 +170,8 @@ function initPage() {
     el.onchange = function() {
       if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
-        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
-        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }

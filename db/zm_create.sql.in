@@ -558,6 +558,8 @@ CREATE TABLE `Monitors` (
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
   `OutputCodec` int(10) unsigned NOT NULL default 0,
   `Encoder`     varchar(32),
+  `EncoderHWAccelName`  varchar(64),
+  `EncoderHWAccelDevice`  varchar(255),
   `OutputContainer` enum('auto','mp4','mkv','webm'),
   `EncoderParameters` TEXT,
   `WallClockTimestamps` TINYINT NOT NULL DEFAULT '0',

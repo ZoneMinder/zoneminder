@@ -69,7 +69,7 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
     return AV_PIX_FMT_CUDA;
   case AV_HWDEVICE_TYPE_QSV:
     return AV_PIX_FMT_VAAPI;
-#ifdef AV_HWDEVICE_TYPE_NI_QUADRA
+#ifdef QUADRA
   case AV_HWDEVICE_TYPE_NI_QUADRA:
     return AV_PIX_FMT_NI_QUAD;
 #endif

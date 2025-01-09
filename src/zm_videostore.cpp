@@ -43,11 +43,11 @@ extern "C" {
 
 VideoStore::CodecData VideoStore::codec_data[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-#ifdef QUADRA
+//#ifdef QUADRA
   { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
-#endif
+//#endif
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
   { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
   { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
@@ -562,16 +562,8 @@ bool VideoStore::open() {
         Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
       }
 
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-      /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
-#else
-      if (audio_out_ctx->channels > 1) {
-        Warning("Audio isn't mono, changing it.");
-        audio_out_ctx->channels = 1;
-      } else {
-        Debug(3, "Audio is mono");
-      }
-#endif
+      audio_out_ctx->codec_tag = 0;
+      audio_out_stream->codecpar->codec_tag = 0;
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {

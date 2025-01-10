@@ -1855,10 +1855,14 @@ void Monitor::UpdateFPS() {
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
 
+    FPSeconds db_elapsed = now - last_status_time;
+    if (db_elapsed > Seconds(10)) {
       std::string sql = stringtf(
           "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
           new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
+      last_status_time = now;
+    }
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 

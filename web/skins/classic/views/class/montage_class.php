@@ -315,8 +315,11 @@ class Montage {
   */
   public static function scaleCalculation($width, $scale='') {
     $layout = self::$layout;
-    $newScale = '';
-    if (!$width || (int)$width == 0) return $newScale;
+    if (!$width || (int)$width == 0) {
+      return 100;
+    } else {
+      $newScale = intval(100*(1920/$width));
+    }
 
     if (!$scale and ($layout->Name() != 'Auto')) {
       if (self::$layout_is_preset) {
@@ -324,16 +327,14 @@ class Montage {
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
             $newScale = intval(100*((1920/$matches[1])/$width));
-            //if ($newScale > 100) $newScale = 100;
           }
         }
       } else {
         # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
         $newScale = intval(100*((1920/4)/$width));
-        //if ($newScale > 100) $newScale = 100;
       }
-      if ($newScale > 100) $newScale = 100;
     }
+    if ($newScale > 100) $newScale = 100;
     return $newScale;
   }
   
@@ -415,15 +416,17 @@ class Montage {
             if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
               if ($matches[1]) {
                 $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
-                if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
               }
             }
           } else {
             # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
             $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
-            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
+        } else {
+          $monitor_options['scale'] = self::scaleCalculation($monitor->Width());
         }
+
+        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
 
         //$blockMonitors .= $monitor->getStreamHTML($monitor_options);
         $monitor_options['frameId'] = 'FrameID'; //НУЖНО ПОДСТАВЛЯТЬ ID Фрейма !!!

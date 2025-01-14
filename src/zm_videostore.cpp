@@ -1195,7 +1195,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       if (video_last_pts != AV_NOPTS_VALUE) {
           opkt->duration = opkt->pts - video_last_pts;
       }
-      video_last_pts = zm_packet->in_frame->pts;
+      video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);
     } // end while receive_packet
   } else { // Passthrough

@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include "zm_define.h"
 
+#include <list>
 #include <memory>
 
 extern "C" {
@@ -308,5 +309,20 @@ struct zm_free_av_frame {
 };
 
 using av_frame_ptr = std::unique_ptr<AVFrame, zm_free_av_frame>;
+
+struct CodecData {
+  const AVCodecID codec_id;
+  const char *codec_codec;
+  const char *codec_name;
+  const enum AVPixelFormat sw_pix_fmt;
+  const enum AVPixelFormat hw_pix_fmt;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+  const AVHWDeviceType hwdevice_type;
+#endif
+  const char *hwdevice_default;
+};
+std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_coder) ;
+std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
+int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 
 #endif // ZM_FFMPEG_H

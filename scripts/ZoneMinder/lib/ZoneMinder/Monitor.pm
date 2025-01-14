@@ -467,7 +467,7 @@ sub Control {
         }
         require Module::Load::Conditional;
         if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$Protocol => undef})) {
-          Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
+          Error("Monitor $$self{Id} $$self{Name} Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
           return undef;
         }
         $Control = $Control->clone(); # Because this object is not per monitor specific

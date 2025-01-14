@@ -276,6 +276,8 @@ bool VideoStore::open() {
       for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
         chosen_codec_data = *it;
         Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+
+        video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
         video_out_ctx = avcodec_alloc_context3(video_out_codec);
         if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;

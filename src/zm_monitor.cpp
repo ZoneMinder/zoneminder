@@ -323,6 +323,7 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+  speedai(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1188,6 +1189,11 @@ bool Monitor::connect() {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
 
+    speedai = new SpeedAI(this);
+    if (!speedai->setup()) {
+      delete speedai;
+    }
+
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
       mqtt = zm::make_unique<MQTT>(this);
@@ -1285,6 +1291,7 @@ Monitor::~Monitor() {
   analysis_it = nullptr;
   decoder_it = nullptr;
 
+  delete speedai;
   delete storage;
   delete linked_monitors;
   linked_monitors = nullptr;
@@ -2079,6 +2086,14 @@ bool Monitor::Analyse() {
               return false;
             }
           }  // end if decoding enabled
+
+          if (speedai) {
+            if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
+              speedai->detect(*(snap->y_image));
+            } else {
+              speedai->detect(*(snap->y_image));
+            }
+          }
 
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {

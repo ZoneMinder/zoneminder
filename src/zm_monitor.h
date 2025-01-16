@@ -47,6 +47,9 @@
 #include <openssl/err.h>
 #endif
 
+// Untether runtime API header
+#include "uai_untether.h"
+
 class Group;
 class MonitorLinkExpression;
 
@@ -321,6 +324,23 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int score();
   };
  protected:
+
+  class SpeedAI {
+    private:
+      Monitor *monitor;
+      UaiModule* module;
+
+      UaiDataBuffer inputBuf, outputBuf;
+      size_t batchSize;
+      size_t inSize;
+      size_t outSize;
+
+    public:
+      explicit SpeedAI(Monitor *parent_);
+      ~SpeedAI();
+      bool setup();
+      bool detect(const Image &image);
+  };
 
   class ONVIF {
    protected:
@@ -651,6 +671,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  SpeedAI *speedai;
 
   // Used in check signal
   uint8_t red_val;

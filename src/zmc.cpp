@@ -246,10 +246,12 @@ int main(int argc, char *argv[]) {
 
       monitor->LoadCamera();
 
-      while (!monitor->connect()) {
+      while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
         sleep(1);
       }
+      if (zm_terminate) break;
+
       SystemTimePoint now = std::chrono::system_clock::now();
       monitor->SetStartupTime(now);
 

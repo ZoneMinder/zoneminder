@@ -39,6 +39,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
   zm_monitor_onvif.cpp
+  zm_monitor_speedai.cpp
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp

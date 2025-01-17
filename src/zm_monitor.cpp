@@ -323,6 +323,7 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+  quadra(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1187,7 +1188,12 @@ bool Monitor::connect() {
     } else {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
-
+  
+    quadra = new Quadra(this);
+    if (!quadra->setup()) {
+      delete quadra;
+      quadra = nullptr;
+    }
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
       mqtt = zm::make_unique<MQTT>(this);
@@ -2080,6 +2086,9 @@ bool Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
+          if (quadra and snap->in_frame) {
+            quadra->detect(snap->in_frame.get());
+          }
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
             Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);

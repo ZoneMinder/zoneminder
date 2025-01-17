@@ -27,6 +27,169 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+/*
+      AVCodecID codec_id;
+      const char *codec_codec;
+      const char *codec_name;
+      enum AVPixelFormat sw_pix_fmt;
+      enum AVPixelFormat hw_pix_fmt;
+      AVHWDeviceType hwdevice_type;
+      const char *hwdevice_default
+      */
+
+static CodecData dec_codecs[] = {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+//#ifdef QUADRA
+  { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+//#endif
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+#endif
+};
+
+static CodecData enc_codecs[] = {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+//#ifdef QUADRA
+  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+//#endif
+  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+
+  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+#else
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
+
+  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, nullptr },
+#endif
+};
+
+std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_encoder) {
+  std::list<const CodecData*> results;
+
+  for (unsigned int i = 0; i < sizeof(enc_codecs) / sizeof(*enc_codecs); i++) {
+    const CodecData *chosen_codec_data = &enc_codecs[i];
+    if (wanted_encoder != "" and wanted_encoder != "auto") {
+      if (wanted_encoder != enc_codecs[i].codec_name) {
+        Debug(1, "Not the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
+        continue;
+      }
+    }
+    if (wanted_codec and (enc_codecs[i].codec_id != wanted_codec)) {
+      Debug(1, "Not the right codec id %d %s != %d %s for %s",
+          chosen_codec_data->codec_id,
+          avcodec_get_name(chosen_codec_data->codec_id),
+          wanted_codec,
+          avcodec_get_name((AVCodecID)wanted_codec),
+          chosen_codec_data->codec_name
+          );
+      continue;
+    }
+    const AVCodec *codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+    if (!codec) {
+      Debug(1, "Didn't find codec for %s", chosen_codec_data->codec_name);
+      continue;
+    }
+    results.push_back(chosen_codec_data);
+  }
+  return results;
+}
+
+std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_decoder) {
+  std::list<const CodecData*> results;
+
+  for (unsigned int i = 0; i < sizeof(dec_codecs) / sizeof(*dec_codecs); i++) {
+    const CodecData *chosen_codec_data = &dec_codecs[i];
+    if (wanted_decoder != "" and wanted_decoder != "auto") {
+      if (wanted_decoder != chosen_codec_data->codec_name) {
+        Debug(1, "Not the right codec name %s != %s", chosen_codec_data->codec_name, wanted_decoder.c_str());
+        continue;
+      }
+    }
+    if (wanted_codec and (chosen_codec_data->codec_id != wanted_codec)) {
+      Debug(1, "Not the right codec id %d %s != %d %s for %s",
+          chosen_codec_data->codec_id,
+          avcodec_get_name(chosen_codec_data->codec_id),
+          wanted_codec,
+          avcodec_get_name((AVCodecID)wanted_codec),
+          chosen_codec_data->codec_name
+          );
+      continue;
+    }
+    const AVCodec *codec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+    if (!codec) {
+      Debug(1, "Didn't find codec for %s", chosen_codec_data->codec_name);
+      continue;
+    }
+    results.push_back(chosen_codec_data);
+  }
+  return results;
+}
+
+int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+  if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
+  return 0;
+  }
+  int ret = av_hwdevice_ctx_create(&hw_device_ctx,
+      codec_data->hwdevice_type,
+      device.empty() ? codec_data->hwdevice_default : device.c_str(),
+      nullptr, 0);
+  if (0>ret) {
+  Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
+  return ret;
+  }
+
+  AVBufferRef *hw_frames_ref;
+  AVHWFramesContext *frames_ctx = nullptr;
+
+  if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
+    Error("Failed to create hwaccel frame context.");
+    return -1;;
+  }
+  frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
+  frames_ctx->format    = codec_data->hw_pix_fmt;
+  frames_ctx->sw_format = codec_data->sw_pix_fmt;
+  frames_ctx->width     = width;
+  frames_ctx->height    = height;
+  frames_ctx->initial_pool_size = 20;
+  if ((ret = av_hwframe_ctx_init(hw_frames_ref)) < 0) {
+    Error("Failed to initialize hwaccel frame context."
+        "Error code: %s", av_err2str(ret));
+    av_buffer_unref(&hw_frames_ref);
+  } else {
+    codec_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ref);
+    if (!codec_ctx->hw_frames_ctx) {
+      Error("Failed to allocate hw_frames_ctx");
+      return -1;
+    }
+  }
+  av_buffer_unref(&hw_frames_ref);
+  av_buffer_unref(&hw_device_ctx);
+  return 0;
+#endif
+} // end setup_hwaccel
+
+
+
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
   int log_level = 0;

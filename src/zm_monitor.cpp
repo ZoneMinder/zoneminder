@@ -3034,6 +3034,7 @@ Event * Monitor::openEvent(
 #endif
 
   if (!event_start_command.empty()) {
+    Debug(1, "event start command is: %s %" PRId64 " %d", event_start_command.c_str(), event->Id(), event->MonitorId());
     if (fork() == 0) {
       Logger *log = Logger::fetch();
       std::string log_id = log->id();

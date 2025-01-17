@@ -3,13 +3,15 @@
 #include "zm_ffmpeg.h"
 #include "zm_logger.h"
 
-FFmpeg_Input::FFmpeg_Input() {
-  input_format_context = nullptr;
-  video_stream_id = -1;
-  audio_stream_id = -1;
+FFmpeg_Input::FFmpeg_Input() :
+  streams(nullptr),
+  video_stream_id(-1),
+  audio_stream_id(-1),
+  input_format_context(nullptr),
+  last_seek_request(-1),
+  hw_device_ctx(nullptr)
+{
   FFMPEGInit();
-  streams = nullptr;
-  last_seek_request = -1;
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
@@ -61,7 +63,9 @@ int FFmpeg_Input::Open(const char *filepath) {
   streams = new stream[input_format_context->nb_streams];
   Debug(2, "Have %d streams", input_format_context->nb_streams);
 
+
   for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
+
     if (is_video_stream(input_format_context->streams[i])) {
       zm_dump_stream_format(input_format_context, i, 0, 0);
       if (video_stream_id == -1) {
@@ -83,23 +87,36 @@ int FFmpeg_Input::Open(const char *filepath) {
 
     streams[i].frame_count = 0;
 
-    if (!(streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
-      Error("Could not find input codec");
-      avformat_close_input(&input_format_context);
-      return AVERROR_EXIT;
-    } else {
-      Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
-    }
+    streams[i].context = nullptr;
+    std::list<const CodecData *>codec_data = get_decoder_data(input_format_context->streams[i]->codecpar->codec_id, "auto");
+    for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+      const CodecData *chosen_codec_data = *it;
+      Debug(1, "Found codec %s", chosen_codec_data->codec_name);
 
-    streams[i].context = avcodec_alloc_context3(streams[i].codec);
-    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-    zm_dump_codec(streams[i].context);
+      streams[i].codec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
 
-    error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
-    if (error < 0) {
-      Error("Could not open input codec (error '%s')",
+      streams[i].context = avcodec_alloc_context3(streams[i].codec);
+      avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+      if (setup_hwaccel(streams[i].context,
+            chosen_codec_data, hw_device_ctx, "", input_format_context->streams[i]->codecpar->width,
+            input_format_context->streams[i]->codecpar->height
+            )) {
+        continue;
+      }
+
+      zm_dump_codec(streams[i].context);
+
+      error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
+      if (error < 0) {
+        Error("Could not open input codec (error '%s')",
             av_make_error_string(error).c_str());
-      avcodec_free_context(&streams[i].context);
+        avcodec_free_context(&streams[i].context);
+        streams[i].context = nullptr;
+        continue;
+      }
+    } // end foreach codec_data
+ 
+    if (!streams[i].context) {
       avformat_close_input(&input_format_context);
       input_format_context = nullptr;
       return error;

@@ -47,6 +47,12 @@
 #include <openssl/err.h>
 #endif
 
+extern "C" {
+#include <ni_device_api.h>
+#include <ni_av_codec.h>
+#include <ni_util.h>
+}
+
 class Group;
 class MonitorLinkExpression;
 
@@ -321,6 +327,25 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int score();
   };
  protected:
+
+  class Quadra {
+   public:
+    explicit Quadra(Monitor *p_monitor);
+    ~Quadra();
+    Quadra(Quadra &rhs) = delete;
+    Quadra(Quadra &&rhs) = delete;
+
+    bool setup();
+    bool detect(AVFrame *);
+
+   private:
+    ni_session_context_t api_ctx;
+    ni_network_data_t network;
+    ni_session_data_io_t api_src_frame;
+    ni_session_data_io_t api_dst_packet;
+
+    Monitor *monitor;
+  };
 
   class ONVIF {
    protected:
@@ -651,6 +676,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  Quadra *quadra;
 
   // Used in check signal
   uint8_t red_val;

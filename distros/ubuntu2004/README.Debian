@@ -64,8 +64,8 @@ Apache can be configured as folder "/zm" using sample .conf:
 Alternatively Apache web site configuration template can be used to setup
 zoneminder as "http://zoneminder":
 
-    sudo cp -v /usr/share/doc/zoneminder/examples/apache.conf /etc/apache2/sites-available/
-    sudo a2ensite zoneminder.conf
+    sudo cp -v /usr/share/doc/zoneminder/examples/apache.conf /etc/apache2/sites-available/zoneminder.conf
+    sudo a2ensite zoneminder
 
 Common configuration steps for Apache2:
 

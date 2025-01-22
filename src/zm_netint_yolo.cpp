@@ -422,8 +422,7 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
     }
 
     // decoder out=hw
-    if (hwmode) {
-// && dec_ctx->hw_frames_ctx != nullptr) {
+    if (hwmode && (dec_ctx->hw_frames_ctx != nullptr)) {
         Debug(1, "hw mode filter");
         // Allocate a new AVBufferSrcParameters instance when decoder out=hw
         par = av_buffersrc_parameters_alloc();
@@ -642,7 +641,6 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   AVRegionOfInterestNetintExtra *roi_extra;
   struct roi_box *roi_box = nullptr;
   int roi_num = 0;
-  int reserve_roi_num = 0;
   int ret = 1;
   int i, j;
   int width = out->width;

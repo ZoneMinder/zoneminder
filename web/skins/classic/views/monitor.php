@@ -1060,6 +1060,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
+<li class="ObjectDetection">
+<label><?php echo translate('Object Detection')?></label>
+<?php
+        echo htmlSelect('newMonitor[ObjectDetection]', ['ni_quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI'],
+            $monitor->ObjectDetection());
+?>
+</li>
 <?php
     }
     break;

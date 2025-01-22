@@ -213,6 +213,7 @@ class Monitor extends ZM_Object {
     'RecordingSource' => 'Primary',
     'AnalysisSource' => 'Primary',
     'AnalysisImage' => 'FullColour',
+    'ObjectDetection' => 'None',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),

@@ -54,11 +54,23 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor) :
 
 Quadra_Yolo::~Quadra_Yolo() {
   if (model) {
-    model->destroy_model(model_ctx);;
-    free(model_ctx);
+    model->destroy_model(model_ctx);
+    delete model_ctx;
   }
+  ni_cleanup_network_context(network_ctx, use_hwframe);
+
   free(last_roi);
   free(last_roi_extra);
+
+  av_frame_unref(&scaled_frame);
+  sws_freeContext(sw_scale_ctx);
+
+  if (draw_box) {
+    avfilter_graph_free(&drawbox_filter->filter_graph);
+    free(drawbox_filter);
+  }
+  avfilter_graph_free(&hwdl_filter->filter_graph);
+  free(hwdl_filter);
 }
 
 bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &modelname, const std::string &nbg_file) {
@@ -66,7 +78,7 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   dec_ctx = decoder_ctx;
 //model_ctx = (YoloModelCtx *)calloc(1, sizeof(YoloModelCtx));
   model_ctx = new YoloModelCtx;
-  if (model_ctx == NULL) {
+  if (model_ctx == nullptr) {
     Error("failed to allocate yolo model");
     return false;
   }
@@ -138,31 +150,31 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
 
   if (draw_box) {
     drawbox_filter = (filter_worker*)malloc(sizeof(filter_worker));
-    drawbox_filter->buffersink_ctx = NULL;
-    drawbox_filter->buffersrc_ctx = NULL;
-    drawbox_filter->filter_graph = NULL;
+    drawbox_filter->buffersink_ctx = nullptr;
+    drawbox_filter->buffersrc_ctx = nullptr;
+    drawbox_filter->filter_graph = nullptr;
     if ((ret = init_filter("drawbox", drawbox_filter, false)) < 0) {
       Error("cannot initialize drawbox filter");
       return false;
     }
 
     for (unsigned int i = 0; i < drawbox_filter->filter_graph->nb_filters; i++) {
-      if (strstr(drawbox_filter->filter_graph->filters[i]->name, "drawbox") != NULL) {
+      if (strstr(drawbox_filter->filter_graph->filters[i]->name, "drawbox") != nullptr) {
         drawbox_filter_ctx = drawbox_filter->filter_graph->filters[i];
         break;
       }
     }
 
-    if (drawbox_filter_ctx == NULL) {
+    if (drawbox_filter_ctx == nullptr) {
       Error( "cannot find valid drawbox filter");
       return false;
     }
   } // end if draw_box
 
   hwdl_filter = (filter_worker*)malloc(sizeof(filter_worker));
-  hwdl_filter->buffersink_ctx = NULL;
-  hwdl_filter->buffersrc_ctx = NULL;
-  hwdl_filter->filter_graph = NULL;
+  hwdl_filter->buffersink_ctx = nullptr;
+  hwdl_filter->buffersrc_ctx = nullptr;
+  hwdl_filter->filter_graph = nullptr;
 
   const char *hwdl_desc = "[in]hwdownload,format=yuv420p[out]";
   if ((ret = init_filter(hwdl_desc, hwdl_filter, true)) < 0) {
@@ -177,7 +189,7 @@ bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
   if (!sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(avframe->width, avframe->height, AV_PIX_FMT_YUV420P,
         scaled_frame.width, scaled_frame.height, static_cast<AVPixelFormat>(scaled_frame.format),
-        SWS_BICUBIC, NULL, NULL, NULL);
+        SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
       Error("cannot create sw scale context for scaling");
       return false;
@@ -194,7 +206,7 @@ bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
   }
 
   Debug(1, "Quadra: ni_set_network_input");
-  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, NULL,
+  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr,
       avframe->width, avframe->height, frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
@@ -340,7 +352,7 @@ int Quadra_Yolo::draw_roi_box(
     n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
     av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
 
-    ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), NULL, 0, 0);
+    ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
     if (ret < 0) {
         Error("cannot send drawbox filter command, ret %d.", ret);
         return ret;
@@ -403,7 +415,7 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
     Debug(1, "Setting filter %s to %s", name, args);
 
     ret = avfilter_graph_create_filter(&f->buffersrc_ctx, avfilter_get_by_name("buffer"), name,
-                                    args, NULL, f->filter_graph);
+                                    args, nullptr, f->filter_graph);
     if (ret < 0) {
         Error("Cannot create buffer source");
         return ret;
@@ -411,7 +423,7 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
 
     // decoder out=hw
     if (hwmode) {
-// && dec_ctx->hw_frames_ctx != NULL) {
+// && dec_ctx->hw_frames_ctx != nullptr) {
         Debug(1, "hw mode filter");
         // Allocate a new AVBufferSrcParameters instance when decoder out=hw
         par = av_buffersrc_parameters_alloc();
@@ -456,7 +468,7 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
     }
 
     // configure and validate the filter graph
-    ret = avfilter_graph_config(f->filter_graph, NULL);
+    ret = avfilter_graph_config(f->filter_graph, nullptr);
     if (ret < 0) {
         Error("%s failed to config graph filter", __func__);
         return ret;
@@ -477,8 +489,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data(
       frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
   Debug(1, "frame %p", frame);
-  AVFrame *input = NULL;
-  AVFrame *output = NULL;
+  AVFrame *input = nullptr;
   static int filt_cnt = 0;
   int detected = 0;
 
@@ -493,7 +504,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
     *filt_frame = input;
-    if (*filt_frame == NULL) {
+    if (*filt_frame == nullptr) {
       Error("cannot clone frame");
       return NIERROR(ENOMEM);
     }
@@ -523,7 +534,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     detected++;
 
     if (draw_box) {
-      output = av_frame_alloc();
+      AVFrame *output = av_frame_alloc();
       if (!output) {
         Error("cannot allocate output filter frame");
         return NIERROR(ENOMEM);
@@ -546,8 +557,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   *filt_frame = input;
   free(last_roi);
   free(last_roi_extra);
-  AVRegionOfInterest* cur_roi = NULL;
-  AVRegionOfInterestNetintExtra *cur_roi_extra = NULL;
+  AVRegionOfInterest* cur_roi = nullptr;
+  AVRegionOfInterestNetintExtra *cur_roi_extra = nullptr;
 
   if (num > 0) {
     cur_roi = (AVRegionOfInterest *)av_malloc((int)(num * sizeof(AVRegionOfInterest)));
@@ -629,7 +640,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   AVFrameSideData *sd_roi_extra;
   AVRegionOfInterest *roi;
   AVRegionOfInterestNetintExtra *roi_extra;
-  struct roi_box *roi_box = NULL;
+  struct roi_box *roi_box = nullptr;
   int roi_num = 0;
   int reserve_roi_num = 0;
   int ret = 1;
@@ -675,7 +686,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
       (int)(roi_num * sizeof(AVRegionOfInterestNetintExtra)));
   if (!sd || !sd_roi_extra) {
     ret = NIERROR(ENOMEM);
-    Error("Failed to allocate roi sidedata %d roi_num %d ret:%d", roi_num * sizeof(AVRegionOfInterestNetintExtra), roi_num, ret);
+    Error("Failed to allocate roi sidedata %ld roi_num %d ret:%d", roi_num * sizeof(AVRegionOfInterestNetintExtra), roi_num, ret);
     Error("%d", out->nb_side_data);
     goto out;
   }

@@ -1063,7 +1063,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 <li class="ObjectDetection">
 <label><?php echo translate('Object Detection')?></label>
 <?php
-        echo htmlSelect('newMonitor[ObjectDetection]', ['ni_quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI'],
+        echo htmlSelect('newMonitor[ObjectDetection]', ['none'=>'None', 'quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI'],
             $monitor->ObjectDetection());
 ?>
 </li>

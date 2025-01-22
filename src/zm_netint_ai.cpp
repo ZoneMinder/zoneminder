@@ -4,8 +4,8 @@
 #include "zm_time.h"
 
 Monitor::Quadra::Quadra(Monitor *p_monitor) :
-  api_ctx({0}),
-  network({0}),
+  api_ctx({}),
+  network({}),
   monitor(p_monitor)
 {
 }
@@ -28,13 +28,17 @@ bool Monitor::Quadra::setup() {
   if (retval != NI_RETCODE_SUCCESS) {
     Error("Quadra: Failed opening session");
     return false;
+  } else {
+    Debug(1, "Quadra success opening session");
   }
   retval = ni_ai_config_network_binary(&api_ctx, &network, nb_file.c_str());
   if (retval != NI_RETCODE_SUCCESS) {
     Error("failed to configure npu session. retval %d\n", retval);
     return false;
+  } else {
+    Debug(1, "Quadra success config network binary %s", nb_file.c_str());
   }
-  int pool_size;
+  int pool_size =20;
   int options;
 
   options = NI_AI_FLAG_IO |  NI_AI_FLAG_PC;
@@ -52,7 +56,6 @@ bool Monitor::Quadra::setup() {
       0, // frame index
       NI_DEVICE_TYPE_AI);
 
-
   return true;
 }
 
@@ -64,8 +67,10 @@ bool Monitor::Quadra::detect(AVFrame *in_frame) {
 
   int input_layer_idx = 0;
   int32_t offset = network.inset[input_layer_idx].offset;
-  uint8_t *p_data = (uint8_t *)api_src_frame.data.frame.p_data[0] + offset;
+  //uint8_t *p_data = (uint8_t *)api_src_frame.data.frame.p_data[0] + offset;
 
+
+#if 0 
   uint8_t *img_buffer = in_frame->data;
   int linesize = in_frame->linesize;
   for (int h = 0; h < in_frame->height; h++) {
@@ -74,13 +79,11 @@ bool Monitor::Quadra::detect(AVFrame *in_frame) {
     img_buffer += linesize;
   }
 
-#if 0 
   // if using tensor files
   p_data = (uint8_t *)api_src_frame.data.frame.p_data[0] + offset;
   int input_size = ni_ai_network_layer_size(&network.linfo.in_param[input_layer_index]);
   Debug(1, "Input size: %d", input_size);
   retval = ni_network_layer_convert_tensor(p_data, input_size, tensor_file, &network.linfo.in_param[input_layer_index]);
-#endif
 
   int ret;
   do {
@@ -108,12 +111,15 @@ bool Monitor::Quadra::detect(AVFrame *in_frame) {
     /* can’t read anything. Choose to keep polling the buffer to read here. */
   } while (ret == 0);
 
+#endif
+  /*
   int output_layer_index = 0;
   int output_buffer_size = ni_ai_network_layer_dims(&network.linfo.out_param[output_layer_index]) * sizeof(float);
   float output_buffer[output_buffer_size];
 
   retval = ni_network_layer_convert_output(output_buffer, output_buffer_size, &api_dst_packet.data.packet, &network, output_layer_index);
   retval = ni_device_session_close(&api_ctx, 1, NI_DEVICE_TYPE_AI);
+  */
 
   return true;
 }

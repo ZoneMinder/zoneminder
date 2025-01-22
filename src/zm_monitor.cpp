@@ -179,6 +179,7 @@ Monitor::Monitor() :
   type(LOCAL),
   capturing(CAPTURING_ALWAYS),
   analysing(ANALYSING_ALWAYS),
+  objectdetection(OBJECT_DETECTION_NONE),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
   RTSP2Web_enabled(false),
@@ -324,6 +325,7 @@ Monitor::Monitor() :
   Amcrest_Manager(nullptr),
   onvif(nullptr),
   quadra(nullptr),
+  quadra_yolo(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -348,7 +350,9 @@ Monitor::Monitor() :
 
 /*
    std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0,"
+   " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "`ObjectDetection`+0, "
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
@@ -411,6 +415,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   analysis_source = (AnalysisSourceOption)atoi(dbrow[col]);
   col++;
   analysis_image = (AnalysisImageOption)atoi(dbrow[col]);
+  col++;
+  objectdetection = (ObjectDetectionOption)atoi(dbrow[col]);
   col++;
   recording = (RecordingOption)atoi(dbrow[col]);
   col++;
@@ -1118,6 +1124,7 @@ bool Monitor::connect() {
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->analysing = analysing;
+    //shared_data->objectdetection = objectdetection;
     shared_data->capturing = capturing;
     shared_data->recording = recording;
     shared_data->signal = false;
@@ -1189,11 +1196,6 @@ bool Monitor::connect() {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
   
-    quadra = new Quadra(this);
-    if (!quadra->setup()) {
-      delete quadra;
-      quadra = nullptr;
-    }
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
       mqtt = zm::make_unique<MQTT>(this);
@@ -2086,9 +2088,14 @@ bool Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
+#if 0
           if (quadra and snap->in_frame) {
             quadra->detect(snap->in_frame.get());
           }
+          if (quadra_yolo and snap->in_frame) {
+            quadra_yolo->detect(snap->in_frame.get());
+          }
+#endif
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
             Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
@@ -2796,19 +2803,44 @@ bool Monitor::Decode() {
       int ret = packet->decode(camera->getVideoCodecContext());
       if (ret > 0 and !zm_terminate) {
         if (packet->in_frame and !packet->image) {
+          if (objectdetection > OBJECT_DETECTION_NONE) {
+            if (!quadra_yolo) {
+              Debug(1, "Quadra setting up");
+              quadra_yolo = new Quadra_Yolo(this);
+              if (!quadra_yolo->setup(camera->getVideoStream(), 
+                    camera->getVideoCodecContext(), "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb")) {
+                delete quadra_yolo;
+                quadra_yolo = nullptr;
+              }
+            }
+          }
+          const AVFrame *in_frame = packet->in_frame.get();
+
+          if (quadra_yolo) {
+            AVFrame *ai_frame = packet->get_ai_frame();
+            if (quadra_yolo->detect(packet->hw_frame.get(), &ai_frame)) {
+              zm_dump_video_frame(ai_frame, "after detect");
+              in_frame = ai_frame;
+            } else {
+              Debug(1, "Failed yolo");
+            }
+          }
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-          if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
-            if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {
+          if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
+            if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
               delete packet->image;
               packet->image = nullptr;
             }
             av_frame_unref(dest_frame.get());
+          packet->hw_frame = nullptr;
           } else {
             delete packet->image;
             packet->image = nullptr;
           }  // end if have convert_context
         }  // end if need transfer to image
+      } else if (ret <0) {
+        
       } else {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
@@ -3328,6 +3360,14 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
+#if 0
+    Debug(1, "Quadra setting up");
+    quadra = new Quadra(this);
+    if (!quadra->setup()) {
+      delete quadra;
+      quadra = nullptr;
+    }
+#endif
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();

@@ -60,6 +60,7 @@ class MonitorLinkExpression;
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
 
+#include "zm_netint_yolo.h"
 
 //
 // This is the main class for monitors. Each monitor is associated
@@ -96,6 +97,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ANALYSISIMAGE_FULLCOLOUR=1,
     ANALYSISIMAGE_YCHANNEL
   } AnalysisImageOption;
+
+  typedef enum {
+    OBJECT_DETECTION_NONE=1,
+    OBJECT_DETECTION_QUADRA,
+    OBJECT_DETECTION_SPEEDAI,
+  } ObjectDetectionOption;
 
   typedef enum {
     RECORDING_NONE=1,
@@ -202,6 +209,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t valid;              /* +88   */
     uint8_t capturing;          /* +89   */
     uint8_t analysing;          /* +90   */
+    //uint8_t objectdetection;    /* +90   */
     uint8_t recording;          /* +91   */
     uint8_t signal;             /* +92   */
     uint8_t format;             /* +93   */
@@ -347,6 +355,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *monitor;
   };
 
+
   class ONVIF {
    protected:
     Monitor *parent;
@@ -464,6 +473,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
+  ObjectDetectionOption objectdetection;    // none, quadra, speedai
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
@@ -677,6 +687,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
   Quadra *quadra;
+  Quadra_Yolo *quadra_yolo;
 
   // Used in check signal
   uint8_t red_val;

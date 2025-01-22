@@ -81,6 +81,7 @@ struct Namespace namespaces[] = {
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+  "`ObjectDetection`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "

@@ -462,7 +462,7 @@ int FfmpegCamera::OpenFfmpeg() {
     // Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
-      Debug(1, "%s", av_hwdevice_get_type_name(type));
+      Debug(1, "av_hwdevice available type: %s", av_hwdevice_get_type_name(type));
 
     const char *hw_name = hwaccel_name.c_str();
     type = av_hwdevice_find_type_by_name(hw_name);
@@ -474,20 +474,18 @@ int FfmpegCamera::OpenFfmpeg() {
 
 #if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
     // Get hw_pix_fmt
+    const AVCodecHWConfig *config = nullptr;
     for (int i = 0;; i++) {
-      const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
+      config = avcodec_get_hw_config(mVideoCodec, i);
       if (!config) {
         Debug(1, "Decoder %s does not support config %d.",
               mVideoCodec->name, i);
         break;
       }
-      if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
-          && (config->device_type == type)
-         ) {
+      if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) && (config->device_type == type)) {
         hw_pix_fmt = config->pix_fmt;
-        Debug(1, "Decoder %s does support our type %s.",
-              mVideoCodec->name, av_hwdevice_get_type_name(type));
-        //break;
+        Debug(1, "Decoder %s supports our type %s.", mVideoCodec->name, av_hwdevice_get_type_name(type));
+        break;
       } else {
         Debug(1, "Decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
               mVideoCodec->name,
@@ -519,7 +517,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
         hw_pix_fmt = AV_PIX_FMT_NONE;
       } else {
-        Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
+        Debug(1, "Created hwdevice for %s %p", hwaccel_device.c_str(), mVideoCodecContext->hwaccel);
         mVideoCodecContext->get_format = get_hw_format;
         mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
       }
@@ -553,6 +551,11 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
   }
+  mVideoCodecContext->framerate = av_guess_frame_rate(mFormatContext, mFormatContext->streams[mVideoStreamId], NULL);
+    av_opt_set(mVideoCodecContext->priv_data, "dec", "0", 0);
+
+  av_opt_set(mVideoCodecContext->priv_data, "xcoder-params","out=hw", 0);
+
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
   e = nullptr;

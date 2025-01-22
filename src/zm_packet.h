@@ -47,6 +47,8 @@ class ZMPacket {
   av_packet_ptr packet;         // Input packet, undecoded
   av_frame_ptr in_frame;        // Input image, decoded Theoretically only filled if needed.
   av_frame_ptr out_frame;       // output image, Only filled if needed.
+  av_frame_ptr ai_frame;
+  av_frame_ptr hw_frame;
   SystemTimePoint timestamp;
   Image     *image;
   Image     *y_image;
@@ -77,6 +79,7 @@ class ZMPacket {
 
   //AVFrame *get_out_frame(const AVCodecContext *ctx);
   AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
+  AVFrame *get_ai_frame();
   int get_codec_imgsize() { return codec_imgsize; };
   void notify_all() {
     this->condition_.notify_all();

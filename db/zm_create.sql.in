@@ -506,6 +506,7 @@ CREATE TABLE `Monitors` (
   `Analysing` enum('None','Always') NOT NULL default 'Always',
   `AnalysisSource` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary',
   `AnalysisImage` enum('FullColour','YChannel') NOT NULL DEFAULT 'FullColour',
+  `ObjectDetection` enum('none','quadra', 'speedai') NOT NULL DEFAULT 'none',
   `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',

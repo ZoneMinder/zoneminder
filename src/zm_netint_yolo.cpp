@@ -84,7 +84,7 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   }
 
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
-      0 /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
+      -1 /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
     Error("failed to allocate network context");
     return false;
@@ -337,7 +337,7 @@ int Quadra_Yolo::draw_roi_box(
     w = roi.right - roi.left;
     h = roi.bottom - roi.top;
 
-    Debug(1, "x %d, y %d, w %d, h %d class %s prob %f",
+    Debug(4, "x %d, y %d, w %d, h %d class %s prob %f",
             x, y, w, h, roi_class[cls], prob);
 
     n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
@@ -482,24 +482,20 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
 
 int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   int i, num, ret;
-  Debug(1, "frame %p", frame);
   AVFrameSideData *sd = frame->side_data ? av_frame_get_side_data(frame, AV_FRAME_DATA_REGIONS_OF_INTEREST) : nullptr;
-  Debug(1, "frame %p", frame);
   AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data(
       frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
-  Debug(1, "frame %p", frame);
   AVFrame *input = nullptr;
   static int filt_cnt = 0;
   int detected = 0;
 
-  Debug(1, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
+  Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
 
   ret = dlhw_frame(frame, &input);
   if (ret < 0) {
     Error("cannot download hwframe");
     return ret;
   }
-  Debug(1, "Have dlhw_frame");
 
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
     *filt_frame = input;

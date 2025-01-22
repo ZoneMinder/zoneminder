@@ -836,6 +836,8 @@ include('_monitor_source_nvsocket.php');
 <?php
 $decoders = array(
   'auto' => translate('Auto'),
+  'mjpeg' => 'mjpeg',
+  'jpeg_ni_quadra_dec' => 'jpeg_ni_quadra_dec',
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_cuvid' => 'h264_cuvid',

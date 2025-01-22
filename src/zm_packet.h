@@ -80,6 +80,7 @@ class ZMPacket {
   //AVFrame *get_out_frame(const AVCodecContext *ctx);
   AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
   AVFrame *get_ai_frame();
+  void set_ai_frame(AVFrame *);
   int get_codec_imgsize() { return codec_imgsize; };
   void notify_all() {
     this->condition_.notify_all();

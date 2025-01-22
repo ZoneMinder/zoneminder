@@ -246,6 +246,10 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
   return packet.get();
 }
 
+void ZMPacket::set_ai_frame(AVFrame *frame) {
+  ai_frame = av_frame_ptr{frame};
+}
+
 AVFrame *ZMPacket::get_ai_frame() {
   if (!ai_frame) {
     ai_frame = av_frame_ptr{zm_av_frame_alloc()};
@@ -253,38 +257,6 @@ AVFrame *ZMPacket::get_ai_frame() {
       Error("Unable to allocate a frame");
       return nullptr;
     }
-
-#if 0
-    int alignment = 32;
-    if (width%alignment) alignment = 1;
-
-    codec_imgsize = av_image_get_buffer_size(
-                      format, width, height, alignment);
-    Debug(1, "buffer size %u from %s %dx%d", codec_imgsize, av_get_pix_fmt_name(format), width, height);
-    out_frame->buf[0] = av_buffer_alloc(codec_imgsize);
-    if (!out_frame->buf[0]) {
-      Error("Unable to allocate a frame buffer");
-      out_frame = nullptr;
-      return nullptr;
-    }
-    int ret;
-    if ((ret=av_image_fill_arrays(
-               out_frame->data,
-               out_frame->linesize,
-               out_frame->buf[0]->data,
-               format,
-               width,
-               height,
-               alignment))<0) {
-      Error("Failed to fill_arrays %s", av_make_error_string(ret).c_str());
-      out_frame = nullptr;
-      return nullptr;
-    }
-
-    out_frame->width = width;
-    out_frame->height = height;
-    out_frame->format = format;
-# endif
   }
   return ai_frame.get();
 } // end AVFrame *ZMPacket::get_ai_frame( AVCodecContext *ctx );

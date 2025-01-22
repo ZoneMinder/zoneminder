@@ -1308,6 +1308,8 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
+  if (quadra) delete quadra;
+  if (quadra_yolo) delete quadra_yolo;
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -2818,12 +2820,21 @@ bool Monitor::Decode() {
           const AVFrame *in_frame = packet->in_frame.get();
 
           if (quadra_yolo) {
-            AVFrame *ai_frame = packet->get_ai_frame();
-            if (quadra_yolo->detect(packet->hw_frame.get(), &ai_frame)) {
-              zm_dump_video_frame(ai_frame, "after detect");
-              in_frame = ai_frame;
-            } else {
-              Debug(1, "Failed yolo");
+            if (analysis_fps_limit) {
+              double capture_fps = get_capture_fps();
+              motion_frame_skip = capture_fps / analysis_fps_limit;
+              Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                  motion_frame_skip, capture_fps, analysis_fps_limit);
+            }
+            if (!(decoding_image_count % (motion_frame_skip+1))) {
+              AVFrame *ai_frame = nullptr;
+              if (quadra_yolo->detect(packet->hw_frame.get(), &ai_frame)) {
+                zm_dump_video_frame(ai_frame, "after detect");
+                in_frame = ai_frame;
+                packet->set_ai_frame(ai_frame);
+              } else {
+                Debug(1, "Failed yolo");
+              }
             }
           }
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());

@@ -51,7 +51,7 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
 
     retval = ni_device_session_context_init(scale_api_ctx);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("hw scaler session context init failure\n");
+        Error("hw scaler session context init failure");
         return NIERROR(EIO);
     }
 
@@ -64,12 +64,12 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
 
     retval = ni_device_session_open(scale_api_ctx, NI_DEVICE_TYPE_SCALER);
     if (retval < 0) {
-        Error("could not open scaler session\n");
+        Error("could not open scaler session");
         ret = NIERROR(EIO);
         goto out;
     }
 
-    Debug(1, "initialize scaler, %dx%d, format %d\n",
+    Debug(1, "initialize scaler, %dx%d, format %d",
             scale_width, scale_height, scale_format);
 
     /* Create scale frame pool on device */
@@ -86,7 +86,7 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
                              0, // frame index
                              NI_DEVICE_TYPE_SCALER);
     if (retval < 0) {
-        Error("could not build frame pool\n");
+        Error("could not build frame pool");
         ni_device_session_close(scale_api_ctx, 1, NI_DEVICE_TYPE_SCALER);
         ni_device_session_context_clear(scale_api_ctx);
         ret = NIERROR(EIO);
@@ -111,7 +111,7 @@ void ni_cleanup_network_context(NiNetworkContext *network_ctx, bool hwframe)
         ni_retcode_t retval =
             ni_device_session_close(&network_ctx->npu_api_ctx, 1, NI_DEVICE_TYPE_AI);
         if (retval != NI_RETCODE_SUCCESS) {
-            Error("%s: failed to close npu session. retval %d\n", __func__,
+            Error("%s: failed to close npu session. retval %d", __func__,
                    retval);
         }
         ni_device_session_context_clear(&network_ctx->npu_api_ctx);
@@ -119,6 +119,7 @@ void ni_cleanup_network_context(NiNetworkContext *network_ctx, bool hwframe)
             cleanup_hwframe_scale(network_ctx);
         }
         free(network_ctx);
+        network_ctx = nullptr;
     }
 }
 
@@ -131,19 +132,19 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     int ret;
 
     if ((nbg_file == NULL) || (access(nbg_file, R_OK) != 0)) {
-        Error("invalid network binary path\n");
+        Error("invalid network binary path");
         return NIERROR(EINVAL);
     }
 
     network_ctx = (NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
     if (!network_ctx) {
-        Error("failed to allocate network context\n");
+        Error("failed to allocate network context");
         return NIERROR(ENOMEM);
     }
 
     retval = ni_device_session_context_init(&network_ctx->npu_api_ctx);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to initialize npu session context\n");
+        Error("failed to initialize npu session context");
         return NIERROR(EIO);
     }
 
@@ -158,7 +159,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     network_ctx->npu_api_ctx.keep_alive_timeout = keep_alive_timeout;
     retval = ni_device_session_open(&network_ctx->npu_api_ctx, NI_DEVICE_TYPE_AI);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to open npu session. retval %d\n",
+        Error("failed to open npu session. retval %d",
                retval);
         return NIERROR(EIO);
     }
@@ -167,7 +168,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
                                          &network_ctx->network_data,
                                          nbg_file);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to configure npu session. retval %d\n",
+        Error("failed to configure npu session. retval %d",
                retval);
         ret = NIERROR(EIO);
         goto failed_out;
@@ -176,7 +177,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     if (scale_width != 0 && scale_height != 0) {
         if (scale_width != network_ctx->network_data.linfo.in_param[0].sizes[0] ||
                 scale_height != network_ctx->network_data.linfo.in_param[0].sizes[1]) {
-            Error("input dimensions not match: expect %dx%d, actual %dx%d\n",
+            Error("input dimensions not match: expect %dx%d, actual %dx%d",
                     scale_width, scale_height,
                     network_ctx->network_data.linfo.in_param[0].sizes[0],
                     network_ctx->network_data.linfo.in_param[0].sizes[1]);
@@ -190,7 +191,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
                 scale_height, devid, network_ctx->npu_api_ctx.device_handle,
                 network_ctx->npu_api_ctx.blk_io_handle, keep_alive_timeout);
         if (ret != 0) {
-            Error("failed to initialize hw scale\n");
+            Error("failed to initialize hw scale");
             goto failed_out;
         }
     } else {
@@ -223,7 +224,7 @@ static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p
             pixel_format = NI_PIX_FMT_BGRP;
             break;
         default:
-            ni_log(NI_LOG_ERROR, "Pixel format not supported.\n");
+            ni_log(NI_LOG_ERROR, "Pixel format not supported.");
             return NI_RETCODE_INVALID_PARAM;
     }
 
@@ -280,7 +281,7 @@ int write_rawvideo_data(FILE *p_file, int width, int height, int format,
                     if (j < write_height &&
                         fwrite(src, write_width, 1, p_file) != 1)
                     {
-                        Error("Error: writing data plane %d: height %d error! ret = %d\n",
+                        Error("Error: writing data plane %d: height %d error! ret = %d",
                                 i, plane_height, ferror(p_file));
                     }
                     src += plane_width;
@@ -291,7 +292,7 @@ int write_rawvideo_data(FILE *p_file, int width, int height, int format,
             uint8_t *src = p_out_frame->p_data[0];
             if (fwrite(src, width * height * 4, 1, p_file) != 1)
             {
-                Error("Error: ferror rc = %d\n", ferror(p_file));
+                Error("Error: ferror rc = %d", ferror(p_file));
             }
         } else if (format == GC620_RGB888_PLANAR)
         {
@@ -302,14 +303,14 @@ int write_rawvideo_data(FILE *p_file, int width, int height, int format,
                 src = p_out_frame->p_data[i];
                 if (fwrite(src, width * height, 1, p_file) != 1)
                 {
-                    Error("Error: ferror rc = %d\n", ferror(p_file));
+                    Error("Error: ferror rc = %d", ferror(p_file));
                 }
             }
         }
 
         if (fflush(p_file))
         {
-            Error("Error: writing data frame flush failed! errno %d\n",
+            Error("Error: writing data frame flush failed! errno %d",
                     errno);
         }
     }
@@ -364,7 +365,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     }
 
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device input frame %d\n",
+        Error("Can't allocate device input frame %d",
                retcode);
         return NIERROR(ENOMEM);
     }
@@ -377,7 +378,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
         out_frame->scale_format, NI_SCALER_FLAG_IO, 0, 0,
         0, 0, 0, -1, NI_DEVICE_TYPE_SCALER);
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device output frame %d\n",
+        Error("Can't allocate device output frame %d",
                retcode);
         return NIERROR(ENOMEM);
     }
@@ -385,12 +386,12 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     int ret = ni_device_session_read_hwdesc(
             scale_api_ctx, &out_frame->api_frame, NI_DEVICE_TYPE_SCALER);
     if (ret != NI_RETCODE_SUCCESS) {
-        Error("Cannot read hwdesc\n");
+        Error("Cannot read hwdesc");
         return NIERROR(EIO);
     }
     // download raw data, only for test
     if (0) {
-        printf("dump scaled output, scale width %d, height %d, format %d\n",
+        printf("dump scaled output, scale width %d, height %d, format %d",
                 out_frame->scale_width, out_frame->scale_height, out_frame->scale_format);
         niFrameSurface1_t *filt_frame_surface;
         filt_frame_surface = (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
@@ -398,7 +399,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
         filt_frame_surface->ui16height = out_frame->scale_height;
         filt_frame_surface->bit_depth = 1;
         filt_frame_surface->encoding_type = NI_PIXEL_PLANAR_FORMAT_PLANAR;
-        printf("filtered frame: width %d, height %d\n", filt_frame_surface->ui16width,
+        printf("filtered frame: width %d, height %d", filt_frame_surface->ui16width,
                 filt_frame_surface->ui16height);
         ni_scale_dwl(network_ctx, filt_frame_surface, out_frame->scale_width,
                 out_frame->scale_height, out_frame->scale_format);
@@ -420,13 +421,13 @@ int ni_set_network_input(NiNetworkContext *network_ctx, bool hwframe,
         ret = ni_hwframe_scale(network_ctx, (niFrameSurface1_t *)in_frame->data.frame.p_data[3],
                 area_box, pic_width, pic_height, out_frame);
         if (ret != 0) {
-            Error("Error run hwframe scale\n");
+            Error("Error run hwframe scale");
             goto out;
         }
 
         filt_frame_surface =
                 (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
-        //Debug(1, ("filt frame surface frameIdx %d\n",
+        //Debug(1, ("filt frame surface frameIdx %d",
         //        filt_frame_surface->ui16FrameIdx);
         //fflush(stdout);
 
@@ -436,7 +437,7 @@ int ni_set_network_input(NiNetworkContext *network_ctx, bool hwframe,
                 filt_frame_surface->ui16FrameIdx,
                 NI_DEVICE_TYPE_AI);
         if (retval != NI_RETCODE_SUCCESS) {
-            Error("failed to alloc hw input frame\n");
+            Error("failed to alloc hw input frame");
             ret = NIERROR(ENOMEM);
             goto out;
         }
@@ -469,7 +470,7 @@ int ni_get_network_output(NiNetworkContext *network_ctx, bool hwframe,
 redo:
     retval = ni_device_session_read(npu_api_ctx, &out_frame->api_packet, NI_DEVICE_TYPE_AI);
     if (retval < 0) {
-        Error("read hwdesc retval %d\n", ret);
+        Error("read hwdesc retval %d", ret);
         ret = NIERROR(EIO);
         goto out;
     } else if (retval == 0) {
@@ -500,7 +501,7 @@ redo:
                     i);
           Debug(1, "ouput %d %d", i, retval);
             if (retval != NI_RETCODE_SUCCESS) {
-                Error("failed to read layer %d output. retval %d\n",
+                Error("failed to read layer %d output. retval %d",
                         i, retval);
                 ret = NIERROR(EIO);
                 goto out;
@@ -523,7 +524,7 @@ int ni_convert_to_tensor(NiNetworkContext *network_ctx, NiNetworkFrame *frame, v
             &frame->api_packet.data.packet, &network_ctx->network_data,
             index);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to read layer %d output. retval %d\n",
+        Error("failed to read layer %d output. retval %d",
                 index, retval);
         return NIERROR(EIO);
     }
@@ -537,7 +538,7 @@ int ni_convert_to_tensors(NiNetworkContext *network_ctx, NiNetworkFrame *frame, 
                 &frame->api_packet.data.packet, &network_ctx->network_data,
                 i);
         if (retval != NI_RETCODE_SUCCESS) {
-            Error("failed to read layer %d output. retval %d\n",
+            Error("failed to read layer %d output. retval %d",
                     i, retval);
             return NIERROR(EIO);
         }

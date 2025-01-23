@@ -200,6 +200,12 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             it = this->deletePacket(it);
           }
           break;
+        } else {
+          it ++;
+          //this->deletePacket(it);
+
+          //if (zm_packet->packet->stream_index == video_stream_id)
+            //break;
         } // end if erasing a whole gop
         ++it;
       }  // end foreach

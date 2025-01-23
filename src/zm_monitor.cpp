@@ -2830,12 +2830,15 @@ bool Monitor::Decode() {
             }
             if (!(decoding_image_count % (motion_frame_skip+1))) {
               AVFrame *ai_frame = nullptr;
-              if (quadra_yolo->detect(packet->hw_frame.get(), &ai_frame)) {
+              ret = quadra_yolo->detect(packet->hw_frame.get(), &ai_frame);
+              if (0 < ret) {
                 zm_dump_video_frame(ai_frame, "after detect");
                 in_frame = ai_frame;
                 packet->set_ai_frame(ai_frame);
-              } else {
+              } else if (0>ret) {
                 Debug(1, "Failed yolo");
+                delete quadra_yolo;
+                quadra_yolo = nullptr;
               }
             }
           }

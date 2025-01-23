@@ -71,7 +71,7 @@ class Quadra_Yolo {
     Quadra_Yolo(Monitor *p_monitor);
     ~Quadra_Yolo();
     bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="");
-    bool  detect(AVFrame *in_frame, AVFrame **ai_frame);
+    int  detect(AVFrame *in_frame, AVFrame **ai_frame);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
     int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);

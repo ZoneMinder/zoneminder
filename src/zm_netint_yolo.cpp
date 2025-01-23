@@ -185,14 +185,14 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   return true;
 }
 
-bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
+int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
   if (!sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(avframe->width, avframe->height, AV_PIX_FMT_YUV420P,
         scaled_frame.width, scaled_frame.height, static_cast<AVPixelFormat>(scaled_frame.format),
         SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
       Error("cannot create sw scale context for scaling");
-      return false;
+      return -1;
     }
   }
 
@@ -202,7 +202,7 @@ bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
   int ret = generate_ai_frame(&ai_input_frame, avframe, use_hwframe);
   if (ret < 0) {
     Error("Quadra: cannot generate ai frame");
-    return false;
+    return -1;
   }
 
   Debug(1, "Quadra: ni_set_network_input");
@@ -210,7 +210,7 @@ bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
       avframe->width, avframe->height, frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
-    return false;
+    return -1;
   }
 
   /* pull filtered frames from the filtergraph */
@@ -218,30 +218,30 @@ bool Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
       true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
-    return false;
+    return -1;
   } else if (ret != NIERROR(EAGAIN)) {
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
-      return false;
+      return -1;
     } else if (ret == 0) {
       Debug(1, "ni_read_roi == 0");
-      return false;
+      return -1;
     }
     aiframe_number++;
     ret = process_roi(avframe, ai_frame);
     if (ret < 0) {
       Error("cannot draw roi");
-      return false;
+      return -1;
     }
     AVFrame *blah = *ai_frame;
     zm_dump_video_frame(blah, "ai");
   } else {
     Debug(1, "EAGAIN");
-    return false;
+    return 0;
   }
 
-  return true;
+  return 1;
 } // end detect
 
 int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {

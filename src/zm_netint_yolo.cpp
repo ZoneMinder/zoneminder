@@ -1,6 +1,7 @@
 
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
+#include "zm_monitor.h"
 
 #include "zm_netint_yolo.h"
 
@@ -85,8 +86,12 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
     return false;
   }
 
+  std::string device = monitor->DecoderHWAccelDevice();
+
+  int devid = device.empty() ? -1 : std::stoi(device);
+  Debug(1, "Setup NETint %s on %d", modelname.c_str(), devid);
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
-      -1 /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
+      devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
     Error("failed to allocate network context");
     return false;
@@ -200,7 +205,7 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
 
   ni_session_data_io_t ai_input_frame = {};
 
-  Debug(1, "Quadra: generate_ai_frame");
+	zm_dump_video_frame(avframe, "Quadra: generate_ai_frame");
   int ret = generate_ai_frame(&ai_input_frame, avframe, use_hwframe);
   if (ret < 0) {
     Error("Quadra: cannot generate ai frame");
@@ -215,8 +220,6 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
     return -1;
   }
 
-  ret = NIERROR(EAGAIN);
-  while (ret==NIERROR(EAGAIN)) {
 	  /* pull filtered frames from the filtergraph */
 	  ret = ni_get_network_output(network_ctx, use_hwframe, frame, false /* blockable */,
 			  true /*convert*/, model_ctx->out_tensor);
@@ -241,10 +244,8 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
 		  AVFrame *blah = *ai_frame;
 		  zm_dump_video_frame(blah, "ai");
 	  } else {
-		  Debug(1, "EAGAIN");
-		  //return 0;
+		  return 0;
 	  }
-  } // end while EAGAIN
 
   return 1;
 } // end detect

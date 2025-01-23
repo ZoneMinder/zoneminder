@@ -347,8 +347,6 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     ni_session_context_t *scale_api_ctx = &network_ctx->scale_api_ctx;
     ni_retcode_t retcode;
 
-
-      Debug(1, "in_frame %p scale_api %p", in_frame, scale_api_ctx);
     /*
      * Allocate device input frame. This call won't actually allocate a frame,
      * but sends the incoming hardware frame index to the scaler manager
@@ -365,8 +363,8 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     }
 
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device input frame %d",
-               retcode);
+        Error("Can't allocate device input frame %d %dx%d index %d",
+               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
         return NIERROR(ENOMEM);
     }
 

@@ -529,7 +529,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
         hw_pix_fmt = AV_PIX_FMT_NONE;
       } else {
-        Debug(1, "Created hwdevice for %s %p", hwaccel_device.c_str(), mVideoCodecContext->hwaccel);
+        Debug(1, "Created hwdevice for %s hwaccel: %p", hwaccel_device.c_str(), mVideoCodecContext->hwaccel);
         mVideoCodecContext->get_format = get_hw_format;
         mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
       }
@@ -564,9 +564,9 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
   }
   mVideoCodecContext->framerate = av_guess_frame_rate(mFormatContext, mFormatContext->streams[mVideoStreamId], NULL);
-    av_opt_set(mVideoCodecContext->priv_data, "dec", "0", 0);
 
-  av_opt_set(mVideoCodecContext->priv_data, "xcoder-params","out=hw", 0);
+  //av_opt_set(mVideoCodecContext->priv_data, "dec", "0", 0);
+//av_opt_set(mVideoCodecContext->priv_data, "xcoder-params","out=hw", 0);
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 

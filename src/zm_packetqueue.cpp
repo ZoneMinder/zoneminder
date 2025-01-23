@@ -174,7 +174,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             Warning("Found locked packet when trying to free up video packets. This means that decoding is not keeping up.");
           }
           ++it;
-          continue;
+          break;
         }
 
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
@@ -183,10 +183,11 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           }
           break;
         } else {
-          this->deletePacket(it);
+          it ++;
+          //this->deletePacket(it);
 
-          if (zm_packet->packet->stream_index == video_stream_id)
-            break;
+          //if (zm_packet->packet->stream_index == video_stream_id)
+            //break;
         } // end if erasing a whole gop
       }  // end while
     } else if (warned_count > 0) {

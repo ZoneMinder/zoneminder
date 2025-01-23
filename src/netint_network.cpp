@@ -363,8 +363,8 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     }
 
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device input frame %d %dx%d index %d",
-               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
+        Error("Can't allocate device input frame %d %dx%d index %d %d",
+               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx, GC620_I420);
         return NIERROR(ENOMEM);
     }
 

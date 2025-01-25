@@ -76,6 +76,9 @@ BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
 
+# jwt-cpp looks for nlohmann_json which is part of json-devel
+BuildRequires: json-devel
+
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
@@ -222,6 +225,10 @@ desktop-file-install					\
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+
+# Remove third-party header and cmake files that should not have been installed
+rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_includedir}
 
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;

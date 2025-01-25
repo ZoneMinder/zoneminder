@@ -55,8 +55,8 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
         return NIERROR(EIO);
     }
 
-//    scale_api_ctx->device_handle     = devfd;
-//    scale_api_ctx->blk_io_handle     = blkfd;
+    //scale_api_ctx->device_handle     = devfd;
+    //scale_api_ctx->blk_io_handle     = blkfd;
     scale_api_ctx->device_type       = NI_DEVICE_TYPE_SCALER;
     scale_api_ctx->scaler_operation  = NI_SCALER_OPCODE_SCALE;
     scale_api_ctx->hw_id             = devid;
@@ -71,6 +71,9 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
 
     Debug(1, "initialize scaler, %dx%d, format %d",
             scale_width, scale_height, scale_format);
+
+    ni_log2(scale_api_ctx, NI_LOG_INFO, "Initialize Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id,
+            scale_api_ctx->blk_io_handle);
 
     /* Create scale frame pool on device */
     retval = ni_device_alloc_frame(scale_api_ctx,
@@ -100,6 +103,8 @@ out:
 static void cleanup_hwframe_scale(NiNetworkContext *network_ctx)
 {
     ni_session_context_t *scale_api_ctx = &network_ctx->scale_api_ctx;
+
+    ni_log2(scale_api_ctx, NI_LOG_INFO, "Cleanup Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
 
     ni_device_session_close(scale_api_ctx, 1, NI_DEVICE_TYPE_SCALER);
     ni_device_session_context_clear(scale_api_ctx);
@@ -228,6 +233,7 @@ static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p
             return NI_RETCODE_INVALID_PARAM;
     }
 
+    ni_log2(scale_ctx, NI_LOG_INFO, "HwDwl Scaler: device %d, blk_io_handle %d\n", scale_ctx->hw_id, scale_ctx->blk_io_handle);
     ret = ni_frame_buffer_alloc_dl(&(p_session_data->data.frame),
             src_surf->ui16width, src_surf->ui16height,
             pixel_format);
@@ -347,6 +353,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     ni_session_context_t *scale_api_ctx = &network_ctx->scale_api_ctx;
     ni_retcode_t retcode;
 
+    ni_log2(scale_api_ctx, NI_LOG_INFO, "Scale Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
     /*
      * Allocate device input frame. This call won't actually allocate a frame,
      * but sends the incoming hardware frame index to the scaler manager
@@ -367,6 +374,8 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
                retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx, GC620_I420);
         return NIERROR(ENOMEM);
     }
+        Debug(1, "Can allocate device input frame %d %dx%d index %d %d",
+               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx, GC620_I420);
 
     /* Allocate hardware device destination frame. This acquires a frame from
      * the pool */
@@ -511,7 +520,7 @@ out:
     return ret;
 }
 
-int ni_convert_to_tensor(NiNetworkContext *network_ctx, NiNetworkFrame *frame, void *data, int index)
+int ni_convert_to_tensor(NiNetworkContext *network_ctx, NiNetworkFrame *frame, void *data, unsigned int index)
 {
     if (index >= network_ctx->network_data.output_num) {
         return NIERROR(EINVAL);

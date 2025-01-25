@@ -93,6 +93,6 @@ extern int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         bool hwframe, int devid, int keep_alive_timeout, int scale_format,
         int scale_width, int scale_height, const char *nbg_file);
 extern void ni_cleanup_network_context(NiNetworkContext *network_ctx, bool hwframe);
-extern int ni_convert_to_tensor(NiNetworkContext *network_ctx, NiNetworkFrame *frame, void *data, int index);
+extern int ni_convert_to_tensor(NiNetworkContext *network_ctx, NiNetworkFrame *frame, void *data, unsigned int index);
 extern int ni_convert_to_tensors(NiNetworkContext *network_ctx, NiNetworkFrame *frame, void **data);
 #endif

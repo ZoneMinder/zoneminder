@@ -2,6 +2,7 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 #include "zm_monitor.h"
+#include "zm_vector2.h"
 
 #include "zm_netint_yolo.h"
 
@@ -546,6 +547,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         Error("draw %d roi box failed", i);
         return ret;
       }
+      Image img(output);
+      img.Annotate(roi_class[roi_extra[i].cls], Vector2(roi[i].left, roi[i].top), monitor->LabelSize());
 
       av_frame_free(&input);
       input = output;

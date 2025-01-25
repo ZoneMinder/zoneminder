@@ -195,7 +195,6 @@ rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 

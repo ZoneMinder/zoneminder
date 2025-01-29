@@ -36,7 +36,7 @@ Monitor::SpeedAI::~SpeedAI() {
 
 bool Monitor::SpeedAI::setup() {
   // Load and launch module
-  std::string model = "/usr/share/zoneminder/speedai_yolo.uxf";
+  std::string model = "/usr/share/zoneminder/u_speedai_yolo_model_creator.uxf";
   Debug(1, "SpeedAI: Loading model %s", model.c_str());
   uai_module_load(model.c_str(), &module);
   Debug(1, "SpeedAI: launching");

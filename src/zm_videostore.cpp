@@ -403,7 +403,7 @@ bool VideoStore::open() {
   if (audio_in_stream) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
 
-    if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC) {
+    if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC or CODEC(audio_in_stream)->codec_tag != 0) {
       audio_out_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");

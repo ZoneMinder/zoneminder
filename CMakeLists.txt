@@ -347,6 +347,8 @@ include_directories(/opt/untether/speedai/include/)
 list(APPEND ZM_BIN_LIBS untether)
 link_directories(/opt/untether/speedai/lib)
 
+list(APPEND ZM_BIN_LIBS xcoder)
+
 # jpeg
 find_package(JPEG)
 if(JPEG_FOUND)
@@ -488,6 +490,7 @@ find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS
     avcodec
     avdevice
+    avfilter
     avformat
     avutil
     swresample

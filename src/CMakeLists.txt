@@ -44,6 +44,8 @@ set(ZM_BIN_SRC_FILES
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
   zm_mqtt.cpp
+  zm_netint_ai.cpp
+  zm_netint_yolo.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_input.cpp
@@ -78,7 +80,9 @@ set(ZM_BIN_SRC_FILES
   zm_utils.cpp
   zm_videostore.cpp
   zm_zone.cpp
-  zm_storage.cpp)
+  zm_storage.cpp
+  netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp ni_log.cpp
+)
 
 if(GSOAP_FOUND)
   set(ZM_BIN_SRC_FILES
@@ -155,6 +159,7 @@ target_link_libraries(zm
   PUBLIC
     FFMPEG::avcodec
     FFMPEG::avdevice
+    FFMPEG::avfilter
     FFMPEG::avformat
     FFMPEG::avutil
     FFMPEG::swresample

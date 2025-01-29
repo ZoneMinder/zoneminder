@@ -836,6 +836,8 @@ include('_monitor_source_nvsocket.php');
 <?php
 $decoders = array(
   'auto' => translate('Auto'),
+  'mjpeg' => 'mjpeg',
+  'jpeg_ni_quadra_dec' => 'jpeg_ni_quadra_dec',
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_cuvid' => 'h264_cuvid',
@@ -1060,6 +1062,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
+<li class="ObjectDetection">
+<label><?php echo translate('Object Detection')?></label>
+<?php
+        echo htmlSelect('newMonitor[ObjectDetection]', ['none'=>'None', 'quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI'],
+            $monitor->ObjectDetection());
+?>
+</li>
 <?php
     }
     break;

@@ -81,6 +81,7 @@ struct Namespace namespaces[] = {
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+  "`ObjectDetection`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
@@ -179,6 +180,7 @@ Monitor::Monitor() :
   type(LOCAL),
   capturing(CAPTURING_ALWAYS),
   analysing(ANALYSING_ALWAYS),
+  objectdetection(OBJECT_DETECTION_NONE),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
   RTSP2Web_enabled(false),
@@ -324,6 +326,8 @@ Monitor::Monitor() :
   Amcrest_Manager(nullptr),
   onvif(nullptr),
   speedai(nullptr),
+  quadra(nullptr),
+  quadra_yolo(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -348,13 +352,15 @@ Monitor::Monitor() :
 
 /*
    std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0,"
+   " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "`ObjectDetection`+0, "
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-   "SaveJPEGs, VideoWriter, EncoderParameters,
+   "SaveJPEGs, VideoWriter, EncoderParameters,"
    "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
@@ -411,6 +417,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   analysis_source = (AnalysisSourceOption)atoi(dbrow[col]);
   col++;
   analysis_image = (AnalysisImageOption)atoi(dbrow[col]);
+  col++;
+  objectdetection = (ObjectDetectionOption)atoi(dbrow[col]);
   col++;
   recording = (RecordingOption)atoi(dbrow[col]);
   col++;
@@ -1118,6 +1126,7 @@ bool Monitor::connect() {
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->analysing = analysing;
+    //shared_data->objectdetection = objectdetection;
     shared_data->capturing = capturing;
     shared_data->recording = recording;
     shared_data->signal = false;
@@ -1189,9 +1198,11 @@ bool Monitor::connect() {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
 
-    speedai = new SpeedAI(this);
-    if (!speedai->setup()) {
-      delete speedai;
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      speedai = new SpeedAI(this);
+      if (!speedai->setup()) {
+        delete speedai;
+      }
     }
 
 #if MOSQUITTOPP_FOUND
@@ -1306,6 +1317,8 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
+  if (quadra) delete quadra;
+  if (quadra_yolo) delete quadra_yolo;
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -1871,8 +1884,10 @@ void Monitor::UpdateFPS() {
     FPSeconds db_elapsed = now - last_status_time;
     if (db_elapsed > Seconds(10)) {
       std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+		      "INSERT INTO Monitor_Status (MonitorId, Status,CaptureFPS,CaptureBandwidth, AnalysisFPS, UpdatedOn) VALUES (%u, 'Connected',%.2lf, %u, %.2lf, NOW()) ON DUPLICATE KEY "
+          "UPDATE Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW()",
+	  id, new_capture_fps, new_capture_bandwidth, new_analysis_fps,
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps);
       dbQueue.push(std::move(sql));
       last_status_time = now;
     }
@@ -2773,6 +2788,7 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   return (convert_context != nullptr);
 }
 
+#include "libavutil/hwcontext_ni_quad.h"
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
@@ -2802,19 +2818,61 @@ bool Monitor::Decode() {
       int ret = packet->decode(camera->getVideoCodecContext());
       if (ret > 0 and !zm_terminate) {
         if (packet->in_frame and !packet->image) {
+          const AVFrame *in_frame = packet->in_frame.get();
+
+          if (objectdetection == OBJECT_DETECTION_QUADRA) {
+            if (!quadra_yolo) {
+              Debug(1, "Quadra setting up");
+              quadra_yolo = new Quadra_Yolo(this);
+              int deviceid = -1;
+              if (in_frame->format == AV_PIX_FMT_NI_QUAD) {
+                deviceid = ni_get_cardno(in_frame);
+              }
+              if (!quadra_yolo->setup(camera->getVideoStream(), 
+                    camera->getVideoCodecContext(), "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
+                delete quadra_yolo;
+                quadra_yolo = nullptr;
+              }
+            }
+          }
+
+          if (quadra_yolo) {
+            if (analysis_fps_limit) {
+              double capture_fps = get_capture_fps();
+              motion_frame_skip = capture_fps / analysis_fps_limit;
+              Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                  motion_frame_skip, capture_fps, analysis_fps_limit);
+            }
+            if (!(decoding_image_count % (motion_frame_skip+1))) {
+              AVFrame *ai_frame = nullptr;
+              ret = quadra_yolo->detect(packet->hw_frame.get(), &ai_frame);
+              if (0 < ret) {
+                zm_dump_video_frame(ai_frame, "after detect");
+                in_frame = ai_frame;
+                packet->set_ai_frame(ai_frame);
+              } else if (0>ret) {
+                Debug(1, "Failed yolo");
+                delete quadra_yolo;
+                quadra_yolo = nullptr;
+              }
+            }
+          }
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-          if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
-            if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {
+          if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
+            if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
               delete packet->image;
               packet->image = nullptr;
             }
             av_frame_unref(dest_frame.get());
+          packet->hw_frame = nullptr;
           } else {
             delete packet->image;
             packet->image = nullptr;
           }  // end if have convert_context
         }  // end if need transfer to image
+      } else if (ret <0) {
+        
       } else {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
@@ -3334,6 +3392,14 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
+#if 0
+    Debug(1, "Quadra setting up");
+    quadra = new Quadra(this);
+    if (!quadra->setup()) {
+      delete quadra;
+      quadra = nullptr;
+    }
+#endif
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();

@@ -143,7 +143,8 @@ class Image {
   Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   explicit Image(const Image &p_image);
-  explicit Image(const AVFrame *frame, int p_width=-1, int p_height=-1);
+  explicit Image(const AVFrame *frame, int p_width, int p_height);
+  explicit Image(const AVFrame *frame);
 
   ~Image();
 
@@ -206,6 +207,7 @@ class Image {
     uint8_t *new_buffer,
     const size_t buffer_size,
     const int p_buffertype);
+  void AssignDirect(const AVFrame *frame);
 
   int PopulateFrame(AVFrame *frame) const;
 

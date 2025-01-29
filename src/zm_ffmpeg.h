@@ -172,13 +172,16 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
 
 #if LIBAVUTIL_VERSION_CHECK(58, 7, 100, 7, 0)
-#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64 " keyframe: %d", \
+#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%dx%dx%d data:%p,%p,%p,%p pts: %" PRId64 " keyframe: %d", \
       text, \
       frame->format, \
       av_get_pix_fmt_name((AVPixelFormat)frame->format), \
       frame->width, \
       frame->height, \
       frame->linesize[0], frame->linesize[1], \
+      frame->linesize[2], frame->linesize[3], \
+      frame->data[0], frame->data[1], \
+      frame->data[2], frame->data[3], \
       frame->pts, \
       frame->flags && AV_FRAME_FLAG_KEY \
       );

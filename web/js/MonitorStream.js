@@ -12,6 +12,7 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
   this.webrtc = null;
+  this.hls = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
   this.mseSourceBuffer = null;
@@ -272,9 +273,9 @@ function MonitorStream(monitorData) {
           }
           */
           if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(hlsUrl.href);
-            hls.attachMedia(videoEl);
+            this.hls = new Hls();
+            this.hls.loadSource(hlsUrl.href);
+            this.hls.attachMedia(videoEl);
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             videoEl.src = hlsUrl.href;
           }
@@ -348,6 +349,10 @@ function MonitorStream(monitorData) {
     if (this.webrtc) {
       this.webrtc.close();
       this.webrtc = null;
+    }
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
     }
   };
 
@@ -682,6 +687,7 @@ function MonitorStream(monitorData) {
         } // end if have a new auth hash
       } // end if has state
     } else {
+      if (!this.started) return;
       console.error(respObj.message);
       // Try to reload the image stream.
       if (stream.src) {

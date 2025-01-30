@@ -97,7 +97,7 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
       devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
-    Error("failed to allocate network context");
+    Error("failed to allocate network context on card %d", devid);
     return false;
   }
   network_data = &network_ctx->network_data;
@@ -137,14 +137,14 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
 
   ret = ni_ai_packet_buffer_alloc(&frame->api_packet.data.packet, &network_ctx->network_data);
   if (ret != NI_RETCODE_SUCCESS) {
-    Error( "failed to allocate packet");
+    Error( "failed to allocate packet on card %d", devid);
     return false;
   }
   ret = ni_frame_buffer_alloc_hwenc(&frame->api_frame.data.frame,
       frame->scale_width,
       frame->scale_height, 0);
   if (ret != NI_RETCODE_SUCCESS) {
-    Error("failed to allocate frame");
+    Error("failed to allocate frame on card %d", devid);
     return false;
   }
 

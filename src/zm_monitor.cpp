@@ -2822,12 +2822,12 @@ bool Monitor::Decode() {
 
           if (objectdetection == OBJECT_DETECTION_QUADRA) {
             if (!quadra_yolo) {
-              Debug(1, "Quadra setting up");
               quadra_yolo = new Quadra_Yolo(this);
               int deviceid = -1;
-              if (in_frame->format == AV_PIX_FMT_NI_QUAD) {
-                deviceid = ni_get_cardno(in_frame);
+              if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
+                deviceid = ni_get_cardno(packet->hw_frame.get());
               }
+              Debug(1, "Quadra setting up on %d", deviceid);
               if (!quadra_yolo->setup(camera->getVideoStream(), 
                     camera->getVideoCodecContext(), "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
                 delete quadra_yolo;

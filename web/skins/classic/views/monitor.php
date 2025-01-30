@@ -866,7 +866,7 @@ $decoders = array(
   'av1' => 'av1',
   'av1_qsv' => 'av1_qsv',
   'av1_cuvid' => 'av1_cuvid',
-  'av1_ni_quadra_dec' => 'av1_ni_quadra',
+  #'av1_ni_quadra_dec' => 'av1_ni_quadra',
 );
 echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>

@@ -41,6 +41,7 @@ static CodecData dec_codecs[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
 //#ifdef QUADRA
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_VP9, "vp9", "vp9_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
 //#endif
@@ -603,7 +604,6 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
 
 void zm_free_codec(AVCodecContext **ctx) {
   if (*ctx) {
-    avcodec_close(*ctx);
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(ctx);
     *ctx = nullptr;

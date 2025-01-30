@@ -858,6 +858,7 @@ $decoders = array(
   'vp9_qsv' => 'vp9-qsv',
   'vp9_cuvid' => 'vp9_cuvid',
   'vp9_nvmpi' => 'vp9_nvmpi',
+  'vp9_ni_quadra_dec' => 'vp9_ni_quadra',
   'vp9_v4l2m2m' => 'vp9_v4l2m2m',
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',

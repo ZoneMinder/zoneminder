@@ -566,7 +566,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   mVideoCodecContext->framerate = av_guess_frame_rate(mFormatContext, mFormatContext->streams[mVideoStreamId], NULL);
 
-  //av_opt_set(mVideoCodecContext->priv_data, "dec", "0", 0);
+  av_opt_set(mVideoCodecContext->priv_data, "dec", (hwaccel_device != "" ? hwaccel_device.c_str() : "-1"), 0);
 //av_opt_set(mVideoCodecContext->priv_data, "xcoder-params","out=hw", 0);
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);

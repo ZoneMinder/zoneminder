@@ -25,20 +25,26 @@
 #include <cstring>
 
 Monitor::SpeedAI::SpeedAI(Monitor *monitor_) :
-  monitor(monitor_)
+  monitor(monitor_),
+  module(nullptr)
 {
 }
 
 Monitor::SpeedAI::~SpeedAI() {
   // Clean up
-  uai_module_free(module);
+  if (module)
+    uai_module_free(module);
 }
 
 bool Monitor::SpeedAI::setup() {
   // Load and launch module
-  std::string model = "/usr/share/zoneminder/u_speedai_yolo_model_creator.uxf";
+  std::string model = "/var/cache/zoneminder/models/u_speedai_yolo_model_creator.uxf";
   Debug(1, "SpeedAI: Loading model %s", model.c_str());
-  uai_module_load(model.c_str(), &module);
+  UaiErr err = uai_module_load(model.c_str(), &module);
+  if (err != UAI_SUCCESS) {
+    Error("Failed loading model %s", uai_err_string(err));
+    return false;
+  }
   Debug(1, "SpeedAI: launching");
   uai_module_launch(module);
   // Get info on input/output streams. We assume a simple model (like Resnet50) with one input

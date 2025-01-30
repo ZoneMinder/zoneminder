@@ -326,6 +326,7 @@ int FfmpegCamera::OpenFfmpeg() {
     if (ret < 0) {
       Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
     }
+    av_dict_set(&opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
   }
 
   // Set transport method as specified by method field, rtpUni is default

@@ -492,6 +492,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
   ObjectDetectionOption objectdetection;    // none, quadra, speedai
+  std::string objectdetection_model;
+  float   objectdetection_object_threshold;
+  float   objectdetection_nms_threshold;
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
@@ -962,6 +965,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();
+
+  const std::string &ObjectDetection_Model() const { return objectdetection_model; };
+  float ObjectDetection_Object_Threshold() const { return objectdetection_object_threshold; };
+  float ObjectDetection_NMS_Threshold() const { return objectdetection_nms_threshold; };
 
   void Reload();
   void ReloadZones();

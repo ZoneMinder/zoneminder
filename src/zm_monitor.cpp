@@ -81,7 +81,7 @@ struct Namespace namespaces[] = {
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
-  "`ObjectDetection`+0, "
+  "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`,"
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
@@ -181,6 +181,9 @@ Monitor::Monitor() :
   capturing(CAPTURING_ALWAYS),
   analysing(ANALYSING_ALWAYS),
   objectdetection(OBJECT_DETECTION_NONE),
+  objectdetection_model(""),
+  objectdetection_object_threshold(0.4),
+  objectdetection_nms_threshold(0.25),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
   RTSP2Web_enabled(false),
@@ -420,6 +423,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   objectdetection = (ObjectDetectionOption)atoi(dbrow[col]);
   col++;
+  objectdetection_model = dbrow[col];
+  col++;
+  objectdetection_object_threshold = dbrow[col] ? atof(dbrow[col]) : 0.0;
+  col++;
+  objectdetection_nms_threshold = dbrow[col] ? atof(dbrow[col]) : 0.0;
+  col++;
+
   recording = (RecordingOption)atoi(dbrow[col]);
   col++;
   recording_source = (RecordingSourceOption)atoi(dbrow[col]);
@@ -2822,7 +2832,7 @@ bool Monitor::Decode() {
 
           if (objectdetection == OBJECT_DETECTION_QUADRA) {
             if (!quadra_yolo) {
-              quadra_yolo = new Quadra_Yolo(this);
+              quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
               int deviceid = -1;
               if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
                 deviceid = ni_get_cardno(packet->hw_frame.get());
@@ -2845,12 +2855,12 @@ bool Monitor::Decode() {
             }
             if (!(decoding_image_count % (motion_frame_skip+1))) {
               AVFrame *ai_frame = nullptr;
-              ret = quadra_yolo->detect(packet->hw_frame.get(), &ai_frame);
+              auto [ret, results] = quadra_yolo->detect(packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get(), &ai_frame);
               if (0 < ret) {
                 zm_dump_video_frame(ai_frame, "after detect");
                 in_frame = ai_frame;
                 packet->set_ai_frame(ai_frame);
-              } else if (0>ret) {
+              } else if (0 > ret) {
                 Debug(1, "Failed yolo");
                 delete quadra_yolo;
                 quadra_yolo = nullptr;

@@ -19,11 +19,13 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
 
 AVRational qp_offset = { 0 , 0 };
 
-Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor) :
+Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
   model_width(640),
   model_height(640),
   model_format(GC620_RGB888_PLANAR),
+  obj_thresh(0.25),
+  nms_thresh(0.45),
   network_ctx(nullptr),
   model(nullptr),
   model_ctx(nullptr),
@@ -47,11 +49,13 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor) :
   last_roi_extra(nullptr),
   last_roi_count(0),
 
-  use_hwframe(true)
+  use_hwframe(p_use_hwframe)
 {
   scaled_frame.width  = model_width;
   scaled_frame.height = model_height;
   scaled_frame.format = AV_PIX_FMT_RGB24;
+  obj_thresh = monitor->ObjectDetection_Object_Threshold();
+  nms_thresh = monitor->ObjectDetection_NMS_Threshold();
 }
 
 Quadra_Yolo::~Quadra_Yolo() {
@@ -72,13 +76,17 @@ Quadra_Yolo::~Quadra_Yolo() {
     free(drawbox_filter);
   }
   if (hwdl_filter) {
-  avfilter_graph_free(&hwdl_filter->filter_graph);
-  free(hwdl_filter);
+    avfilter_graph_free(&hwdl_filter->filter_graph);
+    free(hwdl_filter);
   }
 }
 
-bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &modelname, const std::string &nbg_file,
-        int deviceid) {
+bool Quadra_Yolo::setup(
+    AVStream *p_dec_stream,
+    AVCodecContext *decoder_ctx,
+    const std::string &modelname,
+    const std::string &nbg_file,
+    int deviceid) {
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
 //model_ctx = (YoloModelCtx *)calloc(1, sizeof(YoloModelCtx));
@@ -93,7 +101,7 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   int devid = deviceid;
 
   printf("Setup NETint %s on %d\n", modelname.c_str(), devid); fflush(stdout); fflush(stderr);
-  Debug(1, "Setup NETint %s on %d", modelname.c_str(), devid);
+  Debug(1, "Setup NETint %s on %d, use hwframe %d", modelname.c_str(), devid, use_hwframe);
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
       devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
@@ -196,14 +204,15 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   return true;
 }
 
-int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
-  if (!sw_scale_ctx) {
-    sw_scale_ctx = sws_getContext(avframe->width, avframe->height, AV_PIX_FMT_YUV420P,
+std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
+  if (!use_hwframe && !sw_scale_ctx) {
+    sw_scale_ctx = sws_getContext(
+        avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
         scaled_frame.width, scaled_frame.height, static_cast<AVPixelFormat>(scaled_frame.format),
         SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
-      Error("cannot create sw scale context for scaling");
-      return -1;
+      Error("cannot create sw scale context for scaling hwframe: %d", use_hwframe);
+      return {-1, ""};
     }
   }
 
@@ -213,7 +222,7 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
   int ret = generate_ai_frame(&ai_input_frame, avframe, use_hwframe);
   if (ret < 0) {
     Error("Quadra: cannot generate ai frame");
-    return -1;
+    return {-1, ""};
   }
 
   Debug(1, "Quadra: ni_set_network_input");
@@ -221,7 +230,7 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
       avframe->width, avframe->height, frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
-    return -1;
+    return {-1, ""};
   }
 
 	  /* pull filtered frames from the filtergraph */
@@ -229,29 +238,29 @@ int Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
 			  true /*convert*/, model_ctx->out_tensor);
 	  if (ret != 0 && ret != NIERROR(EAGAIN)) {
 		  Error("Error when getting output %d", ret);
-		  return -1;
+		  return {-1, ""};
 	  } else if (ret != NIERROR(EAGAIN)) {
 		  ret = ni_read_roi(avframe, aiframe_number);
 		  if (ret < 0) {
 			  Error("read roi failed");
-			  return -1;
+			  return {-1, ""};
 		  } else if (ret == 0) {
 			  Debug(1, "ni_read_roi == 0");
-			  return 0;
+			  return {0, ""};
 		  }
 		  aiframe_number++;
 		  ret = process_roi(avframe, ai_frame);
 		  if (ret < 0) {
 			  Error("cannot draw roi");
-			  return -1;
+			  return {-1, ""};
 		  }
 		  AVFrame *blah = *ai_frame;
 		  zm_dump_video_frame(blah, "ai");
 	  } else {
-		  return 0;
+		  return {0, ""};
 	  }
 
-  return 1;
+  return {1, result_json};
 } // end detect
 
 int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {
@@ -305,6 +314,8 @@ int Quadra_Yolo::generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avfr
           avframe->linesize[2], avframe->linesize[3], avframe->height, scaled_frame.linesize[0]);
       return ret;
     }
+    AVFrame *test = &scaled_frame;
+    zm_dump_video_frame(test, "Quadra: scale_frame");
     ni_retcode_t retval = ni_ai_frame_buffer_alloc(&ai_frame->data.frame, &network_ctx->network_data);
     if (retval != NI_RETCODE_SUCCESS) {
       Error("cannot allocate sw ai frame buffer");
@@ -322,70 +333,68 @@ int Quadra_Yolo::generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avfr
   return ret;
 }
 
-
-
 int Quadra_Yolo::draw_roi_box(
     AVFrame *inframe,
     AVFrame **outframe,
     AVRegionOfInterest roi,
     AVRegionOfInterestNetintExtra roi_extra) {
 
-    char drawbox_option[32];
-    std::string color;
-    int n, ret;
-    int x, y, w, h;
+  char drawbox_option[32];
+  std::string color;
+  int n, ret;
+  int x, y, w, h;
 
-    int cls = roi_extra.cls;
-    if (cls == 0) {
-        color = "Blue";
+  int cls = roi_extra.cls;
+  if (cls == 0) {
+    color = "Blue";
+  } else {
+    color = "Red";
+  }
+  float prob = roi_extra.prob;
+  x = roi.left;
+  y = roi.top;
+  w = roi.right - roi.left;
+  h = roi.bottom - roi.top;
+
+  Debug(4, "x %d, y %d, w %d, h %d class %s prob %f",
+      x, y, w, h, roi_class[cls], prob);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", y); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "y", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", w); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "w", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
+
+  ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
+  if (ret < 0) {
+    Error("cannot send drawbox filter command, ret %d.", ret);
+    return ret;
+  }
+
+  ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
+  if (ret < 0) {
+    Error("cannot add frame to drawbox buffer src %d", ret);
+    return ret;
+  }
+
+  do {
+    ret = av_buffersink_get_frame(drawbox_filter->buffersink_ctx, *outframe);
+    if (ret == AVERROR(EAGAIN)) {
+      continue;
+    } else if (ret < 0) {
+      Error("cannot get frame from drawbox buffer sink %d", ret);
+      return ret;
     } else {
-        color = "Red";
+      break;
     }
-    float prob = roi_extra.prob;
-    x = roi.left;
-    y = roi.top;
-    w = roi.right - roi.left;
-    h = roi.bottom - roi.top;
-
-    Debug(4, "x %d, y %d, w %d, h %d class %s prob %f",
-            x, y, w, h, roi_class[cls], prob);
-
-    n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
-    av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);
-
-    n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", y); drawbox_option[n] = '\0';
-    av_opt_set(drawbox_filter_ctx->priv, "y", drawbox_option, 0);
-
-    n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", w); drawbox_option[n] = '\0';
-    av_opt_set(drawbox_filter_ctx->priv, "w", drawbox_option, 0);
-
-    n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
-    av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
-
-    ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
-    if (ret < 0) {
-        Error("cannot send drawbox filter command, ret %d.", ret);
-        return ret;
-    }
-
-    ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
-    if (ret < 0) {
-        Error("cannot add frame to drawbox buffer src %d", ret);
-        return ret;
-    }
-
-    do {
-        ret = av_buffersink_get_frame(drawbox_filter->buffersink_ctx, *outframe);
-        if (ret == AVERROR(EAGAIN)) {
-            continue;
-        } else if (ret < 0) {
-            Error("cannot get frame from drawbox buffer sink %d", ret);
-            return ret;
-        } else {
-            break;
-        }
-    } while (1);
-    return 0;
+  } while (1);
+  return 0;
 }
 
 int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hwmode) {
@@ -497,7 +506,6 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
   AVFrame *input = nullptr;
   static int filt_cnt = 0;
-  int detected = 0;
 
   Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
 
@@ -517,7 +525,6 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     return 0;
   }
 
-  Debug(1, "Have roi");
   AVRegionOfInterest *roi = (AVRegionOfInterest *)sd->data;
   AVRegionOfInterestNetintExtra *roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
   if ((sd->size % roi->self_size) ||
@@ -529,13 +536,13 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   }
   num = sd->size / roi->self_size;
 
-  char result[2048] = { 0 };
-  snprintf(result, sizeof(result), "Predicts of frame %d\n", filt_cnt);
+  result_json = "";
 
+  int detected = 0;
   for (i = 0; i < num; i++) {
-    if (check_movement(roi[i], roi_extra[i])) {
-      continue;
-    }
+    //if (check_movement(roi[i], roi_extra[i])) {
+      //continue;
+    //}
     detected++;
 
     if (draw_box) {
@@ -550,14 +557,14 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         Error("draw %d roi box failed", i);
         return ret;
       }
+      std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
       Image img(output);
-      img.Annotate(roi_class[roi_extra[i].cls], Vector2(roi[i].left, roi[i].top), monitor->LabelSize());
+      img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize());
 
       av_frame_free(&input);
       input = output;
     }
-    snprintf(result + strlen(result), sizeof(result) - strlen(result),
-        "   type:%s,left:%d,right:%d,top:%d,bottom:%d,prob:%f\n",
+    result_json += stringtf("   type:%s,left:%d,right:%d,top:%d,bottom:%d,prob:%f\n",
         roi_class[roi_extra[i].cls], roi[i].left, roi[i].right, roi[i].top,
         roi[i].bottom, roi_extra[i].prob);
   }
@@ -626,8 +633,7 @@ int Quadra_Yolo::check_movement(
     AVRegionOfInterest cur_roi,
     AVRegionOfInterestNetintExtra cur_roi_extra)
 {
-    int i;
-    for (i = 0; i < last_roi_count; i++) {
+    for (int i = 0; i < last_roi_count; i++) {
         if (last_roi_extra[i].cls == cur_roi_extra.cls) {
             if (abs(cur_roi.left - last_roi[i].left) < NI_SAME_BORDER_THRESH &&
                 abs(cur_roi.right - last_roi[i].right) < NI_SAME_BORDER_THRESH &&

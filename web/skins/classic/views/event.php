@@ -433,14 +433,21 @@ if ($video_tag) {
         </div><!-- class="container-fluid" -->
         <div id="EventData" class="EventData">
         <?php
+if (0) { // Need to do this in ajax.
           $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
           if (count($data)) {
-            echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
+            echo '
+<table class="table table-striped table-hover table-condensed">
+  <thead>
+    <tr><th class="Timestamp">'.translate('Timestamp').'</th><th class="Data">'.translate('Data').'</th></tr>
+  </thead>
+  <tbody>'.PHP_EOL;
             foreach ($data as $d) {
               echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
             }
             echo '</tbody></table>';
           }
+}
         ?>
         </div><!--EventData-->
       </div>

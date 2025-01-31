@@ -413,13 +413,15 @@ int FfmpegCamera::OpenFfmpeg() {
         mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
-	if (stream->codecpar->width == width and stream->codecpar->height == height) {
-		Debug(1, "Choosing alternate video stream because it matches our resolution.");
-		mVideoStreamId = i;
-		mVideoStream = stream;
-	} else {
-		stream->discard = AVDISCARD_ALL;
-	}
+        std::list<const CodecData *>codec_data = get_decoder_data(stream->codecpar->codec_id, "auto");
+
+        if (codec_data.size() && (stream->codecpar->width == width) and (stream->codecpar->height == height)) {
+          Debug(1, "Choosing alternate video stream because it matches our resolution.");
+          mVideoStreamId = i;
+          mVideoStream = stream;
+        } else {
+          stream->discard = AVDISCARD_ALL;
+        }
       }
     } else if (is_audio_stream(stream)) {
       if (mAudioStreamId == -1) {
@@ -480,8 +482,9 @@ int FfmpegCamera::OpenFfmpeg() {
                chosen_codec_data, hw_device_ctx, "", mFormatContext->streams[mVideoStreamId]->codecpar->width,
                mFormatContext->streams[mVideoStreamId]->codecpar->height
                )) {
-           continue;
-         }
+        avcodec_free_context(&mVideoCodecContext);
+        continue;
+      }
     }  // end if hwaccel_name
 
     if (!mOptions.empty()) {
@@ -504,10 +507,14 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_free(&opts);
     if (ret < 0) {
       Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+      avcodec_free_context(&mVideoCodecContext);
       continue;
     }
     zm_dump_codec(mVideoCodecContext);
     break;
+  }
+  if (!mVideoCodecContext) {
+    return -1;
   }
 
   if (mAudioStreamId >= 0) {

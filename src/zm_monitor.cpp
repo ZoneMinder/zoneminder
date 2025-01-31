@@ -2855,7 +2855,8 @@ bool Monitor::Decode() {
             }
             if (!(decoding_image_count % (motion_frame_skip+1))) {
               AVFrame *ai_frame = nullptr;
-              auto [ret, results] = quadra_yolo->detect(packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get(), &ai_frame);
+              auto [ret, detections] = quadra_yolo->detect(packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get(), &ai_frame);
+              packet->detections = detections;
               if (0 < ret) {
                 zm_dump_video_frame(ai_frame, "after detect");
                 in_frame = ai_frame;

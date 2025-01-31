@@ -16,6 +16,7 @@ extern "C"  {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #include <libavutil/hwcontext.h>
 #endif
+#include "libavutil/buffer.h"
 }
 
 class Monitor;
@@ -25,19 +26,7 @@ class PacketQueue;
 class VideoStore {
  private:
 
-  struct CodecData {
-    const AVCodecID codec_id;
-    const char *codec_codec;
-    const char *codec_name;
-    const enum AVPixelFormat sw_pix_fmt;
-    const enum AVPixelFormat hw_pix_fmt;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-    const AVHWDeviceType hwdevice_type;
-#endif
-  };
-
-  static struct CodecData codec_data[];
-  CodecData *chosen_codec_data;
+  const CodecData *chosen_codec_data;
 
   Monitor *monitor;
   AVOutputFormat *out_format;

@@ -423,6 +423,21 @@ sub get_realm {
   return undef;
 } # end sub get_realm
 
+sub ping {
+  my $self = shift;
+  my $ip = @_ ? shift : $$self{host};
+  return undef if ! $ip;
+
+  require Net::Ping;
+  Debug("Pinging $ip");
+
+  my $p = Net::Ping->new();
+  my $rv = $p->ping($ip);
+  $p->close();
+  Debug("Pinging $ip $rv");
+  return $rv;
+}
+
 1;
 __END__
 

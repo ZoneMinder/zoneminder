@@ -47,6 +47,12 @@
 #include <openssl/err.h>
 #endif
 
+extern "C" {
+#include <ni_device_api.h>
+#include <ni_av_codec.h>
+#include <ni_util.h>
+}
+
 class Group;
 class MonitorLinkExpression;
 
@@ -54,6 +60,7 @@ class MonitorLinkExpression;
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
 
+#include "zm_netint_yolo.h"
 
 //
 // This is the main class for monitors. Each monitor is associated
@@ -90,6 +97,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ANALYSISIMAGE_FULLCOLOUR=1,
     ANALYSISIMAGE_YCHANNEL
   } AnalysisImageOption;
+
+  typedef enum {
+    OBJECT_DETECTION_NONE=1,
+    OBJECT_DETECTION_QUADRA,
+    OBJECT_DETECTION_SPEEDAI,
+  } ObjectDetectionOption;
 
   typedef enum {
     RECORDING_NONE=1,
@@ -196,6 +209,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t valid;              /* +88   */
     uint8_t capturing;          /* +89   */
     uint8_t analysing;          /* +90   */
+    //uint8_t objectdetection;    /* +90   */
     uint8_t recording;          /* +91   */
     uint8_t signal;             /* +92   */
     uint8_t format;             /* +93   */
@@ -322,6 +336,26 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
+  class Quadra {
+   public:
+    explicit Quadra(Monitor *p_monitor);
+    ~Quadra();
+    Quadra(Quadra &rhs) = delete;
+    Quadra(Quadra &&rhs) = delete;
+
+    bool setup();
+    bool detect(AVFrame *);
+
+   private:
+    ni_session_context_t api_ctx;
+    ni_network_data_t network;
+    ni_session_data_io_t api_src_frame;
+    ni_session_data_io_t api_dst_packet;
+
+    Monitor *monitor;
+  };
+
+
   class ONVIF {
    protected:
     Monitor *parent;
@@ -439,6 +473,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
+  ObjectDetectionOption objectdetection;    // none, quadra, speedai
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
@@ -497,6 +532,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     encoderparams;
   int             output_codec;
   std::string     encoder;
+  std::string     encoder_hwaccel_name;
+  std::string     encoder_hwaccel_device;
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
@@ -649,6 +686,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  Quadra *quadra;
+  Quadra_Yolo *quadra_yolo;
 
   // Used in check signal
   uint8_t red_val;
@@ -710,6 +749,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return decoding;
   }
   const std::string &DecoderName() const { return decoder_name; }
+  const std::string &DecoderHWAccelName() const { return decoder_hwaccel_name; }
+  const std::string &DecoderHWAccelDevice() const { return decoder_hwaccel_device; }
   bool JanusEnabled() {
     return janus_enabled;
   }
@@ -798,6 +839,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
+  const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
+  const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
   int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }

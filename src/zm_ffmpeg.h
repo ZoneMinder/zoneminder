@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include "zm_define.h"
 
+#include <list>
 #include <memory>
 
 extern "C" {
@@ -171,13 +172,16 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
 
 #if LIBAVUTIL_VERSION_CHECK(58, 7, 100, 7, 0)
-#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64 " keyframe: %d", \
+#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%dx%dx%d data:%p,%p,%p,%p pts: %" PRId64 " keyframe: %d", \
       text, \
       frame->format, \
       av_get_pix_fmt_name((AVPixelFormat)frame->format), \
       frame->width, \
       frame->height, \
       frame->linesize[0], frame->linesize[1], \
+      frame->linesize[2], frame->linesize[3], \
+      frame->data[0], frame->data[1], \
+      frame->data[2], frame->data[3], \
       frame->pts, \
       frame->flags && AV_FRAME_FLAG_KEY \
       );
@@ -308,5 +312,20 @@ struct zm_free_av_frame {
 };
 
 using av_frame_ptr = std::unique_ptr<AVFrame, zm_free_av_frame>;
+
+struct CodecData {
+  const AVCodecID codec_id;
+  const char *codec_codec;
+  const char *codec_name;
+  const enum AVPixelFormat sw_pix_fmt;
+  const enum AVPixelFormat hw_pix_fmt;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+  const AVHWDeviceType hwdevice_type;
+#endif
+  const char *hwdevice_default;
+};
+std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_coder) ;
+std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
+int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 
 #endif // ZM_FFMPEG_H

@@ -253,6 +253,10 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   this->Assign(frame);
 }
 
+Image::Image(const AVFrame *frame) {
+  AssignDirect(frame);
+}
+
 static void dont_free(void *opaque, uint8_t *data) {
 }
 
@@ -646,6 +650,27 @@ uint8_t* Image::WriteBuffer(
 
   return buffer;
 }
+
+void Image::AssignDirect(const AVFrame *frame) {
+  width = frame->width;
+  height = frame->height;
+  buffer = frame->data[0];
+  linesize = frame->linesize[0];
+  allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
+  switch(static_cast<AVPixelFormat>(frame->format)) {
+    case  AV_PIX_FMT_RGBA:
+      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+      colours = ZM_COLOUR_RGB32;
+      break;
+    case  AV_PIX_FMT_YUV420P:
+      colours = ZM_COLOUR_GRAY8;
+    default:
+      break;
+  }
+  buffertype = ZM_BUFTYPE_DONTFREE;
+  pixels = width * height;
+}
+
 
 /* Assign an existing buffer to the image instead of copying from a source buffer.
    The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.

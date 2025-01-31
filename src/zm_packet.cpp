@@ -80,6 +80,8 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
   delete y_image;
+  // We don't want to av_free the hw_frame
+  hw_frame = nullptr;
 }
 
 ssize_t ZMPacket::ram() {
@@ -107,14 +109,17 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
+  // ret == 0 means EAGAIN
   int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
-  if (ret < 0) {
-    if (AVERROR(EAGAIN) != ret) {
+  if (ret <= 0) {
+    if (ret < 0) {
       Warning("Unable to receive frame : code %d %s.",
               ret, av_make_error_string(ret).c_str());
     }
     in_frame = nullptr;
-    return 0;
+    return ret;
+  } else {
+    Debug(1, "Ret from zm_send_packet_receive_frame %d", ret);
   }
   int bytes_consumed = ret;
   if (ret > 0) {
@@ -172,15 +177,15 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       }
 #endif
       /* retrieve data from GPU to CPU */
-      zm_dump_video_frame(in_frame.get(), "Before hwtransfer");
-      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
+      hw_frame = std::move(in_frame);
+      zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
+      ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
       if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing",
               av_make_error_string(ret).c_str());
-        in_frame = nullptr;
         return 0;
       }
-      ret = av_frame_copy_props(new_frame.get(), in_frame.get());
+      ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
       if (ret < 0) {
         Error("Unable to copy props: %s, continuing",
               av_make_error_string(ret).c_str());
@@ -240,6 +245,21 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return packet.get();
 }
+
+void ZMPacket::set_ai_frame(AVFrame *frame) {
+  ai_frame = av_frame_ptr{frame};
+}
+
+AVFrame *ZMPacket::get_ai_frame() {
+  if (!ai_frame) {
+    ai_frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!ai_frame) {
+      Error("Unable to allocate a frame");
+      return nullptr;
+    }
+  }
+  return ai_frame.get();
+} // end AVFrame *ZMPacket::get_ai_frame( AVCodecContext *ctx );
 
 AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
   if (!out_frame) {

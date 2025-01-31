@@ -826,6 +826,10 @@ $OLANG = array(
     for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
     ',
   ),
+  'OPTIONS_RECORDAUDIO' => array(
+    'Help' => '
+    Whether to store the audio stream when saving an event.'
+    ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

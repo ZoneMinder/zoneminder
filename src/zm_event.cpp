@@ -304,9 +304,8 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
     Image ts_image(*image);
     monitor->TimestampImage(&ts_image, timestamp);
     return ts_image.WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
-  } else {
-    return image->WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
   }
+  return image->WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
 }
 
 bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {

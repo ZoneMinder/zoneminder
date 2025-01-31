@@ -894,7 +894,6 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       switch ( type ) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
-
         if ((!mJpegCodecContext) || (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height)) {
           initContexts(l_width, l_height, config.jpeg_stream_quality);
         }

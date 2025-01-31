@@ -368,12 +368,12 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio + 'px') /* landscape */ : (objStream.clientWidth * ratio + 'px');
+  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height;
-    objStream.parentNode.style['height'] = height;
+    objStream.style['height'] = height + 'px';
+    objStream.parentNode.style['height'] = height + 'px';
   }
 }
 
@@ -431,7 +431,7 @@ function save_layout(button) {
 
   mode = VIEWING;
 
-  var Positions = {};
+  const Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
   Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
   Positions['monitorRatio'] = {};
@@ -583,9 +583,7 @@ function startMonitors() {
 
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
-      // Start the fps and status updates. give a random delay so that we don't assault the server
-      const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-      monitors[i].start(delay);
+      monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
       setInterval(reloadWebSite, monitor.refresh*1000, i);
@@ -665,9 +663,14 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
+    const monitorId = stringToNumber(event.target.id);
+    if (monitorId && zmPanZoom.panZoom[monitorId]) {
+      zmPanZoom.panZoom[monitorId].reset();
+    } else {
+      console.error("No panZoom found for ", monitorId, event);
+    }
   }
-}
+} // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
@@ -735,13 +738,14 @@ function initPage() {
 
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
-    monitors[i] = new MonitorStream(monitorData[i]);
+    const monitor = monitors[i] = new MonitorStream(monitorData[i]);
+    monitor.setGridStack(objGridStack);
     //Create a Ratio array for each monitor
-    const r = monitors[i].width / monitors[i].height;
+    const r = monitor.width / monitor.height;
     arrRatioMonitors.push(r > 1 ? r : 1/r); //landscape or portret orientation
 
     //Prepare the array.
-    movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
+    movableMonitorData[monitor.id] = {'width': 0, 'stop': false};
   }
 
   calculateAverageMonitorsRatio(arrRatioMonitors);
@@ -764,16 +768,16 @@ function initPage() {
     });
     setInterval(function() {
       idle += 10;
-    }, 10*1000);
-    setInterval(function() {
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
-        for (let i=0, length = monitors.length; i < length; i++) monitors[i].pause();
+        for (let i=0, length = monitors.length; i < length; i++) {
+          monitors[i].pause();
+        }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
-                $j('#AYSWYesBtn').on('click', function() {
+                ayswModal.on('hidden.bs.modal', function() {
                   for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
                   idle = 0;
                 });
@@ -837,6 +841,7 @@ function initPage() {
 
   document.addEventListener('scrollend', on_scroll); // for non-sticky
   document.getElementById('content').addEventListener('scrollend', on_scroll);
+  window.addEventListener('resize', on_scroll);
 } // end initPage
 
 function on_scroll() {
@@ -855,16 +860,21 @@ function on_scroll() {
 function isOutOfViewport(elem) {
   // Get element's bounding
   const bounding = elem.getBoundingClientRect();
+  const headerHeight = (parseInt(ZM_WEB_NAVBAR_STICKY) == 1) ? document.getElementById('navbar-container').offsetHeight + document.getElementById('header').offsetHeight : 0;
   //console.log( 'top: ' + bounding.top + ' left: ' + bounding.left + ' bottom: '+bounding.bottom + ' right: '+bounding.right);
 
   // Check if it's out of the viewport on each side
   const out = {};
-  out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.topUp = (bounding.top < headerHeight);
+  out.topDown = ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.top = (out.topUp || out.topDown);
   out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-  out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
+  out.bottomUp = (bounding.bottom < headerHeight);
+  out.bottomDown = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) );
+  out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.top && out.bottom ) || (out.left && out.right);
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;
@@ -1175,15 +1185,17 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
-    //Start monitors when show page
-    for (let i = 0, length = monitors.length; i < length; i++) {
-      const monitor = monitors[i];
+    if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+      //Start monitors when show page
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        const monitor = monitors[i];
 
-      const isOut = isOutOfViewport(monitor.getElement());
-      if ((!isOut.all) && !monitor.started) {
-        monitor.start();
-      }
-    }
+        const isOut = isOutOfViewport(monitor.getElement());
+        if ((!isOut.all) && !monitor.started) {
+          monitor.start();
+        }
+      } // end foreach monitor
+    } // end if not AYSW
   }
 };
 

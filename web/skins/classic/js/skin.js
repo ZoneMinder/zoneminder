@@ -697,6 +697,7 @@ function endOfResize(e) {
  * Uses the #content element
  * figures out where bottomEl is in the viewport
  * does calculations
+ * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
@@ -1216,6 +1217,11 @@ function thisClickOnStreamObject(clickObj) {
   } else return false;
 }
 
+/* For mobile device Not implemented yet. */
+function thisClickOnTimeline(clickObj) {
+  return false;
+}
+
 var doubleTouchExecute = function(event, touchEvent) {
 //  if (touchEvent.target.id &&
 //    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
@@ -1227,6 +1233,7 @@ var doubleTouchExecute = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
+  if (shifted || ctrled || alted) return;
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
     //Process only double clicks directly on the image, excluding clicks,
@@ -1278,7 +1285,7 @@ var doubleTouch = function(e) {
 };
 
 function setButtonSizeOnStream() {
-  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"], [id = "videoobj"]');
   Array.prototype.forEach.call(elStream, (el) => {
     //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
     const w = el.offsetWidth;

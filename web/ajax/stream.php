@@ -132,18 +132,17 @@ if ( $numSockets === false ) {
   }
 }
 
-switch ($nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile)) {
+$nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile);
+if ($semaphore) sem_release($semaphore);
+switch ($nbytes) {
 case -1 :
-  if ($semaphore) sem_release($semaphore);
   ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
   break;
 case 0 :
-  if ($semaphore) sem_release($semaphore);
   ajaxError('No data to read from socket');
   break;
 default :
   if ( $nbytes != MSG_DATA_SIZE ) {
-    sem_release($semaphore);
     ajaxError("Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE);
   }
   break;
@@ -152,7 +151,7 @@ default :
 $data = unpack('ltype', $msg);
 switch ( $data['type'] ) {
 case MSG_DATA_WATCH :
-  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/iscale/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
+  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/iscale/Cdelayed/Cpaused/Cenabled/Cforced/iscore/ianalysing', $msg);
   $data['fps'] = round( $data['fps'], 2 );
   $data['capturefps'] = round( $data['capturefps'], 2 );
   $data['analysisfps'] = round( $data['analysisfps'], 2 );
@@ -172,19 +171,19 @@ case MSG_DATA_WATCH :
     }
     $data['auth_relay'] = get_auth_relay();
   }
-  if ($semaphore) sem_release($semaphore);
   ajaxResponse(array('status'=>$data));
   break;
 case MSG_DATA_EVENT :
   if ( PHP_INT_SIZE===4 || version_compare( phpversion(), '5.6.0', '<') ) {
     ZM\Debug('Using old unpack methods to handle 64bit event id');
-    $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/iscale/Cpaused', $msg);
+    $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/dfps/irate/izoom/iscale/Cpaused', $msg);
     $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
   } else {
-    $data = unpack('ltype/Qevent/dduration/dprogress/irate/izoom/iscale/Cpaused', $msg);
+    $data = unpack('ltype/Qevent/dduration/dprogress/dfps/irate/izoom/iscale/Cpaused', $msg);
   }
   $data['rate'] /= RATE_BASE;
   $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);
+  $data['fps'] = round( $data['fps'], 2 );
   if ( ZM_OPT_USE_AUTH ) {
     if (ZM_AUTH_RELAY == 'hashed') {
       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
@@ -195,15 +194,11 @@ case MSG_DATA_EVENT :
     $data['auth_relay'] = get_auth_relay();
   }
 
-  if ($semaphore) sem_release($semaphore);
   ajaxResponse(array('status'=>$data));
   break;
 default :
-  if ($semaphore) sem_release($semaphore);
   ajaxError('Unexpected received message type '.$data['type']);
 }
-if ($semaphore) sem_release($semaphore);
-
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');
 
 function ajaxCleanup() {

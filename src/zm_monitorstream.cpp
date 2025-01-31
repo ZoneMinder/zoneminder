@@ -247,6 +247,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     bool paused;
     bool enabled;
     bool forced;
+    int  score;
+    int  analysing;
   } status_data;
 
   status_data.id = monitor->Id();
@@ -278,6 +280,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
     else
       status_data.buffer_level = 0;
+    status_data.analysing = monitor->shared_data->analysing;
+    status_data.score = monitor->shared_data->last_frame_score;
   }
   status_data.delayed = delayed;
   status_data.paused = paused;
@@ -285,7 +289,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
-  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d",
         status_data.fps,
         status_data.capture_fps,
         status_data.analysis_fps,
@@ -296,7 +300,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
         status_data.delay,
         status_data.zoom,
         status_data.enabled,
-        status_data.forced
+        status_data.forced,
+        status_data.score
        );
 
   DataMsg status_msg;
@@ -355,7 +360,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
       TimePoint::duration frame_send_time = send_end_time - send_start_time;
 
       if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
-        Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
+        Debug(1, "Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
              maxfps);
       }
@@ -486,6 +491,10 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  std::thread command_processor;
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
@@ -499,9 +508,6 @@ void MonitorStream::runStream() {
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
 
-  frame_count = 0;
-
-  temp_image_buffer = nullptr;
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
@@ -554,10 +560,6 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
-  std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {

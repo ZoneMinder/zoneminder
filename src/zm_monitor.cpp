@@ -25,6 +25,7 @@
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
 #include "zm_monitorlink_expression.h"
+#include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
@@ -34,7 +35,6 @@
 #include "zm_utils.h"
 #include "zm_uri.h"
 #include "zm_zone.h"
-
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
@@ -351,7 +351,7 @@ Monitor::Monitor() :
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-   "SaveJPEGs, VideoWriter, EncoderParameters,
+   "SaveJPEGs, VideoWriter, EncoderParameters,"
    "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
@@ -716,7 +716,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
-  Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+  Debug(1, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+#else
+  Debug(1, "Not compiled with MQTT");
 #endif
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
@@ -999,7 +1001,7 @@ bool Monitor::connect() {
     map_fd = open(mem_file.c_str(), O_RDWR);
   } else {
     umask(0);
-    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0666);
+    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
   }
 
   if (map_fd < 0) {
@@ -1376,11 +1378,11 @@ SystemTimePoint Monitor::GetTimestamp(int index) const {
   return {};
 }
 
-unsigned int Monitor::GetLastReadIndex() const {
+int Monitor::GetLastReadIndex() const {
   return ( shared_data->last_read_index != image_buffer_count ? shared_data->last_read_index : -1 );
 }
 
-unsigned int Monitor::GetLastWriteIndex() const {
+int Monitor::GetLastWriteIndex() const {
   return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
 }
 
@@ -1853,10 +1855,16 @@ void Monitor::UpdateFPS() {
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
 
+    FPSeconds db_elapsed = now - last_status_time;
+    if (db_elapsed > Seconds(10)) {
       std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+		      "INSERT INTO Monitor_Status (MonitorId, Status,CaptureFPS,CaptureBandwidth, AnalysisFPS, UpdatedOn) VALUES (%u, 'Connected',%.2lf, %u, %.2lf, NOW()) ON DUPLICATE KEY "
+          "UPDATE Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW()",
+	  id, new_capture_fps, new_capture_bandwidth, new_analysis_fps,
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps);
       dbQueue.push(std::move(sql));
+      last_status_time = now;
+    }
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 
@@ -1952,7 +1960,7 @@ bool Monitor::Analyse() {
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF");
-          noteSet.insert(onvif->lastTopic() + '/' + onvif->lastValue());
+          onvif->setNotes(noteSet);
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
           // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
@@ -2593,7 +2601,9 @@ int Monitor::Capture() {
   packet->timestamp = std::chrono::system_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d", captureResult, shared_data->image_count);
+  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
+      static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
+      );
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -2747,11 +2757,11 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
+
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
     Debug(4, "Not video");
-    //packetqueue.unlock(packet_lock);
     delete packet_lock;
     return true; // Don't need decode
   }
@@ -2759,7 +2769,7 @@ bool Monitor::Decode() {
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
-        ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
+        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
         or
@@ -2790,7 +2800,7 @@ bool Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
     } else {
-      Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
@@ -3012,13 +3022,17 @@ Event * Monitor::openEvent(
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
+      Logger *log = Logger::fetch();
+      std::string log_id = log->id();
+      logTerm();
+      int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+      for (int i = 0; i < fdlimit; i++) close(i);
       execlp(event_start_command.c_str(),
              event_start_command.c_str(),
              std::to_string(event->Id()).c_str(),
              std::to_string(event->MonitorId()).c_str(),
              nullptr);
-      Logger *log = Logger::fetch();
-      log->databaseLevel(Logger::NOLOG);
+      logInit(log_id.c_str());
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       std::quick_exit(0);
     }
@@ -3048,12 +3062,16 @@ void Monitor::closeEvent() {
 
     if (!command.empty()) {
       if (fork() == 0) {
+        Logger *log = Logger::fetch();
+        std::string log_id = log->id();
+        logTerm();
+        int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+        for (int i = 0; i < fdlimit; i++) close(i);
         execlp(command.c_str(), command.c_str(),
                std::to_string(event_id).c_str(),
                std::to_string(monitor_id).c_str(),
                nullptr);
-        Logger *log = Logger::fetch();
-        log->databaseLevel(Logger::NOLOG);
+        logInit(log_id.c_str());
         Error("Error execing %s: %s", command.c_str(), strerror(errno));
         std::quick_exit(0);
       }
@@ -3363,25 +3381,32 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
 
   // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) {
-    Debug(1, "Decoder stopping");
-    decoder->Stop();
-    Debug(1, "Decoder stopped");
-  }
-
-  if (convert_context) {
-    sws_freeContext(convert_context);
-    convert_context = nullptr;
-  }
+  if (decoder) decoder->Stop();
 
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
+  }
+
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+
+  if (decoder) {
+    Debug(1, "Joining decode");
+    decoder->Join();
+
+    if (convert_context) {
+      sws_freeContext(convert_context);
+      convert_context = nullptr;
+    }
+    decoding_image_count = 0;
+  }
+  if (analysis_thread) {
+    Debug(1, "Joining analysis");
+    analysis_thread->Join();
   }
 
   // Must close event before closing camera because it uses in_streams

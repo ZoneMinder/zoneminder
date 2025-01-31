@@ -35,6 +35,11 @@ Monitor::ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "Tearing Down Onvif");
+    //We have lost ONVIF clear previous alarm topics
+    alarms.clear();
+    //Set alarmed to false so we don't get stuck recording
+    alarmed = false;
+    Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
@@ -157,7 +162,7 @@ void Monitor::ONVIF::WaitForMessage() {
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
-      Debug(1, "Result of getting  ONVIF messages= %d soap_fault_string=%s detail=%s",
+      Debug(1, "Result of getting ONVIF result=%d soap_fault_string=%s detail=%s",
           result, soap_fault_string(soap), detail ? detail : "null");
       if (result != SOAP_EOF) { //Ignore the timeout error
         Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
@@ -176,27 +181,38 @@ void Monitor::ONVIF::WaitForMessage() {
             (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
             (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
            ) {
-          Info("ONVIF Got Motion Alarm! %s %s", msg->Topic->__any.text, msg->Message.__any.elts->next->elts->atts->next->text);
+          last_topic = msg->Topic->__any.text;
+          last_value = msg->Message.__any.elts->next->elts->atts->next->text;
+          Info("ONVIF Got Motion Alarm! %s %s", last_topic.c_str(), last_value.c_str());
           // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
-          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "false") == 0) {
+          if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
-            alarmed = false;
+            {
+              std::unique_lock<std::mutex> lck(alarms_mutex);
+              alarms.erase(last_topic);
+            }
+              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
+            if (alarms.empty()) {
+              alarmed = false;
+            }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent");
             }
           } else {
             // Event Start
-            Info("Triggered on ONVIF");
-            if (!alarmed) {
-              Info("Triggered Event");
-              alarmed = true;
-              last_topic = msg->Topic->__any.text;
-              last_value = msg->Message.__any.elts->next->elts->atts->next->text; 
-              // Why sleep?
-              std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+            Info("Triggered Start on ONVIF");
+            if (alarms.count(last_topic) == 0) {
+              alarms[last_topic] = last_value;
+              if (!alarmed) {
+                Info("Triggered Start Event on ONVIF");
+                alarmed = true;
+                // Why sleep?
+                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+              }
             }
           }
+          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
         } else {
           Debug(1, "ONVIF Got a message that we couldn't parse");
           if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr)) {
@@ -243,7 +259,7 @@ void Monitor::ONVIF::WaitForMessage() {
 //ONVIF Set Credentials
 void Monitor::ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
-  soap_wsse_add_Timestamp(soap, nullptr, 10);
+  soap_wsse_add_Timestamp(soap, "Time", 10);
   soap_wsse_add_UsernameTokenDigest(soap, "Auth", parent->onvif_username.c_str(), parent->onvif_password.c_str());
 }
 
@@ -269,3 +285,18 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
   return soap_send_empty_response(soap, SOAP_OK);
 }
 #endif
+
+void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
+  #ifdef WITH_GSOAP
+    std::unique_lock<std::mutex> lck(alarms_mutex);
+    if (alarms.empty()) return;
+
+    std::string note = "";
+    for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+      note = it->first + "/" + it->second;
+      noteSet.insert(note);
+    }
+  #endif
+  return;
+}
+

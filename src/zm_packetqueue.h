@@ -91,6 +91,8 @@ class PacketQueue {
   void unlock(ZMLockedPacket *lp);
   void notify_all();
   void wait();
+ private:
+  packetqueue_iterator deletePacket(packetqueue_iterator it);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

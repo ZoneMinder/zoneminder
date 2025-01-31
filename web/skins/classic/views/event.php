@@ -150,7 +150,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') | ((false !== strpos($Event->DefaultVideo(), 'h264')) & ($codec === 'auto'));
+$video_tag = ($codec == 'MP4') || 
+  ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
@@ -226,7 +227,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
       </div>
       
-      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
+      <h2 id="eventTitle"><?php echo translate('Event').' '.$Event->Id() ?></h2>
       
       <div class="d-flex flex-row">
         <div id="replayControl">
@@ -341,7 +342,7 @@ if ($video_tag) {
                           function($r){return $r >= 0 ? true : false;}
                         ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
                   >
-                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
@@ -422,6 +423,9 @@ if ($video_tag) {
 ?>
                   <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+<?php if (!$video_tag) { ?>
+                  <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
+<?php } ?>
                 </div>
               </div><!--eventVideo-->
             </div><!--wrapperEventVideo-->

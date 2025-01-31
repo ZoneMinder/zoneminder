@@ -90,9 +90,12 @@ class Filter extends ZM_Object {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
+      if ($this->sort_field())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      if ($this->skip_locked())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
+      if ($this->limit())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
       if ( $this->Id() ) {
         $this->_querystring .= $separator.$objectname.urlencode('[Id]').'='.$this->Id();
       }
@@ -1270,6 +1273,8 @@ class Filter extends ZM_Object {
           }
           $options = [
             'Motion' => 'Motion',
+            'ONVIF' => 'ONVIF',
+            'Linked' => 'Linked',
             'detected' => 'Any Object',
             'aplr' => 'Any license plate',
             'person'=>'Person',

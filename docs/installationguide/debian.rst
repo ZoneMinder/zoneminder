@@ -200,9 +200,11 @@ To make sure zoneminder can read the configuration file, run the following comma
 ::
 
     sudo a2enconf zoneminder
+    sudo a2enmod cgi
     sudo systemctl reload apache2.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service
+    sudo systemctl enable zoneminder.service    # start zoneminder automatically at boot
 
 If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
 

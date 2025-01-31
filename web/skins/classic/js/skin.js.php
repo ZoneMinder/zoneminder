@@ -107,7 +107,9 @@ const STATE_IDLE = <?php echo STATE_IDLE ?>;
 const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
 const STATE_ALARM = <?php echo STATE_ALARM ?>;
 const STATE_ALERT = <?php echo STATE_ALERT ?>;
-const STATE_TAPE = <?php echo STATE_TAPE ?>;
+
+const ANALYSING_NONE = <?php echo ANALYSING_NONE ?>;
+const ANALYSING_ALWAYS = <?php echo ANALYSING_ALWAYS ?>;
 
 const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
 const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;

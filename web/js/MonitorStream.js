@@ -11,6 +11,7 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.webrtc = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
   this.mseSourceBuffer = null;
@@ -40,6 +41,10 @@ function MonitorStream(monitorData) {
   this.setButton = function(name, element) {
     this.buttons[name] = element;
   };
+  this.gridstack = null;
+  this.setGridStack = function(gs) {
+    this.gridstack = gs;
+  };
 
   this.bottomElement = null;
   this.setBottomElement = function(e) {
@@ -50,7 +55,7 @@ function MonitorStream(monitorData) {
   };
 
   this.img_onerror = function() {
-    console.log('Image stream has been stoppd! stopping streamCmd');
+    console.log('Image stream has been stopped! stopping streamCmd');
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
   this.img_onload = function() {
@@ -222,7 +227,7 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
-  this.start = function(delay=500) {
+  this.start = function() {
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -287,7 +292,7 @@ function MonitorStream(monitorData) {
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
-          startRTSP2WebPlay(videoEl, webrtcUrl.href);
+          startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
         }
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
@@ -340,6 +345,10 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
+    if (this.webrtc) {
+      this.webrtc.close();
+      this.webrtc = null;
+    }
   };
 
   this.kill = function() {
@@ -375,10 +384,21 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    this.streamCommand(CMD_PAUSE);
+    if (this.element.src) {
+      this.streamCommand(CMD_PAUSE);
+    } else {
+      this.element.pause();
+      this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    }
   };
+
   this.play = function() {
-    this.streamCommand(CMD_PLAY);
+    if (this.element.src) {
+      this.streamCommand(CMD_PLAY);
+    } else {
+      this.element.play();
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    }
   };
 
   this.eventHandler = function(event) {
@@ -544,7 +564,7 @@ function MonitorStream(monitorData) {
           const levelValue = $j('#levelValue');
           if (levelValue.length) {
             levelValue.text(this.status.level);
-            var newClass = 'ok';
+            let newClass = 'ok';
             if (this.status.level > 95) {
               newClass = 'alarm';
             } else if (this.status.level > 80) {
@@ -552,6 +572,9 @@ function MonitorStream(monitorData) {
             }
             levelValue.removeClass();
             levelValue.addClass(newClass);
+          }
+
+          if (this.status.score) {
           }
 
           const delayString = secsToTime(this.status.delay);
@@ -615,38 +638,37 @@ function MonitorStream(monitorData) {
         this.setAlarmState(this.status.state);
 
         if (canEdit.Monitors) {
-          if (streamStatus.enabled) {
-            if ('enableAlarmButton' in this.buttons) {
+          if ('enableAlarmButton' in this.buttons) {
+            if (streamStatus.analysing == ANALYSING_NONE) {
+              // Not doing analysis, so enable/disable button should be grey
+
               if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
                 this.buttons.enableAlarmButton.addClass('disabled');
                 this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
               }
-            }
-            if ('forceAlarmButton' in this.buttons) {
-              if (streamStatus.forced) {
-                if (! this.buttons.forceAlarmButton.hasClass('disabled')) {
-                  this.buttons.forceAlarmButton.addClass('disabled');
-                  this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
-                }
-              } else {
-                if (this.buttons.forceAlarmButton.hasClass('disabled')) {
-                  this.buttons.forceAlarmButton.removeClass('disabled');
-                  this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
-                }
-              }
-              this.buttons.forceAlarmButton.prop('disabled', false);
-            }
-          } else {
-            if ('enableAlarmButton' in this.buttons) {
+            } else {
               this.buttons.enableAlarmButton.removeClass('disabled');
               this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
-            }
-            if ('forceAlarmButton' in this.buttons) {
-              this.buttons.forceAlarmButton.prop('disabled', true);
-            }
-          }
-          if ('enableAlarmButton' in this.buttons) {
+            } // end if doing analysis
             this.buttons.enableAlarmButton.prop('disabled', false);
+          } // end if have enableAlarmButton
+
+          if ('forceAlarmButton' in this.buttons) {
+            if (streamStatus.state == STATE_ALARM || streamStatus.state == STATE_ALERT) {
+              // Ic0n: My thought here is that the non-disabled state should be for killing an alarm
+              // and the disabled state should be to force an alarm
+              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.removeClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+              }
+            } else {
+              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+                // Looks disabled
+                this.buttons.forceAlarmButton.addClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+              }
+            }
+            this.buttons.forceAlarmButton.prop('disabled', false);
           }
         } // end if canEdit.Monitors
 
@@ -681,7 +703,6 @@ function MonitorStream(monitorData) {
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
     if (respObj.result == 'Ok') {
-      const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
       const viewingFPSValue = $j('#viewingFPSValue'+this.id);
@@ -711,6 +732,7 @@ function MonitorStream(monitorData) {
         if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
           analysisFPSValue.text(monitor.AnalysisFPS);
         }
+
         if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
           captureFPSValue.text(monitor.CaptureFPS);
         }
@@ -720,42 +742,41 @@ function MonitorStream(monitorData) {
       }
 
       if (canEdit.Monitors) {
-        if (monitorStatus.enabled) {
-          if ('enableAlarmButton' in this.buttons) {
+        if ('enableAlarmButton' in this.buttons) {
+          if (monitor.Analysing == 'None') {
+            // Not doing analysis, so enable/disable button should be grey
+
             if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
               this.buttons.enableAlarmButton.addClass('disabled');
               this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
             }
-          }
-          if ('forceAlarmButton' in this.buttons) {
-            if (monitorStatus.forced) {
-              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
-                this.buttons.forceAlarmButton.addClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
-              }
-            } else {
-              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
-                this.buttons.forceAlarmButton.removeClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
-              }
-            }
-            this.buttons.forceAlarmButton.prop('disabled', false);
-          }
-        } else {
-          if ('enableAlarmButton' in this.buttons) {
+          } else {
             this.buttons.enableAlarmButton.removeClass('disabled');
             this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
-          }
-          if ('forceAlarmButton' in this.buttons) {
-            this.buttons.forceAlarmButton.prop('disabled', true);
-          }
-        }
-        if ('enableAlarmButton' in this.buttons) {
+          } // end if doing analysis
           this.buttons.enableAlarmButton.prop('disabled', false);
+        } // end if have enableAlarmButton
+
+        if ('forceAlarmButton' in this.buttons) {
+          if (monitor.Status == STATE_ALARM || monitor.Status == STATE_ALERT) {
+            // Ic0n: My thought here is that the non-disabled state should be for killing an alarm
+            // and the disabled state should be to force an alarm
+            if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+              this.buttons.forceAlarmButton.removeClass('disabled');
+              this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+            }
+          } else {
+            if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+              // Looks disabled
+              this.buttons.forceAlarmButton.addClass('disabled');
+              this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+            }
+          }
+          this.buttons.forceAlarmButton.prop('disabled', false);
         }
       } // end if canEdit.Monitors
 
-      this.setAlarmState(monitorStatus);
+      this.setAlarmState(monitor.Status);
 
       if (respObj.auth_hash) {
         if (auth_hash != respObj.auth_hash) {
@@ -807,7 +828,7 @@ function MonitorStream(monitorData) {
 
   this.alarmCommand = function(command) {
     if (this.ajaxQueue) {
-      console.log('Aborting in progress ajax for alarm');
+      console.log('Aborting in progress ajax for alarm', this.ajaxQueue);
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
@@ -842,9 +863,14 @@ function MonitorStream(monitorData) {
   }
   this.analyse_frames = true;
   this.show_analyse_frames = function(toggle) {
-    this.analyse_frames = toggle;
-    this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
-    this.streamCmdReq(this.streamCmdParms);
+    const streamImage = this.getElement();
+    if (streamImage.nodeName == 'IMG') {
+      this.analyse_frames = toggle;
+      this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
+      this.streamCmdReq(this.streamCmdParms);
+    } else {
+      console.log("Not streaming from zms, can't show analysis frames");
+    }
   };
 
   this.setMaxFPS = function(maxfps) {
@@ -955,27 +981,27 @@ const waitUntil = (condition) => {
   });
 };
 
-function startRTSP2WebPlay(videoEl, url) {
-  const webrtc = new RTCPeerConnection({
+function startRTSP2WebPlay(videoEl, url, stream) {
+  stream.webrtc = new RTCPeerConnection({
     iceServers: [{
       urls: ['stun:stun.l.google.com:19302']
     }],
     sdpSemantics: 'unified-plan'
   });
-  webrtc.ontrack = function(event) {
+  stream.webrtc.ontrack = function(event) {
     console.log(event.streams.length + ' track is delivered');
     videoEl.srcObject = event.streams[0];
     videoEl.play();
   };
-  webrtc.addTransceiver('video', {direction: 'sendrecv'});
-  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
-    const offer = await webrtc.createOffer();
+  stream.webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await stream.webrtc.createOffer();
 
-    await webrtc.setLocalDescription(offer);
+    await stream.webrtc.setLocalDescription(offer);
 
     fetch(url, {
       method: 'POST',
-      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
+      body: new URLSearchParams({data: btoa(stream.webrtc.localDescription.sdp)})
     })
         .catch((rejected) => {
           console.log(rejected);
@@ -983,7 +1009,7 @@ function startRTSP2WebPlay(videoEl, url) {
         .then((response) => response.text())
         .then((data) => {
           try {
-            webrtc.setRemoteDescription(
+            stream.webrtc.setRemoteDescription(
                 new RTCSessionDescription({type: 'answer', sdp: atob(data)})
             );
           } catch (e) {
@@ -992,14 +1018,16 @@ function startRTSP2WebPlay(videoEl, url) {
         });
   };
 
-  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
+  const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
     console.log(`${webrtcSendChannel.label} has opened`);
     webrtcSendChannel.send('ping');
   };
   webrtcSendChannel.onclose = (_event) => {
     console.log(`${webrtcSendChannel.label} has closed`);
-    startRTSP2WebPlay(videoEl, url);
+    if (stream.started) {
+      startRTSP2WebPlay(videoEl, url, stream);
+    }
   };
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }

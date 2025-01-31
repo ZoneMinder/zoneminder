@@ -223,7 +223,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
   LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
-  GROUP BY E.Id 
+  GROUP BY E.Id, Monitor
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
   if ((int)($filter->limit()) and !$has_post_sql_conditions) {

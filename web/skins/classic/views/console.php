@@ -186,7 +186,7 @@ echo $navbar ?>
 
       <div class="middleButtons">
 <?php
-  if ($canEditMonitors) {
+  if ($canEditMonitors and (ZM_PATH_ARP or ZM_PATH_ARP_SCAN)) {
 ?>
         <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
         <i class="material-icons">wifi</i>
@@ -201,9 +201,7 @@ echo $navbar ?>
           <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
-        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
-        <?php echo $canCreateMonitors ? '' : ' disabled="disabled"' ?>
-        style="display:none;">
+        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled">
           <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>

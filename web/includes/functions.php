@@ -977,7 +977,11 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
     case 'FramesScore' :
       $sortColumn = 'F.Score';
       break;
+    case 'Notes' :
+      $sortColumn = 'E.Notes';
+      break;
     default:
+      ZM\Warning("Unsupported sort field ".$_REQUEST['sort_field']);
       $sortColumn = 'E.StartDateTime';
       break;
   }
@@ -1882,6 +1886,16 @@ function ajaxResponse($result=false) {
 
 function generateConnKey() {
   return rand(1, 999999);
+}
+
+function detaintPathAllowAbsolute($path) {
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
+  // Remove any absolute paths, or relative ones that want to go up
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
+  return $path;
 }
 
 function detaintPath($path) {

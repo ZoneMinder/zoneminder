@@ -1,7 +1,7 @@
 function setButtonStates(element) {
-  var form = element.form;
+  const form = element.form;
   var checked = 0;
-  for ( var i=0; i < form.elements.length; i++ ) {
+  for ( var i=0, len = form.elements.length; i < len; i++ ) {
     if (
       form.elements[i].type == "checkbox" &&
       form.elements[i].name == "markMids[]"
@@ -19,16 +19,12 @@ function setButtonStates(element) {
     form.editBtn.disabled = false;
     form.deleteBtn.disabled = false;
     form.selectBtn.disabled = false;
-    if ( checked == 1 ) {
-      $j(form.cloneBtn).css('display', 'inline');
-    } else {
-      $j(form.cloneBtn).hide();
-    }
+    form.cloneBtn.disabled = false;
   } else {
-    $j(form.cloneBtn).hide();
     form.editBtn.disabled = true;
     form.deleteBtn.disabled = true;
     form.selectBtn.disabled = true;
+    form.cloneBtn.disabled = true;
   }
 }
 

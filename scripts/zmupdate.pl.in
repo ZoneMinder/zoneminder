@@ -387,11 +387,6 @@ if ( $version ) {
   my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
   $version = $detaint_version;
 
-  if ( ZM_VERSION eq $version ) {
-    print("\nDatabase already at version $version, update skipped.\n\n");
-    exit(0);
-  }
-
   my $start_zm = 0;
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {

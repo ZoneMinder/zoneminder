@@ -144,7 +144,7 @@ a {
 
 a.optionhelp,
 a:link {
-    color: #0fbcf9;
+    color: #3498db;
     text-decoration: none;
 }
 
@@ -208,6 +208,9 @@ input[disabled] {
 
 .modal img {
     max-width: 100%;
+}
+.modal table {
+  width: 100%;
 }
 img {
   display: inline-block;
@@ -1123,6 +1126,20 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
   }
 }
 
+@media screen and (max-height:600px) {
+  .sticky #mfbpanel {
+    max-height: 40vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sticky #toolbar {
+    max-height: 20vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
 /* +++ Control button block in the Stream image*/
 .block-button-center {
   position: absolute;
@@ -1138,7 +1155,7 @@ button.btn.btn-zoom-out {
   position: absolute;
   left: 3px;
   top: 3px;
-  z-index: 10;
+  z-index: 20;
   text-shadow:
     -1px -1px 0 #575757,
     1px -1px 0 #575757,
@@ -1152,7 +1169,7 @@ button.btn.btn-zoom-in {
   position: absolute;
   right: 3px;
   top: 3px;
-  z-index: 10;
+  z-index: 20;
   text-shadow:
     -1px -1px 0 #575757,
     1px -1px 0 #575757,

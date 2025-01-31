@@ -39,7 +39,6 @@ Monitor::AmcrestAPI::~AmcrestAPI() {
 int Monitor::AmcrestAPI::start() {
   // init the transfer and start it in multi-handle
   int running_handles;
-  long response_code;
   CURLMcode curl_error;
   if (Amcrest_handle != nullptr) {  // potentially clean up the old handle
     curl_multi_remove_handle(curl_multi, Amcrest_handle);
@@ -49,6 +48,7 @@ int Monitor::AmcrestAPI::start() {
   std::string full_url = parent->onvif_url;
   if (full_url.back() != '/') full_url += '/';
   full_url += "eventManager.cgi?action=attach&codes=[VideoMotion]";
+  Debug(1, "AMCREST url is %s", full_url.c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {
     Warning("Handle is null!");
@@ -66,15 +66,20 @@ int Monitor::AmcrestAPI::start() {
   }
   curl_error = curl_multi_perform(curl_multi, &running_handles);
   if (curl_error == CURLM_OK) {
+    long response_code;
     curl_easy_getinfo(Amcrest_handle, CURLINFO_RESPONSE_CODE, &response_code);
     int msgq = 0;
     struct CURLMsg *m = curl_multi_info_read(curl_multi, &msgq);
     if (m && (m->msg == CURLMSG_DONE)) {
       Warning("AMCREST Libcurl exited Early: %i", m->data.result);
+    } else {
+      Debug(1, "AMCREST response code %ld, response %s", response_code, amcrest_response.c_str());
     }
 
     curl_multi_wait(curl_multi, nullptr, 0, 300, nullptr);
     curl_error = curl_multi_perform(curl_multi, &running_handles);
+  } else {
+    Debug(1, "Error code %i", curl_error);
   }
 
   if ((curl_error == CURLM_OK) && (running_handles > 0)) {
@@ -84,6 +89,7 @@ int Monitor::AmcrestAPI::start() {
     Warning("AMCREST Response: %s", amcrest_response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
             running_handles, curl_error, full_url.c_str());
+    long response_code;
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
     Warning("AMCREST Response code: %lu", response_code);
   }

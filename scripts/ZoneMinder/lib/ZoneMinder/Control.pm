@@ -398,7 +398,7 @@ sub get_realm {
           if ( $$self{realm} ne $tokens{realm} ) {
             $$self{realm} = $tokens{realm};
             Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
-            $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+            $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
             $response = $self->get($url);
             if ( !$response->is_success() ) {
               Debug('Authentication still failed after updating REALM' . $response->status_line);
@@ -417,10 +417,26 @@ sub get_realm {
         } # end if
       } # end foreach auth header
     } else {
-      debug('No headers line');
+      Debug('No headers line');
     } # end if headers
   } # end if not authen
+  return undef;
 } # end sub get_realm
+
+sub ping {
+  my $self = shift;
+  my $ip = @_ ? shift : $$self{host};
+  return undef if ! $ip;
+
+  require Net::Ping;
+  Debug("Pinging $ip");
+
+  my $p = Net::Ping->new();
+  my $rv = $p->ping($ip);
+  $p->close();
+  Debug("Pinging $ip $rv");
+  return $rv;
+}
 
 1;
 __END__

@@ -1,18 +1,20 @@
-
-#ifdef MOSQUITTOPP_FOUND
 #include "zm.h"
 #include "zm_logger.h"
-#include "zm_mqtt.h"
 #include "zm_monitor.h"
+#include "zm_mqtt.h"
+#ifdef MOSQUITTOPP_FOUND
 #include "zm_time.h"
 
 #include <sstream>
 #include <string.h>
 
 MQTT::MQTT(Monitor *monitor) :
-  mosquittopp("ZoneMinder"),
   monitor_(monitor),
-  connected_(false) {
+  connected_(false)
+{
+  std::string name="ZoneMinder"+std::to_string(monitor->Id());
+  mosquittopp(name.c_str());
+
   mosqpp::lib_init();
   connect();
 }
@@ -51,15 +53,15 @@ void MQTT::on_connect(int rc) {
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
-  Debug(1, "MQTT: Have message %s: %s", message->topic, message->payload);
+  Debug(1, "MQTT: Have message %s: %s", message->topic, static_cast<const char *>(message->payload));
 }
 
 void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {
   Debug(1, "MQTT: Subscribed to topic ");
 }
 
-void MQTT::on_publish() {
-  Debug(1, "MQTT: on_publish ");
+void MQTT::on_publish(int mid) {
+  Debug(1, "MQTT: on_publish %d", mid);
 }
 
 void MQTT::send(const std::string &message) {

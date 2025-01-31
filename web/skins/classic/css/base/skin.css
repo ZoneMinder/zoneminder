@@ -144,7 +144,7 @@ a {
 
 a.optionhelp,
 a:link {
-    color: #0fbcf9;
+    color: #3498db;
     text-decoration: none;
 }
 
@@ -165,6 +165,10 @@ a:not([href]):hover {
 
 label {
     margin: 0 4px;
+}
+
+button {
+  line-height: 18.5px;
 }
 
 a.btn,
@@ -204,6 +208,9 @@ input[disabled] {
 
 .modal img {
     max-width: 100%;
+}
+.modal table {
+  width: 100%;
 }
 img {
   display: inline-block;
@@ -644,6 +651,7 @@ input[type=submit],
     text-decoration: none;
     display: inline-block;
     text-align: center;
+    margin-right: 3px;
 }
 
 .btn-normal,
@@ -776,7 +784,7 @@ ul.nav.nav-pills.flex-column {
 
 #mfbpanel {
   width: calc(100% - 25px);
-  float: left;  
+  float: left;
 }
 
 .chosen {
@@ -1117,6 +1125,92 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
     width: 100%;
   }
 }
+
+@media screen and (max-height:600px) {
+  .sticky #mfbpanel {
+    max-height: 40vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sticky #toolbar {
+    max-height: 20vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+/* +++ Control button block in the Stream image*/
+.block-button-center {
+  position: absolute;
+  left: 35%;
+  right: 35%;
+  top: 2px;
+  z-index: 10;
+}
+
+button.btn.btn-zoom-out {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  z-index: 20;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-zoom-in {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  z-index: 20;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-view-watch,
+button.btn.btn-edit-monitor,
+button.btn.btn-fullscreen {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-zoom-out:focus,
+button.btn.btn-zoom-in:focus,
+button.btn.btn-view-watch:focus,
+button.btn.btn-edit-monitor:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+button.btn.btn-zoom-out:hover,
+button.btn.btn-zoom-in:hover,
+button.btn.btn-edit-monitor:hover,
+button.btn.btn-view-watch:hover {
+  background-color: darkgrey;
+}
+
+.controlHeader .chosen-container {
+  /* limit width of monitor filters so that it fits on 1920px */
+  max-width: 300px;
+}
+
+/* --- Control button block in the Stream image*/
 
 /* +++ This block should always be located at the end! */
 .hidden {

@@ -188,7 +188,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
-  int64_t lastPTS;
+  int64_t lastPTS = -1;
 
   if ( mSecondFormatContext and
        (
@@ -213,8 +213,9 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }
@@ -235,18 +236,18 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }
-    if ( packet->stream_index == mAudioStreamId) {
+    if (packet->stream_index == mAudioStreamId) {
       lastPTS = mLastAudioPTS;
     } else if ( packet->stream_index == mVideoStreamId) {
       lastPTS = mLastVideoPTS;
     } else {
       Debug(1, "Have packet which isn't for video or audio stream.");
-      return 0;
     }
   }
 
@@ -259,11 +260,13 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
       return -1;
     } else if (packet->pts - lastPTS < -10*stream->time_base.den) {
-      // -10 is for 10 seconds. Avigilon cameras seem to jump around by about 36 constantly
-      double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
-      double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
-      logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 10seconds",
-                pts_time, last_pts_time, pts_time - last_pts_time);
+      if (!monitor->WallClockTimestamps()) {
+        // -10 is for 10 seconds. Avigilon cameras seem to jump around by about 36 constantly
+        double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 10seconds",
+                  pts_time, last_pts_time, pts_time - last_pts_time);
+      }
       if (error_count > 5)
         return -1;
       error_count += 1;
@@ -286,7 +289,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         mFirstVideoPTS = packet->pts;
 
       mLastVideoPTS = packet->pts - mFirstVideoPTS;
-    } else {
+    } else if (stream == mAudioStream) {
       if (mFirstAudioPTS == AV_NOPTS_VALUE)
         mFirstAudioPTS = packet->pts;
 
@@ -540,6 +543,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    // reorder_queue is for avformat not codec
+    av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
   }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 

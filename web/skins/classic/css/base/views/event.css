@@ -43,6 +43,7 @@
   border-radius: 0;
   z-index: 11;
   font-size: 8px;
+  overflow:hidden;
 }
 
 #alarmCues span.alarmCue {
@@ -135,6 +136,7 @@ height: 100%;
 }
 
 #monitorStatus #monitorState {
+  display: inline;
 }
 
 #dvrControls {
@@ -355,70 +357,8 @@ svg.zones {
   z-index: 1000;
 }
 
-button.btn.btn-zoom-out {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
-button.btn.btn-zoom-in {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  position: absolute;
-  right: 2px;
-  top: 2px;
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
-button.btn.btn-edit-monitor {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
 button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
-}
-
-.block-button-center {
-  position: absolute;
-  left: 35%;
-  right: 35%;
-  top: 2px;
-  z-index: 10;
-}
-
-button.btn.btn-zoom-out:focus,
-button.btn.btn-zoom-in:focus,
-button.btn.btn-view-watch:focus,
-button.btn.btn-edit-monitor:focus {
-  outline: 0;
-  box-shadow: none;
-}
-
-button.btn.btn-zoom-out:hover,
-button.btn.btn-zoom-in:hover,
-button.btn.btn-edit-monitor:hover,
-button.btn.btn-view-watch:hover {
-  background-color: darkgrey;
 }
 
 /*Video.js override*/

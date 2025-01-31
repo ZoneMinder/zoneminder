@@ -241,12 +241,8 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     } # end foreach monitor
 
     my @filters = ZoneMinder::Filter->find(Background=>1);
-    if (@filters) {
-      foreach my $filter (@filters) {
-        runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
-      }
-    } else {
-      runCommand('zmdc.pl start zmfilter.pl');
+    foreach my $filter (@filters) {
+      runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
     }
 
     if ( $Config{ZM_RUN_AUDIT} ) {

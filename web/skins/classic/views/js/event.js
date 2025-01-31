@@ -1,3 +1,4 @@
+"use strict";
 var eventStats = $j('#eventStats');
 var eventVideo = $j('#eventVideo');
 var wrapperEventVideo = $j('#wrapperEventVideo');
@@ -25,7 +26,7 @@ var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//S
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
-var streamCmdTimer = null;
+var streamCmdInterval = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
@@ -41,7 +42,7 @@ var coordinateMouse = {
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
-var currentScale = 0; // Temporarily, because need to put things in order with the "scale" variable = "select" block
+var currentScale = 100; // Temporarily, because need to put things in order with the "scale" variable = "select" block
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -172,7 +173,7 @@ function setAlarmCues(data) {
     Error('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
-    alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
+    const alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
     $j('#alarmCues').html(alarmSpans);
   }
 }
@@ -180,7 +181,6 @@ function setAlarmCues(data) {
 function renderAlarmCues(containerEl) {
   let html = '';
 
-  cues_div = document.getElementById('alarmCues');
   const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
   const span_seconds = parseFloat(event_length / span_count);
@@ -199,10 +199,12 @@ function renderAlarmCues(containerEl) {
   // if we shouldn't just use the event length endtime-starttime
   var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
+  var spanTime = 0;
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
   var alarmed = 0;
   var alarmHtml = '';
+  var pix = 0;
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
@@ -210,14 +212,14 @@ function renderAlarmCues(containerEl) {
 
   for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
-    frame = cueFrames[i];
+    const frame = cueFrames[i];
 
     if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      let pix = cueRatio * spanTime;
+      pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
@@ -230,8 +232,8 @@ function renderAlarmCues(containerEl) {
       //console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
-      futNone = 0;
-      indexPlus = i+1;
+      let futNone = 0;
+      let indexPlus = i+1;
       if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
         //alarm is too short and there is more event
         continue;
@@ -257,7 +259,7 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
       left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
@@ -267,7 +269,7 @@ function renderAlarmCues(containerEl) {
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
 
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
     }
   }
   return html + alarmHtml;
@@ -307,16 +309,17 @@ function changeScale() {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    currentScale = newSize.autoScale;
+    currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    currentScale = newSize.autoScale;
+    currentScale = newSize.autoScale ? newSize.autoScale : 100;
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
-    let w = h = '';
+    let w = 0;
+    let h = 0;
     if (landscape) {
       w = Math.min(stringToNumber(scaleSel), newSize.width);
       h = w / (eventData.Width / eventData.Height);
@@ -330,7 +333,7 @@ function changeScale() {
     currentScale = currentScale;
   }
 
-  //console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
+  console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
@@ -343,6 +346,7 @@ function changeScale() {
     alarmCue.html(renderAlarmCues(videoFeed));
   }
 
+  setButtonSizeOnStream();
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
 
@@ -392,15 +396,14 @@ function changeStreamQuality() {
 }
 
 function changeReplayMode() {
-  var replayMode = $j('#replayMode').val();
-
+  const replayMode = $j('#replayMode').val();
   setCookie('replayMode', replayMode);
-
+  // FIXME don't need to refresh, can just tell zms
   refreshWindow();
 }
 
 function changeRate() {
-  var rate = parseInt($j('select[name="rate"]').val());
+  const rate = parseInt($j('select[name="rate"]').val());
 
   if (!rate) {
     pauseClicked();
@@ -441,8 +444,6 @@ function getCmdResponse(respObj, respText) {
 
   zmsBroke = false;
 
-  if (streamCmdTimer) streamCmdTimer = clearTimeout(streamCmdTimer);
-
   streamStatus = respObj.status;
   if (!streamStatus) {
     console.log('No status in respObj');
@@ -456,7 +457,7 @@ function getCmdResponse(respObj, respText) {
     //streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
-  var eventId = streamStatus.event;
+  const eventId = streamStatus.event;
   if (lastEventId) {
     if (eventId != lastEventId) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
@@ -469,15 +470,16 @@ function getCmdResponse(respObj, respText) {
   }
 
   if (streamStatus.paused == true) {
-    streamPause( );
+    streamPause();
   } else {
     $j('select[name="rate"]').val(streamStatus.rate*100);
     setCookie('zmEventRate', streamStatus.rate*100);
-    streamPlay( );
+    streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   //$j('#zoomValue').html(streamStatus.zoom);
-  $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
+  const pz = zmPanZoom.panZoom[eventData.MonitorId];
+  if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
   //if (streamStatus.zoom == '1.0') {
   //  setButtonState('zoomOutBtn', 'unavail');
   //} else {
@@ -485,17 +487,19 @@ function getCmdResponse(respObj, respText) {
   //}
 
   if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
-    console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);
+    console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
     streamScale(currentScale);
+  }
+  const fps = document.getElementById('fpsValue');
+  if (fps) {
+    fps.innerHTML = streamStatus.fps;
   }
 
   updateProgressBar();
 
   if (streamStatus.auth) {
     auth_hash = streamStatus.auth;
-  } // end if haev a new auth hash
-
-  streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
+  } // end if have a new auth hash
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -527,7 +531,7 @@ function playClicked( ) {
   const rate_select = $j('select[name="rate"]');
 
   if (!rate_select.val()) {
-    $j('select[name="rate"]').val(100);
+    rate_select.val(100);
   }
   if (vid) {
     if (vid.paused()) {
@@ -679,18 +683,20 @@ function streamNext(action) {
   $j(".vjsMessage").remove();//This shouldn't happen
   if (nextEventId == 0) { //handles deleting last event.
     pauseClicked();
-    var hideContainer = $j('#eventVideo');
-    var hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+    const hideContainer = $j('#eventVideo');
+    const hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
     hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
     if (vid == null) zmsBroke = true;
     return;
   }
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
-  //
-  if (vid==null) streamReq({command: CMD_QUIT});
-  location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-  return;
+  // Ic0n 2024-09-20: because it is annoying and now that we have fullscreen mode, we need to just update instead of reloading
+  if (1) {
+    if (vid==null) streamReq({command: CMD_QUIT});
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    return;
+  }
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
     // on and staying with videojs
     CurEventDefVideoPath = NextEventDefVideoPath;
@@ -700,6 +706,7 @@ function streamNext(action) {
     (vid && NextEventDefVideoPath.indexOf("view_video") < 0) ||
     NextEventDefVideoPath.indexOf("view_video") > 0
   ) {//reload zms, leaving vjs, moving to vjs
+    // Need to be able to replace video.js with zms or vice versa as required instead of reloading
     location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   } else {
     streamReq({command: CMD_NEXT});
@@ -830,6 +837,7 @@ function getEventResponse(respObj, respText) {
   eventData = respObj.event;
   getStat();
   currEventId = eventData.Id;
+  $j('#eventTitle').html('Event '+currEventId); // FIXME should translate Event
 
   // Refresh the status of the archive buttons
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
@@ -959,16 +967,20 @@ function drawProgressBar() {
 
 // Shows current stream progress.
 function updateProgressBar() {
-  if (!(eventData && streamStatus)) {
-    return;
-  } // end if ! eventData && streamStatus
-  let curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  if (!eventData) return;
+  if (vid) {
+    var currentTime = vid.currentTime();
+    var progressDate = new Date(currentTime);
+  } else {
+    if (!streamStatus) return;
+    var currentTime = streamStatus.progress;
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
+  }
+  const progressBox = $j("#progressBox");
+  let curWidth = (currentTime / parseFloat(eventData.Length)) * 100;
   if (curWidth > 100) curWidth = 100;
 
-  const progressDate = new Date(eventData.StartDateTime);
-  progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
-
-  const progressBox = $j("#progressBox");
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
@@ -976,7 +988,8 @@ function updateProgressBar() {
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   console.log('progress');
-  $j('#progressBar').click(function(e) {
+  const progressBar = $j('#progressBar');
+  progressBar.click(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
@@ -986,7 +999,7 @@ function progressBarNav() {
     console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
     streamSeek(seekTime);
   });
-  $j('#progressBar').mouseover(function(e) {
+  progressBar.mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
@@ -1000,11 +1013,11 @@ function progressBarNav() {
     indicator.style.left = x + 'px';
     indicator.setAttribute('title', seekTime);
   });
-  $j('#progressBar').mouseout(function(e) {
+  progressBar.mouseout(function(e) {
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'none';
   });
-  $j('#progressBar').mousemove(function(e) {
+  progressBar.mousemove(function(e) {
     const bar = $j(this);
 
     let x = e.pageX - bar.offset().left;
@@ -1022,7 +1035,7 @@ function progressBarNav() {
     indicator.style.left = x+'px';
     indicator.setAttribute('title', seekTime);
   });
-}
+} // end function progressBarNav
 
 function handleClick(event) {
   if (panZoomEnabled) {
@@ -1334,7 +1347,6 @@ function initPage() {
   // Load the event stats
   getStat();
   zmPanZoom.init();
-  changeStreamQuality();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1379,7 +1391,7 @@ function initPage() {
       vid.playbackRate(rate/100);
     }
   } else {
-    streamCmdTimer = setTimeout(streamQuery, 500);
+    streamCmdInterval = setInterval(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
     if (canStreamNative) {
       if (!$j('#videoFeed')) {
         console.log('No element with id tag videoFeed found.');
@@ -1398,15 +1410,17 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
-  progressBarNav();
-  //if (scale == '0') changeScale();
-  changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
-
+  console.log('progress');
+  progressBarNav();
+  console.log('changescale');
+  changeScale();
+  console.log('changeStreamQality');
+  changeStreamQuality();
 
   // enable or disable buttons based on current selection and user rights
   renameBtn.prop('disabled', !canEdit.Events);
@@ -1642,6 +1656,17 @@ function initPage() {
     removeTag(tag);
   });
 
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  //// When using video.js, the document will have both #videoobj and #wrapperEventVideo, but we only need #videoobj
+  //const elStreamVideoJS = document.querySelectorAll("[id = 'videoobj']");
+  //const elStream = (elStreamVideoJS.length > 0) ? elStreamVideoJS : document.querySelectorAll("[id = 'wrapperEventVideo']");
+  const elStream = document.querySelectorAll("[id = 'wrapperEventVideo']");
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
+
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
@@ -1651,7 +1676,7 @@ function initPage() {
       mapDiv.style.height='450px';
     }
     if ( window.L ) {
-      map = L.map('LocationMap', {
+      const map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),
         zoom: 8,
         onclick: function() {
@@ -1666,7 +1691,7 @@ function initPage() {
         zoomOffset: -1,
         accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
       }).addTo(map);
-      marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      const marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
       marker.addTo(map);
       map.invalidateSize();
     } else {
@@ -1700,6 +1725,12 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
+
+  if (vid) {
+    setInterval(() => {
+      updateProgressBar();
+    }, streamTimeout);
+  }
 } // end initPage
 
 function addOrCreateTag(tagValue) {

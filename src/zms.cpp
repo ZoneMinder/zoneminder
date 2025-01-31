@@ -24,6 +24,8 @@
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 
@@ -154,6 +156,12 @@ int main(int argc, const char *argv[], char **envp) {
       monitor_id = atoi(value);
       if ( source == ZMS_UNKNOWN )
         source = ZMS_MONITOR;
+    } else if ( !strcmp(name, "datetime") ) {
+      std::tm tm = {};
+      std::stringstream ss(value);
+      ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+      auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+      event_time = std::chrono::duration_cast<FPSeconds>(tp.time_since_epoch()).count();
     } else if ( !strcmp(name, "time") ) {
       event_time = atoi(value);
     } else if ( !strcmp(name, "event") ) {
@@ -324,6 +332,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setFramesToSend(frames_to_send);
     if ( monitor_id && event_time ) {
       stream.setStreamStart(monitor_id, event_time);
     } else {
@@ -333,6 +342,8 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
+    } else if ( mode == ZMS_SINGLE ) {
+      stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {
       stream.setStreamFormat(format);
       stream.setStreamBitrate(bitrate);

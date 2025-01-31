@@ -92,6 +92,7 @@ form {
 }
 #ActionsAndOptions fieldset {
   border: none;
+  width: 100%;
 }
 #ActionsAndOptions:after {
   content: ".";

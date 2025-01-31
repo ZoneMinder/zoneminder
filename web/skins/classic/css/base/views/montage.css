@@ -24,6 +24,7 @@
   border: none;
   display: inline-block;
   width: 100%;
+  height: 100%;
 }
 
 .modeEditingMonitor {
@@ -83,34 +84,6 @@
   fill: #0000FF;
 }
 
-button.btn.btn-zoom-out {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
-button.btn.btn-zoom-in {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  position: absolute;
-  right: 2px;
-  top: 2px;
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
 .ratioControl{
   padding: 0;
   background-color: rgba(150,150,150,0.5);
@@ -122,42 +95,6 @@ button.btn.btn-zoom-in {
 
 .grid-monitor .ratioControl, .grid-monitor .ratioControl select {
   min-width: 130px;
-}
-
-button.btn.btn-view-watch, button.btn.btn-edit-monitor, button.btn.btn-fullscreen {
-  padding: 0;
-  background-color: rgba(150,150,150,0.5);
-  z-index: 10;
-  text-shadow:
-    -1px -1px 0 #575757,
-    1px -1px 0 #575757,
-    -1px 1px 0 #575757,
-    1px 1px 0 #575757;
-}
-
-.block-button-center {
-  position: absolute;
-  left: 50px;
-  right: 50px;
-  top: 2px;
-  z-index: 10;
-}
-
-button.btn.btn-zoom-out:focus,
-button.btn.btn-zoom-in:focus,
-button.btn.btn-view-watch:focus,
-button.btn.btn-fullscreen:focus,
-button.btn.btn-edit-monitor:focus {
-  outline: 0;
-  box-shadow: none;
-}
-
-button.btn.btn-zoom-out:hover,
-button.btn.btn-zoom-in:hover,
-button.btn.btn-view-watch:hover,
-button.btn.btn-fullscreen:hover,
-button.btn.btn-edit-monitor:hover {
-  background-color: darkgrey;
 }
 
 .grid-stack-item-content.modeEditingMonitor {

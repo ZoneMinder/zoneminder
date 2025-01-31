@@ -27,6 +27,7 @@ var coordinateMouse = {
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
 var TimerHideShow;
+var observer;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -147,135 +148,6 @@ function changeStreamQuality() {
   monitorsSetScale(monitorId);
 }
 
-function getStreamCmdResponse(respObj, respText) {
-  watchdogOk('stream');
-  streamCmdTimer = clearTimeout(streamCmdTimer);
-  if (respObj.result == 'Ok') {
-    // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
-    if (respObj.status) {
-      const streamStatus = respObj.status;
-      if ($j('#viewingFPSValue').text() != streamStatus.fps) {
-        $j('#viewingFPSValue').text(streamStatus.fps);
-      }
-      if ($j('#captureFPSValue').text() != streamStatus.capturefps) {
-        $j('#captureFPSValue').text(streamStatus.capturefps);
-      }
-      if ($j('#analysisFPSValue').text() != streamStatus.analysisfps) {
-        $j('#analysisFPSValue').text(streamStatus.analysisfps);
-      }
-
-      setAlarmState(streamStatus.state);
-
-      $j('#levelValue').text(streamStatus.level);
-      var newClass = 'ok';
-      if (streamStatus.level > 95) {
-        newClass = 'alarm';
-      } else if (streamStatus.level > 80) {
-        newClass = 'alert';
-      }
-      $j('#levelValue').removeClass();
-      $j('#levelValue').addClass(newClass);
-
-      var delayString = secsToTime(streamStatus.delay);
-
-      if (streamStatus.paused == true) {
-        $j('#modeValue').text('Paused');
-        $j('#rate').addClass('hidden');
-        $j('#delayValue').text(delayString);
-        $j('#delay').removeClass('hidden');
-        $j('#level').removeClass('hidden');
-        streamCmdPause(false);
-      } else if (streamStatus.delayed == true) {
-        $j('#modeValue').text('Replay');
-        $j('#rateValue').text(streamStatus.rate);
-        $j('#rate').removeClass('hidden');
-        $j('#delayValue').text(delayString);
-        $j('#delay').removeClass('hidden');
-        $j('#level').removeClass('hidden');
-        if (streamStatus.rate == 1) {
-          streamCmdPlay(false);
-        } else if (streamStatus.rate > 0) {
-          if (streamStatus.rate < 1) {
-            streamCmdSlowFwd(false);
-          } else {
-            streamCmdFastFwd(false);
-          }
-        } else {
-          if (streamStatus.rate > -1) {
-            streamCmdSlowRev(false);
-          } else {
-            streamCmdFastRev(false);
-          }
-        } // rate
-      } else {
-        $j('#modeValue').text('Live');
-        $j('#rate').addClass('hidden');
-        $j('#delay').addClass('hidden');
-        $j('#level').addClass('hidden');
-        streamCmdPlay(false);
-      } // end if paused or delayed
-
-      $j('#zoomValue').text(streamStatus.zoom);
-      if (streamStatus.zoom == '1.0') {
-        setButtonState('zoomOutBtn', 'unavail');
-      } else {
-        setButtonState('zoomOutBtn', 'inactive');
-      }
-
-      if (canEdit.Monitors) {
-        if (streamStatus.enabled) {
-          enableAlmBtn.addClass('disabled');
-          enableAlmBtn.prop('title', disableAlarmsStr);
-          if (streamStatus.forced) {
-            forceAlmBtn.addClass('disabled');
-            forceAlmBtn.prop('title', cancelForcedAlarmStr);
-          } else {
-            forceAlmBtn.removeClass('disabled');
-            forceAlmBtn.prop('title', forceAlarmStr);
-          }
-          forceAlmBtn.prop('disabled', false);
-        } else {
-          enableAlmBtn.removeClass('disabled');
-          enableAlmBtn.prop('title', enableAlarmsStr);
-          forceAlmBtn.prop('disabled', true);
-        }
-        enableAlmBtn.prop('disabled', false);
-      } // end if canEdit.Monitors
-
-      if (streamStatus.auth) {
-        auth_hash = streamStatus.auth;
-        // Try to reload the image stream.
-        var streamImg = $j('#liveStream'+monitorId);
-        if (streamImg) {
-          const oldSrc = streamImg.attr('src');
-          if (oldSrc) {
-            const newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-            if (oldSrc != newSrc) {
-              streamImg.attr('src', ''); // Required or chrome doesn't stop the stream
-              streamImg.attr('src', newSrc);
-              table.bootstrapTable('refresh');
-            }
-          }
-        }
-      } // end if have a new auth hash
-    } // end if respObj.status
-  } else {
-    console.log("Not ok");
-    checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    setTimeout(fetchImage, 1000, $j('#imageFeed img')[0]);
-  }
-
-  var streamCmdTimeout = statusRefreshTimeout;
-  if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
-    streamCmdTimeout = streamCmdTimeout/5;
-  }
-  streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
-}
-
-function streamCmdQuery() {
-  streamCmdReq({command: CMD_QUERY});
-}
-
 function onPause() {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
@@ -290,8 +162,8 @@ function onPause() {
 
 function streamCmdPause(action) {
   onPause();
-  if (action) {
-    monitorStream.streamCommand(CMD_PAUSE);
+  if (action && monitorStream) {
+    monitorStream.pause();
   }
 }
 
@@ -326,7 +198,7 @@ function streamCmdPlay(action) {
   if (action) {
     if (monitorStream.started) {
       //Stream was on pause
-      monitorStream.streamCommand(CMD_PLAY);
+      monitorStream.play();
     } else {
       //Stream has been stopped
       monitorStream.start();
@@ -382,7 +254,7 @@ function streamCmdSlowFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    monitorStream.command(CMD_SLOWFWD);
+    monitorStream.streamCommand(CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -401,7 +273,7 @@ function streamCmdSlowRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    monitorStream.command(CMD_SLOWREV);
+    monitorStream.streamCommand(CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -420,7 +292,7 @@ function streamCmdFastRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    monitorStream.command(CMD_FASTREV);
+    monitorStream.streamCommand(CMD_FASTREV);
   }
 }
 
@@ -501,9 +373,9 @@ function cmdCancelForcedAlarm() {
 
 function cmdForce() {
   if (forceAlmBtn.hasClass('disabled')) {
-    cmdCancelForcedAlarm();
-  } else {
     cmdForceAlarm();
+  } else {
+    cmdCancelForcedAlarm();
   }
 }
 
@@ -752,31 +624,6 @@ function zoomOutClick(event) {
   }
 }
 
-var watchdogInactive = {
-  'stream': false,
-  'status': false
-};
-
-var watchdogFunctions = {
-  'stream': streamCmdQuery,
-  'status': statusCmdQuery,
-};
-
-//Make sure the various refreshes are still taking effect
-function watchdogCheck(type) {
-  if (watchdogInactive[type]) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
-    watchdogFunctions[type]();
-    watchdogInactive[type] = false;
-  } else {
-    watchdogInactive[type] = true;
-  }
-}
-
-function watchdogOk(type) {
-  watchdogInactive[type] = false;
-}
-
 function reloadWebSite() {
   document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
 }
@@ -789,7 +636,7 @@ function updatePresetLabels() {
 
 function changeControl(e) {
   const input = e.target;
-  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value)
+  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value+'&'+auth_relay)
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
@@ -807,9 +654,12 @@ function changeControl(e) {
 }
 
 function getSettingsModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId+'&'+auth_relay)
       .done(function(data) {
+        let modal = $j('#settingsModal');
+        if (modal.length) modal.remove();
         insertModalHtml('settingsModal', data.html);
+        modal = $j('#settingsModal');
         // Manage the Save button
         $j('#settingsSubmitModal').click(function(evt) {
           evt.preventDefault();
@@ -901,19 +751,22 @@ function controlSetClicked() {
 }
 
 function streamPrepareStart(monitor=null) {
-  if (canView.Control) {
-    // Load the settings modal into the DOM
-    if (monitorType == 'Local') getSettingsModal();
-  }
   // Only enable the settings button for local cameras
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
-    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
+    settingsBtn.prop('title', 'Disabled due to lack of Control View permission.');
   } else if (monitorType != 'Local') {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Settings only available for Local monitors.');
   } else {
+    // Load the settings modal into the DOM
     settingsBtn.prop('disabled', false);
+    getSettingsModal();
+    // Manage the SETTINGS button
+    bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
+      evt.preventDefault();
+      $j('#settingsModal').modal('show');
+    });
   }
 
   if ((monitorType != 'WebSite') && monitorData.length) {
@@ -948,7 +801,7 @@ function streamPrepareStart(monitor=null) {
 
       // Update table links each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
-        var thumb_ndx = $j('#eventList tr th').filter(function() {
+        const thumb_ndx = $j('#eventList tr th').filter(function() {
           return $j(this).text().trim() == 'Thumbnail';
         }).index();
         table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
@@ -965,11 +818,17 @@ function streamPrepareStart(monitor=null) {
   });
 
   const el = document.querySelector('.imageFeed');
-  el.addEventListener('mouseenter', handleMouseEnter);
-  el.addEventListener('mouseleave', handleMouseLeave);
+  if (el) {
+    el.addEventListener('mouseenter', handleMouseEnter);
+    el.addEventListener('mouseleave', handleMouseLeave);
+  }
 
   const i = setInterval(function() {
-    if (document.querySelector('[id ^= "liveStream"]').offsetHeight > 20) {
+    const livestream = document.querySelector('[id ^= "liveStream"]');
+
+    if (!livestream) {
+      console.log("No id matching liveStream");
+    } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
       clearInterval(i);
       document.getElementById('monitor').classList.remove('hidden-shift');
@@ -992,11 +851,7 @@ function handleMouseLeave(event) {
 }
 
 function streamStart(monitor = null) {
-  if (monitor) {
-    monitorStream = new MonitorStream(monitor);
-  } else {
-    monitorStream = new MonitorStream(monitorData[monIdx]);
-  }
+  monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
@@ -1026,16 +881,18 @@ function streamStart(monitor = null) {
 }
 
 function streamReStart(oldId, newId) {
-  document.getElementById('monitor').classList.add('hidden-shift');
-  const el = document.querySelector('.imageFeed');
-  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
+  const monitor_div = document.getElementById('monitor');
+  monitor_div.classList.add('hidden-shift');
+
   currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === newId;
   });
-  const url = new URL(document.location.href);
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+
+  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
   document.querySelector('title').textContent = newMonitorName;
+  const url = new URL(document.location.href);
   url.searchParams.set('mid', monitorId);
   history.pushState(null, "", url);
 
@@ -1043,11 +900,13 @@ function streamReStart(oldId, newId) {
   if (monitorStream) {
     monitorStream.kill();
   }
+
+  const el = document.querySelector('.imageFeed');
   el.removeEventListener('mouseenter', handleMouseEnter);
   el.removeEventListener('mouseleave', handleMouseLeave);
 
   //Change main monitor block
-  document.getElementById('monitor').innerHTML = currentMonitor.streamHTML;
+  monitor_div.innerHTML = currentMonitor.streamHTML;
 
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
@@ -1141,11 +1000,6 @@ function initPage() {
     window.location.reload(true);
   });
 
-  // Manage the SETTINGS button
-  bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
-    evt.preventDefault();
-    $j('#settingsModal').modal('show');
-  });
 
   bindButton('#cyclePlayBtn', 'click', null, cycleStart);
   bindButton('#cyclePauseBtn', 'click', null, cyclePause);
@@ -1153,7 +1007,7 @@ function initPage() {
   bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
   bindButton('#cycleToggle', 'click', null, cycleToggle);
   bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
-  if (monitorData.length && cycle) {
+  if (monitorData.length > 1 && cycle) {
     cycleStart();
   } else {
     cyclePause();
@@ -1165,17 +1019,18 @@ function initPage() {
     });
     setInterval(function() {
       idle += 10;
-    }, 10*1000);
-    setInterval(function() {
       if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
         streamCmdPause(true);
+        const cycle_was = cycle;
+        cyclePause();
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
-                $j('#AYSWYesBtn').on('click', function() {
+                ayswModal.on('hidden.bs.modal', function() {
                   streamCmdPlay(true);
+                  if (cycle_was) cycleStart();
                   idle = 0;
                 });
                 ayswModal.modal('show');
@@ -1191,6 +1046,7 @@ function initPage() {
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
+      console.log('set scale for ', monitorId);
       monitorsSetScale(monitorId);
       updateScale = false;
     }
@@ -1208,8 +1064,28 @@ function initPage() {
   });
   if (currentMonitor) {
     applyMonitorControllable();
+    streamPrepareStart(currentMonitor);
+
+    // Creating a ResizeObserver Instance
+    observer = new ResizeObserver((objResizes) => {
+      updateScale = true;
+    });
+
+    // Registering an observer on an element
+    $j('[id ^= "liveStream"]').each(function() {
+      observer.observe(this);
+    });
+
+    // Event listener for double click
+    //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+    var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+    Array.prototype.forEach.call(elStream, (el) => {
+      el.addEventListener('touchstart', doubleTouch);
+      el.addEventListener('dblclick', doubleClickOnStream);
+    });
+  } else {
+    alert("No monitor found for id "+monitorId);
   }
-  streamPrepareStart();
 } // initPage
 
 function watchFullscreen() {
@@ -1263,6 +1139,7 @@ function cycleStop(target) {
   cyclePause();
 }
 
+// FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
   monIdx ++;
   if (monIdx >= monitorData.length) {
@@ -1272,20 +1149,12 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  monitorStream.kill();
 
   // +++ Start next monitor
-  let oldId;
-  if (monIdx == 0) {
-    oldId = monitorData[monitorData.length-1].id;
-  } else {
-    oldId = monitorData[monIdx-1].id;
-  }
+  const oldId = monitorData[(monIdx == 0) ? monitorData.length-1 : monIdx-1].id;
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
-  cycleStart();
-  // --- Start next monitor
-  //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
+  if (cycle) cycleStart();
 }
 
 function cyclePrev() {
@@ -1297,27 +1166,19 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  //monitorStream.stop();
-  monitorStream.kill();
 
   // +++ Start previous monitor
-  let oldId;
-  if (monIdx == monitorData.length - 1) {
-    oldId = monitorData[0].id;
-  } else {
-    oldId = monitorData[monIdx+1].id;
-  }
+  const oldId = monitorData[(monIdx == monitorData.length - 1)? 0 : monIdx+1].id;
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
-  cycleStart();
-  // --- Start previous monitors
-  //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
+  if (cycle) cycleStart();
 }
 
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
   setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
+
 function cycleToggle(e) {
   const button = $j('#cycleToggle');
   if (sidebarView.is(":visible")) {
@@ -1491,21 +1352,23 @@ function monitorsSetScale(id=null) {
       overrideHW = true;
     }
 
+    const monitor_div = document.getElementById('monitor'+id);
+    if (!monitor_div) console.log("No monitor div for ", id);
     if (resize) {
       if (scale == '0') {
-        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
-      document.getElementById('monitor'+id).style.maxWidth = maxWidth;
+      monitor_div.style.maxWidth = maxWidth;
       if (!landscape) { //PORTRAIT
-        document.getElementById('monitor'+id).style.width = 'max-content';
+        monitor_div.style.width = 'max-content';
         document.getElementById('liveStream'+id).style.height = height;
       }
     } else {
       document.getElementById('liveStream'+id).style.height = '';
-      document.getElementById('monitor'+id).style.width = width;
-      document.getElementById('monitor'+id).style.maxWidth = '';
+      monitor_div.style.width = width;
+      monitor_div.style.maxWidth = '';
       if (scale == 'fit_to_width') {
-        document.getElementById('monitor'+id).style.width = '';
+        monitor_div.style.width = '';
       } else if (scale == '100') {
         document.getElementById('liveStream'+id).style.width = width;
       }
@@ -1514,10 +1377,10 @@ function monitorsSetScale(id=null) {
     curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
       if (!landscape) { //PORTRAIT
-        document.getElementById('monitor'+id).style.width = 'max-content';
+        monitor_div.style.width = 'max-content';
       } else {
         document.getElementById('liveStream'+id).style.height = 'auto';
-        document.getElementById('monitor'+id).style.width = 'auto';
+        monitor_div.style.width = 'auto';
       }
     }
   } else {
@@ -1553,29 +1416,31 @@ function monitorsSetScale(id=null) {
       }
 
       if (resize) {
-        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
       monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
         document.getElementById('liveStream'+id).style.height = '';
         if (scale == 'fit_to_width') {
-          document.getElementById('monitor'+id).style.width = '';
+          monitor_div.style.width = '';
         } else if (scale == '100') {
-          document.getElementById('monitor'+id).style.width = 'max-content';
+          monitor_div.style.width = 'max-content';
           document.getElementById('liveStream'+id).style.width = width;
         }
       }
-    }
+    } // end foreach monitor
   }
+  setButtonSizeOnStream();
 }
 
 // Kick everything off
 $j( window ).on("load", initPage);
 
 document.onvisibilitychange = () => {
+  // Always clear it because the return to visibility might happen before timeout
+  TimerHideShow = clearTimeout(TimerHideShow);
   if (document.visibilityState === "hidden") {
-    TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
@@ -1584,7 +1449,7 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && !monitorStream.started) {
+    if (monitorStream && !monitorStream.started && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
       monitorStream.start();
     }
   }

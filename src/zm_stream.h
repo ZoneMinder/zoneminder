@@ -206,6 +206,7 @@ class StreamBase {
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));
     memset(&rem_addr, 0, sizeof(rem_addr));
     memset(&sock_path_lock, 0, sizeof(sock_path_lock));
+    last_fps_update = std::chrono::steady_clock::now();
 
     vid_stream = nullptr;
     msg = { 0, { 0 } };

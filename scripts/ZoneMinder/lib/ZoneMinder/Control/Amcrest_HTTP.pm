@@ -42,22 +42,12 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
-our $username = '';
-our $password = '';
-our $realm = '';
-
 sub new {
   my $class = shift;
   my $id = shift;
   my $self = ZoneMinder::Control->new($id);
   bless($self, $class);
   return $self;
-}
-
-
-sub credentials {
-  my $self = shift;
-  ($username, $password) = @_;
 }
 
 sub open {
@@ -69,9 +59,9 @@ sub open {
 
   if ($self->{Monitor}->{ControlAddress}
       and
-    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+    $self->{Monitor}->{ControlAddress} ne 'user:pass@ip'
       and
-    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+    $self->{Monitor}->{ControlAddress} ne 'user:port@ip'
   ) {
 
     if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
@@ -80,30 +70,30 @@ sub open {
     }
     my $uri = URI->new($self->{Monitor}->{ControlAddress});
 
-    $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
+    $$self{realm} = 'Login to ' . $self->{Monitor}->{ControlDevice} if $self->{Monitor}->{ControlDevice};
     if ($self->{Monitor}->{ControlAddress}) {
       if ( $uri->userinfo()) {
-        ( $username, $password ) = $uri->userinfo() =~ /^(.*):(.*)$/;
+        @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
       } else {
-        $username = $self->{Monitor}->{User};
-        $password = $self->{Monitor}->{Pass};
+        $$self{username} = $self->{Monitor}->{User};
+        $$self{password} = $self->{Monitor}->{Pass};
       }
 
       $$self{address} = $uri->host_port();
-      $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+      $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
       # Testing seems to show that we need the username/password in each url as well as credentials
       $$self{base_url} = $uri->canonical();
-      Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+      Debug('Using initial credentials for '.$uri->host_port().join(',', '', @$self{'realm', 'username', 'password'}).", base_url: $$self{base_url} auth:".$uri->authority());
     }
- } elsif ( $self->{Monitor}{Path}) {
-    my $uri = URI->new($self->{Monitor}{Path});
+ } elsif ( $self->{Monitor}->{Path}) {
+    my $uri = URI->new($self->{Monitor}->{Path});
     Debug("Using Path for credentials: $self->{Monitor}{Path} " . $uri->userinfo());
       if ( $uri->userinfo()) {
-        ( $username, $password ) = $uri->userinfo() =~ /^(.*):(.*)$/;
+        @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {
-      $username = $self->{Monitor}->{User};
-      $password = $self->{Monitor}->{Pass};
-      $uri->userinfo($username.':'.$password);
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
+      $uri->userinfo($$self{username}.':'.$$self{password});
     }
     $uri->scheme('http');
     $uri->port(80);
@@ -111,8 +101,8 @@ sub open {
 
     $$self{base_url} = $uri->canonical();
     $$self{address} = $uri->host_port();
-    Debug("User auth $username $password " . $uri->authority() . ' ' . $uri->host_port());
-    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+    Debug("User auth $$self{username} $$self{password} " . $uri->authority() . ' ' . $uri->host_port());
+    $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
     chomp $$self{base_url};
     Debug("Base_url is ".$$self{base_url});
   } else {
@@ -121,71 +111,18 @@ sub open {
 
   my $url = $$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType';
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->get($url);
-
-  if ( $res->is_success ) {
+  if ($self->get_realm($url)) {
     $self->{state} = 'open';
-    return;
+    return !undef;
   }
 
-  if ( $res->status_line() eq '401 Unauthorized' ) {
-
-    my $headers = $res->headers();
-    foreach my $k ( keys %$headers ) {
-      Debug("Initial Header $k => $$headers{$k}");
-    }
-
-    if ( $$headers{'www-authenticate'} ) {
-      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /realm="([^"]+)"/i ) {
-        if ( $realm ne $1 ) {
-          $realm = $1;
-          Debug("Changing REALM to ($realm)");
-          $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-          $res = $self->get($url);
-          if ( $res->is_success() ) {
-            $self->{state} = 'open';
-            return !undef;
-          } elsif ( $res->status_line eq '400 Bad Request' ) {
-          # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
-            $self->{state} = 'open';
-            return !undef;
-          } else {
-            Error('Authentication still failed after updating REALM' . $res->status_line);
-            $headers = $res->headers();
-            foreach my $k ( keys %$headers ) {
-              Debug("Header $k => $$headers{$k}");
-            }  # end foreach
-          }
-        } else {
-          Error('Authentication failed, not a REALM problem');
-        }
-      } else {
-        Error('Failed to match realm in tokens');
-      } # end if
-    } else {
-      Debug('No headers line');
-    } # end if headers
-  } else {
-    Error("Failed to get $$self{base_url}cgi-bin/magicBox.cgi?action=getDeviceType ".$res->status_line());
-
-  } # end if $res->status_line() eq '401 Unauthorized'
-
   $self->{state} = 'closed';
+  return undef;
 }
 
 sub close {
   my $self = shift;
   $self->{state} = 'closed';
-}
-
-sub get {
-  my $self = shift;
-  my $url = shift;
-  Debug("Getting $url");
-  my $response = $self->{ua}->get($url);
-  Debug('Response: '. $response->status_line . ' ' . $response->content);
-  return $response;
 }
 
 sub sendCmd {
@@ -195,7 +132,7 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $res = $self->{ua}->get($$self{base_url}.$cmd);
+  my $res = $self->get($$self{base_url}.$cmd);
 
   if ( $res->is_success ) {
     $result = !undef;
@@ -203,14 +140,19 @@ sub sendCmd {
     Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
+    # Have seen on some HikVision cams that whatever cookie LWP uses times out and it never refreshes, so we have to actually create a new LWP object.
+    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua}->cookie_jar( {} );
+    $self->{ua}->credentials($$self{address}, $$self{realm}, $$self{username}, $$self{password});
+
     # Try again
-    $res = $self->{ua}->get($$self{base_url}.$cmd);
+    $res = $self->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
       # Command to camera appears successful, write Info item to log
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
-      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+      $res = $self->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 
@@ -447,7 +389,7 @@ sub set_config {
 
   my $url = $$self{base_url}.'/cgi-bin/configManager.cgi?action=setConfig'.
         join('&', map { $_.'='.uri_encode($$diff{$_}) } keys %$diff);
-  my $response = $self->{ua}->get($url);
+  my $response = $self->get($url);
   Debug($response->content);
   return $response->is_success();
 }

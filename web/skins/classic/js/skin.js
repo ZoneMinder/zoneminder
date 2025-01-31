@@ -39,6 +39,8 @@ var icons = {
 };
 
 var panZoomEnabled = true; //Add it to settings in the future
+var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
+var shifted = ctrled = alted = false;
 
 function checkSize() {
   if ( 0 ) {
@@ -491,14 +493,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
+      delete data.auth;
     }
     if (data.auth_relay) {
       auth_relay = data.auth_relay;
+      delete data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
-    for (var key of Object.keys(data)) {
-      if ( key == "auth" ) continue;
-      if ( key == "auth_relay" ) continue;
+    for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
@@ -695,6 +697,7 @@ function endOfResize(e) {
  * Uses the #content element
  * figures out where bottomEl is in the viewport
  * does calculations
+ * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
@@ -773,7 +776,7 @@ function isJSON(str) {
 };
 
 function setCookie(name, value, seconds) {
-  var newValue = (typeof value === 'string') ? value : JSON.stringify(value);
+  var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
   let expires = "";
   if (seconds) {
     const date = new Date();
@@ -943,8 +946,7 @@ function stateStuff(action, runState, newState) {
 function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   if ( ! jqxhr.responseText ) {
-    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
-    console.log(jqxhr);
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
   var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
@@ -1201,5 +1203,115 @@ function loadFontFaceObserver() {
     $j('.material-icons').css('display', 'inline-block');
   });
 }
+
+function thisClickOnStreamObject(clickObj) {
+  if (clickObj.id) {
+    if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
+      return true;
+    } else if (clickObj.id.indexOf('monitorStatus') != -1) {
+      return document.getElementById('monitor'+stringToNumber(clickObj.id));
+      //return clickObj;
+    } else if (clickObj.id.indexOf('videoobj') != -1) {
+      return document.getElementById('eventVideo');
+    } else return false;
+  } else return false;
+}
+
+/* For mobile device Not implemented yet. */
+function thisClickOnTimeline(clickObj) {
+  return false;
+}
+
+var doubleTouchExecute = function(event, touchEvent) {
+//  if (touchEvent.target.id &&
+//    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
+  if (thisClickOnStreamObject(touchEvent.target)) {
+    doubleClickOnStream(event, touchEvent);
+  } else if (thisClickOnTimeline(touchEvent.target)) {
+    doubleTouchOnTimeline(event, touchEvent);
+  }
+};
+
+var doubleClickOnStream = function(event, touchEvent) {
+  if (shifted || ctrled || alted) return;
+  let target = null;
+  if (event.target) {// Click NOT on touch screen, use THIS
+    //Process only double clicks directly on the image, excluding clicks,
+    //for example, on zoom buttons and other elements located in the image area.
+    const fullScreenObject = thisClickOnStreamObject(event.target);
+    if (fullScreenObject === true) {
+      target = this;
+    } else if (fullScreenObject !== false) {
+      target = fullScreenObject;
+    }
+  } else {// Click on touch screen, use EVENT
+    //if (touchEvent.target.id &&
+    //  (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
+    target = event;
+    //}
+  }
+
+  if (target) {
+    if (document.fullscreenElement) {
+      closeFullscreen();
+    } else {
+      openFullscreen(target);
+    }
+    if (isMobile()) {
+      setTimeout(function() {
+        //For some mobile devices resizing does not work. You need to set a delay and re-call the 'resize' event
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    }
+  }
+};
+
+var doubleTouch = function(e) {
+  if (e.touches.length === 1) {
+    if (!expiredTap) {
+      expiredTap = e.timeStamp + 300;
+    } else if (e.timeStamp <= expiredTap) {
+      // remove the default of this event ( Zoom )
+      e.preventDefault();
+      //doubleClickOnStream(this, e);
+      doubleTouchExecute(this, e);
+      // then reset the variable for other "double Touches" event
+      expiredTap = null;
+    } else {
+      // if the second touch was expired, make it as it's the first
+      expiredTap = e.timeStamp + 300;
+    }
+  }
+};
+
+function setButtonSizeOnStream() {
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"], [id = "videoobj"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
+    const w = el.offsetWidth;
+    // #videoFeedStream - on Event page
+    const monitorId = (stringToNumber(el.id)) ? stringToNumber(el.id) : stringToNumber(el.closest('[id ^= "videoFeedStream"]').id);
+    const buttonsBlock = document.getElementById('button_zoom' + monitorId);
+    if (!buttonsBlock) return;
+    const buttons = buttonsBlock.querySelectorAll(`
+      button.btn.btn-zoom-out span,
+      button.btn.btn-zoom-in span,
+      button.btn.btn-view-watch span,
+      button.btn.btn-fullscreen span,
+      button.btn.btn-edit-monitor span`
+    );
+    Array.prototype.forEach.call(buttons, (btn) => {
+      const btnWeight = (w/10 < 100) ? w/10 : 100;
+      btn.style.fontSize = btnWeight + "px";
+      btn.style.margin = -btnWeight/20 + "px";
+    });
+  });
+}
+
+$j(document).on('keyup.global keydown.global', function(e) {
+  shifted = e.shiftKey ? e.shiftKey : e.shift;
+  ctrled = e.ctrlKey;
+  alted = e.altKey;
+});
 
 loadFontFaceObserver();

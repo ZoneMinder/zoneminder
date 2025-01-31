@@ -278,6 +278,7 @@ $SLANG = array(
     'Exif'                  => 'Embed EXIF data into image',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'EventsLoading'         => 'Events are loading',
     'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -601,6 +602,7 @@ $SLANG = array(
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
     'TimeStamp'             => 'Time Stamp',
+    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
@@ -678,6 +680,7 @@ $SLANG = array(
     'he_il' => 'Hebrew',
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
+    'no_nb' => 'Norwegian',
 
 );
 

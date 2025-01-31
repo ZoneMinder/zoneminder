@@ -38,6 +38,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_rtsp2web.cpp
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
+  zm_monitor_onvif.cpp
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
@@ -164,11 +165,15 @@ target_link_libraries(zm
   PRIVATE
     zm-core-interface)
 
+set(GSOAP_LIBRARIES ${GSOAP_CXX_LIBRARIES})
+if(HAVE_LIBOPENSSL)
+  set(GSOAP_LIBRARIES ${GSOAP_SSL_CXX_LIBRARIES})
+endif()
+
 if(GSOAP_FOUND)
   target_link_libraries(zm
     PUBLIC
-      ${GSOAP_CXX_LIBRARIES}
-      ${GSOAP_SSL_CXX_LIBRARIES}
+      ${GSOAP_LIBRARIES}
       ${OPENSSL_SSL_LIBRARY}
       ${OPENSSL_CRYPTO_LIBRARY})
 endif()

@@ -73,25 +73,34 @@ if ($dir = opendir($event_path)) {
   closedir($dir);
 }
 
+
+
 if (isset($_REQUEST['deleteIndex'])) {
-  $deleteIndex = validInt($_REQUEST['deleteIndex']);
+  $deleteIndex = validCardinal($_REQUEST['deleteIndex']);
   unlink($videoFiles[$deleteIndex]);
   unset($videoFiles[$deleteIndex]);
 } else if (isset($_REQUEST['downloadIndex'])) {
-  // can't be output buffering, as this file might be large
-  ob_end_clean();
-  $downloadIndex = validInt($_REQUEST['downloadIndex']);
-  ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
-  header('Pragma: public');
-  header('Expires: 0');
-  header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-  header('Cache-Control: private', false); // required by certain browsers
-  header('Content-Description: File Transfer');
-  header('Content-disposition: attachment; filename="'.basename($videoFiles[$downloadIndex]).'"'); // basename is required because the video index contains the path and firefox doesn't strip the path but simply replaces the slashes with an underscore.
-  header('Content-Transfer-Encoding: binary');
-  header('Content-Type: application/force-download');
-  header('Content-Length: '.filesize($videoFiles[$downloadIndex])); 
-  readfile($videoFiles[$downloadIndex]);
+  if (!count($videoFiles)) {
+    ZM\Warning("No video files found for $eid. Downloading not possible.");
+  } else {
+    $downloadIndex = validInt($_REQUEST['downloadIndex']);
+    ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Cache-Control: private', false); // required by certain browsers
+    header('Content-Description: File Transfer');
+    header('Content-disposition: attachment; filename="'.basename($videoFiles[$downloadIndex]).'"'); // basename is required because the video index contains the path and firefox doesn't strip the path but simply replaces the slashes with an underscore.
+    header('Content-Transfer-Encoding: binary');
+    header('Content-Type: application/force-download');
+    header('Content-Length: '.filesize($videoFiles[$downloadIndex])); 
+    // can't be output buffering, as this file might be large
+    while (ob_get_level()) {
+      ob_end_clean();
+    }
+    set_time_limit(0);
+    readfile($videoFiles[$downloadIndex]);
+  }
   exit;
 }
 

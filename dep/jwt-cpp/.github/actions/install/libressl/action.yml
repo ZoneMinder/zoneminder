@@ -1,0 +1,19 @@
+name: Install LibreSSL
+description: Install and setup LibreSSL for linking and building test application
+inputs:
+  version:
+    description: The desired LibreSSL version to install
+    required: false
+    default: "3.3.0"
+runs:
+  using: composite
+  steps:
+    - run: |
+        wget https://raw.githubusercontent.com/libressl-portable/portable/v${{ inputs.version }}/FindLibreSSL.cmake -P cmake/
+        cd /tmp
+        wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${{ inputs.version }}.tar.gz
+        tar -zvxf /tmp/libressl-${{ inputs.version }}.tar.gz
+        cd libressl-${{ inputs.version }}
+        ./configure
+        sudo make -j $(nproc) install
+      shell: bash

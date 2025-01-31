@@ -1,0 +1,20 @@
+name: Support Question 🤹
+description: Have some questions? We can offer help.
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Don't hesitate to ask any question you might have!
+  - type: input
+    id: question
+    attributes:
+      label: "What's your question?"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+    validations:
+      required: true

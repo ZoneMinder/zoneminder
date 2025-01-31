@@ -223,7 +223,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
   LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
-  GROUP BY E.Id 
+  GROUP BY E.Id, Monitor
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
   if ((int)($filter->limit()) and !$has_post_sql_conditions) {
@@ -336,7 +336,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['Tags'] = validHtmlStr($row['Tags']);
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
-    $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
+    $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $returned_rows[] = $row;
   } # end foreach row matching search

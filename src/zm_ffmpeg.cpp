@@ -41,6 +41,7 @@ static CodecData dec_codecs[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr },
 #endif
 };
 
@@ -552,12 +553,12 @@ int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPack
     // In this api the packet is always consumed, so return packet.bytes
     return packet.size;
   } else if (pkt_ret != 0 && pkt_ret != AVERROR(EAGAIN)) {
-    Error("Could not send packet (error %d = %s)", pkt_ret,
-          av_make_error_string(pkt_ret).c_str());
+    //Error("Could not send packet (error %d = %s)", pkt_ret,
+          //av_make_error_string(pkt_ret).c_str());
     return pkt_ret;
   } else if (frm_ret != 0 && frm_ret != AVERROR(EAGAIN)) {
-    Error("Could not receive frame (error %d = %s)", frm_ret,
-          av_make_error_string(frm_ret).c_str());
+    //Error("Could not receive frame (error %d = %s)", frm_ret,
+          //av_make_error_string(frm_ret).c_str());
     return frm_ret;
   }
 

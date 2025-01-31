@@ -290,6 +290,14 @@ void Event::addNote(const char *cause, const std::string &note) {
 }
 
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
+  /*
+  int thisquality =
+    (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+    config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+
+  SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
+  */
+
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write

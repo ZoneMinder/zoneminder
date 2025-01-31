@@ -1227,6 +1227,8 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
+  if (!eventData) return;
+
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
     var th = $j('<th class="label">').addClass('text-right').text(eventDataStrings[key]);

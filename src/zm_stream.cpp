@@ -46,7 +46,7 @@ StreamBase::~StreamBase() {
   }
 }
 
-bool StreamBase::initContexts(int p_width, int p_height) {
+bool StreamBase::initContexts(int p_width, int p_height, unsigned int quality) {
   if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
   if (mJpegSwsContext) sws_freeContext(mJpegSwsContext);
 
@@ -61,17 +61,25 @@ bool StreamBase::initContexts(int p_width, int p_height) {
     Error("Could not allocate jpeg codec context");
     return false;
   }
-
-  mJpegCodecContext->bit_rate = 400000;
+  mJpegCodecContext->bit_rate = 2000000;
   mJpegCodecContext->width = p_width;
   mJpegCodecContext->height = p_height;
+  mJpegCodecContext->qcompress = quality/100.0; // 0-1
+  mJpegCodecContext->qmax = 1;
+  mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+  mJpegCodecContext->global_quality = quality/100.0; // 0-1
+  /*
+  mJpegCodecContext->qscale = 1;
+   */
   mJpegCodecContext->time_base= (AVRational) {1,25};
   mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
+  Debug(1, "initting to %dx%d qcompress %f", p_width, p_height, quality/100.0);
 
   if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
     Error("Could not open mjpeg codec");
     return false;
   }
+  zm_dump_codec(mJpegCodecContext);
 
   AVPixelFormat format;
   switch (monitor->Colours()) {
@@ -121,7 +129,7 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 
   mJpegCodecContext = nullptr;
   mJpegSwsContext = nullptr;
-  return initContexts(monitor->Width(), monitor->Height());
+  return initContexts(monitor->Width(), monitor->Height(), config.jpeg_stream_quality);
 }
 
 bool StreamBase::checkInitialised() {

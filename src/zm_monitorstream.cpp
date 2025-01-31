@@ -409,7 +409,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     switch (type) {
     case STREAM_JPEG :
       if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
-        initContexts(l_width, l_height);
+        initContexts(l_width, l_height, config.jpeg_stream_quality);
       }
       send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
       fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -948,7 +948,7 @@ void MonitorStream::SingleImage(int scale) {
   int l_width  = floor(snap_image->Width()  * scale / ZM_SCALE_BASE);
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
   if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
-    initContexts(l_width, l_height);
+    initContexts(l_width, l_height, config.jpeg_stream_quality);
   }
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
 

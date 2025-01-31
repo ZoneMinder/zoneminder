@@ -376,7 +376,7 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
 
 void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s width %d height %d timebase %d/%d format %s profile %d level %d "
-        "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " extradata:%d:%s",
+        "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " qcompress %f extradata:%d:%s",
         codec->codec_type,
         av_get_media_type_string(codec->codec_type),
         codec->codec_id,
@@ -396,6 +396,7 @@ void zm_dump_codec(const AVCodecContext *codec) {
         codec->qmin,
         codec->qmax,
         codec->bit_rate,
+        codec->qcompress,
         codec->extradata_size,
   ByteArrayToHexString(nonstd::span<const uint8> {
     codec->extradata,

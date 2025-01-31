@@ -65,7 +65,7 @@ $selected_monitor_ids = $resultMonitorFilters['selected_monitor_ids'];
 
 $preference = ZM\User_Preference::find_one([
     'UserId'=>$user->Id(),
-    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : '')
+    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? is_array($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : $_SESSION['GroupId']: '')
 ]);
 if ($preference) {
   $monitors_by_id = array_to_hash_by_key('Id', $displayMonitors);

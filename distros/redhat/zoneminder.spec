@@ -76,6 +76,9 @@ BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
 
+# jwt-cpp looks for nlohmann_json which is part of json-devel
+BuildRequires: json-devel
+
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
@@ -195,7 +198,6 @@ rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 
@@ -223,6 +225,10 @@ desktop-file-install					\
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+
+# Remove third-party header and cmake files that should not have been installed
+rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_includedir}
 
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
@@ -336,12 +342,15 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.arp-scan.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zmaudit.pl
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl

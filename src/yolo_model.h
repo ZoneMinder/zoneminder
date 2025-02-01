@@ -12,4 +12,5 @@ typedef struct yolo_model {
 
 extern YoloModel yolov4;
 extern YoloModel yolov5;
+extern YoloModel yolov8;
 #endif

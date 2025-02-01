@@ -80,7 +80,7 @@ set(ZM_BIN_SRC_FILES
   zm_videostore.cpp
   zm_zone.cpp
   zm_storage.cpp
-  netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp ni_log.cpp
+  netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp yolov8_postprocess.cpp ni_log.cpp
 )
 
 if(GSOAP_FOUND)

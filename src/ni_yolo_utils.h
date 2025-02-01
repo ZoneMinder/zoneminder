@@ -15,6 +15,7 @@ static inline int entry_index(ni_roi_network_layer_t *l, int batch, int componen
 }
 
 int ni_get_yolov5_detections(YoloModelCtx *ctx, int sequence[3], int normalize_box);
+int ni_get_yolov8_detections(YoloModelCtx *ctx, int sequence[3], int normalize_box);
 
 void ni_resize_coords_tiling_mode(detection *det, struct roi_box *roi_box,
         int img_width, int img_height, float gain_x, float gain_y);

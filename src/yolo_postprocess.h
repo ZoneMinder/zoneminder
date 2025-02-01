@@ -6,6 +6,7 @@
 
 #define YOLOV4  4
 #define YOLOV5  5
+#define YOLOV8  8
 
 typedef struct _ni_roi_network_layer {
     int32_t index;

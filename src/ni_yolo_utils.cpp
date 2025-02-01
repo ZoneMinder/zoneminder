@@ -274,6 +274,67 @@ int ni_get_yolov5_detections(YoloModelCtx *ctx, int sequence[3], int normalize_b
     return dets_num;
 }
 
+int ni_get_yolov8_detections(YoloModelCtx *ctx, int sequence[3], int normalize_box)
+{
+    int i;
+    int ret;
+    int dets_num    = 0;
+    detection *dets = NULL;
+    detection_cache *det_cache = &ctx->det_cache;
+
+    ctx->det_cache.dets_num = 0;
+    for (i = 0; i < ctx->output_number; i++) {
+        ret = get_yolo_detections(&ctx->layers[sequence[i]], ctx->input_width,
+                ctx->input_height, ctx->obj_thresh, det_cache, &dets_num,
+                &ctx->entry_set, normalize_box);
+        if (ret != 0) {
+            ni_err("failed to get yolo detection at layer %d\n", i);
+            return ret;
+        }
+        Debug(1, "layer %d, yolo detections: %d", i, dets_num);
+    }
+
+    if (det_cache->dets_num == 0) {
+        return 0;
+    }
+
+    dets     = det_cache->dets;
+    dets_num = det_cache->dets_num;
+    for (i = 0; i < dets_num; i++) {
+        Debug(4,"orig dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
+               dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
+               dets[i].prob_class, dets[i].max_prob);
+    }
+
+    qsort(dets, dets_num, sizeof(detection), nms_comparator);
+
+    for (i = 0; i < dets_num; i++) {
+        Debug(4, "sorted dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
+               dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
+               dets[i].prob_class, dets[i].max_prob);
+    }
+
+    nms_sort(dets, dets_num, ctx->nms_thresh);
+
+    /* convert xywh -> x1y1x2y2 */
+    for (i = 0; i < dets_num; i++) {
+        if (dets[i].max_prob == 0)
+            continue;
+        box b = dets[i].bbox;
+        dets[i].bbox.x -= (b.w / 2.0);
+        dets[i].bbox.y -= (b.h / 2.0);
+        dets[i].bbox.w = b.x + (b.w / 2.0);
+        dets[i].bbox.h = b.y + (b.h / 2.0);
+        // pr_err("i %d, class:%d, score:%.8f, x:%.8f, y:%.8f,"
+        //        " w:%.8f, h:%.8f\n",
+        //        i, dets[i].prob_class, dets[i].objectness,
+        //        dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h);
+        // fflush(stdout);
+    }
+
+    return dets_num;
+}
+
 void ni_resize_coords_tiling_mode(detection *det, struct roi_box *roi_box,
         int img_width, int img_height, float gain_x, float gain_y)
 {

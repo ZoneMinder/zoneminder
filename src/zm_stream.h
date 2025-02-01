@@ -164,7 +164,7 @@ class StreamBase {
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
-  bool initContexts(int p_width, int p_height, unsigned int quality);
+  bool initContexts(int p_width, int p_height, AVPixelFormat p_format, unsigned int quality);
 
  public:
   StreamBase():

@@ -83,7 +83,6 @@ Quadra_Yolo::~Quadra_Yolo() {
 bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &modelname, const std::string &nbg_file) {
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
-//model_ctx = (YoloModelCtx *)calloc(1, sizeof(YoloModelCtx));
   model_ctx = new YoloModelCtx;
   if (model_ctx == nullptr) {
     Error("failed to allocate yolo model");

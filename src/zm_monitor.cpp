@@ -1209,6 +1209,12 @@ bool Monitor::connect() {
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
+  } else {
+    for (int32_t i = 0; i < image_buffer_count; i++) {
+      image_buffer[i]->AVPixFormat(image_pixelformats[i]); /* Don't release the internal buffer or replace it with another */
+      Debug(1, "Changing image pixformat to %s", av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
+    }
+
   }
 
   // We set these here because otherwise the first fps calc is meaningless
@@ -2843,7 +2849,7 @@ bool Monitor::Decode() {
             }
           }
           unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
-          unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_RGB24 : camera->Colours();
+          unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
           packet->image = new Image(camera_width, camera_height, colours, subpix);
           //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
@@ -2853,7 +2859,7 @@ bool Monitor::Decode() {
               packet->image = nullptr;
             }
             av_frame_unref(dest_frame.get());
-          packet->hw_frame = nullptr;
+            packet->hw_frame = nullptr;
           } else {
             delete packet->image;
             packet->image = nullptr;

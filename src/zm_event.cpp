@@ -64,13 +64,18 @@ Event::Event(
   snapshot_file_written(false),
   //alarm_file(""),
   videoStore(nullptr),
+  mJpegCodecContext(nullptr),
+  mJpegSwsContext(nullptr),
+  hw_device_ctx(nullptr),
   //video_file(""),
   //video_path(""),
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
   save_jpegs(0),
-  terminate_(false) {
+  terminate_(false)
+
+{
   std::string notes;
   createNotes(notes);
 
@@ -142,48 +147,61 @@ Event::Event(
   do {
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
+  thread_ = std::thread(&Event::Run, this);
+}
 
-  const AVCodec* mJpegCodec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
-  if (!mJpegCodec) {
-    Error("MJPEG codec not found");
-    return;
+int Event::OpenJpegCodec(const Image *image) {
+
+  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    auto chosen_codec_data = *it;
+    Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+
+    const AVCodec *mJpegCodec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+    if (!mJpegCodec) {
+      Error("MJPEG codec not found");
+      continue;
+    }
+    // We allocate and copy in newer ffmpeg, so need to free it
+    mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+    if (!mJpegCodecContext) {
+      Error("Could not allocate jpeg codec context");
+      continue;
+    }
+
+    mJpegCodecContext->bit_rate = 400000;
+    mJpegCodecContext->width = monitor->Width();
+    mJpegCodecContext->height = monitor->Height();
+    mJpegCodecContext->time_base= (AVRational) {1,25};
+    mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
+    Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
+
+    if (setup_hwaccel(mJpegCodecContext,
+          chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+      avcodec_free_context(&mJpegCodecContext);
+      continue;
+    }
+
+    if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+      Error("Could not open mjpeg codec");
+      avcodec_free_context(&mJpegCodecContext);
+      av_buffer_unref(&hw_device_ctx);
+      continue;
+    }
+    break;
   }
-
-  mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
   if (!mJpegCodecContext) {
-    Error("Could not allocate jpeg codec context");
-    return;
+    return -1;
   }
 
-  mJpegCodecContext->bit_rate = 400000;
-  mJpegCodecContext->width = monitor->Width();
-  mJpegCodecContext->height = monitor->Height();
-  mJpegCodecContext->time_base= (AVRational) {1,25};
-  mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
-
-  if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
-    Error("Could not open mjpeg codec");
-    return;
-  }
-
-  AVPixelFormat format;
-  switch (monitor->Colours()) {
-    case ZM_COLOUR_RGB24:
-      format = (monitor->SubpixelOrder() == ZM_SUBPIX_ORDER_BGR ? AV_PIX_FMT_BGR24 : AV_PIX_FMT_RGB24);
-      break;
-    case ZM_COLOUR_GRAY8:
-      format = AV_PIX_FMT_GRAY8;
-      break;
-    default:
-      format = AV_PIX_FMT_RGBA;
-      break;
-  };
   mJpegSwsContext = sws_getContext(
-                      mJpegCodecContext->width, mJpegCodecContext->height, format,
+                      image->Width(), image->Height(), image->AVPixFormat(),
                       mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUV420P,
                       SWS_BICUBIC, nullptr, nullptr, nullptr);
-
-  thread_ = std::thread(&Event::Run, this);
+  if (!mJpegSwsContext) {
+    return -1;
+  }
+  return 0;
 }
 
 Event::~Event() {
@@ -261,7 +279,6 @@ Event::~Event() {
   }  // end if no changed rows due to Name change during recording
 
   if (mJpegCodecContext) {
-    avcodec_close(mJpegCodecContext);
     avcodec_free_context(&mJpegCodecContext);
     mJpegCodecContext = nullptr;
   }
@@ -269,6 +286,7 @@ Event::~Event() {
   if (mJpegSwsContext) {
     sws_freeContext(mJpegSwsContext);
   }
+  av_buffer_unref(&hw_device_ctx);
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
@@ -289,7 +307,7 @@ void Event::addNote(const char *cause, const std::string &note) {
   noteSetMap[cause].insert(note);
 }
 
-bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
+bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) {
   /*
   int thisquality =
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
@@ -297,6 +315,8 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
   */
+  if (!mJpegCodecContext) OpenJpegCodec(image);
+
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.

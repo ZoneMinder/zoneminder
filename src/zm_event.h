@@ -97,6 +97,8 @@ class Event {
 
   AVCodecContext      *mJpegCodecContext;
   SwsContext          *mJpegSwsContext;
+  AVBufferRef *hw_device_ctx;
+  int OpenJpegCodec(const Image *);
 
   std::string container;
   std::string codec;
@@ -141,7 +143,7 @@ class Event {
   void AddPacket_(const std::shared_ptr<ZMPacket> p);
   bool WritePacket(const std::shared_ptr<ZMPacket> p);
   bool SendFrameImage(const Image *image, bool alarm_frame=false);
-  bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
+  bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false);
 
   void updateNotes(const StringSetMap &stringSetMap);
 

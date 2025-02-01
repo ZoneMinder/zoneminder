@@ -101,6 +101,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_COLOUR_RGB32 4
 #define ZM_COLOUR_RGB24 3
 #define ZM_COLOUR_GRAY8 1
+#define ZM_COLOUR_YUV420P 1
 
 /* Subpixel ordering */
 /* Based on byte order naming. For example, for ARGB (on both little endian or big endian) byte+0 should be alpha, byte+1 should be red, and so on. */

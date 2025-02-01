@@ -55,6 +55,9 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor) :
 }
 
 Quadra_Yolo::~Quadra_Yolo() {
+  ni_frame_buffer_free(&frame->api_frame.data.frame);
+  ni_packet_buffer_free(&frame->api_packet.data.packet);
+
   if (model) {
     model->destroy_model(model_ctx);
     delete model_ctx;
@@ -104,6 +107,9 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
   } else if (modelname == "yolov5") {
       model = &yolov5;
       model_width = model_height = 640;
+  } else if (modelname == "yolov8") {
+      model = &yolov8;
+      model_width = model_height = 640;
   } else {
       Error("Unsupported yolo model");
       return false;
@@ -111,7 +117,7 @@ bool Quadra_Yolo::setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, con
 
   ret = model->create_model(model_ctx, network_data, obj_thresh, nms_thresh, model_width, model_height);
   if (ret != 0) {
-    Error("failed to initialize yolov4 model");
+    Error("failed to initialize yolo model");
     return false;
   }
 

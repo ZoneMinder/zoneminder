@@ -47,6 +47,8 @@
 #include <openssl/err.h>
 #endif
 
+// Untether runtime API header
+#include "uai_untether.h"
 extern "C" {
 #include <ni_device_api.h>
 #include <ni_av_codec.h>
@@ -336,6 +338,23 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
+  class SpeedAI {
+    private:
+      Monitor *monitor;
+      UaiModule* module;
+
+      UaiDataBuffer inputBuf, outputBuf;
+      size_t batchSize;
+      size_t inSize;
+      size_t outSize;
+
+    public:
+      explicit SpeedAI(Monitor *parent_);
+      ~SpeedAI();
+      bool setup();
+      bool detect(const Image &image);
+  };
+
   class Quadra {
    public:
     explicit Quadra(Monitor *p_monitor);
@@ -354,7 +373,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
     Monitor *monitor;
   };
-
 
   class ONVIF {
    protected:
@@ -474,6 +492,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
   ObjectDetectionOption objectdetection;    // none, quadra, speedai
+  std::string objectdetection_model;
+  float   objectdetection_object_threshold;
+  float   objectdetection_nms_threshold;
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
@@ -686,6 +707,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+  SpeedAI *speedai;
   Quadra *quadra;
   Quadra_Yolo *quadra_yolo;
 
@@ -943,6 +965,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();
+
+  const std::string &ObjectDetection_Model() const { return objectdetection_model; };
+  float ObjectDetection_Object_Threshold() const { return objectdetection_object_threshold; };
+  float ObjectDetection_NMS_Threshold() const { return objectdetection_nms_threshold; };
 
   void Reload();
   void ReloadZones();

@@ -66,12 +66,13 @@ class Quadra_Yolo {
     int last_roi_count;
 
     bool use_hwframe;
+    std::string result_json;
 
   public:
-    Quadra_Yolo(Monitor *p_monitor);
+    Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);
     ~Quadra_Yolo();
-    bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="");
-    int  detect(AVFrame *in_frame, AVFrame **ai_frame);
+    bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="", int deviceid=-1);
+    std::tuple<int, const std::string &>  detect(AVFrame *in_frame, AVFrame **ai_frame);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
     int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);

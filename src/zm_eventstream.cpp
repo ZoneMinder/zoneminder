@@ -836,7 +836,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       Image *image = nullptr;
 
       if (!filepath.empty()) {
-        image = new Image(filepath.c_str());
+        image = new Image();
+        if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB)) {
+          return true;
+        }
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];

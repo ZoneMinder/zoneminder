@@ -858,6 +858,7 @@ $decoders = array(
   'vp9_qsv' => 'vp9-qsv',
   'vp9_cuvid' => 'vp9_cuvid',
   'vp9_nvmpi' => 'vp9_nvmpi',
+  'vp9_ni_quadra_dec' => 'vp9_ni_quadra',
   'vp9_v4l2m2m' => 'vp9_v4l2m2m',
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
@@ -865,7 +866,7 @@ $decoders = array(
   'av1' => 'av1',
   'av1_qsv' => 'av1_qsv',
   'av1_cuvid' => 'av1_cuvid',
-  'av1_ni_quadra_dec' => 'av1_ni_quadra',
+  #'av1_ni_quadra_dec' => 'av1_ni_quadra',
 );
 echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
@@ -1062,13 +1063,25 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
-<li class="ObjectDetection">
-<label><?php echo translate('Object Detection')?></label>
+            <li class="ObjectDetection">
+              <label><?php echo translate('Object Detection')?></label>
 <?php
         echo htmlSelect('newMonitor[ObjectDetection]', ['none'=>'None', 'quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI'],
             $monitor->ObjectDetection());
 ?>
-</li>
+            </li>
+            <li class="ObjectDetectionModel">
+              <label><?php echo translate('Object Detection Model')?></label>
+              <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
+            </li>
+            <li class="ObjectDetectionObjectThreshold">
+              <label><?php echo translate('Object Detection Object Threshold')?></label>
+              <input type="number" name="newMonitor[ObjectDetectionObjectThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionObjectThreshold()) ?>" min="0" step="any" max="100"/>
+            </li>
+            <li class="ObjectDetectionNMSThreshold">
+              <label><?php echo translate('Object Detection NMS Threshold')?></label>
+              <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" step="any" max="100"/>
+            </li>
 <?php
     }
     break;

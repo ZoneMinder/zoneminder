@@ -347,11 +347,16 @@ svg.zones {
 .video-js .vjs-text-track-display {
   display: none;
 }
-/*
 .EventData {
-  width: 200px;
+  width: 500px;
+  overflow-y: scroll;
 }
-*/
+.EventData table {
+  table-layout: fixed;
+}
+.EventData table .Timestamp {
+  width 90px;
+}
 #frames img {
   float: left;
   z-index: 1000;

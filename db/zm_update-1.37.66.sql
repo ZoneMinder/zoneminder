@@ -34,3 +34,41 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ObjectDetectionModel'
+    ) > 0,
+"SELECT 'Column ObjectDetectionModel already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ObjectDetectionModel` VARCHAR(255) NOT NULL DEFAULT '' AFTER `ObjectDetection`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ObjectDetectionObjectThreshold'
+    ) > 0,
+"SELECT 'Column ObjectDetectionObjectThreshold already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ObjectDetectionObjectThreshold` FLOAT NOT NULL default 0.4 AFTER `ObjectDetectionModel`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ObjectDetectionNMSThreshold'
+    ) > 0,
+"SELECT 'Column ObjectDetectionNMSThreshold already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ObjectDetectionNMSThreshold` FLOAT NOT NULL default 0.25 AFTER `ObjectDetectionObjectThreshold`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

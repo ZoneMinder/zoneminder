@@ -61,6 +61,7 @@ class ZMPacket {
   bool decoded;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
+  std::string detections;
 
  public:
   AVPacket *av_packet() { return packet.get(); }

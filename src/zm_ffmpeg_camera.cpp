@@ -413,20 +413,24 @@ int FfmpegCamera::OpenFfmpeg() {
         mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
-	if (stream->codecpar->width == width and stream->codecpar->height == height) {
-		Debug(1, "Choosing alternate video stream because it matches our resolution.");
-		mVideoStreamId = i;
-		mVideoStream = stream;
-	} else {
-		stream->discard = AVDISCARD_ALL;
-	}
+        if (stream->codecpar->width == width and stream->codecpar->height == height) {
+          Debug(1, "Choosing alternate video stream because it matches our resolution.");
+          mVideoStreamId = i;
+          mVideoStream = stream;
+        } else {
+          stream->discard = AVDISCARD_ALL;
+        }
       }
     } else if (is_audio_stream(stream)) {
-      if (mAudioStreamId == -1) {
-        mAudioStreamId = i;
-        mAudioStream = mFormatContext->streams[i];
+      if (!monitor->RecordAudio()) {
+        stream->discard = AVDISCARD_ALL;
       } else {
-        Debug(2, "Have another audio stream.");
+        if (mAudioStreamId == -1) {
+          mAudioStreamId = i;
+          mAudioStream = stream;
+        } else {
+          Debug(2, "Have another audio stream.");
+        }
       }
     } else {
 	    Debug(1, "Unknown stream type for stream %d", i);

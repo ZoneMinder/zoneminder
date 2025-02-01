@@ -46,7 +46,7 @@ StreamBase::~StreamBase() {
   }
 }
 
-bool StreamBase::initContexts(int p_width, int p_height, unsigned int quality) {
+bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, unsigned int quality) {
   if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
   if (mJpegSwsContext) sws_freeContext(mJpegSwsContext);
 
@@ -81,18 +81,6 @@ bool StreamBase::initContexts(int p_width, int p_height, unsigned int quality) {
   }
   zm_dump_codec(mJpegCodecContext);
 
-  AVPixelFormat format;
-  switch (monitor->Colours()) {
-    case ZM_COLOUR_RGB24:
-      format = (monitor->SubpixelOrder() == ZM_SUBPIX_ORDER_BGR ? AV_PIX_FMT_BGR24 : AV_PIX_FMT_RGB24);
-      break;
-    case ZM_COLOUR_GRAY8:
-      format = AV_PIX_FMT_GRAY8;
-      break;
-    default:
-      format = AV_PIX_FMT_RGBA;
-      break;
-  };
   mJpegSwsContext = sws_getContext(
                       monitor->Width(), monitor->Height(), format,
                       p_width, p_height, AV_PIX_FMT_YUV420P,
@@ -129,7 +117,7 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 
   mJpegCodecContext = nullptr;
   mJpegSwsContext = nullptr;
-  return initContexts(monitor->Width(), monitor->Height(), config.jpeg_stream_quality);
+  return initContexts(monitor->Width(), monitor->Height(), AV_PIX_FMT_YUV420P, config.jpeg_stream_quality);
 }
 
 bool StreamBase::checkInitialised() {

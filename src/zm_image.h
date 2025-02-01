@@ -163,11 +163,17 @@ class Image {
   inline unsigned int Height() const { return height; }
   inline unsigned int Pixels() const { return pixels; }
   inline unsigned int Colours() const { return colours; }
+  inline unsigned int Colours(unsigned int p_colours ) {
+    colours = p_colours;
+    return colours;
+  }
   inline unsigned int SubpixelOrder() const { return subpixelorder; }
+  inline unsigned int SubpixelOrder(unsigned int p_subpixelorder) { return subpixelorder=p_subpixelorder; }
   inline unsigned int Size() const { return size; }
   std::string Filename() const { return filename_; }
 
   AVPixelFormat AVPixFormat() const;
+  AVPixelFormat AVPixFormat(AVPixelFormat);
 
   inline uint8_t* Buffer() { return buffer; }
   inline const uint8_t* Buffer() const { return buffer; }

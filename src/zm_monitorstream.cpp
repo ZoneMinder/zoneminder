@@ -409,10 +409,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     switch (type) {
     case STREAM_JPEG :
       if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
-        initContexts(l_width, l_height, config.jpeg_stream_quality);
+        initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
       }
-      send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
-      fputs("Content-Type: image/jpeg\r\n", stdout);
+      if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
+        fputs("Content-Type: image/jpeg\r\n", stdout);
+        return false;
+      }
       break;
     case STREAM_RAW :
       fputs("Content-Type: image/x-rgb\r\n", stdout);
@@ -948,15 +950,15 @@ void MonitorStream::SingleImage(int scale) {
   int l_width  = floor(snap_image->Width()  * scale / ZM_SCALE_BASE);
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
   if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
-    initContexts(l_width, l_height, config.jpeg_stream_quality);
+    initContexts(l_width, l_height, monitor->image_pixelformats[index], config.jpeg_stream_quality);
   }
-  snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
-
-  fprintf(stdout,
-          "Content-Length: %d\r\n"
-          "Content-Type: image/jpeg\r\n\r\n",
-          img_buffer_size);
-  fwrite(img_buffer, img_buffer_size, 1, stdout);
+  if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
+    fprintf(stdout,
+        "Content-Length: %d\r\n"
+        "Content-Type: image/jpeg\r\n\r\n",
+        img_buffer_size);
+    fwrite(img_buffer, img_buffer_size, 1, stdout);
+  }
 }  // end void MonitorStream::SingleImage(int scale)
 
 void MonitorStream::SingleImageRaw(int scale) {

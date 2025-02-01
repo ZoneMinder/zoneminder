@@ -895,7 +895,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
         if ((!mJpegCodecContext) || (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height)) {
-          initContexts(l_width, l_height, config.jpeg_stream_quality);
+          initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
         }
         send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
         fputs("Content-Type: image/jpeg\r\n", stdout);

@@ -360,7 +360,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $options['frames'] = 1;
 
     $stillSrc = $Monitor->getStreamSrc($options);
-    $streamSrc = $Monitor->getStreamSrc(array('scale'=>$options['scale']*5));
+    $streamSrc = $Monitor->getStreamSrc(array('scale'=>($options['scale'] > 20 ? 100 : $options['scale']*5)));
 
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
     $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';

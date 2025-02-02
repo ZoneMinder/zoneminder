@@ -982,9 +982,8 @@ const waitUntil = (condition) => {
 };
 
 function startRTSP2WebPlay(videoEl, url, stream) {
-  let mediaStream;
-  mediaStream = new MediaStream();
-  videoEl.srcObject =  mediaStream;
+  const mediaStream = new MediaStream();
+  videoEl.srcObject = mediaStream;
   stream.webrtc = new RTCPeerConnection({
     iceServers: [{
       urls: ['stun:stun.l.google.com:19302']
@@ -992,13 +991,13 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     sdpSemantics: 'unified-plan'
   });
 
-/* It doesn't work yet
+  /* It doesn't work yet
   stream.webrtc.ondatachannel = function(event) {
     console.log('onDataChannel trigger:', event.channel);
     event.channel.onopen = () => console.log(`Data channel is open`);
     event.channel.onmessage = (event) => console.log('Event data:', event.data);
   };
-*/
+  */
 
   stream.webrtc.oniceconnectionstatechange = function(event) {
     console.log('iceServer changed state to: ', '"', event.currentTarget.connectionState, '"');
@@ -1006,24 +1005,24 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
     const offer = await stream.webrtc.createOffer({
       //iceRestart:true,
-      offerToReceiveAudio:true,
-      offerToReceiveVideo:true
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true
     });
     await stream.webrtc.setLocalDescription(offer);
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
-          try {
+      try {
         stream.webrtc.setRemoteDescription(new RTCSessionDescription({
           type: 'answer',
           sdp: atob(data)
-        }))
-          } catch (e) {
-            console.warn(e);
-          }
-        });
+        }));
+      } catch (e) {
+        console.warn(e);
+      }
+    });
   };
-  stream.webrtc.onsignalingstatechange =   async function signalingstatechange (){
+  stream.webrtc.onsignalingstatechange = async function signalingstatechange () {
     switch (stream.webrtc.signalingState){
       case 'have-local-offer':
         break;
@@ -1048,7 +1047,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   stream.webrtc.ontrack = function ontrack (event){
     console.log(event.track.kind + ' track is delivered');
     mediaStream.addTrack(event.track);
-  }
+  };
 
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {

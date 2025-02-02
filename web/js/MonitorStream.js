@@ -287,7 +287,8 @@ function MonitorStream(monitorData) {
           });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=0";
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;

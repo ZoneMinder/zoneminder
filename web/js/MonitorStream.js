@@ -1002,7 +1002,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   stream.webrtc.oniceconnectionstatechange = function(event) {
     console.log('iceServer changed state to: ', '"', event.currentTarget.connectionState, '"');
   };
-  stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+  stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded(){
     const offer = await stream.webrtc.createOffer({
       //iceRestart:true,
       offerToReceiveAudio: true,
@@ -1022,8 +1022,8 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       }
     });
   };
-  stream.webrtc.onsignalingstatechange = async function signalingstatechange () {
-    switch (stream.webrtc.signalingState){
+  stream.webrtc.onsignalingstatechange = async function signalingstatechange (){
+    switch (stream.webrtc.signalingState) {
       case 'have-local-offer':
         break;
       case 'stable':
@@ -1044,7 +1044,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     }
   };
 
-  stream.webrtc.ontrack = function ontrack (event){
+  stream.webrtc.ontrack = function ontrack (event) {
     console.log(event.track.kind + ' track is delivered');
     mediaStream.addTrack(event.track);
   };

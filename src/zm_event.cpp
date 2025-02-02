@@ -153,6 +153,10 @@ Event::Event(
 int Event::OpenJpegCodec(const Image *image) {
 
   std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  if (!codec_data.size()) {
+    Error("No codecs for mjpeg found");
+    return -1;
+  }
   for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
     auto chosen_codec_data = *it;
     Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
@@ -316,7 +320,7 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
   */
   if (!mJpegCodecContext) OpenJpegCodec(image);
-
+  if (!mJpegCodecContext) return false;
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.

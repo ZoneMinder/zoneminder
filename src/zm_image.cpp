@@ -21,6 +21,7 @@
 
 #include "zm_font.h"
 #include "zm_poly.h"
+#include "zm_signal.h"
 #include "zm_swscale.h"
 #include "zm_utils.h"
 #include <algorithm>
@@ -1394,11 +1395,19 @@ bool Image::WriteJpeg(const std::string &filename,
   zm_dump_video_frame(frame, "Image.Assign(frame)");
   pkt = av_packet_alloc();
 
-  avcodec_send_frame(p_jpegcodeccontext, frame.get());
-  if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
-    fwrite(pkt->data, 1, pkt->size, outfile);
-    av_packet_free(&pkt);
+  int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  while (ret == EAGAIN and !zm_terminate)
+    ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  if (ret == 0) {
+    Debug(1, "After send frame");
+    if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
+      Debug(1, "Got good packet");
+      fwrite(pkt->data, 1, pkt->size, outfile);
+    }
+  } else {
+    Error("Ret from send_frame %d", ret);
   }
+  av_packet_free(&pkt);
 
   av_frame_unref(frame.get());
 

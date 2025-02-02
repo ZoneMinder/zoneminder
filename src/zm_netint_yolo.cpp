@@ -2,6 +2,7 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
 #include "zm_vector2.h"
 
 #include "zm_netint_yolo.h"
@@ -30,7 +31,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   model(nullptr),
   model_ctx(nullptr),
   network_data(nullptr),
-  frame(nullptr),
+  frame(),
   ai_frame(nullptr),
   scaled_frame({}),
   //swscale({}),
@@ -59,8 +60,8 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
 }
 
 Quadra_Yolo::~Quadra_Yolo() {
-  ni_frame_buffer_free(&frame->api_frame.data.frame);
-  ni_packet_buffer_free(&frame->api_packet.data.packet);
+  ni_frame_buffer_free(&frame.api_frame.data.frame);
+  ni_packet_buffer_free(&frame.api_packet.data.packet);
 
   if (model) {
     model->destroy_model(model_ctx);
@@ -79,6 +80,7 @@ Quadra_Yolo::~Quadra_Yolo() {
     free(drawbox_filter);
   }
   if (hwdl_filter) {
+    Debug(1, "Deleting hwdl_filter");
     avfilter_graph_free(&hwdl_filter->filter_graph);
     free(hwdl_filter);
   }
@@ -143,19 +145,18 @@ bool Quadra_Yolo::setup(
   }
 #endif
 
-  frame = new NiNetworkFrame();
-  frame->scale_width = model_width;
-  frame->scale_height = model_height;
-  frame->scale_format = model_format;
+  frame.scale_width = model_width;
+  frame.scale_height = model_height;
+  frame.scale_format = model_format;
 
-  ret = ni_ai_packet_buffer_alloc(&frame->api_packet.data.packet, &network_ctx->network_data);
+  ret = ni_ai_packet_buffer_alloc(&frame.api_packet.data.packet, &network_ctx->network_data);
   if (ret != NI_RETCODE_SUCCESS) {
     Error( "failed to allocate packet on card %d", devid);
     return false;
   }
-  ret = ni_frame_buffer_alloc_hwenc(&frame->api_frame.data.frame,
-      frame->scale_width,
-      frame->scale_height, 0);
+  ret = ni_frame_buffer_alloc_hwenc(&frame.api_frame.data.frame,
+      frame.scale_width,
+      frame.scale_height, 0);
   if (ret != NI_RETCODE_SUCCESS) {
     Error("failed to allocate frame on card %d", devid);
     return false;
@@ -232,14 +233,14 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFra
 
   Debug(1, "Quadra: ni_set_network_input");
   ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr,
-      avframe->width, avframe->height, frame, true);
+      avframe->width, avframe->height, &frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
     return {-1, ""};
   }
 
 	  /* pull filtered frames from the filtergraph */
-	  ret = ni_get_network_output(network_ctx, use_hwframe, frame, false /* blockable */,
+	  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */,
 			  true /*convert*/, model_ctx->out_tensor);
 	  if (ret != 0 && ret != NIERROR(EAGAIN)) {
 		  Error("Error when getting output %d", ret);
@@ -398,9 +399,9 @@ int Quadra_Yolo::draw_roi_box(
     } else {
       break;
     }
-  } while (1);
+  } while (!zm_terminate);
   return 0;
-}
+} // end draw_roi_box
 
 int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hwmode) {
     char args[512] = { 0 };
@@ -417,14 +418,15 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
 
     f->filter_graph = avfilter_graph_alloc();
     if (!f->filter_graph) {
-        Error( "failed to allocate filter graph");
-        return AVERROR(ENOMEM);
+      Error( "failed to allocate filter graph");
+      return AVERROR(ENOMEM);
     }
 
     ret = avfilter_graph_parse2(f->filter_graph, filters_desc, &inputs, &outputs);
     if (ret < 0) {
-        Error( "failed to parse graph");
-        return ret;
+      avfilter_graph_free(&f->filter_graph);
+      Error( "failed to parse graph");
+      return ret;
     }
 
     // link input
@@ -613,6 +615,7 @@ int Quadra_Yolo::dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame) {
 
   ret = av_buffersrc_add_frame_flags(hwdl_filter->buffersrc_ctx, hwframe, AV_BUFFERSRC_FLAG_KEEP_REF);
   if (ret < 0) {
+    av_frame_free(&output);
     Error("cannot add frame to hwdl buffer src");
     return ret;
   }
@@ -624,11 +627,12 @@ int Quadra_Yolo::dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame) {
       continue;
     } else if (ret < 0) {
       Error("cannot get frame from hwdl buffer sink");
+      av_frame_free(&output);
       return ret;
     } else {
       break;
     }
-  } while (1);
+  } while (!zm_terminate);
 
   *filt_frame = output;
   return 0;

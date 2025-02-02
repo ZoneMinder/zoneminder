@@ -149,6 +149,7 @@ int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBuff
   return ret;
   }
 
+  if (0) {
   AVBufferRef *hw_frames_ref;
   AVHWFramesContext *frames_ctx = nullptr;
 
@@ -174,6 +175,7 @@ int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBuff
     }
   }
   av_buffer_unref(&hw_frames_ref);
+  }
   av_buffer_unref(&hw_device_ctx);
   return 0;
 #endif

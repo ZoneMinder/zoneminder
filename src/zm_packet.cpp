@@ -21,6 +21,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_logger.h"
+#include "zm_signal.h"
 
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
@@ -115,8 +116,9 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     if (ret < 0) {
       Warning("Unable to receive frame : code %d %s.",
               ret, av_make_error_string(ret).c_str());
+      if (ret == AVERROR_EOF) zm_terminate = true;
     }
-    in_frame = nullptr;
+    //in_frame = nullptr;
     return ret;
   } else {
     Debug(1, "Ret from zm_send_packet_receive_frame %d", ret);

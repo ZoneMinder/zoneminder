@@ -65,6 +65,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 
 
   for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
+    av_seek_frame(input_format_context, i, 0, AVSEEK_FLAG_FRAME);
 
     if (is_video_stream(input_format_context->streams[i])) {
       zm_dump_stream_format(input_format_context, i, 0, 0);

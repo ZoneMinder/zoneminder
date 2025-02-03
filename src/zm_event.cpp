@@ -221,7 +221,7 @@ mJpegCodecContext->bit_rate = 2000000;
 
   mJpegSwsContext = sws_getContext(
                       image->Width(), image->Height(), image->AVPixFormat(),
-                      mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUV420P,
+                      mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUVJ420P,
                       SWS_BICUBIC, nullptr, nullptr, nullptr);
   if (!mJpegSwsContext) {
     return -1;

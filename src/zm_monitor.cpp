@@ -1134,9 +1134,12 @@ bool Monitor::connect() {
   analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
-    image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
+    image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]));
+    //image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    analysis_image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_analysis_images[i*image_size]));
+    image_pixelformats[i] = AV_PIX_FMT_NONE;
+    analysis_image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_analysis_images[i*image_size]));
+    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
     analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
   }
@@ -2150,10 +2153,12 @@ bool Monitor::Analyse() {
               }
               Debug(1, "Quadra setting up on %d", deviceid);
               if (!quadra_yolo->setup(camera->getVideoStream(), 
-                    camera->getVideoCodecContext(), "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
+                    mVideoCodecContext, "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
                 delete quadra_yolo;
                 quadra_yolo = nullptr;
               }
+            } else {
+              Debug(1, "Have quadra %p and hw_frame%d", quadra_yolo, packet->hw_frame.get());
             }
           }
 
@@ -2547,29 +2552,29 @@ bool Monitor::Analyse() {
       shared_data->last_read_index = packet->image_index;
       shared_data->analysis_image_count++;
 
-        unsigned int index = shared_data->last_analysis_index;
-        index++;
-        index = index % image_buffer_count;
-        if (packet->ai_frame) {
-          analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
-          Debug(1, "ai_frame pixformat %d, for index %d", packet->ai_frame->format, index);
-          analysis_image_buffer[index]->Assign(packet->ai_frame.get());
-          analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
-          shared_data->last_analysis_index = index;
-        } else if (packet->analysis_image) {
-          analysis_image_buffer[index]->Assign(*packet->analysis_image);
-          analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
-          Debug(1, "analysis %d, for index %d", analysis_image_pixelformats[index], index);
-          shared_data->last_analysis_index = index;
-        } else if (packet->image) {
-          analysis_image_buffer[index]->Assign(*packet->image);
-          analysis_image_pixelformats[index] = packet->image->AVPixFormat();
-          shared_data->last_analysis_index = index;
-          Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
-        } else {
-          Debug(1, "Unable to find an image to assign");
-        }
-        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+      unsigned int index = shared_data->last_analysis_index;
+      index++;
+      index = index % image_buffer_count;
+      if (packet->ai_frame) {
+        analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
+        Debug(1, "ai_frame pixformat %d, for index %d", packet->ai_frame->format, index);
+        analysis_image_buffer[index]->Assign(packet->ai_frame.get());
+        analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
+        shared_data->last_analysis_index = index;
+      } else if (packet->analysis_image) {
+        analysis_image_buffer[index]->Assign(*packet->analysis_image);
+        analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
+        Debug(1, "analysis %d, for index %d", analysis_image_pixelformats[index], index);
+        shared_data->last_analysis_index = index;
+      } else if (packet->image) {
+        analysis_image_buffer[index]->Assign(*packet->image);
+        analysis_image_pixelformats[index] = packet->image->AVPixFormat();
+        shared_data->last_analysis_index = index;
+        Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
+      } else {
+        Debug(1, "Unable to find an image to assign");
+      }
+      shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     } else {
       Debug(3, "Not video, not clearing packets");
     }
@@ -2872,6 +2877,7 @@ int Monitor::Capture() {
 
 bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
   AVPixelFormat imagePixFormat = image->AVPixFormat();
+  imagePixFormat = AV_PIX_FMT_YUV420P;
   AVPixelFormat inputPixFormat;
   bool changeColorspaceDetails = false;
   switch (input_frame->format) {
@@ -2893,7 +2899,6 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
     break;
   default:
     inputPixFormat = (AVPixelFormat)input_frame->format;
-    imagePixFormat = AV_PIX_FMT_YUV420P;
   }
 
   convert_context = sws_getContext(
@@ -2989,6 +2994,12 @@ bool Monitor::Decode() {
             mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
 
+            if (!options.empty()) {
+              av_dict_parse_string(&opts, options.c_str(), "=", ",", 0);
+              // reorder_queparse for avforpts, mOpcodec
+              av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+              av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+            }
             av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
 
             int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
@@ -3052,8 +3063,11 @@ bool Monitor::Decode() {
         if (packet->in_frame and !packet->image) {
           const AVFrame *in_frame = packet->in_frame.get();
 
-          unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
-          unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
+          if (0) {
+          //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
+          unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
+          unsigned int colours = AV_PIX_FMT_YUV420P;
+          //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
           packet->image = new Image(camera_width, camera_height, colours, subpix);
           //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
@@ -3068,6 +3082,7 @@ bool Monitor::Decode() {
             delete packet->image;
             packet->image = nullptr;
           }  // end if have convert_context
+          }
         }  // end if need transfer to image
       } else if (ret <0) {
         avcodec_free_context(&mVideoCodecContext);
@@ -3184,8 +3199,10 @@ bool Monitor::Decode() {
     index++;
     index = index % image_buffer_count;
     decoding_image_count++;
+    if (packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
     image_buffer[index]->Assign(*(packet->image));
+    }
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
@@ -3823,8 +3840,8 @@ void Monitor::get_ref_image() {
         packet->packet->stream_index, video_stream_id, packet->image_index, packet->image );
   // Might not have been decoded yet FIXME
   if (packet->image) {
-    ref_image.Assign(width, height, camera->Colours(),
-                     camera->SubpixelOrder(), packet->image->Buffer(), camera->ImageSize());
+    ref_image.Assign(width, height, packet->image->Colours(),
+                     packet->image->SubpixelOrder(), packet->image->Buffer(), camera->ImageSize());
     Debug(2, "Have ref image about to unlock");
   } else {
     Debug(2, "Have no ref image about to unlock");

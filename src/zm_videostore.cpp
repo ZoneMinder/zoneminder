@@ -360,16 +360,6 @@ bool VideoStore::open() {
         }
         av_dict_free(&opts);
 
-        // Reload it for next attempt and/or avformat open
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg output options '%s'", options.c_str());
-        } else {
-          if (reorder_queue_size) {
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          }
-        }
-
         if (video_out_codec) {
           break;
         }

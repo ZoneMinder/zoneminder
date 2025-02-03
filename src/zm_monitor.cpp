@@ -316,6 +316,8 @@ Monitor::Monitor() :
   analysis_thread(nullptr),
   decoder_it(nullptr),
   decoder(nullptr),
+  mVideoCodecContext(nullptr),
+  mAudioCodecContext(nullptr),
   convert_context(nullptr),
   //zones(nullptr),
 #if MOSQUITTOPP_FOUND
@@ -1341,6 +1343,14 @@ Monitor::~Monitor() {
   if (convert_context) {
     sws_freeContext(convert_context);
     convert_context = nullptr;
+  }
+  if (mVideoCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    mVideoCodecContext = nullptr;
+  }
+  if (mAudioCodecContext) {
+    avcodec_free_context(&mAudioCodecContext);
+    mAudioCodecContext = nullptr;
   }
   if (Amcrest_Manager != nullptr) {
     delete Amcrest_Manager;
@@ -2883,6 +2893,7 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
     break;
   default:
     inputPixFormat = (AVPixelFormat)input_frame->format;
+    imagePixFormat = AV_PIX_FMT_YUV420P;
   }
 
   convert_context = sws_getContext(
@@ -2941,11 +2952,102 @@ bool Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
 
-      // Allocate the image first so that it can be used by hwaccel
-      // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
-      //
-      //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-      int ret = packet->decode(camera->getVideoCodecContext());
+      if (!mVideoCodecContext) {
+        AVStream *mVideoStream = camera->getVideoStream();
+        AVStream *mAudioStream = camera->getAudioStream();
+        AVDictionary *opts = nullptr;
+
+        if (mVideoStream) {
+          const AVCodec *mVideoCodec = nullptr;
+          std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
+          for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+            const CodecData *chosen_codec_data = *it;
+            Debug(1, "Found codec %s", chosen_codec_data->codec_name);
+
+            if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
+              if (this->DecoderName() != chosen_codec_data->codec_name) {
+                Debug(1, "Not the specified codec.");
+                continue;
+              }
+            }
+            mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+
+            if (!mVideoCodec) {
+              mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+              if (!mVideoCodec) {
+                // Try and get the codec from the codec context
+//Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
+                Error("Can't find codec for video stream from ");
+                continue;
+              }
+            }
+
+            mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
+            avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
+
+#ifdef CODEC_FLAG2_FAST
+            mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
+
+            av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
+
+            int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+
+            AVDictionaryEntry *e = nullptr;
+            while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+              Warning("Option %s not recognized by ffmpeg", e->key);
+            }
+            av_dict_free(&opts);
+            if (ret < 0) {
+              Error("Unable to open codec for video stream from ");
+              //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+              avcodec_free_context(&mVideoCodecContext);
+              continue;
+            }
+            zm_dump_codec(mVideoCodecContext);
+            break;
+          } // end foreach codec
+        } // end if mVideoStream
+
+        if (!mVideoCodecContext) {
+          return -1;
+        }
+
+        if (mAudioStream) {
+          const AVCodec *mAudioCodec = nullptr;
+          if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
+            Debug(1, "Can't find codec for audio stream from ");
+            //Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
+          } else {
+            mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+            avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
+
+            //zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
+            // Open the codec
+            if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
+              Error("Unable to open codec for audio stream from ");
+              //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
+              return -1;
+            }  // end if opened
+          }  // end if found decoder
+        } // end if audiostream
+#if 0
+        else if (!monitor->GetSecondPath().empty()) {
+  Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+  mSecondInput = zm::make_unique<FFmpeg_Input>();
+  if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+    mSecondFormatContext = mSecondInput->get_format_context();
+    mAudioStreamId = mSecondInput->get_audio_stream_id();
+    mAudioStream = mSecondInput->get_audio_stream();
+    mAudioCodecContext = mSecondInput->get_audio_codec_context();
+  } else {
+    Warning("Failed to open secondary input");
+  }
+}  // end if have audio stream
+#endif
+      } // end if ! mCodec
+        
+      int ret = packet->decode(mVideoCodecContext);
       if (ret > 0 and !zm_terminate) {
         if (packet->in_frame and !packet->image) {
           const AVFrame *in_frame = packet->in_frame.get();
@@ -2968,6 +3070,9 @@ bool Monitor::Decode() {
           }  // end if have convert_context
         }  // end if need transfer to image
       } else if (ret <0) {
+        avcodec_free_context(&mVideoCodecContext);
+        avcodec_free_context(&mAudioCodecContext);
+        return -1;
         
       } else {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);

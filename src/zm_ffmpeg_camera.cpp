@@ -390,6 +390,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
         mVideoStreamId, mAudioStreamId);
 
+#if 0
   const AVCodec *mVideoCodec = nullptr;
 
   std::list<const CodecData *>codec_data = get_decoder_data(mFormatContext->streams[mVideoStreamId]->codecpar->codec_id, "auto");
@@ -500,6 +501,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
           width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
+#endif
 
   mIsPrimed = true;
 

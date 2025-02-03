@@ -421,7 +421,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       $fps_string .= $monitor['CaptureFPS'];
     }
 
-    if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
+    if ( isset($monitor['AnalysisFPS'])) {
+     // and ($monitor['Analysing'] != 'None')) {
       $fps_string .= '/' . $monitor['AnalysisFPS'];
     }
     if ($fps_string) $fps_string .= ' fps';

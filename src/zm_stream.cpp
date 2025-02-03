@@ -73,7 +73,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
    */
   mJpegCodecContext->time_base= (AVRational) {1,25};
   mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
-  Debug(1, "initting to %dx%d qcompress %f", p_width, p_height, quality/100.0);
+  Debug(1, "initting to %dx%d qcompress %f format %d", p_width, p_height, quality/100.0, mJpegCodecContext->pix_fmt);
 
   if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
     Error("Could not open mjpeg codec");

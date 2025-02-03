@@ -194,7 +194,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint32_t size;              /* +0    */
     int32_t  last_write_index;  /* +4    */
     int32_t  last_read_index;   /* +8    */
+    int32_t  last_analysis_index;   /* +8    */
     int32_t  image_count;       /* +12   */
+    int32_t  analysis_image_count;       /* +12   */
     uint32_t state;             /* +16   */
     double      capture_fps;    /* +20   Current capturing fps */
     double      analysis_fps;   /* +28   Current analysis fps */
@@ -615,7 +617,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
-  int        analysis_image_count;    // How many frames have been processed by analysis thread.
+  //int        analysis_image_count;    // How many frames have been processed by analysis thread.
   int        decoding_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
@@ -648,9 +650,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             *zone_scores;
 
   struct timeval *shared_timestamps;
+  struct timeval *shared_analysis_timestamps;
   unsigned char *shared_images;
+  unsigned char *shared_analysis_images;
   std::vector<Image *> image_buffer;
+  std::vector<Image *> analysis_image_buffer;
   AVPixelFormat *image_pixelformats;
+  AVPixelFormat *analysis_image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -695,7 +701,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image        delta_image;
   Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;

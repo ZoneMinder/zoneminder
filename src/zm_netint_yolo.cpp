@@ -260,6 +260,7 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFra
 			  Error("cannot draw roi");
 			  return {-1, ""};
 		  }
+      av_frame_unref(avframe);
 		  AVFrame *blah = *ai_frame;
 		  zm_dump_video_frame(blah, "ai");
 	  } else {

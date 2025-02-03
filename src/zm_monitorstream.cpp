@@ -695,59 +695,74 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (last_read_index != monitor->shared_data->last_analysis_index || last_image_count < monitor->shared_data->analysis_image_count) {
+    if (
+        last_read_index != monitor->shared_data->last_analysis_index
+        ||
+        last_image_count < monitor->shared_data->analysis_image_count
+        ) {
     //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
       int last_write_index = monitor->shared_data->last_analysis_index;
       //int last_write_index = monitor->shared_data->last_write_index;
       int index = last_write_index % monitor->image_buffer_count;
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
-      if ( now >= when_to_send_next_frame ) {
+      
+      if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
-          Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->analysis_image_count, paused, delayed);
-          last_read_index = last_write_index;
-          last_image_count = monitor->shared_data->image_count;
-          // Send the next frame
-          //
-          // Perhaps we should use NOW instead.
-          last_frame_timestamp =
-            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-
-          Image *send_image = nullptr;
-          /*
-          if ((frame_type == FRAME_ANALYSIS) &&
-              (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
-              Debug(1, "Sending analysis image");
-            send_image = monitor->GetAlarmImage();
-            if (!send_image) {
-              Debug(1, "Falling back");
-              send_image = monitor->image_buffer[index];
+          if (monitor->analysis_image_pixelformats[index] <= AV_PIX_FMT_NONE) {
+            Debug(1, "Pixelformat for %d is %d", index, monitor->analysis_image_pixelformats[index]);
+            if (!sendTextFrame("Image not yet available.")) {
+              Debug(2, "sendFrame failed, quitting.");
+              zm_terminate = true;
+              break;
             }
-          } else*/ {
-            //AVPixelFormat pixformat = monitor->image_pixelformats[index];
-            //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-            send_image = monitor->analysis_image_buffer[index];
-            send_image->AVPixFormat(monitor->analysis_image_pixelformats[index]);
-          }
+          } else {
+            Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->analysis_image_count, paused, delayed);
+            last_read_index = last_write_index;
+            last_image_count = monitor->shared_data->image_count;
+            // Send the next frame
+            //
+            // Perhaps we should use NOW instead.
+            last_frame_timestamp =
+              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
-          if (!sendFrame(send_image, last_frame_timestamp)) {
-            Debug(2, "sendFrame failed, quitting.");
-            zm_terminate = true;
-            break;
-          }
-          frame_count++;
-          if (frame_count == 0) {
-            // Chrome will not display the first frame until it receives another.
-            // Firefox is fine.  So just send the first frame twice.
+            Image *send_image = nullptr;
+            /*
+               if ((frame_type == FRAME_ANALYSIS) &&
+               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
+               Debug(1, "Sending analysis image");
+               send_image = monitor->GetAlarmImage();
+               if (!send_image) {
+               Debug(1, "Falling back");
+               send_image = monitor->image_buffer[index];
+               }
+               } else*/
+            {
+              //AVPixelFormat pixformat = monitor->image_pixelformats[index];
+              //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
+              send_image = monitor->analysis_image_buffer[index];
+              send_image->AVPixFormat(monitor->analysis_image_pixelformats[index]);
+            }
+
             if (!sendFrame(send_image, last_frame_timestamp)) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
               break;
             }
-          }
+            frame_count++;
+            if (frame_count == 0) {
+              // Chrome will not display the first frame until it receives another.
+              // Firefox is fine.  So just send the first frame twice.
+              if (!sendFrame(send_image, last_frame_timestamp)) {
+                Debug(2, "sendFrame failed, quitting.");
+                zm_terminate = true;
+                break;
+              }
+            }
 
-          temp_read_index = temp_write_index;
+            temp_read_index = temp_write_index;
+          } // end if pixformat
         } else {
           if (delayed && !buffered_playback) {
             Debug(2, "Can't delay when not buffering.");
@@ -767,7 +782,7 @@ void MonitorStream::runStream() {
               if (paused_image) {
                 // Send keepalive
                 Debug(2, "Sending keepalive frame because delta time %.2f s > 5 s",
-                      FPSeconds(actual_delta_time).count());
+                    FPSeconds(actual_delta_time).count());
                 // Send the next frame
                 if (!sendFrame(paused_image, paused_timestamp))
                   zm_terminate = true;
@@ -778,8 +793,6 @@ void MonitorStream::runStream() {
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
-        //} else {
-        //frame_count++;
       } else {
         Debug(2, "Not time to send next frame.");
       }  // end if should send frame now > when_to_send_next_frame
@@ -814,7 +827,7 @@ void MonitorStream::runStream() {
       } // end if buffered playback
     } else {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-            //last_write_index,
+          //last_write_index,
             monitor->shared_data->last_analysis_index,
             last_read_index);
 
@@ -942,8 +955,22 @@ void MonitorStream::SingleImage(int scale) {
     return;
   }
 
-  int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+  int index = monitor->shared_data->last_analysis_index % monitor->image_buffer_count;
+  count = 10; // Give it 1 second to connect or else send text frame.
+  while (count and (monitor->image_pixelformats[index]<=AV_PIX_FMT_NONE) and !zm_terminate) {
+    Debug(1, "Waiting for analysis to begin. last write index %d >=? %d",
+          monitor->shared_data->last_analysis_index, monitor->image_buffer_count);
+    std::this_thread::sleep_for(Milliseconds(100));
+    count--;
+  }
+
+  if (!count and monitor->image_pixelformats[index]<=AV_PIX_FMT_NONE) {
+    sendTextFrame("No image available.");
+    return;
+  }
+
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
+
   Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->analysis_image_buffer[index];
   snap_image->AVPixFormat(pixformat);

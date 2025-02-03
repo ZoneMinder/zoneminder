@@ -1264,9 +1264,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       ZM_DUMP_PACKET(opkt, "packet returned by codec after timebase conversions");
 
       if (video_last_pts != AV_NOPTS_VALUE) {
-         opkt->duration = opkt->pts - video_last_pts;
-         Debug(1, "Duration %" PRId64 " from pts %" PRId64 " - last %" PRId64, opkt->duration, opkt->pts, video_last_pts);
-         if (opkt->duration < 0) opkt->duration = 0;
+        opkt->duration = opkt->pts - video_last_pts;
+        Debug(1, "Duration %" PRId64 " from pts %" PRId64 " - last %" PRId64, opkt->duration, opkt->pts, video_last_pts);
+        if (opkt->duration < 0) opkt->duration = 0;
       }
       video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);

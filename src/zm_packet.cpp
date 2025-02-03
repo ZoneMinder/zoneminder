@@ -101,7 +101,7 @@ ZMPacket::~ZMPacket() {
   delete y_image;
   delete ai_image;
   // We don't want to av_free the hw_frame
-  hw_frame = nullptr;
+  //hw_frame = nullptr;
 }
 
 ssize_t ZMPacket::ram() {

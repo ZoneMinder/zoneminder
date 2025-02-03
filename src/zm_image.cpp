@@ -2989,10 +2989,11 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   if (width == new_width and height == new_height) return;
 
   // Why larger than we need?
-  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  //linesize = FFALIGN(av_image_get_linesize(pixelformat, new_width, 0), 32);
+  AVPixelFormat format = AVPixFormat();
+  size_t scale_buffer_size = static_cast<size_t>( size = av_image_get_buffer_size(format, new_width, new_height, 32));
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
-  AVPixelFormat format = AVPixFormat();
   SWScale swscale;
   swscale.init();
   swscale.Convert( buffer, allocation,
@@ -3019,7 +3020,8 @@ void Image::Scale(const unsigned int factor) {
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
   // Why larger than we need?
-  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  AVPixelFormat format = AVPixFormat();
+  size_t scale_buffer_size = static_cast<size_t>( size = av_image_get_buffer_size(format, new_width, new_height, 32));
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 

@@ -1303,6 +1303,8 @@ bool Monitor::disconnect() {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
     image_buffer[i] = nullptr;
+    delete analysis_image_buffer[i];
+    analysis_image_buffer[i] = nullptr;
   }
 
   return true;
@@ -2156,8 +2158,8 @@ bool Monitor::Analyse() {
               AVFrame *ai_frame = nullptr;
               Debug(1, "Doing detection");
               auto [ret, detections] = quadra_yolo->detect(packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get(), &ai_frame);
-              packet->detections = detections;
               if (0 < ret) {
+                packet->detections = detections;
                 zm_dump_video_frame(ai_frame, "after detect");
                 packet->set_ai_frame(ai_frame);
               } else if (0 > ret) {

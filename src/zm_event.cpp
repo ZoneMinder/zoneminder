@@ -181,7 +181,7 @@ int Event::OpenJpegCodec(const Image *image) {
       continue;
     }
 
-    mJpegCodecContext->bit_rate = 2000000;
+mJpegCodecContext->bit_rate = 2000000;
     mJpegCodecContext->width = monitor->Width();
     mJpegCodecContext->height = monitor->Height();
     mJpegCodecContext->time_base= (AVRational) {1,25};
@@ -197,7 +197,9 @@ int Event::OpenJpegCodec(const Image *image) {
     mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
     mJpegCodecContext->global_quality = quality/100.0; // 0-1
 
-    Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
+    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s", 
+        chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt));
 
     if (0 && setup_hwaccel(mJpegCodecContext,
           chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {

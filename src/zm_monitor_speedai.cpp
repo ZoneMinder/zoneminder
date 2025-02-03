@@ -17,6 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#ifdef HAVE_UNTETHER_H
 #include "zm_monitor.h"
 // Untether runtime API header
 #include "uai_untether.h"
@@ -101,3 +102,4 @@ bool Monitor::SpeedAI::detect(const Image &image) {
   }
   return true;
 }
+#endif

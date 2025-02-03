@@ -332,7 +332,9 @@ Monitor::Monitor() :
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
+#ifdef HAVE_UNTETHER_H
   speedai(nullptr),
+#endif
   quadra(nullptr),
   quadra_yolo(nullptr),
   red_val(0),
@@ -1214,12 +1216,14 @@ bool Monitor::connect() {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
 
+#ifdef HAVE_UNTETHER_H
     if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
       speedai = new SpeedAI(this);
       if (!speedai->setup()) {
         delete speedai;
       }
     }
+#endif
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -1323,7 +1327,9 @@ Monitor::~Monitor() {
   analysis_it = nullptr;
   decoder_it = nullptr;
 
+#ifdef HAVE_UNTETHER_H
   delete speedai;
+#endif
   delete storage;
   delete linked_monitors;
   linked_monitors = nullptr;
@@ -2162,6 +2168,7 @@ bool Monitor::Analyse() {
             }
           }
 
+#ifdef HAVE_UNTETHER_H
           if (speedai) {
             if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
               speedai->detect(*(packet->y_image));
@@ -2169,6 +2176,7 @@ bool Monitor::Analyse() {
               speedai->detect(*(packet->y_image));
             }
           }
+#endif
 
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {

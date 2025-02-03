@@ -47,8 +47,11 @@
 #include <openssl/err.h>
 #endif
 
+#ifdef HAVE_UNTETHER_H
 // Untether runtime API header
 #include "uai_untether.h"
+#endif
+
 extern "C" {
 #include <ni_device_api.h>
 #include <ni_av_codec.h>
@@ -340,6 +343,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
+#ifdef HAVE_UNTETHER_H
   class SpeedAI {
     private:
       Monitor *monitor;
@@ -356,6 +360,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       bool setup();
       bool detect(const Image &image);
   };
+#endif
 
   class Quadra {
    public:
@@ -712,7 +717,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+#ifdef HAVE_UNTETHER_H
   SpeedAI *speedai;
+#endif
   Quadra *quadra;
   Quadra_Yolo *quadra_yolo;
 

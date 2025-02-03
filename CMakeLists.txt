@@ -343,9 +343,12 @@ if(NOT ZM_NO_CURL)
   endif()
 endif()
 
-include_directories(/opt/untether/speedai/include/)
-list(APPEND ZM_BIN_LIBS untether)
-link_directories(/opt/untether/speedai/lib)
+find_file(HAVE_UNTETHER_H uai_untether.h)
+if(HAVE_UNTETHER_H)
+  include_directories(/opt/untether/speedai/include/)
+  list(APPEND ZM_BIN_LIBS untether)
+  link_directories(/opt/untether/speedai/lib)
+endif()
 
 list(APPEND ZM_BIN_LIBS xcoder)
 

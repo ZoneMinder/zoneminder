@@ -8,6 +8,7 @@
 #cmakedefine SOLARIS 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_EXECINFO_H 1
+#cmakedefine HAVE_UNTETHER_H 1
 #cmakedefine HAVE_UCONTEXT_H 1
 #cmakedefine HAVE_SYS_SENDFILE_H 1
 #cmakedefine HAVE_SYS_SYSCALL_H 1

@@ -72,7 +72,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUVJ420P, AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
@@ -148,21 +148,79 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
   return results;
 }
 
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
+static enum AVPixelFormat get_hw_format(
+  AVCodecContext *ctx,
+  const enum AVPixelFormat *pix_fmts
+) {
+  const enum AVPixelFormat *p;
+
+  for ( p = pix_fmts; *p != -1; p++ ) {
+    if ( *p == hw_pix_fmt )
+      return *p;
+  }
+
+  Error("Failed to get HW surface format for %s.",
+        av_get_pix_fmt_name(hw_pix_fmt));
+  for ( p = pix_fmts; *p != -1; p++ )
+    Error("Available HW surface format was %s.",
+          av_get_pix_fmt_name(*p));
+
+  return AV_PIX_FMT_NONE;
+}
+#if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
+static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
+  switch (type) {
+  case AV_HWDEVICE_TYPE_VAAPI:
+        return AV_PIX_FMT_VAAPI;
+  case AV_HWDEVICE_TYPE_DXVA2:
+    return AV_PIX_FMT_DXVA2_VLD;
+  case AV_HWDEVICE_TYPE_D3D11VA:
+    return AV_PIX_FMT_D3D11;
+  case AV_HWDEVICE_TYPE_VDPAU:
+    return AV_PIX_FMT_VDPAU;
+  case AV_HWDEVICE_TYPE_CUDA:
+    return AV_PIX_FMT_CUDA;
+  case AV_HWDEVICE_TYPE_QSV:
+    return AV_PIX_FMT_VAAPI;
+#ifdef QUADRA
+  case AV_HWDEVICE_TYPE_NI_QUADRA:
+    return AV_PIX_FMT_NI_QUAD;
+#endif
+#ifdef AV_HWDEVICE_TYPE_MMAL
+  case AV_HWDEVICE_TYPE_MMAL:
+    return AV_PIX_FMT_MMAL;
+#endif
+  case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
+    return AV_PIX_FMT_VIDEOTOOLBOX;
+  default:
+    return AV_PIX_FMT_NONE;
+  }
+}
+#endif
+#endif
+#endif
+
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
-  return 0;
+    return 0;
   }
   int ret = av_hwdevice_ctx_create(&hw_device_ctx,
       codec_data->hwdevice_type,
       device.empty() ? codec_data->hwdevice_default : device.c_str(),
       nullptr, 0);
   if (0>ret) {
-  Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
-  return ret;
+    Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
+    return ret;
   }
+  codec_ctx->get_format = get_hw_format;
+  codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
-  if (0) {
+
+if (1) {
   AVBufferRef *hw_frames_ref;
   AVHWFramesContext *frames_ctx = nullptr;
 
@@ -188,7 +246,7 @@ int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBuff
     }
   }
   av_buffer_unref(&hw_frames_ref);
-  }
+}
   av_buffer_unref(&hw_device_ctx);
   return 0;
 #endif

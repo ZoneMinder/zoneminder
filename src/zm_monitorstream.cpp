@@ -408,7 +408,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     switch (type) {
     case STREAM_JPEG :
-      if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
+      if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height || mJpegCodecContext->pix_fmt != send_image->AVPixFormat()) {
         initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
       }
       if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
@@ -606,7 +606,7 @@ void MonitorStream::runStream() {
       if (!was_paused) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->image_buffer[index]);
+        paused_image = new Image(*monitor->analysis_image_buffer[index]);
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
     } else if (paused_image) {
@@ -695,9 +695,11 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
+    if (last_read_index != monitor->shared_data->last_analysis_index || last_image_count < monitor->shared_data->analysis_image_count) {
+    //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int last_write_index = monitor->shared_data->last_write_index;
+      int last_write_index = monitor->shared_data->last_analysis_index;
+      //int last_write_index = monitor->shared_data->last_write_index;
       int index = last_write_index % monitor->image_buffer_count;
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
       if ( now >= when_to_send_next_frame ) {
@@ -725,7 +727,8 @@ void MonitorStream::runStream() {
           } else*/ {
             //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-            send_image = monitor->image_buffer[index];
+            send_image = monitor->analysis_image_buffer[index];
+            send_image->AVPixFormat(monitor->analysis_image_pixelformats[index]);
           }
 
           if (!sendFrame(send_image, last_frame_timestamp)) {
@@ -811,7 +814,8 @@ void MonitorStream::runStream() {
       } // end if buffered playback
     } else {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-            monitor->shared_data->last_write_index,
+            //last_write_index,
+            monitor->shared_data->last_analysis_index,
             last_read_index);
 
       if (now - last_frame_sent > Seconds(5)) {
@@ -941,7 +945,8 @@ void MonitorStream::SingleImage(int scale) {
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
   Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-  Image *snap_image = monitor->image_buffer[index];
+  Image *snap_image = monitor->analysis_image_buffer[index];
+  snap_image->AVPixFormat(pixformat);
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,
                             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
@@ -949,8 +954,10 @@ void MonitorStream::SingleImage(int scale) {
 
   int l_width  = floor(snap_image->Width()  * scale / ZM_SCALE_BASE);
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
-  if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
-    initContexts(l_width, l_height, monitor->image_pixelformats[index], config.jpeg_stream_quality);
+  if (mJpegCodecContext->width != l_width 
+      || mJpegCodecContext->height != l_height 
+      || mJpegCodecContext->pix_fmt !=  pixformat) {
+    initContexts(l_width, l_height, pixformat, config.jpeg_stream_quality);
   }
   if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
     fprintf(stdout,

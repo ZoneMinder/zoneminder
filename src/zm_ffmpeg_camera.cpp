@@ -32,60 +32,6 @@ extern "C" {
 
 TimePoint start_read_time;
 
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-static enum AVPixelFormat hw_pix_fmt;
-static enum AVPixelFormat get_hw_format(
-  AVCodecContext *ctx,
-  const enum AVPixelFormat *pix_fmts
-) {
-  const enum AVPixelFormat *p;
-
-  for ( p = pix_fmts; *p != -1; p++ ) {
-    if ( *p == hw_pix_fmt )
-      return *p;
-  }
-
-  Error("Failed to get HW surface format for %s.",
-        av_get_pix_fmt_name(hw_pix_fmt));
-  for ( p = pix_fmts; *p != -1; p++ )
-    Error("Available HW surface format was %s.",
-          av_get_pix_fmt_name(*p));
-
-  return AV_PIX_FMT_NONE;
-}
-#if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
-  switch (type) {
-  case AV_HWDEVICE_TYPE_VAAPI:
-        return AV_PIX_FMT_VAAPI;
-  case AV_HWDEVICE_TYPE_DXVA2:
-    return AV_PIX_FMT_DXVA2_VLD;
-  case AV_HWDEVICE_TYPE_D3D11VA:
-    return AV_PIX_FMT_D3D11;
-  case AV_HWDEVICE_TYPE_VDPAU:
-    return AV_PIX_FMT_VDPAU;
-  case AV_HWDEVICE_TYPE_CUDA:
-    return AV_PIX_FMT_CUDA;
-  case AV_HWDEVICE_TYPE_QSV:
-    return AV_PIX_FMT_VAAPI;
-#ifdef QUADRA
-  case AV_HWDEVICE_TYPE_NI_QUADRA:
-    return AV_PIX_FMT_NI_QUAD;
-#endif
-#ifdef AV_HWDEVICE_TYPE_MMAL
-  case AV_HWDEVICE_TYPE_MMAL:
-    return AV_PIX_FMT_MMAL;
-#endif
-  case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-    return AV_PIX_FMT_VIDEOTOOLBOX;
-  default:
-    return AV_PIX_FMT_NONE;
-  }
-}
-#endif
-#endif
-#endif
 
 FfmpegCamera::FfmpegCamera(
   const Monitor *monitor,
@@ -143,9 +89,6 @@ FfmpegCamera::FfmpegCamera(
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-  hw_pix_fmt = AV_PIX_FMT_NONE;
-#endif
 #endif
 
   /* Has to be located inside the constructor so other components such as zma
@@ -482,7 +425,7 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
     if (use_hwaccel && (hwaccel_name != "")) {
-      if (setup_hwaccel(mVideoCodecContext,
+      if (0 && setup_hwaccel(mVideoCodecContext,
                chosen_codec_data, hw_device_ctx, "", mFormatContext->streams[mVideoStreamId]->codecpar->width,
                mFormatContext->streams[mVideoStreamId]->codecpar->height
                )) {

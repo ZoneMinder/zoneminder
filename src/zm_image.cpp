@@ -666,6 +666,7 @@ void Image::AssignDirect(const AVFrame *frame) {
       colours = ZM_COLOUR_RGB32;
       break;
     case  AV_PIX_FMT_YUV420P:
+    case  AV_PIX_FMT_YUVJ420P:
       colours = ZM_COLOUR_YUV420P;
       subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       break;
@@ -1666,8 +1667,8 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
 
     frame->width  = width;
     frame->height = height;
-    frame->format = AV_PIX_FMT_YUV420P;
-    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUV420P, width);
+    frame->format = AV_PIX_FMT_YUVJ420P;
+    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, width);
     av_frame_get_buffer(frame.get(), 32);
 
     sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
@@ -1677,7 +1678,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
     PopulateFrame(frame.get());
   }
 
-  if (frame.get()->format != AV_PIX_FMT_YUV420P) {
+  if (frame.get()->format != AV_PIX_FMT_YUVJ420P) {
     Error("Jpeg frame format incorrect, got %d", frame.get()->format);
     av_frame_unref(frame.get());
     return false;

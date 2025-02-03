@@ -2877,12 +2877,11 @@ int Monitor::Capture() {
 
 bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
   AVPixelFormat imagePixFormat = image->AVPixFormat();
-  imagePixFormat = AV_PIX_FMT_YUV420P;
   AVPixelFormat inputPixFormat;
   bool changeColorspaceDetails = false;
   switch (input_frame->format) {
   case AV_PIX_FMT_YUVJ420P:
-    inputPixFormat = AV_PIX_FMT_YUV420P;
+    inputPixFormat = AV_PIX_FMT_YUVJ420P;
     changeColorspaceDetails = true;
     break;
   case AV_PIX_FMT_YUVJ422P:

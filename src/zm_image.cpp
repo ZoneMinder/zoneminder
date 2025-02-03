@@ -5550,6 +5550,10 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       colours = ZM_COLOUR_RGB24;
       subpixelorder = ZM_SUBPIX_ORDER_BGR;
       break;
+    case AV_PIX_FMT_RGB24:
+      colours = ZM_COLOUR_RGB24;
+      subpixelorder = ZM_SUBPIX_ORDER_RGB;
+      break;
     case AV_PIX_FMT_GRAY8:
       colours = ZM_COLOUR_GRAY8;
       break;

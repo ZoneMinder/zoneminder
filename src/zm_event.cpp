@@ -151,6 +151,14 @@ Event::Event(
 }
 
 int Event::OpenJpegCodec(const Image *image) {
+  if (mJpegCodecContext) {
+    avcodec_free_context(&mJpegCodecContext);
+    mJpegCodecContext = nullptr;
+  }
+
+  if (mJpegSwsContext) {
+    sws_freeContext(mJpegSwsContext);
+  }
 
   std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
   if (!codec_data.size()) {
@@ -173,14 +181,25 @@ int Event::OpenJpegCodec(const Image *image) {
       continue;
     }
 
-    mJpegCodecContext->bit_rate = 400000;
+    mJpegCodecContext->bit_rate = 2000000;
     mJpegCodecContext->width = monitor->Width();
     mJpegCodecContext->height = monitor->Height();
     mJpegCodecContext->time_base= (AVRational) {1,25};
     mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
+    mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+
+    int quality = config.jpeg_file_quality;
+
+      //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+      //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+    mJpegCodecContext->qcompress = quality/100.0; // 0-1
+    mJpegCodecContext->qmax = 1;
+    mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+
     Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
 
-    if (setup_hwaccel(mJpegCodecContext,
+    if (0 && setup_hwaccel(mJpegCodecContext,
           chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
       avcodec_free_context(&mJpegCodecContext);
       continue;
@@ -319,7 +338,7 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
   */
-  if (!mJpegCodecContext) OpenJpegCodec(image);
+  if (!mJpegCodecContext || mJpegCodecContext->pix_fmt != image->AVPixFormat()) OpenJpegCodec(image);
   if (!mJpegCodecContext) return false;
 
   if (!config.timestamp_on_capture) {
@@ -510,7 +529,12 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
-      WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      if (packet->ai_frame) {
+        Image aiImage(packet->ai_frame.get());
+        WriteFrameImage(&aiImage, packet->timestamp, snapshot_file.c_str());
+      } else {
+        WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      }
       snapshot_file_written = true;
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);

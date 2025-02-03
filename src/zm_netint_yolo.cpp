@@ -521,6 +521,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     Error("cannot download hwframe");
     return ret;
   }
+	zm_dump_video_frame(frame, "Quadra: process_roi frame");
+	zm_dump_video_frame(input, "Quadra: process_roi input");
 
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
     *filt_frame = input;
@@ -564,9 +566,10 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         Error("draw %d roi box failed", i);
         return ret;
       }
+      zm_dump_video_frame(output, "Quadra: boxes");
       std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
       Image img(output);
-      img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize());
+      img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 
       av_frame_free(&input);
       input = output;

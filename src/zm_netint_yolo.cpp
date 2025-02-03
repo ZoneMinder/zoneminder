@@ -232,40 +232,39 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFra
   }
 
   Debug(1, "Quadra: ni_set_network_input");
-  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr,
-      avframe->width, avframe->height, &frame, true);
+  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr, avframe->width, avframe->height, &frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
     return {-1, ""};
   }
 
-	  /* pull filtered frames from the filtergraph */
-	  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */,
-			  true /*convert*/, model_ctx->out_tensor);
-	  if (ret != 0 && ret != NIERROR(EAGAIN)) {
-		  Error("Error when getting output %d", ret);
-		  return {-1, ""};
-	  } else if (ret != NIERROR(EAGAIN)) {
-		  ret = ni_read_roi(avframe, aiframe_number);
-		  if (ret < 0) {
-			  Error("read roi failed");
-			  return {-1, ""};
-		  } else if (ret == 0) {
-			  Debug(1, "ni_read_roi == 0");
-			  return {0, ""};
-		  }
-		  aiframe_number++;
-		  ret = process_roi(avframe, ai_frame);
-		  if (ret < 0) {
-			  Error("cannot draw roi");
-			  return {-1, ""};
-		  }
-      av_frame_unref(avframe);
-		  AVFrame *blah = *ai_frame;
-		  zm_dump_video_frame(blah, "ai");
-	  } else {
-		  return {0, ""};
-	  }
+  /* pull filtered frames from the filtergraph */
+  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */,
+      true /*convert*/, model_ctx->out_tensor);
+  if (ret != 0 && ret != NIERROR(EAGAIN)) {
+    Error("Error when getting output %d", ret);
+    return {-1, ""};
+  } else if (ret != NIERROR(EAGAIN)) {
+    ret = ni_read_roi(avframe, aiframe_number);
+    if (ret < 0) {
+      Error("read roi failed");
+      return {-1, ""};
+    } else if (ret == 0) {
+      Debug(1, "ni_read_roi == 0");
+      return {0, ""};
+    }
+    aiframe_number++;
+    ret = process_roi(avframe, ai_frame);
+    if (ret < 0) {
+      Error("cannot draw roi");
+      return {-1, ""};
+    }
+    av_frame_unref(avframe);
+    AVFrame *blah = *ai_frame;
+    zm_dump_video_frame(blah, "ai");
+  } else {
+    return {0, ""};
+  }
 
   return {1, result_json};
 } // end detect

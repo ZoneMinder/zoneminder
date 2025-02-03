@@ -705,7 +705,7 @@ void MonitorStream::runStream() {
       if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
           Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused, delayed);
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->analysis_image_count, paused, delayed);
           last_read_index = last_write_index;
           last_image_count = monitor->shared_data->image_count;
           // Send the next frame

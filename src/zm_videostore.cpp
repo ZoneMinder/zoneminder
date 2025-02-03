@@ -226,6 +226,8 @@ bool VideoStore::open() {
           video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
           video_out_ctx->qmin = video_in_ctx->qmin;
           video_out_ctx->qmax = video_in_ctx->qmax;
+            video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+            //video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
 
           if (!av_dict_get(opts, "crf", nullptr, AV_DICT_MATCH_CASE)) {
             if (av_dict_set(&opts, "crf", "23", 0)<0)
@@ -332,7 +334,7 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-        if (setup_hwaccel(video_out_ctx, 
+        if (setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
           continue;
         }

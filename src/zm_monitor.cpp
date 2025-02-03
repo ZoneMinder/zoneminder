@@ -1112,7 +1112,7 @@ bool Monitor::connect() {
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
   video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-  shared_analysis_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
+  shared_analysis_timestamps = (struct timeval *)((char *)shared_timestamps + sizeof(struct timeval));
   shared_images = (unsigned char *)((char *)shared_analysis_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
   if (((unsigned long)shared_images % 64) != 0) {
@@ -1126,18 +1126,18 @@ bool Monitor::connect() {
   }
 
   image_buffer.resize(image_buffer_count);
+  shared_analysis_images = (unsigned char *)((char *)shared_images + (image_buffer_count*image_size));
+  analysis_image_buffer.resize(image_buffer_count);
+  image_pixelformats = (AVPixelFormat *)(shared_analysis_images + (image_buffer_count*image_size));
+  analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
+
   for (int32_t i = 0; i < image_buffer_count; i++) {
     image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-  }
-  shared_analysis_images = (unsigned char *)((char *)shared_images + (image_buffer_count*image_size));
-  analysis_image_buffer.resize(image_buffer_count);
-  for (int32_t i = 0; i < image_buffer_count; i++) {
     analysis_image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_analysis_images[i*image_size]));
     analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
   }
-  image_pixelformats = (AVPixelFormat *)(shared_images + (image_buffer_count*image_size));
-  analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(timeval)));
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -2284,13 +2284,23 @@ bool Monitor::Analyse() {
                   Debug(1, "Blending from y-channel");
                   ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (packet->image) {
-                  Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
+                  if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
+                    if (!packet->y_image) {
+                      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+                        packet->y_image->Scale(camera_width, camera_height);
+                    }
+                    Debug(1, "Blending from y-channel");
+                    ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  } else {
+                    Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),
                         (packet->in_frame ? packet->in_frame->format : -1),
                         AV_PIX_FMT_YUV420P,
                         AV_PIX_FMT_YUVJ420P
-                       );
-                  ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                        );
+                    ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  }
                   Debug(1, "Done Blending");
                 } else {
                   Debug(1, "Not able to blend");
@@ -2530,22 +2540,24 @@ bool Monitor::Analyse() {
         unsigned int index = shared_data->last_analysis_index;
         index++;
         index = index % image_buffer_count;
-        Debug(1, "Wiritng to index %d", index);
         if (packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
+          Debug(1, "ai_frame pixformat %d, for index %d", packet->ai_frame->format, index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
-        shared_data->last_analysis_index = index;
+          shared_data->last_analysis_index = index;
         } else if (packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
-        shared_data->last_analysis_index = index;
+          Debug(1, "analysis %d, for index %d", analysis_image_pixelformats[index], index);
+          shared_data->last_analysis_index = index;
         } else if (packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
-        shared_data->last_analysis_index = index;
+          shared_data->last_analysis_index = index;
+          Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
         } else {
-          Warning("Unable to find an image to assign");
+          Debug(1, "Unable to find an image to assign");
         }
         shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     } else {
@@ -2914,7 +2926,7 @@ bool Monitor::Decode() {
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
-    Debug(4, "Not video");
+    Debug(4, "Not video,probably audio");
     delete packet_lock;
     return true; // Don't need decode
   }

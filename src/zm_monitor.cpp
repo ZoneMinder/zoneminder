@@ -1238,10 +1238,10 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   } else {
-    for (int32_t i = 0; i < image_buffer_count; i++) {
-      image_buffer[i]->AVPixFormat(image_pixelformats[i]); /* Don't release the internal buffer or replace it with another */
-      Debug(1, "Changing image pixformat to %s", av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
-    }
+    //for (int32_t i = 0; i < image_buffer_count; i++) {
+      //image_buffer[i]->AVPixFormat(image_pixelformats[i]); /* Don't release the internal buffer or replace it with another */
+      //Debug(1, "Changing image pixformat to %s", av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
+    //}
 
   }
 
@@ -1873,7 +1873,7 @@ void Monitor::UpdateFPS() {
     uint32 new_camera_bytes = camera->Bytes();
     uint32 new_capture_bandwidth =
       static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-    double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
+    double new_analysis_fps = (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
 
     Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
         shared_data->image_count,
@@ -1904,7 +1904,7 @@ void Monitor::UpdateFPS() {
     shared_data->capture_fps = new_capture_fps;
     last_capture_image_count = shared_data->image_count;
     shared_data->analysis_fps = new_analysis_fps;
-    last_motion_frame_count = motion_frame_count;
+    last_motion_frame_count = shared_data->analysis_image_count;
     last_camera_bytes = new_camera_bytes;
     last_fps_time = now;
 
@@ -2231,7 +2231,16 @@ bool Monitor::Analyse() {
                     if (!packet->analysis_image)
                       packet->analysis_image = new Image(*(packet->y_image));
                   } else {
-                    motion_score += DetectMotion(*(packet->image), zoneSet);
+                    if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
+                      if (!packet->y_image) {
+                        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+                          packet->y_image->Scale(camera_width, camera_height);
+                      }
+                      motion_score += DetectMotion(*(packet->y_image), zoneSet);
+                    } else {
+                      motion_score += DetectMotion(*(packet->image), zoneSet);
+                    }
                     if (!packet->analysis_image)
                       packet->analysis_image = new Image(*(packet->image));
                   }
@@ -2524,15 +2533,19 @@ bool Monitor::Analyse() {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
+        shared_data->last_analysis_index = index;
         } else if (packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
+        shared_data->last_analysis_index = index;
         } else if (packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
+        shared_data->last_analysis_index = index;
+        } else {
+          Warning("Unable to find an image to assign");
         }
         shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-        shared_data->last_analysis_index = index;
     } else {
       Debug(3, "Not video, not clearing packets");
     }
@@ -2559,7 +2572,6 @@ bool Monitor::Analyse() {
       //packet->out_frame = nullptr;
     } // end if !event
   }  // end scope for event_lock
-
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.unlock(packet_lock);

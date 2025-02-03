@@ -659,14 +659,18 @@ void Image::AssignDirect(const AVFrame *frame) {
   buffer = frame->data[0];
   linesize = frame->linesize[0];
   allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
+  imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   switch(static_cast<AVPixelFormat>(frame->format)) {
     case  AV_PIX_FMT_RGBA:
       subpixelorder = ZM_SUBPIX_ORDER_RGBA;
       colours = ZM_COLOUR_RGB32;
       break;
     case  AV_PIX_FMT_YUV420P:
-      colours = ZM_COLOUR_GRAY8;
+      colours = ZM_COLOUR_YUV420P;
+      subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
+      break;
     default:
+Warning("Unknown pixel format %d", frame->format);
       break;
   }
   buffertype = ZM_BUFTYPE_DONTFREE;
@@ -704,7 +708,9 @@ void Image::AssignDirect(
   width = p_width;
   height = p_height;
   colours = p_colours;
-  size_t new_buffer_size = static_cast<size_t>(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 32)); // hardcoded hack
+  subpixelorder = p_subpixelorder;
+  imagePixFormat = AVPixFormat();
+  size_t new_buffer_size = static_cast<size_t>(av_image_get_buffer_size(imagePixFormat, width, height, 32)); // hardcoded hack
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %dx%dx%d=%zu, needed %dx%d*%d colours = %zu",
@@ -732,8 +738,6 @@ void Image::AssignDirect(
     buffer = new_buffer;
   }
 
-  subpixelorder = p_subpixelorder;
-  imagePixFormat = AVPixFormat();
   linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
   pixels = width * height;
   size = new_buffer_size;
@@ -799,7 +803,11 @@ void Image::Assign(
 }
 
 void Image::Assign(const Image &image) {
-  unsigned int new_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 32); // hardcoded hack
+  unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
+  Debug(1, "Assign %dx%dx%d=%u", image.Width(), image.Height(), image.AVPixFormat(), new_size);
+  new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
+  Debug(1, "Assign %dx%dx%d=%u", image.Width(), image.Height(), image.AVPixFormat(), new_size);
+  //unsigned int new_size = image.height * image.linesize;
 
   if ( image.buffer == nullptr ) {
     Error("Attempt to assign image with an empty buffer");
@@ -831,6 +839,7 @@ void Image::Assign(const Image &image) {
     } else {
       if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
+        Debug(1, "New size %d > %d", new_size, allocation);
         AllocImgBuffer(new_size);
       }
     }
@@ -846,7 +855,7 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  Debug(1, "Assign %dx%dx%d=%d", width, height, colours, size);
+  Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -1359,7 +1368,6 @@ bool Image::WriteJpeg(const std::string &filename,
   FILE *outfile = nullptr;
   int raw_fd = 0;
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
-  AVPacket *pkt;
 
   raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (raw_fd < 0)
@@ -1379,13 +1387,13 @@ bool Image::WriteJpeg(const std::string &filename,
     av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
     PopulateFrame(temp_frame.get());
 
-    frame.get()->width  = width;
-    frame.get()->height = height;
-    frame.get()->format = AV_PIX_FMT_YUV420P;
-    av_image_fill_linesizes(frame.get()->linesize, AV_PIX_FMT_YUV420P, width);
+    frame->width  = width;
+    frame->height = height;
+    frame->format = AV_PIX_FMT_YUVJ420P;
+    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, width);
     av_frame_get_buffer(frame.get(), 32);
 
-    sws_scale(p_jpegswscontext, temp_frame.get()->data, temp_frame.get()->linesize, 0, height, frame.get()->data, frame.get()->linesize);
+    sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
 
     av_frame_unref(temp_frame.get());
   } else {
@@ -1393,21 +1401,22 @@ bool Image::WriteJpeg(const std::string &filename,
   }
 
   zm_dump_video_frame(frame, "Image.Assign(frame)");
-  pkt = av_packet_alloc();
 
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   while (ret == EAGAIN and !zm_terminate)
     ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  Debug(1, "Recode from avcodec_send_frame, %d", ret);
   if (ret == 0) {
     Debug(1, "After send frame");
+    AVPacket *pkt = av_packet_alloc();
     if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
-      Debug(1, "Got good packet");
+      Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
       fwrite(pkt->data, 1, pkt->size, outfile);
     }
+    av_packet_free(&pkt);
   } else {
     Error("Ret from send_frame %d", ret);
   }
-  av_packet_free(&pkt);
 
   av_frame_unref(frame.get());
 
@@ -2272,6 +2281,7 @@ void Image::Annotate(
     uint32 x = x0;
 
     if (colours == ZM_COLOUR_GRAY8) {
+      Debug(1, "Annotate on gray");
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
@@ -5501,8 +5511,12 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 }
 
 AVPixelFormat Image::AVPixFormat() const {
-  if ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-    return AV_PIX_FMT_YUV420P;
+  if ( colours == ZM_COLOUR_GRAY8 ) {
+    if ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+      return AV_PIX_FMT_YUV420P;
+    } else {
+      return AV_PIX_FMT_GRAY8;
+    }
   } else if ( colours == ZM_COLOUR_RGB32 ) {
     return AV_PIX_FMT_RGBA;
   } else if ( colours == ZM_COLOUR_RGB24 ) {
@@ -5511,8 +5525,6 @@ AVPixelFormat Image::AVPixFormat() const {
     } else {
       return AV_PIX_FMT_RGB24;
     }
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
-    return AV_PIX_FMT_GRAY8;
   } else {
     Error("Unknown colours (%d)",colours);
     return AV_PIX_FMT_RGBA;
@@ -5521,6 +5533,10 @@ AVPixelFormat Image::AVPixFormat() const {
 
 AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
   switch (new_pixelformat) {
+    case AV_PIX_FMT_YUVJ420P:
+      colours = ZM_COLOUR_YUV420P;
+      subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
+      break;
     case AV_PIX_FMT_YUV420P:
       colours = ZM_COLOUR_YUV420P;
       subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
@@ -5537,7 +5553,7 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       colours = ZM_COLOUR_GRAY8;
       break;
     default:
-      Error("Unknown pixelformat");
+      Error("Unknown pixelformat %d", new_pixelformat);
   }
   size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);

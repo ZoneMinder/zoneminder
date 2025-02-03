@@ -41,7 +41,7 @@
 #include "ni_device_api.h"
 #include "ni_util.h"
 
-#define NUM_NETWORK_FRAME 7
+#define NUM_NETWORK_FRAME 30 
 
 typedef struct NiNetworkFrame {
     ni_session_data_io_t api_frame;

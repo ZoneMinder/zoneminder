@@ -53,6 +53,7 @@ class ZMPacket {
   Image     *image;
   Image     *y_image;
   Image     *analysis_image;
+  Image     *ai_image;
   int       score;
   AVMediaType codec_type;
   int image_index;
@@ -81,6 +82,7 @@ class ZMPacket {
   //AVFrame *get_out_frame(const AVCodecContext *ctx);
   AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
   AVFrame *get_ai_frame();
+  Image *get_ai_image();
   void set_ai_frame(AVFrame *);
   int get_codec_imgsize() { return codec_imgsize; };
   void notify_all() {

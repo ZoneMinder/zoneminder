@@ -29,9 +29,18 @@ AVPixelFormat target_format = AV_PIX_FMT_NONE;
 ZMPacket::ZMPacket() :
   keyframe(0),
   stream(nullptr),
+  //packet({}),
+  /*
+  in_frame({}),
+  out_frame({}),
+  ai_frame({}),
+  hw_frame({}),
+  */
+  //timestamp({}),
   image(nullptr),
   y_image(nullptr),
   analysis_image(nullptr),
+  ai_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
@@ -44,16 +53,24 @@ ZMPacket::ZMPacket() :
 ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   keyframe(0),
   stream(nullptr),
+  /*
+  in_frame({}),
+  out_frame({}),
+  ai_frame({}),
+  hw_frame({}),
+  */
   timestamp(tv),
   image(i),
   y_image(nullptr),
   analysis_image(nullptr),
+  ai_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(false) {
+  decoded(false)
+{
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
@@ -64,6 +81,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   image(nullptr),
   y_image(nullptr),
   analysis_image(nullptr),
+  ai_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
@@ -81,6 +99,7 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
   delete y_image;
+  delete ai_image;
   // We don't want to av_free the hw_frame
   hw_frame = nullptr;
 }
@@ -104,25 +123,28 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   if (in_frame) {
     Error("Already have a frame?");
   } else {
-    in_frame = av_frame_ptr{zm_av_frame_alloc()};
+    //in_frame = av_frame_ptr{zm_av_frame_alloc()};
   }
 
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
+  AVFrame *receive_frame = zm_av_frame_alloc();
 
   // ret == 0 means EAGAIN
-  int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
+  int ret = zm_send_packet_receive_frame(ctx, receive_frame, *packet);
   if (ret <= 0) {
     if (ret < 0) {
+      av_frame_free(&receive_frame);
       Warning("Unable to receive frame : code %d %s.",
               ret, av_make_error_string(ret).c_str());
-      if (ret == AVERROR_EOF) zm_terminate = true;
+      //if (ret == AVERROR_EOF) zm_terminate = true;
     }
     //in_frame = nullptr;
     return ret;
   } else {
     Debug(1, "Ret from zm_send_packet_receive_frame %d", ret);
   }
+  in_frame = av_frame_ptr{receive_frame};
   int bytes_consumed = ret;
   if (ret > 0) {
     zm_dump_video_frame(in_frame.get(), "got frame");
@@ -216,6 +238,17 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   } // end if if ( ret > 0 ) {
   return bytes_consumed;
 } // end ZMPacket::decode
+
+Image *ZMPacket::get_ai_image() {
+  if (!ai_frame) {
+    Error("Can't get image without ai frame.. maybe need to decode first");
+    return nullptr;
+  }
+  if (!ai_image) {
+    ai_image = new Image(ai_frame.get());
+  }
+  return ai_image;
+}
 
 Image *ZMPacket::get_image(Image *i) {
   if (!in_frame) {

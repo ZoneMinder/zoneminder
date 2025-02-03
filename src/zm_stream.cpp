@@ -294,15 +294,15 @@ Image *StreamBase::prepareImage(Image *image) {
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;
   int height = 480;
-  int colours = ZM_COLOUR_RGB32;
-  int subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  int colours = ZM_COLOUR_YUV420P;
+  int subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
   int labelsize = 2;
 
   if (monitor) {
     width = monitor->Width();
     height = monitor->Height();
-    colours = monitor->Colours();
-    subpixelorder = monitor->SubpixelOrder();
+    //colours = monitor->Colours();
+    //subpixelorder = monitor->SubpixelOrder();
     labelsize = monitor->LabelSize();
   }
   Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",

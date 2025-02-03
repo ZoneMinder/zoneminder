@@ -128,26 +128,30 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
-  AVFrame *receive_frame = zm_av_frame_alloc();
 
   // ret == 0 means EAGAIN
-  int ret = zm_send_packet_receive_frame(ctx, receive_frame, *packet);
-  if (ret <= 0) {
-    av_frame_free(&receive_frame);
-    if (ret < 0) {
-      Warning("Unable to receive frame : code %d %s.",
-              ret, av_make_error_string(ret).c_str());
-      //if (ret == AVERROR_EOF) zm_terminate = true;
-    }
-    //in_frame = nullptr;
-    return ret;
+  int ret = avcodec_send_packet(ctx, packet.get());
+  if (ret < 0) {
+    Error("Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
+    //return ret;
   } else {
-    Debug(1, "Ret from zm_send_packet_receive_frame %d", ret);
+    Debug(1, "Ret from send_packet %d %s", ret, av_make_error_string(ret).c_str());
   }
+
+  AVFrame *receive_frame = zm_av_frame_alloc();
+  ret = avcodec_receive_frame(ctx, receive_frame);
+  Debug(1, "Ret from receive_frame %d %s", ret, av_make_error_string(ret).c_str());
+  if (ret == AVERROR(EAGAIN)) {
+    av_frame_free(&receive_frame);
+    return 0;
+  } else if (ret < 0) {
+    av_frame_free(&receive_frame);
+    return ret;
+  }
+
   in_frame = av_frame_ptr{receive_frame};
-  int bytes_consumed = ret;
-  if (ret > 0) {
-    zm_dump_video_frame(in_frame.get(), "got frame");
+  int bytes_consumed = packet->size;
+  zm_dump_video_frame(in_frame.get(), "got frame");
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -235,7 +239,6 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       image->Assign(in_frame);
     }
 #endif
-  } // end if if ( ret > 0 ) {
   return bytes_consumed;
 } // end ZMPacket::decode
 

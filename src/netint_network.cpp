@@ -217,8 +217,7 @@ static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p
     int pixel_format;
     ni_session_context_t *scale_ctx = &network_ctx->scale_api_ctx;
 
-    switch (output_format)
-    {
+    switch (output_format) {
         case GC620_I420:
             pixel_format = NI_PIX_FMT_YUV420P;
             break;
@@ -233,20 +232,15 @@ static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p
             return NI_RETCODE_INVALID_PARAM;
     }
 
-    ni_log2(scale_ctx, NI_LOG_INFO, "HwDwl Scaler: device %d, blk_io_handle %d\n", scale_ctx->hw_id, scale_ctx->blk_io_handle);
-    ret = ni_frame_buffer_alloc_dl(&(p_session_data->data.frame),
-            src_surf->ui16width, src_surf->ui16height,
-            pixel_format);
-
-    if (ret != NI_RETCODE_SUCCESS)
-    {
+    Debug(1, "HwDwl Scaler: device %d, blk_io_handle %d", scale_ctx->hw_id, scale_ctx->blk_io_handle);
+    ret = ni_frame_buffer_alloc_dl(&(p_session_data->data.frame), src_surf->ui16width, src_surf->ui16height, pixel_format);
+    if (ret != NI_RETCODE_SUCCESS) {
         return NI_RETCODE_ERROR_MEM_ALOC;
     }
 
     scale_ctx->is_auto_dl = false;
     ret = ni_device_session_hwdl(scale_ctx, p_session_data, src_surf);
-    if (ret <= 0)
-    {
+    if (ret <= 0) {
         ni_frame_buffer_free(&p_session_data->data.frame);
         return ret;
     }
@@ -353,7 +347,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     ni_session_context_t *scale_api_ctx = &network_ctx->scale_api_ctx;
     ni_retcode_t retcode;
 
-    ni_log2(scale_api_ctx, NI_LOG_INFO, "Scale Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
+    Debug(1, "Scale Scaler: device %d, blk_io_handle %d", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
     /*
      * Allocate device input frame. This call won't actually allocate a frame,
      * but sends the incoming hardware frame index to the scaler manager
@@ -385,8 +379,8 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
         out_frame->scale_format, NI_SCALER_FLAG_IO, 0, 0,
         0, 0, 0, -1, NI_DEVICE_TYPE_SCALER);
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device output frame %d",
-               retcode);
+        Error("Can't allocate device output frame %d %dx%d format %d",
+               retcode, NIALIGN(out_frame->scale_width, 2), NIALIGN(out_frame->scale_height, 2), out_frame->scale_format);
         return NIERROR(ENOMEM);
     }
 
@@ -425,15 +419,14 @@ int ni_set_network_input(NiNetworkContext *network_ctx, bool hwframe,
 
     if (hwframe) {
         niFrameSurface1_t *filt_frame_surface;
-        ret = ni_hwframe_scale(network_ctx, (niFrameSurface1_t *)in_frame->data.frame.p_data[3],
-                area_box, pic_width, pic_height, out_frame);
+        // Looks like hwscale to 640x640
+        ret = ni_hwframe_scale(network_ctx, (niFrameSurface1_t *)in_frame->data.frame.p_data[3], area_box, pic_width, pic_height, out_frame);
         if (ret != 0) {
             Error("Error run hwframe scale");
             goto out;
         }
 
-        filt_frame_surface =
-                (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
+        filt_frame_surface = (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
         //Debug(1, ("filt frame surface frameIdx %d",
         //        filt_frame_surface->ui16FrameIdx);
         //fflush(stdout);
@@ -444,17 +437,19 @@ int ni_set_network_input(NiNetworkContext *network_ctx, bool hwframe,
                 filt_frame_surface->ui16FrameIdx,
                 NI_DEVICE_TYPE_AI);
         if (retval != NI_RETCODE_SUCCESS) {
-            Error("failed to alloc hw input frame");
-            ret = NIERROR(ENOMEM);
-            goto out;
+          ni_hwframe_buffer_recycle(filt_frame_surface, filt_frame_surface->device_handle);
+          Error("failed to alloc hw input frame");
+          ret = NIERROR(ENOMEM);
+          goto out;
         }
     } else {
-        ret = ni_device_session_write(&network_ctx->npu_api_ctx, in_frame, NI_DEVICE_TYPE_AI);
-        if (ret < 0) {
-            return NIERROR(EIO);
-        } else if (ret == 0) {
-            return NIERROR(EAGAIN);
-        }
+      // in_frame should already have been scaled
+      ret = ni_device_session_write(&network_ctx->npu_api_ctx, in_frame, NI_DEVICE_TYPE_AI);
+      if (ret < 0) {
+        return NIERROR(EIO);
+      } else if (ret == 0) {
+        return NIERROR(EAGAIN);
+      }
     }
 
 out:
@@ -493,10 +488,8 @@ redo:
     }
 
     if (hwframe) {
-        niFrameSurface1_t *filt_frame_surface =
-                (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
-        ni_hwframe_buffer_recycle(filt_frame_surface,
-                filt_frame_surface->device_handle);
+        niFrameSurface1_t *filt_frame_surface = (niFrameSurface1_t *)out_frame->api_frame.data.frame.p_data[3];
+        ni_hwframe_buffer_recycle(filt_frame_surface, filt_frame_surface->device_handle);
     }
 
     if (convert) {

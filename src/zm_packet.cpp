@@ -133,8 +133,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN
   int ret = zm_send_packet_receive_frame(ctx, receive_frame, *packet);
   if (ret <= 0) {
+    av_frame_free(&receive_frame);
     if (ret < 0) {
-      av_frame_free(&receive_frame);
       Warning("Unable to receive frame : code %d %s.",
               ret, av_make_error_string(ret).c_str());
       //if (ret == AVERROR_EOF) zm_terminate = true;

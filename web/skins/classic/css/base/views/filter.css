@@ -41,13 +41,16 @@ select {
     text-align: center;
 }
 
+#sortTable {
+  justify-content: center;
+}
 #sortTable input[type=text] {
     margin-right: 4px;
 }
 
 #actionsTable input[type=text] {
     margin-left: 4px;
-    width: 100%;
+    width: 60%;
 }
 #actionsTable, #optionsTable {
   float: left;
@@ -71,7 +74,7 @@ select {
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
 textarea[name="filter[EmailBody]"] {
-width: 100%;
+width: 60%;
 }
 select#Id {
 min-width: 500px;
@@ -89,6 +92,7 @@ form {
 }
 #ActionsAndOptions fieldset {
   border: none;
+  width: 100%;
 }
 #ActionsAndOptions:after {
   content: ".";

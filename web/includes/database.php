@@ -46,7 +46,7 @@ function dbConnect() {
   } else {
     $dsn .= ':host=localhost;';
   }
-  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8';
+  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8mb4';
 
   try {
     $dbOptions = null;
@@ -224,8 +224,8 @@ function dbFetchNext($result, $col=false) {
   return false;
 }
 
-function dbNumRows( $sql ) {
-  $result = dbQuery($sql);
+function dbNumRows($sql, $params=NULL) {
+  $result = dbQuery($sql, $params);
   return $result->rowCount();
 }
 
@@ -378,5 +378,56 @@ function getTableDescription( $table, $asString=1 ) {
       $columns[] = $desc;
   }
   return $columns;
+}
+
+function db_version() {
+  return dbFetchOne('SELECT VERSION()', 'VERSION()');
+}
+
+function db_supports_feature($feature) {
+  $version = db_version();
+  if ($feature == 'skip_locks') {
+    $just_the_version = strstr($version, '-MariaDB', true);
+    if (false === $just_the_version) {
+      # Is MYSQL
+      return version_compare($version, '8.0.1', '>=');
+    } else {
+      return version_compare($just_the_version, '10.6', '>=');
+    }
+  } else {
+    ZM\Warning("Unknown feature requested $feature");
+  }
+}
+
+function dbInsert($table, $fieldArray) {
+  $query = 'INSERT INTO `' . $table . '` SET ';
+  $fields = [];
+  $conditions = [];
+  $values = [];
+  foreach ($fieldArray as $fieldName => $fieldValue) {
+    $fields[] = '`' . $fieldName.'`=?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(', ', $fields);
+  return dbQuery($query, $values);
+}
+
+function dbUpdate($table, $fieldArray, $conditionArray) {
+  $query = 'UPDATE `' . $table . '` SET ';
+  $fields = [];
+  $conditions = [];
+  $values = [];
+  foreach ($fieldArray as $fieldName => $fieldValue) {
+    $fields[] = '`' . $fieldName.'`=?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(', ', $fields);
+  $query .= ' WHERE ';
+  foreach ($conditionArray as $fieldName => $fieldValue) {
+    $conditions[] = '`' . $fieldName . '` = ?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(' AND ', $conditions);
+  return dbQuery($query, $values);
 }
 ?>

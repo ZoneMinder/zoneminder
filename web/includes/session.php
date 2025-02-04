@@ -1,6 +1,9 @@
 <?php
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
+  if (!isset($options['path'])) {
+    $options['path'] = '/';
+  }
   if (!isset($options['expires'])) {
     $options['expires'] = time()+3600*24*30*12*10; // 10 years?!
   }
@@ -13,7 +16,7 @@ function zm_setcookie($cookie, $value, $options=array()) {
   } else {
     setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
   }
-  ZM\Debug("Setting cookie for $cookie to $value");
+  //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
 // ZM session start function support timestamp management
@@ -41,14 +44,15 @@ function zm_session_start() {
     }
 
     ini_set('session.name', 'ZMSESSID');
-    ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
+    //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
   }
   session_start();
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+  // To help prevent session hijacking
+  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
-    ZM\Info('Destroying session due to timeout.');
+    //ZM\Info('Destroying session due to timeout.');
     session_destroy();
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
@@ -70,12 +74,12 @@ function zm_session_regenerate_id() {
 
   session_start();
   
-  ZM\Debug("Regenerating session. Old id was " . session_id());
+  //ZM\Debug("Regenerating session. Old id was " . session_id());
   session_regenerate_id();
-  ZM\Debug("Regenerating session. New id was " . session_id());
+  //ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+  $_SESSION['remoteAddr'] = (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']);
 } // function zm_session_regenerate_id()
 
 function is_session_started() {

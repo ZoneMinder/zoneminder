@@ -1,9 +1,22 @@
 #header {
 }
 
+#header form{
+  width: 100%;
+}
+
 .container-fluid {
-  padding-left: 0;
-  padding-right: 0;
+/*  padding-left: 0;
+  padding-right: 0;*/
+}
+
+#wrapperMonitor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#wrapperMonitor .buttons {
+  display: inline-block;
 }
 
 #sidebar {
@@ -13,6 +26,8 @@
 
 #sidebar .nav {
   flex-wrap: nowrap;
+  text-align: left;
+  overflow: auto;
 }
 
 #menuControls {
@@ -27,6 +42,21 @@
 .monitor {
   margin: 0 auto;
 }
+
+.monitor .imageFeed,
+.monitor .imageFeed,
+.monitor .imageFeed {
+  border: 2px solid #999999;
+}
+
+.monitor .imageFeed img,
+.monitor .imageFeed video,
+.monitor .imageFeed svg {
+  border: none;
+  display: inline-block;
+  width: 100%;
+}
+
 .monitorStream {
   text-align: center;
   margin: 0 auto;
@@ -38,7 +68,8 @@
   display: inline-block;
 }
 
-#monitorStatus #monitorState {
+.monitorStatus > .monitorState {
+  display: inline;
 }
 
 #replayStatus {
@@ -158,3 +189,20 @@ span.alert {
 body.sticky #content {
   overflow-y: auto;
 }
+
+.zoom {
+  transform-origin: 100% 00%;
+}
+
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
+  display: none;
+}
+
+/* +++ Support for old ZoomPan algorithm */
+.form-check.control-use-old-zoom-pan {
+  display: inline-block;
+}
+#headerButtons .form-check.control-use-old-zoom-pan input.form-check-input {
+  margin-left: -1.0rem;
+}
+/* --- Support for old ZoomPan algorithm */

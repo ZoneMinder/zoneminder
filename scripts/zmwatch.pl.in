@@ -55,7 +55,6 @@ use constant START_DELAY => 30; # To give everything else time to start
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-use ZoneMinder::Storage;
 use ZoneMinder::Monitor;
 use POSIX;
 use DBI;
@@ -71,31 +70,33 @@ my $log = logInit();
 logSetSignal();
 my $zm_terminate = 0;
 sub TermHandler {
-  Info('Received TERM, exiting');
+  Debug('Received TERM, exiting');
   $zm_terminate = 1;
 }
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
-Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
-#sleep(START_DELAY);
-
 my $dbh = zmDbConnect();
 
+# We don't need to keep objects cached
+$ZoneMinder::Object::no_cache = 1;
+
+Debug('Watchdog starting, pausing for '.START_DELAY.' seconds');
+sleep(START_DELAY);
+
 while (!$zm_terminate) {
-  while (!($dbh and $dbh->ping())) {
+  while (!($dbh and $dbh->ping()) and !$zm_terminate) {
     if (!($dbh = zmDbConnect())) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
     }
   }
 
-  foreach my $monitor (ZoneMinder::Monitor->find($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
+  foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0, $Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
     next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
 
     my $now = time(); 
     my $restart = 0;
-    zmMemInvalidate($monitor);
     if (!zmMemVerify($monitor)) {
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
       $monitor->control('restart');
@@ -126,10 +127,12 @@ while (!$zm_terminate) {
     if (!$capture_time) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
-      if (($now - $startup_time) > $Config{ZM_WATCH_MAX_DELAY}) {
+      my $startup_elapsed = $now - $startup_time;
+      if ($startup_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+        Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
-          if ($control and $control->CanReboot() and $control->open()) {
+          if ($control and $control->CanReboot() and $control->ping() and $control->open()) {
             $control->reboot();
           }
         }
@@ -190,10 +193,12 @@ while (!$zm_terminate) {
     } # end if check analysis daemon
   } # end foreach monitor
 
+  Debug("Sleeping $Config{ZM_WATCH_CHECK_INTERVAL}");
   sleep($Config{ZM_WATCH_CHECK_INTERVAL});
+  Debug("Done Sleeping $Config{ZM_WATCH_CHECK_INTERVAL}");
 } # end while (!$zm_terminate)
 
-Info('Watchdog exiting');
+Debug('Watchdog exiting');
 exit();
 
 1;

@@ -1,4 +1,3 @@
-
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
 
@@ -26,7 +25,7 @@ function evaluateLoadTimes() {
     avgFrac += freeTimeLastIntervals[i];
   }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
-  // The larger this is(positive) the faster we can go
+  // The larger this is (positive) the faster we can go
   if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1); // we can go much faster
   else if (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
   else if (avgFrac >= 0.7) currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
@@ -46,13 +45,13 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
-function findEventByTime(arr, time) {
+function findEventByTime(arr, time, debug) {
   let start = 0;
   let end = arr.length-1; // -1 because 0 based indexing
 
   //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
   // Iterate while start not meets end
-  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (arr[end].EndTimeSecs >= time)) {
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
     //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
     // Find the middle index
     const middle = Math.floor((start + end)/2);
@@ -60,33 +59,37 @@ function findEventByTime(arr, time) {
 
     // If element is present at mid, return True
     //console.log(middle, zm_event, time);
-    if ((zm_event.StartTimeSecs <= time) && (zm_event.EndTimeSecs >= time)) {
+    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
       //console.log("Found it at ", zm_event);
       return zm_event;
-    } else {
-      //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
-      // Else look in left or right half accordingly
-      if (zm_event.StartTimeSecs < time) {
-        start = middle + 1;
-      } else if (zm_event.EndTimeSecs > time) {
-        end = middle - 1;
-      } else {
-        break;
-      }
     }
-  }
-  return false;
-}
 
-function findFrameByTime(arr, time) {
+    //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
+    // Else look in left or right half accordingly
+    if (zm_event.StartTimeSecs < time) {
+      start = middle + 1;
+    } else if (zm_event.EndTimeSecs > time) {
+      end = middle - 1;
+    } else {
+      break;
+    }
+  } // end while
+  return false;
+} // end function findEventByTime
+
+function findFrameByTime(arr, time, debug) {
+  if (!arr) {
+    console.log("No array in findFrameByTime");
+    return false;
+  }
   const keys = Object.keys(arr);
   let start=0;
   let end=keys.length-1;
 
-  console.log(keys);
-  console.log(keys[start]);
+  //console.log(keys);
+  //console.log(keys[start]);
   // Iterate while start not meets end
-  //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  if (debug) console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
       console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
@@ -95,37 +98,65 @@ function findFrameByTime(arr, time) {
     // Find the mid index
     const middle = Math.floor((start + end)/2);
     const frame = arr[keys[middle]];
-    //console.log("Looking for ", time, "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+    if (debug) {
+      console.log("Looking for ", time, secs2inputstr(time), "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+      console.log(secs2inputstr(frame.TimeStampSecs));
+    }
 
     // If element is present at mid, return True
     if ((frame.TimeStampSecs == time) ||
         (frame.TimeStampSecs < time) &&
         (
-          (!frame.NextTimeStampSecs) || // only if event.EndTime is null
-          (frame.NextTimeStampSecs > time)
+          (frame.NextTimeStampSecs > time) ||
+          (!frame.NextTimeStampSecs) // only if event.EndTime is null
         )
     ) {
-      //console.log("Found it at ", frame);
-      return frame;
+      if (debug) console.log("Found it at ", frame);
+      const e = events[frame.EventId];
+      if (!e) {
+        console.log("No event for ", frame.EventId);
+        return frame;
+      }
 
-    // Else look in left or right half accordingly
+      if (frame.NextFrameId && e.FramesById) {
+        var NextFrame = e.FramesById[frame.NextFrameId];
+        if (!NextFrame) {
+          console.log("No nextframe for ", frame.NextFrameId);
+          return frame;
+        }
+        //console.log(NextFrame);
+
+        if ((frame.TimeStampSecs != time) && (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk')) {
+          // There is time between this frame and a bulk frame
+          var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
+          frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );
+          //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame.FrameId + " from " + NextFrame.FrameId + ' - ' + frame.FrameId + " time: " + (time-frame.TimeStampSecs)  );
+        } else if (debug) {
+          console.log("Bulk: " + "frame_id = " + frame.FrameId + " time: " + (time-frame.TimeStampSecs), (NextFrame.Type == 'Bulk'));
+        }
+      } else if (debug) {
+        console.log('No nextframeId');
+      }
+
+      return frame;
+      // Else look in left or right half accordingly
     } else if (frame.TimeStampSecs < time) {
       start = middle + 1;
     } else if (frame.TimeStampSecs > time) {
       end = middle - 1;
     } else {
-      console.log("Error");
+      console.log('Error');
       break;
     }
   } // end while
-  //console.log("Didn't find it");
+  if (debug) console.log("Didn't find it");
   return false;
-}
-
+} // end function findFrameByTime(arr, time, debug=false)
 
 function getFrame(monId, time, last_Frame) {
   if (last_Frame) {
     if (
+      (last_Frame.MonitorId == monId) &&
       (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
@@ -133,12 +164,13 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  if (!events_by_monitor_id[monId]) {
+  if (!events_by_monitor_id[monId] || !events_by_monitor_id[monId].length) {
     // Need to load them?
+    console.log("No events_by_monitor_id for " + monId);
     return;
   }
 
-  if (!events_for_monitor[monId]) {
+  if (!events_for_monitor[monId] || !events_for_monitor[monId].length) {
     events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
     if (!events_for_monitor[monId].length) {
       //console.log("No events for monitor " + monId);
@@ -146,7 +178,7 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  let Event = findEventByTime(events_for_monitor[monId], time);
+  let Event = findEventByTime(events_for_monitor[monId], time, false);
   if (Event === false) {
     // This might be better with a binary search
     for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
@@ -168,6 +200,7 @@ function getFrame(monId, time, last_Frame) {
         const e = events[event_id];
         if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
           console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+          break;
         } else {
           console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
         }
@@ -178,7 +211,6 @@ function getFrame(monId, time, last_Frame) {
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
-    event_id = Event.Id;
     load_Frames({event_id: Event}).then(function() {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
@@ -239,8 +271,17 @@ function getImageSource(monId, time) {
   const Frame = getFrame(monId, time);
   if (Frame) {
     const e = events[Frame.EventId];
+    if (!e) {
+      console.log('No event found for ' + Frame.EventId, Frame);
+      return '';
+    }
+
     // Adjust for bulk frames
     if (Frame.NextFrameId) {
+      if (!e.FramesById) {
+        console.log("No FramesById in event ", e, e.FramesById);
+        return '';
+      }
       const NextFrame = e.FramesById[Frame.NextFrameId];
       if (!NextFrame) {
         console.log("No next frame for " + Frame.NextFrameId);
@@ -256,10 +297,31 @@ function getImageSource(monId, time) {
       frame_id = Frame.FrameId;
     }
 
+    if (!parseInt(frame_id)) {
+      console.log("No frame_id from ", Frame);
+      return;
+    }
+
+    let scale = parseInt(100*monitorCanvasObj[monId].width / monitorWidth[monId]);
+    if (scale > 100) {
+      scale = 100;
+    } else {
+      scale = 10 * parseInt(scale/10);
+    }
+
+
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    return server.PathToZMS + '?mode=jpeg&frames=1&event=' + Frame.EventId + '&frame='+frame_id +
+      //"&width=" + monitorCanvasObj[monId].width +
+      //"&height=" + monitorCanvasObj[monId].height +
+      "&scale=" + scale +
+      "&frames=1" +
+      "&rate=" + 100*speeds[speedIndex] +
+      '&' + auth_relay;
+
     return server.PathToIndex +
       '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
@@ -271,11 +333,11 @@ function getImageSource(monId, time) {
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
   if ( success ) {
-    var canvasCtx = monitorCanvasCtx[monId];
-    var canvasObj = monitorCanvasObj[monId];
+    const canvasCtx = monitorCanvasCtx[monId];
+    const canvasObj = monitorCanvasObj[monId];
 
     canvasCtx.drawImage( monitorImageObject[monId], 0, 0, canvasObj.width, canvasObj.height );
-    var iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
+    const iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
     canvasCtx.font = "600 " + iconSize.toString() + "px Arial";
     canvasCtx.fillStyle = "white";
     canvasCtx.globalCompositeOperation = "difference";
@@ -627,21 +689,19 @@ function outputUpdate(time) {
   currentTimeSecs = time;
 }
 
-/// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event) {
-  var totalOffsetX = 0;
-  var totalOffsetY = 0;
-  var canvasX = 0;
-  var canvasY = 0;
-  var currentElement = this;
+  let totalOffsetX = 0;
+  let totalOffsetY = 0;
+  let currentElement = event.target;
 
   do {
     totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  canvasX = event.pageX - totalOffsetX;
-  canvasY = event.pageY - totalOffsetY;
+  const canvasX = event.pageX - totalOffsetX;
+  const canvasY = event.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -734,6 +794,7 @@ function setSpeed(speed_index) {
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+  setCookie('speed', speedIndex);
   showSpeed(speed_index);
   timerFire();
 }
@@ -844,154 +905,40 @@ function click_panright() {
 }
 // Manage the DOWNLOAD VIDEO button
 function click_download() {
-  $j.getJSON(thisUrl + '?request=modal&modal=download')
+  const form = $j('#montagereview_form');
+
+  const data = form.serializeArray();
+  data[data.length] = {name: 'mergeevents', value: true};
+  data[data.length] = {name: 'minTime', value: minTime};
+  data[data.length] = {name: 'maxTime', value: maxTime};
+  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
+  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
+  console.log(data);
+  $j.ajax({
+    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    data: data
+  })
       .done(function(data) {
         insertModalHtml('downloadModal', data.html);
         $j('#downloadModal').modal('show');
+        $j('#downloadModal').on('keyup keypress', function(e) {
+          var keyCode = e.keyCode || e.which;
+          if (keyCode === 13) {
+            e.preventDefault();
+            return false;
+          }
+        });
         // Manage the GENERATE DOWNLOAD button
         $j('#exportButton').click(exportEvent);
       })
       .fail(logAjaxFail);
-}
+} // end function click_download
+
 function click_all_events() {
   clicknav(0, 0, 0);
 }
 function allnon() {
   clicknav(0, 0, 0);
-}
-/// handles packing different size/aspect monitors on screen
-
-function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
-  var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
-  var b_value = monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b];
-
-  if ( a_value > b_value ) return -1;
-  else if ( a_value == b_value ) return 0;
-  else return 1;
-}
-
-function maxfit2(divW, divH) {
-  var bestFitX = []; // how we arranged the so-far best match
-  var bestFitX2 = [];
-  var bestFitY = [];
-  var bestFitY2 = [];
-
-  var minScale = 0.05;
-  var maxScale = 5.00;
-  var bestFitArea = 0;
-  var borders_width=-1;
-  var borders_height=-1;
-
-  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
-
-  while (1) {
-    if ( maxScale - minScale < 0.01 ) break;
-    var thisScale = (maxScale + minScale) / 2;
-    var allFit=1;
-    var thisArea=0;
-    var thisX=[]; // top left
-    var thisY=[];
-    var thisX2=[]; // bottom right
-    var thisY2=[];
-
-    for ( var m = 0; m < numMonitors; m++ ) {
-      // this loop places each monitor (if it can)
-      var monId = monitorPtr[m];
-
-      function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
-        if (x+w>=divW) return 0;
-        if (y+h>=divH) return 0;
-        for ( var i=0; i <= d; i++ ) {
-          if ( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
-        }
-        return 1; // it's OK
-      }
-
-      var monitor_div = $j('#Monitor'+monId);
-      if ( borders_width <= 0 ) {
-        borders_width = parseInt(monitor_div.css('border-left-width')) + parseInt(monitor_div.css('border-right-width'));
-      }
-      if ( borders_height <= 0) {
-        borders_height = parseInt(monitor_div.css('border-top-width')) + parseInt(monitor_div.css('border-bottom-width'));
-      } // assume fixed size border, and added to both sides and top/bottom
-      // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
-      // Pick the one with the smallest Y, then smallest X if Y equal
-      var fitX = 999999999;
-      var fitY = 999999999;
-      for ( adjacent = 0; adjacent < m; adjacent ++ ) {
-        // try top right of adjacent
-        if (doesItFit(
-            thisX2[adjacent]+1,
-            thisY[adjacent],
-            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
-            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
-            m-1) == 1) {
-          if ( thisY[adjacent]<fitY || ( thisY[adjacent] == fitY && thisX2[adjacent]+1 < fitX ) ) {
-            fitX = thisX2[adjacent] + 1;
-            fitY = thisY[adjacent];
-          }
-        }
-        // try bottom left
-        if (doesItFit(
-            thisX[adjacent],
-            thisY2[adjacent]+1,
-            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
-            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
-            m-1) == 1) {
-          if ( thisY2[adjacent]+1 < fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent] < fitX ) ) {
-            fitX = thisX[adjacent];
-            fitY = thisY2[adjacent] + 1;
-          }
-        }
-      } // end for adjacent < m
-      if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
-        if ( doesItFit(
-            0, 0,
-            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
-            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
-            -1) == 1 ) {
-          fitX = 0;
-          fitY = 0;
-        }
-      }
-      if ( fitX == 999999999 ) {
-        allFit = 0;
-        break; // break out of monitor loop flagging we didn't fit
-      }
-      thisX[m] =fitX;
-      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_width;
-      thisY[m] =fitY;
-      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_height;
-      thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
-    } // end foreach monitor
-    if ( allFit == 1 ) {
-      minScale=thisScale;
-      if (bestFitArea<thisArea) {
-        bestFitArea=thisArea;
-        bestFitX=thisX;
-        bestFitY=thisY;
-        bestFitX2=thisX2;
-        bestFitY2=thisY2;
-        bestFitScale=thisScale;
-      }
-    } else {
-      // didn't fit
-      maxScale=thisScale;
-    }
-  }
-  if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
-    for ( m = 0; m < numMonitors; m++ ) {
-      c = document.getElementById('Monitor' + monitorPtr[m]);
-      c.style.position = 'absolute';
-      c.style.left = bestFitX[m].toString() + "px";
-      c.style.top = bestFitY[m].toString() + "px";
-      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders_width;
-      c.height = bestFitY2[m] - bestFitY[m] + 1 - borders_height;
-    }
-    return 1;
-  } else {
-    return 0;
-  }
 }
 
 // >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
@@ -1097,15 +1044,15 @@ function initPage() {
     drawGraph();
   }
 
-  for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
-    var monId = monitorPtr[i];
-    if ( !monId ) continue;
+  for ( let i = 0, len = monitorPtr.length; i < len; i += 1 ) {
+    const monId = monitorPtr[i];
+    if (!monId) continue;
     monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
-      var imageObject = monitorImageObject[monId] = new Image();
+      const imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
       imageObject.onload = function() {
         imagedone(this, this.monId, true);
@@ -1170,13 +1117,13 @@ function initPage() {
     this.form.submit();
   });
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', changeDateTime);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    }
-    if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else {
+      el.on('change', changeDateTime);
     }
   });
 }
@@ -1227,7 +1174,7 @@ function load_Frames(zm_events) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
-            if (data.frames && data.frames.length) {
+            if (data && data.frames && data.frames.length) {
               zm_event.FramesById = [];
               let last_frame = null;
 
@@ -1238,19 +1185,26 @@ function load_Frames(zm_events) {
                   console.error("No event object found for " + data.frames[0].Frame.EventId);
                   continue;
                 }
+                if (last_frame && (frame.EventId != last_frame.EventId)) {
+                  last_frame = null;
+                }
                 //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                 if (last_frame) {
                   frame.PrevFrameId = last_frame.Id;
                   last_frame.NextFrameId = frame.Id;
-                  last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
+                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  } else {
+                    console.log("Out of order timestamps?", last_frame, frame);
+                  }
                 }
                 last_frame = frame;
 
                 if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
-              } // end fireach frame
+              } // end foreach frame
             } else {
-              console.log('No frames? ', data);
+              console.log("No frames in data", data);
             } // end if there are frames
             drawGraph();
             resolve();

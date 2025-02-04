@@ -60,10 +60,12 @@ use POSIX;
 sub executeShellCommand {
   my $command = shift;
   my $output = qx($command);
+  $output = '' if !defined($output);
+  chomp($output);
   my $status = $? >> 8;
-  if ( $status || logDebugging() ) {
-    $output = '' if !defined($output);
-    chomp($output);
+  if ($status) {
+    Warning("Failed Command: $command Status: $status Output: $output");
+  } elsif (logDebugging()) {
     Debug("Command: $command Status: $status Output: $output");
   }
   return $status;
@@ -565,29 +567,46 @@ sub parseNameEqualsValueToHash {
     $value =~ s/'$//;
     $settings{$name} = defined $value ? $value : '';
   }
-  return %settings;
+  return wantarray ? %settings : \%settings;
 }
 
 sub hash_diff {
   # assumes keys of second hash are all in the first hash
   my ( $settings, $defaults ) = @_;
   my %updates;
+  my %defaults = %{$defaults} if $defaults;
 
   foreach my $setting ( keys %{$settings} ) {
-    next if ! exists $$defaults{$setting};
-    if (
-      ($$settings{$setting} and ! $$defaults{$setting})
+    next if ! exists $defaults{$setting};
+
+    if ((ref $$settings{$setting}) ne (ref $defaults{$setting})) {
+      Warning("Different refs for $setting");
+      next;
+    }
+
+    if (ref $$settings{$setting} eq 'HASH') {
+      my %u = hash_diff($$settings{$setting}, $defaults{$setting});
+      if (%u) {
+        $updates{$setting} = \%u;
+      }
+    } elsif (
+      ($$settings{$setting} and ! $defaults{$setting})
         or
-      (!$$settings{$setting} and $$defaults{$setting})
+      (!$$settings{$setting} and $defaults{$setting})
         or
       (
-        ($$settings{$setting} and $$defaults{$setting} and (
-            $$settings{$setting} ne $$defaults{$setting}))
+        ($$settings{$setting} and $defaults{$setting} and (
+            $$settings{$setting} ne $defaults{$setting}))
       )
     ) {
-      $updates{$setting} = $$defaults{$setting};
+      $updates{$setting} = $defaults{$setting};
     }
   } # end foreach setting
+  foreach my $key (keys %{$defaults}) {
+    if (!exists $$settings{$key} and defined($$defaults{$key})) {
+      $updates{$key} = $$defaults{$key};
+    }
+  }
   return %updates;
 }
 

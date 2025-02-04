@@ -42,13 +42,12 @@ function parentGrpSelect($newGroup) {
   }
 
   $kids = get_children($newGroup);
-  if ( $newGroup->Id() )
-    $kids[] = $newGroup->Id();
+  if ( $newGroup->Id() ) $kids[] = $newGroup->Id();
   $sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
   $options = array(''=>'None');
 
   foreach ( dbFetchAll($sql, null, $kids) as $option ) {
-    $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
+    $options[validCardinal($option['Id'])] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()).$option['Name'];
   }
 
   return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configModalBtns'));
@@ -57,11 +56,11 @@ function parentGrpSelect($newGroup) {
 function monitorList($newGroup) {
   $result = '';
 
-  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
+  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Deleted=false ORDER BY Sequence ASC');
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
-      $result .= '<option value="' .$monitor['Id']. '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
+      $result .= '<option value="' .validCardinal($monitor['Id']). '"' .( in_array($monitor['Id'], $monitorIds, true) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
     }
   }
   
@@ -78,14 +77,10 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new ZM\Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group(validCardinal($_REQUEST['gid']));
 } else {
   $newGroup = new ZM\Group();
 }
-
-//
-// BEGIN HTML
-//
 ?>
 <div id="groupModal" class="modal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
@@ -116,7 +111,7 @@ if ( !empty($_REQUEST['gid']) ) {
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('Monitor') ?></th>
                 <td>
-                  <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configModalBtns">
+                  <select name="newGroup[MonitorIds][]" id="newGroupMonitorIds" class="chosen" multiple="multiple" data-on-change="configModalBtns">
                     <?php echo monitorList($newGroup) ?>
                   </select>
                 </td>

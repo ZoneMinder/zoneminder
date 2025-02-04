@@ -139,12 +139,13 @@ $SLANG = array(
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
-    'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
-    'BadPath'               => 'Path must be set to a valid value',
-    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
-    'BadPort'               => 'Port must be set to a valid number',
+    'BadPassthrough'        => 'Recording -> Passthrough only works with ffmpeg type monitors.',
+    'BadPath'               => 'Source -> Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Source -> Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
+    'BadPort'               => 'Source -> Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
+    'BadPreEventCountMaxImageBufferCount'      => 'Max Image Buffer Count should be greater than Pre event image count or else it cannot be satisfied',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
@@ -219,8 +220,10 @@ $SLANG = array(
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
+    'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
     'ContactAdmin'          => 'Please contact your adminstrator for details.',
@@ -275,6 +278,7 @@ $SLANG = array(
     'Exif'                  => 'Embed EXIF data into image',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'EventsLoading'         => 'Events are loading',
     'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -598,6 +602,7 @@ $SLANG = array(
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
     'TimeStamp'             => 'Time Stamp',
+    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
@@ -651,6 +656,32 @@ $SLANG = array(
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
+// language names translation
+    'es_la' => 'Spanish Latam',
+    'es_CR' => 'Spanish Costa Rica',
+    'es_ar' => 'Spanish Argentina',
+    'es_es' => 'Spanish Spain',
+    'en_gb' => 'British English',
+    'en_us' => 'Us English',
+    'fr_fr' => 'French',
+    'cs_cz' => 'Czech',
+    'zh_cn' => 'Simplified Chinese',
+    'zh_tw' => 'Traditional Chinese',
+    'de_de' => 'German',
+    'it_it' => 'Italian',
+    'ja_jp' => 'Japanese',
+    'hu_hu' => 'Hungarian',
+    'pl_pl' => 'Polish',
+    'pt_br' => 'Portuguese Brazil',
+    'ru_ru' => 'Russian',
+    'nl_nl' => 'Dutch',
+    'se_se' => 'Sami',
+    'et_ee' => 'Estonian',
+    'he_il' => 'Hebrew',
+    'dk_dk' => 'Danish',
+    'ro_ro' => 'Romanian',
+    'no_nb' => 'Norwegian',
+
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -844,6 +875,15 @@ $OLANG = array(
       for new images. In this case, it is safe to use the field.
       '
 	),
+	'OPTIONS_ALARMMAXFPS' => array(
+    'Help' => '
+    This field has certain limitations when used for non-local devices.~~
+    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+    and missed events~
+    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
+    setting, leaving this blank implies no limit.
+    '
+	),
 	'OPTIONS_LINKED_MONITORS' => array(
     'Help' => '
       This field allows you to select other monitors on your system that act as 
@@ -897,6 +937,16 @@ KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very lo
 None: No frames will be decoded, live view and thumbnails will not be available~~~~
 '
   ),
+  'FUNCTION_RTSP2WEB_ENABLED' => array(
+    'Help' => '
+      Attempt to use RTSP2Web streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_RTSP2WEB_TYPE' => array(
+    'Help' => '
+      RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
+      Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
       Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
@@ -935,6 +985,14 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
   '
   ),
+// Help for soap_wsa issue with chinesse cameras
+   'OPTIONS_SOAP_wsa' => array(
+    'Help' => '
+     Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
+     <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
+     help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

@@ -149,7 +149,7 @@ function controlPanTilt($monitor, $cmds) {
 function controlPresets($monitor, $cmds) {
   $control = $monitor->Control();
   // MAX_PRESETS IS PER LINE
-  define('MAX_PRESETS', '12');
+  $max_presets = 12;
 
   $sql = 'SELECT * FROM ControlPresets WHERE MonitorId = ?';
   $labels = array();
@@ -157,7 +157,7 @@ function controlPresets($monitor, $cmds) {
     $labels[$row['Preset']] = $row['Label'];
   }
 
-  $presetBreak = (int)(($control->NumPresets()+1)/((int)(($control->NumPresets()-1)/MAX_PRESETS)+1));
+  $presetBreak = (int)(($control->NumPresets()+1)/((int)(($control->NumPresets()-1)/$max_presets)+1));
 
   ob_start();
 ?>
@@ -181,7 +181,7 @@ function controlPresets($monitor, $cmds) {
   }
   if ( canEdit('Monitors') && $control->CanSetPresets() ) {
 ?>
-    <button type="button" class="ptzTextBtn" value="Set" data-toggle="modal" data-target="#ctrlPresetModal"><?php echo translate('Set') ?></button>
+    <button type="button" class="ptzTextBtn" value="Set" data-on-click="controlSetClicked"><?php echo translate('Set') ?></button>
 <?php
   }
 ?>

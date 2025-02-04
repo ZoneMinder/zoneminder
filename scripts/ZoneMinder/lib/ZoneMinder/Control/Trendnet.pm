@@ -83,7 +83,7 @@ sub open {
 
   # Detect REALM
   $REALM = $self->detect_realm($PROTOCOL, $ADDRESS, $REALM, $USERNAME, $PASSWORD, '/cgi/ptdc.cgi');
-  if (defined($REALM)) {
+  if ($REALM) {
     $self->{state} = 'open';
     return !undef;
   }
@@ -118,7 +118,7 @@ sub detect_realm {
         Debug("Changing REALM to $realm");
         $self->{ua}->credentials($address, $realm, $username, $password);
         $res = $self->{ua}->get($protocol.$address.$url);
-        if ($res->is_success()) {
+        if ($res->status_line() ne '401 Unauthorized') {
           return $realm;
         }
         Error('Authentication still failed after updating REALM' . $res->status_line);
@@ -135,7 +135,7 @@ sub detect_realm {
   } else {
     Debug('No headers line');
   } # end if headers
-  return undef;
+  return '';
 }
 
 sub sendCmd {
@@ -181,8 +181,8 @@ sub sendCmdPost {
   my $url = shift;
   my $form = shift;
 
-  if ($url eq undef) {
-    Error('url passed to sendCmdPost is undefined.');
+  if (!$url) {
+    Error('no url passed to sendCmdPost');
     return -1;
   }
 
@@ -425,7 +425,7 @@ sub reset {
 sub reboot {
   my $self = shift;
   Debug('Camera Reboot');
-  if ($$self{state} != 'open') {
+  if ($$self{state} ne 'open') {
     Warning("Not open. opening. Should call ->open() before calling reboot()"); 
     return if !$self->open();
   }

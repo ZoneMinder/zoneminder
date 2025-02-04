@@ -19,6 +19,7 @@ if ($_REQUEST['entity'] == 'navBar') {
   // Call the functions we want to dynamically update
   $data['getBandwidthHTML'] = getBandwidthHTML($bandwidth_options, $user);
   $data['getSysLoadHTML'] = getSysLoadHTML();
+  $data['getCpuUsageHTML'] = getCpuUsageHTML();
   $data['getDbConHTML'] = getDbConHTML();
   $data['getStorageHTML'] = getStorageHTML();
   //$data['getShmHTML'] = getShmHTML();
@@ -42,7 +43,8 @@ $statusData = array(
     ),
   ),
   'monitor' => array(
-    'permission' => 'Monitors',
+    #'permission' => 'Monitors',
+    'object'  => 'Monitor',
     'table' => 'Monitors',
     'limit' => 1,
     'selector' => 'Monitors.Id',
@@ -52,7 +54,7 @@ $statusData = array(
       'Type' => true,
       'Capturing' => true,
       'Analysing' => true,
-      'Capturing' => true,
+      'Recording' => true,
       'Enabled' => true,
       'LinkedMonitors' => true,
       'Triggers' => true,
@@ -101,11 +103,14 @@ $statusData = array(
       'DefaultScale' => true,
       'WebColour' => true,
       'Sequence' => true,
-      'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-      'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-      'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-      'Status' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ):null),
-      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ):null),
+      'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
+      'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
+      'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
+      'Status' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -s' ):null),
+      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),
+      'CaptureFPS' => [ 'sql'=>'(SELECT `CaptureFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
+      'AnalysisFPS' => [ 'sql'=>'(SELECT `AnalysisFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
+      'CaptureBandwidth' => [ 'sql'=>'(SELECT `CaptureBandwidth` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
     ),
   ),
   'events' => array(
@@ -123,7 +128,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -157,7 +162,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -207,7 +212,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -230,149 +235,180 @@ $statusData = array(
 function collectData() {
   global $statusData;
 
-  $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
+  $entity = strtolower(validJsStr($_REQUEST['entity']));
+  $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
-  if (!canView($entitySpec['permission'])) {
-    ajaxError('Unrecognised action or insufficient permissions');
-    return;
+  if (isset($entitySpec['permission'])) {
+    if (!canView($entitySpec['permission'])) {
+      ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
   }
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');
-  } else {
-    $data = array();
-    $postFuncs = array();
-    $postFunctions = array();
-
-    $fieldSql = array();
-    $joinSql = array();
-    $groupSql = array();
-    $values = array();
-
-    $elements = &$entitySpec['elements'];
-    $lc_elements = array_change_key_case($elements);
-
-    $id = false;
-    if ( isset($_REQUEST['id']) )
-      if ( !is_array($_REQUEST['id']) )
-        $id = array( validJsStr($_REQUEST['id']) );
-      else
-        $id = array_values($_REQUEST['id']);
-
-    if ( !isset($_REQUEST['element']) )
-      $_REQUEST['element'] = array_keys($elements);
-    else if ( !is_array($_REQUEST['element']) )
-      $_REQUEST['element'] = array( validJsStr($_REQUEST['element']) );
-
-    if ( isset($entitySpec['selector']) ) {
-      if ( !is_array($entitySpec['selector']) )
-        $entitySpec['selector'] = array( $entitySpec['selector'] );
-      foreach( $entitySpec['selector'] as $selector )
-        if ( is_array( $selector ) && isset($selector['table']) && isset($selector['join']) )
-          $joinSql[] = 'left join '.$selector['table'].' on '.$selector['join'];
-    }
-
-    foreach ( $_REQUEST['element'] as $element ) {
-      if ( !($elementData = $lc_elements[strtolower($element)]) )
-        ajaxError('Bad '.validJsStr($_REQUEST['entity']).' element '.$element);
-      if ( isset($elementData['func']) )
-        $data[$element] = eval('return( '.$elementData['func'].' );');
-      else if ( isset($elementData['postFunc']) )
-        $postFuncs[$element] = $elementData['postFunc'];
-      else if ( isset($elementData['postFunction']) )
-        $postFunctions[$element] = $elementData['postFunction'];
-      else if ( isset($elementData['zmu']) )
-        $data[$element] = exec(escapeshellcmd(getZmuCommand(' '.$elementData['zmu'])));
-      else {
-        if ( isset($elementData['sql']) )
-          $fieldSql[] = $elementData['sql'].' as '.$element;
-        else
-          $fieldSql[] = '`'.$element.'`';
-        if ( isset($elementData['table']) && isset($elementData['join']) ) {
-          $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
-        }
-        if ( isset($elementData['group']) ) {
-          $groupSql[] = $elementData['group'];
-        }
-      }
-    } # end foreach element
-
-    if ( count($fieldSql) ) {
-      $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
-      if ( $joinSql )
-        $sql .= ' '.join(' ', array_unique($joinSql));
-      if ( $id && !empty($entitySpec['selector']) ) {
-        $index = 0;
-        $where = array();
-        foreach ( $entitySpec['selector'] as $selIndex => $selector ) {
-          $selectorParamName = ':selector' . $selIndex;
-          if ( is_array($selector) ) {
-            $where[] = $selector['selector'].' = '.$selectorParamName;
-            $values[$selectorParamName] = validInt($id[$index]);
-          } else {
-            $where[] = $selector.' = '.$selectorParamName;
-            $values[$selectorParamName] = validInt($id[$index]);
-          }
-          $index++;
-        }
-        $sql .= ' WHERE '.join(' AND ', $where);
-      }
-      if ( $groupSql )
-        $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
-      if ( !empty($_REQUEST['sort']) ) {
-        $sql .= ' ORDER BY ';
-        $sort_fields = explode(',', $_REQUEST['sort']);
-        foreach ( $sort_fields as $sort_field ) {
-          
-          preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
-          if ( count($matches) ) {
-            if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
-              $sql .= $matches[1];
-            } else {
-              ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
-            }
-            if ( count($matches) > 2 ) {
-              $sql .= ' '.strtoupper($matches[2]);
-              if ( count($matches) > 3 )
-                $sql .= ' '.strtoupper($matches[3]);
-            }
-          } else {
-            ZM\Error('Sort field didn\'t match regexp '.$sort_field);
-          }
-        } # end foreach sort field
-      } # end if has sort
-      if ( !empty($entitySpec['limit']) )
-        $limit = $entitySpec['limit'];
-      elseif ( !empty($_REQUEST['count']) )
-        $limit = validInt($_REQUEST['count']);
-      $limit_offset = '';
-      if ( !empty($_REQUEST['offset']) )
-        $limit_offset = validInt($_REQUEST['offset']) . ', ';
-      if ( !empty($limit) )
-        $sql .= ' limit '.$limit_offset.$limit;
-      if ( isset($limit) && ($limit == 1) ) {
-        if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
-          foreach ( $postFuncs as $element=>$func )
-            $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
-          foreach ( $postFunctions as $element=>$function )
-            $sqlData[$element] = $function($sqlData);
-          $data = array_merge($data, $sqlData);
-        }
-      } else {
-        $count = 0;
-        foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
-          foreach ( $postFuncs as $element=>$func )
-            $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
-          foreach ( $postFunctions as $element=>$function )
-            $sqlData[$element] = $function($sqlData);
-          $data[] = $sqlData;
-          if ( isset($limit) && ++$count >= $limit )
-            break;
-        } # end foreach
-      } # end if have limit == 1
-    }
+    return $data;
   }
-  ZM\Debug(print_r($data, true));
+
+  $data = array();
+  $postFuncs = array();
+  $postFunctions = array();
+
+  $fieldSql = array();
+  $joinSql = array();
+  $groupSql = array();
+  $values = array();
+
+  $elements = &$entitySpec['elements'];
+  $lc_elements = array_change_key_case($elements);
+
+  $id = false;
+  if ( isset($_REQUEST['id']) )
+    if ( !is_array($_REQUEST['id']) )
+      $id = array( validJsStr($_REQUEST['id']) );
+    else
+      $id = array_values($_REQUEST['id']);
+
+  if ( !isset($_REQUEST['element']) )
+    $_REQUEST['element'] = array_keys($elements);
+  else if ( !is_array($_REQUEST['element']) )
+    $_REQUEST['element'] = array( validJsStr($_REQUEST['element']) );
+
+  if ( isset($entitySpec['selector']) ) {
+    if ( !is_array($entitySpec['selector']) )
+      $entitySpec['selector'] = array( $entitySpec['selector'] );
+    foreach( $entitySpec['selector'] as $selector )
+      if ( is_array( $selector ) && isset($selector['table']) && isset($selector['join']) )
+        $joinSql[] = 'left join '.$selector['table'].' on '.$selector['join'];
+  }
+
+  foreach ( $_REQUEST['element'] as $element ) {
+    if ( !($elementData = $lc_elements[strtolower($element)]) ) {
+      ajaxError('Bad '.validJsStr($_REQUEST['entity']).' element '.$element);
+      continue;
+    }
+    if (isset($elementData['func'])) {
+      $data[$element] = eval('return( '.$elementData['func'].' );');
+    } else if ( isset($elementData['postFunc']) ) {
+      $postFuncs[$element] = $elementData['postFunc'];
+    } else if ( isset($elementData['postFunction']) ) {
+      $postFunctions[$element] = $elementData['postFunction'];
+    } else if ( isset($elementData['zmu']) ) {
+      $command = escapeshellcmd(getZmuCommand(' '.$elementData['zmu']));
+      $data[$element] = exec($command);
+    } else {
+      if ( isset($elementData['sql']) )
+        $fieldSql[] = $elementData['sql'].' as '.$element;
+      else
+        $fieldSql[] = '`'.$element.'`';
+      if ( isset($elementData['table']) && isset($elementData['join']) ) {
+        $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
+      }
+      if ( isset($elementData['group']) ) {
+        $groupSql[] = $elementData['group'];
+      }
+    }
+  } # end foreach element
+
+  if (isset($entitySpec['object'])) {
+    $fieldSql[] = 'Id';
+  }
+
+  if ( count($fieldSql) ) {
+    $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
+    if ( $joinSql )
+      $sql .= ' '.join(' ', array_unique($joinSql));
+    if ( $id && !empty($entitySpec['selector']) ) {
+      $index = 0;
+      $where = array();
+      foreach ( $entitySpec['selector'] as $selIndex => $selector ) {
+        $selectorParamName = ':selector' . $selIndex;
+        if ( is_array($selector) ) {
+          $where[] = $selector['selector'].' = '.$selectorParamName;
+          $values[$selectorParamName] = validInt($id[$index]);
+        } else {
+          $where[] = $selector.' = '.$selectorParamName;
+          $values[$selectorParamName] = validInt($id[$index]);
+        }
+        $index++;
+      }
+      $sql .= ' WHERE '.join(' AND ', $where);
+    }
+    if ( $groupSql )
+      $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
+    if ( !empty($_REQUEST['sort']) ) {
+      $sql .= ' ORDER BY ';
+      $sort_fields = explode(',', $_REQUEST['sort']);
+      foreach ( $sort_fields as $sort_field ) {
+        preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+        if ( count($matches) ) {
+          if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
+            $sql .= $matches[1];
+          } else {
+            ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
+          }
+          if ( count($matches) > 2 ) {
+            $sql .= ' '.strtoupper($matches[2]);
+            if ( count($matches) > 3 )
+              $sql .= ' '.strtoupper($matches[3]);
+          }
+        } else {
+          ZM\Error('Sort field didn\'t match regexp '.$sort_field);
+        }
+      } # end foreach sort field
+    } # end if has sort
+    if ( !empty($entitySpec['limit']) )
+      $limit = $entitySpec['limit'];
+    elseif ( !empty($_REQUEST['count']) )
+      $limit = validInt($_REQUEST['count']);
+    $limit_offset = '';
+    if ( !empty($_REQUEST['offset']) )
+      $limit_offset = validInt($_REQUEST['offset']) . ', ';
+    if ( !empty($limit) )
+      $sql .= ' limit '.$limit_offset.$limit;
+    if ( isset($limit) && ($limit == 1) ) {
+      if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
+        if (isset($entitySpec['object'])) {
+          ZM\Debug("Have object".$entitySpec['object']);
+          $object_name = 'ZM\\'.$entitySpec['object'];
+          $object = new $object_name($sqlData);
+          ZM\Debug("Canview:".$object->canView());
+          if (!$object->canView()) {
+            ajaxError('Unrecognised action or insufficient permissions for '.$entity.' '.print_r($object, true));
+            return;
+          }
+        }
+        foreach ( $postFuncs as $element=>$func )
+          $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+        foreach ( $postFunctions as $element=>$function )
+          $sqlData[$element] = $function($sqlData);
+        $data = array_merge($data, $sqlData);
+      }
+    } else {
+      $count = 0;
+      foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
+
+        if (isset($entitySpec['object'])) {
+          ZM\Debug("Have object".$entitySpec['object']);
+          $object_name = 'ZM\\'.$entitySpec['object'];
+          $object = new $object_name($sqlData);
+          ZM\Debug("Canview:".$object->canView());
+          if (!$object->canView()) continue;
+        }
+
+        foreach ( $postFuncs as $element=>$func )
+          $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+        foreach ( $postFunctions as $element=>$function )
+          $sqlData[$element] = $function($sqlData);
+        $data[] = $sqlData;
+        if ( isset($limit) && ++$count >= $limit )
+          break;
+      } # end foreach
+    } # end if have limit == 1
+  } else {
+    ZM\Debug("No fieldSQL");
+  }
+  //ZM\Debug(print_r($data, true));
   return $data;
 }
 
@@ -391,17 +427,24 @@ switch ( $_REQUEST['layout'] ) {
     header('Content-type: application/xml');
     echo('<?xml version="1.0" encoding="iso-8859-1"?>
       ');
-    echo '<'.strtolower($_REQUEST['entity']).'>
+    $entity = strtolower($_REQUEST['entity']);
+    $entity = preg_replace('/[^A-Za-z0-9]/', '', $entity);
+    echo '<'.$entity.'>
 ';
     foreach ( $data as $key=>$value ) {
       $key = strtolower($key);
       echo "<$key>".htmlentities($value)."</$key>\n";
     }
-    echo '</'.strtolower($_REQUEST['entity']).">\n";
+    echo '</'.$entity.">\n";
     break;
   case 'json' :
     {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
+      if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+        $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+        $response['auth'] = $auth_hash;
+        $response['auth_relay'] = get_auth_relay();
+      }
       if ( isset($_REQUEST['loopback']) )
         $response['loopback'] = validJsStr($_REQUEST['loopback']);
         #ZM\Warning(print_r($response, true));
@@ -417,19 +460,19 @@ switch ( $_REQUEST['layout'] ) {
 }
 
 function getFrameImage() {
-  $eventId = $_REQUEST['id'][0];
-  $frameId = $_REQUEST['id'][1];
+  $eventId = validCardinal($_REQUEST['eid']);
+  $frameId = validCardinal($_REQUEST['fid']);
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
-    ZM\Error("Frame not found for event $eventId frame $frameId");
+    ZM\Debug("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;
     $frame['Type'] = 'Virtual';
   }
-  $event = dbFetchOne('SELECT * FROM Events WHERE Id = ?', NULL, array($frame['EventId']));
-  $frame['Image'] = getImageSrc($event, $frame, SCALE_BASE);
+  $event = new ZM\Event($frame['EventId']);
+  $frame['Image'] = $event->getImageSrc($frame, SCALE_BASE);
   return $frame;
 }
 
@@ -460,28 +503,35 @@ function getNearEvents() {
 
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   parseSort();
-  if ( $user['MonitorIds'] ) {
-    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+  if ( count($user->unviewableMonitorIds()) ) {
+    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   }
   $filter_sql = $filter->sql();
 
   # When listing, it may make sense to list them in descending order.
-  # But when viewing Prev should timewise earlier and Next should be after.
+  # But when viewing Prev should be timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  $sql = '
+  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+  FROM Events AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId
+  WHERE E.Id != ? AND '.$sortColumn.'
+  '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql .= ' AND E.StartDateTime <= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -489,17 +539,24 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  $sql = '
+  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+  FROM Events AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId
+  WHERE E.Id != ? AND '.$sortColumn.'
+  '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql .= ' AND E.StartDateTime >= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

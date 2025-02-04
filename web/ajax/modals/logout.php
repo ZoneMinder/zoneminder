@@ -29,7 +29,7 @@ global $CLANG;
         </button>
       </div>
       <div class="modal-body">
-        <p><?php echo sprintf( $CLANG['CurrentLogin'], validHtmlStr($user['Username']) ) ?></p>
+        <p><?php echo $user ? sprintf( $CLANG['CurrentLogin'], validHtmlStr($user->Username()) ) : translate('You are not logged in.') ?></p>
 <?php if ( canView('System') ) { ?>
         <p>Other logged in users:<br/>
 <table class="table table-striped">

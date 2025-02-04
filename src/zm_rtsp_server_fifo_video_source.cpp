@@ -12,15 +12,14 @@
 
 #if HAVE_RTSP_SERVER
 ZoneMinderFifoVideoSource::ZoneMinderFifoVideoSource(
-    std::shared_ptr<xop::RtspServer>& rtspServer,
-    xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
-    ) :
+  std::shared_ptr<xop::RtspServer>& rtspServer,
+  xop::MediaSessionId sessionId,
+  xop::MediaChannelId channelId,
+  const std::string &fifo
+) :
   ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo),
   m_width(0),
-  m_height(0)
-{
+  m_height(0) {
   m_timeBase = {1, 90000};
 }
 

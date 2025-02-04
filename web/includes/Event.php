@@ -3,9 +3,14 @@ namespace ZM;
 require_once('Storage.php');
 require_once('functions.php');
 require_once('Object.php');
+require_once('Event_Tag.php');
+require_once('Tag.php');
 
 class Event extends ZM_Object {
   protected static $table = 'Events';
+
+  protected $Tags;
+  protected $Event_Tags;
 
   protected $defaults = array(
     'Id' => null,
@@ -40,18 +45,18 @@ class Event extends ZM_Object {
     'Locked' => 0,
 );
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public static function clear_cache() {
-    return ZM_Object::_clear_cache(get_class());
+    return ZM_Object::_clear_cache(self::class);
   }
   public function remove_from_cache() {
-    return ZM_Object::_remove_from_cache(get_class(), $this);
+    return ZM_Object::_remove_from_cache(self::class, $this);
   }
 
   public function Storage( $new = null ) {
@@ -111,6 +116,14 @@ class Event extends ZM_Object {
       $this->{'Time'} = strtotime($this->{'StartDateTime'});
     }
     return $this->{'Time'};
+  }
+
+  public function StartDateTimeSecs() {
+    return strtotime($this->{'StartDateTime'});
+  }
+
+  public function EndDateTimeSecs() {
+    return strtotime($this->{'EndDateTime'});
   }
 
   public function Path() {
@@ -244,16 +257,19 @@ class Event extends ZM_Object {
   }
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
-
-    $streamSrc = '';
     $Server = $this->Server();
 
     # If we are in a multi-port setup, then use the multiport, else by
     # passing null Server->Url will use the Port set in the Server setting
-    $streamSrc .= $Server->Url(
-      ZM_MIN_STREAMING_PORT ?
+    if ($args['mode'] == 'mp4') { #Downloading a video file. It is possible to reconsider the condition later. 
+                                  #If the port is different from 80, the browser will start watching the video instead of downloading.
+      $port = null;
+    } else {
+      $port = ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
-      null);
+      null;      
+    }
+    $streamSrc = $Server->Url($port);
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
@@ -305,8 +321,8 @@ class Event extends ZM_Object {
   }
 
   function createListThumbnail( $overwrite=false ) {
-	# The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
-	# The snapshot image will be generated during capturing
+    # The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
+    # The snapshot image will be generated during capturing
     if ( file_exists($this->Path().'/snapshot.jpg') ) {
       Debug("snapshot exists");
       $frame = null;
@@ -368,7 +384,7 @@ class Event extends ZM_Object {
 
   function getThumbnailSrc( $args=array(), $querySep='&' ) {
     # The thumbnail is theoretically the image with the most motion.
-# We always store at least 1 image when capturing
+    # We always store at least 1 image when capturing
 
     $streamSrc = '';
     $Server = $this->Server();
@@ -378,7 +394,11 @@ class Event extends ZM_Object {
       null);
 
     $args['eid'] = $this->{'Id'};
-    $args['fid'] = 'snapshot';
+    if (file_exists($this->Path().'/objdetect.jpg')) {
+      $args['fid'] = 'objdetect';
+    } else {
+      $args['fid'] = 'snapshot';
+    }
     $args['view'] = 'image';
     $args['width'] = $this->ThumbnailWidth();
     $args['height'] = $this->ThumbnailHeight();
@@ -404,21 +424,27 @@ class Event extends ZM_Object {
     $eventPath = $Event->Path();
 
     if ( $frame and !is_array($frame) ) {
-      # Must be an Id
       Debug("Assuming that $frame is an Id");
-      $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      $f = Frame::find_one(['Id'=>$frame]);
+      if ($f) {
+        $frame = (array)$f;
+      } else {
+        $frame = $this->find_virtual_frame($frame);
+        if (!$frame)
+          $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      }
     }
 
     if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
-      $captImage = 'snapshot.jpg';
+      $captureImage = 'snapshot.jpg';
       Debug('Frame not specified, using snapshot');
       $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
-      if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
-        if ( !file_exists($eventPath.'/'.$captImage) ) {
+      $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
+      if ( ! file_exists( $eventPath.'/'.$captureImage ) ) {
+        $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
+        if ( !file_exists($eventPath.'/'.$captureImage) ) {
           # Generate the frame JPG
           if ( $Event->DefaultVideo() ) {
             $videoPath = $eventPath.'/'.$Event->DefaultVideo();
@@ -428,8 +454,8 @@ class Event extends ZM_Object {
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
+            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
+            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
             Debug('Running '.$command);
             $output = array();
             $retval = 0;
@@ -442,21 +468,21 @@ class Event extends ZM_Object {
       } // end if analyze file exists
     } // end if frame or snapshot
 
-    $captPath = $eventPath.'/'.$captImage;
-    if ( !file_exists($captPath) ) {
-      Error('Capture file does not exist at '.$captPath);
+    $capturePath = $eventPath.'/'.$captureImage;
+    if ( !file_exists($capturePath) ) {
+      Error('Capture file does not exist at '.$capturePath);
     }
     
-    $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
-    $analPath = $eventPath.'/'.$analImage;
+    $analysisImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
+    $analysisPath = $eventPath.'/'.$analysisImage;
 
     $alarmFrame = $frame['Type'] == 'Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
-    $isAnalImage = $hasAnalImage && !$captureOnly;
+    $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
+    $isAnalysisImage = $hasAnalysisImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
-      $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
+    if ( !ZM_WEB_SCALE_THUMBS || !$scale || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
+      $imagePath = $thumbPath = $isAnalysisImage ? $analysisPath : $capturePath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
@@ -466,15 +492,15 @@ class Event extends ZM_Object {
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace('/\.jpg$/', "-$scale.jpg", $captPath);
-      $thumbAnalPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analPath);
+      $thumbCapturePath = preg_replace('/\.jpg$/', "-$scale.jpg", $capturePath);
+      $thumbAnalysisPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analysisPath);
 
-      if ( $isAnalImage ) {
-        $imagePath = $analPath;
-        $thumbPath = $thumbAnalPath;
+      if ( $isAnalysisImage ) {
+        $imagePath = $analysisPath;
+        $thumbPath = $thumbAnalysisPath;
       } else {
-        $imagePath = $captPath;
-        $thumbPath = $thumbCaptPath;
+        $imagePath = $capturePath;
+        $thumbPath = $thumbCapturePath;
       }
 
       $thumbFile = $thumbPath;
@@ -501,9 +527,9 @@ class Event extends ZM_Object {
         'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?'alarm':'normal',
-        'isAnalImage' => $isAnalImage,
-        'hasAnalImage' => $hasAnalImage,
-        'FrameId'		=>	$frame['FrameId'],
+        'isAnalysisImage' => $isAnalysisImage,
+        'hasAnalysisImage' => $hasAnalysisImage,
+        'FrameId' => $frame['FrameId'],
         );
 
     return $imageData;
@@ -645,16 +671,17 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u['Events'] != 'None') {
+    if ($u->Events() != 'None') {
       return true;
     }
-    if ($u['Snapshots'] != 'None') {
+    if ($u->Snapshots() != 'None') {
       # If the event is contained in a snapshot, then we can still view it.
       if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
         return true;
     }
     return false;
   }
+
   function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;
@@ -663,7 +690,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u['Events'] != 'Edit') {
+    if ($u->Events() != 'Edit') {
       return false;
     }
     return true;
@@ -691,6 +718,131 @@ class Event extends ZM_Object {
     return $status ? '' : rtrim($result);
   }
 
-} # end class
+  public function find_virtual_frame($fid) {
+    $frame = null;
 
+    $previousBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    $nextBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    if ($previousBulkFrame and $nextBulkFrame) {
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($fid);
+
+      $percentage = ($frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
+      $frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
+      Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+    } else if ($previousBulkFrame) {
+      //If no next Frame we have to pull data from the Event itself
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($_REQUEST['fid']);
+
+      $percentage = ($frame->FrameId()/$this->Frames());
+
+      $frame->Delta(floor($this->Length() * $percentage));
+    }
+    return $frame;
+  }
+
+  public function Event_Tags() {
+    if (!isset($this->Event_Tags)) {
+      $this->Event_Tags = $this->Id() ? Event_Tag::find(['EventId'=>$this->Id()]) : [];
+    }
+    return $this->Event_Tags;
+  }
+
+  public function Tags() {
+    if (!isset($this->Tags)) {
+      $this->Tags = array_map(function($t){return $t->Tag();}, $this->Event_Tags());
+    } else {
+      Debug("Have Tags");
+    }
+    return $this->Tags;
+  }
+
+  public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
+    $event_path = $this->Path();
+    $video_name = preg_replace('/\s/', '_', $this->Name());
+
+    $file_parts = [$video_name];
+    if ( $rate ) {
+      $file_rate = str_replace('.', '_', $rate);
+      $file_rate = str_replace('_00', '', $file_rate);
+      $file_rate = preg_replace('/(_\d+)0+$/', '$1', $file_rate);
+      $file_parts[] = 'r'.$file_rate;
+    } else if ( $fps ) {
+      $file_fps = str_replace('.', '_', $fps);
+      $file_fps = str_replace('_00', '', $file_fps);
+      $file_fps = preg_replace('/(_\d+)0+$/', '$1', $file_rate);
+      $file_parts[] = 'R'.$file_fps;
+    }
+
+    if ( $scale ) {
+      $file_scale = str_replace('.', '_', $scale);
+      $file_scale = str_replace('/_00/', '', $file_scale);
+      $file_scale = preg_replace('/(_\d+)0+$/', '$1', $file_scale);
+      $file_parts[] = 's'.$file_scale;
+    } else if ( $size ) {
+      $file_size = 'S'.$size;
+      $file_parts[] = $file_size;
+    }
+    array_merge($file_parts, explode(',', $transforms));
+    $video_file = implode('-', $file_parts).'.'.$format;
+    if ( $overwrite || ! file_exists($video_file) ) {
+      Info("Creating video file $video_file for event ".$this->Id());
+
+      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
+      if ($rate) {
+        if ( $rate != 1.0 ) {
+          $frame_rate *= $rate;
+        }
+      } else if ( $fps ) {
+        $frame_rate = $fps;
+      }
+
+      $width = $this->Width();
+      $height = $this->Height();
+      $video_size = " {$width}x{$height}";
+
+      if ( $scale ) {
+        if ( $scale != 1.0 ) {
+          $width = int($width*$scale);
+          $height = int($height*$scale);
+          $video_size = " {$width}x{$height}";
+        }
+      } else if ( $size ) {
+        $video_size = $size;
+      }
+      $command = ZM_PATH_FFMPEG
+      ." -y -r $frame_rate "
+        .ZM_FFMPEG_INPUT_OPTIONS
+        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
+        #. " -f concat -i /tmp/event_files.txt"
+        #
+        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
+      ." -s $video_size "
+
+        .ZM_FFMPEG_OUTPUT_OPTIONS
+        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
+        ;
+      Debug($command);
+      if(!exec(escapeshellcmd($command), $output, $rc)) {
+        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+        return;
+      }
+
+      Info("Finished $video_file");
+      return $video_file;
+    } else {
+      Info("Video file $video_file already exists for event {$this['Id']}");
+      return $video_file;
+    }
+    return;
+  } # end sub GenerateVideo
+
+} # end class
 ?>

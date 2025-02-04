@@ -78,7 +78,7 @@ find_program(GSOAP_SOAPCPP2
 )
 # -----------------------------------------------------
 # GSOAP version
-# try to determine the flagfor the 2.7.6 compatiblity, break with 2.7.13 and re-break with 2.7.16
+# try to determine the flag for the 2.7.6 compatibility, break with 2.7.13 and re-break with 2.7.16
 # ----------------------------------------------------
 if(GSOAP_SOAPCPP2)
   execute_process(COMMAND ${GSOAP_SOAPCPP2}  "-V"   OUTPUT_VARIABLE GSOAP_STRING_VERSION ERROR_VARIABLE GSOAP_STRING_VERSION )
@@ -86,7 +86,7 @@ if(GSOAP_SOAPCPP2)
 endif()
 # -----------------------------------------------------
 # GSOAP_276_COMPAT_FLAGS and GSOAPVERSION
-# try to determine the flagfor the 2.7.6 compatiblity, break with 2.7.13 and re-break with 2.7.16
+# try to determine the flag for the 2.7.6 compatibility, break with 2.7.13 and re-break with 2.7.16
 # ----------------------------------------------------
 if( "${GSOAP_VERSION}"  VERSION_LESS "2.7.6")
 	set(GSOAP_276_COMPAT_FLAGS "")
@@ -106,8 +106,9 @@ find_package_handle_standard_args(GSOAP DEFAULT_MSG GSOAP_CXX_LIBRARIES
 mark_as_advanced(GSOAP_INCLUDE_DIR GSOAP_LIBRARIES GSOAP_WSDL2H GSOAP_SOAPCPP2)
 
 if(GSOAP_FOUND)
-  if(GSOAP_FIND_REQUIRED AND GSOAP_FIND_VERSION AND ${GSOAP_VERSION} VERSION_LESS ${GSOAP_FIND_VERSION})
-	message(SEND_ERROR "Found GSOAP version ${GSOAP_VERSION} less then required ${GSOAP_FIND_VERSION}.")
+  if(GSOAP_FIND_VERSION AND ${GSOAP_VERSION} VERSION_LESS ${GSOAP_FIND_VERSION})
+	  message("Found GSOAP version ${GSOAP_VERSION} less then required ${GSOAP_FIND_VERSION}.")
+    unset(GSOAP_FOUND)
   endif()
 endif()
 

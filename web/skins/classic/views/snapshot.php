@@ -22,7 +22,7 @@ if (!canView('Snapshots')) {
   $view = 'error';
   return;
 } else if (!ZM_FEATURES_SNAPSHOTS) {
-  $view = 'console';
+  $view = getHomeView();
   return;
 }
 
@@ -34,8 +34,8 @@ $id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : null;
 $snapshot = new ZM\Snapshot($id);
 
 $monitors = array();
-if ( $user['MonitorIds'] ) {
-  $monitor_ids = explode(',', $user['MonitorIds']);
+if ( count($user->unviewableMonitorIds())) {
+  $monitor_ids = $user->viewableMonitorIds();
 }
 xhtmlHeaders(__FILE__, translate('Snapshot').' '.$snapshot->Id());
 getBodyTopHTML();

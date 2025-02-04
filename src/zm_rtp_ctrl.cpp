@@ -1,17 +1,17 @@
 //
 // ZoneMinder RTCP Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -24,8 +24,7 @@
 #include "zm_rtsp.h"
 
 RtpCtrlThread::RtpCtrlThread(RtspThread &rtspThread, RtpSource &rtpSource)
-    : mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
-{
+  : mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false) {
   mThread = std::thread(&RtpCtrlThread::Run, this);
 }
 
@@ -43,7 +42,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) 
 
   //printf( "C: " );
   //for ( int i = 0; i < packetLen; i++ )
-    //printf( "%02x ", (unsigned char)packet[i] );
+  //printf( "%02x ", (unsigned char)packet[i] );
   //printf( "\n" );
   int ver = rtcpPacket->header.version;
   int count = rtcpPacket->header.count;
@@ -53,92 +52,89 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) 
   Debug( 5, "RTCP Ver: %d Count: %d Pt: %d len: %d", ver, count, pt, len);
 
   switch( pt ) {
-    case RTCP_SR :
-    {
-      uint32_t ssrc = ntohl(rtcpPacket->body.sr.ssrcN);
+  case RTCP_SR : {
+    uint32_t ssrc = ntohl(rtcpPacket->body.sr.ssrcN);
 
-      Debug( 5, "RTCP Got SR (%x)", ssrc );
-      if ( mRtpSource.getSsrc() ) {
-        if ( ssrc != mRtpSource.getSsrc() ) {
-          Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
-          return( -1 );
-        }
-      } else if ( ssrc ) {
-        mRtpSource.setSsrc( ssrc );
+    Debug( 5, "RTCP Got SR (%x)", ssrc );
+    if ( mRtpSource.getSsrc() ) {
+      if ( ssrc != mRtpSource.getSsrc() ) {
+        Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
+        return( -1 );
+      }
+    } else if ( ssrc ) {
+      mRtpSource.setSsrc( ssrc );
+    }
+
+    if ( len > 1 ) {
+      //printf( "NTPts:%d.%d, RTPts:%d\n", $ntptsmsb, $ntptslsb, $rtpts );
+      uint16_t ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
+      uint16_t ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
+      //printf( "NTPts:%x.%04x, RTPts:%x\n", $ntptsmsb, $ntptslsb, $rtpts );
+      //printf( "Pkts:$sendpkts, Octs:$sendocts\n" );
+      uint32_t rtpTime = ntohl(rtcpPacket->body.sr.rtpTsN);
+
+      mRtpSource.updateRtcpData( ntptsmsb, ntptslsb, rtpTime );
+    }
+    break;
+  }
+  case RTCP_SDES : {
+    ssize_t contentLen = packetLen - sizeof(rtcpPacket->header);
+    while ( contentLen ) {
+      Debug( 5, "RTCP CL: %zd", contentLen );
+      uint32_t ssrc = ntohl(rtcpPacket->body.sdes.srcN);
+
+      Debug( 5, "RTCP Got SDES (%x), %d items", ssrc, count );
+      if ( mRtpSource.getSsrc() && (ssrc != mRtpSource.getSsrc()) ) {
+        Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
+        return( -1 );
       }
 
-      if ( len > 1 ) {
-        //printf( "NTPts:%d.%d, RTPts:%d\n", $ntptsmsb, $ntptslsb, $rtpts );
-        uint16_t ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
-        uint16_t ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
-        //printf( "NTPts:%x.%04x, RTPts:%x\n", $ntptsmsb, $ntptslsb, $rtpts );
-        //printf( "Pkts:$sendpkts, Octs:$sendocts\n" );
-        uint32_t rtpTime = ntohl(rtcpPacket->body.sr.rtpTsN);
-
-        mRtpSource.updateRtcpData( ntptsmsb, ntptslsb, rtpTime );
+      unsigned char *sdesPtr = (unsigned char *)&rtcpPacket->body.sdes.item;
+      for ( int i = 0; i < count; i++ ) {
+        RtcpSdesItem *item = (RtcpSdesItem *)sdesPtr;
+        Debug( 5, "RTCP Item length %d", item->len );
+        switch( item->type ) {
+        case RTCP_SDES_CNAME : {
+          std::string cname( item->data, item->len );
+          Debug( 5, "RTCP Got CNAME %s", cname.c_str() );
+          break;
+        }
+        case RTCP_SDES_END :
+        case RTCP_SDES_NAME :
+        case RTCP_SDES_EMAIL :
+        case RTCP_SDES_PHONE :
+        case RTCP_SDES_LOC :
+        case RTCP_SDES_TOOL :
+        case RTCP_SDES_NOTE :
+        case RTCP_SDES_PRIV :
+        default :
+          Error( "Received unexpected SDES item type %d, ignoring", item->type );
+          return -1;
+        }
+        int paddedLen = 4+2+item->len+1; // Add null byte
+        paddedLen = (((paddedLen-1)/4)+1)*4; // Round to nearest multiple of 4
+        Debug(5, "RTCP PL:%d", paddedLen);
+        sdesPtr += paddedLen;
+        contentLen = ( paddedLen <= contentLen ) ? ( contentLen - paddedLen ) : 0;
       }
-      break;
-    }
-    case RTCP_SDES :
-    {
-      ssize_t contentLen = packetLen - sizeof(rtcpPacket->header);
-      while ( contentLen ) {
-        Debug( 5, "RTCP CL: %zd", contentLen );
-        uint32_t ssrc = ntohl(rtcpPacket->body.sdes.srcN);
-
-        Debug( 5, "RTCP Got SDES (%x), %d items", ssrc, count );
-        if ( mRtpSource.getSsrc() && (ssrc != mRtpSource.getSsrc()) ) {
-          Warning( "Discarding packet for unrecognised ssrc %x", ssrc );
-          return( -1 );
-        }
-
-        unsigned char *sdesPtr = (unsigned char *)&rtcpPacket->body.sdes.item;
-        for ( int i = 0; i < count; i++ ) {
-          RtcpSdesItem *item = (RtcpSdesItem *)sdesPtr;
-          Debug( 5, "RTCP Item length %d", item->len );
-          switch( item->type ) {
-            case RTCP_SDES_CNAME :
-            {
-              std::string cname( item->data, item->len );
-              Debug( 5, "RTCP Got CNAME %s", cname.c_str() );
-              break;
-            }
-            case RTCP_SDES_END :
-            case RTCP_SDES_NAME :
-            case RTCP_SDES_EMAIL :
-            case RTCP_SDES_PHONE :
-            case RTCP_SDES_LOC :
-            case RTCP_SDES_TOOL :
-            case RTCP_SDES_NOTE :
-            case RTCP_SDES_PRIV :
-            default :
-              Error( "Received unexpected SDES item type %d, ignoring", item->type );
-              return -1;
-          }
-          int paddedLen = 4+2+item->len+1; // Add null byte
-          paddedLen = (((paddedLen-1)/4)+1)*4; // Round to nearest multiple of 4
-          Debug(5, "RTCP PL:%d", paddedLen);
-          sdesPtr += paddedLen;
-          contentLen = ( paddedLen <= contentLen ) ? ( contentLen - paddedLen ) : 0;
-        }
-      } // end whiel contentLen
-      break;
-    }
-    case RTCP_BYE :
-      Debug(5, "RTCP Got BYE");
-      Stop();
-      break;
-    case RTCP_APP :
-      // Ignoring as per RFC 3550
-      Debug(5, "Received RTCP_APP packet, ignoring.");
-      break;
-    case RTCP_RR :
-      Error("Received RTCP_RR packet.");
-      return -1;
-    default :
-      // Ignore unknown packet types. Some cameras do this by design.
-      Debug(5, "Received unexpected packet type %d, ignoring", pt);
-      break;
+    } // end whiel contentLen
+    break;
+  }
+  case RTCP_BYE :
+    Debug(5, "RTCP Got BYE");
+    Stop();
+    break;
+  case RTCP_APP :
+    // Ignoring as per RFC 3550
+    Debug(5, "Received RTCP_APP packet, ignoring.");
+    break;
+  case RTCP_RR :
+    Error("Received RTCP_RR packet.");
+    return -1;
+  default :
+    // Ignore unknown packet types. Some cameras do this by design.
+    Debug(5, "Received unexpected packet type %d, ignoring", pt);
+    break;
   }
   consumed = sizeof(uint32_t)*(len+1);
   return consumed;
@@ -159,12 +155,12 @@ int RtpCtrlThread::generateRr( const unsigned char *packet, ssize_t packetLen ) 
   mRtpSource.updateRtcpStats();
 
   Debug(5, "Ssrc = %d Ssrc_1 = %d Last Seq = %d Jitter = %d Last SR = %d",
-      mRtspThread.getSsrc()+1,
-      mRtpSource.getSsrc(),
-      mRtpSource.getMaxSeq(),
-      mRtpSource.getJitter(),
-      mRtpSource.getLastSrTimestamp()
-      );
+        mRtspThread.getSsrc()+1,
+        mRtpSource.getSsrc(),
+        mRtpSource.getMaxSeq(),
+        mRtpSource.getJitter(),
+        mRtpSource.getLastSrTimestamp()
+       );
 
   rtcpPacket->body.rr.ssrcN = htonl(mRtspThread.getSsrc()+1);
   rtcpPacket->body.rr.rr[0].ssrcN = htonl(mRtpSource.getSsrc());
@@ -225,7 +221,7 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
   // rtcp_t *end;    /* end of compound RTCP packet */
 
   // if ((*(u_int16 *)r & RTCP_VALID_MASK) != RTCP_VALID_VALUE) {
-    // /* something wrong with packet format */
+  // /* something wrong with packet format */
   // }
   // end = (rtcp_t *)((u_int32 *)r + len);
 
@@ -233,7 +229,7 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
   // while (r < end && r->common.version == 2);
 
   // if (r != end) {
-    // /* something wrong with packet format */
+  // /* something wrong with packet format */
   // }
 
   while ( nBytes > 0 ) {
@@ -247,6 +243,10 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
 }
 
 void RtpCtrlThread::Run() {
+  if (mRtpSource.getLocalCtrlPort()<=1024) {
+    Debug(2, "Not starting control thread");
+    return;
+  }
   Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
   zm::SockAddrInet localAddr, remoteAddr;
 

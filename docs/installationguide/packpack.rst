@@ -27,7 +27,7 @@ Procedure
 
 - If the desired distro is not in the first list, then open the `packpack project README <https://github.com/packpack/packpack/blob/master/README.md>`_ and check if the desired distro is theoretically supported. If it is, then continue to step 2 with the understanding that you are heading out into uncharted territory. There could be problems. 
 
-- If the desired distro does not appear in either list, then unfortuantely you cannot use the procedure described here.
+- If the desired distro does not appear in either list, then unfortunately you cannot use the procedure described here.
 
 - If the desired distro architecture is arm, refer to `Appendix A - Enable Qemu On the Host`_ to enable qemu emulation on your amd64 host machine.
 

@@ -89,6 +89,6 @@ if ( $action == 'Save' ) {
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
   $Control->save($_REQUEST['Control']);
-  $redirect = '?view=controlcaps';
+  $redirect = '?view=options&tab=control';
 } // end if action
 ?>

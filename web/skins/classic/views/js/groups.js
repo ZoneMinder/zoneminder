@@ -1,11 +1,11 @@
 // Manage the NEW Group button
 function newGroup() {
+  $j('#groupModal').remove();
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
         insertModalHtml('groupdModal', data.html);
         $j('#groupModal').modal('show');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+        $j('#newGroupMonitorIds').chosen({width: "100%"});
       })
       .fail(logAjaxFail);
 }
@@ -17,16 +17,16 @@ function setGroup( element ) {
 }
 
 function editGroup( element ) {
-  var gid = element.getAttribute('data-group-id');
+  const gid = element.getAttribute('data-group-id');
   if ( !gid ) {
     console.log('No group id found in editGroup');
   } else {
+    $j('#groupModal').remove();
     $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
         .done(function(data) {
           insertModalHtml('groupModal', data.html);
           $j('#groupModal').modal('show');
-          $j('.chosen').chosen("destroy");
-          $j('.chosen').chosen();
+          $j('#newGroupMonitorIds').chosen({width: "100%"});
         })
         .fail(logAjaxFail);
   }

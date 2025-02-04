@@ -36,7 +36,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
-# Base connection class
+# Base control class
 #
 # ==========================================================================
 
@@ -150,6 +150,106 @@ $serial = $primary_key = 'Id';
   CanAutoScan
   NumScanPaths
   );
+%defaults = (
+	Name => '',
+    Type => q`'Ffmpeg'`,
+    CanWake => '0',
+    CanSleep => '0',
+    CanReset => '0',
+    CanReboot => '0',
+    CanZoom => '0',
+    CanAutoZoom => '0',
+    CanZoomAbs => '0',
+    CanZoomRel =>'0',
+    CanZoomCon => '0',
+    MinZoomRange  => undef,
+    MaxZoomRange  => undef,
+    MinZoomStep   => undef,
+    MaxZoomStep => undef,
+    HasZoomSpeed  => 0,
+    MinZoomSpeed  => 0,
+    MaxZoomSpeed => 0,
+    CanFocus  => 0,
+    CanAutoFocus  => 0,
+    CanFocusAbs => 0,
+    CanFocusRel => 0,
+    CanFocusCon   => 0,
+    MinFocusRange => undef,
+    MaxFocusRange => undef,
+    MinFocusStep  => undef,
+    MaxFocusStep => undef,
+    HasFocusSpeed => 0,
+    MinFocusSpeed => undef,
+    MaxFocusSpeed => undef,
+    CanIris => 0,
+    CanAutoIris => 0,
+    CanIrisAbs=> 0,
+    CanIrisRel => 0,
+    CanIrisCon => 0,
+    MinIrisRange => undef,
+    MaxIrisRange => undef,
+    MinIrisStep => undef,
+    MaxIrisStep => undef,
+    HasIrisSpeed => 0,
+    MinIrisSpeed => undef,
+    MaxIrisSpeed => undef,
+    CanGain => 0,
+    CanAutoGain => 0,
+    CanGainAbs => 0,
+    CanGainRel => 0,
+    CanGainCon => 0,
+    MinGainRange  => undef,
+    MaxGainRange  => undef,
+    MinGainStep => undef,
+    MaxGainStep => undef,
+    HasGainSpeed => 0,
+    MinGainSpeed => undef,
+    MaxGainSpeed => undef,
+    CanWhite => 0,
+    CanAutoWhite => 0,
+    CanWhiteAbs => 0,
+    CanWhiteRel => 0,
+    CanWhiteCon => 0,
+    MinWhiteRange => undef,
+    MaxWhiteRange => undef,
+    MinWhiteStep => undef,
+    MaxWhiteStep => undef,
+    HasWhiteSpeed => 0,
+    MinWhiteSpeed => undef,
+    MaxWhiteSpeed => undef,
+    HasPresets => 0,
+    NumPresets => 0,
+    HasHomePreset => 0,
+    CanSetPresets => 0,
+    CanMove => 0,
+    CanMoveDiag => 0,
+    CanMoveMap => 0,
+    CanMoveAbs => 0,
+    CanMoveRel => 0,
+    CanMoveCon => 0,
+    CanPan => 0,
+    MinPanRange => undef,
+    MaxPanRange => undef,
+    MinPanStep => undef,
+    MaxPanStep => undef,
+    HasPanSpeed => 0,
+    MinPanSpeed => undef,
+    MaxPanSpeed => undef,
+    HasTurboPan => 0,
+    TurboPanSpeed => undef,
+    CanTilt => 0,
+    MinTiltRange => undef,
+    MaxTiltRange => undef,
+    MinTiltStep => undef,
+    MaxTiltStep => undef,
+    HasTiltSpeed => 0,
+    MinTiltSpeed => undef,
+    MaxTiltSpeed => undef,
+    HasTurboTilt => 0,
+    TurboTiltSpeed => undef,
+    CanAutoScan => 0,
+    NumScanPaths => 0,
+    );
 
 our $AUTOLOAD;
 
@@ -229,12 +329,113 @@ sub executeCommand {
   &{$self->{$command}}($self, $params);
 }
 
+# Uses LWP get command and adds debugging
+# if $$self{BaseURL} is defined then it will be prepended
+sub get {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in get');
+    return;
+  }
+  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  my $response = $self->{ua}->get($url);
+  Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
+  return $response;
+}
+
+sub put {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in put');
+    return;
+  }
+  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  my $req = HTTP::Request->new(PUT => $url);
+  my $content = shift;
+  if ( defined($content) ) {
+    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
+    $req->content($content);
+  }
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success) {
+    Error($res->status_line);
+  } # end unless res->is_success
+  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  return $res;
+} # end sub put
+
 sub printMsg {
   my $self = shift;
   my $msg = shift;
   my $msg_len = length($msg);
 
   Debug($msg.'['.$msg_len.']');
+}
+
+sub credentials {
+  my $self = shift;
+  @$self{'username', 'password'} = @_;
+}
+
+sub get_realm {
+  my $self = shift;
+  my $url = shift;
+  my $response = $self->get($url);
+  return 1 if $response->is_success();
+
+  if ($response->status_line() eq '401 Unauthorized' and defined $$self{username}) {
+    my $headers = $response->headers();
+    foreach my $k ( keys %$headers ) {
+      Debug("Initial Header $k => $$headers{$k}");
+    }
+    if ( $$headers{'www-authenticate'} ) {
+      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
+        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
+        if ( $tokens{realm} ) {
+          if ( $$self{realm} ne $tokens{realm} ) {
+            $$self{realm} = $tokens{realm};
+            Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
+            $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+            $response = $self->get($url);
+            if ( !$response->is_success() ) {
+              Debug('Authentication still failed after updating REALM' . $response->status_line);
+              $headers = $response->headers();
+              foreach my $k ( keys %$headers ) {
+                Debug("Initial Header $k => $$headers{$k}\n");
+              }  # end foreach
+            } else {
+              return 1;
+            }
+          } else {
+            Error('Authentication failed, not a REALM problem');
+          }
+        } else {
+          Debug('Failed to match realm in tokens');
+        } # end if
+      } # end foreach auth header
+    } else {
+      Debug('No headers line');
+    } # end if headers
+  } # end if not authen
+  return undef;
+} # end sub get_realm
+
+sub ping {
+  my $self = shift;
+  my $ip = @_ ? shift : $$self{host};
+  return undef if ! $ip;
+
+  require Net::Ping;
+  Debug("Pinging $ip");
+
+  my $p = Net::Ping->new();
+  my $rv = $p->ping($ip);
+  $p->close();
+  Debug("Pinging $ip $rv");
+  return $rv;
 }
 
 1;

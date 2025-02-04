@@ -1,21 +1,21 @@
 //
 // ZoneMinder Remote Camera Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_remote_camera_http.h"
 
@@ -76,8 +76,7 @@ RemoteCameraHttp::RemoteCameraHttp(
     p_hue,
     p_colour,
     p_capture,
-    p_record_audio )
-{
+    p_record_audio ) {
   sd = -1;
 
   timeout.tv_sec = 0;
@@ -117,7 +116,7 @@ void RemoteCameraHttp::Initialise() {
   }
 
   if ( !timeout.tv_sec ) {
-    timeout.tv_sec = config.http_timeout/1000; 
+    timeout.tv_sec = config.http_timeout/1000;
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
 
@@ -130,18 +129,18 @@ void RemoteCameraHttp::Initialise() {
   state = HEADER;
 
 #if HAVE_LIBPCRE
-    if ( method == REGEXP ) {
-			if ( !header_expr )
-				header_expr = new RegExpr("^(.+?\r?\n\r?\n)", PCRE_DOTALL);
-			if ( !status_expr )
-				status_expr = new RegExpr("^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS);
-			if ( !connection_expr )
-				connection_expr = new RegExpr("Connection: ?(.+?)\r?\n", PCRE_CASELESS);
-			if ( !content_length_expr )
-				content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS);
-			if ( !content_type_expr )
-				content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS);
-		}
+  if ( method == REGEXP ) {
+    if ( !header_expr )
+      header_expr = new RegExpr("^(.+?\r?\n\r?\n)", PCRE_DOTALL);
+    if ( !status_expr )
+      status_expr = new RegExpr("^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS);
+    if ( !connection_expr )
+      connection_expr = new RegExpr("Connection: ?(.+?)\r?\n", PCRE_CASELESS);
+    if ( !content_length_expr )
+      content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS);
+    if ( !content_type_expr )
+      content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS);
+  }
 #endif
 } // end void RemoteCameraHttp::Initialise()
 
@@ -168,7 +167,7 @@ int RemoteCameraHttp::Connect() {
       sd = -1;
       char buf[sizeof(struct in6_addr)];
       struct sockaddr_in *addr;
-      addr = (struct sockaddr_in *)p->ai_addr; 
+      addr = (struct sockaddr_in *)p->ai_addr;
       inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
 
       Warning("Can't connect to remote camera mid: %d at %s: %s", monitor->Id(), buf, strerror(errno));
@@ -270,7 +269,7 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
           return -1;
         }
         // Case where we are grabbing a single jpg, but no content-length was given, so the expectation is that we read until close.
-		    return 0;
+        return 0;
       }
       // If socket is closed locally, then select will fail, but if it is closed remotely
       // then we have an exception on our socket.. but no data.
@@ -346,224 +345,228 @@ int RemoteCameraHttp::GetResponse() {
 
     while ( !zm_terminate ) {
       switch( state ) {
-        case HEADER :
-          {
-						int buffer_len = GetData();
-            if ( buffer_len < 0 ) {
-              Error("Unable to read header data");
-              return -1;
-            }
-						bytes += buffer_len;
-            if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 ) {
-              header = header_expr->MatchString( 1 );
-              header_len = header_expr->MatchLength( 1 );
-              Debug(4, "Captured header (%d bytes):\n'%s'", header_len, header);
+      case HEADER : {
+        int buffer_len = GetData();
+        if ( buffer_len < 0 ) {
+          Error("Unable to read header data");
+          return -1;
+        }
+        bytes += buffer_len;
+        if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 ) {
+          header = header_expr->MatchString( 1 );
+          header_len = header_expr->MatchLength( 1 );
+          Debug(4, "Captured header (%d bytes):\n'%s'", header_len, header);
 
-              if ( status_expr->Match( header, header_len ) < 4 ) {
-                Error( "Unable to extract HTTP status from header" );
-                return( -1 );
-              }
-              http_version = status_expr->MatchString( 1 );
-              status_code = atoi( status_expr->MatchString( 2 ) );
-              status_mesg = status_expr->MatchString( 3 );
-
-              if ( status_code == 401 ) {
-                if ( mNeedAuth ) {
-                  Error( "Failed authentication: " );
-                  return( -1 );
-                }
-                mNeedAuth = true;
-                std::string Header = header;
-
-                mAuthenticator->checkAuthResponse(Header);
-                if ( mAuthenticator->auth_method() == zm::AUTH_DIGEST ) {
-                  Debug( 2, "Need Digest Authentication" );
-                  request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
-                  request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
-                  request += stringtf( "Host: %s\r\n", host.c_str());
-                  if ( strcmp( config.http_version, "1.0" ) == 0 )
-                    request += "Connection: Keep-Alive\r\n";
-                  request += mAuthenticator->getAuthHeader("GET", path);
-                  request += "\r\n";
-
-                  Debug( 2, "New request header: %s", request.c_str() );
-                  return( 0 );
-                } 
-
-              } else if ( status_code < 200 || status_code > 299 ) {
-                Error( "Invalid response status %d: %s\n%s", status_code, status_mesg, (char *)buffer );
-                return( -1 );
-              }
-              Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );
-
-              if ( connection_expr->Match( header, header_len ) == 2 ) {
-                connection_type = connection_expr->MatchString( 1 );
-                Debug( 3, "Got connection '%s'", connection_type );
-              }
-
-              if ( content_length_expr->Match( header, header_len ) == 2 ) {
-                content_length = atoi( content_length_expr->MatchString( 1 ) );
-                Debug( 3, "Got content length '%d'", content_length );
-              }
-
-              if ( content_type_expr->Match( header, header_len ) >= 2 ) {
-                content_type = content_type_expr->MatchString( 1 );
-                Debug( 3, "Got content type '%s'\n", content_type );
-                if ( content_type_expr->MatchCount() > 2 ) {
-                  content_boundary = content_type_expr->MatchString( 2 );
-                  Debug( 3, "Got content boundary '%s'", content_boundary );
-                }
-              }
-
-              if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = JPEG;
-                state = CONTENT;
-              } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = X_RGB;
-                state = CONTENT;
-              } else if ( !strcasecmp( content_type, "image/x-rgbz" ) ) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = X_RGBZ;
-                state = CONTENT;
-              } else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) ) {
-                // Image stream, so start processing
-                if ( !content_boundary[0] ) {
-                  Error( "No content boundary found in header '%s'", header );
-                  return( -1 );
-                }
-                mode = MULTI_IMAGE;
-                state = SUBHEADER;
-              }
-              //else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
-              //{
-              //// MPEG stream, coming soon!
-              //}
-              else {
-                Error("Unrecognised content type '%s'", content_type);
-                return -1;
-              }
-              buffer.consume(header_len);
-            } else {
-              Debug(3, "Unable to extract header from stream, retrying");
-              //return( -1 );
-            }
-            break;
+          if ( status_expr->Match( header, header_len ) < 4 ) {
+            Error( "Unable to extract HTTP status from header" );
+            return( -1 );
           }
-        case SUBHEADER :
-          {
-            static RegExpr *subheader_expr = nullptr;
-            static RegExpr *subcontent_length_expr = nullptr;
-            static RegExpr *subcontent_type_expr = nullptr;
+          http_version = status_expr->MatchString( 1 );
+          status_code = atoi( status_expr->MatchString( 2 ) );
+          status_mesg = status_expr->MatchString( 3 );
 
-            if ( !subheader_expr ) {
-              char subheader_pattern[256] = "";
-              snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
-              subheader_expr = new RegExpr( subheader_pattern, PCRE_DOTALL );
-            }
-            if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 ) {
-              subheader = subheader_expr->MatchString( 1 );
-              subheader_len = subheader_expr->MatchLength( 1 );
-              Debug( 4, "Captured subheader (%d bytes):'%s'", subheader_len, subheader );
-
-              if ( !subcontent_length_expr )
-                subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
-              if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 ) {
-                content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
-                Debug( 3, "Got subcontent length '%d'", content_length );
-              }
-
-              if ( !subcontent_type_expr )
-                subcontent_type_expr = new RegExpr( "Content-type: ?(.+?)\r?\n", PCRE_CASELESS );
-              if ( subcontent_type_expr->Match( subheader, subheader_len ) == 2 ) {
-                content_type = subcontent_type_expr->MatchString( 1 );
-                Debug( 3, "Got subcontent type '%s'", content_type );
-              }
-
-              buffer.consume( subheader_len );
-              state = CONTENT;
-            } else {
-              Debug( 3, "Unable to extract subheader from stream, retrying" );
-							int buffer_len = GetData();
-              if ( buffer_len < 0 ) {
-                Error( "Unable to extract subheader data" );
-                return( -1 );
-              }
-							bytes += buffer_len;
-            }
-            break;
-          }
-        case CONTENT :
-          {
-
-            // if content_type is something like image/jpeg;size=, this will strip the ;size=
-            char * semicolon = strchr( (char *)content_type, ';' );
-            if ( semicolon ) {
-              *semicolon = '\0';
-            }
-
-            if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
-              format = JPEG;
-            } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
-              format = X_RGB;
-            } else if ( !strcasecmp( content_type, "image/x-rgbz" ) ) {
-              format = X_RGBZ;
-            } else {
-              Error( "Found unsupported content type '%s'", content_type );
+          if ( status_code == 401 ) {
+            if ( mNeedAuth ) {
+              Error( "Failed authentication: " );
               return( -1 );
             }
+            mNeedAuth = true;
+            std::string Header = header;
 
-            if (content_length) {
-              while (((long)buffer.size() < content_length ) and !zm_terminate) {
-                Debug(3, "Need more data buffer %d < content length %d", buffer.size(), content_length);
-								int bytes_read = ReadData(buffer, content_length - buffer.size());
+            mAuthenticator->checkAuthResponse(Header);
+            if ( mAuthenticator->auth_method() == zm::AUTH_DIGEST ) {
+              Debug( 2, "Need Digest Authentication" );
+              request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
+              request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
+              request += stringtf( "Host: %s\r\n", host.c_str());
+              if ( strcmp( config.http_version, "1.0" ) == 0 )
+                request += "Connection: Keep-Alive\r\n";
+              request += mAuthenticator->getAuthHeader("GET", path);
+              request += "\r\n";
 
-                if (bytes_read < 0) {
-                  Error("Unable to read content");
-                  return -1;
-                }
-								bytes += bytes_read;
-              }
-              Debug(3, "Got end of image by length, content-length = %d", content_length);
-            } else {
-              while (!content_length) {
-								int buffer_len = GetData();
-                if (buffer_len < 0) {
-                  Error("Unable to read content");
-                  return -1;
-                }
-								bytes += buffer_len;
-                static RegExpr *content_expr = 0;
-                if (mode == MULTI_IMAGE) {
-                  if (!content_expr) {
-                    char content_pattern[256] = "";
-                    snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary);
-                    content_expr = new RegExpr(content_pattern, PCRE_DOTALL);
-                  }
-                  if (content_expr->Match( buffer, buffer.size()) == 2) {
-                    content_length = content_expr->MatchLength( 1 );
-                    Debug(3, "Got end of image by pattern, content-length = %d", content_length);
-                  }
-                }
-              }
+              Debug( 2, "New request header: %s", request.c_str() );
+              return( 0 );
             }
-            if ( mode == SINGLE_IMAGE ) {
-              state = HEADER;
-              Disconnect();
-            } else {
-              state = SUBHEADER;
-            }
-            Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
-            return content_length;
+
+          } else if ( status_code < 200 || status_code > 299 ) {
+            Error( "Invalid response status %d: %s\n%s", status_code, status_mesg, (char *)buffer );
+            return( -1 );
           }
-        case HEADERCONT :
-        case SUBHEADERCONT :
-            // Ignore
-            break;
+          Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );
+
+          if ( connection_expr->Match( header, header_len ) == 2 ) {
+            connection_type = connection_expr->MatchString( 1 );
+            Debug( 3, "Got connection '%s'", connection_type );
+          }
+
+          if ( content_length_expr->Match( header, header_len ) == 2 ) {
+            content_length = atoi( content_length_expr->MatchString( 1 ) );
+            Debug( 3, "Got content length '%d'", content_length );
+          }
+
+          if ( content_type_expr->Match( header, header_len ) >= 2 ) {
+            content_type = content_type_expr->MatchString( 1 );
+            Debug( 3, "Got content type '%s'\n", content_type );
+            if ( content_type_expr->MatchCount() > 2 ) {
+              content_boundary = content_type_expr->MatchString( 2 );
+              Debug( 3, "Got content boundary '%s'", content_boundary );
+            }
+          }
+
+          if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = JPEG;
+            state = CONTENT;
+          } else if ( !strcasecmp( content_type, "application/octet-stream" ) ) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = JPEG;
+            state = CONTENT;
+          } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = X_RGB;
+            state = CONTENT;
+          } else if ( !strcasecmp( content_type, "image/x-rgbz" ) ) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = X_RGBZ;
+            state = CONTENT;
+          } else if ( !strcasecmp( content_type, "multipart/x-mixed-replace" ) ) {
+            // Image stream, so start processing
+            if ( !content_boundary[0] ) {
+              Error( "No content boundary found in header '%s'", header );
+              return( -1 );
+            }
+            mode = MULTI_IMAGE;
+            state = SUBHEADER;
+          }
+          //else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
+          //{
+          //// MPEG stream, coming soon!
+          //}
+          else {
+            Error("Unrecognised content type '%s'", content_type);
+            return -1;
+          }
+          buffer.consume(header_len);
+        } else {
+          Debug(3, "Unable to extract header from stream, retrying");
+          //return( -1 );
+        }
+        break;
+      }
+      case SUBHEADER : {
+        static RegExpr *subheader_expr = nullptr;
+        static RegExpr *subcontent_length_expr = nullptr;
+        static RegExpr *subcontent_type_expr = nullptr;
+
+        if ( !subheader_expr ) {
+          char subheader_pattern[256] = "";
+          snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+          subheader_expr = new RegExpr( subheader_pattern, PCRE_DOTALL );
+        }
+        if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 ) {
+          subheader = subheader_expr->MatchString( 1 );
+          subheader_len = subheader_expr->MatchLength( 1 );
+          Debug( 4, "Captured subheader (%d bytes):'%s'", subheader_len, subheader );
+
+          if ( !subcontent_length_expr )
+            subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
+          if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 ) {
+            content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
+            Debug( 3, "Got subcontent length '%d'", content_length );
+          }
+
+          if ( !subcontent_type_expr )
+            subcontent_type_expr = new RegExpr( "Content-type: ?(.+?)\r?\n", PCRE_CASELESS );
+          if ( subcontent_type_expr->Match( subheader, subheader_len ) == 2 ) {
+            content_type = subcontent_type_expr->MatchString( 1 );
+            Debug( 3, "Got subcontent type '%s'", content_type );
+          }
+
+          buffer.consume( subheader_len );
+          state = CONTENT;
+        } else {
+          Debug( 3, "Unable to extract subheader from stream, retrying" );
+          int buffer_len = GetData();
+          if ( buffer_len < 0 ) {
+            Error( "Unable to extract subheader data" );
+            return( -1 );
+          }
+          bytes += buffer_len;
+        }
+        break;
+      }
+      case CONTENT : {
+
+        // if content_type is something like image/jpeg;size=, this will strip the ;size=
+        char * semicolon = strchr( (char *)content_type, ';' );
+        if ( semicolon ) {
+          *semicolon = '\0';
+        }
+
+        if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
+          format = JPEG;
+        } else if ( !strcasecmp( content_type, "application/octet-stream" ) ) {
+          format = JPEG;
+        } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
+          format = X_RGB;
+        } else if ( !strcasecmp( content_type, "image/x-rgbz" ) ) {
+          format = X_RGBZ;
+        } else {
+          Error( "Found unsupported content type '%s'", content_type );
+          return( -1 );
+        }
+
+        if (content_length) {
+          while (((long)buffer.size() < content_length ) and !zm_terminate) {
+            Debug(3, "Need more data buffer %d < content length %d", buffer.size(), content_length);
+            int bytes_read = ReadData(buffer, content_length - buffer.size());
+
+            if (bytes_read < 0) {
+              Error("Unable to read content");
+              return -1;
+            }
+            bytes += bytes_read;
+          }
+          Debug(3, "Got end of image by length, content-length = %d", content_length);
+        } else {
+          while (!content_length) {
+            int buffer_len = GetData();
+            if (buffer_len < 0) {
+              Error("Unable to read content");
+              return -1;
+            }
+            bytes += buffer_len;
+            static RegExpr *content_expr = 0;
+            if (mode == MULTI_IMAGE) {
+              if (!content_expr) {
+                char content_pattern[256] = "";
+                snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary);
+                content_expr = new RegExpr(content_pattern, PCRE_DOTALL);
+              }
+              if (content_expr->Match( buffer, buffer.size()) == 2) {
+                content_length = content_expr->MatchLength( 1 );
+                Debug(3, "Got end of image by pattern, content-length = %d", content_length);
+              }
+            }
+          }
+        }
+        if ( mode == SINGLE_IMAGE ) {
+          state = HEADER;
+          Disconnect();
+        } else {
+          state = SUBHEADER;
+        }
+        Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
+        return content_length;
+      }
+      case HEADERCONT :
+      case SUBHEADERCONT :
+        // Ignore
+        break;
       }
     }
   } else
@@ -618,436 +621,441 @@ int RemoteCameraHttp::GetResponse() {
 
     while (!zm_terminate) {
       switch (state) {
-        case HEADER :
-            n_headers = 0;
-            http_header = nullptr;
-            connection_header = nullptr;
-            content_length_header = nullptr;
-            content_type_header = nullptr;
-            authenticate_header = nullptr;
+      case HEADER :
+        n_headers = 0;
+        http_header = nullptr;
+        connection_header = nullptr;
+        content_length_header = nullptr;
+        content_type_header = nullptr;
+        authenticate_header = nullptr;
 
-            http_version[0] = '\0';
-            status_code [0]= '\0';
-            status_mesg [0]= '\0';
-            connection_type [0]= '\0';
-            content_length = 0;
-            content_type[0] = '\0';
-            content_boundary[0] = '\0';
-            content_boundary_len = 0;
-            FALLTHROUGH;
-        case HEADERCONT :
-          {
-						int buffer_len = GetData();
+        http_version[0] = '\0';
+        status_code [0]= '\0';
+        status_mesg [0]= '\0';
+        connection_type [0]= '\0';
+        content_length = 0;
+        content_type[0] = '\0';
+        content_boundary[0] = '\0';
+        content_boundary_len = 0;
+        FALLTHROUGH;
+      case HEADERCONT : {
+        int buffer_len = GetData();
+        if (buffer_len < 0) {
+          Error("Unable to read header");
+          return -1;
+        }
+        bytes += buffer_len;
+
+        char *crlf = nullptr;
+        char *header_ptr = buffer;
+        int header_len = buffer.size();
+        bool all_headers = false;
+
+        while (!zm_terminate) {
+          int crlf_len = memspn(header_ptr, "\r\n", header_len);
+          if (n_headers) {
+            if (
+              (crlf_len == 2 && !strncmp(header_ptr, "\n\n", crlf_len))
+              ||
+              (crlf_len == 4 && !strncmp(header_ptr, "\r\n\r\n", crlf_len))
+            ) {
+              Debug(3, "Have double linefeed, done headers");
+              *header_ptr = '\0';
+              header_ptr += crlf_len;
+              header_len -= buffer.consume(header_ptr-(char *)buffer);
+              all_headers = true;
+              break;
+            }
+          }
+          if (crlf_len) {
+            if (header_len == crlf_len) {
+              break;
+            } else {
+              *header_ptr = '\0';
+              header_ptr += crlf_len;
+              header_len -= buffer.consume(header_ptr-(char *)buffer);
+            }
+          }
+
+          Debug(6, "%s", header_ptr);
+          if ((crlf = mempbrk(header_ptr, "\r\n", header_len))) {
+            //headers[n_headers++] = header_ptr;
+            n_headers++;
+
+            if (!http_header && (strncasecmp(header_ptr, http_match, http_match_len) == 0)) {
+              http_header = header_ptr+http_match_len;
+              Debug(6, "Got http header '%s'", header_ptr);
+            } else if ( !connection_header && (strncasecmp(header_ptr, connection_match, connection_match_len) == 0) ) {
+              connection_header = header_ptr+connection_match_len;
+              Debug(6, "Got connection header '%s'", header_ptr);
+            } else if ( !content_length_header && (strncasecmp(header_ptr, content_length_match, content_length_match_len) == 0) ) {
+              content_length_header = header_ptr+content_length_match_len;
+              Debug(6, "Got content length header '%s'", header_ptr);
+            } else if ( !authenticate_header && (strncasecmp(header_ptr, authenticate_match, authenticate_match_len) == 0) ) {
+              authenticate_header = header_ptr;
+              Debug(6, "Got authenticate header '%s'", header_ptr);
+            } else if ( !content_type_header && (strncasecmp(header_ptr, content_type_match, content_type_match_len) == 0) ) {
+              content_type_header = header_ptr+content_type_match_len;
+              Debug(6, "Got content type header '%s'", header_ptr);
+            } else {
+              Debug(6, "Got ignored header '%s'", header_ptr);
+            }
+            header_ptr = crlf;
+            header_len -= buffer.consume(header_ptr-(char *)buffer);
+          } else {
+            // No end of line found
+            break;
+          }
+        } // end while search for headers
+
+        if (all_headers) {
+          char *start_ptr, *end_ptr;
+
+          if (!http_header) {
+            Error("Unable to extract HTTP status from header");
+            return -1;
+          }
+
+          start_ptr = http_header;
+          end_ptr = start_ptr+strspn(start_ptr, "10.");
+
+          // FIXME Why are we memsetting every time?  Can we not do it once?
+          //memset(http_version, 0, sizeof(http_version));
+          strncpy(http_version, start_ptr, end_ptr-start_ptr);
+
+          start_ptr = end_ptr;
+          start_ptr += strspn(start_ptr, " ");
+          end_ptr = start_ptr+strspn(start_ptr, "0123456789");
+
+          memset(status_code, 0, sizeof(status_code));
+          strncpy(status_code, start_ptr, end_ptr-start_ptr);
+          int status = atoi(status_code);
+
+          start_ptr = end_ptr;
+          start_ptr += strspn(start_ptr, " ");
+          strcpy(status_mesg, start_ptr);
+
+          if (status == 401) {
+            if (mNeedAuth) {
+              Error("Failed authentication");
+              return -1;
+            }
+            if (!authenticate_header) {
+              Error("Failed authentication, but don't have an authentication header.");
+              return -1;
+            }
+            mNeedAuth = true;
+            std::string Header = authenticate_header;
+            Debug(2, "Checking for digest auth in %s", authenticate_header);
+
+            mAuthenticator->checkAuthResponse(Header);
+            if (mAuthenticator->auth_method() == zm::AUTH_DIGEST) {
+              Debug(2, "Need Digest Authentication");
+              request = stringtf("GET %s HTTP/%s\r\n", path.c_str(), config.http_version);
+              request += stringtf("User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION);
+              request += stringtf("Host: %s\r\n", host.c_str());
+              if ( strcmp(config.http_version, "1.0") == 0 )
+                request += "Connection: Keep-Alive\r\n";
+              request += mAuthenticator->getAuthHeader("GET", path);
+              request += "\r\n";
+
+              Debug(2, "New request header: %s", request.c_str());
+              return 0;
+            } else {
+              Debug(2, "Need some other kind of Authentication");
+            }
+          } else if (status < 200 || status > 299) {
+            Error("Invalid response status %s: %s", status_code, status_mesg);
+            return -1;
+          }
+          Debug(3, "Got status '%d' (%s), http version %s", status, status_mesg, http_version);
+
+          if (connection_header) {
+            memset(connection_type, 0, sizeof(connection_type));
+            start_ptr = connection_header + strspn(connection_header, " ");
+            // FIXME Should we not use strncpy?
+            strcpy(connection_type, start_ptr);
+            Debug(3, "Got connection '%s'", connection_type);
+          }
+          if (content_length_header) {
+            start_ptr = content_length_header + strspn(content_length_header, " ");
+            content_length = atoi(start_ptr);
+            Debug(3, "Got content length '%d'", content_length);
+          }
+          if (content_type_header) {
+            //memset(content_type, 0, sizeof(content_type));
+            start_ptr = content_type_header + strspn(content_type_header, " ");
+            if ( (end_ptr = strchr(start_ptr, ';')) ) {
+              strncpy(content_type, start_ptr, end_ptr-start_ptr);
+              Debug(3, "Got content type '%s'", content_type);
+
+              start_ptr = end_ptr + strspn(end_ptr, "; ");
+
+              if (strncasecmp(start_ptr, boundary_match, boundary_match_len) == 0) {
+                start_ptr += boundary_match_len;
+                start_ptr += strspn(start_ptr, "-");
+                content_boundary_len = sprintf(content_boundary, "--%s", start_ptr);
+                Debug(3, "Got content boundary '%s'", content_boundary);
+              } else {
+                Error("No content boundary found in header '%s'", content_type_header);
+              }
+            } else {
+              strcpy(content_type, start_ptr);
+              Debug(3, "Got content type '%s'", content_type);
+            }
+          } // end if content_type_header
+
+          if (!strcasecmp(content_type, "image/jpeg") || !strcasecmp(content_type, "image/jpg")) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = JPEG;
+            state = CONTENT;
+          } else if (!strcasecmp(content_type, "application/octet-stream")) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = JPEG;
+            state = CONTENT;
+          } else if (!strcasecmp(content_type, "image/x-rgb")) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = X_RGB;
+            state = CONTENT;
+          } else if (!strcasecmp(content_type, "image/x-rgbz")) {
+            // Single image
+            mode = SINGLE_IMAGE;
+            format = X_RGBZ;
+            state = CONTENT;
+          } else if (!strcasecmp(content_type, "multipart/x-mixed-replace")) {
+            // Image stream, so start processing
+            if (!content_boundary[0]) {
+              Error("No content boundary found in header '%s'", content_type_header);
+              return -1;
+            }
+            mode = MULTI_IMAGE;
+            state = SUBHEADER;
+          }
+          //else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
+          //{
+          //// MPEG stream, coming soon!
+          //}
+          else {
+            Error("Unrecognised content type '%s'", content_type);
+            return -1;
+          }
+        } else {
+          Debug(3, "Unable to extract entire header from stream, continuing");
+          state = HEADERCONT;
+          //return( -1 );
+        } // end if all_headers
+        break;
+      }
+      case SUBHEADER :
+        n_subheaders = 0;
+        boundary_header = 0;
+        subcontent_length_header[0] = '\0';
+        subcontent_type_header[0] = '\0';
+        content_length = 0;
+        content_type[0] = '\0';
+        FALLTHROUGH;
+      case SUBHEADERCONT : {
+        char *crlf = nullptr;
+        char *subheader_ptr = (char *)buffer;
+        int subheader_len = buffer.size();
+        bool all_headers = false;
+
+        while (!zm_terminate) {
+          int crlf_len = memspn(subheader_ptr, "\r\n", subheader_len);
+          if (n_subheaders) {
+            if ((crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len))
+                ||
+                (crlf_len == 4 && !strncmp(subheader_ptr, "\r\n\r\n", crlf_len))
+               ) {
+              *subheader_ptr = '\0';
+              subheader_ptr += crlf_len;
+              subheader_len -= buffer.consume(subheader_ptr-(char *)buffer);
+              all_headers = true;
+              break;
+            }
+          }
+          if (crlf_len) {
+            if (subheader_len == crlf_len) {
+              break;
+            } else {
+              *subheader_ptr = '\0';
+              subheader_ptr += crlf_len;
+              subheader_len -= buffer.consume(subheader_ptr-(char *)buffer);
+            }
+          }
+
+          Debug(6, "%d: %s", subheader_len, subheader_ptr);
+
+          if ( (crlf = mempbrk(subheader_ptr, "\r\n", subheader_len)) ) {
+            //subheaders[n_subheaders++] = subheader_ptr;
+            n_subheaders++;
+
+            if ( !boundary_header && (strncasecmp(subheader_ptr, content_boundary, content_boundary_len) == 0) ) {
+              boundary_header = subheader_ptr;
+              Debug(4, "Got boundary subheader '%s'", subheader_ptr);
+            } else if (
+              !subcontent_length_header[0]
+              &&
+              (strncasecmp(subheader_ptr, content_length_match, content_length_match_len) == 0)
+            ) {
+              strncpy(
+                subcontent_length_header,
+                subheader_ptr+content_length_match_len,
+                sizeof(subcontent_length_header)-1
+              );
+              *(subcontent_length_header+strcspn(subcontent_length_header, "\r\n")) = '\0';
+              Debug(4, "Got content length subheader '%s'", subcontent_length_header);
+            } else if ( !subcontent_type_header[0] && (strncasecmp( subheader_ptr, content_type_match, content_type_match_len) == 0) ) {
+              strncpy(
+                subcontent_type_header,
+                subheader_ptr+content_type_match_len,
+                sizeof(subcontent_type_header)-1
+              );
+              *(subcontent_type_header+strcspn(subcontent_type_header, "\r\n")) = '\0';
+              Debug(4, "Got content type subheader '%s'", subcontent_type_header);
+            } else {
+              Debug(6, "Got ignored subheader '%s' found", subheader_ptr);
+            }
+            subheader_ptr = crlf;
+            subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );
+          } else {
+            // No line end found
+            break;
+          }
+        }
+
+        if (all_headers && boundary_header) {
+          char *start_ptr/*, *end_ptr*/;
+
+          Debug(3, "Got boundary '%s'", boundary_header);
+
+          if (subcontent_length_header[0]) {
+            start_ptr = subcontent_length_header + strspn(subcontent_length_header, " ");
+            content_length = atoi(start_ptr);
+            Debug(3, "Got subcontent length '%d'", content_length);
+          }
+          if (subcontent_type_header[0]) {
+            //memset(content_type, 0, sizeof(content_type));
+            start_ptr = subcontent_type_header + strspn(subcontent_type_header, " ");
+            strcpy(content_type, start_ptr);
+            Debug(3, "Got subcontent type '%s'", content_type);
+          }
+          state = CONTENT;
+        } else {
+          Debug(3, "Unable to extract subheader from stream, retrying");
+          int buffer_len = GetData();
+          if (buffer_len < 0) {
+            Error("Unable to read subheader");
+            return -1;
+          }
+          bytes += buffer_len;
+          state = SUBHEADERCONT;
+        }
+        break;
+      }
+      case CONTENT : {
+        // if content_type is something like image/jpeg;size=, this will strip the ;size=
+        char * semicolon = strchr(content_type, ';');
+        if (semicolon) {
+          *semicolon = '\0';
+        }
+
+        if (!strcasecmp(content_type, "image/jpeg") || !strcasecmp(content_type, "image/jpg")) {
+          format = JPEG;
+        } else if (!strcasecmp(content_type, "application/octet-stream")) {
+          format = JPEG;
+        } else if (!strcasecmp(content_type, "image/x-rgb")) {
+          format = X_RGB;
+        } else if (!strcasecmp(content_type, "image/x-rgbz")) {
+          format = X_RGBZ;
+        } else {
+          Error("Found unsupported content type '%s'", content_type);
+          return -1;
+        }
+
+        // This is an early test for jpeg content, so we can bail early
+        if (format == JPEG and buffer.size() >= 2) {
+          if (buffer[0] != 0xff or buffer[1] != 0xd8) {
+            Error("Found bogus jpeg header '%02x%02x'", buffer[0], buffer[1]);
+            return -1;
+          }
+        }
+
+        if (content_length) {
+          while (((long)buffer.size() < content_length) and !zm_terminate) {
+            Debug(4, "getting more data");
+            int bytes_read = ReadData(buffer, content_length-buffer.size());
+            if (bytes_read < 0) {
+              Error("Unable to read content");
+              return -1;
+            }
+            bytes += bytes_read;
+          }
+          Debug(3, "Got end of image by length, content-length = %d", content_length);
+        } else {
+          // Read until we find the end of image or the stream closes.
+          while (!content_length && !zm_terminate) {
+            Debug(4, "!content_length, ReadData");
+            int buffer_len = ReadData(buffer);
             if (buffer_len < 0) {
-              Error("Unable to read header");
+              Error("Unable to read content");
               return -1;
             }
-						bytes += buffer_len;
+            bytes += buffer_len;
+            int buffer_size = buffer.size();
+            if (buffer_len) {
+              // Got some data
 
-            char *crlf = nullptr;
-            char *header_ptr = buffer;
-            int header_len = buffer.size();
-            bool all_headers = false;
-
-            while (!zm_terminate) {
-              int crlf_len = memspn(header_ptr, "\r\n", header_len);
-              if (n_headers) {
-                if (
-                    (crlf_len == 2 && !strncmp(header_ptr, "\n\n", crlf_len))
-                    ||
-                    (crlf_len == 4 && !strncmp(header_ptr, "\r\n\r\n", crlf_len))
-                    ) {
-									Debug(3, "Have double linefeed, done headers");
-                  *header_ptr = '\0';
-                  header_ptr += crlf_len;
-                  header_len -= buffer.consume(header_ptr-(char *)buffer);
-                  all_headers = true;
-                  break;
-                }
-              }
-              if (crlf_len) {
-                if (header_len == crlf_len) {
-                  break;
+              if (mode == MULTI_IMAGE) {
+                // Look for the boundary marker, determine content length using it's position
+                if (const char *start_ptr = (char *)memstr( (char *)buffer, "\r\n--", buffer_size)) {
+                  content_length = start_ptr - (char *)buffer;
+                  Debug(2, "Got end of image by pattern (crlf--), content-length = %d", content_length);
                 } else {
-                  *header_ptr = '\0';
-                  header_ptr += crlf_len;
-                  header_len -= buffer.consume(header_ptr-(char *)buffer);
+                  Debug(2, "Did not find end of image by pattern (crlf--) yet, content-length = %d", content_length);
                 }
-              }
-
-              Debug(6, "%s", header_ptr);
-              if ((crlf = mempbrk(header_ptr, "\r\n", header_len))) {
-                //headers[n_headers++] = header_ptr;
-                n_headers++;
-
-                if (!http_header && (strncasecmp(header_ptr, http_match, http_match_len) == 0)) {
-                  http_header = header_ptr+http_match_len;
-                  Debug(6, "Got http header '%s'", header_ptr);
-                } else if ( !connection_header && (strncasecmp(header_ptr, connection_match, connection_match_len) == 0) ) {
-                  connection_header = header_ptr+connection_match_len;
-                  Debug(6, "Got connection header '%s'", header_ptr);
-                } else if ( !content_length_header && (strncasecmp(header_ptr, content_length_match, content_length_match_len) == 0) ) {
-                  content_length_header = header_ptr+content_length_match_len;
-                  Debug(6, "Got content length header '%s'", header_ptr);
-                } else if ( !authenticate_header && (strncasecmp(header_ptr, authenticate_match, authenticate_match_len) == 0) ) {
-                  authenticate_header = header_ptr;
-                  Debug(6, "Got authenticate header '%s'", header_ptr);
-                } else if ( !content_type_header && (strncasecmp(header_ptr, content_type_match, content_type_match_len) == 0) ) {
-                  content_type_header = header_ptr+content_type_match_len;
-                  Debug(6, "Got content type header '%s'", header_ptr);
-                } else {
-                  Debug(6, "Got ignored header '%s'", header_ptr);
-                }
-                header_ptr = crlf;
-                header_len -= buffer.consume(header_ptr-(char *)buffer);
-              } else {
-                // No end of line found
-                break;
-              }
-            } // end while search for headers
-
-            if (all_headers) {
-              char *start_ptr, *end_ptr;
-
-              if (!http_header) {
-                Error("Unable to extract HTTP status from header");
-                return -1;
-              }
-
-              start_ptr = http_header;
-              end_ptr = start_ptr+strspn(start_ptr, "10.");
-
-              // FIXME Why are we memsetting every time?  Can we not do it once?
-              //memset(http_version, 0, sizeof(http_version));
-              strncpy(http_version, start_ptr, end_ptr-start_ptr);
-
-              start_ptr = end_ptr;
-              start_ptr += strspn(start_ptr, " ");
-              end_ptr = start_ptr+strspn(start_ptr, "0123456789");
-
-              memset(status_code, 0, sizeof(status_code));
-              strncpy(status_code, start_ptr, end_ptr-start_ptr);
-              int status = atoi(status_code);
-
-              start_ptr = end_ptr;
-              start_ptr += strspn(start_ptr, " ");
-              strcpy(status_mesg, start_ptr);
-
-              if (status == 401) {
-                if (mNeedAuth) {
-                  Error("Failed authentication");
-                  return -1;
-                }
-                if (!authenticate_header) {
-                  Error("Failed authentication, but don't have an authentication header.");
-                  return -1;
-                }
-                mNeedAuth = true;
-                std::string Header = authenticate_header;
-                Debug(2, "Checking for digest auth in %s", authenticate_header);
-
-                mAuthenticator->checkAuthResponse(Header);
-                if (mAuthenticator->auth_method() == zm::AUTH_DIGEST) {
-                  Debug(2, "Need Digest Authentication");
-                  request = stringtf("GET %s HTTP/%s\r\n", path.c_str(), config.http_version);
-                  request += stringtf("User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION);
-                  request += stringtf("Host: %s\r\n", host.c_str());
-                  if ( strcmp(config.http_version, "1.0") == 0 )
-                    request += "Connection: Keep-Alive\r\n";
-                  request += mAuthenticator->getAuthHeader("GET", path);
-                  request += "\r\n";
-
-                  Debug(2, "New request header: %s", request.c_str());
-                  return 0;
-                } else {
-                  Debug(2, "Need some other kind of Authentication");
-                }
-              } else if (status < 200 || status > 299) {
-                Error("Invalid response status %s: %s", status_code, status_mesg);
-                return -1;
-              }
-              Debug(3, "Got status '%d' (%s), http version %s", status, status_mesg, http_version);
-
-              if (connection_header) {
-                memset(connection_type, 0, sizeof(connection_type));
-                start_ptr = connection_header + strspn(connection_header, " ");
-                // FIXME Should we not use strncpy?
-                strcpy(connection_type, start_ptr);
-                Debug(3, "Got connection '%s'", connection_type);
-              }
-              if (content_length_header) {
-                start_ptr = content_length_header + strspn(content_length_header, " ");
-                content_length = atoi(start_ptr);
-                Debug(3, "Got content length '%d'", content_length);
-              }
-              if (content_type_header) {
-                //memset(content_type, 0, sizeof(content_type));
-                start_ptr = content_type_header + strspn(content_type_header, " ");
-                if ( (end_ptr = strchr(start_ptr, ';')) ) {
-                  strncpy(content_type, start_ptr, end_ptr-start_ptr);
-                  Debug(3, "Got content type '%s'", content_type);
-
-                  start_ptr = end_ptr + strspn(end_ptr, "; ");
-
-                  if (strncasecmp(start_ptr, boundary_match, boundary_match_len) == 0) {
-                    start_ptr += boundary_match_len;
-                    start_ptr += strspn(start_ptr, "-");
-                    content_boundary_len = sprintf(content_boundary, "--%s", start_ptr);
-                    Debug(3, "Got content boundary '%s'", content_boundary);
-                  } else {
-                    Error("No content boundary found in header '%s'", content_type_header);
-                  }
-                } else {
-                  strcpy(content_type, start_ptr);
-                  Debug(3, "Got content type '%s'", content_type);
-                }
-              } // end if content_type_header
-
-              if (!strcasecmp(content_type, "image/jpeg") || !strcasecmp(content_type, "image/jpg")) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = JPEG;
-                state = CONTENT;
-              } else if (!strcasecmp(content_type, "image/x-rgb")) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = X_RGB;
-                state = CONTENT;
-              } else if (!strcasecmp(content_type, "image/x-rgbz")) {
-                // Single image
-                mode = SINGLE_IMAGE;
-                format = X_RGBZ;
-                state = CONTENT;
-              } else if (!strcasecmp(content_type, "multipart/x-mixed-replace")) {
-                // Image stream, so start processing
-                if (!content_boundary[0]) {
-                  Error("No content boundary found in header '%s'", content_type_header);
-                  return -1;
-                }
-                mode = MULTI_IMAGE;
-                state = SUBHEADER;
-              }
-              //else if ( !strcasecmp( content_type, "video/mpeg" ) || !strcasecmp( content_type, "video/mpg" ) )
-              //{
-              //// MPEG stream, coming soon!
-              //}
-              else {
-                Error("Unrecognised content type '%s'", content_type);
-                return -1;
-              }
+              } // end if MULTI_IMAGE
             } else {
-              Debug(3, "Unable to extract entire header from stream, continuing");
-              state = HEADERCONT;
-              //return( -1 );
-            } // end if all_headers
-            break;
+              content_length = buffer_size;
+              Debug(2, "Got end of image by closure, content-length = %d", content_length);
+              if (mode == SINGLE_IMAGE) {
+                char *end_ptr = (char *)buffer+buffer_size;
+
+                // strip off any last line feeds
+                while (*end_ptr == '\r' || *end_ptr == '\n') {
+                  content_length--;
+                  end_ptr--;
+                }
+
+                if (end_ptr != ((char *)buffer+buffer_size)) {
+                  Debug(2, "Trimmed end of image, new content-length = %d", content_length);
+                }
+              } // end if SINGLE_IMAGE
+            } // end if read some data
+          } // end while ! content_length
+        } // end if content_length
+
+        if (mode == SINGLE_IMAGE) {
+          state = HEADER;
+          Disconnect();
+        } else {
+          state = SUBHEADER;
+        }
+
+        if (format == JPEG && buffer.size() >= 2) {
+          if (buffer[0] != 0xff || buffer[1] != 0xd8) {
+            Error("Found bogus jpeg header '%02x%02x'", buffer[0], buffer[1]);
+            return -1;
           }
-        case SUBHEADER :
-            n_subheaders = 0;
-            boundary_header = 0;
-            subcontent_length_header[0] = '\0';
-            subcontent_type_header[0] = '\0';
-            content_length = 0;
-            content_type[0] = '\0';
-            FALLTHROUGH;
-        case SUBHEADERCONT :
-          {
-            char *crlf = nullptr;
-            char *subheader_ptr = (char *)buffer;
-            int subheader_len = buffer.size();
-            bool all_headers = false;
+        }
 
-            while (!zm_terminate) {
-              int crlf_len = memspn(subheader_ptr, "\r\n", subheader_len);
-              if (n_subheaders) {
-                if ((crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len))
-                    ||
-                    (crlf_len == 4 && !strncmp(subheader_ptr, "\r\n\r\n", crlf_len))
-                    ) {
-                  *subheader_ptr = '\0';
-                  subheader_ptr += crlf_len;
-                  subheader_len -= buffer.consume(subheader_ptr-(char *)buffer);
-                  all_headers = true;
-                  break;
-                }
-              }
-              if (crlf_len) {
-                if (subheader_len == crlf_len) {
-                  break;
-                } else {
-                  *subheader_ptr = '\0';
-                  subheader_ptr += crlf_len;
-                  subheader_len -= buffer.consume(subheader_ptr-(char *)buffer);
-                }
-              }
-
-              Debug(6, "%d: %s", subheader_len, subheader_ptr);
-
-              if ( (crlf = mempbrk(subheader_ptr, "\r\n", subheader_len)) ) {
-                //subheaders[n_subheaders++] = subheader_ptr;
-                n_subheaders++;
-
-                if ( !boundary_header && (strncasecmp(subheader_ptr, content_boundary, content_boundary_len) == 0) ) {
-                  boundary_header = subheader_ptr;
-                  Debug(4, "Got boundary subheader '%s'", subheader_ptr);
-                } else if (
-                    !subcontent_length_header[0]
-                    &&
-                    (strncasecmp(subheader_ptr, content_length_match, content_length_match_len) == 0)
-                    ) {
-                  strncpy(
-                      subcontent_length_header,
-                      subheader_ptr+content_length_match_len,
-                      sizeof(subcontent_length_header)-1
-                      );
-                  *(subcontent_length_header+strcspn(subcontent_length_header, "\r\n")) = '\0';
-                  Debug(4, "Got content length subheader '%s'", subcontent_length_header);
-                } else if ( !subcontent_type_header[0] && (strncasecmp( subheader_ptr, content_type_match, content_type_match_len) == 0) ) {
-                  strncpy(
-                      subcontent_type_header,
-                      subheader_ptr+content_type_match_len,
-                      sizeof(subcontent_type_header)-1
-                      );
-                  *(subcontent_type_header+strcspn(subcontent_type_header, "\r\n")) = '\0';
-                  Debug(4, "Got content type subheader '%s'", subcontent_type_header);
-                } else {
-                  Debug(6, "Got ignored subheader '%s' found", subheader_ptr);
-                }
-                subheader_ptr = crlf;
-                subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );
-              } else {
-                // No line end found
-                break;
-              }
-            }
-
-            if (all_headers && boundary_header) {
-              char *start_ptr/*, *end_ptr*/;
-
-              Debug(3, "Got boundary '%s'", boundary_header);
-
-              if (subcontent_length_header[0]) {
-                start_ptr = subcontent_length_header + strspn(subcontent_length_header, " ");
-                content_length = atoi(start_ptr);
-                Debug(3, "Got subcontent length '%d'", content_length);
-              }
-              if (subcontent_type_header[0]) {
-                //memset(content_type, 0, sizeof(content_type));
-                start_ptr = subcontent_type_header + strspn(subcontent_type_header, " ");
-                strcpy(content_type, start_ptr);
-                Debug(3, "Got subcontent type '%s'", content_type);
-              }
-              state = CONTENT;
-            } else {
-              Debug(3, "Unable to extract subheader from stream, retrying");
-							int buffer_len = GetData();
-              if (buffer_len < 0) {
-                Error("Unable to read subheader");
-                return -1;
-              }
-							bytes += buffer_len;
-              state = SUBHEADERCONT;
-            }
-            break;
-          }
-        case CONTENT : {
-            // if content_type is something like image/jpeg;size=, this will strip the ;size=
-            char * semicolon = strchr(content_type, ';');
-            if (semicolon) {
-              *semicolon = '\0';
-            }
-
-            if (!strcasecmp(content_type, "image/jpeg") || !strcasecmp(content_type, "image/jpg")) {
-              format = JPEG;
-            } else if (!strcasecmp(content_type, "image/x-rgb")) {
-              format = X_RGB;
-            } else if (!strcasecmp(content_type, "image/x-rgbz")) {
-              format = X_RGBZ;
-            } else {
-              Error("Found unsupported content type '%s'", content_type);
-              return -1;
-            }
-
-            // This is an early test for jpeg content, so we can bail early
-            if (format == JPEG and buffer.size() >= 2) {
-              if (buffer[0] != 0xff or buffer[1] != 0xd8) {
-                Error("Found bogus jpeg header '%02x%02x'", buffer[0], buffer[1]);
-                return -1;
-              }
-            }
-
-            if (content_length) {
-              while (((long)buffer.size() < content_length) and !zm_terminate) {
-								Debug(4, "getting more data");
-								int bytes_read = ReadData(buffer, content_length-buffer.size());
-                if (bytes_read < 0) {
-                  Error("Unable to read content");
-                  return -1;
-                }
-								bytes += bytes_read;
-              }
-              Debug(3, "Got end of image by length, content-length = %d", content_length);
-            } else {
-              // Read until we find the end of image or the stream closes.
-              while (!content_length && !zm_terminate) {
-								Debug(4, "!content_length, ReadData");
-                int buffer_len = ReadData(buffer);
-                if (buffer_len < 0) {
-                  Error("Unable to read content");
-                  return -1;
-                }
-								bytes += buffer_len;
-                int buffer_size = buffer.size();
-                if (buffer_len) {
-                  // Got some data
-
-                  if (mode == MULTI_IMAGE) {
-                    // Look for the boundary marker, determine content length using it's position
-                    if (const char *start_ptr = (char *)memstr( (char *)buffer, "\r\n--", buffer_size)) {
-                      content_length = start_ptr - (char *)buffer;
-                      Debug(2, "Got end of image by pattern (crlf--), content-length = %d", content_length);
-                    } else {
-                      Debug(2, "Did not find end of image by patten (crlf--) yet, content-length = %d", content_length);
-                    }
-                  } // end if MULTI_IMAGE
-                } else {
-                  content_length = buffer_size;
-                  Debug(2, "Got end of image by closure, content-length = %d", content_length);
-                  if (mode == SINGLE_IMAGE) {
-                    char *end_ptr = (char *)buffer+buffer_size;
-
-                    // strip off any last line feeds
-                    while (*end_ptr == '\r' || *end_ptr == '\n') {
-                      content_length--;
-                      end_ptr--;
-                    }
-
-                    if (end_ptr != ((char *)buffer+buffer_size)) {
-                      Debug(2, "Trimmed end of image, new content-length = %d", content_length);
-                    }
-                  } // end if SINGLE_IMAGE
-                } // end if read some data
-              } // end while ! content_length
-            } // end if content_length
-
-            if (mode == SINGLE_IMAGE) {
-              state = HEADER;
-              Disconnect();
-            } else {
-              state = SUBHEADER;
-            }
-
-            if (format == JPEG && buffer.size() >= 2) {
-              if (buffer[0] != 0xff || buffer[1] != 0xd8) {
-                Error("Found bogus jpeg header '%02x%02x'", buffer[0], buffer[1]);
-                return -1;
-              }
-            }
-
-            Debug(3, "Returning %d bytes, buffer size: (%d) bytes of captured content",
-                content_length, buffer.size());
-            return content_length;
-        } // end case CONTENT
+        Debug(3, "Returning %d bytes, buffer size: (%d) bytes of captured content",
+              content_length, buffer.size());
+        return content_length;
+      } // end case CONTENT
       } // end switch
     }
   }
@@ -1107,30 +1115,30 @@ int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
   packet->stream = mVideoStream;
 
   switch (format) {
-    case JPEG :
-      if (!image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder)) {
-        Error("Unable to decode jpeg");
-        return -1;
-      }
-      break;
-    case X_RGB :
-      if (content_length != (long)image->Size()) {
-        Error("Image length mismatch, expected %d bytes, content length was %d",
-            image->Size(), content_length);
-        return -1;
-      }
-      image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
-      break;
-    case X_RGBZ :
-      if (!image->Unzip(buffer.extract(content_length), content_length)) {
-        Error("Unable to unzip RGB image");
-        return -1;
-      }
-      image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
-      break;
-    default :
-      Error("Unexpected image format encountered");
+  case JPEG :
+    if (!image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder)) {
+      Error("Unable to decode jpeg");
       return -1;
+    }
+    break;
+  case X_RGB :
+    if (content_length != (long)image->Size()) {
+      Error("Image length mismatch, expected %d bytes, content length was %d",
+            image->Size(), content_length);
+      return -1;
+    }
+    image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
+    break;
+  case X_RGBZ :
+    if (!image->Unzip(buffer.extract(content_length), content_length)) {
+      Error("Unable to unzip RGB image");
+      return -1;
+    }
+    image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
+    break;
+  default :
+    Error("Unexpected image format encountered");
+    return -1;
   }
   return 1;
 } // end ZmPacket *RmoteCameraHttp::Capture( &image );

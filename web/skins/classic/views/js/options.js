@@ -49,14 +49,16 @@ function AddNewUser(el) {
 }
 
 function initPage() {
-  var NewStorageBtn = $j('#NewStorageBtn');
-  var NewServerBtn = $j('#NewServerBtn');
+  const NewStorageBtn = $j('#NewStorageBtn');
+  const NewServerBtn = $j('#NewServerBtn');
 
   if ( canEdit.System ) enableStorageModal();
   if ( canEdit.System ) enableServerModal();
 
   NewStorageBtn.prop('disabled', !canEdit.System);
   NewServerBtn.prop('disabled', !canEdit.System);
+
+  $j('.bootstraptable').bootstrapTable({icons: icons}).show();
 }
 
 $j(document).ready(function() {

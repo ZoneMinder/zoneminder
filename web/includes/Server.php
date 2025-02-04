@@ -5,6 +5,29 @@ require_once('Object.php');
 
 class Server extends ZM_Object {
   protected static $table = 'Servers';
+  public $Id;
+  public $Name = '';
+  public $Protocol = '';
+  public $Hostname = '';
+  public $Port = null;
+  public $PathToIndex = '';
+  public $PathToZMS = ZM_PATH_ZMS;
+  public $PathToApi = ZM_PATH_API;
+  public $State_Id = -1;
+  public $Status = 'Unknown';
+  public $TimeUpdateStats = null;
+  public $CpuLoad = -1;
+  public $CpuUserPercent = -1;
+  public $CpuNicePercent = -1;
+  public $CpuSystemPercent = -1;
+  public $CpuIdlePercent = -1;
+  public $CpuUsagePercent = -1;
+  public $TotalMem = -1;
+  public $FreeMem = -1;
+  public $TotalSwap = -1;
+  public $FreeSwap = -1;
+  public $Latitude;
+  public $Longitude;
 
   protected $defaults = array(
     'Id'                   => null,
@@ -14,19 +37,37 @@ class Server extends ZM_Object {
     'Port'                 => null,
     'PathToIndex'          => null,
     'PathToZMS'            => ZM_PATH_ZMS,
-    'PathToApi'            => '/zm/api',
+    'PathToApi'            => ZM_PATH_API,
     'zmaudit'              => 1,
     'zmstats'              => 1,
     'zmtrigger'            => 0,
     'zmeventnotification'  => 0,
   );
 
+  public function ReadStats() {
+    #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id()>1 ? $this->Id() : 0]);
+    if (count($dbStats)) {
+      $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
+      $this->CpuLoad = $dbStats[0]['CpuLoad'];
+      $this->CpuUserPercent = $dbStats[0]['CpuUserPercent'];
+      $this->CpuNicePercent = $dbStats[0]['CpuNicePercent'];
+      $this->CpuSystemPercent = $dbStats[0]['CpuSystemPercent'];
+      $this->CpuIdlePercent = $dbStats[0]['CpuIdlePercent'];
+      $this->CpuUsagePercent = $dbStats[0]['CpuUsagePercent'];
+      $this->TotalMem = $dbStats[0]['TotalMem'];
+      $this->FreeMem = $dbStats[0]['FreeMem'];
+      $this->TotalSwap = $dbStats[0]['TotalSwap'];
+      $this->FreeSwap = $dbStats[0]['FreeSwap'];
+    }
+  }
+
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public function Hostname($new = null) {
@@ -67,6 +108,8 @@ class Server extends ZM_Object {
               ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
               or
               ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+              or
+              ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
             ) ? 'https' : 'http';
   }
 
@@ -142,7 +185,7 @@ class Server extends ZM_Object {
     if ( isset($this->{'PathToApi'}) and $this->{'PathToApi'} ) {
       return $this->{'PathToApi'};
     }
-    return '/zm/api';
+    return ZM_PATH_API;
   }
   public function SendToApi($path) {
     $url = $this->UrlToApi().$path;
@@ -150,7 +193,13 @@ class Server extends ZM_Object {
     if ($auth_relay) $url .= '?'.$auth_relay;
     Debug('sending command to '.$url);
 
-    $context = stream_context_create();
+    $context_options=array(
+      "ssl"=>array(
+        "verify_peer"=>false,
+        "verify_peer_name"=>false,
+      ),
+    );
+    $context = stream_context_create($context_options);
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */

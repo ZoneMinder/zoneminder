@@ -3,6 +3,109 @@ Debian
 
 .. contents::
 
+Debian 12 (Bookworm)
+--------------------
+
+This procedure will guide you through the installation of ZoneMinder on Debian 12 (Bookworm).
+
+**Step 1:** Setup Sudo (optional but recommended)
+
+By default Debian does not come with sudo, so you have to install it and configure it manually.
+This step is optional but recommended and the following instructions assume that you have setup sudo.
+If you prefer to setup ZoneMinder as root, do it at your own risk and adapt the following instructions accordingly.
+
+::
+
+    apt install sudo
+    usermod -a -G sudo <username>
+    exit
+
+Now your terminal session is back under your normal user. You can check that 
+you are now part of the sudo group with the command ``groups``, "sudo" should
+appear in the list. If not, run ``newgrp sudo`` and check again with ``groups``.
+
+**Step 2:** Update system
+
+Run the following commands.
+
+::
+
+    sudo apt update
+    sudo apt upgrade
+
+**Step 3:** Install MariaDB and do initial database configuration
+
+Run the following commands.
+
+::
+
+    sudo apt install apache2 mariadb-server
+
+Switch into root user and create database and database user
+
+::
+
+    sudo su
+    mariadb
+    CREATE DATABASE zm;
+    CREATE USER zmuser@localhost IDENTIFIED BY 'zmpass';
+    GRANT ALL ON zm.* TO zmuser@localhost;
+    FLUSH PRIVILEGES;
+    exit;
+    exit
+
+By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
+
+**Step 4:** Install zoneminder
+
+By default Debian will install the version published in Debian (stable). However there may be newer versions by using backports.
+At the time of this writing, bookworm (stable) ships with v.1.36.33.
+
+To install the version in bookworm stable, just run the following command.
+
+::
+
+    sudo apt install zoneminder
+
+
+If instead you prefer to install the newer version using backports, run the following commands.
+The first line will add this bookworm-backports repository.
+The backports repository is deactivated by default, so with the second line we explicitly state we want the backported version of zoneminder.
+
+::
+
+    sudo bash -c "echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' >> /etc/apt/sources.list"
+    sudo apt update
+    sudo apt -t bookworm-backports install zoneminder
+
+
+**Step 5:** Configure database
+
+:: 
+
+    mariadb -u zmuser -p zm < /usr/share/zoneminder/db/zm_create.sql
+
+**Step 6:** Setup permissions for zm.conf
+
+To make sure zoneminder can read the configuration file, run the following command.
+
+::
+
+    sudo chgrp -c www-data /etc/zm/zm.conf
+
+**Step 7:** Tweak Apache configuration
+
+::
+
+    sudo a2enconf zoneminder
+    sudo a2enmod cgi
+    sudo systemctl reload apache2.service
+    sudo systemctl restart zoneminder.service
+    sudo systemctl status zoneminder.service
+    sudo systemctl enable zoneminder.service    # start zoneminder automatically at boot
+
+If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
+
 Debian 11 (Bullseye)
 --------------------
 
@@ -59,7 +162,7 @@ By default MariaDB uses `unix socket authentication`_, so no root user password 
 **Step 4:** Install zoneminder
 
 By default Debian will install the version published in Debian (stable). However you also have the option to install a newer version using backports.
-For example, at the time of this writting, bullseye (stable) ships with v.1.34.x and bullseye-backports with v.1.36.x.
+For example, at the time of this writing, bullseye (stable) ships with v.1.34.x and bullseye-backports with v.1.36.x.
 
 To install the version in bullseye stable, just run the following command.
 
@@ -70,7 +173,7 @@ To install the version in bullseye stable, just run the following command.
 
 If instead you prefer to install the newer version using backports, run the following commands.
 The first line will add bullseye-backports repository.
-The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
+The backports repository is deactivated by default, so with the second line we explicitly state we want the backported version of zoneminder.
 
 ::
 
@@ -82,7 +185,7 @@ The backports repository is deactivated by default, so with the second line we e
 
 :: 
 
-    mariadb -u zmuser -pzmpass < /usr/share/zoneminder/db/zm_create.sql
+    mariadb -u zmuser -p zm < /usr/share/zoneminder/db/zm_create.sql
 
 **Step 6:** Setup permissions for zm.conf
 
@@ -97,10 +200,11 @@ To make sure zoneminder can read the configuration file, run the following comma
 ::
 
     sudo a2enconf zoneminder
+    sudo a2enmod cgi
     sudo systemctl reload apache2.service
-    sudo systemctl reload zoneminder.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service
+    sudo systemctl enable zoneminder.service    # start zoneminder automatically at boot
 
 If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
 

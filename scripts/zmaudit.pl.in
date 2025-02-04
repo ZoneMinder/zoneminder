@@ -317,7 +317,7 @@ MAIN: while( $loop ) {
 									if ( $Event->Path() ne $full_path ) {
 										if ( ! (-e $Event->Path()) ) {
 											if ( $Event->StorageId() != $Storage->Id() ) {
-												Info("Correcting Storge Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
+												Info("Correcting Storage Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
 												$Event->save({ StorageId=>$Storage->Id() });
 												$Event->Path(undef);
 											}
@@ -408,7 +408,7 @@ MAIN: while( $loop ) {
               }
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
-                executeShellCommand("rm -rf $event_dir");
+                executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
                 $cleaned = 1;
               }
             } # end if able to find id
@@ -442,13 +442,10 @@ MAIN: while( $loop ) {
           Debug("Have event $$Event{Id} at $$Event{Path}");
           $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
-      }
+      } # end scope for medium
 
-      if ( ! $$Storage{Scheme} ) {
-        Error("Storage Scheme not set on $$Storage{Name}, defaulting to shallow");
-        $$Storage{Scheme} = 'Shallow';
-      }
-      if ($$Storage{Scheme} eq 'Shallow') {
+      Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
+      {
         if ( ! chdir($monitor_dir) ) {
           Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
@@ -463,13 +460,14 @@ MAIN: while( $loop ) {
         foreach my $event ( @temp_events ) {
           my $Event = $fs_events->{$event} = new ZoneMinder::Event();
           $$Event{Id} = $event;
-          #$$Event{Path} = $event_path;
           $$Event{Scheme} = 'Shallow';
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->Path();
+          $Event->age();
         } # end foreach event
         chdir( $Storage->Path() );
-      } # if USE_DEEP_STORAGE
+      }
       Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
@@ -517,7 +515,7 @@ MAIN: while( $loop ) {
         aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
 
         if ( confirm() ) {
-          executeShellCommand("rm -rf $monitor_id");
+          executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$monitor_id);
           $cleaned = 1;
         }
       }
@@ -531,7 +529,7 @@ MAIN: while( $loop ) {
       aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-        executeShellCommand(qq`rm "$link"`);
+        executeShellCommand($Config{ZM_PATH_RM}.qq` "$link"`);
         $cleaned = 1;
       }
     } # end foreach monitor link
@@ -843,9 +841,11 @@ FROM `Frames` WHERE `EventId`=?';
     unlink( split( /;/, $untainted_old_files ) );
   }
 
-  # Now delete any old swap files
-  ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
-  File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  eval {
+    # Now delete any old swap files
+    ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
+    File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  };
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
@@ -977,7 +977,7 @@ sub confirm {
     my $char = <>;
     chomp($char);
     if ( $char eq 'q' ) {
-      exit(0);
+      Term();
     }
     if ( !$char ) {
       $char = 'y';

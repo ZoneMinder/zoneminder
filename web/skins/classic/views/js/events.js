@@ -1,12 +1,14 @@
-var backBtn = $j('#backBtn');
-var viewBtn = $j('#viewBtn');
-var archiveBtn = $j('#archiveBtn');
-var unarchiveBtn = $j('#unarchiveBtn');
-var editBtn = $j('#editBtn');
-var exportBtn = $j('#exportBtn');
-var downloadBtn = $j('#downloadBtn');
-var deleteBtn = $j('#deleteBtn');
-var table = $j('#eventTable');
+"use strict";
+const backButton = $j('#backBtn');
+const viewButton = $j('#viewBtn');
+const archiveButton = $j('#archiveBtn');
+const unarchiveButton = $j('#unarchiveBtn');
+const editButton = $j('#editBtn');
+const exportButton = $j('#exportBtn');
+const downloadButton = $j('#downloadBtn');
+const deleteButton = $j('#deleteBtn');
+const table = $j('#eventTable');
+var ajax = null;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -39,15 +41,13 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j('#fieldsTable input').each(function(index) {
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
   });
-  $j('#fieldsTable select').each(function(index) {
-    const el = $j(this);
-    params.data[el.attr('name')] = el.children('option:selected').val();
-  });
-  $j.ajax({
+  if (ajax) ajax.abort();
+  ajax = $j.ajax({
+    method: 'POST',
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
     data: params.data,
     timeout: 0,
@@ -61,7 +61,9 @@ function ajaxRequest(params) {
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
-      console.log("error", jqXHR);
+      if (jqXHR.statusText != 'abort') {
+        console.log("error", jqXHR);
+      }
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
     }
@@ -87,12 +89,31 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Location = row.Latitude+', '+row.Longitude;
+    row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
+    row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
     const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
+    if (ZM_DATETIME_FORMAT_PATTERN) {
+      if (window.DateTime) {
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
+        //.setZone(ZM_TIMEZONE)
+            .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime) {
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime)
+          //.setZone(ZM_TIMEZONE)
+              .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        }
+      } else {
+        console.log("DateTime is not defined");
+      }
+    } else {
+      console.log("No ZM_DATETIME_FORMAT_PATTERN");
+    }
 
-    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<div class="thumbnail" style="height: '+row.imgHeight+'px;"><a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a></div>';
   });
 
   return rows;
@@ -109,24 +130,41 @@ function getIdSelections() {
 
 // Returns a boolen to indicate at least one selected row is archived
 function getArchivedSelections() {
-  var table = $j('#eventTable');
-  var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
+  const table = $j('#eventTable');
+  const selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
   return selection.includes('Yes');
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(function(jqXHR) {
-        console.log('error getting delconfirm', jqXHR);
-        logAjaxFail(jqXHR);
-      });
+function onDeleteClick(evt) {
+  if (!canEdit.Events) {
+    enoperm();
+    return;
+  }
+  evt.preventDefault();
+  if (evt.shiftKey) {
+    const selections = getIdSelections();
+    deleteEvents(selections);
+  } else {
+    if (!document.getElementById('deleteConfirm')) {
+      // Load the delete confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting delconfirm', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+      return;
+    } else {
+      document.getElementById('delConfirmBtn').disabled = false; // re-enable the button
+      $j('#deleteConfirm').modal('show');
+    }
+  } // Shift
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -136,6 +174,7 @@ function manageDelConfirmModalBtns() {
       enoperm();
       return;
     }
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     evt.preventDefault();
 
     const selections = getIdSelections();
@@ -152,6 +191,39 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function unarchiveEvents(event_ids) {
+  const ticker = document.getElementById('unarchiveProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log('unarchive ' + chunk.length + ' selections. ' + event_ids.length);
+
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?request=events&task=unarchive',
+    data: {'eids[]': chunk},
+    success: function(data) {
+      if (data.message) alert(data.message.join("\n"));
+
+      if (!event_ids.length) {
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#unarchiveConfirm').modal('hide');
+      } else {
+        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        unarchiveEvents(event_ids);
+      }
+    },
+    fail: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#eventTable').bootstrapTable('refresh');
+      $j('#unarchiveConfirm').modal('hide');
+    }
+  });
+}
+
 function deleteEvents(event_ids) {
   const ticker = document.getElementById('deleteProgressTicker');
   const chunk = event_ids.splice(0, 10);
@@ -163,6 +235,8 @@ function deleteEvents(event_ids) {
     url: thisUrl + '?request=events&task=delete',
     data: {'eids[]': chunk},
     success: function(data) {
+      if (data.message) alert(data.message.join("\n"));
+
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
@@ -180,6 +254,23 @@ function deleteEvents(event_ids) {
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
     }
+  });
+}
+
+function onDownloadClick(evt) {
+  evt.preventDefault();
+  $j.ajax({
+    method: 'POST',
+    timeout: 0,
+    url: thisUrl + '?request=modal&modal=download',
+    data: {'eids[]': getIdSelections()},
+    success: function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    },
+    error: logAjaxFail,
   });
 }
 
@@ -216,15 +307,12 @@ function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
 
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
-
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
-  if (!getCookie('zmEventsTable.bs.table.columns')) {
-    table.bootstrapTable('hideColumn', 'Archived');
+  if (!getCookie('zmEventsTable.bs.table.hiddenColumns')) {
+    // table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }
 
@@ -232,22 +320,32 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    selections = table.bootstrapTable('getSelections');
+    const selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
-    editBtn.prop('disabled', !(selections.length && canEdit.Events));
-    exportBtn.prop('disabled', !(selections.length && canView.Events));
-    downloadBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+    viewButton.prop('disabled', !(selections.length && canView.Events));
+    archiveButton.prop('disabled', !(selections.length && canEdit.Events));
+    if (!(getArchivedSelections() && canEdit.Events)) {
+      unarchiveButton.prop('disabled', true);
+      if (!getArchivedSelections()) {
+        unarchiveButton.prop('title', 'Please select an event that is archived.');
+      } else {
+        unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
+      }
+    } else {
+      unarchiveButton.prop('disabled', false);
+      unarchiveButton.prop('title', unarchiveString);
+    }
+    editButton.prop('disabled', !(selections.length && canEdit.Events));
+    exportButton.prop('disabled', !(selections.length && canView.Events));
+    downloadButton.prop('disabled', !(selections.length && canView.Events));
+    deleteButton.prop('disabled', !(selections.length && canEdit.Events));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
-  backBtn.prop('disabled', !document.referrer.length);
+  backButton.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
-  initThumbAnimation();
+  if (!isMobile()) initThumbAnimation();
 
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
   table.on('all.bs.table', initThumbAnimation);
@@ -309,19 +407,49 @@ function initPage() {
       return;
     }
 
-    const selections = getIdSelections();
+    if (evt.shiftKey) {
+      const selections = getIdSelections();
+      unarchiveEvents(selections);
+      return;
+    }
 
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=events&task=unarchive',
-      data: {'eids[]': selections},
-      success: function(data) {
-        $j('#eventTable').bootstrapTable('refresh');
-      },
-      error: logAjaxFail
-    });
+    if (!document.getElementById('unarchiveConfirm')) {
+      // Load the unarchive confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=eventunarchive')
+          .done(function(data) {
+            insertModalHtml('unarchiveConfirm', data.html);
+            document.getElementById('unarchiveConfirmBtn').addEventListener('click', function onUnarchiveConfirmClick(evt) {
+              if (!canEdit.Events) {
+                enoperm();
+                return;
+              }
+              evt.preventDefault();
+
+              const selections = getIdSelections();
+              if (!selections.length) {
+                alert('Please select events to Unarchive.');
+              } else {
+                document.getElementById('unarchiveConfirmBtn').disabled = true; // prevent double click
+                unarchiveEvents(selections);
+              }
+            });
+
+            // Manage the CANCEL modal button
+            document.getElementById('unarchiveCancelBtn').addEventListener('click', function onUnarchiveCancelClick(evt) {
+              $j('#unarchiveConfirm').modal('hide');
+            });
+
+            $j('#unarchiveConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting unarchiveevent', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+      return;
+    } else {
+      document.getElementById('unarchiveConfirmBtn').disabled = false; // re-enable the button
+      $j('#unarchiveConfirm').modal('show');
+    }
   });
 
   // Manage the EDIT button
@@ -360,33 +488,10 @@ function initPage() {
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById('downloadBtn').addEventListener('click', function onDownloadClick(evt) {
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=modal&modal=download',
-      data: {'eids[]': getIdSelections()},
-      success: function(data) {
-        insertModalHtml('downloadModal', data.html);
-        $j('#downloadModal').modal('show');
-        // Manage the GENERATE DOWNLOAD button
-        $j('#exportButton').click(exportEvent);
-      },
-      error: logAjaxFail,
-    });
-  });
+  document.getElementById('downloadBtn').addEventListener('click', onDownloadClick);
 
   // Manage the DELETE button
-  document.getElementById('deleteBtn').addEventListener('click', function onDeleteClick(evt) {
-    if (!canEdit.Events) {
-      enoperm();
-      return;
-    }
-
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
-  });
+  document.getElementById('deleteBtn').addEventListener('click', onDeleteClick);
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
@@ -402,29 +507,37 @@ function initPage() {
       getEventDetailModal($j(this).data('eid'));
     });
 
-    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+    const thumb_ndx = $j('#eventTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });
 
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', filterEvents);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    }
-    if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterEvents});
+    } else if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterEvents});
+    } else {
+      el.on('change', filterEvents);
     }
   });
+
+  window.onpageshow = function(evt) {
+    console.log('Refreshing table');
+    table.bootstrapTable('refresh');
+  };
 
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }
 
-function filterEvents() {
+function filterEvents(clickedElement) {
+  if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
+    setCookie('zmFilterArchived', clickedElement.target.value);
+  }
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);
@@ -434,7 +547,6 @@ function filterEvents() {
     const el = $j(this);
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
-  console.log(filterQuery);
   table.bootstrapTable('refresh');
 }
 

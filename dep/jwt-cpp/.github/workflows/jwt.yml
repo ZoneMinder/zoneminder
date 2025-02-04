@@ -1,0 +1,104 @@
+name: JWT CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+      - uses: ./.github/actions/install/danielaparker-jsoncons
+      - uses: ./.github/actions/install/boost-json
+
+      - name: configure
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DJWT_BUILD_EXAMPLES=OFF -DJWT_BUILD_TESTS=ON -DJWT_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+
+      - name: run
+        working-directory: build
+        run: make jwt-cpp-test coverage
+
+      - uses: coverallsapp/github-action@1.1.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: build/coverage.info
+
+  fuzzing:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: lukka/get-cmake@latest
+    - uses: ./.github/actions/install/gtest
+      
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DJWT_ENABLE_FUZZING=ON
+        
+    - name: run
+      working-directory: build
+      run: |
+        make jwt-cpp-fuzz-BaseEncodeFuzz jwt-cpp-fuzz-BaseDecodeFuzz jwt-cpp-fuzz-TokenDecodeFuzz
+        ./tests/fuzz/jwt-cpp-fuzz-BaseEncodeFuzz -runs=100000
+        ./tests/fuzz/jwt-cpp-fuzz-BaseDecodeFuzz -runs=100000 ../tests/fuzz/decode-corpus
+        ./tests/fuzz/jwt-cpp-fuzz-TokenDecodeFuzz -runs=100000 ../tests/fuzz/token-corpus
+
+  asan: ## Based on https://gist.github.com/jlblancoc/44be9d4d466f0a973b1f3808a8e56782
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+
+      - name: configure
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DJWT_BUILD_TESTS=ON -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize=leak -g" \
+                                        -DCMAKE_C_FLAGS="-fsanitize=address -fsanitize=leak -g" \
+                                        -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address -fsanitize=leak" \
+                                        -DCMAKE_MODULE_LINKER_FLAGS="-fsanitize=address -fsanitize=leak"
+
+      - name: run
+        working-directory: build
+        run: |
+          make
+          export ASAN_OPTIONS=check_initialization_order=true:detect_stack_use_after_return=true:fast_unwind_on_malloc=0
+          ./example/rsa-create
+          ./example/rsa-verify
+          ./tests/jwt-cpp-test
+
+  ubsan:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+
+      - name: configure
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DJWT_BUILD_TESTS=ON -DCMAKE_CXX_STANDARD=20 \
+                                        -DCMAKE_CXX_FLAGS="-fsanitize=undefined -fsanitize=return -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize-recover=all -g" \
+                                        -DCMAKE_C_FLAGS="-fsanitize=undefined -fsanitize=return -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize-recover=all -g" \
+                                        -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=undefined -fsanitize=return -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize-recover=all" \
+                                        -DCMAKE_MODULE_LINKER_FLAGS="-fsanitize=undefined -fsanitize=return -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize-recover=all"
+
+      - name: run
+        working-directory: build
+        run: |
+          make
+          export UBSAN_OPTIONS=print_stacktrace=1
+          ./example/rsa-create
+          ./example/rsa-verify
+          ./tests/jwt-cpp-test

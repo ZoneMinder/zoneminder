@@ -28,7 +28,7 @@ function changeScale() {
     img.css('width', newWidth + 'px');
     img.css('height', newHeight + 'px');
   }
-  setCookie('zmWatchScale', scale, 3600);
+  setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
     if (anchor) {
       anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
@@ -41,7 +41,7 @@ function changeScale() {
 
 function getFrameStatsCookie() {
   const cookie = 'zmFrameStats';
-  const stats = getCookie(cookie);
+  let stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -54,6 +54,12 @@ function getStat(params) {
   $j.getJSON(thisUrl + '?view=request&request=stats&raw=true', params)
       .done(function(data) {
         $j('#frameStatsTable').empty().append('<tbody>');
+        if (data.result == "Error") {
+          console.log(`Error running getStat function: ${data.message}`);
+          statsBtn.prop('disabled', true);
+          statsBtn.prop('title', 'No statistics available for this frame');
+          return;
+        }
         if (!data.raw.length) {
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');

@@ -23,10 +23,10 @@ if ( !canView('Stream') ) {
   return;
 }
 
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $options = array();
 
@@ -96,28 +96,30 @@ zm_session_start();
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = $_COOKIE['zmCycleScale'];
+  $options['scale'] = validInt($_COOKIE['zmCycleScale']);
 } else if ( $monitor ) {
-  $options['scale'] = $monitor->DefaultScale();
+  $options['scale'] = validInt($monitor->DefaultScale());
 }
 
 if ( !isset($options['scale']) )
   $options['scale'] = 100;
 
 if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
+  $_COOKIE['zmCycleWidth'] = preg_replace('/[^0-9A-Za-z%]/', '', $_COOKIE['zmCycleWidth']);
   $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
 #} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
   #$options['width'] = $_SESSION['zmCycleWidth'];
 } else {
-  $options['width'] = '';
+  $options['width'] = 'auto';
 }
 
 if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
+  $_COOKIE['zmCycleHeight'] = preg_replace('/[^0-9A-Za-z%]/', '', $_COOKIE['zmCycleHeight']);
   $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
 #else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
   #$options['height'] = $_SESSION['zmCycleHeight'];
 } else {
-  $options['height'] = '';
+  $options['height'] = 'auto';
 }
 
 session_write_close();
@@ -195,6 +197,13 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
 if ( $monitor->JanusEnabled() ) {
 ?>
   <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
+<?php
+if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+?>
+  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php
 }
 ?>

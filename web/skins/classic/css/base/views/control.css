@@ -1,15 +1,15 @@
 .ptzControls {
-    vertical-align: top;
+/*    vertical-align: top;
     margin: 10px auto 0;
-    width: 90%;
+    width: 150px;*/
 }
 
 .ptzControls::after {
-  visibility: hidden;
+/*  visibility: hidden;
   display: block;
   content: "";
   clear: both;
-  height: 0;
+  height: 0;*/
 }
 
 .ptzControls input.ptzTextBtn {
@@ -23,6 +23,8 @@
 
 .ptzControls .controlsPanel {
     margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .ptzControls input[type=image] {
@@ -67,29 +69,23 @@
 }
 
 .ptzControls .controlsPanel .focusControls {
-    float: left;
 }
 
 .ptzControls .controlsPanel .zoomControls {
-    float: left;
 }
 
 .ptzControls .controlsPanel .irisControls {
-    float: right;
     text-align: center;
 }
 
 .ptzControls .controlsPanel .whiteControls {
-    float: right;
     width: 120px;
     text-align: center;
 }
 
 .ptzControls .controlsPanel .pantiltPanel {
     margin: 0 auto;
-    height: 180px;
-    float: left;
-    width: 100px;
+    /* width: 100px; */ /* Probably unnecessary */
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .pantiltButtons {
@@ -99,54 +95,80 @@
     padding: 1px;
     width: 100px;
     height: 100px;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
     width: 32px;
     height: 32px;
     cursor: pointer;
-    float: left;
+}
+
+.pantiltButtons {
+    position: relative;
+}
+
+.arrowBtn {
+    position: absolute;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upLeftBtn {
     background: url("../skins/classic/graphics/arrow-ul.png") no-repeat 0 0;
+    left: 0;
+    top: 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upBtn {
     background: url("../skins/classic/graphics/arrow-u.png") no-repeat 0 0;
+    left: 33px;
+    top: 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upRightBtn {
     background: url("../skins/classic/graphics/arrow-ur.png") no-repeat 0 0;
+    left: 66px;
+    top: 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .leftBtn {
     background: url("../skins/classic/graphics/arrow-l.png") no-repeat 0 0;
+    left: 0;
+    top: 33px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .centerBtn {
     background: url("../skins/classic/graphics/center.png") no-repeat 0 0;
+    left: 33px;
+    top: 33px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .rightBtn {
     background: url("../skins/classic/graphics/arrow-r.png") no-repeat 0 0;
+    left: 66px;
+    top: 33px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downLeftBtn {
     background: url("../skins/classic/graphics/arrow-dl.png") no-repeat 0 0;
+    left: 0;
+    top: 66px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downBtn {
     background: url("../skins/classic/graphics/arrow-d.png") no-repeat 0 0;
+    left: 33px;
+    top: 66px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downRightBtn {
     background: url("../skins/classic/graphics/arrow-dr.png") no-repeat 0 0;
+    left: 66px;
+    top: 66px;
 }
 
 .ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls div {
-    margin: 5px 200px 5px 180px;
 }
 
 .ptzControls .presetControls button {

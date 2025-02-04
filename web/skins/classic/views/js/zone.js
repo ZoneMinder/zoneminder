@@ -7,6 +7,7 @@ var refreshBtn = $j('#refreshBtn');
 var analyseBtn = $j('#analyseBtn');
 var monitors = [];
 var analyse_frames = true;
+var TimerHideShow;
 
 function validateForm( form ) {
   var errors = [];
@@ -234,7 +235,7 @@ function applyZoneUnits() {
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
     field.value = constrainValue(
-        parseInt(field.value),
+        parseFloat(field.value),
         parseInt(minValue),
         parseInt(maxValue)
     );
@@ -441,6 +442,9 @@ function saveChanges(element) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
+    for (var i = 0, length = monitors.length; i < length; i++) {
+      monitors[i].stop();
+    }
     return true;
   }
   return false;
@@ -586,7 +590,7 @@ function presetSelectorBlur() {
 }
 
 function initPage() {
-  var form = document.zoneForm;
+  const form = document.zoneForm;
 
   //form.elements['newZone[Name]'].disabled = true;
   //form.elements['newZone[Type]'].disabled = true;
@@ -606,7 +610,7 @@ function initPage() {
     'newAlarmRgbB',
   ].forEach(
       function(element_name, index) {
-        var el = form.elements[element_name];
+        const el = form.elements[element_name];
         if ( el ) {
           el.oninput = window['limitRangeToUnsignedByte'].bind(el, el);
           el.disabled = true;
@@ -619,7 +623,7 @@ function initPage() {
     'newZone[FilterY]'
   ].forEach(
       function(element_name, index) {
-        var el = form.elements[element_name];
+        const el = form.elements[element_name];
         if ( el ) {
           el.oninput = window['limitFilter'].bind(el, el);
           el.disabled = true;
@@ -634,7 +638,7 @@ function initPage() {
     'newZone[MinFilterPixels]',
     'newZone[MaxFilterPixels]'
   ].forEach(function(element_name, index) {
-    var el = form.elements[element_name];
+    const el = form.elements[element_name];
     if ( el ) {
       el.oninput = window['limitArea'].bind(el, el);
       el.disabled = true;
@@ -667,6 +671,9 @@ function initPage() {
   }
   if ( el = cancelBtn[0] ) {
     el.onclick = function() {
+      for (var i = 0, length = monitors.length; i < length; i++) {
+        monitors[i].stop();
+      }
       window.history.back();
     };
   }
@@ -693,12 +700,9 @@ function initPage() {
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
-
-    // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
-    monitors[i].start(delay);
+    monitors[i].start();
   }
 
   document.querySelectorAll('#imageFrame img').forEach(function(el) {
@@ -724,6 +728,14 @@ function initPage() {
   });
 } // initPage
 
+function panZoomIn(el) {
+  zmPanZoom.zoomIn(el);
+}
+
+function panZoomOut(el) {
+  zmPanZoom.zoomOut(el);
+}
+
 function imageLoadEvent() {
   // We only need this event on the first image load to set dimensions.
   // Turn it off after it has been called.
@@ -746,5 +758,24 @@ function Polygon_calcArea(coords) {
 
   return Math.round(Math.abs(float_area));
 }
+
+document.onvisibilitychange = () => {
+  if (document.visibilityState === "hidden") {
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
+  } else {
+    //Start monitors when show page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      if (!monitors[i].started) {
+        monitors[i].start();
+      }
+    }
+  }
+};
 
 window.addEventListener('DOMContentLoaded', initPage);

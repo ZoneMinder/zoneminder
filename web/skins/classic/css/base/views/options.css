@@ -1,44 +1,84 @@
+:root {
+  --height-block-before-table: 64px; /* Distance from the top border of the block where the table is located to the top border of the table itself */
+  --indent-bootstrap-row: 15px; /* Adjusting bootstrap class "row" */
+}
+
+.chosen-container-single .chosen-single {
+  height: calc(1.5em + 0.5rem + 2px);
+  line-height: calc(1.5em + 0.5rem + 2px);
+}
+
 input.small {
-    width: 6em;
+  width: 6em;
 }
 
 input.medium {
-    width: 9em;
+  width: 9em;
 }
 
 input.large {
-    width: 20em;
+  width: 20em;
 }
 
 #contentTable.optionTable th, #contentTable.optionTable td {
-    vertical-align: top;
+  vertical-align: top;
 }
 
 #contentTable.userTable th, #contentTable.userTable td {
-    text-align: center;
+  text-align: center;
 }
 
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
-    text-align: left;
+  text-align: left;
 }
+
 #contentTable th {
   text-align: left;
 }
 
+#content table .colCanMove,
+#content table .colCanZoom,
+#content table .colCanFocus,
+#content table .colCanIris,
+#content table .colCanWhiteBal,
+#content table .colHasPresets {
+  text-align: center;
+}
+
 #sidebar {
-  overflow-y: auto;
   min-width: 160px;
 }
 
-#options {
-  overflow-y: auto;
+#optionsContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-top: 15px;
-  height: 100%;
 }
+
+#options {
+/*  margin-right: -15px;*/ /* you shouldn't do this for the sake of shifting the scrool bar, it breaks the style in different places. done differently*/
+  width: 100%;
+}
+
+body.sticky #options {
+  height: calc(100% - 50px); /* It's bad, but it's temporary */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body.sticky #sidebar {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 #options div.col-md {
   text-align: left;
 }
 
+input[type="text"] {
+  min-width: 50%;
+}
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_TILE_PROVIDER]"],
@@ -85,15 +125,11 @@ input[name="newStorage[Url]"] {
   text-align: left;
 }
 
-#contentButtons {
-  position: absolute;
-  top: 0;
-  right: 2rem;
-}
 form {
-  position: relative;
+/*  display: flex;*/
+/*  flex-direction: column;*/
   height: 100%;
-  padding-top: 4rem;
+/*  padding-top: 2rem; */
 }
 
 @media screen and (max-width:767px) {
@@ -101,4 +137,50 @@ form {
  label.col-form-label {
     text-align: left;
   }
+}
+
+div.dnsmasq,
+.dnsmasq .config {
+text-align: left;
+}
+.dnsmasq .container {
+margin-left: 0;
+}
+.dnsmasq .config .row > label {
+width: 150px;
+text-align: right;
+}
+.dnsmasq .config .row {
+min-height:36px;
+text-align: left;
+display: flex;
+align-content: space-around;
+}
+#leasesTable td,
+#leasesTable th {
+  text-align: left;
+}
+input[name="config[dhcp-range][min]"],
+input[name="config[dhcp-range][max]"] {
+  width: 120px;
+  min-width: 120px;
+}
+input[name="config[dhcp-range][expires]"] {
+  width: 100px;
+  min-width: 100px;
+}
+textarea.form-control-sm {
+  min-height: 3rem;
+}
+
+body.sticky .wrapper-scroll-table {
+  position: absolute;
+  margin-right: calc(var(--indent-bootstrap-row) * -1);
+  margin-left: calc(var(--indent-bootstrap-row) * -1);
+  padding-right: var(--indent-bootstrap-row);
+  padding-left: var(--indent-bootstrap-row);
+  width: 100%;
+  height: calc(100% - var(--height-block-before-table));
+  overflow-x: hidden; 
+  overflow-y: auto; 
 }

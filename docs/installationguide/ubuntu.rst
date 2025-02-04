@@ -3,9 +3,9 @@ Ubuntu
 
 .. contents::
 
-Ubuntu 22.04 (Jammy)
---------------------
-These instructions are for a brand new ubuntu 22.04 LTS system which does not have ZM installed.
+Ubuntu 22.04+ (Jammy)
+---------------------
+These instructions are for a brand new ubuntu 22.04 LTS system or newer which does not have ZM installed.
 
 **Step 1:** Update system
 
@@ -27,30 +27,51 @@ To use this repository instead of the official Ubuntu repository, enter the foll
         sudo add-apt-repository ppa:iconnor/zoneminder-1.36
         sudo apt update
 
-**Step 3:** Install Zoneminder
+**Step 3:** Configuration MySQL/MariaDB
+
+::
+
+	apt-get install mysql-server
+
+Alternatively
+
+::
+
+  apt-get install mariab-server
+
+**Step 4:** Configure the ZoneMinder Database
+
+This step is not required if you are using our ppa packages as they will do it for you.  It is ok to do it yourself though.
+
+::
+
+	sudo mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
+	sudo mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+
+**Step 5:** Install Zoneminder
 
 ::
 
         sudo apt install -y zoneminder
 
 
-**Step 4:** Configure Apache correctly:
+**Step 6:** Configure Apache correctly:
 
 ::
         
-        sudo a2enmod rewrite
+        sudo a2enmod rewrite headers cgi
         sudo a2enconf zoneminder
         sudo systemctl restart apache2
 
 
-**Step 5:** Enable and start zoneminder
+**Step 7:** Enable and start zoneminder
 
 ::
 
         sudo systemctl enable zoneminder
         sudo systemctl start zoneminder
 
-**Step 6:** Open Zoneminder
+**Step 8:** Open Zoneminder
 
 Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder Console.
 
@@ -98,8 +119,7 @@ Update repo and upgrade.
 
 ::
 
-	apt-get update
-        apt-get upgrade
+	      apt-get update
         apt-get dist-upgrade
 
 
@@ -174,7 +194,6 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
         chmod 740 /etc/zm/zm.conf
         chown root:www-data /etc/zm/zm.conf
-        chown -R www-data:www-data /usr/share/zoneminder/
 
 **Step 7:** Configure Apache correctly:
 

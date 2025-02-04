@@ -19,10 +19,9 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if (!canEdit('Monitors')) {
-  ZM\Warning('Monitor actions require Monitors Permissions');
-  return;
-}
+
+require_once('includes/Monitor.php');
+require_once('includes/Zone.php');
 
 global $error_message;
 
@@ -39,13 +38,21 @@ if ($action == 'save') {
       if (!$x10Monitor) $x10Monitor = array();
     }
   } else {
-    if ($user['MonitorIds']) {
+    if (!canCreate('Monitors')) {
+      ZM\Warning('Monitor actions require Monitors Create Permissions');
+      return;
+    }
+    if ($user->unviewableMonitorIds()) {
       ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
       return;
     }
     if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
+   if (!empty($_REQUEST['newMonitor']['Id'])) { 
+     // Reuse existing but deleted monitor
+     $mid = validCardinal($_REQUEST['newMonitor']['Id']);
+   }
   }
 
   # For convenience
@@ -89,7 +96,9 @@ if ($action == 'save') {
       'TrackMotion' => 0,
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
+      'Deleted' => 0,
       'DecodingEnabled' => 0,
+      'RTSP2WebEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Janus_Use_RTSP_Restream' => 0,
@@ -97,13 +106,15 @@ if ($action == 'save') {
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
+      'WallClockTimestamps' => '',
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
       'LinkedMonitors'  => array(),
       'MQTT_Enabled'  =>  0,
       'RTSPServer' => 0,
-      'SectionLengthWarn' => 0
+      'SectionLengthWarn' => 0,
+      'SOAP_wsa_compl' => 0 
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
@@ -123,6 +134,10 @@ if ($action == 'save') {
       ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
+  if (!empty($newMonitor['ManufacturerId']) and empty($newMonitor['Manufacturer']))
+    unset($newMonitor['Manufacturer']);
+  if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
+    unset($newMonitor['Model']);
 
   $changes = $monitor->changes($newMonitor);
   ZM\Debug('Changes: '. print_r($changes, true));
@@ -131,6 +146,11 @@ if ($action == 'save') {
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
     if ($monitor->Id()) {
+      if ($monitor->Deleted() and ! isset($_REQUEST['newMonitor[Deleted]'])) {
+        # We are saving a new monitor with a specified Id and the Id is used in a deleted record.
+        # Undelete it so that it is visible.
+        $monitor->Deleted(false);
+      }
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ($monitor->Type() != 'WebSite') {
@@ -237,24 +257,29 @@ if ($action == 'save') {
       $changes['Sequence'] = $maxSeq+1;
       if ( $mid ) $changes['Id'] = $mid; # mid specified in request, doesn't exist in db, will re-use slot
 
+
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
         $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
-        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid,
-              sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-                $newMonitor['Width']-1,
-                0,
-                $newMonitor['Width']-1,
-                $newMonitor['Height']-1,
-                0,
-                $newMonitor['Height']-1),
-              $zoneArea,
-              intval(($zoneArea*3)/100),
-              intval(($zoneArea*75)/100),
-              intval(($zoneArea*3)/100),
-              intval(($zoneArea*75)/100),
-              intval(($zoneArea*2)/100)
-              ));
+        $zone = new ZM\Zone();
+        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
+          sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
+            $newMonitor['Width']-1,
+            0,
+            $newMonitor['Width']-1,
+            $newMonitor['Height']-1,
+            0,
+            $newMonitor['Height']-1),
+          'Area'=>$zoneArea,
+          'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
+          'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
+          'MinFilterPixels'=>intval(($zoneArea*.05)/100),
+          'MaxFilterPixels'=>intval(($zoneArea*75)/100),
+          'MinBlobPixels'=>intval(($zoneArea*.05)/100)
+        ])) {
+          $error_message .= $zone->get_last_error();
+          ZM\Error('Error adding zone:' . $error_message);
+        }
       } else {
         ZM\Error('Error saving new Monitor.');
         return;
@@ -300,7 +325,7 @@ if ($action == 'save') {
     if ( count($x10Changes) ) {
       if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
         dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid));
-      } elseif ( !$user['MonitorIds'] ) {
+      } else if ( !$user->unviewableMonitorIds() ) {
         if ( !$x10Monitor ) {
           dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid));
         } else {
@@ -312,7 +337,7 @@ if ($action == 'save') {
   } # end if ZM_OPT_X10
 
   if ( $restart ) {
-    if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' ) {
+    if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' and !$monitor->Deleted()) {
       $monitor->zmcControl('start');
 
       if ( $monitor->Controllable() ) {

@@ -1,21 +1,21 @@
 //
 // ZoneMinder Stream Interfaces, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_STREAM_H
 #define ZM_STREAM_H
@@ -33,7 +33,7 @@ class Monitor;
 #define BOUNDARY "ZoneMinderFrame"
 
 class StreamBase {
-public:
+ public:
   typedef enum {
     STREAM_JPEG,
     STREAM_RAW,
@@ -43,7 +43,7 @@ public:
   } StreamType;
   typedef enum { FRAME_NORMAL, FRAME_ANALYSIS } FrameType;
 
-protected:
+ protected:
   static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
   static constexpr Milliseconds MAX_SLEEP = Milliseconds(500);
 
@@ -54,7 +54,7 @@ protected:
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
 
-protected:
+ protected:
   typedef struct {
     int msg_type;
     char msg_data[16];
@@ -97,7 +97,7 @@ protected:
     CMD_QUERY=99
   } MsgCommand;
 
-protected:
+ protected:
   int monitor_id;
   std::shared_ptr<Monitor> monitor;
 
@@ -139,6 +139,7 @@ protected:
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
+  int frames_to_send;
 
   TimePoint last_frame_sent;
   SystemTimePoint last_frame_timestamp;
@@ -152,7 +153,7 @@ protected:
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
 
-protected:
+ protected:
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
   void updateFrameRate(double fps);
@@ -161,8 +162,8 @@ protected:
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
 
-public:
-  StreamBase(): 
+ public:
+  StreamBase():
     monitor_id(0),
     monitor(nullptr),
     type(DEFAULT_TYPE),
@@ -192,15 +193,16 @@ public:
     frame_count(0),
     last_frame_count(0),
     frame_mod(1),
+    frames_to_send(-1),
     got_command(false),
     temp_img_buffer(nullptr),
-    temp_img_buffer_size(0)
-  {
+    temp_img_buffer_size(0) {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));
     memset(&rem_addr, 0, sizeof(rem_addr));
     memset(&sock_path_lock, 0, sizeof(sock_path_lock));
+    last_fps_update = std::chrono::steady_clock::now();
 
     vid_stream = nullptr;
     msg = { 0, { 0 } };
@@ -241,6 +243,7 @@ public:
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
   }
+  void setFramesToSend(int p_frames_to_send) { frames_to_send = p_frames_to_send; }
   bool sendTextFrame(const char *text);
   virtual void openComms();
   virtual void closeComms();

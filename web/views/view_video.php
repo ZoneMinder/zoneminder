@@ -69,6 +69,7 @@ $size = filesize($path);
 $begin = 0;
 $end = $size-1;
 $length = $size;
+$partial = false;
 
 if ( isset($_SERVER['HTTP_RANGE']) ) {
   ZM\Debug('Using Range '.$_SERVER['HTTP_RANGE']);
@@ -79,6 +80,7 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
     }
     $length = $end - $begin + 1;
     ZM\Debug("Using Range $begin $end size: $size, length: $length");
+    $partial = true;
   }
 } # end if HTTP_RANGE
 
@@ -86,12 +88,12 @@ header('Content-type: video/mp4');
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
-if ( $Event ) {
+if ($Event) {
   header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
 } else {
   header('Content-Disposition: inline;');
 }
-if ( $begin > 0 || $end < $size-1 ) {
+if ($partial) {
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");
   header("Content-Transfer-Encoding: binary\n");
@@ -102,17 +104,12 @@ if ( $begin > 0 || $end < $size-1 ) {
 
 // Apparently without these we get a few extra bytes of output at the end...
 flush();
+if ($begin) fseek($fh, $begin, 0);
 
-$cur = $begin;
-fseek($fh, $begin, 0);
-
-while ( $length && ( !feof($fh) ) && ( connection_status() == 0 ) ) {
+while ($length && (!feof($fh)) && (connection_status() == 0)) {
   $amount = min(1024*16, $length);
-
-  print fread($fh, $amount);
+  echo fread($fh, $amount);
   $length -= $amount;
-  # Why introduce a speed limit?
-  #usleep(100);
   flush();
 }
 

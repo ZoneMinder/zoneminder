@@ -13,26 +13,51 @@ jobs:
       matrix:
         os_dist:
           - os: debian
-            dist: buster
-          - os: debian
             dist: bullseye
-          - os: ubuntu
-            dist: bionic
+            arch: x86_64
           - os: ubuntu
             dist: focal
+            arch: x86_64
+          - os: ubuntu
+            dist: jammy
+            arch: x86_64
+          - os: ubuntu
+            dist: noble
+            arch: x86_64
+          - os: debian
+            dist: bookworm
+            arch: x86_64
+          - os: debian
+            dist: bullseye
+            arch: aarch64
+          - os: ubuntu
+            dist: focal
+            arch: aarch64
+          - os: ubuntu
+            dist: jammy
+            arch: aarch64
+          - os: debian
+            dist: bookworm
+            arch: aarch64
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
           submodules: recursive
+      - if: matrix.os_dist.arch == 'aarch64'
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - name: Run packpack
         env:
           SMPFLAGS: -j4
           OS: ${{ matrix.os_dist.os }}
           DIST: ${{ matrix.os_dist.dist }}
-          DOCKER_REPO: iconzm/packpack
+          ARCH: ${{ matrix.os_dist.arch }}
+          DOCKER_REPO: packpack/packpack
         run: utils/packpack/startpackpack.sh
 
       - name: Publish

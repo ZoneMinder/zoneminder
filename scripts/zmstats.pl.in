@@ -20,6 +20,8 @@ use constant START_DELAY => 30; # To give everything else time to start
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use DBI;
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use ZoneMinder::Server;
 
 $| = 1;
 
@@ -41,6 +43,7 @@ Info('Stats Daemon starting in '.START_DELAY.' seconds');
 sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
+my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
 
 while (!$zm_terminate) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
@@ -51,8 +54,33 @@ while (!$zm_terminate) {
     }
   }
 
-  # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db
-  zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN (SELECT Id FROM Monitors WHERE Capturing=\'None\')');
+  my @cpuload = $server->CpuLoad();
+  Debug("Cpuload: @cpuload");
+  my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
+
+  if ($server->Id()) {
+    $server->load(); # get fresh other values
+    if ($_=$server->save({
+          CpuLoad=>$cpuload[0],
+          TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
+          CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
+        })) {
+      Error('Failed Updating status of Server record for Id='.$server->Id().': '.$dbh->errstr());
+    }
+  }
+
+  zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuNicePercent, CpuSystemPercent, CpuIdlePercent, CpuUsagePercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?,?,?,?)',
+    ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : 0),
+    $cpuload[0], $user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent,
+    &totalmem, &freemem, &totalswap, &freeswap);
+
+  {
+    my $rows = zmDbDo('DELETE FROM `Server_Stats` WHERE `TimeStamp` < now() - interval 1 DAY LIMIT 100');
+    Debug("Deleted $rows Server Stats table entries by time");
+  }
+
+  # Clear out statuses for Monitors that aren't updating themselves.
+  zmDbDo('DELETE FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))');
 
   zmDbDo('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
   zmDbDo('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
@@ -83,18 +111,20 @@ while (!$zm_terminate) {
       }
       my $rows;
       do {
-        $rows = zmDbDo('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100');
+        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100');
         Debug("Deleted $rows log table entries by time") if $rows;
       } while ($rows and ($rows == 100) and !$zm_terminate);
     }
   } # end if ZM_LOG_DATABASE_LIMIT
 
-  my $rows;
-  do {
-    # Delete any sessions that are more than a week old. Limiting to 100 because mysql sucks
-    $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - $Config{ZM_COOKIE_LIFETIME});
-    Debug("Deleted $rows sessions") if $rows;
-  } while ($rows and ($rows == 100) and !$zm_terminate);
+  {
+    my $rows;
+    do {
+      # Delete any sessions that are more than a week old. Limiting to 100 because mysql sucks
+      $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - $Config{ZM_COOKIE_LIFETIME});
+      Debug("Deleted $rows sessions") if $rows;
+    } while ($rows and ($rows == 100) and !$zm_terminate);
+  }
 
   sleep($Config{ZM_STATS_UPDATE_INTERVAL});
 } # end while (!$zm_terminate)

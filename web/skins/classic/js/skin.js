@@ -38,6 +38,10 @@ var icons = {
   detailClose: 'fa-minus'
 };
 
+var panZoomEnabled = true; //Add it to settings in the future
+var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
+var shifted = ctrled = alted = false;
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -261,6 +265,22 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // List of functions that are allowed to be called via the value of an object's DOM attribute.
+    const safeFunc = {
+      drawGraph: function() {
+        if (typeof drawGraph !== 'undefined' && $j.isFunction(drawGraph)) drawGraph();
+      },
+      refreshWindow: function() {
+        if (typeof refreshWindow !== 'undefined' && $j.isFunction(refreshWindow)) refreshWindow();
+      },
+      changeScale: function() {
+        if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) changeScale();
+      },
+      applyChosen: function() {
+        if (typeof applyChosen !== 'undefined' && $j.isFunction(applyChosen)) applyChosen();
+      }
+    };
+
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
@@ -274,46 +294,105 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        setCookie('zmHeaderFlip', 'down', 3600);
+        setCookie('zmHeaderFlip', 'down');
       } else {
         flip.html('keyboard_arrow_up');
-        setCookie('zmHeaderFlip', 'up', 3600);
+        setCookie('zmHeaderFlip', 'up');
+      }
+    }
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      const _this_ = $j(this);
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      changeButtonIcon(_this_, objIconButton);
+
+      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+
+      if (nameFuncBefore) {
+        $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
+      if (!_this_.attr('data-on-click-true')) {
+        obj.slideToggle("fast", function() {
+          if (nameFuncAfterComplet) {
+            $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+              if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+            });
+          }
+        });
+      }
+      if (nameFuncAfter) {
+        $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
       }
     });
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down', 3600);
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up', 3600);
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
+      const _this_ = $j(this);
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
+      // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        if (stateIcon == 'hidden') {
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
+        }
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        if (stateIcon == 'hidden') {
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
+        }
       }
     });
 
     // Manage the web console filter bar minimize chevron
-    $j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow");
+    /*$j("#mfbflip").click(function() {
+      $j("#mfbpanel").slideToggle("slow", function() {
+        if ($j.isFunction('changeScale')) {
+          changeScale();
+        }
+      });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'up');
       } else {
         mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'down');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
-    });
+    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -328,17 +407,46 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
+
+  /*
+  * params{visibility: null "visible" or "hidden"} - state of the panel before pressing button
+  */
+  function changeButtonIcon(pressedBtn, target, params) {
+    const visibility = (!params) ? null : params.visibility;
+    const objIconButton = pressedBtn.find("i");
+    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-hidden'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+    } else { //hidden
+      obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-visible'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+    }
+  }
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
-    var modal = $j('#' + name);
+    let modal = $j('#' + name);
 
     if (modal.length) {
       modal.replaceWith(html);
     } else {
-      $j("body").append(html);
+      $j('body').append(html);
+      modal = $j('#' + name);
     }
+    return modal;
   }
 
   // Manage the modal html we received after user clicks help link
@@ -385,14 +493,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
+      delete data.auth;
     }
     if (data.auth_relay) {
       auth_relay = data.auth_relay;
+      delete data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
-    for (var key of Object.keys(data)) {
-      if ( key == "auth" ) continue;
-      if ( key == "auth_relay" ) continue;
+    for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
@@ -491,7 +599,9 @@ function configureDeleteButton( element ) {
       }
     }
   }
-  form.deleteBtn.disabled = !checked;
+  let btn = form.deleteBtn;
+  if (!btn) btn = document.getElementById('deleteBtn');
+  if (btn) btn.disabled = !checked;
 }
 
 function confirmDelete( message ) {
@@ -587,43 +697,42 @@ function endOfResize(e) {
  * Uses the #content element
  * figures out where bottomEl is in the viewport
  * does calculations
+ * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
-function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  const ratio = baseWidth / baseHeight;
-  const container = $j('#content');
+  if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
   }
 
-  if (!bottomEl || !bottomEl.length) {
-    bottomEl = $j(container[0].lastElementChild);
-  }
+  const ratio = baseWidth / baseHeight;
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
-  var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-  console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
-  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
-  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-  var newWidth = ratio * newHeight;
-  console.log("newWidth = " + newWidth);
+  var bottomLoc = 0;
+  if (bottomEl !== false) {
+    if (!bottomEl || !bottomEl.length) {
+      bottomEl = $j(container[0].lastElementChild);
+    }
+    bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+    console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+  }
+  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  let newWidth = ratio * newHeight;
 
-  if (newHeight < 0) {
+  if (newHeight < 0 || newWidth > container.width()) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
+    newWidth = container.width();
     newHeight = newWidth / ratio;
   }
-  console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
+  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -633,6 +742,11 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  */
+  // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
+  autoScale = 5 * Math.floor(autoScale / 5);
+  if (autoScale < 10) autoScale = 10;
+  console.log(`container.height=${container.height()}, newWidth=${newWidth}, newHeight=${newHeight}, container width=${container.width()}, autoScale=${autoScale}`);
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -650,25 +764,50 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
-function setCookie(name, value, days) {
-  var expires = "";
-  if (days) {
-    var date = new Date();
-    date.setTime(date.getTime() + (days*24*60*60*1000));
-    expires = "; expires=" + date.toUTCString();
+function isJSON(str) {
+  if (typeof str !== 'string') return false;
+  try {
+    const result = JSON.parse(str);
+    const type = Object.prototype.toString.call(result);
+    return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
+  } catch (e) {
+    return false; // This is also not JSON
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
+};
+
+function setCookie(name, value, seconds) {
+  var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
+  let expires = "";
+  if (seconds) {
+    const date = new Date();
+    date.setTime(date.getTime() + (seconds*1000));
+    expires = "; expires=" + date.toUTCString();
+  } else {
+    // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
+    expires = "; max-age=2147483647";
+  }
+  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
 }
 
+/*
+* If JSON is stored in cookies, the function will return an array or object of values.
+*/
 function getCookie(name) {
   var nameEQ = name + "=";
+  var result = null;
   var ca = document.cookie.split(';');
   for (var i=0; i < ca.length; i++) {
+    if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    if (c.indexOf(nameEQ) == 0) {
+      result = c.substring(nameEQ.length, c.length);
+      break;
+    }
   }
-  return null;
+  if (isJSON(result)) result = JSON.parse(result);
+
+  return result;
 }
 
 function delCookie(name) {
@@ -678,7 +817,7 @@ function delCookie(name) {
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
-    setCookie("zmBandwidth", bwval, 3600);
+    setCookie("zmBandwidth", bwval);
     getNavBar();
   });
 }
@@ -710,9 +849,14 @@ function enoperm() {
 function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
-        insertModalHtml('modalLogout', data.html);
-        manageModalBtns('modalLogout');
-        clickLogout();
+        if (data['result'] != 'Ok') {
+          alert('Failed to load logout modal. See javascript console for details.');
+          console.log(data);
+        } else {
+          insertModalHtml('modalLogout', data.html);
+          manageModalBtns('modalLogout');
+          clickLogout();
+        }
       })
       .fail(logAjaxFail);
 }
@@ -802,8 +946,7 @@ function stateStuff(action, runState, newState) {
 function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   if ( ! jqxhr.responseText ) {
-    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
-    console.log(jqxhr);
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
   var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
@@ -916,15 +1059,15 @@ function manageShutdownBtns(element) {
 }
 
 var thumbnail_timeout;
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
+  const img = event.target;
+  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
+  img.src = img.getAttribute(imgAttr);
   thumbnail_timeout = setTimeout(function() {
-    var img = event.target;
-    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-    img.src = '';
-    img.src = img.getAttribute(imgAttr);
     img.classList.add(imgClass);
-  }, 350);
+  }, 250);
 }
 
 function thumbnail_onmouseout(event) {
@@ -932,7 +1075,6 @@ function thumbnail_onmouseout(event) {
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = '';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
 }
@@ -1030,3 +1172,146 @@ function post(path, params, method='post') {
   document.body.appendChild(form);
   form.submit();
 }
+
+function isMobile() {
+  var result = false;
+  // device detection
+  if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(navigator.userAgent.substring(0, 4))) {
+    result = true;
+  }
+  return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+}
+
+function stringToNumber(str) {
+  return parseInt(str.replace(/\D/g, ''));
+}
+
+function loadFontFaceObserver() {
+  const font = new FontFaceObserver('Material Icons', {weight: 400});
+  font.load().then(function() {
+    $j('.material-icons').css('display', 'inline-block');
+  }, function() {
+    $j('.material-icons').css('display', 'inline-block');
+  });
+}
+
+function thisClickOnStreamObject(clickObj) {
+  if (clickObj.id) {
+    if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
+      return true;
+    } else if (clickObj.id.indexOf('monitorStatus') != -1) {
+      return document.getElementById('monitor'+stringToNumber(clickObj.id));
+      //return clickObj;
+    } else if (clickObj.id.indexOf('videoobj') != -1) {
+      return document.getElementById('eventVideo');
+    } else return false;
+  } else return false;
+}
+
+/* For mobile device Not implemented yet. */
+function thisClickOnTimeline(clickObj) {
+  return false;
+}
+
+var doubleTouchExecute = function(event, touchEvent) {
+//  if (touchEvent.target.id &&
+//    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
+  if (thisClickOnStreamObject(touchEvent.target)) {
+    doubleClickOnStream(event, touchEvent);
+  } else if (thisClickOnTimeline(touchEvent.target)) {
+    doubleTouchOnTimeline(event, touchEvent);
+  }
+};
+
+var doubleClickOnStream = function(event, touchEvent) {
+  if (shifted || ctrled || alted) return;
+  let target = null;
+  if (event.target) {// Click NOT on touch screen, use THIS
+    //Process only double clicks directly on the image, excluding clicks,
+    //for example, on zoom buttons and other elements located in the image area.
+    const fullScreenObject = thisClickOnStreamObject(event.target);
+    if (fullScreenObject === true) {
+      target = this;
+    } else if (fullScreenObject !== false) {
+      target = fullScreenObject;
+    }
+  } else {// Click on touch screen, use EVENT
+    //if (touchEvent.target.id &&
+    //  (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
+    target = event;
+    //}
+  }
+
+  if (target) {
+    if (document.fullscreenElement) {
+      closeFullscreen();
+    } else {
+      openFullscreen(target);
+    }
+    if (isMobile()) {
+      setTimeout(function() {
+        //For some mobile devices resizing does not work. You need to set a delay and re-call the 'resize' event
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    }
+  }
+};
+
+var doubleTouch = function(e) {
+  if (e.touches.length === 1) {
+    if (!expiredTap) {
+      expiredTap = e.timeStamp + 300;
+    } else if (e.timeStamp <= expiredTap) {
+      // remove the default of this event ( Zoom )
+      e.preventDefault();
+      //doubleClickOnStream(this, e);
+      doubleTouchExecute(this, e);
+      // then reset the variable for other "double Touches" event
+      expiredTap = null;
+    } else {
+      // if the second touch was expired, make it as it's the first
+      expiredTap = e.timeStamp + 300;
+    }
+  }
+};
+
+function setButtonSizeOnStream() {
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"], [id = "videoobj"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
+    const w = el.offsetWidth;
+    // #videoFeedStream - on Event page
+    const monitorId = (stringToNumber(el.id)) ? stringToNumber(el.id) : stringToNumber(el.closest('[id ^= "videoFeedStream"]').id);
+    const buttonsBlock = document.getElementById('button_zoom' + monitorId);
+    if (!buttonsBlock) return;
+    const buttons = buttonsBlock.querySelectorAll(`
+      button.btn.btn-zoom-out span,
+      button.btn.btn-zoom-in span,
+      button.btn.btn-view-watch span,
+      button.btn.btn-fullscreen span,
+      button.btn.btn-edit-monitor span`
+    );
+    Array.prototype.forEach.call(buttons, (btn) => {
+      const btnWeight = (w/10 < 100) ? w/10 : 100;
+      btn.style.fontSize = btnWeight + "px";
+      btn.style.margin = -btnWeight/20 + "px";
+    });
+  });
+}
+
+$j(document).on('keyup.global keydown.global', function(e) {
+  shifted = e.shiftKey ? e.shiftKey : e.shift;
+  ctrled = e.ctrlKey;
+  alted = e.altKey;
+});
+
+loadFontFaceObserver();

@@ -4,7 +4,7 @@
 #
 cmake_minimum_required(VERSION 3.5.0)
 project(zoneminder)
-file(STRINGS "version" zoneminder_VERSION)
+file(STRINGS "version.txt" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
@@ -40,8 +40,9 @@ set(CMAKE_C_FLAGS_OPTIMISED "-O3")
 set(CMAKE_CXX_FLAGS_OPTIMISED "-O3")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(-D_FILE_OFFSET_BITS=64)
 
@@ -88,6 +89,10 @@ mark_as_advanced(
   ZM_PATH_MAP
   ZM_PATH_ARP
   ZM_PATH_ARP_SCAN
+  ZM_PATH_RM
+  ZM_PATH_UNAME
+  ZM_PATH_IP
+  ZM_PATH_IFCONFIG
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -123,14 +128,16 @@ set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH
 set(ZM_FONTDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/fonts" CACHE PATH
   "Location of the font files used for timestamping, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/fonts")
 
+set(ZM_DB_TYPE "mysql" CACHE STRING
+  "Type of database where the ZoneMinder database located, default: mysql")
 set(ZM_DB_HOST "localhost" CACHE STRING
-  "Hostname where ZoneMinder database located, default: localhost")
+  "Hostname where the ZoneMinder database located, default: localhost")
 set(ZM_DB_NAME "zm" CACHE STRING
-  "Name of ZoneMinder database, default: zm")
+  "Name of the ZoneMinder database, default: zm")
 set(ZM_DB_USER "zmuser" CACHE STRING
-  "Name of ZoneMinder database user, default: zmuser")
+  "Name of the ZoneMinder database user, default: zmuser")
 set(ZM_DB_PASS "zmpass" CACHE STRING
-  "Password of ZoneMinder database user, default: zmpass")
+  "Password of the ZoneMinder database user, default: zmpass")
 set(ZM_WEB_USER "" CACHE STRING
   "The user apache or the local web server runs on. Leave empty for automatic detection.
      If that fails, you can use this variable to force")
@@ -143,6 +150,8 @@ set(ZM_DIR_SOUNDS "sounds" CACHE PATH
   "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
   "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+set(ZM_PATH_API "/zm/api" CACHE PATH
+  "Web url to api, default: /zm/api")
 set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
@@ -153,6 +162,14 @@ set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
   "Full path to compatible scan_arp binary. Leave empty for automatic detection.")
+set(ZM_PATH_RM "" CACHE PATH
+  "Full path to compatible rm binary. Leave empty for automatic detection.")
+set(ZM_PATH_UNAME "" CACHE PATH
+  "Full path to compatible uname binary. Leave empty for automatic detection.")
+set(ZM_PATH_IP "" CACHE PATH
+  "Full path to compatible ip binary. Leave empty for automatic detection.")
+set(ZM_PATH_IFCONFIG "" CACHE PATH
+  "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -221,7 +238,7 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
 endif()
 
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
-  set(ZM_RUNDIR "/var/run/zoneminder")
+  set(ZM_RUNDIR "/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
   set(ZM_TMPDIR "/var/lib/zoneminder/temp")
   set(ZM_LOGDIR "/var/log/zoneminder")
@@ -296,16 +313,6 @@ check_type_size("siginfo_t" HAVE_SIGINFO_T)
 check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
-
-if(UNIX)
-  include(CheckLibraryExists)
-  CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
-  if(NOT HAVE_CLOCK_GETTIME)
-    message(FATAL_ERROR "clock_gettime not found")
-  else()
-    list(APPEND ZM_BIN_LIBS "-lrt")
-  endif()
-endif()
 
 # zlib
 find_package(ZLIB)
@@ -438,7 +445,7 @@ if(NOT ZM_NO_MQTT)
   find_package(MOSQUITTO)
   if(MOSQUITTO_FOUND)
     include_directories(${MOSQUITTO_INCLUDE_DIRS})
-    list(APPEND ZM_BIN_LIBS "${MOSQUITTO_LIBRARIES}")
+    list(APPEND ZM_BIN_LIBS "${MOSQUITTO_LIBRARY}")
     set(optlibsfound "${optlibsfound} Mosquitto")
   else()
     set(optlibsnotfound "${optlibsnotfound} Mosquitto")
@@ -447,7 +454,7 @@ if(NOT ZM_NO_MQTT)
   find_package(MOSQUITTOPP)
   if(MOSQUITTOPP_FOUND)
     include_directories(${MOSQUITTOPP_INCLUDE_DIRS})
-    list(APPEND ZM_BIN_LIBS "${MOSQUITTOPP_LIBRARIES}")
+    list(APPEND ZM_BIN_LIBS "${MOSQUITTOPP_LIBRARY}")
     set(optlibsfound "${optlibsfound} Mosquittopp")
   else()
     set(optlibsnotfound "${optlibsnotfound} Mosquittopp")
@@ -679,6 +686,54 @@ if(ZM_PATH_ARP_SCAN STREQUAL "")
   endif()
 endif()
 
+# Find the path to an rm compatible executable
+if(ZM_PATH_RM STREQUAL "")
+  find_program(RM_EXECUTABLE rm)
+  if(RM_EXECUTABLE)
+    set(ZM_PATH_RM "${RM_EXECUTABLE}")
+    mark_as_advanced(RM_EXECUTABLE)
+  endif()
+  if(RM_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible rm binary.")
+  endif()
+endif()
+
+# Find the path to a uname compatible executable
+if(ZM_PATH_UNAME STREQUAL "")
+  find_program(UNAME_EXECUTABLE uname)
+  if(UNAME_EXECUTABLE)
+    set(ZM_PATH_UNAME "${UNAME_EXECUTABLE}")
+    mark_as_advanced(UNAME_EXECUTABLE)
+  endif()
+  if(UNAME_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible uname binary.")
+  endif()
+endif()
+
+# Find the path to a uname compatible executable
+if(ZM_PATH_IP STREQUAL "")
+  find_program(IP_EXECUTABLE ip)
+  if(IP_EXECUTABLE)
+    set(ZM_PATH_IP "${IP_EXECUTABLE}")
+    mark_as_advanced(IP_EXECUTABLE)
+  endif()
+  if(IP_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ip binary.")
+  endif()
+endif()
+
+# Find the path to a ifconfig compatible executable
+if(ZM_PATH_IFCONFIG STREQUAL "")
+  find_program(IFCONFIG_EXECUTABLE ifconfig)
+  if(IFCONFIG_EXECUTABLE)
+    set(ZM_PATH_IFCONFIG "${IFCONFIG_EXECUTABLE}")
+    mark_as_advanced(IFCONFIG_EXECUTABLE)
+  endif()
+  if(IFCONFIG_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ifconfig binary.")
+  endif()
+endif()
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
@@ -692,7 +747,6 @@ set(WEB_PREFIX "${ZM_WEBDIR}")
 set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
-set(ZM_DB_TYPE "mysql")
 if(ZM_PERL_SEARCH_PATH)
   set(EXTRA_PERL_LIB "use lib '${ZM_PERL_SEARCH_PATH}'; # Include custom perl install path")
 else()

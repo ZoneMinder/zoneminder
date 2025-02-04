@@ -17,11 +17,11 @@ class Event_Data extends ZM_Object {
   private $Event = null;
 
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public function Event() {
@@ -35,5 +35,5 @@ class Event_Data extends ZM_Object {
     }
     return $this->Event;
   }
-} # end class Enent_Data
+} # end class Event_Data
 ?>

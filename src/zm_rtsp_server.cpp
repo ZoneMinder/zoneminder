@@ -96,19 +96,19 @@ int main(int argc, char *argv[]) {
       break;
 
     switch (c) {
-      case 'm':
-        monitor_id = atoi(optarg);
-        break;
-      case 'h':
-      case '?':
-        Usage();
-        break;
-      case 'v':
-        std::cout << ZM_VERSION << "\n";
-        exit(0);
-      default:
-        // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
-        break;
+    case 'm':
+      monitor_id = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      Usage();
+      break;
+    case 'v':
+      std::cout << ZM_VERSION << "\n";
+      exit(0);
+    default:
+      // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
+      break;
     }
   }
 
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Capturing` != 'None' AND `RTSPServer` != false";
+  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `RTSPServer` != false";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (monitor_id > 0)
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
   zmSetDefaultDieHandler();
 
   std::shared_ptr<xop::EventLoop> eventLoop(new xop::EventLoop());
-	std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
+  std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
   rtspServer->SetVersion("ZoneMinder RTSP Server");
 
   if (config.opt_use_auth) {
@@ -240,13 +240,13 @@ int main(int argc, char *argv[]) {
           Error("Unable to create session for %s", streamname.c_str());
           continue;
         }
-        session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port){
-            Debug(1, "RTSP client connect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
-            });
+        session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
+          Debug(1, "RTSP client connect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+        });
 
         session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
-            Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
-            });
+          Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+        });
 
         rtspServer->AddSession(session);
         //char *url = rtspServer->rtspURL(session);
@@ -261,9 +261,9 @@ int main(int argc, char *argv[]) {
           session->AddSource(xop::channel_0, xop::H264Source::CreateNew());
           videoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
         } else if (
-            std::string::npos != videoFifoPath.find("hevc")
-            or
-            std::string::npos != videoFifoPath.find("h265")) {
+          std::string::npos != videoFifoPath.find("hevc")
+          or
+          std::string::npos != videoFifoPath.find("h265")) {
           session->AddSource(xop::channel_0, xop::H265Source::CreateNew());
           videoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
         } else {
@@ -290,18 +290,18 @@ int main(int argc, char *argv[]) {
 
         if (std::string::npos != audioFifoPath.find("aac")) {
           Debug(1, "Adding aac source at %dHz %d channels",
-              monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::AACSource::CreateNew(
-                monitor->GetAudioFrequency(),
-                monitor->GetAudioChannels(),
-                false /* has_adts */));
+                               monitor->GetAudioFrequency(),
+                               monitor->GetAudioChannels(),
+                               false /* has_adts */));
           audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
         } else if (std::string::npos != audioFifoPath.find("pcm_alaw")) {
           Debug(1, "Adding G711A source at %dHz %d channels",
-              monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+                monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
           audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
@@ -355,5 +355,5 @@ int main(int argc, char *argv[]) {
   logTerm();
   zmDbClose();
 
-	return 0;
+  return 0;
 }

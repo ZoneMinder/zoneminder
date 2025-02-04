@@ -908,6 +908,30 @@ $SLANG = array(
     'ConfirmDeleteTitle'   => 'Borrar Seleccionados',
     'Continuous'           => 'Continuo',
     'ONVIF_Alarm_Text'      => 'Texto Alarma ONVIF', //added 18/07/2022
+// language names translation
+    'es_la' => 'Español Latam',
+    'es_CR' => 'Español Costa Rica',
+    'es_ar' => 'Español Argentina',
+    'es_es' => 'Español España',
+    'en_gb' => 'Ingles Britanico',
+    'en_us' => 'Ingles Estados Unidos',
+    'fr_fr' => 'Frances',
+    'cs_cz' => 'Checo',
+    'zh_cn' => 'Chino Simplificado',
+    'zh_tw' => 'Chino Tradicional',
+    'de_de' => 'Aleman',
+    'it_it' => 'Italiano',
+    'ja_jp' => 'Japones',
+    'hu_hu' => 'Hungaro',
+    'pl_pl' => 'Polaco',
+    'pt_br' => 'Portugues Brasil',
+    'ru_ru' => 'Ruso',
+    'nl_nl' => 'Holandes',
+    'se_se' => 'Sueco',
+    'et_ee' => 'Estonio',
+    'he_il' => 'Hebreo',
+    'dk_dk' => 'Danes',
+    'ro_ro' => 'Rumano',
 
 );
 
@@ -1180,7 +1204,6 @@ $OLANG = array(
 	'WEB_M_VIDEO_MAXFPS' => array ( 'Prompt'=>'Cuál debe ser la velocidad de cuadro máxima para la transmisión de video'),
 	'WEB_NAVBAR_TYPE' => array ( 'Prompt'=>'Estilo de la barra de navegación de la consola web'),
 	'WEB_POPUP_ON_ALARM' => array ( 'Prompt'=>'Debe la ventana del monitor pasar a primer plano si ocurre una alarma'),
-	'WEB_RESIZE_CONSOLE' => array ( 'Prompt'=>'Debe la ventana de la consola cambiar de tamaño para ajustarse al monitor'),
 	'WEB_SOUND_ON_ALARM' => array ( 'Prompt'=>'Debería la ventana del monitor reproducir un sonido si ocurre una alarma'),
 	'WEB_TITLE' => array ( 'Prompt'=>'Mostrar el título si el sitio hace referencia a sí mismo.'),
 	'WEB_TITLE_PREFIX' => array ( 'Prompt'=>'El prefijo del título que se muestra en cada ventana'),

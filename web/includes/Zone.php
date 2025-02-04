@@ -2,7 +2,7 @@
 namespace ZM;
 require_once('database.php');
 require_once('Object.php');
-
+require_once('Monitor.php');
 
 class Zone extends ZM_Object {
   protected static $table = 'Zones';
@@ -11,38 +11,39 @@ class Zone extends ZM_Object {
 			'Id'                  => null,
       'MonitorId'           => null,
 			'Name'                => '',
-			'Type' => 'Active',
-			'Units' => 'Pixels',
-      'NumCoords' => '0',
-      'Coords' => 0,
-      'Area' => '0',
-      'AlarmRGB' => '0',
-			'CheckMethod' => 'Blobs',
-			'MinPixelThreshold' => null,
-			'MaxPixelThreshold' => null,
-			'MinAlarmPixels' => null,
-			'MaxAlarmPixels' => null,
-			'FilterX' => null,
-			'FilterY' => null,
-			'MinFilterPixels' => null,
-			'MaxFilterPixels' => null,
-			'MinBlobPixels' => null,
-			'MaxBlobPixels' => null,
-			'MinBlobs' => null,
-			'MaxBlobs' => null,
-			'OverloadFrames' => 0,
-			'ExtendAlarmFrames' => 0,
+			'Type'                => 'Active',
+			'Units'               => 'Pixels',
+      'NumCoords'           => '4',
+      'Coords'              => '',
+      'Area'                => '0',
+      'AlarmRGB'            => 0xff0000,
+			'CheckMethod'         => 'Blobs',
+			'MinPixelThreshold'   => 25,
+			'MaxPixelThreshold'   => null,
+			'MinAlarmPixels'      => null,
+			'MaxAlarmPixels'      => null,
+			'FilterX'             => 3,
+			'FilterY'             => 3,
+			'MinFilterPixels'     => null,
+			'MaxFilterPixels'     => null,
+			'MinBlobPixels'       => null,
+			'MaxBlobPixels'       => null,
+			'MinBlobs'            => 1,
+			'MaxBlobs'            => null,
+			'OverloadFrames'      => 0,
+			'ExtendAlarmFrames'   => 0,
 			);
 
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
+
   public function Monitor() {
-    if ( isset($this->{'MonitorId'}) ) {
+    if (isset($this->{'MonitorId'})) {
       $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
       if ( $Monitor )
         return $Monitor;

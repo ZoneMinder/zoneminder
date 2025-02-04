@@ -1,0 +1,14 @@
+
+.Instructions,
+.Settings {
+  width: 600px;
+  margin: 0 auto;
+
+}
+p {
+  text-align: left;
+}
+p label {
+  width: 200px;
+  text-align: left;
+}

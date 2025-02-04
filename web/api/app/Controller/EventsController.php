@@ -22,7 +22,7 @@ class EventsController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user['Events'] != 'None');
+    $canView = (!$user) || ($user->Events() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -40,16 +40,16 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
 
-    if ( $allowedMonitors ) {
+    if (count($allowedMonitors)) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';
     }
 
     $named_params = $this->request->params['named'];
-    if ( $named_params ) {
+    if ($named_params) {
       # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
       # This hack renames the query string params
       foreach ( $named_params as $k=>$v ) {
@@ -78,8 +78,10 @@ class EventsController extends AppController {
       // with many event APIs. In future, we can
       // make a nice ZM_API_ITEMS_PER_PAGE for all pagination
       // API
+      // ICON: 2023-11-16: MontageReview now uses API and unless we specifiy a limit in params, there should be no limit
+      // TODO: Implement request based limits.
 
-      'limit' => '100',
+      # 'limit' => '100',
       'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
@@ -110,7 +112,7 @@ class EventsController extends AppController {
     // also add FS path
 
     foreach ( $events as $key => $value ) {
-      $EventObj = new ZM\Event($value['Event']['Id']);
+      $EventObj = new ZM\Event($value['Event']);
       $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
@@ -135,7 +137,7 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
 
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
@@ -145,7 +147,7 @@ class EventsController extends AppController {
 
     $noFrames = $this->request->query('noframes');
     if ($noFrames=='true')
-        $this->Event->unbindModel(array('hasMany' => array('Frame')));
+      $this->Event->unbindModel(array('hasMany' => array('Frame')));
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
@@ -153,8 +155,8 @@ class EventsController extends AppController {
     # Get the previous and next events for any monitor
     $this->Event->id = $id;
     $event_neighbors = $this->Event->find('neighbors');
-    $event['Event']['Next'] = $event_neighbors['next']['Event']['Id'];
-    $event['Event']['Prev'] = $event_neighbors['prev']['Event']['Id'];
+    $event['Event']['Next'] = isset($event_neighbors['next']) ? $event_neighbors['next']['Event']['Id'] : 0;
+    $event['Event']['Prev'] = isset($event_neighbors['prev']) ? $event_neighbors['prev']['Event']['Id'] : 0;
 
     $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
     $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
@@ -166,12 +168,17 @@ class EventsController extends AppController {
     $event_monitor_neighbors = $this->Event->find('neighbors', array(
       'conditions'=>array('Event.MonitorId'=>$event['Event']['MonitorId'])
     ));
-    $event['Event']['NextOfMonitor'] = $event_monitor_neighbors['next']['Event']['Id'];
-    $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
+    $event['Event']['NextOfMonitor'] = isset($event_monitor_neighbors['next']) ? $event_monitor_neighbors['next']['Event']['Id'] : 0;
+    $event['Event']['PrevOfMonitor'] = isset($event_monitor_neighbors['prev']) ? $event_monitor_neighbors['prev']['Event']['Id'] : 0;
   
     $this->loadModel('Frame');
-    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'FrameId',array('Score'=>'desc','FrameId'=>'asc'))['Frame']['FrameId'];
-    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['FrameId'];
+    $maxScoreFrame = $this->Frame->findByEventid($id, 'FrameId', array('Score'=>'desc','FrameId'=>'asc'));
+
+    $event['Event']['MaxScoreFrameId'] = $maxScoreFrame ? $maxScoreFrame['Frame']['FrameId'] : null;
+    $alarmFrame = $this->Frame->findByEventidAndType($id, 'Alarm');
+    ZM\Debug(print_r($alarmFrame, true));
+
+    $event['Event']['AlarmFrameId'] = $alarmFrame ? $alarmFrame['Frame']['FrameId'] : null;
 
     $this->set(array(
       'event' => $event,
@@ -188,7 +195,7 @@ class EventsController extends AppController {
   public function add() {
 
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -214,7 +221,7 @@ class EventsController extends AppController {
   public function edit($id = null) {
 
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -247,7 +254,7 @@ class EventsController extends AppController {
    */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -330,12 +337,9 @@ class EventsController extends AppController {
     } 
     array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
     $query = $this->Event->find('all', array(
-                                             'fields' => array(
-                                                               'MonitorId',
-                                                               'COUNT(*) AS Count',
-                                                               ),
-                                             'conditions' => $conditions,
-                                             'group' => 'MonitorId',
+      'fields' => array('MonitorId', 'COUNT(*) AS Count'),
+      'conditions' => $conditions,
+      'group' => 'MonitorId',
     ));
 
     foreach ($query as $result) {

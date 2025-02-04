@@ -5,12 +5,13 @@
 #include "zm_time.h"
 
 AnalysisThread::AnalysisThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&AnalysisThread::Run, this);
 }
 
 AnalysisThread::~AnalysisThread() {
   Stop();
+  if (thread_.joinable()) thread_.join();
 }
 
 void AnalysisThread::Start() {
@@ -22,6 +23,8 @@ void AnalysisThread::Start() {
 
 void AnalysisThread::Stop() {
   terminate_ = true;
+}
+void AnalysisThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 
@@ -32,7 +35,7 @@ void AnalysisThread::Run() {
       if (!(terminate_ or zm_terminate)) {
         // We only sleep when Analyse returns false because it is an error condition and we will spin like mad if it persists.
         Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
-        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        Debug(5, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
       }
     }

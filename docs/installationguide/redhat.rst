@@ -3,10 +3,10 @@ Redhat
 
 .. contents::
 
-These instructions apply to all Redhat distros and their clones, including but not limited to: Fedora, RHEL, CentOS, Scientific Linux, and others. While the installation instructions are the same for each distro, the reason why one might use one distro over the other is different. A short description follows, which is intended to help you chose what distro best fits your needs.
+These instructions apply to all Redhat distros and their clones, including but not limited to: Fedora, RHEL, Rocky Linux, Alma Linux, and others. While the installation instructions are the same for each distro, the reason why one might use one distro over the other is different. A short description follows, which is intended to help you chose what distro best fits your needs.
 
-Background: RHEL, CentOS, and Clones
-------------------------------------
+Background: RHEL, Rocky Linux, and Clones
+-----------------------------------------
 
 These distributions are classified as enterprise operating systems and have a long operating lifetime of many years. By design, they will not have the latest and greatest versions of any package. Instead, stable packages are the emphasis.
 
@@ -17,11 +17,11 @@ The ZoneMinder team will not provide support for systems which have had any core
 Background: Fedora
 ------------------------------------
 
-One can think of Fedora as RHEL or CentOS Beta. This is, in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
+One can think of Fedora as RHEL Beta. This is, in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
 
-Fedora has a short life-cycle of just 6 months. However, Fedora, and consequently ZoneMinder, is available on armv7 architecture. Rejoice, Raspberry Pi users!
+Fedora has a short life-cycle of just 6 months. Fedora 36 is the last release supporting armv7 architecture, and consequently Raspberry Pis earlier than the Raspberry Pi 2 v 1.2. F36 is end-of-life in May 2023.
 
-If you desire newer packages than what is available in RHEL or CentOS, you should consider using Fedora.
+If you desire newer packages than what is available in RHEL or its clones, you should consider using Fedora.
 
 How To Avoid Known Installation Problems
 ----------------------------------------
@@ -47,22 +47,25 @@ How to Install ZoneMinder
 
 ZoneMinder releases are hosted at RPM Fusion. New users should navigate to the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo.
 
-.. sidebar :: Note
-
-    RHEL/CentOS 7 users should use *yum* instead of *dnf*
-
-RHEL/CentOS 7 & 8 users must enable the EPEL repo:
+In addition to `RPM Fusion <https://rpmfusion.org>`__, RHEL users must enable the EPEL repo:
 
 ::
 
     sudo dnf install epel-release
     
-RHEL/CentOS 8 users must also enable the PowerTools repo:
+RHEL 8 users must also enable the powertools repo:
 
 ::
 
     sudo dnf install dnf-plugins-core
-    sudo dnf config-manager --set-enabled PowerTools
+    sudo dnf config-manager --set-enabled powertools
+
+RHEL 9 users must also enable the crb repo:
+
+::
+
+    sudo dnf install dnf-plugins-core
+    sudo dnf config-manager --set-enabled crb
 
 Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
 
@@ -70,7 +73,7 @@ Install ZoneMinder for Apache web server:
 
 .. sidebar :: Note
 
-    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatibility.
 
 ::
 
@@ -83,9 +86,9 @@ Install ZoneMinder for Nginx web server:
     sudo dnf install zoneminder-nginx
 
  
-Once ZoneMinder has been installed, you must read the README file to complete the installation. Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL/CentOS users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
+Once ZoneMinder has been installed, you **must** read the README file to complete the installation. Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
 
-ZoneMinder will *NOT* run without completing the steps shown in the README!
+**ZoneMinder will NOT run without completing the steps shown in the README!**
 
 How to Install Nightly Development Builds
 -----------------------------------------
@@ -101,7 +104,7 @@ If you are looking to do development or the available packages just don't suit y
 
 Background
 **********
-The following method documents how to build ZoneMinder into an RPM package, for Fedora, Redhat, CentOS, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
+The following method documents how to build ZoneMinder into an RPM package, for Fedora, Redhat, Rocky Linux, and other compatible clones. This is exactly how the RPMS in zmrepo are built.
 
 The method documented below was chosen because:
 
@@ -118,7 +121,7 @@ Certain commands in these instructions require root privileges while other comma
 
 Set Up Your Environment
 ***********************
-Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
+Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers. These instructions apply to Rocky Linux and clones as well.
 
 In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 
@@ -146,21 +149,21 @@ For this example, I'll use one of the source rpms from zmrepo:
 
 ::
 
-    wget -P ~/rpmbuild/SRPMS http://zmrepo.zoneminder.com/el/7/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
+    wget -P ~/rpmbuild/SRPMS http://zmrepo.zoneminder.com/el/7/SRPMS/zoneminder-1.31.1-1.el7.src.rpm
 
 
 Now comes the fun part. To build ZoneMinder, issue the following command:
 
 ::
 
-    mock -r epel-7-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
+    mock -r epel-7-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.src.rpm
 
 
-Want to build ZoneMinder for Fedora, instead of CentOS, from the same host?  Once you download the Fedora SRPM, issue the following:
+Want to build ZoneMinder for Fedora, instead of RHEL, from the same host?  Once you download the Fedora SRPM, issue the following:
 
 ::
 
-    mock -r fedora-26-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.centos.src.rpm
+    mock -r fedora-26-x86_64-rpmfusion_free ~/rpmbuild/SRPMS/zoneminder-1.31.1-1.el7.src.rpm
 
 Notice that the mock tool requires the following parameters:
 
@@ -210,7 +213,7 @@ Now clone the ZoneMinder git repository from your home folder:
 
 This will create a sub-folder called zoneminder, which will contain the latest development source code.
 
-If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
+If you have previously cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 
 ::
 
@@ -222,6 +225,19 @@ Get the crud submodule tarball:
 ::
 
     spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
+
+Get the cakephp-enum-behavior submodule tarball:
+
+::
+
+    spectool -f -g -R -s 2 ~/zoneminder/distros/redhat/zoneminder.spec
+
+
+Get the Rtsp-Server submodule tarball:
+
+::
+
+    spectool -f -g -R -s 3 ~/zoneminder/distros/redhat/zoneminder.spec
 
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 

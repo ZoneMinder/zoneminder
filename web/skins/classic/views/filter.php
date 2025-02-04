@@ -38,7 +38,8 @@ $fid = 0;
 if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
-  $fid = validInt($_REQUEST['filter']['Id']);
+  # $_REQUEST['filter']['Id'] get used later in populating filter object, so need to sanitise it
+  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
@@ -85,6 +86,7 @@ if ( count($terms) ) {
 $attrTypes = ZM\Filter::attrTypes();
 
 $opTypes = ZM\Filter::opTypes();
+$tags_opTypes = ZM\Filter::tags_opTypes();
 $is_isnot_opTypes = array(
   'IS'  => translate('OpIs'),
   'IS NOT'  => translate('OpIsNot'),
@@ -120,20 +122,25 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) 
 }
 $monitors = array();
 $monitor_names = array();
-foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
-  if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Id']] = new ZM\Monitor($monitor);
-		$monitor_names[] = validHtmlStr($monitor['Name']);
+foreach ( ZM\Monitor::find(['Deleted'=>0], ['order'=>'lower(`Name`) ASC']) as $monitor) {
+  if ($monitor->canView()) {
+    $monitors[$monitor->Id()] = $monitor;
+		$monitor_names[] = validHtmlStr($monitor->Name());
   }
 }
 $zones = array();
-foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
-  if ( visibleMonitor($zone['MonitorId']) ) {
-    if ( isset($monitors[$zone['MonitorId']]) ) {
-      $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
-      $zones[$zone['Id']] = new ZM\Zone($zone);
-    }
+foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
+  if (isset($monitors[$zone->MonitorId()])) {
+    $zone->Name(validHtmlStr($monitors[$zone->MonitorId()]->Name().': '.$zone->Name()));
+    $zones[$zone->Id()] = $zone;
+  } else {
+    ZM\Debug('Zone '.$zone->Monitor()->Name().' '.$zone->Name().' is not visible');
   }
+}
+
+$availableTags = array();
+foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+  $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));
@@ -147,9 +154,9 @@ echo $navbar = getNavBarHTML();
         <div id="filterSelector"><label for="Id"><?php echo translate('UseFilter') ?></label>
           <?php
 if ( count($filterNames) > 1 ) {
-   echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
+   echo htmlSelect('Id', $filterNames, $filter->Id(), ['id'=>'Id', 'data-on-change-this'=>'selectFilter', 'class'=>'chosen']);
 } else {
-?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
+?><select id="Id" disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
 }
 if ( (null !== $filter->Background()) and $filter->Background() ) 
@@ -172,11 +179,12 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         </p>
 <?php
 if (ZM_OPT_USE_AUTH) {
-  echo '<p><label>'.translate('FilterUser').'</label>'.PHP_EOL;
+  echo '<p><label for="filter[UserId]">'.translate('FilterUser').'</label>'.PHP_EOL;
   global $user;
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
-    $filter->UserId() ? $filter->UserId() : $user['Id']
+    $filter->UserId() ? $filter->UserId() : $user->Id(),
+  ['Id'=>'filter[UserId]', 'class'=>'chosen']
   );
   echo '</p>'.PHP_EOL;
 }
@@ -194,10 +202,12 @@ $sort_fields = array(
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
     'Cause'         => translate('AttrCause'),
+    'Tags'          => translate('Tags'),
     'DiskSpace'     => translate('AttrDiskSpace'),
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),
     'StartDateTime' => translate('AttrStartDateTime'),
+    'EndDateTime'   => translate('AttrEndDateTime'),
     'Length'        => translate('AttrDuration'),
     'Frames'        => translate('AttrFrames'),
     'AlarmFrames'   => translate('AttrAlarmFrames'),
@@ -205,12 +215,12 @@ $sort_fields = array(
     'AvgScore'      => translate('AttrAvgScore'),
     'MaxScore'      => translate('AttrMaxScore'),
     );
-echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field());
+echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field(), ['Id'=>'filter[Query][sort_field]', 'class'=>'chosen']);
 $sort_dirns = array(
   '1' => translate('SortAsc'),
   '0'  => translate('SortDesc')
 );
-echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
+echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc(), ['class'=>'chosen']);
 ?>
               </td>
               <td>
@@ -218,7 +228,10 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
 <?php
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
-  $filter->skip_locked());
+  $filter->skip_locked(),
+  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.', 'class'=>'chosen'])
+);
+
 ?>
               </td>
               <td>  
@@ -233,67 +246,67 @@ echo htmlSelect('filter[Query][skip_locked]',
         <div id="actionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Actions') ?></legend>
             <p>
-              <label><?php echo translate('FilterArchiveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoArchive]"><?php echo translate('FilterArchiveEvents') ?></label>
+              <input type="checkbox" id="filter[AutoArchive]" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p>
-              <label><?php echo translate('FilterUnarchiveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoUnarchive]" value="1"<?php if ( $filter->AutoUnarchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoUnarchive]"><?php echo translate('FilterUnarchiveEvents') ?></label>
+              <input type="checkbox" id="filter[AutoUnarchive]" name="filter[AutoUnarchive]" value="1"<?php if ( $filter->AutoUnarchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
-            <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
-              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> data-on-click-this="updateButtons"/>
+            <p><label for="filter[UpdateDiskSpace]"><?php echo translate('FilterUpdateDiskSpace') ?></label>
+              <input type="checkbox" id="filter[UpdateDiskSpace]" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 if ( ZM_OPT_FFMPEG ) {
 ?>
             <p>
-              <label><?php echo translate('FilterVideoEvents') ?></label>
-              <input type="checkbox" name="filter[AutoVideo]" value="1"<?php if ( $filter->AutoVideo() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoVideo]"><?php echo translate('FilterVideoEvents') ?></label>
+              <input type="checkbox" id="filter[AutoVideo]" name="filter[AutoVideo]" value="1"<?php if ( $filter->AutoVideo() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
 if ( ZM_OPT_UPLOAD ) {
 ?>
             <p>
-              <label><?php echo translate('FilterUploadEvents') ?></label>
-              <input type="checkbox" name="filter[AutoUpload]" value="1"<?php if ( $filter->AutoUpload() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoUpload]"><?php echo translate('FilterUploadEvents') ?></label>
+              <input type="checkbox" id="filter[AutoUpload]" name="filter[AutoUpload]" value="1"<?php if ( $filter->AutoUpload() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
 if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
-              <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_AutoEmail"/>
+              <label for="filter[AutoEmail]"><?php echo translate('FilterEmailEvents') ?></label>
+              <input type="checkbox" id="filter[AutoEmail]" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_AutoEmail"/>
             </p>
 <?php
 }
 if ( ZM_OPT_MESSAGE ) {
 ?>
             <p>
-              <label><?php echo translate('FilterMessageEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMessage]" value="1"<?php if ( $filter->AutoMessage() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoMessage]"><?php echo translate('FilterMessageEvents') ?></label>
+              <input type="checkbox" id="filter[AutoMessage]" name="filter[AutoMessage]" value="1"<?php if ( $filter->AutoMessage() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
 ?>
             <p>
-              <label><?php echo translate('FilterExecuteEvents') ?></label>
-              <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
+              <label for="filter[AutoExecute]"><?php echo translate('FilterExecuteEvents') ?></label>
+              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
             <p>
-              <label><?php echo translate('FilterDeleteEvents') ?></label>
-              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <label for="filter[AutoDelete]"><?php echo translate('FilterDeleteEvents') ?></label>
+              <input type="checkbox" id="filter[AutoDelete]" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p>
-              <label><?php echo translate('FilterCopyEvents') ?></label>
-              <input type="checkbox" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
+              <label for="filter[AutoCopy]"><?php echo translate('FilterCopyEvents') ?></label>
+              <input type="checkbox" id="filter[AutoCopy]" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
               <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
             </p>
             <p>
-              <label><?php echo translate('FilterMoveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
+              <label for="filter[AutoMove]"><?php echo translate('FilterMoveEvents') ?></label>
+              <input type="checkbox" id="filter[AutoMove]" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
               <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;')); ?>
             </p>
           </fieldset>
@@ -305,15 +318,15 @@ if ( ZM_OPT_MESSAGE ) {
               <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p>
-              <label for="ExecuteInterval"><?php echo translate('Execute Interval') ?></label>
+              <label for="filter[ExecuteInterval]"><?php echo translate('Execute Interval') ?></label>
               <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /><?php echo translate('seconds'); ?>
             </p>
             <p>
-              <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
+              <label for="filter[Concurrent]"><?php echo translate('ConcurrentFilter') ?></label>
               <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p>
-              <label for="LockRows"><?php echo translate('FilterLockRows') ?></label>
+              <label for="filter[LockRows]"><?php echo translate('FilterLockRows') ?></label>
               <input type="checkbox" id="filter[LockRows]" name="filter[LockRows]" value="1"<?php if ( $filter->LockRows() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
@@ -321,17 +334,30 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
               <p>
-                <label><?php echo translate('FilterEmailTo') ?></label>
-                <input type="email" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
+                <label for="filter[EmailTo]"><?php echo translate('FilterEmailTo') ?></label>
+                <input type="email" id="filter[EmailTo]" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
               </p>
               <p>
-                <label><?php echo translate('FilterEmailSubject') ?></label>
-                <input type="text" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
+                <label for="filter[EmailSubject]"><?php echo translate('FilterEmailSubject') ?></label>
+                <input type="text" id="filter[EmailSubject]" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
               </p>
               <p>
-                <label><?php echo translate('FilterEmailBody') ?></label>
-                <textarea name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
+                <label for="filter[EmailBody]"><?php echo translate('FilterEmailBody') ?></label>
+                <textarea id="filter[EmailBody]" name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
+              <p>
+                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?>
+<?php echo html_radio(
+  'filter[EmailFormat]',
+  ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
+  $filter->EmailFormat()); ?>
+</label>
+              </p>
+              <p>
+                <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
+              </p>
+              
             </div>
 <?php
 }
@@ -345,7 +371,7 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" data-on-click-this="submitAction" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
 <?php
-$canEdit = (canEdit('System') or ($filter->UserId() == $user['Id']));
+$canEdit = (canEdit('System') or ($filter->UserId() == $user->Id()));
 $canSave = !$filter->Id() or $canEdit;
 $canDelete = $filter->Id() and $canEdit;
 ?>

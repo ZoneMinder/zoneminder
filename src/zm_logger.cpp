@@ -1,21 +1,21 @@
 /*
  * ZoneMinder Logger Implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/ 
+*/
 
 #include "zm_logger.h"
 
@@ -223,14 +223,14 @@ void Logger::initialise(const std::string &id, const Options &options) {
   mInitialised = true;
 
   Debug(1, "LogOpts: level=%s effective=%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
-      smCodes[mLevel].c_str(),
-      smCodes[mEffectiveLevel].c_str(),
-      smCodes[mTerminalLevel].c_str(),
-      smCodes[mDatabaseLevel].c_str(),
-      smCodes[mFileLevel].c_str(),
-      mLogFile.c_str(),
-      smCodes[mSyslogLevel].c_str()
-      );
+        smCodes[mLevel].c_str(),
+        smCodes[mEffectiveLevel].c_str(),
+        smCodes[mTerminalLevel].c_str(),
+        smCodes[mDatabaseLevel].c_str(),
+        smCodes[mFileLevel].c_str(),
+        mLogFile.c_str(),
+        smCodes[mSyslogLevel].c_str()
+       );
 }
 
 void Logger::terminate() {
@@ -420,7 +420,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   if (level > mEffectiveLevel) return;
   if (level < PANIC || level > DEBUG9)
     Panic("Invalid logger level %d", level);
-    
+
   log_mutex.lock();
   // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
@@ -434,7 +434,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   SystemTimePoint now = std::chrono::system_clock::now();
   time_t now_sec = std::chrono::system_clock::to_time_t(now);
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-      now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
+                            now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
 
   char *timePtr = timeString;
   tm now_tm = {};
@@ -449,29 +449,29 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   if ( tid < 0 )  // Thread/Process id
 #else
-  #ifdef HAVE_SYSCALL
-    #ifdef __FreeBSD_kernel__
-    if ((syscall(SYS_thr_self, &tid)) < 0)  // Thread/Process id
+#ifdef HAVE_SYSCALL
+#ifdef __FreeBSD_kernel__
+  if ((syscall(SYS_thr_self, &tid)) < 0)  // Thread/Process id
 
-    # else
-      // SOLARIS doesn't have SYS_gettid; don't assume
-      #ifdef SYS_gettid
-    if ((tid = syscall(SYS_gettid)) < 0)  // Thread/Process id
-      #endif // SYS_gettid
-    #endif
-  #endif // HAVE_SYSCALL
+# else
+  // SOLARIS doesn't have SYS_gettid; don't assume
+#ifdef SYS_gettid
+  if ((tid = syscall(SYS_gettid)) < 0)  // Thread/Process id
+#endif // SYS_gettid
+#endif
+#endif // HAVE_SYSCALL
 #endif
     tid = getpid(); // Process id
 
   char *logPtr = logString;
   logPtr += snprintf(logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [",
-      timeString,
-      mId.c_str(),
-      tid,
-      classString,
-      file,
-      line
-      );
+                     timeString,
+                     mId.c_str(),
+                     tid,
+                     classString,
+                     file,
+                     line
+                    );
   char *syslogStart = logPtr;
 
   va_start(argPtr, fstring);
@@ -507,7 +507,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   if (level <= mFileLevel) {
     if (!mLogFileFP) {
       // FIXME unlocking here is a problem. Another thread could sneak in.
-      // We are using a recursive mutex so unlocking shouldn't be neccessary
+      // We are using a recursive mutex so unlocking shouldn't be necessary
       //log_mutex.unlock();
       // We do this here so that we only create the file if we ever write to it.
       openFile();
@@ -526,15 +526,13 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
       std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(
-          "INSERT INTO `Logs` "
-          "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
-          " VALUES "
-          "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
-          escapedString.c_str(), file, line);
+                                 "INSERT INTO `Logs` "
+                                 "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
+                                 " VALUES "
+                                 "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+                                 now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
+                                 escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
-    } else {
-      puts("Db is closed");
     }
   }  // end if level <= mDatabaseLevel
 

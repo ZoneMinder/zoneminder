@@ -114,7 +114,7 @@ my $retval = 0;
 
 if ( $command eq 'state' ) {
   Info("Updating DB: $state->{Name}");
-  foreach my $monitor (ZoneMinder::Monitor->find(
+  foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0,
         ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : () ), order=>'Id ASC')
       ) {
     foreach my $definition ( @{$state->{Definitions}} ) {
@@ -210,10 +210,10 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       require ZoneMinder::Server;
       Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
       $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
-      @monitors = ZoneMinder::Monitor->find(ServerId=>$Config{ZM_SERVER_ID});
+      @monitors = ZoneMinder::Monitor->find(Deleted=>0, ServerId=>$Config{ZM_SERVER_ID});
     } else {
       Info('Single server configuration detected. Starting up services.');
-      @monitors = ZoneMinder::Monitor->find();
+      @monitors = ZoneMinder::Monitor->find(Deleted=>0);
     }
 
     foreach my $monitor (@monitors) {
@@ -241,12 +241,8 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     } # end foreach monitor
 
     my @filters = ZoneMinder::Filter->find(Background=>1);
-    if (@filters) {
-      foreach my $filter (@filters) {
-        runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
-      }
-    } else {
-      runCommand('zmdc.pl start zmfilter.pl');
+    foreach my $filter (@filters) {
+      runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
     }
 
     if ( $Config{ZM_RUN_AUDIT} ) {

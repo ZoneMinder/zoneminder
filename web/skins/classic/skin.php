@@ -29,16 +29,12 @@ foreach ( getSkinIncludes('includes/config.php') as $includeFile )
 foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
   require_once $includeFile;
 
-if ( empty($view) ) {
-  $view = isset($user)?'console':'login';
-}
-
 if ( isset($user) ) {
   // Bandwidth Limiter
-  if ( !empty($user['MaxBandwidth']) ) {
-    if ( $user['MaxBandwidth'] == 'low' ) {
+  if ($user->MaxBandwidth()) {
+    if ($user->MaxBandwidth() == 'low' ) {
       $_COOKIE['zmBandwidth'] = 'low';
-    } elseif ( $user['MaxBandwidth'] == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
+    } else if ( $user->MaxBandwidth() == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
       $_COOKIE['zmBandwidth'] = 'medium';
     }
   }

@@ -122,10 +122,24 @@ GetOptions(
     'dir:s'          =>\$updateDir
     ) or pod2usage(-exitstatus => -1);
 
+if ($updateDir) {
+  $updateDir =~ s/[*?;&\\:<>"|]//g;
+  if (! -d $updateDir) {
+    Warning("$updateDir does not exist or is not a directory");
+  }
+} else {
+  $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
+  if (! -d $updateDir) {
+    Error("$updateDir does not exist or is not a directory");
+  }
+}
+
 my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
 die "Unable to connect to db\n" if !$dbh;
 
+#When putting the user and password on the command line, we will enclose in quotes, so escape any quotes.
 $Config{ZM_DB_USER} = $dbUser;
+$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
 # we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
 $dbPass =~ s/'/\\'/g;
@@ -158,20 +172,22 @@ if ($check) {
     zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
+  use LWP::UserAgent;
+  my $ua = LWP::UserAgent->new;
+  $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
+  if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
+    $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
+  }
+  my $req = HTTP::Request->new(GET=>'https://update.zoneminder.com/version.txt');
+
   while ( 1 ) {
     my $now = time();
+    $dbh->ping();
     if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
       Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
     } else {
       Info('Checking for updates');
 
-      use LWP::UserAgent;
-      my $ua = LWP::UserAgent->new;
-      $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
-      if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-        $ua->proxy('http', $Config{ZM_UPDATE_CHECK_PROXY});
-      }
-      my $req = HTTP::Request->new(GET=>'https://update.zoneminder.com/version.txt');
       my $res = $ua->request($req);
 
       if ( $res->is_success ) {
@@ -371,11 +387,6 @@ if ( $version ) {
   my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
   $version = $detaint_version;
 
-  if ( ZM_VERSION eq $version ) {
-    print("\nDatabase already at version $version, update skipped.\n\n");
-    exit(0);
-  }
-
   my $start_zm = 0;
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {
@@ -409,7 +420,7 @@ if ( $version ) {
       if ($super) {
         $command .= ' --defaults-file=/etc/mysql/debian.cnf';
       } elsif ($dbUser) {
-        $command .= ' -u'.$dbUser;
+        $command .= ' -u\''.$dbUser.'\'';
         $command .= ' -p\''.$dbPass.'\'' if $dbPass;
       }
       if ( defined($portOrSocket) ) {
@@ -906,7 +917,6 @@ if ( $version ) {
   if ( $version ge '1.26.0' ) {
 
     my @files;
-    $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
     opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
 #@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 #PP - use perl version sort
@@ -926,7 +936,7 @@ if ( $version ) {
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+      if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
           my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
@@ -1001,7 +1011,7 @@ sub patchDB {
   if ($super) {
     $command .= ' --defaults-file=/etc/mysql/debian.cnf';
   } elsif ($dbUser) {
-    $command .= ' -u'.$dbUser;
+    $command .= ' -u\''.$dbUser.'\'';
     $command .= ' -p\''.$dbPass.'\'' if $dbPass;
   }
   if ( defined($portOrSocket) ) {
@@ -1013,13 +1023,7 @@ sub patchDB {
   } elsif ( $host ) {
     $command .= ' -h'.$host;
   }
-  $command .= ' '.$Config{ZM_DB_NAME}.' < ';
-  if ( $updateDir ) {
-    $command .= $updateDir;
-  } else {
-    $command .= $Config{ZM_PATH_DATA}.'/db';
-  }
-  $command .= '/zm_update-'.$version.'.sql';
+  $command .= ' '.$Config{ZM_DB_NAME}.' < '.$updateDir.'/zm_update-'.$version.'.sql';
 
   print("Executing '$command'\n") if logDebugging();
   ($command) = $command =~ /(.*)/; # detaint
@@ -1065,7 +1069,7 @@ sub migratePaths {
 
     my %customConfig; 
 
-# Check the traditional default values for the variables previsouly found under Options -> Paths
+# Check the traditional default values for the variables previously found under Options -> Paths
     if ( $Config{ZM_DIR_EVENTS} ne 'events' ) {
       $customConfig{ZM_DIR_EVENTS} = $Config{ZM_DIR_EVENTS};
     }

@@ -1,14 +1,7 @@
-#header {
-  width: 99%;
-}
-
 #layout {
   margin-right: 10px;
 }
 
-#content {
-  width: 99%;
-}
 #monitors .monitor {
   min-width: 180px;
 }
@@ -76,4 +69,3 @@
   stroke: #0000FF;
   fill: #0000FF;
 }
-

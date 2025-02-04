@@ -17,8 +17,11 @@ input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
 input[name="newMonitor[ControlAddress]"],
 input[name="newMonitor[ONVIF_URL]"],
+input[name="newMonitor[ONVIF_Events_Path]"],
 input[name="newMonitor[ONVIF_Options]"],
 input[name="newMonitor[ONVIF_Alarm_Text]"],
+input[name="newMonitor[EventStartCommand]"],
+input[name="newMonitor[EventEndCommand]"],
 input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
 	min-width: 240px;
@@ -75,9 +78,10 @@ body.sticky #content {
   overflow-y: auto;
   height: 100%;
 }
-nav ul {
+nav ul.nav {
   height: 100%;
-    flex-direction: column;
+  flex-direction: column;
+  flex-wrap: nowrap;
 }
 
 ul.form > li {
@@ -85,7 +89,7 @@ ul.form > li {
   padding-left: 300px;
   margin: 10px 0;
 }
-ul.form > li > label {
+ul.form > li > label:first-child {
   width: 290px;
   margin-left: -300px;
   text-align: right;
@@ -102,6 +106,7 @@ ul.form > li > label {
     justify-content: center;
     align-items: center;
     flex-direction: row;
+    flex-wrap: wrap;
   }
   ul.form > li {
     padding-left: 0;

@@ -5,6 +5,7 @@ function AddNewZone(el) {
 }
 
 var monitors = new Array();
+var TimerHideShow;
 
 function initPage() {
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
@@ -35,6 +36,14 @@ function initPage() {
   });
 }
 
+function panZoomIn(el) {
+  zmPanZoom.zoomIn(el);
+}
+
+function panZoomOut(el) {
+  zmPanZoom.zoomOut(el);
+}
+
 function streamCmdQuit() {
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
@@ -44,3 +53,21 @@ function streamCmdQuit() {
 
 window.addEventListener('DOMContentLoaded', initPage);
 
+document.onvisibilitychange = () => {
+  if (document.visibilityState === "hidden") {
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
+  } else {
+    //Start monitors when show page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      if (!monitors[i].started) {
+        monitors[i].start();
+      }
+    }
+  }
+};

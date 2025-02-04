@@ -145,13 +145,22 @@ our %codes = (
     );
 
 our %priorities = (
-    &DEBUG => 'debug',
-    &INFO => 'info',
-    &WARNING => 'warning',
-    &ERROR => 'err',
-    &FATAL => 'err',
-    &PANIC => 'err'
-    );
+  &DEBUG9 => 'debug',
+  &DEBUG8 => 'debug',
+  &DEBUG7 => 'debug',
+  &DEBUG6 => 'debug',
+  &DEBUG5 => 'debug',
+  &DEBUG4 => 'debug',
+  &DEBUG3 => 'debug',
+  &DEBUG2 => 'debug',
+  &DEBUG1 => 'debug',
+  &DEBUG => 'debug',
+  &INFO => 'info',
+  &WARNING => 'warning',
+  &ERROR => 'err',
+  &FATAL => 'err',
+  &PANIC => 'err'
+);
 
 our $logger;
 our $LOGFILE;
@@ -308,9 +317,6 @@ sub initialise( @ ) {
 
   $this->{initialised} = !undef;
 
-  # this function can get called on a previously initialized log Object, so clean any sth's
-  $this->{sth} = undef;
-
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
       .', screen='.$codes{$this->{termLevel}}
@@ -451,12 +457,8 @@ sub termLevel {
   my $this = shift;
   my $termLevel = shift;
   if ( defined($termLevel) ) {
-    # What is the point of this next lint if we are just going to overwrite it with the next line? I propose we move it down one line or remove it altogether
-    $termLevel = NOLOG if !$this->{hasTerm};
     $termLevel = $this->limit($termLevel);
-    if ( $this->{termLevel} != $termLevel ) {
-      $this->{termLevel} = $termLevel;
-    }
+    $this->{termLevel} = $termLevel;
   }
   return $this->{termLevel};
 }
@@ -471,7 +473,6 @@ sub databaseLevel {
     } else {
       undef($this->{dbh});
     }
-    $this->{sth} = undef;
     $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
@@ -596,7 +597,6 @@ sub logPrint {
 
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $ZoneMinder::Database::dbh and $ZoneMinder::Database::dbh->ping() ) ) {
-        $this->{sth} = undef;
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
@@ -607,15 +607,15 @@ sub logPrint {
         $this->{databaseLevel} = $oldlevel;
       }
 
-      my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $ZoneMinder::Database::dbh->prepare_cached($sql) if ! $this->{sth};
-      if ( !$this->{sth} ) {
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
+      my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql);
+      if ( !$sth ) {
         $this->{databaseLevel} = NOLOG;
         Error("Can't prepare log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
         return;
       } 
 
-      my $res = $this->{sth}->execute(
+      my $res = $sth->execute(
         $seconds+($microseconds/1000000.0),
            $this->{id},
            ($ZoneMinder::Config::Config{ZM_SERVER_ID} ? $ZoneMinder::Config::Config{ZM_SERVER_ID} : undef),
@@ -624,6 +624,7 @@ sub logPrint {
            $codes{$level},
            $string,
            $this->{fileName},
+           $line
           );
       if ( !$res ) {
         $this->{databaseLevel} = NOLOG;
@@ -749,10 +750,6 @@ sub Fatal {
   $this->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
-  }
-  if ( $$this{sth} ) {
-    $$this{sth}->finish();
-    $$this{sth} = undef;
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
   ZoneMinder::Database::zmDbDisconnect();

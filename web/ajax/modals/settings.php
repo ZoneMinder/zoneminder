@@ -1,9 +1,20 @@
 <?php
-if (!canView('Control')) return;
+if (!canView('Control')) {
+  return;
+}
 
-$monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
+$mid = validCardinal($_REQUEST['mid']);
+if (!$mid) {
+  ZM\Warning('Invalid mid '.$_REQUEST['mid']. ' != '.$mid);
+  return;
+}
 
-$zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -O');
+$monitor = ZM\Monitor::find_one(array('Id'=>$mid));
+if (!$monitor) {
+  ZM\Warning("Monitor $mid not found.");
+  return;
+}
+$zmuCommand = getZmuCommand(' -m '.escapeshellarg($mid).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
 if ($zmuOutput) {
   list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
@@ -31,7 +42,7 @@ if ($zmuOutput) {
         ?>
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
-        <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $mid; ?>"/>
         <table id="contentTable" class="major">
           <tbody>
 <?php

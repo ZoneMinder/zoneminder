@@ -7,7 +7,8 @@ const monitors = new Array();
 foreach ($monitors as $m) {
 ?>
 monitors[monitors.length] = {
-  'id': <?php echo $m['Id'] ?>
+  'id': <?php echo $m->Id() ?>,
+  'name': '<?php echo $m->Name() ?>'  
 };
 <?php
 } // end foreach monitor

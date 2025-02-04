@@ -29,6 +29,7 @@
 
 #include <cstring>
 #include <list>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -40,13 +41,15 @@ int Event::pre_alarm_count = 0;
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = {};
 
 Event::Event(
-    Monitor *p_monitor,
-    SystemTimePoint p_start_time,
-    const std::string &p_cause,
-    const StringSetMap &p_noteSetMap
-    ) :
+  Monitor *p_monitor,
+  packetqueue_iterator *p_packetqueue_it,
+  SystemTimePoint p_start_time,
+  const std::string &p_cause,
+  const StringSetMap &p_noteSetMap
+) :
   id(0),
   monitor(p_monitor),
+  packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time(p_start_time),
   cause(p_cause),
@@ -67,12 +70,13 @@ Event::Event(
   have_video_keyframe(false),
   //scheme
   save_jpegs(0),
-  terminate_(false)
-{
+  terminate_(false) {
   std::string notes;
   createNotes(notes);
 
   SystemTimePoint now = std::chrono::system_clock::now();
+
+  packetqueue = monitor->GetPacketQueue();
 
   if (start_time.time_since_epoch() == Seconds(0)) {
     Warning("Event has zero time, setting to now");
@@ -115,24 +119,26 @@ Event::Event(
   }
 
   std::string sql = stringtf(
-      "INSERT INTO `Events` "
-      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
-      " VALUES "
-      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
-      monitor->Id(), 
-      storage->Id(),
-      static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
-      monitor->Width(),
-      monitor->Height(),
-      cause.c_str(),
-      notes.c_str(), 
-      state_id,
-      monitor->getOrientation(),
-      0,
-      video_incomplete_file.c_str(),
-      save_jpegs,
-      storage->SchemeString().c_str()
-      );
+                      "INSERT INTO `Events` "
+                      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme`, `Latitude`, `Longitude` )"
+                      " VALUES "
+                      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%f', '%f' )",
+                      monitor->Id(),
+                      storage->Id(),
+                      static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
+                      monitor->Width(),
+                      monitor->Height(),
+                      cause.c_str(),
+                      notes.c_str(),
+                      state_id,
+                      monitor->getOrientation(),
+                      0,
+                      video_incomplete_file.c_str(),
+                      save_jpegs,
+                      storage->SchemeString().c_str(),
+                      monitor->Latitude(),
+                      monitor->Longitude()
+                    );
   do {
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
@@ -142,10 +148,13 @@ Event::Event(
 
 Event::~Event() {
   Stop();
+
   if (thread_.joinable()) {
+    Debug(1, "Joining event thread");
     // Should be.  Issuing the stop and then getting the lock
     thread_.join();
   }
+  packetqueue->free_it(packetqueue_it);
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
@@ -172,28 +181,41 @@ Event::~Event() {
         std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
         std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count());
 
-  if (frame_data.size()){
-    WriteDbFrames();
+  if (frame_data.size()) WriteDbFrames();
+
+  uint64_t video_size = 0;
+  DIR *video_dir;
+  if ((video_dir = opendir(path.c_str())) != NULL) {
+    struct dirent *video_file;
+    while ((video_file = readdir(video_dir)) != NULL) {
+      struct stat vf_stat;
+      if (stat((path + "/" + video_file->d_name).c_str(), &vf_stat) == 0 &&
+          S_ISREG(vf_stat.st_mode))
+        video_size += vf_stat.st_size;
+    }
+    closedir(video_dir);
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
       video_file.c_str(), // defaults to ""
+      video_size,
       id);
 
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
         video_file.c_str(), // defaults to ""
+        video_size,
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
@@ -218,33 +240,27 @@ void Event::addNote(const char *cause, const std::string &note) {
 }
 
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
-  int thisquality = 
+  int thisquality =
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
-
-  bool rc;
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
-    Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, timestamp);
-    rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
-    delete ts_image;
-  } else {
-    rc = image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    Image ts_image(*image);
+    monitor->TimestampImage(&ts_image, timestamp);
+    return ts_image.WriteJpeg(event_file, thisquality, jpeg_timestamp);
   }
-
-  return rc;
+  return image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
 }
 
-bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
+bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
-}  // bool Event::WriteFrameVideo
+}  // bool Event::WritePacket
 
 void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;
@@ -256,8 +272,8 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
       update = true;
     } else {
       for (StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin();
-          newNoteSetMapIter != newNoteSetMap.end();
-          ++newNoteSetMapIter) {
+           newNoteSetMapIter != newNoteSetMap.end();
+           ++newNoteSetMapIter) {
         const std::string &newNoteGroup = newNoteSetMapIter->first;
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
@@ -271,8 +287,8 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
             StringSet &noteSet = noteSetMapIter->second;
             //Debug(3, "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size());
             for (StringSet::const_iterator newNoteSetIter = newNoteSet.begin();
-                newNoteSetIter != newNoteSet.end();
-                ++newNoteSetIter) {
+                 newNoteSetIter != newNoteSet.end();
+                 ++newNoteSetIter) {
               const std::string &newNote = *newNoteSetIter;
               StringSet::iterator noteSetIter = noteSet.find(newNote);
               if (noteSetIter == noteSet.end()) {
@@ -298,21 +314,12 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
-  {
-    std::unique_lock<std::mutex> lck(packet_queue_mutex);
-
-    packet_queue.push(std::move(packet));
-  }
-  packet_queue_condition.notify_one();
-}
-
-void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
-  have_video_keyframe = have_video_keyframe || 
-    ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
-      ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
+void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
+  have_video_keyframe = have_video_keyframe ||
+                        ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) &&
+                          ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
-      have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
+        have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
 
   if (videoStore) {
@@ -333,9 +340,9 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
 void Event::WriteDbFrames() {
   std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
   std::string stats_insert_sql = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
-                                              "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
-                                              "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
-                                              "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
+                                 "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
+                                 "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
+                                 "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
 
   Debug(1, "Inserting %zu frames", frame_data.size());
   while (frame_data.size()) {
@@ -350,21 +357,21 @@ void Event::WriteDbFrames() {
     if (config.record_event_stats and frame->zone_stats.size()) {
       for (ZoneStats &stats : frame->zone_stats) {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
-            id, frame->frame_id,
-            monitor->Id(),
-            stats.zone_id_,
-            stats.pixel_diff_,
-            stats.alarm_pixels_,
-            stats.alarm_filter_pixels_,
-            stats.alarm_blob_pixels_,
-            stats.alarm_blobs_,
-            stats.min_blob_size_,
-            stats.max_blob_size_,
-            stats.alarm_box_.Lo().x_,
-            stats.alarm_box_.Lo().y_,
-            stats.alarm_box_.Hi().x_,
-            stats.alarm_box_.Hi().y_,
-            stats.score_);
+                                     id, frame->frame_id,
+                                     monitor->Id(),
+                                     stats.zone_id_,
+                                     stats.pixel_diff_,
+                                     stats.alarm_pixels_,
+                                     stats.alarm_filter_pixels_,
+                                     stats.alarm_blob_pixels_,
+                                     stats.alarm_blobs_,
+                                     stats.min_blob_size_,
+                                     stats.max_blob_size_,
+                                     stats.alarm_box_.Lo().x_,
+                                     stats.alarm_box_.Lo().y_,
+                                     stats.alarm_box_.Hi().x_,
+                                     stats.alarm_box_.Hi().y_,
+                                     stats.score_);
       }  // end foreach zone stats
     }  // end if recording stats
     delete frame;
@@ -391,16 +398,19 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
-      (
-       ( monitor_state == Monitor::TAPE )
-       and
-       ( config.bulk_frame_interval > 1 )
-       and
-       ( ! (frames % config.bulk_frame_interval) )
-      ) ? BULK : NORMAL 
-      ) );
-  Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
-      frame_type_names[frame_type], score, monitor_state, frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
+                             (
+                               ( monitor_state == Monitor::IDLE )
+                               and
+                               ( config.bulk_frame_interval > 1 )
+                               and
+                               ( ! (frames % config.bulk_frame_interval) )
+                             ) ? BULK : NORMAL
+                           ) );
+
+  if (frame_type == ALARM) alarm_frames++;
+
+  Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d",
+        frame_type_names[frame_type], score, monitor_state, frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
 
   if (score < 0) score = 0;
   tot_score += score;
@@ -438,45 +448,30 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
       }
+    } // end if is an alarm frame
 
-      if (packet->analysis_image and (save_jpegs & 2)) {
+    if (save_jpegs & 2) {
+      if (packet->analysis_image) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
         Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
         if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
           Error("Failed to write analysis frame image to %s", event_file.c_str());
         }
-        if (packet->in_frame &&
-            (
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-             ||
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-            )
-           ) {
-          event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
-          Image y_image(
-              packet->in_frame->width,
-              packet->in_frame->height,
-              1, ZM_SUBPIX_ORDER_NONE,
-              packet->in_frame->data[0], 0);
-          if (!WriteFrameImage(&y_image, packet->timestamp, event_file.c_str(), true)) {
-            Error("Failed to write y frame image to %s", event_file.c_str());
-          }
-        }  // end if write y-channel image
-      }  // end if has analysis images turned on
-    }  // end if is an alarm frame
+      } else {
+        Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");
+      }  // end if is an alarm frame
+    }  // end if has analysis images turned on
   } else {
     Debug(1, "No image");
   }  // end if has image
 
-  if (frame_type == ALARM) alarm_frames++;
-
   bool db_frame = ( frame_type == BULK )
-    or ( frame_type == ALARM )
-    or ( frames == 1 )
-    or ( score > max_score )
-    or ( monitor_state == Monitor::ALERT )
-    or ( monitor_state == Monitor::ALARM )
-    or ( monitor_state == Monitor::PREALARM );
+                  or ( frame_type == ALARM )
+                  or ( frames == 1 )
+                  or ( score > max_score )
+                  or ( monitor_state == Monitor::ALERT )
+                  or ( monitor_state == Monitor::ALARM )
+                  or ( monitor_state == Monitor::PREALARM );
 
   if (score > max_score) {
     max_score = score;
@@ -507,14 +502,14 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       last_db_frame = frames;
 
       std::string sql = stringtf(
-          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-          FPSeconds(delta_time).count(),
-          frames,
-          alarm_frames,
-          tot_score,
-          static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
-          max_score,
-          id);
+                          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          FPSeconds(delta_time).count(),
+                          frames,
+                          alarm_frames,
+                          tot_score,
+                          static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
+                          max_score,
+                          id);
       dbQueue.push(std::move(sql));
     } else {
       Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
@@ -557,9 +552,9 @@ bool Event::SetPath(Storage *storage) {
         return false;
       }
       if (i == 2)
-				date_path = path;
+        date_path = path;
     }
-		time_path = stringtf("%02d/%02d/%02d", stime.tm_hour, stime.tm_min, stime.tm_sec);
+    time_path = stringtf("%02d/%02d/%02d", stime.tm_hour, stime.tm_min, stime.tm_sec);
 
     // Create event id symlink
     std::string id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
@@ -569,8 +564,8 @@ bool Event::SetPath(Storage *storage) {
     }
   } else if (scheme == Storage::MEDIUM) {
     path += stringtf("/%04d-%02d-%02d",
-        stime.tm_year+1900, stime.tm_mon+1, stime.tm_mday
-        );
+                     stime.tm_year+1900, stime.tm_mon+1, stime.tm_mday
+                    );
     if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
       Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
       return false;
@@ -594,7 +589,7 @@ bool Event::SetPath(Storage *storage) {
     } else {
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
       return false;
-		}
+    }
   }  // deep storage or not
   return true;
 }  // end bool Event::SetPath
@@ -613,7 +608,7 @@ void Event::Run() {
 
     MYSQL_RES *result = zmDbFetch(sql);
     if (result) {
-      for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+       while(MYSQL_ROW dbrow = mysql_fetch_row(result)) {
         storage = new Storage(atoi(dbrow[0]));
         if (SetPath(storage))
           break;
@@ -632,7 +627,7 @@ void Event::Run() {
 
       result = zmDbFetch(sql);
       if (result) {
-        for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+        while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
           storage = new Storage(atoi(dbrow[0]));
           if (SetPath(storage))
             break;
@@ -660,13 +655,13 @@ void Event::Run() {
   if (monitor->GetOptVideoWriter() != 0) {
     /* Save as video */
     videoStore = new VideoStore(
-        video_incomplete_path.c_str(),
-        container.c_str(),
-        monitor->GetVideoStream(),
-        monitor->GetVideoCodecContext(),
-        ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
-        ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
-        monitor );
+      video_incomplete_path.c_str(),
+      container.c_str(),
+      monitor->GetVideoStream(),
+      monitor->GetVideoCodecContext(),
+      ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
+      ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
+      monitor );
 
     if (!videoStore->open()) {
       Warning("Failed to open videostore, turning on jpegs");
@@ -683,30 +678,51 @@ void Event::Run() {
       Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
+
   if (storage != monitor->getStorage())
     delete storage;
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (true) {
-    std::shared_ptr<ZMPacket> packet = nullptr;
-    {
-      std::unique_lock<std::mutex> lck(packet_queue_mutex);
-
-      if (packet_queue.empty()) {
-        if (terminate_ or zm_terminate) break;
-        packet_queue_condition.wait(lck);
-        // Neccessary because we don't hold the lock in the while condition
-      } 
-      if (!packet_queue.empty()) {
-        packet = packet_queue.front();
-        packet_queue.pop();
+  while (!terminate_ and !zm_terminate) {
+    ZMLockedPacket *packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
+    if (packet_lock) {
+      std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+      if (!packet->decoded) {
+        delete packet_lock;
+        // Stay behind decoder
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
       }
-    }  // end lock scope
-    if (packet) {
+
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
-    }
+
+      if (packet->image) {
+        if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+          if (!save_jpegs) {
+            Debug(1, "Deleting image data for %d", packet->image_index);
+            // Don't need raw images anymore
+            delete packet->image;
+            packet->image = nullptr;
+          }
+        }
+        if (packet->analysis_image and !(save_jpegs & 2)) {
+          Debug(1, "Deleting analysis image data for %d", packet->image_index);
+          delete packet->analysis_image;
+          packet->analysis_image = nullptr;
+        }
+      } // end if packet->image
+      Debug(1, "Deleting packet lock");
+      delete packet_lock;
+      // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
+      packetqueue->increment_it(packetqueue_it);
+    } else {
+      if (terminate_ or zm_terminate) return;
+      usleep(10000);
+    } // end if packet_lock
   }  // end while
 }  // end Run()
 

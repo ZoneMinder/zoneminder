@@ -23,17 +23,17 @@
 #include <sys/stat.h>
 
 FileCamera::FileCamera(
-    const Monitor *monitor,
-    const char *p_path,
-    int p_width,
-    int p_height,
-    int p_colours,
-    int p_brightness,
-    int p_contrast,
-    int p_hue,
-    int p_colour,
-    bool p_capture,
-    bool p_record_audio)
+  const Monitor *monitor,
+  const char *p_path,
+  int p_width,
+  int p_height,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio)
   : Camera(
       monitor,
       FILE_SRC,
@@ -47,8 +47,7 @@ FileCamera::FileCamera(
       p_colour,
       p_capture,
       p_record_audio),
-  path(p_path)
-{
+    path(p_path) {
   if (capture) {
     Initialise();
   }

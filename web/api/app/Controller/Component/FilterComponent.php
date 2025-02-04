@@ -81,8 +81,11 @@ class FilterComponent extends Component {
 				if ($operator != '' && !in_array($operator, $this->twoOperandSQLOperands)) {
 					throw new Exception('Invalid operator: ' . $operator);
 				}
+        if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
+          $value = '%'.$value.'%';
+        }
 
-				$lhs = '`' . $matches['field'] . '` ' . $operator;
+				$lhs = $matches['field'] . ' ' . $operator;
 				// If the named param contains an array, we want to turn it into an IN condition
 				// Otherwise, we add it right into the $conditions array
 				if (is_array($value)) {

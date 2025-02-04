@@ -45,7 +45,7 @@ if (
 User Authentication is not turned on. You cannot log in.
 <script nonce="<?php echo $cspNonce; ?>">
   setTimeout(function() {
-    window.location.replace('?view=console');
+    window.location.replace('?view='+homeView);
   }, 500);
 </script>
 </div>

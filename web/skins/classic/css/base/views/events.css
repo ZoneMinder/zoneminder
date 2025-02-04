@@ -6,7 +6,7 @@
     white-space: nowrap;
 }
 
-#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore {
+#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore, #eventTable th, #eventTable td {
     text-align: center;
 }
 
@@ -42,15 +42,48 @@
 input[type="number"].form-control {
   padding: 5px;
 }
-.search .form-control {
-  font-size: 100%;
-}
 
-.filterTable {
-  display:inline;
-}
 #events {
   height: 100%;
-  overflow-y: auto;
+  overflow: visible;
   justify-content: center;
+}
+
+#objdetectModal  .modal-dialog {
+  width: 65%;
+  max-width: 65%;
+}
+
+#objdetectModal img {
+  width: 100%;
+}
+
+body.sticky .bootstrap-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+body.sticky .fixed-table-container {
+  overflow-y: auto;
+}
+
+body.sticky #eventTable thead {
+  position: sticky;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
+}
+
+.term-value, .chosen-container{
+  width: 100% !important;
+}
+
+.bs-bars {
+  width: 100%;
+}
+#toolbar .row {
+  width: 100%;
+}
+#toolbar .row >div {
+  padding: 0;
 }

@@ -7,7 +7,7 @@ const playBtn = $j('#playBtn');
 var monitor;
 
 function nextCycleView() {
-  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function cyclePause() {
@@ -31,7 +31,7 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function cyclePrev() {
@@ -43,7 +43,7 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function initCycle() {
@@ -73,9 +73,9 @@ function changeSize() {
   if (scale <= 0) scale = 100;
 
   $j('#scale').val('0');
-  setCookie('zmCycleScale', '0', 3600);
-  setCookie('zmCycleWidth', width, 3600);
-  setCookie('zmCycleHeight', height, 3600);
+  setCookie('zmCycleScale', '0');
+  setCookie('zmCycleWidth', width);
+  setCookie('zmCycleHeight', height);
   applyScale();
   monitor.setStreamScale(scale);
 } // end function changeSize()
@@ -84,9 +84,9 @@ function changeScale() {
   var scale = $j('#scale').val();
   $j('#width').val('auto');
   $j('#height').val('auto');
-  setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmCycleWidth', 'auto', 3600);
-  setCookie('zmCycleHeight', 'auto', 3600);
+  setCookie('zmCycleScale', scale);
+  setCookie('zmCycleWidth', 'auto');
+  setCookie('zmCycleHeight', 'auto');
   applyScale();
 } // end function changeScale()
 

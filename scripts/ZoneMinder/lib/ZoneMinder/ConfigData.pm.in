@@ -287,7 +287,7 @@ our @options = (
       limited by their defined permissions.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_TYPE',
@@ -311,7 +311,7 @@ our @options = (
       pattern     => qr|^([br])|i,
       format      => q( $1 =~ /^b/ ? 'builtin' : 'remote' )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
@@ -323,7 +323,7 @@ our @options = (
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_RELAY',
@@ -348,7 +348,7 @@ our @options = (
       pattern     => qr|^([hpn])|i,
       format      => q( ($1 =~ /^h/) ? 'hashed' : ($1 =~ /^p/ ? 'plain' : 'none' ) )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_SECRET',
@@ -367,7 +367,7 @@ our @options = (
     ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
@@ -382,7 +382,7 @@ our @options = (
       requesting address can change for each request which will cause
       most requests to fail. This option allows you to control
       whether IP addresses are included in the authentication hash on
-      your system. If you experience intermitent problems with
+      your system. If you experience intermittent problems with
       authentication, switching this option off may help.
       `,
     requires    => [
@@ -390,7 +390,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_TTL',
@@ -405,7 +405,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{integer},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
@@ -431,6 +431,18 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
+    category    => 'auth',
+  },
+  {
+    name        => 'ZM_RTSP2WEB_PATH',
+    default     => '',
+    description => 'URL for RTSP2Web port.',
+    help        => q`This value points to the location of the RTSP2Web
+      install, including username and password. If left blank, this
+      will default to demo:demo@127.0.0.1:8083
+      port 8083.
+      `,
+    type        => $types{string},
     category    => 'system',
   },
   {
@@ -485,7 +497,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'api',
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
@@ -496,7 +508,7 @@ our @options = (
       Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
@@ -533,7 +545,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_AUTH', value=>'yes'}
                    ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SITEKEY',
@@ -548,7 +560,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SECRETKEY',
@@ -564,7 +576,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        =>  'ZM_OPT_USE_GEOLOCATION',
@@ -1369,7 +1381,7 @@ our @options = (
     help        => q`
       This option allows you to specify a different target for debug
       output. All components have a default log file which will
-      norally be in /tmp or /var/log and this is where debug will be
+      normally be in /var/log and this is where debug will be
       written to if this value is empty. Adding a path here will
       temporarily redirect debug, and other logging output, to this
       file. This option is a simple filename and you are debugging
@@ -1379,9 +1391,7 @@ our @options = (
       suffix containing your process id. In this way debug from each
       run of a component is kept separate. This is the recommended
       setting as it will also prevent subsequent runs from
-      overwriting the same log. You should ensure that permissions
-      are set up to allow writing to the file and directory specified
-      here.
+      overwriting the same log. 
       `,
     requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
     type        => $types{string},
@@ -1566,6 +1576,13 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_HOMEVIEW',
+    default     => 'console',
+    description => 'Default destination after login.',
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_NAVBAR_TYPE',
     default     => 'normal',
     description => 'Style of the web console navigation bar',
@@ -1681,22 +1698,6 @@ our @options = (
     category    => 'web',
   },
   {
-    name        => 'ZM_WEB_RESIZE_CONSOLE',
-    default     => 'yes',
-    description => 'Should the console window resize itself to fit',
-    help        => q`
-      Traditionally the main ZoneMinder web console window has
-      resized itself to shrink to a size small enough to list only
-      the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyone's
-      tastes, especially if opened in a tab in browsers which support
-      this kind if layout. Switch this option off to have the console
-      window size left to the users preference
-      `,
-    type        => $types{boolean},
-    category    => 'web',
-  },
-  {
     name        => 'ZM_WEB_ID_ON_CONSOLE',
     default     => 'yes',
     description => 'Should the console list the monitor id',
@@ -1789,7 +1790,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ALARM_SOUND',
-    default     => '',
+    default     => 'snap.ogg',
     description => 'The sound to play on alarm, put this in the sounds directory',
     help        => q`
       You can specify a sound file to play if an alarm occurs whilst
@@ -2488,14 +2489,20 @@ our @options = (
     description => 'When continuous events are closed.',
     help        => q`
       When a monitor is running in a continuous recording mode
-      (Record or Mocord) events are usually closed after a fixed
-      period of time (the section length). However in Mocord mode it
-      is possible that motion detection may occur near the end of a
-      section. This option controls what happens when an alarm occurs
-      in Mocord mode.~~
+      (Recording=Always) events are usually closed after a fixed
+      period of time (the section length). However when doing motion
+      detection it is possible that an alarm may occur near the end of a
+      section. This option controls what happens in this situation.~~
       ~~
       The 'time' setting means that the event will be
-      closed at the end of the section regardless of alarm activity.~~
+      closed when the time is an even multiple of the section length 
+      regardless of alarm activity. So if the section length is 600 (10 minutes)
+      and the time is 12:05, then the event will be closed at 12:10~~
+      ~~
+      The 'duration' setting means that the event will be
+      closed when the event has reached its section length, regardless of the
+      current time or alarm activity. If the section length is 600 (10 minutes)
+      and the event started at 12:03, then the event will end at 12:13.
       ~~
       The 'idle' setting means that the event will be closed at the
       end of the section if there is no alarm activity occurring at
@@ -2511,15 +2518,10 @@ our @options = (
       the events may be shorter than the section length if an alarm
       has occurred.
       `,
-    type        => $types{boolean},
     type        => {
       db_type     =>'string',
-      hint        =>'time|idle|alarm',
-      pattern     =>qr|^([tia])|i,
-      format      =>q( ($1 =~ /^t/)
-          ? 'time'
-          : ($1 =~ /^i/ ? 'idle' : 'time' )
-          )
+      hint        =>'time|duration|idle|alarm',
+      pattern     =>qr/^(time|duration|idle|alarm)/,
     },
     category    => 'config',
   },
@@ -2942,6 +2944,16 @@ our @options = (
     category    => 'highband',
   },
   {
+    name        => 'ZM_WEB_H_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'highband',
+  },
+  {
     name        => 'ZM_WEB_H_REFRESH_NAVBAR',
     default     => '60',
     description => 'How often (in seconds) the navigation header should refresh itself',
@@ -3225,6 +3237,16 @@ our @options = (
     category    => 'medband',
   },
   {
+    name        => 'ZM_WEB_M_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'medband',
+  },
+  {
     name        => 'ZM_WEB_M_REFRESH_CYCLE',
     default     => '20',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3493,6 +3515,16 @@ our @options = (
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
+      `,
+    type        => $types{integer},
+    category    => 'lowband',
+  },
+  {
+    name        => 'ZM_WEB_L_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
       `,
     type        => $types{integer},
     category    => 'lowband',

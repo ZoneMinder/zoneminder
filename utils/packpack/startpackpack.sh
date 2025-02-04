@@ -50,10 +50,10 @@ createvars () {
     shorthash=$(git describe --long --always | awk -F - '{print $3}')
 
     # Grab the ZoneMinder version from the contents of the version file
-    versionfile=$(cat version)
+    versionfile=$(cat version.txt)
 
     # git the latest (short) commit hash of the version file
-    versionhash=$(git log -n1 --pretty=format:%h version)
+    versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
     # Number of commits since the version file was last changed
     numcommits=$(git rev-list ${versionhash}..HEAD --count)
@@ -101,7 +101,7 @@ commonprep () {
         echo "Retrieving Crud ${CRUDVER} submodule..."
         curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: Crud tarball retreival failed..."
+            echo "ERROR: Crud tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -113,19 +113,19 @@ commonprep () {
         echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
         curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
+            echo "ERROR: CakePHP-Enum-Behavior tarball retrieval failed..."
             exit 1
         fi
     fi
 
-    RTSPVER="eab32851421ffe54fec0229c3efc44c642bc8d46"
+    RTSPVER="055d81fe1293429e496b19104a9ed3360755a440"
     if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
         echo "Found existing RtspServer ${RTSPVER} tarball..."
     else
         echo "Retrieving RTSP ${RTSPVER} submodule..."
         curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: RtspServer tarball retreival failed..."
+            echo "ERROR: RtspServer tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -159,7 +159,7 @@ movecrud () {
     fi
 }
 
-# previsouly part of installzm.sh
+# previously part of installzm.sh
 # install the deb and test zoneminder
 install_deb () {
 
@@ -261,6 +261,18 @@ execpackpack () {
         parms="-f utils/packpack/redhat_package.mk redhat_package"
     else
         parms=""
+    fi
+
+    HOST_ARCH="$(uname -m)"
+    if [ "${ARCH}" != "${HOST_ARCH}" ] && [ "${HOST_ARCH}" == "x86_64" ]; then
+        case "${ARCH}" in
+            "armhf")
+                export PACKPACK_EXTRA_DOCKER_RUN_PARAMS="--platform=linux/arm"
+                ;;
+            "aarch64")
+                export PACKPACK_EXTRA_DOCKER_RUN_PARAMS="--platform=linux/arm64"
+                ;;
+        esac
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then
@@ -369,7 +381,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "noble" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ] || [ "${DIST}" == "bookworm" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian
@@ -381,7 +393,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   execpackpack
 
   # Try to install and run the newly built zoneminder package
-  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "bionic" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "jammy" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
       echo "Begin Deb package installation..."
       install_deb
   fi

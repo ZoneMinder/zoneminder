@@ -11,14 +11,14 @@ if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
 } else if ($_REQUEST['task'] == 'query') {
   if (!canView('System')) {
-    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+    $message = 'Insufficient permissions to view log entries for user '.$user->Username();
   } else {
     $data = queryRequest();
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
   if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
-    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
+    $message = 'Insufficient permissions to create log entries for user '.$user->Username();
   } else {
     createRequest();
   }
@@ -124,7 +124,6 @@ function queryRequest() {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }
-    $wherevalues = $query['values'];
     $where = '(' .implode(' OR ', $likes). ')';
 
   } else if ($search != '') {
@@ -133,10 +132,14 @@ function queryRequest() {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $search);
     }
-    $wherevalues = $query['values'];
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
+  if (!empty($_REQUEST['Component'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Component = ?';
+    $query['values'][] = $_REQUEST['Component'];
+  }
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
     $where .= 'ServerId = ?';
@@ -169,15 +172,15 @@ function queryRequest() {
   }
   if ($where) $where = ' WHERE '.$where;
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
-  array_push($query['values'], $offset, $limit);
-
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $wherevalues);
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  array_push($query['values'], $offset, $limit);
 
   $rows = array();
   $results = dbFetchAll($query['sql'], NULL, $query['values']);
@@ -185,11 +188,11 @@ function queryRequest() {
   global $dateTimeFormatter;
   foreach ($results as $row) {
     $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
-    $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
+    $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
     $row['Server'] = $Server ? $Server->Name() : '';
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', $row['Message']);
+    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', htmlspecialchars($row['Message']));
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }

@@ -4,12 +4,13 @@
 #include "zm_signal.h"
 
 DecoderThread::DecoderThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&DecoderThread::Run, this);
 }
 
 DecoderThread::~DecoderThread() {
   Stop();
+  if (thread_.joinable()) thread_.join();
 }
 
 void DecoderThread::Start() {
@@ -20,6 +21,9 @@ void DecoderThread::Start() {
 
 void DecoderThread::Stop() {
   terminate_ = true;
+}
+
+void DecoderThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 

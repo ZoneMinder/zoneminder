@@ -22,7 +22,7 @@ use base qw(SOAP::WSDL::XSD::Typelib::ComplexType);
 Class::Std::initialize();
 
 { # BLOCK to scope variables
-
+my %token_of :ATTR(:get<token>);
 my %Name_of :ATTR(:get<Name>);
 my %SupportedPTZSpaces_of :ATTR(:get<SupportedPTZSpaces>);
 my %MaximumNumberOfPresets_of :ATTR(:get<MaximumNumberOfPresets>);
@@ -31,7 +31,8 @@ my %AuxiliaryCommands_of :ATTR(:get<AuxiliaryCommands>);
 my %Extension_of :ATTR(:get<Extension>);
 
 __PACKAGE__->_factory(
-    [ qw(        Name
+    [ qw(        token
+        Name
         SupportedPTZSpaces
         MaximumNumberOfPresets
         HomeSupported
@@ -40,6 +41,7 @@ __PACKAGE__->_factory(
 
     ) ],
     {
+        'token'=> \%token_of,
         'Name' => \%Name_of,
         'SupportedPTZSpaces' => \%SupportedPTZSpaces_of,
         'MaximumNumberOfPresets' => \%MaximumNumberOfPresets_of,
@@ -48,6 +50,7 @@ __PACKAGE__->_factory(
         'Extension' => \%Extension_of,
     },
     {
+        'token' => 'ONVIF::PTZ::Types::ReferenceToken',
         'Name' => 'ONVIF::PTZ::Types::Name',
         'SupportedPTZSpaces' => 'ONVIF::PTZ::Types::PTZSpaces',
         'MaximumNumberOfPresets' => 'SOAP::WSDL::XSD::Typelib::Builtin::int',
@@ -57,6 +60,7 @@ __PACKAGE__->_factory(
     },
     {
 
+        'token' => 'token',
         'Name' => 'Name',
         'SupportedPTZSpaces' => 'SupportedPTZSpaces',
         'MaximumNumberOfPresets' => 'MaximumNumberOfPresets',
@@ -76,17 +80,19 @@ use base qw(SOAP::WSDL::XSD::Typelib::AttributeSet);
 
 { # BLOCK to scope variables
 
+my %token_of :ATTR(:get<token>);
 my %FixedHomePosition_of :ATTR(:get<FixedHomePosition>);
 
 __PACKAGE__->_factory(
-    [ qw(
+    [ qw(   token
         FixedHomePosition
     ) ],
     {
-
+        token=> \%token_of,
         FixedHomePosition => \%FixedHomePosition_of,
     },
     {
+        token => 'ONVIF::PTZ::Types::ReferenceToken',
         FixedHomePosition => 'SOAP::WSDL::XSD::Typelib::Builtin::boolean',
     }
 );

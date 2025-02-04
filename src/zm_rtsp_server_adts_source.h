@@ -21,40 +21,40 @@
 // ---------------------------------
 
 class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
-  public:
-		static ADTS_ZoneMinderDeviceSource* createNew(
-        UsageEnvironment& env,
-        std::shared_ptr<Monitor> monitor,
-        AVStream * stream,
-        unsigned int queueSize
-        ) {
-			return new ADTS_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize);
-    };
-	protected:
-		ADTS_ZoneMinderDeviceSource(
-        UsageEnvironment& env,
-        std::shared_ptr<Monitor> monitor,
-        AVStream *stream,
-        unsigned int queueSize
-        );
+ public:
+  static ADTS_ZoneMinderDeviceSource* createNew(
+    UsageEnvironment& env,
+    std::shared_ptr<Monitor> monitor,
+    AVStream * stream,
+    unsigned int queueSize
+  ) {
+    return new ADTS_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize);
+  };
+ protected:
+  ADTS_ZoneMinderDeviceSource(
+    UsageEnvironment& env,
+    std::shared_ptr<Monitor> monitor,
+    AVStream *stream,
+    unsigned int queueSize
+  );
 
-		virtual ~ADTS_ZoneMinderDeviceSource() {}
+  virtual ~ADTS_ZoneMinderDeviceSource() {}
 
-    /*
-		virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
-    virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
-    */
-  public:
-    int samplingFrequency() { return m_stream->codecpar->sample_rate; };
-    const char *configStr() { return config.c_str(); };
-    int numChannels() {
-      return channels;
-    }
+  /*
+  virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
+  virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
+  */
+ public:
+  int samplingFrequency() { return m_stream->codecpar->sample_rate; };
+  const char *configStr() { return config.c_str(); };
+  int numChannels() {
+    return channels;
+  }
 
-	protected:
-    std::string config;
-    int samplingFrequencyIndex;
-    int channels;
+ protected:
+  std::string config;
+  int samplingFrequencyIndex;
+  int channels;
 };
 #endif // HAVE_RTSP_SERVER
 

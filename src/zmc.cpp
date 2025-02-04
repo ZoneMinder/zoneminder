@@ -118,34 +118,34 @@ int main(int argc, char *argv[]) {
     }
 
     switch (c) {
-      case 'd':
-        device = optarg;
-        break;
-      case 'H':
-        host = optarg;
-        break;
-      case 'P':
-        port = optarg;
-        break;
-      case 'p':
-        path = optarg;
-        break;
-      case 'f':
-        file = optarg;
-        break;
-      case 'm':
-        monitor_id = atoi(optarg);
-        break;
-      case 'h':
-      case '?':
-        Usage();
-        break;
-      case 'v':
-        std::cout << ZM_VERSION << "\n";
-        exit(0);
-      default:
-        // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
-        break;
+    case 'd':
+      device = optarg;
+      break;
+    case 'H':
+      host = optarg;
+      break;
+    case 'P':
+      port = optarg;
+      break;
+    case 'p':
+      path = optarg;
+      break;
+    case 'f':
+      file = optarg;
+      break;
+    case 'm':
+      monitor_id = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      Usage();
+      break;
+    case 'v':
+      std::cout << ZM_VERSION << "\n";
+      exit(0);
+    default:
+      // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
+      break;
     }
   }
 
@@ -198,18 +198,18 @@ int main(int argc, char *argv[]) {
     monitors = Monitor::LoadLocalMonitors(device, Monitor::CAPTURE);
   } else
 #endif  // ZM_HAS_V4L2
-  if ( host[0] ) {
-    if ( !port )
-      port = "80";
-    monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
-  } else if ( file[0] ) {
-    monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
-  } else {
-    std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
-    if ( monitor ) {
-      monitors.push_back(monitor);
+    if ( host[0] ) {
+      if ( !port )
+        port = "80";
+      monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
+    } else if ( file[0] ) {
+      monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
+    } else {
+      std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
+      if ( monitor ) {
+        monitors.push_back(monitor);
+      }
     }
-  }
 
   if (monitors.empty()) {
     Error("No monitors found");
@@ -238,27 +238,26 @@ int main(int argc, char *argv[]) {
     result = 0;
 
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      monitor->LoadCamera();
-
-      if (!monitor->connect()) {
-        Warning("Couldn't connect to monitor %d", monitor->Id());
-      }
-      SystemTimePoint now = std::chrono::system_clock::now();
-      monitor->SetStartupTime(now);
-      monitor->SetHeartbeatTime(now);
-
       std::string sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
-          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
-          monitor->Id());
+                          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
+                          " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                          monitor->Id());
       zmDbDo(sql);
 
-      if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
-        while (!zm_terminate and !monitor->hasViewers()) {
-          Debug(1, "ONDEMAND and no Viewers.  Sleeping");
-          std::this_thread::sleep_for(Seconds(1));
-          monitor->SetHeartbeatTime(std::chrono::system_clock::now());
-        }
+      monitor->LoadCamera();
+
+      while (!monitor->connect() and !zm_terminate) {
+        Warning("Couldn't connect to monitor %d", monitor->Id());
+        sleep(1);
+      }
+      if (zm_terminate) break;
+
+      SystemTimePoint now = std::chrono::system_clock::now();
+      monitor->SetStartupTime(now);
+
+      if (monitor->StartupDelay() > 0) {
+        Debug(1, "Doing startup sleep for %ds", monitor->StartupDelay());
+        std::this_thread::sleep_for(Seconds(monitor->StartupDelay()));
       }
 
       Seconds sleep_time = Seconds(0);
@@ -280,8 +279,8 @@ int main(int argc, char *argv[]) {
       if (zm_terminate) break;
 
       sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-          monitor->Id());
+              "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+              monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
 
@@ -294,11 +293,27 @@ int main(int argc, char *argv[]) {
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
 
-        if ((monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitors[i]->hasViewers()) {
-          std::this_thread::sleep_for(Microseconds(100000));
-          result = 0;
-          continue;
-        }
+        if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+          SystemTimePoint now = std::chrono::system_clock::now();
+          monitors[i]->SetHeartbeatTime(now);
+
+          time_t last_viewed = monitors[i]->getLastViewed();
+          int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - last_viewed;
+          Debug(1, "Last view %jd= %" PRId64 " seconds since last view", last_viewed, since_last_view);
+          if (((!last_viewed) or (since_last_view > 10)) and (monitors[i]->GetLastWriteIndex() != -1)) {
+            if (monitors[i]->getCamera()->isPrimed()) {
+              monitors[i]->Pause();
+            }
+            std::this_thread::sleep_for(Microseconds(100000));
+            result = 0;
+            continue;
+          } else if (!monitors[i]->getCamera()->isPrimed()) {
+            if (1 > (result = monitors[i]->Play())) {
+              Debug(1, "Failed to play");
+              break;
+            }
+          }
+        } // end if ONDEMAND
 
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
@@ -307,7 +322,7 @@ int main(int argc, char *argv[]) {
           break;
         }
         if (monitors[i]->Capture() < 0) {
-          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
+          logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
@@ -318,6 +333,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+
         if (!result) monitors[i]->UpdateFPS();
 
         SystemTimePoint now = std::chrono::system_clock::now();
@@ -325,7 +341,7 @@ int main(int argc, char *argv[]) {
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
-                                                                         : monitors[i]->GetCaptureDelay();
+                             : monitors[i]->GetCaptureDelay();
         if (delay != Seconds(0)) {
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
@@ -361,6 +377,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      zmLoadStaticConfig();
+      zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }
@@ -373,8 +391,8 @@ int main(int argc, char *argv[]) {
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
-        monitor->Id());
+                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                        monitor->Id());
     zmDbDo(sql);
   }
   monitors.clear();
@@ -384,8 +402,8 @@ int main(int argc, char *argv[]) {
   curl_global_cleanup();
   Debug(1, "terminating");
   dbQueue.stop();
-  logTerm();
   zmDbClose();
+  logTerm();
 
   return zm_terminate ? 0 : result;
 }

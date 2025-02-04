@@ -54,8 +54,6 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['user']);
-    ZM\Debug('Changes: ' . print_r($changes, true));
-
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
         $error_message .= $dbUser->get_last_error().'<br/>';
@@ -64,10 +62,9 @@ if ($action == 'Save') {
       }
 
       if ($uid) {
-        if ($user and ($dbUser->Username() == $user['Username'])) {
+        if ($user and ($dbUser->Username() == $user->Username())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
-          $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
-          $user = dbFetchOne($sql, NULL, array($uid));
+          $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
 
           # Have to update auth hash in session
           zm_session_start();
@@ -87,16 +84,19 @@ if ($action == 'Save') {
       }
     }
 
-    foreach (ZM\Monitor::find() as $m) {
-      if (isset($_POST['monitor_permission'])) {
-        $permission = $dbUser->Monitor_Permission($m->Id());
-        if ($permission->Permission() != $_POST['monitor_permission'][$m->Id()]) {
-          $permission->save(array('Permission'=>$_POST['monitor_permission'][$m->Id()]));
+    if (isset($_POST['monitor_permission'])) {
+      foreach (ZM\Monitor::find(['Deleted'=>false]) as $m) {
+        if (isset($_POST['monitor_permission'][$m->Id()])) {
+          $permission = $dbUser->Monitor_Permission($m->Id());
+          $new_permission = $_POST['monitor_permission'][$m->Id()];
+          if ($permission->Permission() != $new_permission) {
+            $permission->save(['Permission'=>$new_permission]);
+          }
         }
       }
-    }
+    } # end if isset monitor_permission
     $dbUser->Monitor_Permissions(null); # reload
-  } else if (ZM_USER_SELF_EDIT and ($uid == $user['Id'])) {
+  } else if (ZM_USER_SELF_EDIT and ($uid == $user->Id())) {
     if (!empty($_REQUEST['user']['Password'])) {
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
     } else {
@@ -112,9 +112,7 @@ if ($action == 'Save') {
       }
     }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
-    ZM\Debug("changes: ".print_r(array_intersect_key($_REQUEST['user'], $fields),true));
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['user'], $fields));
-    ZM\Debug("changes: ".print_r($changes, true));
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
@@ -124,13 +122,12 @@ if ($action == 'Save') {
       }
 
       # We are the logged in user, need to update the $user object and generate a new auth_hash
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
-      $user = dbFetchOne($sql, NULL, array($uid));
+      $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
-    }
-  }
+    } # end if changes
+  } # canEdit(System) or self edit
 } // end if $action == user
 ?>

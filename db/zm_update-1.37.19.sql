@@ -11,7 +11,7 @@ SET @s = (SELECT IF(
   AND column_name = 'ONVIF_Alarm_Text'
   ) > 0,
 "SELECT 'Column ONVIF_Alarm_Text already exists in Monitors'",
-"ALTER TABLE Monitors ADD Onvif_Alarm_Text varchar(30) DEFAULT 'MotionAlarm' AFTER `ONVIF_Event_Listener`"
+"ALTER TABLE Monitors ADD ONVIF_Alarm_Text varchar(30) DEFAULT 'MotionAlarm' AFTER `ONVIF_Event_Listener`"
 ));
 
 PREPARE stmt FROM @s;

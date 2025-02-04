@@ -65,6 +65,7 @@ use constant MAX_CONNECT_DELAY => 40;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+use ZoneMinder::Server;
 use POSIX;
 use Socket;
 use IO::Handle;
@@ -155,12 +156,17 @@ socket(CLIENT, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
 my $saddr = sockaddr_un(SOCK_FILE);
 my $server_up = connect(CLIENT, $saddr);
 
-if ( !$server_up ) {
-  if ( $Config{ZM_SERVER_ID} ) {
+if (!$server_up) {
+  my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+  if ($server->Id()) {
     use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-    use ZoneMinder::Server qw(CpuLoad);
-    if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
-          'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+    my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
+    my @cpuload = $server->CpuLoad();
+    if ($_=$server->save({Status=>'NotRunning',
+          CpuLoad=>$cpuload[0],
+          TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
+          CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
+        })) {
       Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
   }
@@ -237,10 +243,12 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use ZoneMinder::Server qw(CpuLoad);
+use ZoneMinder::Server;
 #use Data::Dumper;
 
-use constant KILL_DELAY => 10; # seconds to wait between sending TERM and sending KILL
+use constant KILL_DELAY => 30; # seconds to wait between sending TERM and sending KILL
+# ffmpeg connect can take up to 30 seconds at least and doesn't seem to ack signals
+# or get back to zm code so we can exit gracefully
 
 our %cmd_hash;
 our %pid_hash;
@@ -302,9 +310,11 @@ sub run {
   my $timeout = 1;
   my $secs_count = 0;
 
+  my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+
   while ( !$zm_terminate ) {
     
-    if ( $Config{ZM_SERVER_ID} ) {
+    if ($server->Id()) {
       if ( ! ( $secs_count % 60 ) ) {
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
           Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
@@ -313,11 +323,13 @@ sub run {
         }
         last if $zm_terminate;
 
-        my @cpuload = CpuLoad();
-        Debug("Updating Server record @cpuload");
-        if ( ! defined $dbh->do('UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?', undef,
-            'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
+        my @cpuload = $server->CpuLoad();
+        my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
+        if ($_=$server->save({Status=>'Running',
+              TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap, CpuLoad=>$cpuload[0],
+              CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent
+            })) {
+          Error('Failed Updating status of Server record to Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
         }
       }
       $secs_count += 1;
@@ -382,14 +394,12 @@ sub run {
     reaper() if %pids_to_reap;
   } # end while
 
-  dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
-      .strftime('%y/%m/%d %H:%M:%S', localtime())
-      ."\n"
-      );
-  if ( $Config{ZM_SERVER_ID} ) {
+  dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
+  if ($Config{ZM_SERVER_ID}) {
     $dbh = zmDbConnect() if ! ($dbh and $dbh->ping());
-    if ( ! defined $dbh->do(q{UPDATE Servers SET Status='NotRunning' WHERE Id=?}, undef, $Config{ZM_SERVER_ID}) ) {
-      Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+    my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+    if ($_=$server->save({Status=>'NotRunning'})) {
+      Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
   }
   shutdownAll();
@@ -800,24 +810,24 @@ sub check {
 
 sub status {
   my $daemon = shift;
-  my @args = @_;
 
-  if ( defined($daemon) ) {
-    my $command = join(' ', $daemon, @args);
+  if (defined($daemon)) {
+    my $command = join(' ', $daemon, @_);
     my $process = $cmd_hash{$command};
-    if ( ! $process ) {
+    if (!$process) {
       dPrint(ZoneMinder::Logger::DEBUG, "'$command' not running\n");
       return;
     }
 
-    if ( $process->{pending} ) {
+    if ($process->{pending}) {
       dPrint(ZoneMinder::Logger::DEBUG, "'$command' pending at "
           .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
           ."\n"
           );
+          return;
     } else {
       my $pid = $process->{pid};
-      if ( ! $pid_hash{$pid} ) {
+      if (!$pid_hash{$pid}) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$command' not running\n");
         return;
       }
@@ -827,17 +837,17 @@ sub status {
         .", pid = $process->{pid}"
         );
   } else {
-    foreach my $process ( values %pid_hash ) {
+    foreach my $pid (sort { $a <=> $b } keys %pid_hash) {
+      my $process = $pid_hash{$pid};
       my $out_str = "'$process->{command}' running since "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))
-        .", pid = $process->{pid}"
-        ;
-      $out_str .= ", valid" if ( kill(0, $process->{pid}) );
+        .", pid = $process->{pid}";
+      $out_str .= ", valid" if kill(0, $process->{pid});
       $out_str .= "\n";
       dPrint(ZoneMinder::Logger::DEBUG, $out_str);
     }
-    foreach my $process ( values %cmd_hash ) {
-      if ( $process->{pending} ) {
+    foreach my $process (values %cmd_hash) {
+      if ($process->{pending}) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
             .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
             ."\n"

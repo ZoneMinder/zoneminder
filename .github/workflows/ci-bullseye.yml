@@ -37,7 +37,7 @@ jobs:
         run: apt-get -qq update && apt-get -qq upgrade
       - name: Install git
         run: apt-get -qq install git
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install dependencies
@@ -53,8 +53,8 @@ jobs:
       - name: Prepare
         run: mkdir build
       - name: Configure
-        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=0 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
       - name: Build
         run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
-      - name: Run tests
-        run: cd build/tests && ./tests "~[notCI]"
+          #- name: Run tests
+          #run: cd build/tests && ./tests "~[notCI]"

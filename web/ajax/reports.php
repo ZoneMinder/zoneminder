@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user['Username'].'<br/>';
+  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -38,6 +38,7 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 // Bootstrap table sends json_ecoded array, which we must decode
 $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
+$order = 'ASC';
 // Order specifies the sort direction, either asc or desc
 if (isset($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {
@@ -80,7 +81,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($ids as $id) {

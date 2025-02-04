@@ -39,7 +39,7 @@ if ( $action == 'save' ) {
     );
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
   $group_id = $group->Id();
-  if ( $group_id ) {
+  if ($group_id and isset($_REQUEST['newGroup']['MonitorIds'])) {
     foreach ( $_REQUEST['newGroup']['MonitorIds'] as $mid ) {
       dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
     }

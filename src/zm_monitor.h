@@ -911,7 +911,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-    const std::shared_ptr<ZMPacket> &snap,
+    ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();

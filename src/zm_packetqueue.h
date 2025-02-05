@@ -25,7 +25,7 @@
 #include <memory>
 
 class ZMPacket;
-class ZMLockedPacket;
+class ZMPacketLock;
 
 typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 
@@ -76,9 +76,9 @@ class PacketQueue {
 
   bool increment_it(packetqueue_iterator *it);
   bool increment_it(packetqueue_iterator *it, int stream_id);
-  ZMLockedPacket *get_packet(packetqueue_iterator *);
-  ZMLockedPacket *get_packet_no_wait(packetqueue_iterator *);
-  ZMLockedPacket *get_packet_and_increment_it(packetqueue_iterator *);
+  ZMPacketLock get_packet(packetqueue_iterator *);
+  ZMPacketLock get_packet_no_wait(packetqueue_iterator *);
+  ZMPacketLock get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
   packetqueue_iterator *get_stream_it(int stream_id);
   void free_it(packetqueue_iterator *);
@@ -88,7 +88,7 @@ class PacketQueue {
     unsigned int pre_event_count
   );
   bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet);
-  void unlock(ZMLockedPacket *lp);
+  void unlock(ZMPacketLock *lp);
   void notify_all();
   void wait();
  private:

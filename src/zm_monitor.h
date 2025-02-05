@@ -676,8 +676,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   std::unique_ptr<PollThread> Poller;
+  std::list<std::shared_ptr<ZMPacket>> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
+  std::list<std::shared_ptr<ZMPacket>> ai_queue;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
   av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
@@ -975,7 +977,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-    const std::shared_ptr<ZMPacket> &snap,
+    ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();

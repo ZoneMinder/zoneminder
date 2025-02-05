@@ -177,6 +177,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   pixels = width * height;
 
   if (!subpixelorder and (colours>1)) {
+    Debug(1, "Defaulting to RGBA Cuz %d %d", subpixelorder, colours);
     // Default to RGBA when no subpixelorder is specified.
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
@@ -840,7 +841,7 @@ void Image::Assign(const Image &image) {
     } else {
       if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
-        Debug(1, "New size %d > %d", new_size, allocation);
+        Debug(1, "New size %d > %ld", new_size, allocation);
         AllocImgBuffer(new_size);
       }
     }
@@ -1656,8 +1657,9 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
   AVPacket *pkt;
 
-  if (av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32) > static_cast<int>(size)) {
-    Error("Output buffer not large enough");
+  int needed_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
+  if (needed_size > static_cast<int>(size)) {
+    Error("Output buffer %d not large enough. Need %d", size, needed_size);
     return false;
   }
 

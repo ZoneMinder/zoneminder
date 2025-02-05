@@ -39,8 +39,10 @@ class ZMPacket {
  public:
 
   std::mutex  mutex_;
+  std::unique_lock<std::mutex> our_lck_;
   // The condition has to be in the packet because it is shared between locks
   std::condition_variable condition_;
+  bool locked;
 
   int keyframe;
   AVStream  *stream;            // Input stream
@@ -73,7 +75,7 @@ class ZMPacket {
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };
-  int decode(AVCodecContext *ctx);
+  int decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket>delayed_packet);
   explicit ZMPacket(Image *image, SystemTimePoint tv);
   explicit ZMPacket(ZMPacket &packet);
   ZMPacket();
@@ -88,54 +90,62 @@ class ZMPacket {
   void notify_all() {
     this->condition_.notify_all();
   }
+
+  std::unique_lock<std::mutex> lock();
+  void lock(std::unique_lock<std::mutex> &);
+
+  bool trylock(std::unique_lock<std::mutex>  &lck_);
+  void unlock(std::unique_lock<std::mutex>  &lck_);
+  void unlock();
 };
 
-class ZMLockedPacket {
- public:
-  std::shared_ptr<ZMPacket> packet_;
-  std::unique_lock<std::mutex> lck_;
-  bool locked;
+class ZMPacketLock {
+  public:
+    std::shared_ptr<ZMPacket> packet_;
+  private:
+    std::unique_lock<std::mutex> *lck_;
+    bool locked;
 
-  explicit ZMLockedPacket(std::shared_ptr<ZMPacket> p) :
-    packet_(p),
-    lck_(packet_->mutex_, std::defer_lock),
-    locked(false) {
-  }
+  public:
+    ZMPacketLock(ZMPacketLock &&in) : packet_(in.packet_), lck_(in.lck_), locked(in.locked) { in.lck_=nullptr;};
+    bool operator!() { return packet_ ? false : true; }
+    ZMPacketLock& operator=(const ZMPacketLock &in) {
+      packet_ = in.packet_;
+      lck_ = in.lck_;
+      locked = in.locked;
+      return *this;
+    };
+    ZMPacketLock() : packet_(nullptr),lck_(nullptr), locked(false) {};
 
-  ~ZMLockedPacket() {
-    if (locked) unlock();
-  }
+    explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
+      packet_(p),
+      lck_(nullptr),
+      locked(false)
+    {
+      lck_ = new std::unique_lock<std::mutex>(p->mutex_, std::defer_lock);
+    }
 
-  void lock() {
-    Debug(4, "locking packet %d %p %d owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    lck_.lock();
-    locked = true;
-    Debug(4, "packet %d locked", packet_->image_index);
-  };
+    ~ZMPacketLock() {
+      if (lck_) {
+        Debug(1, "have a lck");
+        if (locked) {
+          Debug(1, "Unlocking");
+          packet_->unlock(*lck_);
+        }
+        delete lck_;
+        lck_ = nullptr;
+      }
+    }
 
-  bool trylock() {
-    Debug(4, "TryLocking packet %d %p locked: %d owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    locked = lck_.try_lock();
-    Debug(4, "TryLocking packet %d %p %d, owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    return locked;
-  };
-
-  void unlock() {
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    locked = false;
-    lck_.unlock();
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    packet_->condition_.notify_all();
-  };
-
-  void wait() {
-    Debug(4, "packet %d waiting", packet_->image_index);
-    packet_->condition_.wait(lck_);
-  }
-  void notify_all() {
-    packet_->notify_all();
-  }
-
+    void wait() {
+      Debug(4, "packet %d waiting", packet_->image_index);
+      packet_->condition_.wait(*lck_);
+    }
+    void notify_all() {
+      packet_->notify_all();
+    }
+    void lock() { packet_->lock(*lck_); locked = true;}
+    void unlock() { packet_->unlock(*lck_); locked = false;}
+    bool trylock() { return locked = packet_->trylock(*lck_); }
 };
-
 #endif /* ZM_PACKET_H */

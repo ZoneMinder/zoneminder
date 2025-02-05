@@ -316,6 +316,7 @@ Monitor::Monitor() :
   analysis_thread(nullptr),
   decoder_it(nullptr),
   decoder(nullptr),
+  dest_frame(nullptr),
   mVideoCodecContext(nullptr),
   mAudioCodecContext(nullptr),
   convert_context(nullptr),
@@ -1986,12 +1987,13 @@ bool Monitor::Analyse() {
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
-  ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
-  if (!packet_lock) {
+  ZMPacketLock packet_lock = packetqueue.get_packet(analysis_it);
+
+  if (!packet_lock.packet_) {
     Debug(4, "No packet lock, returning false");
     return false;
   }
-  std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+  std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
   // Is it possible for packet->score to be ! -1 ? Not if everything is working correctly
   if (packet->score != -1) {
@@ -2138,7 +2140,6 @@ bool Monitor::Analyse() {
             if (!packet->decoded) {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
-              delete packet_lock;
               Debug(2, "Not decoded, waiting for decode");
               return false;
             }
@@ -2158,7 +2159,7 @@ bool Monitor::Analyse() {
                 quadra_yolo = nullptr;
               }
             } else {
-              Debug(1, "Have quadra %p and hw_frame%d", quadra_yolo, packet->hw_frame.get());
+              Debug(1, "Have quadra %p and hw_frame %p", quadra_yolo, packet->hw_frame.get());
             }
           }
 
@@ -2170,17 +2171,26 @@ bool Monitor::Analyse() {
                   motion_frame_skip, capture_fps, analysis_fps_limit);
             }
             if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
-              AVFrame *ai_frame = nullptr;
               Debug(1, "Doing detection");
-              auto [ret, detections] = quadra_yolo->detect(packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get(), &ai_frame);
+              std::shared_ptr<ZMPacket> delayed_packet = ai_queue.size() ? ai_queue.front() : packet;
+              auto [ret, detections] = quadra_yolo->detect(packet, delayed_packet);
               if (0 < ret) {
+                if (delayed_packet != packet) {
+                  ai_queue.push_back(packet);
+                  packet = delayed_packet;
+                  ai_queue.pop_front();
+                }
                 packet->detections = detections;
-                zm_dump_video_frame(ai_frame, "after detect");
-                packet->set_ai_frame(ai_frame);
+                if (packet->ai_frame)
+                zm_dump_video_frame(packet->ai_frame.get(), "after detect");
               } else if (0 > ret) {
                 Debug(1, "Failed yolo");
                 delete quadra_yolo;
                 quadra_yolo = nullptr;
+              } else {
+                // EAGAIN
+                ai_queue.push_back(packet);
+                return true;
               }
             }
           }
@@ -2527,7 +2537,7 @@ bool Monitor::Analyse() {
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch() % section_length).count())
                 );
-            if ((event = openEvent(packet, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
+            if ((event = openEvent(&packet_lock, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
               Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());
             }
           }
@@ -2579,7 +2589,7 @@ bool Monitor::Analyse() {
       Debug(3, "Not video, not clearing packets");
     }
 
-    if (!event) {
+    if (!event and 0) {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
       if (packet->image) {
@@ -2603,7 +2613,6 @@ bool Monitor::Analyse() {
   }  // end scope for event_lock
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-  packetqueue.unlock(packet_lock);
   packetqueue.increment_it(analysis_it);
 
   return true;
@@ -2935,14 +2944,15 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 }
 
 bool Monitor::Decode() {
-  ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
-  if (!packet_lock) return false;
+  //ZMPacket packet = packetqueue.get_packet_and_increment_it(decoder_it);
 
-  std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+  ZMPacketLock packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
+  std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+  if (!packet) return false;
+
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
     Debug(4, "Not video,probably audio");
-    delete packet_lock;
     return true; // Don't need decode
   }
 
@@ -3057,21 +3067,30 @@ bool Monitor::Decode() {
 #endif
       } // end if ! mCodec
         
-      int ret = packet->decode(mVideoCodecContext);
+      std::shared_ptr<ZMPacket> delayed_packet = decoder_queue.size() ? *decoder_queue.begin() : packet;
+      int ret = packet->decode(mVideoCodecContext, delayed_packet);
       if (ret > 0 and !zm_terminate) {
-        if (packet->in_frame and !packet->image) {
+        if (decoder_queue.size()) {
+          Debug(1, "Popping off delayed packet");
+          delayed_packet->decoded = true;
+          decoder_queue.pop_front();
+          decoder_queue.push_back(packet);
+          packet = delayed_packet;
+        }
+        if (1 and packet->in_frame and !packet->image) {
           const AVFrame *in_frame = packet->in_frame.get();
 
-          if (0) {
+          if (1) {
           //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
           unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
-          unsigned int colours = AV_PIX_FMT_YUV420P;
+          unsigned int colours = ZM_COLOUR_YUV420P;
           //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
           packet->image = new Image(camera_width, camera_height, colours, subpix);
           //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
           if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
             if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
+
               delete packet->image;
               packet->image = nullptr;
             }
@@ -3084,12 +3103,26 @@ bool Monitor::Decode() {
           }
         }  // end if need transfer to image
       } else if (ret <0) {
+        if (delayed_packet != packet) {
+          Debug(1, "Pushing origin packet on back of queue");
+          decoder_queue.push_back(packet);
+        } else if (!decoder_queue.size()) {
+          decoder_queue.push_back(packet);
+        }
+        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
         return -1;
         
       } else {
+        if (delayed_packet != packet) {
+          Debug(1, "Pushing origin packet on back of queue");
+          decoder_queue.push_back(packet);
+        } else if (!decoder_queue.size()) {
+          decoder_queue.push_back(packet);
+        }
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
+        return 0;
       }
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
@@ -3140,27 +3173,23 @@ bool Monitor::Decode() {
       } else if (deinterlacing_value == 4) {
         while (!zm_terminate) {
           // ICON FIXME SHould we not clone decoder_it?
-          ZMLockedPacket *deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
-          if (!deinterlace_packet_lock) {
-            delete packet_lock;
+          ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
+          std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
+          if (!deinterlace_packet) {
             return false;
           }
-          if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
-            if (!deinterlace_packet_lock->packet_->image) {
+          if (deinterlace_packet->codec_type == packet->codec_type) {
+            if (!deinterlace_packet->image) {
               Error("Can't de-interlace when we have to decode.  De-Interlacing should only be useful on old low res local cams");
             } else {
-              capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+              capture_image->Deinterlace_4Field(deinterlace_packet->image, (deinterlacing>>8)&0xff);
             }
-            delete deinterlace_packet_lock;
-            //packetqueue.unlock(deinterlace_packet_lock);
             break;
           }
-          delete deinterlace_packet_lock;
           //packetqueue.unlock(deinterlace_packet_lock);
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) {
-          delete packet_lock;
           return false;
         }
       } else if (deinterlacing_value == 5) {
@@ -3199,8 +3228,9 @@ bool Monitor::Decode() {
     index = index % image_buffer_count;
     decoding_image_count++;
     if (packet->image) {
-    image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
-    image_buffer[index]->Assign(*(packet->image));
+      image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
+      Debug(1, "Assigning %d for %d", packet->image->AVPixFormat(), index);
+      image_buffer[index]->Assign(*(packet->image));
     }
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
@@ -3212,7 +3242,6 @@ bool Monitor::Decode() {
     }
   }  // end if have image
   packet->decoded = true;
-  packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 
@@ -3279,7 +3308,7 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
 } // end void Monitor::TimestampImage
 
 Event * Monitor::openEvent(
-  const std::shared_ptr<ZMPacket> &packet,
+  ZMPacketLock *packet_lock,
   const std::string &cause,
   const Event::StringSetMap &noteSetMap) {
 
@@ -3290,21 +3319,20 @@ Event * Monitor::openEvent(
       );
 
   if (*start_it != *analysis_it) {
-    ZMLockedPacket *starting_packet_lock = packetqueue.get_packet(start_it);
+    ZMPacketLock starting_packet = packetqueue.get_packet(start_it);
 
-    if (!starting_packet_lock) {
+    if (!starting_packet.packet_) {
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
-    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
-    delete starting_packet_lock;
-    ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
-    event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
-    SetVideoWriterStartTime(starting_packet->timestamp);
+    packet_lock->unlock();
+    ZM_DUMP_PACKET(starting_packet.packet_->packet, "First packet from start");
+    event = new Event(this, start_it, starting_packet.packet_->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(starting_packet.packet_->timestamp);
   } else {
-    ZM_DUMP_PACKET(packet->packet, "First packet from alarm");
-    event = new Event(this, start_it, packet->timestamp, cause, noteSetMap);
-    SetVideoWriterStartTime(packet->timestamp);
+    ZM_DUMP_PACKET(packet_lock->packet_->packet, "First packet from alarm");
+    event = new Event(this, start_it, packet_lock->packet_->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(packet_lock->packet_->timestamp);
   }
 
   shared_data->last_event_id = event->Id();
@@ -3663,6 +3691,7 @@ int Monitor::PrimeCapture() {
       decoder->Start();
     }
   }
+
   Debug(1, "Done restarting decoder");
   if (!analysis_it) {
     Debug(1, "getting analysis_it");
@@ -3807,26 +3836,26 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 // So this should be done as the first task in the analysis thread startup.
 // This function is deprecated.
 void Monitor::get_ref_image() {
-  ZMLockedPacket *packet_lock = nullptr;
   Warning("get_ref_image is deprecated");
 
   if ( !analysis_it )
     analysis_it = packetqueue.get_video_it(true);
 
+  ZMPacketLock packet_lock;
   while (
     (
       !( packet_lock = packetqueue.get_packet(analysis_it))
       or
-      ( packet_lock->packet_->codec_type != AVMEDIA_TYPE_VIDEO )
+      ( packet_lock.packet_->codec_type != AVMEDIA_TYPE_VIDEO )
       or
-      ! packet_lock->packet_->image
+      ! packet_lock.packet_->image
     )
     and !zm_terminate) {
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64 ")",
           shared_data->last_write_index, static_cast<int64>(shared_data->last_write_time));
-    if (packet_lock and ! packet_lock->packet_->image) {
-      delete packet_lock;
+    if (packet_lock.packet_ and ! packet_lock.packet_->image) {
+      packet_lock.unlock();
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
@@ -3834,7 +3863,8 @@ void Monitor::get_ref_image() {
   if (zm_terminate)
     return;
 
-  std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+  std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
         packet->packet->stream_index, video_stream_id, packet->image_index, packet->image );
   // Might not have been decoded yet FIXME
@@ -3845,7 +3875,6 @@ void Monitor::get_ref_image() {
   } else {
     Debug(2, "Have no ref image about to unlock");
   }
-  delete packet_lock;
 }  // get_ref_image
 
 std::vector<Group *> Monitor::Groups() {

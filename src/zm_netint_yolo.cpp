@@ -210,7 +210,9 @@ bool Quadra_Yolo::setup(
   return true;
 }
 
-std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFrame **ai_frame) {
+std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacket> &packet, std::shared_ptr<ZMPacket> &delayed_packet) {
+  AVFrame *avframe = packet->hw_frame.get();
+
   if (!use_hwframe && !sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
@@ -254,14 +256,14 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(AVFrame *avframe, AVFra
       return {0, ""};
     }
     aiframe_number++;
-    ret = process_roi(avframe, ai_frame);
+    AVFrame *ai_frame = delayed_packet->ai_frame.get();
+    ret = process_roi(avframe, &ai_frame);
     if (ret < 0) {
       Error("cannot draw roi");
       return {-1, ""};
     }
-    av_frame_unref(avframe);
-    AVFrame *blah = *ai_frame;
-    zm_dump_video_frame(blah, "ai");
+    packet->set_ai_frame(ai_frame);
+    zm_dump_video_frame(ai_frame, "ai");
   } else {
     return {0, ""};
   }

@@ -183,7 +183,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       frame->data[0], frame->data[1], \
       frame->data[2], frame->data[3], \
       frame->pts, \
-      frame->flags && AV_FRAME_FLAG_KEY \
+      frame->flags & AV_FRAME_FLAG_KEY \
       );
 #else
 #define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64 " keyframe: %d", \

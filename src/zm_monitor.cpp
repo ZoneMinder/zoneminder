@@ -2173,16 +2173,15 @@ bool Monitor::Analyse() {
             if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
               Debug(1, "Doing detection");
               std::shared_ptr<ZMPacket> delayed_packet = ai_queue.size() ? ai_queue.front() : packet;
-              auto [ret, detections] = quadra_yolo->detect(packet, delayed_packet);
+              int ret = quadra_yolo->detect(packet, delayed_packet);
               if (0 < ret) {
                 if (delayed_packet != packet) {
                   ai_queue.push_back(packet);
                   packet = delayed_packet;
                   ai_queue.pop_front();
                 }
-                packet->detections = detections;
                 if (packet->ai_frame)
-                zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                  zm_dump_video_frame(packet->ai_frame.get(), "after detect");
               } else if (0 > ret) {
                 Debug(1, "Failed yolo");
                 delete quadra_yolo;

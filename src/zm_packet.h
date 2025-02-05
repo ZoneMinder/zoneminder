@@ -147,5 +147,9 @@ class ZMPacketLock {
     void lock() { packet_->lock(*lck_); locked = true;}
     void unlock() { packet_->unlock(*lck_); locked = false;}
     bool trylock() { return locked = packet_->trylock(*lck_); }
+    bool is_locked() { 
+      Debug(3, "is_locked packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_->owns_lock());
+      return locked;
+    }
 };
 #endif /* ZM_PACKET_H */

@@ -704,7 +704,7 @@ void MonitorStream::runStream() {
       // have a new image to send
       int last_write_index = monitor->shared_data->last_analysis_index;
       //int last_write_index = monitor->shared_data->last_write_index;
-      int index = last_write_index % monitor->image_buffer_count;
+      int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
       
       if (now >= when_to_send_next_frame) {

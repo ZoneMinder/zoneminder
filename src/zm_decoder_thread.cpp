@@ -31,7 +31,8 @@ void DecoderThread::Run() {
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 
   while (!(terminate_ or zm_terminate)) {
-    if (!monitor_->Decode()) {
+    int ret = monitor_->Decode();
+    if (ret < 0) {
       if (!(terminate_ or zm_terminate)) {
         // We only sleep when Decode returns false because it is an error condition and we will spin like mad if it persists.
         Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);

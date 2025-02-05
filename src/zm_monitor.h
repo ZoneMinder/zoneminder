@@ -676,10 +676,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   std::unique_ptr<PollThread> Poller;
-  std::list<std::shared_ptr<ZMPacket>> decoder_queue;
+  std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
-  std::list<std::shared_ptr<ZMPacket>> ai_queue;
+  std::list<ZMPacketLock> ai_queue;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
   av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
@@ -969,9 +969,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
-  bool Analyse();
+  int Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
-  bool Decode();
+  int Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;

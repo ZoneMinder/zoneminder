@@ -1983,7 +1983,7 @@ bool Monitor::Poll() {
 //
 // If there is an event, the we should do our best to empty the queue.
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
-bool Monitor::Analyse() {
+int Monitor::Analyse() {
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
@@ -1991,7 +1991,7 @@ bool Monitor::Analyse() {
 
   if (!packet_lock.packet_) {
     Debug(4, "No packet lock, returning false");
-    return false;
+    return -1;
   }
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
@@ -2141,7 +2141,7 @@ bool Monitor::Analyse() {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
               Debug(2, "Not decoded, waiting for decode");
-              return false;
+              return -1;
             }
           }  // end if decoding enabled
 
@@ -2158,6 +2158,8 @@ bool Monitor::Analyse() {
                 delete quadra_yolo;
                 quadra_yolo = nullptr;
               }
+              // give up... 
+
             } else {
               Debug(1, "Have quadra %p and hw_frame %p", quadra_yolo, packet->hw_frame.get());
             }
@@ -2172,12 +2174,15 @@ bool Monitor::Analyse() {
             }
             if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
               Debug(1, "Doing detection");
-              std::shared_ptr<ZMPacket> delayed_packet = ai_queue.size() ? ai_queue.front() : packet;
+              ZMPacketLock *delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+              auto delayed_packet = delayed_packet_lock->packet_;
+
               int ret = quadra_yolo->detect(packet, delayed_packet);
               if (0 < ret) {
                 if (delayed_packet != packet) {
-                  ai_queue.push_back(packet);
+                  ai_queue.push_back(std::move(packet_lock));
                   packet = delayed_packet;
+                  packet_lock = *delayed_packet_lock;
                   ai_queue.pop_front();
                 }
                 if (packet->ai_frame)
@@ -2185,11 +2190,19 @@ bool Monitor::Analyse() {
               } else if (0 > ret) {
                 Debug(1, "Failed yolo");
                 delete quadra_yolo;
+                // Since packets are still in the queue, they will get re-fed into it..
                 quadra_yolo = nullptr;
+                if (packet != delayed_packet) { // Can this be otherwise?
+                  ai_queue.push_back(std::move(packet_lock));
+                }
+                return ret;
+
               } else {
                 // EAGAIN
-                ai_queue.push_back(packet);
-                return true;
+                if (packet != delayed_packet) { // Can this be otherwise?
+                  ai_queue.push_back(std::move(packet_lock));
+                }
+                return 0;
               }
             }
           }
@@ -2557,10 +2570,8 @@ bool Monitor::Analyse() {
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packetqueue.clearPackets(packet);
-      // Only do these if it's a video packet.
-      shared_data->last_read_index = packet->image_index;
-      shared_data->analysis_image_count++;
 
+      // Only do these if it's a video packet.
       unsigned int index = shared_data->last_analysis_index;
       index++;
       index = index % image_buffer_count;
@@ -2570,16 +2581,21 @@ bool Monitor::Analyse() {
         analysis_image_buffer[index]->Assign(packet->ai_frame.get());
         analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
         shared_data->last_analysis_index = index;
+
+      shared_data->last_read_index = packet->image_index;
+      shared_data->analysis_image_count++;
       } else if (packet->analysis_image) {
         analysis_image_buffer[index]->Assign(*packet->analysis_image);
         analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
         Debug(1, "analysis %d, for index %d", analysis_image_pixelformats[index], index);
         shared_data->last_analysis_index = index;
+      shared_data->analysis_image_count++;
       } else if (packet->image) {
         analysis_image_buffer[index]->Assign(*packet->image);
         analysis_image_pixelformats[index] = packet->image->AVPixFormat();
         shared_data->last_analysis_index = index;
         Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
+      shared_data->analysis_image_count++;
       } else {
         Debug(1, "Unable to find an image to assign");
       }
@@ -2614,7 +2630,7 @@ bool Monitor::Analyse() {
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it);
 
-  return true;
+  return 1;
 } // end Monitor::Analyse
 
 void Monitor::Reload() {
@@ -2942,17 +2958,17 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   return (convert_context != nullptr);
 }
 
-bool Monitor::Decode() {
+int Monitor::Decode() {
   //ZMPacket packet = packetqueue.get_packet_and_increment_it(decoder_it);
 
   ZMPacketLock packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
-  if (!packet) return false;
+  if (!packet) return -1;
 
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
     Debug(4, "Not video,probably audio");
-    return true; // Don't need decode
+    return 1; // Don't need decode
   }
 
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
@@ -3066,16 +3082,21 @@ bool Monitor::Decode() {
 #endif
       } // end if ! mCodec
         
-      std::shared_ptr<ZMPacket> delayed_packet = decoder_queue.size() ? *decoder_queue.begin() : packet;
+      ZMPacketLock *delayed_packet_lock  = decoder_queue.size() ? &decoder_queue.front() : &packet_lock;
+      auto delayed_packet = delayed_packet_lock->packet_;
+
       int ret = packet->decode(mVideoCodecContext, delayed_packet);
       if (ret > 0 and !zm_terminate) {
         if (decoder_queue.size()) {
           Debug(1, "Popping off delayed packet");
           delayed_packet->decoded = true;
           decoder_queue.pop_front();
-          decoder_queue.push_back(packet);
+          decoder_queue.push_back(std::move(packet_lock));
+          packet_lock = std::move(*delayed_packet_lock);
           packet = delayed_packet;
+          Debug(1, "is locked? %d", packet_lock.is_locked());
         }
+
         if (1 and packet->in_frame and !packet->image) {
           const AVFrame *in_frame = packet->in_frame.get();
 
@@ -3104,21 +3125,21 @@ bool Monitor::Decode() {
       } else if (ret <0) {
         if (delayed_packet != packet) {
           Debug(1, "Pushing origin packet on back of queue");
-          decoder_queue.push_back(packet);
+          decoder_queue.push_back(std::move(packet_lock));
         } else if (!decoder_queue.size()) {
-          decoder_queue.push_back(packet);
+          decoder_queue.push_back(std::move(packet_lock));
         }
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
         return -1;
         
-      } else {
+      } else { // EAGAIN
         if (delayed_packet != packet) {
           Debug(1, "Pushing origin packet on back of queue");
-          decoder_queue.push_back(packet);
-        } else if (!decoder_queue.size()) {
-          decoder_queue.push_back(packet);
+          decoder_queue.push_back(std::move(packet_lock));
+        } else {
+          decoder_queue.push_back(std::move(packet_lock));
         }
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         return 0;
@@ -3175,7 +3196,7 @@ bool Monitor::Decode() {
           ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
           std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
           if (!deinterlace_packet) {
-            return false;
+            return -1;
           }
           if (deinterlace_packet->codec_type == packet->codec_type) {
             if (!deinterlace_packet->image) {
@@ -3189,7 +3210,7 @@ bool Monitor::Decode() {
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) {
-          return false;
+          return -1;
         }
       } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
@@ -3241,8 +3262,8 @@ bool Monitor::Decode() {
     }
   }  // end if have image
   packet->decoded = true;
-  return true;
-}  // end bool Monitor::Decode()
+  return 1;
+}  // end int Monitor::Decode()
 
 
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {

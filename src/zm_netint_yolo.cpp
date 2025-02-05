@@ -45,7 +45,6 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   dec_ctx(nullptr),
 
   aiframe_number(0),
-  processed_frame(nullptr),
   last_roi(nullptr),
   last_roi_extra(nullptr),
   last_roi_count(0),
@@ -210,8 +209,9 @@ bool Quadra_Yolo::setup(
   return true;
 }
 
-std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacket> &packet, std::shared_ptr<ZMPacket> &delayed_packet) {
-  AVFrame *avframe = packet->hw_frame.get();
+/* in_packet and out_packet maybe be th same*/
+int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet) {
+  AVFrame *avframe = in_packet->hw_frame.get();
 
   if (!use_hwframe && !sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(
@@ -220,7 +220,7 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacke
         SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
       Error("cannot create sw scale context for scaling hwframe: %d", use_hwframe);
-      return {-1, ""};
+      return -1;
     }
   }
 
@@ -230,14 +230,14 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacke
   int ret = generate_ai_frame(&ai_input_frame, avframe, use_hwframe);
   if (ret < 0) {
     Error("Quadra: cannot generate ai frame");
-    return {-1, ""};
+    return -1;
   }
 
   Debug(1, "Quadra: ni_set_network_input");
   ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr, avframe->width, avframe->height, &frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
-    return {-1, ""};
+    return -1;
   }
 
   /* pull filtered frames from the filtergraph */
@@ -245,30 +245,30 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacke
       true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
-    return {-1, ""};
+    return -1;
   } else if (ret != NIERROR(EAGAIN)) {
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
-      return {-1, ""};
+      return -1;
     } else if (ret == 0) {
       Debug(1, "ni_read_roi == 0");
-      return {0, ""};
+      return 1;
     }
     aiframe_number++;
-    AVFrame *ai_frame = delayed_packet->ai_frame.get();
-    ret = process_roi(avframe, &ai_frame);
+    AVFrame *out_frame = out_packet->ai_frame.get();
+    ret = process_roi(avframe, &out_frame);
     if (ret < 0) {
       Error("cannot draw roi");
-      return {-1, ""};
+      return -1;
     }
-    packet->set_ai_frame(ai_frame);
-    zm_dump_video_frame(ai_frame, "ai");
+    zm_dump_video_frame(out_frame, "ai");
   } else {
-    return {0, ""};
+    return 0;
   }
 
-  return {1, result_json};
+  out_packet->detections = std::move(result_json);
+  return 1;
 } // end detect
 
 int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {

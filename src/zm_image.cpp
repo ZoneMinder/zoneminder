@@ -806,7 +806,7 @@ void Image::Assign(
 
 void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
-  Debug(1, "Assign %dx%dx%d=%u", image.Width(), image.Height(), image.AVPixFormat(), new_size);
+  Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
   Debug(1, "Assign %dx%dx%d=%u", image.Width(), image.Height(), image.AVPixFormat(), new_size);
   //unsigned int new_size = image.height * image.linesize;
@@ -5562,10 +5562,9 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       colours = ZM_COLOUR_GRAY8;
       break;
     default:
-      Error("Unknown pixelformat %d", new_pixelformat);
+      Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
   }
   size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
   return imagePixFormat = new_pixelformat;
 }
-

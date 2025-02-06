@@ -314,7 +314,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
   if (scale != 100) {
     image.Scale(scale);
-    Debug(2, "Scaled by %d to %dx%d", scale, image.Width(), image.Height());
+    Debug(2, "Scaled by %d to %dx%d size %d", scale, image.Width(), image.Height(), image.Size());
   }
   if (type == STREAM_MPEG) {
     if (!vid_stream) {

@@ -241,8 +241,7 @@ std::tuple<int, const std::string &> Quadra_Yolo::detect(std::shared_ptr<ZMPacke
   }
 
   /* pull filtered frames from the filtergraph */
-  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */,
-      true /*convert*/, model_ctx->out_tensor);
+  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */, true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return {-1, ""};

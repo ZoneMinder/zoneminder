@@ -183,6 +183,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   }
 
   imagePixFormat = AVPixFormat();
+  Debug(1, "Choosing pixformat %d", imagePixFormat);
   linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
   size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
 
@@ -2988,12 +2989,13 @@ void Image::Flip( bool leftright ) {
 }
 
 void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
-  if (width == new_width and height == new_height) return;
+  //if (width == new_width and height == new_height) return;
 
   // Why larger than we need?
   //linesize = FFALIGN(av_image_get_linesize(pixelformat, new_width, 0), 32);
   AVPixelFormat format = AVPixFormat();
   size_t scale_buffer_size = static_cast<size_t>( size = av_image_get_buffer_size(format, new_width, new_height, 32));
+  Debug(1, "Scale buffer size %zu %dx%d %d", scale_buffer_size, new_width, new_height, format);
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
   SWScale swscale;
@@ -5517,8 +5519,11 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 
 AVPixelFormat Image::AVPixFormat() const {
   if ( colours == ZM_COLOUR_GRAY8 ) {
-    if ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    Debug(1, "Gray? subpixelorder == 420? %d", ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P));
+    if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
       return AV_PIX_FMT_YUV420P;
+    } else if (subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) {
+      return AV_PIX_FMT_YUVJ420P;
     } else {
       return AV_PIX_FMT_GRAY8;
     }

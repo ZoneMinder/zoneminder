@@ -710,7 +710,10 @@ void MonitorStream::runStream() {
       if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
           if (monitor->analysis_image_pixelformats[index] <= AV_PIX_FMT_NONE) {
-            Debug(1, "Pixelformat for %d is %d", index, monitor->analysis_image_pixelformats[index]);
+            Debug(1, "Pixelformat for %d=%d count %d is %d", index,
+                monitor->shared_data->last_analysis_index,
+                monitor->shared_data->analysis_image_count,
+                monitor->analysis_image_pixelformats[index]);
             if (!sendTextFrame("Image not yet available.")) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
@@ -739,9 +742,9 @@ void MonitorStream::runStream() {
                }
                } else*/
             {
-              //AVPixelFormat pixformat = monitor->image_pixelformats[index];
-              //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
+              AVPixelFormat pixformat = monitor->image_pixelformats[index];
               send_image = monitor->analysis_image_buffer[index];
+              Debug(1, "Sending regular image index %d, pix format is %d %s size %zu", index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
               send_image->AVPixFormat(monitor->analysis_image_pixelformats[index]);
             }
 
@@ -960,7 +963,7 @@ void MonitorStream::SingleImage(int scale) {
   while (count and (monitor->image_pixelformats[index]<=AV_PIX_FMT_NONE) and !zm_terminate) {
     Debug(1, "Waiting for analysis to begin. last write index %d >=? %d",
           monitor->shared_data->last_analysis_index, monitor->image_buffer_count);
-    std::this_thread::sleep_for(Milliseconds(100));
+    std::this_thread::sleep_for(Milliseconds(1));
     count--;
   }
 

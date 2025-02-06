@@ -695,25 +695,42 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (
-        last_read_index != monitor->shared_data->last_analysis_index
-        ||
-        last_image_count < monitor->shared_data->analysis_image_count
-        ) {
+    int last_index;
+    int last_count;
+    std::vector<Image *> *image_buffer;
+    AVPixelFormat *pixelformats;
+    if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
+      last_index = monitor->shared_data->last_analysis_index;
+      last_count = monitor->shared_data->analysis_image_count;
+      image_buffer = &monitor->analysis_image_buffer;
+      pixelformats = monitor->analysis_image_pixelformats;
+    } else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
+      last_index = monitor->shared_data->last_analysis_index;
+      last_count = monitor->shared_data->analysis_image_count;
+      image_buffer = &monitor->analysis_image_buffer;
+      pixelformats = monitor->analysis_image_pixelformats;
+    } else {
+      last_index = monitor->shared_data->last_write_index;
+      last_count = monitor->shared_data->image_count;
+      image_buffer = &monitor->image_buffer;
+      pixelformats = monitor->image_pixelformats;
+    }
+
+    if (last_read_index != last_index || last_image_count < last_count) {
     //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int last_write_index = monitor->shared_data->last_analysis_index;
+      int last_write_index = last_index;
       //int last_write_index = monitor->shared_data->last_write_index;
       int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
       
       if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
-          if (monitor->analysis_image_pixelformats[index] <= AV_PIX_FMT_NONE) {
+          if (pixelformats[index] <= AV_PIX_FMT_NONE) {
             Debug(1, "Pixelformat for %d=%d count %d is %d", index,
-                monitor->shared_data->last_analysis_index,
-                monitor->shared_data->analysis_image_count,
-                monitor->analysis_image_pixelformats[index]);
+                last_index,
+                last_count,
+                pixelformats[index]);
             if (!sendTextFrame("Image not yet available.")) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
@@ -721,32 +738,20 @@ void MonitorStream::runStream() {
             }
           } else {
             Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->analysis_image_count, paused, delayed);
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, last_count, paused, delayed);
             last_read_index = last_write_index;
-            last_image_count = monitor->shared_data->image_count;
+            last_image_count = last_count;
             // Send the next frame
             //
             // Perhaps we should use NOW instead.
-            last_frame_timestamp =
-              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+            last_frame_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
             Image *send_image = nullptr;
-            /*
-               if ((frame_type == FRAME_ANALYSIS) &&
-               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
-               Debug(1, "Sending analysis image");
-               send_image = monitor->GetAlarmImage();
-               if (!send_image) {
-               Debug(1, "Falling back");
-               send_image = monitor->image_buffer[index];
-               }
-               } else*/
-            {
-              AVPixelFormat pixformat = monitor->image_pixelformats[index];
-              send_image = monitor->analysis_image_buffer[index];
-              Debug(1, "Sending regular image index %d, pix format is %d %s size %zu", index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
-              send_image->AVPixFormat(monitor->analysis_image_pixelformats[index]);
-            }
+            AVPixelFormat pixformat = pixelformats[index];
+            send_image = (*image_buffer)[index];
+            Debug(1, "Sending regular image index %d, pix format is %d %s size %d",
+                index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
+            send_image->AVPixFormat(pixelformats[index]);
 
             if (!sendFrame(send_image, last_frame_timestamp)) {
               Debug(2, "sendFrame failed, quitting.");

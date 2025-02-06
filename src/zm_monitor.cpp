@@ -1161,6 +1161,8 @@ bool Monitor::connect() {
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
     shared_data->last_analysis_index = image_buffer_count;
+    shared_data->analysis_image_count = 0;
+    shared_data->image_count = 0;
     shared_data->last_write_time = 0;
     shared_data->last_event_id = 0;
     shared_data->action = (Action)0;
@@ -2173,7 +2175,7 @@ int Monitor::Analyse() {
                   motion_frame_skip, capture_fps, analysis_fps_limit);
             }
             if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
-              Debug(1, "Doing detection queue size: %d", ai_queue.size());
+              Debug(1, "Doing detection queue size: %zu", ai_queue.size());
               ZMPacketLock *delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
               auto delayed_packet = delayed_packet_lock->packet_;
 
@@ -2183,7 +2185,7 @@ int Monitor::Analyse() {
                   Debug(1, "Pushing packet, poping delayed");
                   ai_queue.push_back(std::move(packet_lock));
                   packet = delayed_packet;
-                  packet_lock = *delayed_packet_lock;
+                  packet_lock = std::move(ai_queue.front());
                   ai_queue.pop_front();
                 }
                 if (packet->ai_frame)
@@ -2195,7 +2197,7 @@ int Monitor::Analyse() {
                 quadra_yolo = nullptr;
                 if (packet != delayed_packet) { // Can this be otherwise?
                   ai_queue.push_back(std::move(packet_lock));
-                  Debug(1, "Pushing packet on queue, size now %d", ai_queue.size());
+                  Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
                 }
                 return ret;
 
@@ -2203,7 +2205,7 @@ int Monitor::Analyse() {
                 // EAGAIN
                 if (packet != delayed_packet) { // Can this be otherwise?
                   ai_queue.push_back(std::move(packet_lock));
-                  Debug(1, "Pushing packet on queue, size now %d", ai_queue.size());
+                  Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
                 }
                 return 0;
               }
@@ -3085,17 +3087,25 @@ int Monitor::Decode() {
 #endif
       } // end if ! mCodec
         
+
       ZMPacketLock *delayed_packet_lock  = decoder_queue.size() ? &decoder_queue.front() : &packet_lock;
       auto delayed_packet = delayed_packet_lock->packet_;
 
       int ret = packet->decode(mVideoCodecContext, delayed_packet);
       if (ret > 0 and !zm_terminate) {
         if (decoder_queue.size()) {
-          Debug(1, "Popping off delayed packet size %d", decoder_queue.size());
+          Debug(1, "Popping off delayed packet size %zu", decoder_queue.size());
           delayed_packet->decoded = true;
-          decoder_queue.pop_front();
+
           decoder_queue.push_back(std::move(packet_lock));
-          packet_lock = std::move(*delayed_packet_lock);
+          /*
+          std::move_iterator< std::list<ZMPacketLock>::iterator > it = std::make_move_iterator(decoder_queue.begin());
+          packet_lock = *it;
+          */
+          packet_lock = std::move( decoder_queue.front() );
+          Debug(1, "Popping");
+          decoder_queue.pop_front();
+          Debug(1, "Popped");
           packet = delayed_packet;
           Debug(1, "is locked? %d", packet_lock.is_locked());
         }
@@ -3125,25 +3135,17 @@ int Monitor::Decode() {
           }  // end if have convert_context
           }
         }  // end if need transfer to image
-      } else if (ret <0) {
-        if (delayed_packet != packet) {
-          Debug(1, "Pushing origin packet on back of queue");
-          decoder_queue.push_back(std::move(packet_lock));
-        } else if (!decoder_queue.size()) {
-          decoder_queue.push_back(std::move(packet_lock));
-        }
+      } else if (ret < 0) {
+        Debug(1, "Pushing origin packet on back of queue");
+        decoder_queue.push_back(std::move(packet_lock));
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
         return -1;
         
       } else { // EAGAIN
-        if (delayed_packet != packet) {
-          Debug(1, "Pushing origin packet on back of queue");
-          decoder_queue.push_back(std::move(packet_lock));
-        } else {
-          decoder_queue.push_back(std::move(packet_lock));
-        }
+        Debug(1, "Pushing origin packet on back of queue");
+        decoder_queue.push_back(std::move(packet_lock));
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         return 0;
       }

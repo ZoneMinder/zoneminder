@@ -982,6 +982,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     const Event::StringSetMap &noteSetMap);
   void closeEvent();
 
+  ObjectDetectionOption ObjectDetection() const { return objectdetection; };
   const std::string &ObjectDetection_Model() const { return objectdetection_model; };
   float ObjectDetection_Object_Threshold() const { return objectdetection_object_threshold; };
   float ObjectDetection_NMS_Threshold() const { return objectdetection_nms_threshold; };

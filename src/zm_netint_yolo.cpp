@@ -256,12 +256,13 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
       return 1;
     }
     aiframe_number++;
-    AVFrame *out_frame = out_packet->ai_frame.get();
+    AVFrame *out_frame;
     ret = process_roi(avframe, &out_frame);
     if (ret < 0) {
       Error("cannot draw roi");
       return -1;
     }
+    out_packet->set_ai_frame(out_frame);
     zm_dump_video_frame(out_frame, "ai");
   } else {
     return 0;

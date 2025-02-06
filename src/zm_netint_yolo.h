@@ -60,7 +60,6 @@ class Quadra_Yolo {
     AVCodecContext *dec_ctx;
 
     int aiframe_number;
-    AVFrame *processed_frame;
     AVRegionOfInterest *last_roi;
     AVRegionOfInterestNetintExtra *last_roi_extra;
     int last_roi_count;
@@ -72,7 +71,7 @@ class Quadra_Yolo {
     Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);
     ~Quadra_Yolo();
     bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="", int deviceid=-1);
-    std::tuple<int, const std::string &>  detect(std::shared_ptr<ZMPacket> &packet, std::shared_ptr<ZMPacket> &out_packet);
+    int  detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
     int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);

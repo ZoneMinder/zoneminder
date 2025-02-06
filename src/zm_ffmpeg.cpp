@@ -58,7 +58,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1" },
 //#endif
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
   { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
@@ -424,7 +424,11 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
         (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format)),
   par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8> {
     par->extradata,
+#if __cplusplus >= 202002L
+    static_cast<std::span<const unsigned char>::size_type>(par->extradata_size)
+#else
     static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(par->extradata_size)
+#endif
   }).c_str(),
   par->profile,
   par->level,
@@ -464,7 +468,11 @@ void zm_dump_codec(const AVCodecContext *codec) {
         codec->extradata_size,
   ByteArrayToHexString(nonstd::span<const uint8> {
     codec->extradata,
+#if __cplusplus >= 202002L
+    static_cast<std::span<const unsigned char>::size_type>(codec->extradata_size)
+#else
     static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(codec->extradata_size)
+#endif
   }).c_str()
        );
 }

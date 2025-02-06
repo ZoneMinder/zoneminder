@@ -102,6 +102,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_COLOUR_RGB24 3
 #define ZM_COLOUR_GRAY8 1
 #define ZM_COLOUR_YUV420P 1
+#define ZM_COLOUR_YUVJ420P 1
 
 /* Subpixel ordering */
 /* Based on byte order naming. For example, for ARGB (on both little endian or big endian) byte+0 should be alpha, byte+1 should be red, and so on. */
@@ -113,6 +114,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_ABGR 9
 #define ZM_SUBPIX_ORDER_ARGB 10
 #define ZM_SUBPIX_ORDER_YUV420P 11
+#define ZM_SUBPIX_ORDER_YUVJ420P 12
 
 /* A macro to use default subpixel order for a specified colour. */
 /* for grayscale it will use NONE, for 3 colours it will use R,G,B, for 4 colours it will use R,G,B,A */

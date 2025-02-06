@@ -3103,11 +3103,8 @@ int Monitor::Decode() {
           packet_lock = *it;
           */
           packet_lock = std::move( decoder_queue.front() );
-          Debug(1, "Popping");
           decoder_queue.pop_front();
-          Debug(1, "Popped");
           packet = delayed_packet;
-          Debug(1, "is locked? %d", packet_lock.is_locked());
         }
 
         if (1 and packet->in_frame and !packet->image) {
@@ -3136,7 +3133,6 @@ int Monitor::Decode() {
           }
         }  // end if need transfer to image
       } else if (ret < 0) {
-        Debug(1, "Pushing origin packet on back of queue");
         decoder_queue.push_back(std::move(packet_lock));
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);

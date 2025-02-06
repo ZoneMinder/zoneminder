@@ -807,7 +807,7 @@ void Image::Assign(
 
 void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
-  Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
+  //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
   Debug(1, "Assign %dx%dx%d=%u", image.Width(), image.Height(), image.AVPixFormat(), new_size);
   //unsigned int new_size = image.height * image.linesize;
@@ -5519,7 +5519,7 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 
 AVPixelFormat Image::AVPixFormat() const {
   if ( colours == ZM_COLOUR_GRAY8 ) {
-    Debug(1, "Gray? subpixelorder == 420? %d", ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P));
+    //Debug(1, "Gray? subpixelorder == 420? %d", ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P));
     if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
       return AV_PIX_FMT_YUV420P;
     } else if (subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) {

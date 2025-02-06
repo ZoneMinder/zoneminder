@@ -70,7 +70,7 @@ class ZMPacket {
   AVPacket *av_packet() { return packet.get(); }
   AVPacket *set_packet(AVPacket *p) ;
   AVFrame *av_frame() { return out_frame.get(); }
-  Image *get_image(Image *i=nullptr);
+  Image *get_image(Image *i = nullptr);
   Image *set_image(Image *);
   ssize_t ram();
 
@@ -116,7 +116,6 @@ class ZMPacketLock {
       locked(in.locked)
     {
       in.locked = false;
-        Debug(1, "IN move");
     };
     ZMPacketLock& operator=(ZMPacketLock &&in) {
       packet_ = in.packet_;
@@ -124,23 +123,11 @@ class ZMPacketLock {
       //lck_    = in.lck_;
       locked  = in.locked;
       in.locked = false;
-      Debug(1, "moved =");
       return *this;
     };
 
-/*
-    ZMPacketLock& operator=(const ZMPacketLock &in) {
-      packet_ = in.packet_;
-      lck_    = std::move(in.lck_);
-      //lck_    = in.lck_;
-      locked  = in.locked;
-      Debug(1, "In =");
-      return *this;
-    };
-    */
     ZMPacketLock() :
       packet_(nullptr),
-    //lck_(nullptr),
       locked(false) { Debug(1, "New empty"); };
 
     explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
@@ -148,21 +135,13 @@ class ZMPacketLock {
       lck_(p->mutex_, std::defer_lock),
       locked(false)
     {
-      ///lck_ = new std::unique_lock<std::mutex>(p->mutex_, std::defer_lock);
     };
 
     ~ZMPacketLock() {
-      //if (lck_) {
-        //Debug(1, "have a lck");
-        if (locked) {
-          Debug(3, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
-          packet_->unlock(lck_);
-        }
-        /*
-        delete lck_;
-        lck_ = nullptr;
-        */
-      //}
+      if (locked) {
+        Debug(3, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+        packet_->unlock(lck_);
+      }
     };
 
     void wait() {
@@ -174,10 +153,6 @@ class ZMPacketLock {
     void unlock() { packet_->unlock(lck_); locked = false; };
     bool trylock() { return locked = packet_->trylock(lck_); };
     bool is_locked() { 
-      //if (!lck_) {
-        ////Debug(3, "is_locked has no lock");
-        //return false;
-      //}
       Debug(3, "is_locked packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
       return locked;
     };

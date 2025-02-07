@@ -81,6 +81,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
   }
   zm_dump_codec(mJpegCodecContext);
 
+  mJpegPixelFormat = format;
   mJpegSwsContext = sws_getContext(
                       monitor->Width(), monitor->Height(), format,
                       p_width, p_height, AV_PIX_FMT_YUV420P,
@@ -281,7 +282,7 @@ Image *StreamBase::prepareImage(Image *image) {
     }
     image->Crop(last_crop);
   }
-  Debug(3, "Sending %dx%d", image->Width(), image->Height());
+  Debug(3, "Sending %dx%d size %d", image->Width(), image->Height(), image->Size());
 
   last_scale = scale;
   last_zoom = zoom;

@@ -153,6 +153,7 @@ class StreamBase {
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
 
+  AVPixelFormat  mJpegPixelFormat; // Not what the codec context is configured to use, but what the mjpegswscontext is configured as input
   AVCodecContext *mJpegCodecContext;
   SwsContext     *mJpegSwsContext;
 

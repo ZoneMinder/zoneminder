@@ -239,14 +239,20 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
     Error("Error while feeding the ai");
     return -1;
   }
+  return ret = receive_detection(out_packet);
+} // end int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet)
 
+/* NetInt says if an image goes in, one will come out, so we can assume that 
+ * out_packet corresponds to the image that the results are against.
+ */
+int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
   /* pull filtered frames from the filtergraph */
-  ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */, true /*convert*/, model_ctx->out_tensor);
+  int ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */, true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
-    ret = ni_read_roi(avframe, aiframe_number);
+    ret = ni_read_roi(out_packet->hw_frame.get(), aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
       return -1;
@@ -256,7 +262,7 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
     }
     aiframe_number++;
     AVFrame *out_frame;
-    ret = process_roi(avframe, &out_frame);
+    ret = process_roi(out_packet->hw_frame.get(), &out_frame);
     if (ret < 0) {
       Error("cannot draw roi");
       return -1;
@@ -269,7 +275,7 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
 
   out_packet->detections = std::move(result_json);
   return 1;
-} // end detect
+} // end receive_detection
 
 int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {
   uint8_t *p_data = ni_frame->p_data[0];

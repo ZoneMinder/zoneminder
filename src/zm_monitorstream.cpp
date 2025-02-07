@@ -398,8 +398,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
+    /*
     int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
     int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+    */
+    int l_width  = send_image->Width();
+    int l_height = send_image->Height();
 
     reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
 
@@ -995,7 +999,7 @@ void MonitorStream::SingleImage(int scale) {
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
   if (mJpegCodecContext->width != l_width 
       || mJpegCodecContext->height != l_height 
-      || mJpegPixelFormat !=  pixformat) {
+      || mJpegPixelFormat != pixformat) {
     initContexts(l_width, l_height, pixformat, config.jpeg_stream_quality);
   }
   if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {

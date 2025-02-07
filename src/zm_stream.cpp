@@ -48,45 +48,83 @@ StreamBase::~StreamBase() {
 
 bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, unsigned int quality) {
   if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
-  if (mJpegSwsContext) sws_freeContext(mJpegSwsContext);
 
-  const AVCodec* mJpegCodec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
-  if (!mJpegCodec) {
-    Error("MJPEG codec not found");
+  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  if (!codec_data.size()) {
+    Error("No codecs for mjpeg found");
     return false;
   }
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    auto chosen_codec_data = *it;
+    Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
 
-  mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+    const AVCodec *mJpegCodec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+    if (!mJpegCodec) {
+      Error("MJPEG codec not found");
+      continue;
+    }
+    // We allocate and copy in newer ffmpeg, so need to free it
+    mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+    if (!mJpegCodecContext) {
+      Error("Could not allocate jpeg codec context");
+      continue;
+    }
+
+    mJpegCodecContext->bit_rate = 2000000;
+    mJpegCodecContext->width = monitor->Width();
+    mJpegCodecContext->height = monitor->Height();
+    mJpegCodecContext->time_base= (AVRational) {1, 25};
+    //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
+    mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
+    mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+
+    int quality = config.jpeg_file_quality;
+
+      //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+      //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+    mJpegCodecContext->qcompress = quality/100.0; // 0-1
+    mJpegCodecContext->qmax = 1;
+    mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+
+    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s",
+        chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt));
+
+#if 0
+    if (0 && setup_hwaccel(mJpegCodecContext,
+          chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+      avcodec_free_context(&mJpegCodecContext);
+      continue;
+    }
+#endif
+
+     if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+      Error("Could not open mjpeg codec");
+      avcodec_free_context(&mJpegCodecContext);
+      //av_buffer_unref(&hw_device_ctx);
+      continue;
+    }
+    break;
+  }
   if (!mJpegCodecContext) {
-    Error("Could not allocate jpeg codec context");
     return false;
   }
-  mJpegCodecContext->bit_rate = 2000000;
-  mJpegCodecContext->width = p_width;
-  mJpegCodecContext->height = p_height;
-  mJpegCodecContext->qcompress = quality/100.0; // 0-1
-  mJpegCodecContext->qmax = 1;
-  mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
-  mJpegCodecContext->global_quality = quality/100.0; // 0-1
-  /*
-  mJpegCodecContext->qscale = 1;
-   */
-  mJpegCodecContext->time_base= (AVRational) {1,25};
-  mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
-  Debug(1, "initting to %dx%d qcompress %f format %d", p_width, p_height, quality/100.0, mJpegCodecContext->pix_fmt);
-
-  if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
-    Error("Could not open mjpeg codec");
-    return false;
-  }
-  zm_dump_codec(mJpegCodecContext);
 
   mJpegPixelFormat = format;
+  if (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != format)) {
+    sws_freeContext(mJpegSwsContext);
+  }
+
+
   mJpegSwsContext = sws_getContext(
                       monitor->Width(), monitor->Height(), format,
-                      p_width, p_height, AV_PIX_FMT_YUV420P,
+                      p_width, p_height, AV_PIX_FMT_YUVJ420P,
                       SWS_BICUBIC, nullptr, nullptr, nullptr);
 
+  if (!mJpegSwsContext) {
+    return false;
+  }
   return true;
 }
 

@@ -118,6 +118,25 @@ ssize_t ZMPacket::ram() {
          (analysis_image ? analysis_image->Size() : 0);
 }
 
+int ZMPacket::receive_frame(AVCodecContext *ctx) {
+  AVFrame *receive_frame = zm_av_frame_alloc();
+  int ret = avcodec_receive_frame(ctx, receive_frame);
+  Debug(1, "Ret from receive_frame %d %s", ret, av_make_error_string(ret).c_str());
+  if (ret == AVERROR(EAGAIN)) {
+    av_frame_free(&receive_frame);
+    return 0;
+  } else if (ret < 0) {
+    av_frame_free(&receive_frame);
+    return ret;
+  }
+
+  in_frame = av_frame_ptr{receive_frame};
+  zm_dump_video_frame(in_frame.get(), "got frame");
+
+  get_hwframe(ctx);
+  return 1;
+}
+
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success
  * This functions job is to populate in_frame with the image in an appropriate
  * format. It MAY also populate image if able to.  In this case in_frame is populated
@@ -126,10 +145,8 @@ ssize_t ZMPacket::ram() {
 int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_packet) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
-  // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
-  //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
-
   // ret == 0 means EAGAIN
+  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
   if (ret < 0) {
     Error("Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
@@ -150,85 +167,45 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
   }
 
   delayed_packet->in_frame = av_frame_ptr{receive_frame};
-  int bytes_consumed = delayed_packet->packet->size;
   zm_dump_video_frame(delayed_packet->in_frame.get(), "got frame");
+  delayed_packet->get_hwframe(ctx);
+  return 1;
+}
 
+int ZMPacket::get_hwframe(AVCodecContext *ctx) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
     if (
         (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
         and
-        (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(delayed_packet->in_frame->format)))
+        (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
         ) {
       Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
             ctx->pix_fmt,
             av_get_pix_fmt_name(ctx->pix_fmt),
             ctx->sw_pix_fmt,
             av_get_pix_fmt_name(ctx->sw_pix_fmt),
-            delayed_packet->in_frame->format,
-            av_get_pix_fmt_name(static_cast<AVPixelFormat>(delayed_packet->in_frame->format))
+            in_frame->format,
+            av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
            );
-#if 0
-      if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
-        // Look for rgb0 in list of supported formats
-        enum AVPixelFormat *formats;
-        if ( 0 <= av_hwframe_transfer_get_formats(
-               ctx->hw_frames_ctx,
-               AV_HWFRAME_TRANSFER_DIRECTION_FROM,
-               &formats,
-               0
-             )	) {
-          for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
-            Debug(1, "Available dest formats %d %s",
-                  formats[i],
-                  av_get_pix_fmt_name(formats[i])
-                 );
-            if ( formats[i] == AV_PIX_FMT_RGB0 ) {
-              target_format = formats[i];
-              break;
-            }  // endif RGB0
-          }  // end foreach support format
-          av_freep(&formats);
-        }  // endif success getting list of formats
-      }  // end if target_format not set
-#endif
 
       av_frame_ptr new_frame{zm_av_frame_alloc()};
-#if 0
-      if ( target_format == AV_PIX_FMT_RGB0 ) {
-        if ( image ) {
-          if ( 0 > image->PopulateFrame(new_frame) ) {
-            delete new_frame;
-            new_frame = zm_av_frame_alloc();
-            delete image;
-            image = nullptr;
-            new_frame->format = target_format;
-          }
-        }
-      }
-#endif
       /* retrieve data from GPU to CPU */
-      delayed_packet->hw_frame = std::move(delayed_packet->in_frame);
-      zm_dump_video_frame(delayed_packet->hw_frame.get(), "Before hwtransfer");
-      ret = av_hwframe_transfer_data(new_frame.get(), delayed_packet->hw_frame.get(), 0);
+      hw_frame = std::move(in_frame);
+      zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
+      int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
       if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
         return 0;
       }
-      ret = av_frame_copy_props(new_frame.get(), delayed_packet->hw_frame.get());
+      ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
       if (ret < 0) {
         Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
       }
 
       zm_dump_video_frame(new_frame.get(), "After hwtransfer");
-#if 0
-      if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
-        new_frame->format = AV_PIX_FMT_RGBA;
-        zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
-      }
-#endif
-      delayed_packet->in_frame = std::move(new_frame);
+      in_frame = std::move(new_frame);
     } else
 #endif
 #endif
@@ -236,13 +213,8 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
             av_get_pix_fmt_name(ctx->pix_fmt),
             av_get_pix_fmt_name(ctx->sw_pix_fmt)
            );
-#if 0
-    if ( image ) {
-      image->Assign(in_frame);
-    }
-#endif
-  return bytes_consumed;
-} // end ZMPacket::decode
+    return 1;
+} // end ZMPacket::get_hwframe
 
 Image *ZMPacket::get_ai_image() {
   if (!ai_frame) {

@@ -75,7 +75,9 @@ class ZMPacket {
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };
+  int receive_frame(AVCodecContext *ctx);
   int decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket>delayed_packet);
+  int get_hwframe(AVCodecContext *ctx);
   explicit ZMPacket(Image *image, SystemTimePoint tv);
   explicit ZMPacket(ZMPacket &packet);
   ZMPacket();

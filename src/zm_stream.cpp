@@ -71,8 +71,8 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     }
 
     mJpegCodecContext->bit_rate = 2000000;
-    mJpegCodecContext->width = monitor->Width();
-    mJpegCodecContext->height = monitor->Height();
+    mJpegCodecContext->width = p_width;
+    mJpegCodecContext->height = p_height;
     mJpegCodecContext->time_base= (AVRational) {1, 25};
     //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
     mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
@@ -80,16 +80,18 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
 
     int quality = config.jpeg_file_quality;
 
-      //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
-      //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+    //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+    //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
     mJpegCodecContext->qcompress = quality/100.0; // 0-1
     mJpegCodecContext->qmax = 1;
     mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
     mJpegCodecContext->global_quality = quality/100.0; // 0-1
 
-    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s",
+    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s %dx%d",
         chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
-        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt));
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
+        mJpegCodecContext->width, mJpegCodecContext->height
+        );
 
 #if 0
     if (0 && setup_hwaccel(mJpegCodecContext,
@@ -99,7 +101,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     }
 #endif
 
-     if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+    if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
       Error("Could not open mjpeg codec");
       avcodec_free_context(&mJpegCodecContext);
       //av_buffer_unref(&hw_device_ctx);
@@ -118,9 +120,9 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
 
 
   mJpegSwsContext = sws_getContext(
-                      monitor->Width(), monitor->Height(), format,
-                      p_width, p_height, AV_PIX_FMT_YUVJ420P,
-                      SWS_BICUBIC, nullptr, nullptr, nullptr);
+      monitor->Width(), monitor->Height(), format,
+      p_width, p_height, AV_PIX_FMT_YUVJ420P,
+      SWS_BICUBIC, nullptr, nullptr, nullptr);
 
   if (!mJpegSwsContext) {
     return false;
@@ -239,6 +241,7 @@ Image *StreamBase::prepareImage(Image *image) {
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
   bool image_copied = false;
+  Debug(1, "prepareImage image in %s", image->toString().c_str());
 
   if (zoom != 100) {
     int base_image_width = image->Width(),
@@ -320,12 +323,11 @@ Image *StreamBase::prepareImage(Image *image) {
     }
     image->Crop(last_crop);
   }
-  Debug(3, "Sending %dx%d size %d", image->Width(), image->Height(), image->Size());
-
   last_scale = scale;
   last_zoom = zoom;
   last_x = x;
   last_y = y;
+  Debug(3, "prepareImage image in %s", image->toString().c_str());
 
   return image;
 }  // end Image *StreamBase::prepareImage(Image *image)
@@ -366,6 +368,12 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     int n_bytes = 0;
 
+    AVPixelFormat pixformat = image.AVPixFormat();
+    if (mJpegCodecContext->width != width 
+        || mJpegCodecContext->height != height 
+        || mJpegPixelFormat !=  pixformat) {
+      initContexts(width, height, pixformat, config.jpeg_stream_quality);
+    }
     image.EncodeJpeg(buffer, &n_bytes);
 
     if (type == STREAM_JPEG) {

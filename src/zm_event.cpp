@@ -33,6 +33,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+extern "C" {
+#include <libswscale/swscale.h>
+}
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
 
@@ -156,10 +159,6 @@ int Event::OpenJpegCodec(const Image *image) {
     mJpegCodecContext = nullptr;
   }
 
-  if (mJpegSwsContext) {
-    sws_freeContext(mJpegSwsContext);
-  }
-
   std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
   if (!codec_data.size()) {
     Error("No codecs for mjpeg found");
@@ -220,10 +219,24 @@ int Event::OpenJpegCodec(const Image *image) {
     return -1;
   }
 
-  mJpegSwsContext = sws_getContext(
-                      image->Width(), image->Height(), image->AVPixFormat(),
-                      mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUVJ420P,
-                      SWS_BICUBIC, nullptr, nullptr, nullptr);
+  if (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != image->AVPixFormat())) {
+
+        //mJpegSwsContext->src_format != image->AVPixFormat())) {
+    Debug(1, "Need to re-open swsContext. %d %s != %d %s",
+        mJpegCodecContext->sw_pix_fmt,
+        //mJpegSwsContext->src_format, 
+        //av_get_pix_fmt_name(mJpegSwsContext->src_format), 
+        av_get_pix_fmt_name(mJpegCodecContext->sw_pix_fmt),
+        image->AVPixFormat(),
+        av_get_pix_fmt_name(image->AVPixFormat())
+        );
+    sws_freeContext(mJpegSwsContext);
+  }
+  if (!mJpegSwsContext)
+    mJpegSwsContext = sws_getContext(
+        image->Width(), image->Height(), image->AVPixFormat(),
+        mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUVJ420P,
+        SWS_BICUBIC, nullptr, nullptr, nullptr);
   if (!mJpegSwsContext) {
     return -1;
   }
@@ -341,7 +354,10 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
   */
-  if (!mJpegCodecContext || mJpegCodecContext->pix_fmt != image->AVPixFormat()) OpenJpegCodec(image);
+  if (!mJpegCodecContext) {
+    Debug(1, "Need to open codec.  ctx %p", mJpegCodecContext);
+    OpenJpegCodec(image);
+  }
   if (!mJpegCodecContext) return false;
 
   if (!config.timestamp_on_capture) {
@@ -793,12 +809,13 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (!terminate_ and !zm_terminate) {
-    ZMPacketLock locked_packet = packetqueue->get_packet_no_wait(packetqueue_it);
-    std::shared_ptr<ZMPacket> packet = locked_packet.packet_;
+    // I don't exactly remember why the no_wait
+    ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
+    std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
     if (packet) {
       if (!packet->decoded) {
         Debug(1, "Not decoded");
-        packet->unlock();
+        packet_lock.unlock();
         // Stay behind decoder
         Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
         Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
@@ -829,7 +846,7 @@ void Event::Run() {
       packetqueue->increment_it(packetqueue_it);
     } else {
       if (terminate_ or zm_terminate) return;
-      usleep(10000);
+      usleep(100000);
     } // end if packet_lock
   }  // end while
 }  // end Run()

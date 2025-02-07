@@ -408,7 +408,10 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     switch (type) {
     case STREAM_JPEG :
-      if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height || mJpegCodecContext->pix_fmt != send_image->AVPixFormat()) {
+      if (mJpegCodecContext->width != l_width
+          || mJpegCodecContext->height != l_height
+          || mJpegCodecContext->pix_fmt != send_image->AVPixFormat()
+          ) {
         initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
       }
       if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
@@ -747,6 +750,7 @@ void MonitorStream::runStream() {
             last_frame_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
             Image *send_image = nullptr;
+            // Analysis Image can be gray scale
             AVPixelFormat pixformat = pixelformats[index];
             send_image = (*image_buffer)[index];
             Debug(1, "Sending regular image index %d, pix format is %d %s size %d",
@@ -979,9 +983,9 @@ void MonitorStream::SingleImage(int scale) {
 
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
 
-  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->analysis_image_buffer[index];
   snap_image->AVPixFormat(pixformat);
+  Debug(1, "Sending regular image index %d, pix format is %d %s %d", index, pixformat, av_get_pix_fmt_name(pixformat), snap_image->Size());
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,
                             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
@@ -991,7 +995,7 @@ void MonitorStream::SingleImage(int scale) {
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
   if (mJpegCodecContext->width != l_width 
       || mJpegCodecContext->height != l_height 
-      || mJpegCodecContext->pix_fmt !=  pixformat) {
+      || mJpegPixelFormat !=  pixformat) {
     initContexts(l_width, l_height, pixformat, config.jpeg_stream_quality);
   }
   if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {

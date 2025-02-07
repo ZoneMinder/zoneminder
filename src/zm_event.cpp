@@ -181,10 +181,11 @@ int Event::OpenJpegCodec(const Image *image) {
       continue;
     }
 
-mJpegCodecContext->bit_rate = 2000000;
+    mJpegCodecContext->bit_rate = 2000000;
     mJpegCodecContext->width = monitor->Width();
     mJpegCodecContext->height = monitor->Height();
-    mJpegCodecContext->time_base= (AVRational) {1,25};
+    mJpegCodecContext->time_base= (AVRational) {1, 25};
+    //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
     mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
@@ -824,7 +825,6 @@ void Event::Run() {
         }
       } // end if packet->image
       Debug(1, "Deleting packet lock");
-      packet->unlock();
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

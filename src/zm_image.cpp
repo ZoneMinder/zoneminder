@@ -1648,7 +1648,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
     return temp_image.EncodeJpeg(outbuffer, outbuffer_size, p_jpegcodeccontext, p_jpegswscontext);
   }
 
-  if (p_jpegcodeccontext == NULL) {
+  if (!p_jpegcodeccontext) {
     Error("Jpeg codec context is not initialized");
     return false;
   }
@@ -1658,10 +1658,12 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
   AVPacket *pkt;
 
+  if (0) {
   int needed_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
   if (needed_size > static_cast<int>(size)) {
     Error("Output buffer %d not large enough. Need %d", size, needed_size);
     return false;
+  }
   }
 
   if ( p_jpegswscontext ) {

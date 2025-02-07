@@ -2964,16 +2964,147 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 }
 
 int Monitor::Decode() {
-  //ZMPacket packet = packetqueue.get_packet_and_increment_it(decoder_it);
+  if (decoding != DECODING_NONE) {
+    if (!mVideoCodecContext) {
+      AVStream *mVideoStream = camera->getVideoStream();
+      AVStream *mAudioStream = camera->getAudioStream();
+      AVDictionary *opts = nullptr;
 
-  ZMPacketLock packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
-  std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
-  if (!packet) return -1;
+      if (mVideoStream) {
+        const AVCodec *mVideoCodec = nullptr;
+        std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
+        for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+          const CodecData *chosen_codec_data = *it;
+          Debug(1, "Found codec %s", chosen_codec_data->codec_name);
 
-  if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-    packet->decoded = true;
-    Debug(4, "Not video,probably audio");
-    return 1; // Don't need decode
+          if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
+            if (this->DecoderName() != chosen_codec_data->codec_name) {
+              Debug(1, "Not the specified codec.");
+              continue;
+            }
+          }
+          mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+
+          if (!mVideoCodec) {
+            mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+            if (!mVideoCodec) {
+              // Try and get the codec from the codec context
+              //Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
+              Error("Can't find codec for video stream from ");
+              continue;
+            }
+          }
+
+          mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
+          avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
+
+#ifdef CODEC_FLAG2_FAST
+          mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
+
+          if (!options.empty()) {
+            av_dict_parse_string(&opts, options.c_str(), "=", ",", 0);
+            // reorder_queparse for avforpts, mOpcodec
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+            av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+          }
+          av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
+
+          int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+
+          AVDictionaryEntry *e = nullptr;
+          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+            Warning("Option %s not recognized by ffmpeg", e->key);
+          }
+          av_dict_free(&opts);
+          if (ret < 0) {
+            Error("Unable to open codec for video stream from ");
+            //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+            avcodec_free_context(&mVideoCodecContext);
+            continue;
+          }
+          zm_dump_codec(mVideoCodecContext);
+          break;
+        } // end foreach codec
+      } // end if mVideoStream
+
+      if (!mVideoCodecContext) {
+        return -1;
+      }
+
+      if (mAudioStream) {
+        const AVCodec *mAudioCodec = nullptr;
+        if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
+          Debug(1, "Can't find codec for audio stream from ");
+          //Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
+        } else {
+          mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+          avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
+
+          //zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
+          // Open the codec
+          if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
+            Error("Unable to open codec for audio stream from ");
+            //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
+            return -1;
+          }  // end if opened
+        }  // end if found decoder
+      } // end if audiostream
+#if 0
+      else if (!monitor->GetSecondPath().empty()) {
+        Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+        mSecondInput = zm::make_unique<FFmpeg_Input>();
+        if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+          mSecondFormatContext = mSecondInput->get_format_context();
+          mAudioStreamId = mSecondInput->get_audio_stream_id();
+          mAudioStream = mSecondInput->get_audio_stream();
+          mAudioCodecContext = mSecondInput->get_audio_codec_context();
+        } else {
+          Warning("Failed to open secondary input");
+        }
+      }  // end if have audio stream
+#endif
+    } // end if ! mCodec
+  } // end != DECODING_NONE
+
+  ZMPacketLock packet_lock;
+  std::shared_ptr<ZMPacket> packet;
+
+  if (decoder_queue.size()) {
+    Debug(1, "Have queued packets %zu, send them to be filled", decoder_queue.size());
+    // Try to decode, without feeding the decoder.
+    ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
+    auto delayed_packet = delayed_packet_lock->packet_;
+
+    int ret = delayed_packet->receive_frame(mVideoCodecContext);
+    if (ret > 0) {
+      Debug(1, "Success");
+      // Success, pop and assign
+      packet_lock = std::move( decoder_queue.front() );
+      decoder_queue.pop_front();
+      packet = delayed_packet;
+    } else if (ret < 0) {
+      Debug(1, "Failed to get frame %d", ret);
+      return ret;
+    } else {
+      Debug(1, "EAGAIN, fall through and send a packet");
+    } // else 0, EAGAIN, fall through and send a packet
+  } else {
+    Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
+  } 
+
+  if (!packet) {
+    packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
+    packet = packet_lock.packet_;
+    if (!packet) {
+      Debug(1, "No packet from get_apcket");
+      return -1;
+    }
+    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+      packet->decoded = true;
+      Debug(3, "Not video,probably audio");
+      return 1; // Don't need decode
+    }
   }
 
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
@@ -2985,109 +3116,6 @@ int Monitor::Decode() {
         or
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
-
-      if (!mVideoCodecContext) {
-        AVStream *mVideoStream = camera->getVideoStream();
-        AVStream *mAudioStream = camera->getAudioStream();
-        AVDictionary *opts = nullptr;
-
-        if (mVideoStream) {
-          const AVCodec *mVideoCodec = nullptr;
-          std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
-          for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-            const CodecData *chosen_codec_data = *it;
-            Debug(1, "Found codec %s", chosen_codec_data->codec_name);
-
-            if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
-              if (this->DecoderName() != chosen_codec_data->codec_name) {
-                Debug(1, "Not the specified codec.");
-                continue;
-              }
-            }
-            mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
-
-            if (!mVideoCodec) {
-              mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
-              if (!mVideoCodec) {
-                // Try and get the codec from the codec context
-//Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-                Error("Can't find codec for video stream from ");
-                continue;
-              }
-            }
-
-            mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
-            avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
-
-#ifdef CODEC_FLAG2_FAST
-            mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
-#endif
-
-            if (!options.empty()) {
-              av_dict_parse_string(&opts, options.c_str(), "=", ",", 0);
-              // reorder_queparse for avforpts, mOpcodec
-              av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-              av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
-            }
-            av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
-
-            int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
-
-            AVDictionaryEntry *e = nullptr;
-            while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-              Warning("Option %s not recognized by ffmpeg", e->key);
-            }
-            av_dict_free(&opts);
-            if (ret < 0) {
-              Error("Unable to open codec for video stream from ");
-              //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
-              avcodec_free_context(&mVideoCodecContext);
-              continue;
-            }
-            zm_dump_codec(mVideoCodecContext);
-            break;
-          } // end foreach codec
-        } // end if mVideoStream
-
-        if (!mVideoCodecContext) {
-          return -1;
-        }
-
-        if (mAudioStream) {
-          const AVCodec *mAudioCodec = nullptr;
-          if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
-            Debug(1, "Can't find codec for audio stream from ");
-            //Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
-          } else {
-            mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
-            avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
-
-            //zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
-            // Open the codec
-            if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
-              Error("Unable to open codec for audio stream from ");
-              //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
-              return -1;
-            }  // end if opened
-          }  // end if found decoder
-        } // end if audiostream
-#if 0
-        else if (!monitor->GetSecondPath().empty()) {
-  Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
-  mSecondInput = zm::make_unique<FFmpeg_Input>();
-  if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
-    mSecondFormatContext = mSecondInput->get_format_context();
-    mAudioStreamId = mSecondInput->get_audio_stream_id();
-    mAudioStream = mSecondInput->get_audio_stream();
-    mAudioCodecContext = mSecondInput->get_audio_codec_context();
-  } else {
-    Warning("Failed to open secondary input");
-  }
-}  // end if have audio stream
-#endif
-      } // end if ! mCodec
-        
-
       ZMPacketLock *delayed_packet_lock  = decoder_queue.size() ? &decoder_queue.front() : &packet_lock;
       auto delayed_packet = delayed_packet_lock->packet_;
 
@@ -3106,32 +3134,6 @@ int Monitor::Decode() {
           decoder_queue.pop_front();
           packet = delayed_packet;
         }
-
-        if (1 and packet->in_frame and !packet->image) {
-          const AVFrame *in_frame = packet->in_frame.get();
-
-          if (1) {
-          //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
-          unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
-          unsigned int colours = ZM_COLOUR_YUV420P;
-          //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
-          packet->image = new Image(camera_width, camera_height, colours, subpix);
-          //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-
-          if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
-            if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
-
-              delete packet->image;
-              packet->image = nullptr;
-            }
-            av_frame_unref(dest_frame.get());
-            //packet->hw_frame = nullptr;
-          } else {
-            delete packet->image;
-            packet->image = nullptr;
-          }  // end if have convert_context
-          }
-        }  // end if need transfer to image
       } else if (ret < 0) {
         decoder_queue.push_back(std::move(packet_lock));
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
@@ -3151,6 +3153,31 @@ int Monitor::Decode() {
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
+  // Pretty much assured to have a packet
+
+  if (1 and packet->in_frame and !packet->image) {
+    const AVFrame *in_frame = packet->in_frame.get();
+
+    //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
+    unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
+    unsigned int colours = ZM_COLOUR_YUV420P;
+    //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
+    packet->image = new Image(camera_width, camera_height, colours, subpix);
+    //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+
+    if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
+      if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
+
+        delete packet->image;
+        packet->image = nullptr;
+      }
+      av_frame_unref(dest_frame.get());
+      //packet->hw_frame = nullptr;
+    } else {
+      delete packet->image;
+      packet->image = nullptr;
+    }  // end if have convert_context
+  }  // end if need transfer to image
 
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)

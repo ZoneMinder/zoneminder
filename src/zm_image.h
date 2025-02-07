@@ -298,6 +298,7 @@ class Image {
   void Deinterlace_Blend();
   void Deinterlace_Blend_CustomRatio(int divider);
   void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
+  const std::string toString();
 };
 
 // Scan-line polygon fill algorithm

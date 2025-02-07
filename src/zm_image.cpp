@@ -183,9 +183,9 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   }
 
   imagePixFormat = AVPixFormat();
-  Debug(1, "Choosing pixformat %d", imagePixFormat);
   linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
   size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+  Debug(1, "Choosing pixformat %s", toString().c_str());
 
   if (p_buffer) {
     allocation = size;
@@ -193,7 +193,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
     buffer = p_buffer;
   } else {
 
-    Debug(4, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+    Debug(3, "line size: %d =? %d width %d Size %d ?= %d", linesize,
           av_image_get_linesize(imagePixFormat, width, 0),
           width, linesize * height + padding, size);
 
@@ -368,6 +368,11 @@ Image::Image(const Image &p_image) {
 
 Image::~Image() {
   DumpImgBuffer();
+}
+
+const std::string Image::toString() {
+  return stringtf("%dx%d colours:%d pixfmt:%d %s size %d", width, height, colours,
+      imagePixFormat, av_get_pix_fmt_name(imagePixFormat), size);
 }
 
 /* Should be called as part of program shutdown to free everything */
@@ -3016,16 +3021,18 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
 }
 
 void Image::Scale(const unsigned int factor) {
-  if ( !factor ) {
+  if (!factor) {
     Error("Bogus scale factor %d found", factor);
     return;
   }
-  if ( factor == ZM_SCALE_BASE ) {
+  if (factor == ZM_SCALE_BASE) {
     return;
   }
 
   unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
+  Scale(new_width, new_height);
+  return;
 
   // Why larger than we need?
   AVPixelFormat format = AVPixFormat();
@@ -5548,8 +5555,8 @@ AVPixelFormat Image::AVPixFormat() const {
 AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
   switch (new_pixelformat) {
     case AV_PIX_FMT_YUVJ420P:
-      colours = ZM_COLOUR_YUV420P;
-      subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
+      colours = ZM_COLOUR_YUVJ420P;
+      subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
       break;
     case AV_PIX_FMT_YUV420P:
       colours = ZM_COLOUR_YUV420P;
@@ -5573,7 +5580,9 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
   }
+  Debug(1, "Old size: %d, old pixelformat %d", size, imagePixFormat);
   size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  Debug(1, "New size: %d new pixelformat %d", size, new_pixelformat);
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
   return imagePixFormat = new_pixelformat;
 }

@@ -1693,10 +1693,12 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   if (0>ret) {
     Error("send_frame returned %d", ret);
-  av_packet_free(&pkt);
-  av_frame_unref(frame.get());
-  return false;
-  } else if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
+    av_packet_free(&pkt);
+    av_frame_unref(frame.get());
+    return false;
+  }
+  Debug(1, "Calling receive_pcaket");
+  if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
     memcpy(outbuffer, pkt->data, pkt->size);
     *outbuffer_size = pkt->size;
   }

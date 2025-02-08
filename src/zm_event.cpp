@@ -185,7 +185,7 @@ int Event::OpenJpegCodec(const Image *image) {
     mJpegCodecContext->height = monitor->Height();
     mJpegCodecContext->time_base= (AVRational) {1, 25};
     //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
-    mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
+    mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
     int quality = config.jpeg_file_quality;

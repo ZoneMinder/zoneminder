@@ -75,7 +75,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     mJpegCodecContext->height = p_height;
     mJpegCodecContext->time_base= (AVRational) {1, 25};
     //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
-    mJpegCodecContext->pix_fmt = chosen_codec_data->hw_pix_fmt;
+    mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
     int quality = config.jpeg_file_quality;
@@ -88,7 +88,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     mJpegCodecContext->global_quality = quality/100.0; // 0-1
 
     Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s %dx%d",
-        chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
         chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
         mJpegCodecContext->width, mJpegCodecContext->height
         );

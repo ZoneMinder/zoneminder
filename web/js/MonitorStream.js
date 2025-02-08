@@ -12,6 +12,9 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
   this.webrtc = null;
+  this.hls = null;
+  this.mse = null;
+  this.wsMSE = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
   this.mseSourceBuffer = null;
@@ -272,9 +275,9 @@ function MonitorStream(monitorData) {
           }
           */
           if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(hlsUrl.href);
-            hls.attachMedia(videoEl);
+            this.hls = new Hls();
+            this.hls.loadSource(hlsUrl.href);
+            this.hls.attachMedia(videoEl);
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             videoEl.src = hlsUrl.href;
           }
@@ -287,7 +290,8 @@ function MonitorStream(monitorData) {
           });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=0";
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
@@ -348,6 +352,15 @@ function MonitorStream(monitorData) {
     if (this.webrtc) {
       this.webrtc.close();
       this.webrtc = null;
+    } else if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    } else if (this.wsMSE) {
+      this.mse.endOfStream();
+      this.wsMSE.close();
+      this.wsMSE = null;
+      this.mseStreamingStarted = false;
+      this.mseSourceBuffer = null;
     }
   };
 
@@ -682,6 +695,7 @@ function MonitorStream(monitorData) {
         } // end if have a new auth hash
       } // end if has state
     } else {
+      if (!this.started) return;
       console.error(respObj.message);
       // Try to reload the image stream.
       if (stream.src) {
@@ -1033,14 +1047,14 @@ function startRTSP2WebPlay(videoEl, url, stream) {
 }
 
 function startMsePlay(context, videoEl, url) {
-  const mse = new MediaSource();
-  mse.addEventListener('sourceopen', function() {
-    const ws = new WebSocket(url);
-    ws.binaryType = 'arraybuffer';
-    ws.onopen = function(event) {
+  context.mse = new MediaSource();
+  context.mse.addEventListener('sourceopen', function() {
+    context.wsMSE = new WebSocket(url);
+    context.wsMSE.binaryType = 'arraybuffer';
+    context.wsMSE.onopen = function(event) {
       console.log('Connect to ws');
     };
-    ws.onmessage = function(event) {
+    context.wsMSE.onmessage = function(event) {
       const data = new Uint8Array(event.data);
       if (data[0] === 9) {
         let mimeCodec;
@@ -1050,7 +1064,7 @@ function startMsePlay(context, videoEl, url) {
         } else {
           console.log("Browser too old. Doesn't support TextDecoder");
         }
-        context.mseSourceBuffer = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+        context.mseSourceBuffer = context.mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
         context.mseSourceBuffer.mode = 'segments';
         context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
       } else {
@@ -1058,7 +1072,7 @@ function startMsePlay(context, videoEl, url) {
       }
     };
   }, false);
-  videoEl.src = window.URL.createObjectURL(mse);
+  videoEl.src = window.URL.createObjectURL(context.mse);
 }
 
 function pushMsePacket(videoEl, context) {

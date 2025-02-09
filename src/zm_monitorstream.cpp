@@ -734,10 +734,10 @@ void MonitorStream::runStream() {
       if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
           if (pixelformats[index] <= AV_PIX_FMT_NONE) {
-            Debug(1, "Pixelformat for %d=%d count %d is %d", index,
+            Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s", index,
                 last_index,
                 last_count,
-                pixelformats[index]);
+                pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
             if (!sendTextFrame("Image not yet available.")) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;

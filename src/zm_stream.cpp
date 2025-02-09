@@ -120,12 +120,17 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
 
 
   mJpegSwsContext = sws_getContext(
-      monitor->Width(), monitor->Height(), format,
-      p_width, p_height, AV_PIX_FMT_YUVJ420P,
+      //monitor->Width(), monitor->Height(), 
+      // theoretically, the stream can be any size not necessarily monitor size. I think. This is here more for format conversion than scaling.
+      p_width, p_height, format,
+      p_width, p_height, mJpegCodecContext->pix_fmt,
       SWS_BICUBIC, nullptr, nullptr, nullptr);
 
   if (!mJpegSwsContext) {
     return false;
+  } else {
+    Debug(1, "Configured swsContext to %dx%d %d %s to %dx%d %d %s", p_width, p_height, format, av_get_pix_fmt_name(format),
+        p_width, p_height, mJpegCodecContext->pix_fmt, av_get_pix_fmt_name(mJpegCodecContext->pix_fmt));
   }
   return true;
 }
@@ -346,7 +351,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     //subpixelorder = monitor->SubpixelOrder();
     labelsize = monitor->LabelSize();
   }
-  Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
+  Debug(2, "Sending %dx%d colours:%d subpixel:%d * %d scale text frame '%s'",
         width, height, colours, subpixelorder, scale, frame_text);
 
   Image image(width, height, colours, subpixelorder);
@@ -369,9 +374,11 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     int n_bytes = 0;
 
     AVPixelFormat pixformat = image.AVPixFormat();
-    if (mJpegCodecContext->width != width 
+    if ((!mJpegCodecContext) ||
+          mJpegCodecContext->width != width 
         || mJpegCodecContext->height != height 
-        || mJpegPixelFormat !=  pixformat) {
+        || mJpegPixelFormat != pixformat) {
+      Debug(1, "Need to reinit contexts");
       initContexts(width, height, pixformat, config.jpeg_stream_quality);
     }
     image.EncodeJpeg(buffer, &n_bytes);

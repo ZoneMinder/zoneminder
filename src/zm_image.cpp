@@ -1663,7 +1663,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
   AVPacket *pkt;
 
-  if (0) {
+  if (1) {
   int needed_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
   if (needed_size > static_cast<int>(size)) {
     Error("Output buffer %d not large enough. Need %d", size, needed_size);
@@ -1688,32 +1688,39 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
     PopulateFrame(frame.get());
   }
 
-  if (frame.get()->format != AV_PIX_FMT_YUVJ420P) {
-    Error("Jpeg frame format incorrect, got %d", frame.get()->format);
+  if (frame->format != AV_PIX_FMT_YUVJ420P) {
+    Error("Jpeg frame format incorrect, got %d", frame->format);
     av_frame_unref(frame.get());
     return false;
   }
 
   zm_dump_video_frame(frame, "EncodeJpeg");
-  pkt = av_packet_alloc();
 
+RESEND:
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   if (0>ret) {
     Error("send_frame returned %d", ret);
-    av_packet_free(&pkt);
     av_frame_unref(frame.get());
     return false;
   }
-  Debug(1, "Calling receive_pcaket");
-  if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
+  Debug(1, "Send_frame success, calling receive_packet");
+  // TODO: Can we pass our outputbuffer in pkt->data in order to skip an allocation/copy?
+  pkt = av_packet_alloc();
+  // Thing is, this section of code for now deals in single images really.  So if we get EAGAIN, we can just resubmit the same image until we get something out.
+  ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
+  if (ret == 0) {
+    Debug(1, "receive_packet success");
     memcpy(outbuffer, pkt->data, pkt->size);
     *outbuffer_size = pkt->size;
+  } else {
+    Debug(1, "Failed receive_packet, ret is %d %s", ret, av_make_error_string(ret).c_str());
+    goto RESEND;
   }
 
   av_packet_free(&pkt);
   av_frame_unref(frame.get());
 
-  return true;
+  return (ret == 0);
 }
 
 #if HAVE_ZLIB_H

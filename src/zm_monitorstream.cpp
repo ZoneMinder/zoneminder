@@ -511,7 +511,8 @@ void MonitorStream::runStream() {
   updateFrameRate(monitor->GetFPS());
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
-  int32_t last_read_index = monitor->image_buffer_count;
+  // used to start at image_buffer_count, so next one would actually be 1.  Instead, lets start wherever zmc is at.
+  int32_t last_read_index = monitor->shared_data->last_write_index;
   int32_t last_image_count = 0;
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();

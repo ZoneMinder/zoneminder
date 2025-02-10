@@ -280,15 +280,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
   // Normally it is likely just the next packet. Need a heuristic for seeking, something like duration * keyframe interval
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-  if (frame->pts + 10*frame->duration < seek_target)
+  if (frame->pts + 10*input_format_context->streams[stream_id]->time_base.den * frame->duration < seek_target)
 #else
-  if (frame->pts + 10*frame->pkt_duration < seek_target)
+  if (frame->pts + 10*input_format_context->streams[stream_id]->time_base.den * frame->pkt_duration < seek_target)
 #endif
   {
-    Debug(1, "Jumping ahead");
-    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
-                              AVSEEK_FLAG_FRAME
-                             ) ) < 0) {
+    Debug(1, "Jumping ahead to %d", seek_target);
+    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME) ) < 0) {
       Error("Unable to seek in stream %d", ret);
       return nullptr;
     }

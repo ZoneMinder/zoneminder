@@ -1135,11 +1135,11 @@ bool Monitor::connect() {
   analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
-    image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]));
+    image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]), image_size, 0);
     //image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
     image_pixelformats[i] = AV_PIX_FMT_NONE;
-    analysis_image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_analysis_images[i*image_size]));
+    analysis_image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_analysis_images[i*image_size]), image_size, 0);
     analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
     analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
@@ -2195,7 +2195,7 @@ int Monitor::Analyse() {
                 delayed_packet = nullptr;
               } // else 0, EAGAIN, fall through and send a packet
             } else {
-              Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
+              Debug(1, "Dont Have queued packets %zu", ai_queue.size());
             }
             if (!delayed_packet) {
 
@@ -2274,7 +2274,7 @@ int Monitor::Analyse() {
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   if (!packet->y_image and (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P)) {
                     Debug(1, "Creating y-image");
-                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
                     zm_dump_video_frame(packet->in_frame.get(), "y-image");
 
                     if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
@@ -2288,7 +2288,7 @@ int Monitor::Analyse() {
                   }
                 } else if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
                   if (!packet->y_image) {
-                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
                     if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
                       packet->y_image->Scale(camera_width, camera_height);
                   }
@@ -2309,7 +2309,7 @@ int Monitor::Analyse() {
                   } else {
                     if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
                       if (!packet->y_image) {
-                        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
                         if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
                           packet->y_image->Scale(camera_width, camera_height);
                       }
@@ -2360,7 +2360,7 @@ int Monitor::Analyse() {
                 } else if (packet->image) {
                   if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
                     if (!packet->y_image) {
-                      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+                      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
                       if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
                         packet->y_image->Scale(camera_width, camera_height);
                     }
@@ -2458,7 +2458,7 @@ int Monitor::Analyse() {
         } // end if score or not
 
         if (event) {
-          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
+          Debug(1, "Deciding if we should close event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
                 event_close_mode
@@ -2633,8 +2633,15 @@ int Monitor::Analyse() {
         shared_data->last_analysis_index = index;
         Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
       shared_data->analysis_image_count++;
+      } else if (packet->in_frame) {
+        analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
+        Debug(1, "in_frame pixformat %d, for index %d", packet->in_frame->format, index);
+        analysis_image_buffer[index]->Assign(packet->in_frame.get());
+        analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format);
+        shared_data->last_analysis_index = index;
+      shared_data->analysis_image_count++;
       } else {
-        Debug(1, "Unable to find an image to assign");
+        Debug(1, "Unable to find an image to assign for index %d", index);
       }
       shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     } else {
@@ -3096,6 +3103,19 @@ int Monitor::Decode() {
         }
       }  // end if have audio stream
 #endif
+
+      while (decoder_queue.size()) {
+        Debug(1, "Send queue packets %ld", decoder_queue.size());
+        // Inject current queue into the decoder.
+        ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
+        auto delayed_packet = delayed_packet_lock->packet_;
+        if (0 != delayed_packet->send_packet(mVideoCodecContext)) {
+          Error("Failed sending packet %d", delayed_packet->image_index);
+          break;
+        } else {
+          decoder_queue.pop_front();
+        }
+      }
     } // end if ! mCodec
   } // end != DECODING_NONE
 
@@ -3162,13 +3182,12 @@ int Monitor::Decode() {
         if (decoder_queue.size()) {
           Debug(1, "Popping off delayed packet size %zu", decoder_queue.size());
           delayed_packet->decoded = true;
-
           decoder_queue.push_back(std::move(packet_lock));
           /*
           std::move_iterator< std::list<ZMPacketLock>::iterator > it = std::make_move_iterator(decoder_queue.begin());
           packet_lock = *it;
           */
-          packet_lock = std::move( decoder_queue.front() );
+          packet_lock = std::move(decoder_queue.front());
           decoder_queue.pop_front();
           packet = delayed_packet;
         }
@@ -3193,7 +3212,7 @@ int Monitor::Decode() {
   }  // end if need_decoding
   // Pretty much assured to have a packet
 
-  if (1 and packet->in_frame and !packet->image) {
+  if (0 and packet->in_frame and !packet->image) {
     const AVFrame *in_frame = packet->in_frame.get();
 
     //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
@@ -3222,7 +3241,7 @@ int Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
       ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
     if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
       packet->y_image->Scale(camera_width, camera_height);
 
@@ -3312,7 +3331,6 @@ int Monitor::Decode() {
     unsigned int index = shared_data->last_write_index;
     index++;
     index = index % image_buffer_count;
-    decoding_image_count++;
     if (packet->image) {
       image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
       Debug(1, "Assigning %s for index %d", packet->image->toString().c_str(), index);
@@ -3321,12 +3339,13 @@ int Monitor::Decode() {
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
+  }  // end if have image
+    decoding_image_count++;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
       Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
               FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
     }
-  }  // end if have image
   packet->decoded = true;
   return 1;
 }  // end int Monitor::Decode()

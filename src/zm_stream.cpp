@@ -163,7 +163,8 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 
   mJpegCodecContext = nullptr;
   mJpegSwsContext = nullptr;
-  return initContexts(monitor->Width(), monitor->Height(), AV_PIX_FMT_YUV420P, config.jpeg_stream_quality);
+  //return initContexts(monitor->Width(), monitor->Height(), AV_PIX_FMT_YUV420P, config.jpeg_stream_quality);
+  return true;
 }
 
 bool StreamBase::checkInitialised() {

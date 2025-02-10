@@ -1658,18 +1658,10 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
     return false;
   }
 
-  std::unique_lock<std::mutex> lck(jpeg_mutex);
+  //std::unique_lock<std::mutex> lck(jpeg_mutex);
 
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
   AVPacket *pkt;
-
-  if (1) {
-  int needed_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
-  if (needed_size > static_cast<int>(size)) {
-    Error("Output buffer %d not large enough. Need %d", size, needed_size);
-    return false;
-  }
-  }
 
   if ( p_jpegswscontext ) {
     av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
@@ -5583,6 +5575,7 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       break;
     case AV_PIX_FMT_GRAY8:
       colours = ZM_COLOUR_GRAY8;
+      subpixelorder = ZM_SUBPIX_ORDER_NONE;
       break;
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));

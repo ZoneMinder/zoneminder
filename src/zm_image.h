@@ -140,6 +140,8 @@ class Image {
  public:
   Image();
   explicit Image(const std::string &filename);
+  Image(int p_width, int p_height, int p_colours, int p_subpixelorder,
+      uint8_t *p_buffer, unsigned long p_allocation, unsigned int padding=0);
   Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   explicit Image(const Image &p_image);
@@ -173,6 +175,7 @@ class Image {
   std::string Filename() const { return filename_; }
 
   AVPixelFormat AVPixFormat() const;
+  AVPixelFormat AVPixFormat(unsigned int p_colours, unsigned int p_subpixelorder) const;
   AVPixelFormat AVPixFormat(AVPixelFormat);
 
   inline uint8_t* Buffer() { return buffer; }

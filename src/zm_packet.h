@@ -75,6 +75,7 @@ class ZMPacket {
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };
+  int send_packet(AVCodecContext *ctx);
   int receive_frame(AVCodecContext *ctx);
   int decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket>delayed_packet);
   int get_hwframe(AVCodecContext *ctx);
@@ -143,7 +144,7 @@ class ZMPacketLock {
 
     ~ZMPacketLock() {
       if (locked) {
-        Debug(3, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+        Debug(4, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
         packet_->unlock(lck_);
       }
     };
@@ -157,7 +158,7 @@ class ZMPacketLock {
     void unlock() { packet_->unlock(lck_); locked = false; };
     bool trylock() { return locked = packet_->trylock(lck_); };
     bool is_locked() { 
-      Debug(3, "is_locked packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+      Debug(4, "is_locked packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
       return locked;
     };
 };

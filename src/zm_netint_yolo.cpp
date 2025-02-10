@@ -103,7 +103,6 @@ bool Quadra_Yolo::setup(
   //int devid = device.empty() ? -1 : std::stoi(device);
   int devid = deviceid;
 
-  printf("Setup NETint %s on %d\n", modelname.c_str(), devid); fflush(stdout); fflush(stderr);
   Debug(1, "Setup NETint %s on %d, use hwframe %d", modelname.c_str(), devid, use_hwframe);
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
       devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());

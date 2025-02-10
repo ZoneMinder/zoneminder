@@ -198,7 +198,7 @@ int Event::OpenJpegCodec(const Image *image) {
     mJpegCodecContext->global_quality = quality/100.0; // 0-1
 
     Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s", 
-        chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
         chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt));
 
     if (0 && setup_hwaccel(mJpegCodecContext,

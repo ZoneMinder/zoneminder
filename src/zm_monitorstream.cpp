@@ -707,37 +707,48 @@ void MonitorStream::runStream() {
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
     if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
-      last_index = monitor->shared_data->last_analysis_index;
+      Debug(1, "Using OBJDETECT");
+      //if (last_read_index !=  last_image_count < last_count) {
+      //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
+        last_index = (last_read_index+1) % monitor->image_buffer_count;;
+      //}
+      //last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     } else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
-      last_index = monitor->shared_data->last_analysis_index;
+      Debug(1, "Using ANALYSIS");
+        last_index = (last_read_index+1) % monitor->image_buffer_count;;
+      //last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     } else {
-      last_index = monitor->shared_data->last_write_index;
+      Debug(1, "Using LIVE");
+        last_index = (last_read_index+1) % monitor->image_buffer_count;;
+      //last_index = monitor->shared_data->last_write_index;
       last_count = monitor->shared_data->image_count;
       image_buffer = &monitor->image_buffer;
       pixelformats = monitor->image_pixelformats;
     }
 
-    if (last_read_index != last_index || last_image_count < last_count) {
+    if (
+        //last_read_index != last_index ||
+        last_image_count < last_count) {
     //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
       int last_write_index = last_index;
       //int last_write_index = monitor->shared_data->last_write_index;
       int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
+            Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s", last_write_index,
+                last_index,
+                last_count,
+                pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
       
       if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
           if (pixelformats[index] <= AV_PIX_FMT_NONE) {
-            Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s", index,
-                last_index,
-                last_count,
-                pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
             if (!sendTextFrame("Image not yet available.")) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;

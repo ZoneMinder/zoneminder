@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor.h"
+#include "zm_signal.h"
 
 #include <cstring>
 
@@ -220,6 +221,8 @@ void Monitor::ONVIF::WaitForMessage() {
           }
         }
       }  // end foreach msg
+
+      if (zm_terminate) return;
 
       // we renew the current subscription .........
       if (parent->soap_wsa_compl) {

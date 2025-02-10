@@ -45,7 +45,7 @@ class StreamBase {
 
  protected:
   static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
-  static constexpr Milliseconds MAX_SLEEP = Milliseconds(500);
+  static constexpr Milliseconds MAX_SLEEP = Milliseconds(100);
 
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };

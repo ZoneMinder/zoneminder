@@ -837,7 +837,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
       if (!filepath.empty()) {
         image = new Image();
-        if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB)) {
+        if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
           return true;
         }
       } else if (ffmpeg_input) {
@@ -886,9 +886,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
-      int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
-      reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
+      //int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
+      //int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+      reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, send_image->Width(), send_image->Height(), 32));
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
@@ -897,8 +897,12 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       switch ( type ) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
-        if ((!mJpegCodecContext) || (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height)) {
-          initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
+        if ((!mJpegCodecContext) || (
+              mJpegCodecContext->width != send_image->Width() || mJpegCodecContext->height != send_image->Height()
+              || mJpegPixelFormat != send_image->AVPixFormat()
+              )
+            ) {
+          initContexts(send_image->Width(), send_image->Height(), send_image->AVPixFormat(), config.jpeg_stream_quality);
         }
         send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
         fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -934,8 +938,6 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
 void EventStream::runStream() {
   openComms();
-
-  //checkInitialised();
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);

@@ -340,7 +340,7 @@ function editableMonitor($mid) {
     }
   }
 
-  ZM\Debug("Monitors permission is ".$user->Monitors());
+  #ZM\Debug("Monitors permission is ".$user->Monitors());
   return (($user->Monitors() == 'Edit') || ($user->Monitors() == 'Create'));
 }
 

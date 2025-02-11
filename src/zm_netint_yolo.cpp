@@ -261,6 +261,8 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
+    AVFrame *hw_frame = out_packet->hw_frame.get();
+    Debug(1, "hw_frame %p, data %p", hw_frame, hw_frame->data);
     ret = ni_read_roi(out_packet->hw_frame.get(), aiframe_number);
     if (ret < 0) {
       Error("read roi failed");

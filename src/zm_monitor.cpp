@@ -1138,11 +1138,9 @@ bool Monitor::connect() {
     image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]), image_size, 0);
     //image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    image_pixelformats[i] = AV_PIX_FMT_NONE;
     analysis_image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_analysis_images[i*image_size]), image_size, 0);
-    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
+    //analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
   }
 
   if (purpose == CAPTURE) {
@@ -1195,6 +1193,11 @@ bool Monitor::connect() {
     SystemTimePoint now = std::chrono::system_clock::now();
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
     shared_data->valid = true;
+
+    for (int32_t i = 0; i < image_buffer_count; i++) {
+	    image_pixelformats[i] = AV_PIX_FMT_NONE;
+	    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
+    }
 
     ReloadLinkedMonitors();
 

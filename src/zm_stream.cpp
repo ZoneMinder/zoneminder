@@ -70,7 +70,7 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
       continue;
     }
 
-    mJpegCodecContext->bit_rate = 2000000;
+    //mJpegCodecContext->bit_rate = 2000000;
     mJpegCodecContext->width = p_width;
     mJpegCodecContext->height = p_height;
     mJpegCodecContext->time_base= (AVRational) {1, 25};
@@ -83,8 +83,8 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
     mJpegCodecContext->qcompress = quality/100.0; // 0-1
-    mJpegCodecContext->qmax = 1;
-    mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    //mJpegCodecContext->qmax = 1;
+    //mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
     mJpegCodecContext->global_quality = quality/100.0; // 0-1
 
     Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s %dx%d",

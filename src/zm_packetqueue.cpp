@@ -555,7 +555,7 @@ ZMPacketLock PacketQueue::get_packet_and_increment_it(packetqueue_iterator *it) 
         Error("Null p?!");
         break;
       }
-      Debug(3, "get_packet using it %p locking index %d", std::addressof(*it), p->image_index);
+      Debug(3, "get_packet using it %p locking packet %d", std::addressof(*it), p->image_index);
 
       {
         ZMPacketLock packet_lock(p);
@@ -565,7 +565,7 @@ ZMPacketLock PacketQueue::get_packet_and_increment_it(packetqueue_iterator *it) 
           return packet_lock;
         }
       }
-      Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+      Debug(2, "waiting.  Queue size %zu it == end? %d, packet %d", pktQueue.size(), (*it == pktQueue.end()), p->image_index);
       condition.wait(lck);
     }  // end while !lp
   }  // end scope for lock
@@ -664,7 +664,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     packet = *(*it);
   }
   if (!packet->keyframe) {
-    Warning("Hit beginning of packetqueue and packet is not a keyframe. index is %d", packet->image_index);
+    Warning("Hit beginning of packetqueue and packet is not a keyframe. packet is %d", packet->image_index);
   }
   return it;
 }  // end packetqueue_iterator *PacketQueue::get_event_start_packet_it

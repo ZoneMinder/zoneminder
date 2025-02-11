@@ -350,7 +350,14 @@ if(HAVE_UNTETHER_H)
   link_directories(/opt/untether/speedai/lib)
 endif()
 
-list(APPEND ZM_BIN_LIBS xcoder)
+find_library(XCODER_LIBRARIES xcoder)
+if(XCODER_LIBRARIES)
+  set(HAVE_QUADRA 1)
+  list(APPEND ZM_BIN_LIBS "${XCODER_LIBRARIES}")
+  set(optlibsfound "${optlibsfound} xcoder")
+else()
+  set(optlibsnotfound "${optlibsnotfound} xcoder")
+endif()
 
 # jpeg
 find_package(JPEG)

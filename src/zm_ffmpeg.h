@@ -22,6 +22,7 @@
 
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_logger.h"
 
 #include <list>
 #include <memory>
@@ -307,6 +308,7 @@ struct av_packet_guard {
 
 struct zm_free_av_frame {
   void operator()(AVFrame *frame) const {
+    Debug(1, "Freeing frame at %p", frame->data);
     av_frame_free(&frame);
   }
 };

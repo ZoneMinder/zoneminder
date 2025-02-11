@@ -121,7 +121,7 @@ ssize_t ZMPacket::ram() {
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
   AVFrame *receive_frame = zm_av_frame_alloc();
   int ret = avcodec_receive_frame(ctx, receive_frame);
-  Debug(1, "Ret from receive_frame %d %s", ret, av_make_error_string(ret).c_str());
+  Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   if (ret == AVERROR(EAGAIN)) {
     av_frame_free(&receive_frame);
     return 0;
@@ -142,12 +142,18 @@ int ZMPacket::send_packet(AVCodecContext *ctx) {
   // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
   if (ret < 0) {
-    Error("Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
+    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     //return ret;
   } else {
-    Debug(1, "Ret from send_packet %d %s", ret, av_make_error_string(ret).c_str());
+    Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   }
-  return ret;
+
+  if (ret == AVERROR(EAGAIN)) {
+    return 0;
+  } else if (ret < 0) {
+    return ret;
+  }
+  return 1;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success
@@ -343,10 +349,10 @@ bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
 };
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(3, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
   locked = false;
   lck_.unlock();
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(3, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
   condition_.notify_all();
 };
 

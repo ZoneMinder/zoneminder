@@ -2243,6 +2243,7 @@ int Monitor::Analyse() {
               }
             } // end if delayed_packet
           } // end yolo
+          packet->hw_frame = nullptr; // Free it?
 
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
@@ -3821,11 +3822,13 @@ int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
+  while (decoder_queue.size()) decoder_queue.pop_front();
 
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
   }
+  while (ai_queue.size()) ai_queue.pop_front();
 
   Debug(1, "Stopping packetqueue");
   // Wake everyone up

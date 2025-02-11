@@ -412,10 +412,10 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     switch (type) {
     case STREAM_JPEG :
-      if (mJpegCodecContext->width != l_width
+      if (!mJpegCodecContext || (mJpegCodecContext->width != l_width
           || mJpegCodecContext->height != l_height
           || mJpegCodecContext->pix_fmt != send_image->AVPixFormat()
-          ) {
+	  )) {
         initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
       }
       if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {

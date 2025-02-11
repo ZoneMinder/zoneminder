@@ -2209,14 +2209,18 @@ int Monitor::Analyse() {
                     motion_frame_skip, capture_fps, analysis_fps_limit);
               }
               if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                int ret = quadra_yolo->send_packet(packet);
+                if (ret <= 0) return ret;
+                // packet got to the card
                 Debug(1, "Doing detection queue size: %zu", ai_queue.size());
                 delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
                 delayed_packet = delayed_packet_lock->packet_;
-
-                int ret = quadra_yolo->detect(packet, delayed_packet);
+                
+                ret = quadra_yolo->receive_detection(delayed_packet);
+                //int ret = quadra_yolo->detect(packet, delayed_packet);
                 if (0 < ret) {
                   if (delayed_packet != packet) {
-                    Debug(1, "Pushing packet, poping delayed");
+                    Debug(1, "Pushing packet, popping delayed");
                     ai_queue.push_back(std::move(packet_lock));
                     packet = delayed_packet;
                     packet_lock = std::move(ai_queue.front());
@@ -2237,7 +2241,8 @@ int Monitor::Analyse() {
 
                 } else {
                   // EAGAIN
-                  if (packet != delayed_packet) { // Can this be otherwise?
+                  Debug(1, "ret %d EAGAIN", ret);
+                  if (packet == delayed_packet) { // Can this be otherwise?
                     ai_queue.push_back(std::move(packet_lock));
                     Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
                   }

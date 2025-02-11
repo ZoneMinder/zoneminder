@@ -208,8 +208,7 @@ bool Quadra_Yolo::setup(
   return true;
 }
 
-/* in_packet and out_packet maybe be th same*/
-int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet) {
+int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   AVFrame *avframe = in_packet->hw_frame.get();
 
   if (!use_hwframe && !sw_scale_ctx) {
@@ -238,6 +237,17 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
     Error("Error while feeding the ai");
     return -1;
   }
+  if (ret == NIERROR(EAGAIN)) {
+    return 0;
+  }
+  return 1;
+} // int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet)
+
+/* in_packet and out_packet maybe be th same*/
+int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet) {
+  int ret = send_packet(in_packet);
+  if (ret <= 0) return ret;
+
   return ret = receive_detection(out_packet);
 } // end int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet)
 

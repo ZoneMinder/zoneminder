@@ -2211,6 +2211,7 @@ int Monitor::Analyse() {
                     motion_frame_skip, capture_fps, analysis_fps_limit);
               }
               if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                
                 Debug(1, "Send_packet %d", packet->image_index);
                 int ret = quadra_yolo->send_packet(packet);
                 if (ret <= 0) {
@@ -2218,7 +2219,7 @@ int Monitor::Analyse() {
                   return ret;
                 }
 
-		int count = 10;
+                int count = 10;
                 do {
                 // packet got to the card
                 Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
@@ -3128,7 +3129,7 @@ int Monitor::Decode() {
       }  // end if have audio stream
 #endif
 
-      while (decoder_queue.size()) {
+      while (decoder_queue.size() and !zm_terminate) {
         Debug(1, "Send queue packets %ld", decoder_queue.size());
         // Inject current queue into the decoder.
         ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
@@ -3169,7 +3170,7 @@ int Monitor::Decode() {
       }
       return ret;
     } else {
-      Debug(1, "EAGAIN, fall through and send a packet, packet was %d", delayed_packet->image_index);
+      Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
     } // else 0, EAGAIN, fall through and send a packet
   } else {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());

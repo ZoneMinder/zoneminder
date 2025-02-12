@@ -2218,6 +2218,7 @@ int Monitor::Analyse() {
                   return ret;
                 }
 
+		int count = 10;
                 do {
                 // packet got to the card
                 Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
@@ -2258,8 +2259,10 @@ int Monitor::Analyse() {
                     //packetqueue.increment_it(analysis_it);
                   //}
                   //return 0;
+      std::this_thread::sleep_for(Milliseconds(100));
+      count -= 1;
                 }
-                } while (ret == 0);
+                } while (ret == 0 and count > 0);
               }
             } // end if delayed_packet
           } // end yolo
@@ -3144,7 +3147,7 @@ int Monitor::Decode() {
   std::shared_ptr<ZMPacket> packet;
 
   if (decoder_queue.size()) {
-    Debug(1, "Have queued packets %zu, send them to be filled", decoder_queue.size());
+    Debug(1, "Have queued packets %zu, send them to be filled by decoder", decoder_queue.size());
     // Try to decode, without feeding the decoder.
     ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
     auto delayed_packet = delayed_packet_lock->packet_;
@@ -3213,7 +3216,7 @@ int Monitor::Decode() {
 
       ZMPacketLock *delayed_packet_lock  = decoder_queue.size() ? &decoder_queue.front() : &packet_lock;
       auto delayed_packet = delayed_packet_lock->packet_;
-      Debug(1, "delayed_packet %d , sent packet %d, queue_size: %d", delayed_packet->image_index, packet->image_index, decoder_queue.size());
+      Debug(1, "delayed_packet %d , sent packet %d, queue_size: %ld", delayed_packet->image_index, packet->image_index, decoder_queue.size());
 
       Debug(1, "Recieving frame to delayedpacket %d", delayed_packet->image_index);
       Debug(1, "Recieving frame to packet %d", packet->image_index);

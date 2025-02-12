@@ -406,7 +406,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
     echo translate('Offline').'<br/>';
   } else {
-    echo translate('Status'.$monitor['Status']).'<br/>';
+    echo 'Status: '.translate('Status'.$monitor['Status']).'<br/>';
+      echo translate('Capturing') . ': '.translate($monitor['Capturing']).'<br/>';
     if ($monitor['Analysing'] != 'None') {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
     }

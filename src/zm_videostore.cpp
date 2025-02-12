@@ -779,7 +779,7 @@ VideoStore::~VideoStore() {
   video_in_ctx = nullptr;
 
   if (video_out_ctx) {
-    avcodec_close(video_out_ctx);
+    //avcodec_close(video_out_ctx);
     Debug(3, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
     if (hw_device_ctx) {
@@ -791,13 +791,13 @@ VideoStore::~VideoStore() {
   if (audio_out_stream) {
     audio_in_codec = nullptr;
     if (audio_in_ctx) {
-      avcodec_close(audio_in_ctx);
+      //avcodec_close(audio_in_ctx);
       avcodec_free_context(&audio_in_ctx);
     }
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");
-      avcodec_close(audio_out_ctx);
+      //avcodec_close(audio_out_ctx);
       avcodec_free_context(&audio_out_ctx);
     }
 

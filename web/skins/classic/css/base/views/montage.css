@@ -34,6 +34,12 @@
 .monitorStream {
   position: relative;
   #overflow: auto;
+  display: grid;
+}
+
+.monitorStream .button_zoom,
+.monitorStream .zoompan {
+  grid-area: 1/1;
 }
 
 .monitorStream, .monitor {

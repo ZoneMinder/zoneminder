@@ -438,6 +438,7 @@ sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
   return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
+  ZoneMinder::Logger::Debug(1, "capturing: $$self{Capturing} analysing: $$self{Analysing}");
   my $count = 50;
   while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');

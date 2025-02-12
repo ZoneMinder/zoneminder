@@ -842,12 +842,14 @@ function streamPrepareStart(monitor=null) {
 function handleMouseEnter(event) {
   //Displaying "Scale" and other buttons at the top of the monitor image
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#button_zoom' + id).removeClass('hidden');
 }
 
 function handleMouseLeave(event) {
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#button_zoom' + id).addClass('hidden');
 }
 
 function streamStart(monitor = null) {

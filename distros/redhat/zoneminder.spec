@@ -83,6 +83,12 @@ BuildRequires: json-devel
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
 
+# Optional but needed for ONVIF and others
+BuildRequires: gnutls-devel
+BuildRequires: gsoap-devel
+BuildRequires: libvncserver-devel
+BuildRequires: mosquitto-devel
+
 # Allow existing user base to seamlessly transition to sub-packages
 Requires: %{name}-common%{?_isa} = %{version}-%{release}
 Requires: %{name}-httpd%{?_isa} = %{version}-%{release}

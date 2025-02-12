@@ -2217,6 +2217,8 @@ int Monitor::Analyse() {
                   Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
                   return ret;
                 }
+
+                do {
                 // packet got to the card
                 Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
                 delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
@@ -2251,12 +2253,13 @@ int Monitor::Analyse() {
                   // EAGAIN
                   Debug(1, "ret %d EAGAIN", ret);
                   //if (packet == delayed_packet) { // Can this be otherwise?
-                    ai_queue.push_back(std::move(packet_lock));
-                    Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-                    packetqueue.increment_it(analysis_it);
+                    //ai_queue.push_back(std::move(packet_lock));
+                    //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+                    //packetqueue.increment_it(analysis_it);
                   //}
-                  return 0;
+                  //return 0;
                 }
+                } while (ret == 0);
               }
             } // end if delayed_packet
           } // end yolo

@@ -996,40 +996,71 @@ const waitUntil = (condition) => {
 };
 
 function startRTSP2WebPlay(videoEl, url, stream) {
+  const mediaStream = new MediaStream();
+  videoEl.srcObject = mediaStream;
   stream.webrtc = new RTCPeerConnection({
     iceServers: [{
       urls: ['stun:stun.l.google.com:19302']
     }],
     sdpSemantics: 'unified-plan'
   });
-  stream.webrtc.ontrack = function(event) {
-    console.log(event.streams.length + ' track is delivered');
-    videoEl.srcObject = event.streams[0];
-    videoEl.play();
+
+  /* It doesn't work yet
+  stream.webrtc.ondatachannel = function(event) {
+    console.log('onDataChannel trigger:', event.channel);
+    event.channel.onopen = () => console.log(`Data channel is open`);
+    event.channel.onmessage = (event) => console.log('Event data:', event.data);
   };
-  stream.webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  */
+
+  stream.webrtc.oniceconnectionstatechange = function(event) {
+    console.log('iceServer changed state to: ', '"', event.currentTarget.connectionState, '"');
+  };
   stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
-    const offer = await stream.webrtc.createOffer();
-
+    const offer = await stream.webrtc.createOffer({
+      //iceRestart:true,
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true
+    });
     await stream.webrtc.setLocalDescription(offer);
+    $j.post(url, {
+      data: btoa(stream.webrtc.localDescription.sdp)
+    }, function(data) {
+      try {
+        stream.webrtc.setRemoteDescription(new RTCSessionDescription({
+          type: 'answer',
+          sdp: atob(data)
+        }));
+      } catch (e) {
+        console.warn(e);
+      }
+    });
+  };
+  stream.webrtc.onsignalingstatechange = async function signalingstatechange() {
+    switch (stream.webrtc.signalingState) {
+      case 'have-local-offer':
+        break;
+      case 'stable':
+        /*
+        * There is no ongoing exchange of offer and answer underway.
+        * This may mean that the RTCPeerConnection object is new, in which case both the localDescription and remoteDescription are null;
+        * it may also mean that negotiation is complete and a connection has been established.
+        */
+        break;
+      case 'closed':
+        /*
+         * The RTCPeerConnection has been closed.
+         */
+        break;
+      default:
+        console.log(`unhandled signalingState is ${stream.webrtc.signalingState}`);
+        break;
+    }
+  };
 
-    fetch(url, {
-      method: 'POST',
-      body: new URLSearchParams({data: btoa(stream.webrtc.localDescription.sdp)})
-    })
-        .catch((rejected) => {
-          console.log(rejected);
-        })
-        .then((response) => response.text())
-        .then((data) => {
-          try {
-            stream.webrtc.setRemoteDescription(
-                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
-            );
-          } catch (e) {
-            console.warn(e);
-          }
-        });
+  stream.webrtc.ontrack = function ontrack(event) {
+    console.log(event.track.kind + ' track is delivered');
+    mediaStream.addTrack(event.track);
   };
 
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');

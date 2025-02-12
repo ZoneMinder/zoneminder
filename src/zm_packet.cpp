@@ -179,52 +179,67 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
 
   delayed_packet->in_frame = av_frame_ptr{receive_frame};
   zm_dump_video_frame(delayed_packet->in_frame.get(), "got frame");
-  delayed_packet->get_hwframe(ctx);
+  //delayed_packet->get_hwframe(ctx);
   return 1;
 }
 
+bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  if (
+      (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
+      and
+      (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
+     ) {
+    return true;
+  }
+#endif
+#endif
+  return false;
+}
+
 int ZMPacket::get_hwframe(AVCodecContext *ctx) {
+  if (hw_frame) {
+    Error("Already have hw_frame in get_hwframe");
+    return 0;
+  }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if (
-        (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
-        and
-        (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
-        ) {
-      Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
-            ctx->pix_fmt,
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            ctx->sw_pix_fmt,
-            av_get_pix_fmt_name(ctx->sw_pix_fmt),
-            in_frame->format,
-            av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
-           );
+  if (needs_hw_transfer(ctx)) {
+    Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
+        ctx->pix_fmt,
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        ctx->sw_pix_fmt,
+        av_get_pix_fmt_name(ctx->sw_pix_fmt),
+        in_frame->format,
+        av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
+        );
 
-      av_frame_ptr new_frame{zm_av_frame_alloc()};
-      /* retrieve data from GPU to CPU */
-      hw_frame = std::move(in_frame);
-      zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
-      int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
-      if (ret < 0) {
-        Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
-        return 0;
-      }
-      ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
-      if (ret < 0) {
-        Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
-      }
+    av_frame_ptr new_frame{zm_av_frame_alloc()};
+    /* retrieve data from GPU to CPU */
+    hw_frame = std::move(in_frame);
+    zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
+    int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
+    if (ret < 0) {
+      Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
+      return 0;
+    }
+    ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
+    if (ret < 0) {
+      Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
+    }
 
-      zm_dump_video_frame(new_frame.get(), "After hwtransfer");
-      in_frame = std::move(new_frame);
-    } else
+    zm_dump_video_frame(new_frame.get(), "After hwtransfer");
+    in_frame = std::move(new_frame);
+  } else
 #endif
 #endif
-      Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            av_get_pix_fmt_name(ctx->sw_pix_fmt)
-           );
-    return 1;
+    Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        av_get_pix_fmt_name(ctx->sw_pix_fmt)
+        );
+  return 1;
 } // end ZMPacket::get_hwframe
 
 Image *ZMPacket::get_ai_image() {
@@ -293,7 +308,10 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
     }
 
     int alignment = 32;
-    if (width%alignment) alignment = 1;
+    if (width % alignment) {
+      Warning("Bad alignment for %d", width);
+      alignment = 1;
+    }
 
     codec_imgsize = av_image_get_buffer_size(
                       format, width, height, alignment);

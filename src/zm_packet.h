@@ -78,6 +78,7 @@ class ZMPacket {
   int send_packet(AVCodecContext *ctx);
   int receive_frame(AVCodecContext *ctx);
   int decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket>delayed_packet);
+  bool needs_hw_transfer(AVCodecContext *ctx);
   int get_hwframe(AVCodecContext *ctx);
   explicit ZMPacket(Image *image, SystemTimePoint tv);
   explicit ZMPacket(ZMPacket &packet);

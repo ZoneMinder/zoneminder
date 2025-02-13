@@ -1439,6 +1439,7 @@ function monitorsSetScale(id=null) {
 // Kick everything off
 $j( window ).on("load", initPage);
 
+var prevStateStarted = false;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1446,12 +1447,19 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
-        monitorStream.kill();
+        if (monitorStream.started) {
+          prevStateStarted = 'played';
+          //Stop only if playing or paused.
+          monitorStream.kill();
+        } else {
+          prevStateStarted = false;
+        }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && !monitorStream.started && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+    if (monitorStream && prevStateStarted == 'played' && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+      onPlay(); //Set the correct state of the player buttons.
       monitorStream.start();
     }
   }

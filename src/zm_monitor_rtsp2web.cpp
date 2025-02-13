@@ -109,10 +109,10 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   //Assemble our actual request
   std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"channels\" : {"
    " \"0\" : {"
-   "  \"name\" : \"ch1\", \"url\" : \"" + rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+   "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" + rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
    if (!parent->GetSecondPath().empty()) {
      postData += ", \"0\" : {"
-       "  \"name\" : \"ch2\", \"url\" : \"" + parent->GetSecondPath() + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + parent->GetSecondPath() + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
    }
    postData += "}" "}";
 

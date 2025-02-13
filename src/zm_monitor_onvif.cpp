@@ -21,6 +21,18 @@
 
 #include <cstring>
 
+std::string SOAP_STRINGS[] = {
+  "SOAP_OK", // 0
+  "SOAP_CLI_FAULT", // 1
+  "SOAP_SVR_FAULT",//                  2
+  "SOAP_TAG_MISMATCH",//               3
+  "SOAP_TYPE",//                       4
+  "SOAP_SYNTAX_ERROR",//               5
+  "SOAP_NO_TAG",//                     6
+  "SOAP_IOB",//                        7
+  "SOAP_MUSTUNDERSTAND",//             8
+};
+
 Monitor::ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
   ,alarmed(false)
@@ -96,8 +108,8 @@ void Monitor::ONVIF::start() {
         //Empty the stored messages
         set_credentials(soap);
 
-        RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap):nullptr;
-        if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
+        RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : nullptr;
+        if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
           Debug(1, "ONVIF :soap_wsa_request  OK ");
           if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
               (soap->error != SOAP_EOF)

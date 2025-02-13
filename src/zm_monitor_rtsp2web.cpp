@@ -107,12 +107,14 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   std::string endpoint = RTSP2Web_endpoint+"/stream/"+std::to_string(parent->id)+"/add";
 
   //Assemble our actual request
-  std::string postData = "{\"name\" : \"";
-  postData += std::string(parent->Name());
-  postData +=  "\", \"channels\" : { \"0\" : {";
-  postData +=  "\"name\" : \"ch1\", \"url\" : \"";
-  postData += rtsp_path;
-  postData += "\", \"on_demand\": true, \"debug\": false, \"status\": 0}}}";
+  std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"channels\" : {"
+   " \"0\" : {"
+   "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" + rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+   if (!parent->GetSecondPath().empty()) {
+     postData += ", \"1\" : {"
+       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + parent->GetSecondPath() + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+   }
+   postData += "}" "}";
 
   Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
 

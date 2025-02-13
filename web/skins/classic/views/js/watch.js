@@ -1449,7 +1449,7 @@ document.onvisibilitychange = () => {
       if (monitorStream) {
         if (monitorStream.started) {
           prevStateStarted = 'played';
-           //Stop only if playing or paused.
+          //Stop only if playing or paused.
           monitorStream.kill();
         } else {
           prevStateStarted = false;

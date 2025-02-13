@@ -118,8 +118,26 @@ int FFmpeg_Input::Open(const char *filepath) {
     } // end foreach codec_data
  
     if (!streams[i].context) {
-      avformat_close_input(&input_format_context);
-      input_format_context = nullptr;
+      if (streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id)) {
+        Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
+        streams[i].context = avcodec_alloc_context3(streams[i].codec);
+        avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+
+        zm_dump_codec(streams[i].context);
+
+        error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
+        if (error < 0) {
+          Error("Could not open input codec (error '%s')", av_make_error_string(error).c_str());
+          avcodec_free_context(&streams[i].context);
+          streams[i].context = nullptr;
+        }
+      }
+    }
+
+    if (!streams[i].context) {
+      //avformat_close_input(&input_format_context);
+      //input_format_context = nullptr;
+      continue;
       return error;
     }
     zm_dump_codec(streams[i].context);
@@ -157,6 +175,11 @@ int FFmpeg_Input::Close( ) {
 } // end int FFmpeg_Input::Close()
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
+  if (!streams[stream_id].context) {
+    Error("No context for stream %d", stream_id);
+    return nullptr;
+  }
+
   bool frameComplete = false;
   av_packet_ptr packet{av_packet_alloc()};
 
@@ -164,6 +187,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     Error("Unable to allocate packet.");
     return nullptr;
   }
+
 
   while (!frameComplete) {
     int ret = av_read_frame(input_format_context, packet.get());

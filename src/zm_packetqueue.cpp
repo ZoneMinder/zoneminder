@@ -182,14 +182,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             it = this->deletePacket(it);
           }
           break;
-        } else {
-          it ++;
-          //this->deletePacket(it);
-
-          //if (zm_packet->packet->stream_index == video_stream_id)
-            //break;
         } // end if erasing a whole gop
-      }  // end while
+        ++it;
+      }  // end foreach
     } else if (warned_count > 0) {
       warned_count--;
     }  // end if not able catch up
@@ -734,8 +729,9 @@ void PacketQueue::free_it(packetqueue_iterator *it) {
     iterators_it != iterators.end();
     ++iterators_it
   ) {
-    if ( *iterators_it == it ) {
-      iterators.erase(iterators_it);
+    if (*iterators_it == it) {
+      delete *iterators_it; // delete the iterator
+      iterators.erase(iterators_it); // this will delete the pointer to it.
       break;
     }
   }

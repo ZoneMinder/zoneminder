@@ -343,7 +343,7 @@ if(NOT ZM_NO_CURL)
   endif()
 endif()
 
-find_file(HAVE_UNTETHER_H uai_untether.h)
+find_file(HAVE_UNTETHER_H uai_untether.h /opt/untether/speedai/include)
 if(HAVE_UNTETHER_H)
   include_directories(/opt/untether/speedai/include/)
   list(APPEND ZM_BIN_LIBS untether)

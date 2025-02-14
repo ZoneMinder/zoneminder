@@ -308,6 +308,7 @@ bool VideoStore::open() {
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
         video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+        video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
@@ -335,7 +336,7 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-        if (setup_hwaccel(video_out_ctx,
+        if (0 and setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
           continue;
         }
@@ -1115,21 +1116,42 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       if (zm_packet->image) {
         Debug(2, "Have an image, convert it");
         //Go straight to out frame
-        swscale.Convert(
-          zm_packet->image,
-          zm_packet->out_frame->buf[0]->data,
-          zm_packet->codec_imgsize,
-          zm_packet->image->AVPixFormat(),
-          chosen_codec_data->sw_pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height
-          );
+        if (
+            zm_packet->image->Width() == video_out_ctx->width
+            and
+            zm_packet->image->Height() == video_out_ctx->height
+            and
+            zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
+           ) {
+          zm_packet->image->PopulateFrame(zm_packet->out_frame.get());
+        } else {
+          swscale.Convert(
+              zm_packet->image,
+              zm_packet->out_frame->buf[0]->data,
+              zm_packet->codec_imgsize,
+              zm_packet->image->AVPixFormat(),
+              chosen_codec_data->sw_pix_fmt,
+              video_out_ctx->width,
+              video_out_ctx->height
+              );
+        }
       } else if (!zm_packet->in_frame) {
         Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
         return 0;
       } else {
-        // Have in_frame.... may need to convert it to out_frame
-        swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
+        if (
+            zm_packet->in_frame->width == video_out_ctx->width
+            and
+            zm_packet->in_frame->height == video_out_ctx->height
+            and
+            static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
+           ) {
+          zm_packet->out_frame = std::move(zm_packet->in_frame);
+          zm_packet->in_frame = nullptr;
+        } else {
+          // Have in_frame.... may need to convert it to out_frame
+          swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
+        }
       } // end if no in_frame
     } // end if no out_frame
 
@@ -1238,7 +1260,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     } while (!zm_terminate);
 
     // EAGAIN can mean that we need to send another frame, so don't loop on it.
-    while (true) {
+    while (!zm_terminate) {
       int ret = avcodec_receive_packet(video_out_ctx, opkt.get());
       if (ret < 0) {
         if (ret != AVERROR(EAGAIN)) {

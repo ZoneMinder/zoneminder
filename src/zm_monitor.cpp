@@ -2194,7 +2194,6 @@ int Monitor::Analyse() {
                 ai_queue.pop_front();
                 packet = delayed_packet;
                 Debug(1, "Fre hwframe %d", packet->image_index);
-                packet->hw_frame = nullptr;
                 Debug(1, "Success packet %d", packet->image_index);
               } else if (ret < 0) {
                 Debug(1, "Failed to get frame %d", ret);
@@ -2242,7 +2241,6 @@ int Monitor::Analyse() {
                   }
                   if (packet->ai_frame)
                     zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                  packet->hw_frame = nullptr;
                 } else if (0 > ret) {
                   Debug(1, "Failed yolo");
                   delete quadra_yolo;
@@ -2264,8 +2262,8 @@ int Monitor::Analyse() {
                     //packetqueue.increment_it(analysis_it);
                   //}
                   //return 0;
-      std::this_thread::sleep_for(Milliseconds(100));
-      count -= 1;
+                  std::this_thread::sleep_for(Milliseconds(100));
+                  count -= 1;
                 }
                 } while (ret == 0 and count > 0);
               }

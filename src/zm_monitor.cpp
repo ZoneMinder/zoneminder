@@ -1201,6 +1201,17 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+#ifdef HAVE_UNTETHER_H
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      speedai = new SpeedAI(this);
+      if (!speedai->setup(
+            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
+            )) {
+        delete speedai;
+      }
+    }
+#endif
+
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
       RTSP2Web_Manager->add_to_RTSP2Web();
@@ -1226,15 +1237,6 @@ bool Monitor::connect() {
     } else {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
-
-#ifdef HAVE_UNTETHER_H
-    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-      speedai = new SpeedAI(this);
-      if (!speedai->setup()) {
-        delete speedai;
-      }
-    }
-#endif
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -2159,7 +2161,9 @@ int Monitor::Analyse() {
               }
               Debug(1, "Quadra setting up on %d", deviceid);
               if (!quadra_yolo->setup(camera->getVideoStream(), 
-                    mVideoCodecContext, "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
+                    mVideoCodecContext,
+                    "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb",
+                    deviceid)) {
                 delete quadra_yolo;
                 quadra_yolo = nullptr;
               }

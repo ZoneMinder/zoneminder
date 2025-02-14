@@ -1,10 +1,6 @@
 #ifndef ZM_QUADRA_YOLO_H
 #define ZM_QUADRA_YOLO_H
 
-#if 0
-#include "zm_swscale.h"
-#endif
-
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

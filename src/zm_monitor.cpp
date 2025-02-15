@@ -580,7 +580,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   packetqueue.setPreEventVideoPackets(pre_event_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
-  packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH || recording != RECORDING_NONE);
+  packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
   post_event_count = atoi(dbrow[col]);
   col++;
   stream_replay_buffer = atoi(dbrow[col]);

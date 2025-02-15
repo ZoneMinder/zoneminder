@@ -266,9 +266,10 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     if ((*it)->packet->stream_index == video_stream_id)
       ++tail_count;
   }
-  Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
+  Debug(1, "Tail count is %d, queue size is %zu, video_packets %d", tail_count, pktQueue.size(), packet_counts[video_stream_id]);
 
   if (!keep_keyframes) {
+    Debug(3, "Not keeping keyframes");
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
@@ -292,6 +293,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pre_event_video_packet_count,
             pktQueue.size());
     } // end while
+    Debug(3, "Done removing packets from queue. packet_counts %d >? pre_event %d + tail %d = %d",
+        packet_counts[video_stream_id], pre_event_video_packet_count, tail_count, pre_event_video_packet_count + tail_count);
     return;
   }
 

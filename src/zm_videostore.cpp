@@ -307,9 +307,9 @@ bool VideoStore::open() {
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+        video_out_ctx->pix_fmt = chosen_codec_data->sw_pix_fmt;
         video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
+        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
@@ -1117,9 +1117,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Debug(2, "Have an image, convert it");
         //Go straight to out frame
         if (
-            zm_packet->image->Width() == video_out_ctx->width
+            zm_packet->image->Width() == static_cast<unsigned int>(video_out_ctx->width)
             and
-            zm_packet->image->Height() == video_out_ctx->height
+            zm_packet->image->Height() == static_cast<unsigned int>(video_out_ctx->height)
             and
             zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
            ) {

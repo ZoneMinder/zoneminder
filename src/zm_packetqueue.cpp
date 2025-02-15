@@ -277,7 +277,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       if (!packet_lock.trylock()) break;
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
-        Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
+        Debug(1, "Found iterator at beginning of queue.");
         break;
       }
 

@@ -207,7 +207,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #ifndef DBG_OFF
 # define ZM_DUMP_PACKET(pkt, text) \
   if (pkt) { Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
-    ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
+    ", size: %d, stream_index: %d, flags: %04x, keyframe: %d pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
     text,\
     pkt->pts,\
     pkt->dts,\

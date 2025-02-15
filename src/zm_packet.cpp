@@ -81,21 +81,22 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
 ZMPacket::ZMPacket(ZMPacket &p) :
   //lck_(mutex_, std::defer_lock),
   locked(false),
-  keyframe(0),
-  stream(nullptr),
+  keyframe(p.keyframe),
+  stream(p.stream),
   timestamp(p.timestamp),
-  image(nullptr),
-  y_image(nullptr),
-  analysis_image(nullptr),
-  ai_image(nullptr),
-  score(-1),
+  image(p.image),
+  y_image(p.y_image),
+  analysis_image(p.analysis_image),
+  ai_image(p.ai_image),
+  score(p.score),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
-  image_index(-1),
+  image_index(p.image_index),
   codec_imgsize(0),
-  pts(0),
-  decoded(false) {
+  pts(p.pts),
+  decoded(p.decoded) {
   packet = av_packet_ptr{av_packet_alloc()};
 
+  Error("Packet copy");
   if (zm_av_packet_ref(packet.get(), p.packet.get()) < 0) {
     Error("error refing packet");
   }

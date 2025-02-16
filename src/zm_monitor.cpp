@@ -2883,14 +2883,13 @@ int Monitor::Capture() {
     Rgb signalcolor;
     /* HTML colour code is actually BGR in memory, we want RGB */
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
-    Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-    capture_image->Fill(signalcolor);
+    Image capture_image(width, height, camera->Colours(), camera->SubpixelOrder());
+    capture_image.Fill(signalcolor);
     shared_data->signal = false;
     shared_data->last_write_index = index;
     shared_data->last_write_time = shared_timestamps[index].tv_sec;
-    image_buffer[index]->Assign(*capture_image);
+    image_buffer[index]->Assign(capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-    delete capture_image;
     shared_data->image_count++;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal

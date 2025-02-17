@@ -2274,9 +2274,11 @@ int Monitor::Analyse() {
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
             if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-              speedai->detect(*(packet->y_image));
+              speedai->send_image(*(packet->y_image));
+            } else if (packet->image) {
+              speedai->send_image(*(packet->image));
             } else {
-              speedai->detect(*(packet->y_image));
+              speedai->send_image(Image(packet->in_frame.get()));
             }
           }
 #endif

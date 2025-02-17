@@ -5,6 +5,8 @@
 #include "uai_untether.h"
 #endif
 
+#include <list>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -26,7 +28,6 @@ class SpeedAI {
     UaiModule* module;
 
     unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
-    UaiDataBuffer inputBuf, outputBuf;
     size_t batchSize;
     size_t inSize;
     size_t outSize;
@@ -35,6 +36,7 @@ class SpeedAI {
     AVFrame scaled_frame;
     //SWScale swscale;
     SwsContext *sw_scale_ctx;
+    UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
     int quantization_fp8p_bias = -3, dequantization_uint16_bias = 4, dequantization_fp8p_bias = -12;
@@ -42,6 +44,15 @@ class SpeedAI {
     //Image &preprocess_image(const Image &image);
 
     int image_size;
+    class Job {
+      public:
+        Job() :
+          inputBuf({}), outputBuf({}), event({}) {};
+      UaiDataBuffer inputBuf;
+      UaiDataBuffer outputBuf;
+      UaiEvent event;
+    };
+    std::list<Job> jobs;
 
   public:
     explicit SpeedAI(Monitor *parent_);
@@ -50,7 +61,8 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
-    int detect(const Image &image);
+    int send_image(const Image &image);
+    int receive_detections(std::shared_ptr<ZMPacket>);
 };
 #endif
 #endif

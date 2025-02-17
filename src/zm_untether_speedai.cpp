@@ -87,7 +87,7 @@ bool SpeedAI::setup(
   }
   //assert(numStreams == 2);
   Debug(1, "Num streams %zu", numStreams);
-  UaiDataStreamInfo infos[numStreams];
+  infos = new UaiDataStreamInfo[numStreams];
   uai_module_get_stream_info(module, infos, numStreams);
   assert(infos[0].io_type == UAI_DATA_STREAM_HOST_TO_DEVICE);
   assert(infos[1].io_type == UAI_DATA_STREAM_DEVICE_TO_HOST);
@@ -100,17 +100,15 @@ bool SpeedAI::setup(
   outSize = infos[1].framesize_hint * batchSize;
   Debug(1, "inSize %zu outSize %zu, max %d", inSize, outSize, UAI_MODULE_MAX_DATA_BUFFER_SIZE);
   Debug(1, "SpeedAI inSize hint inname %s outname %s", infos[0].name, infos[1].name);
-  uai_module_data_buffer_attach(module, &inputBuf, infos[0].name, inSize);
-  uai_module_data_buffer_attach(module, &outputBuf, infos[1].name, outSize);
   Debug(1, "Done attaching");
   return true;
 }
 
-int SpeedAI::detect(const Image &image) {
-  auto inDataPtr = static_cast<uint8_t*>(inputBuf.buffer);
+int SpeedAI::send_image(const Image &image) {
   av_frame_ptr avframe{zm_av_frame_alloc()};
   image.PopulateFrame(avframe.get());
 
+  Debug(1, "SpeedAI::detect");
   // Resize, change to RGB, maybe quantize
   //Image processed_image = preprocess(image);
 
@@ -142,32 +140,54 @@ int SpeedAI::detect(const Image &image) {
     return ret;
   }
 
-  memcpy(inputBuf.buffer, avframe->buf[0], image_size);
+  Job job();
+  jobs.push_back(job);
+
+  uai_module_data_buffer_attach(module, &job.inputBuf, infos[0].name, inSize);
+  uai_module_data_buffer_attach(module, &job.outputBuf, infos[1].name, outSize);
+  memcpy(inputBuf.buffer, scaled_frame.buf[0], image_size);
 
   // Attach buffers to event, so runtime knows where to find input and output buffers to
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
   // hold all data for one batch.
-  UaiEvent event;
-  event.buffers = &inputBuf;
-  
-  inputBuf.next_buffer = &outputBuf;
+  job.event.buffers = &job.inputBuf;
+  job.inputBuf.next_buffer = &job.outputBuf;
 
+  Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  uai_module_enqueue(module, &event);
+  UaiErr err = uai_module_enqueue(module, &job.event);
+  if (err != UAI_SUCCESS) {
+    Error("Failed enqueue %s", uai_err_string(err));
+    return -1;
+    //return false;
+  }
+  if (0) {
+  Debug(1, "SpeedAI::sync");
+  err = uai_module_synchronize(module, &job.event);
+  if (err != UAI_SUCCESS) {
+    Error("SpeedAI Failed sync model %s", uai_err_string(err));
+    //return false;
+  }
+  }
 
+  Debug(1, "SpeedAI::wait");
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  uai_module_wait(module, &event, -1);
-  Debug(1, "Completed inference");
+  err = uai_module_wait(module, &event, 1000);
+  if (err != UAI_SUCCESS) {
+    Error("SpeedAI Failed wait %s", uai_err_string(err));
+    return 0;
+  }
+  Debug(1, "SpeedAI Completed inference, wait return code is %s", uai_err_string(err));
 
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
-  auto outDataPtr = static_cast<uint8_t*>(outputBuf.buffer);
-  for (size_t i(0); i < outSize; i++) {
-    std::cout << int(*(outDataPtr + i)) << std::endl;
-  }
-  return true;
+  auto outDataPtr = static_cast<uint8_t*>(job.outputBuf.buffer);
+  //for (size_t i(0); i < outSize; i++) {
+    //std::cout << int(*(outDataPtr + i)) << std::endl;
+  //}
+  return 1;
 }
 
 //Image &SpeedAI::preprocess_image(const Image &image) {

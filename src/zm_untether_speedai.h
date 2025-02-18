@@ -53,6 +53,7 @@ class SpeedAI {
       UaiEvent event;
     };
     std::list<Job> jobs;
+    float dequantize(uint8_t val, int bias);
 
   public:
     explicit SpeedAI(Monitor *parent_);

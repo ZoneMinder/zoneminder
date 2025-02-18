@@ -625,6 +625,29 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   return detected;
 }
 
+int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
+  AVFrame *output = av_frame_alloc();
+  if (!output) {
+    Error("cannot allocate output filter frame");
+    return NIERROR(ENOMEM);
+  }
+  int detected = 0;
+  for (int i = 0; i < last_roi_count; i++) {
+    int ret = draw_roi_box(packet->in_frame.get(), &output, last_roi[i], last_roi_extra[i]);
+    if (ret < 0) {
+      Error("draw %d roi box failed", i);
+      return ret;
+    }
+    zm_dump_video_frame(output, "Quadra: boxes");
+    std::string annotation = stringtf("%s %d%%", roi_class[last_roi_extra[i].cls], static_cast<int>(100*last_roi_extra[i].prob));
+    Image img(output);
+    img.Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+
+    packet->ai_frame = av_frame_ptr(output);
+  } // end foreach detection
+  return 1;
+} // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)
+
 int Quadra_Yolo::dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame) {
   int ret;
   AVFrame *output;
@@ -758,5 +781,6 @@ out:
   free(roi_box);
   return ret;
 }
+
 
 

@@ -1,10 +1,6 @@
 #ifndef ZM_QUADRA_YOLO_H
 #define ZM_QUADRA_YOLO_H
 
-#if 0
-#include "zm_swscale.h"
-#endif
-
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -74,6 +70,7 @@ class Quadra_Yolo {
     int send_packet(std::shared_ptr<ZMPacket> in_packet);
     int  receive_detection(std::shared_ptr<ZMPacket> out_packet);
     int  detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
+    int draw_last_roi(std::shared_ptr<ZMPacket> packet);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
     int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);
@@ -83,7 +80,6 @@ class Quadra_Yolo {
     int dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame);
     int check_movement( AVRegionOfInterest cur_roi, AVRegionOfInterestNetintExtra cur_roi_extra);
     int ni_read_roi(AVFrame *out, int frame_count);
-
 };
 
 #endif

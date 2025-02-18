@@ -49,7 +49,7 @@
 
 #ifdef HAVE_UNTETHER_H
 // Untether runtime API header
-#include "uai_untether.h"
+#include "zm_untether_speedai.h"
 #endif
 
 extern "C" {
@@ -343,24 +343,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
-#ifdef HAVE_UNTETHER_H
-  class SpeedAI {
-    private:
-      Monitor *monitor;
-      UaiModule* module;
-
-      UaiDataBuffer inputBuf, outputBuf;
-      size_t batchSize;
-      size_t inSize;
-      size_t outSize;
-
-    public:
-      explicit SpeedAI(Monitor *parent_);
-      ~SpeedAI();
-      bool setup();
-      bool detect(const Image &image);
-  };
-#endif
 
   class Quadra {
    public:

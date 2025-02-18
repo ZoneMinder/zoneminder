@@ -1201,6 +1201,17 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+#ifdef HAVE_UNTETHER_H
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      speedai = new SpeedAI(this);
+      if (!speedai->setup(
+            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
+            )) {
+        delete speedai;
+      }
+    }
+#endif
+
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
       RTSP2Web_Manager->add_to_RTSP2Web();
@@ -1226,15 +1237,6 @@ bool Monitor::connect() {
     } else {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
-
-#ifdef HAVE_UNTETHER_H
-    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-      speedai = new SpeedAI(this);
-      if (!speedai->setup()) {
-        delete speedai;
-      }
-    }
-#endif
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -2159,7 +2161,9 @@ int Monitor::Analyse() {
               }
               Debug(1, "Quadra setting up on %d", deviceid);
               if (!quadra_yolo->setup(camera->getVideoStream(), 
-                    mVideoCodecContext, "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb", deviceid)) {
+                    mVideoCodecContext,
+                    "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb",
+                    deviceid)) {
                 delete quadra_yolo;
                 quadra_yolo = nullptr;
               }
@@ -2209,60 +2213,63 @@ int Monitor::Analyse() {
                 Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                     motion_frame_skip, capture_fps, analysis_fps_limit);
               }
-              if ((packet->hw_frame or packet->in_frame) and !(shared_data->analysis_image_count % (motion_frame_skip+1))) {
-                
-                Debug(1, "Send_packet %d", packet->image_index);
-                int ret = quadra_yolo->send_packet(packet);
-                if (ret <= 0) {
-                  Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
-                  return ret;
-                }
-
-                int count = 10;
-                do {
-                // packet got to the card
-                Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
-                delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-                delayed_packet = delayed_packet_lock->packet_;
-                
-                ret = quadra_yolo->receive_detection(delayed_packet);
-                if (0 < ret) {
-                  if (delayed_packet != packet) {
-                    Debug(1, "Pushing packet, popping delayed");
-                    ai_queue.push_back(std::move(packet_lock));
-                    packet = delayed_packet;
-                    packet_lock = std::move(ai_queue.front());
-                    ai_queue.pop_front();
-                    packetqueue.increment_it(analysis_it);
+              if (packet->hw_frame or packet->in_frame) {
+                if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                  Debug(1, "Send_packet %d", packet->image_index);
+                  int ret = quadra_yolo->send_packet(packet);
+                  if (ret <= 0) {
+                    Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
+                    return ret;
                   }
-                  if (packet->ai_frame)
-                    zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                } else if (0 > ret) {
-                  Debug(1, "Failed yolo");
-                  delete quadra_yolo;
-                  // Since packets are still in the queue, they will get re-fed into it..
-                  quadra_yolo = nullptr;
-                  if (packet != delayed_packet) { // Can this be otherwise?
-                    ai_queue.push_back(std::move(packet_lock));
-                    Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
-                    packetqueue.increment_it(analysis_it);
-                  }
-                  return ret;
 
+                  int count = 10;
+                  do {
+                    // packet got to the card
+                    Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
+                    delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+                    delayed_packet = delayed_packet_lock->packet_;
+
+                    ret = quadra_yolo->receive_detection(delayed_packet);
+                    if (0 < ret) {
+                      if (delayed_packet != packet) {
+                        Debug(1, "Pushing packet, popping delayed");
+                        ai_queue.push_back(std::move(packet_lock));
+                        packet = delayed_packet;
+                        packet_lock = std::move(ai_queue.front());
+                        ai_queue.pop_front();
+                        packetqueue.increment_it(analysis_it);
+                      }
+                      if (packet->ai_frame)
+                        zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                    } else if (0 > ret) {
+                      Debug(1, "Failed yolo");
+                      delete quadra_yolo;
+                      // Since packets are still in the queue, they will get re-fed into it..
+                      quadra_yolo = nullptr;
+                      if (packet != delayed_packet) { // Can this be otherwise?
+                        ai_queue.push_back(std::move(packet_lock));
+                        Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
+                        packetqueue.increment_it(analysis_it);
+                      }
+                      return ret;
+
+                    } else {
+                      // EAGAIN
+                      Debug(1, "ret %d EAGAIN", ret);
+                      //if (packet == delayed_packet) { // Can this be otherwise?
+                      //ai_queue.push_back(std::move(packet_lock));
+                      //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+                      //packetqueue.increment_it(analysis_it);
+                      //}
+                      //return 0;
+                      std::this_thread::sleep_for(Milliseconds(100));
+                      count -= 1;
+                    }
+                  } while (ret == 0 and count > 0);
                 } else {
-                  // EAGAIN
-                  Debug(1, "ret %d EAGAIN", ret);
-                  //if (packet == delayed_packet) { // Can this be otherwise?
-                    //ai_queue.push_back(std::move(packet_lock));
-                    //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-                    //packetqueue.increment_it(analysis_it);
-                  //}
-                  //return 0;
-                  std::this_thread::sleep_for(Milliseconds(100));
-                  count -= 1;
-                }
-                } while (ret == 0 and count > 0);
-              }
+                  quadra_yolo->draw_last_roi(packet);
+                } // end if skip_frame
+              } // end if has input_frame/hw_frame
             } // end if delayed_packet
           } // end yolo
           packet->hw_frame = nullptr; // Free it?
@@ -2270,9 +2277,11 @@ int Monitor::Analyse() {
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
             if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-              speedai->detect(*(packet->y_image));
+              speedai->send_image(*(packet->y_image));
+            } else if (packet->image) {
+              speedai->send_image(*(packet->image));
             } else {
-              speedai->detect(*(packet->y_image));
+              speedai->send_image(Image(packet->in_frame.get()));
             }
           }
 #endif

@@ -39,7 +39,6 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
   zm_monitor_onvif.cpp
-  zm_monitor_speedai.cpp
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
@@ -82,6 +81,7 @@ set(ZM_BIN_SRC_FILES
   zm_zone.cpp
   zm_storage.cpp
   netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp yolov8_postprocess.cpp ni_log.cpp
+  zm_untether_speedai.cpp
 )
 
 if(GSOAP_FOUND)

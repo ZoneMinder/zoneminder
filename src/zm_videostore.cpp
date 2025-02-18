@@ -303,9 +303,9 @@ bool VideoStore::open() {
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+        video_out_ctx->pix_fmt = chosen_codec_data->sw_pix_fmt;
         video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt));
+        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
@@ -547,7 +547,10 @@ void VideoStore::flush_codecs() {
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // Put encoder into flushing mode
-    while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, *pkt)) > 0) {
+    if (0>avcodec_send_frame(video_out_ctx, nullptr)) {
+      Error("Failure sending null to flush codec");
+    }
+    while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
       av_packet_guard pkt_guard{pkt};
       av_packet_rescale_ts(pkt.get(),
                            video_out_ctx->time_base,
@@ -753,6 +756,61 @@ bool VideoStore::setup_resampler() {
   }
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(61, 19,100, 19, 100)
+  const enum AVSampleFormat *sample_fmts;
+  const int *supported_samplerates;
+  int num_sample_fmts, num_samplerates;
+  ret = avcodec_get_supported_config(audio_out_ctx, NULL, AV_CODEC_CONFIG_SAMPLE_FORMAT,
+      0, (const void **) &sample_fmts,
+      &num_sample_fmts);
+  if (ret < 0)
+    return ret;
+  if (sample_fmts) {
+    int i;
+    for (i = 0; i < num_sample_fmts; i++) {
+      if (audio_out_ctx->sample_fmt == sample_fmts[i])
+        break;
+      if (audio_out_ctx->ch_layout.nb_channels == 1 &&
+          av_get_planar_sample_fmt(audio_out_ctx->sample_fmt) ==
+          av_get_planar_sample_fmt(sample_fmts[i])) {
+        audio_out_ctx->sample_fmt = sample_fmts[i];
+        break;
+      }
+    }
+    if (i == num_sample_fmts) {
+      Error("Specified sample format %s is not supported by the %s encoder",
+          av_get_sample_fmt_name(audio_out_ctx->sample_fmt), audio_out_codec->name);
+
+      Error("Supported sample formats:");
+      for (int p = 0; sample_fmts[p] != AV_SAMPLE_FMT_NONE; p++) {
+        Error("  %s", av_get_sample_fmt_name(sample_fmts[p]));
+      }
+
+      return AVERROR(EINVAL);
+    }
+  } // end if sample_fmts
+
+  ret = avcodec_get_supported_config(audio_out_ctx, NULL, AV_CODEC_CONFIG_SAMPLE_RATE,
+      0, (const void **) &supported_samplerates,
+      &num_samplerates);
+  if (ret < 0)
+    return ret;
+  if (supported_samplerates) {
+    int i;
+    for (i = 0; i < num_samplerates; i++)
+      if (audio_out_ctx->sample_rate == supported_samplerates[i])
+        break;
+    if (i == num_samplerates) {
+      Error("Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
+
+      Error("Supported sample rates:");
+      for (int p = 0; supported_samplerates[p]; p++)
+        Error("  %d\n", supported_samplerates[p]);
+
+      return AVERROR(EINVAL);
+    }
+  }
+#else
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
     for (unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
@@ -777,6 +835,7 @@ bool VideoStore::setup_resampler() {
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
   }
+#endif
 
   // Example code doesn't set the codec tb.  I think it just uses whatever defaults
   //audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
@@ -1046,9 +1105,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Debug(2, "Have an image, convert it");
         //Go straight to out frame
         if (
-            zm_packet->image->Width() == video_out_ctx->width
+            zm_packet->image->Width() == static_cast<unsigned int>(video_out_ctx->width)
             and
-            zm_packet->image->Height() == video_out_ctx->height
+            zm_packet->image->Height() == static_cast<unsigned int>(video_out_ctx->height)
             and
             zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
            ) {
@@ -1179,7 +1238,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     do {
       int ret = avcodec_send_frame(video_out_ctx, frame);
-      if (ret == AVERROR(EAGAIN)) {
+      if (ret == AVERROR(EAGAIN) and !zm_terminate) {
+        Debug(1, "Got EAGAIN sending frame");
         continue;
       }
       if (ret < 0) {
@@ -1205,13 +1265,14 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       // Need to adjust pts/dts values from codec time to stream time
       if (opkt->pts != AV_NOPTS_VALUE)
         opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-      if (opkt->dts != AV_NOPTS_VALUE)
+      if (opkt->dts != AV_NOPTS_VALUE and opkt->dts > 0)
         opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
       Debug(1, "Timebase conversions using %d/%d -> %d/%d",
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den,
             video_out_stream->time_base.num,
             video_out_stream->time_base.den);
+      ZM_DUMP_PACKET(opkt, "packet returned by codec after timebase conversions");
 
       if (video_last_pts != AV_NOPTS_VALUE) {
         opkt->duration = opkt->pts - video_last_pts;
@@ -1351,6 +1412,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;
+  ZM_DUMP_PACKET(pkt, "packet in write_packet");
 
   if (pkt->dts == AV_NOPTS_VALUE) {
     Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);

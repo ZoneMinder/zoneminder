@@ -156,6 +156,7 @@ class StreamBase {
   AVPixelFormat  mJpegPixelFormat; // Not what the codec context is configured to use, but what the mjpegswscontext is configured as input
   AVCodecContext *mJpegCodecContext;
   SwsContext     *mJpegSwsContext;
+  int bytes_sent;
 
  protected:
   bool loadMonitor(int monitor_id);
@@ -203,7 +204,8 @@ class StreamBase {
     temp_img_buffer(nullptr),
     temp_img_buffer_size(0),
     mJpegCodecContext(nullptr),
-    mJpegSwsContext(nullptr)
+    mJpegSwsContext(nullptr),
+    bytes_sent(0)
   {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));

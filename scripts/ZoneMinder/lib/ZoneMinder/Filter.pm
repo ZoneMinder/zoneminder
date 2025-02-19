@@ -318,13 +318,19 @@ sub Sql {
                 $self->{Sql} .= ' % 2 = 1';
               } elsif ( $value eq 'Even' ) {
                 $self->{Sql} .= ' % 2 = 0';
+              } elsif (uc($value) ne 'NULL') {
+                $self->{Sql} .= ' = '.$value;
               } else {
                 $self->{Sql} .= ' IS '.$value;
               }
             } elsif ( $term->{op} eq 'EXISTS' ) {
               $self->{Sql} .= ' EXISTS '.$value;
             } elsif ( $term->{op} eq 'IS NOT' ) {
-              $self->{Sql} .= ' IS NOT '.$value;
+              if (uc($value) ne 'NULL') {
+                $self->{Sql} .= ' != '.$value;
+              } else {
+                $self->{Sql} .= ' IS NOT '.$value;
+              }
             } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
               $self->{Sql} .= ' IN ('.join(',', @value_list).")";
             } elsif ( $term->{op} eq '![]' or $term->{op} eq 'NOT IN') {

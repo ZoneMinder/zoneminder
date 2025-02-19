@@ -43,9 +43,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice60|libavdevice59|libavdevice58|libavdevice57
-        ,libswscale7|libswscale6|libswscale5|libswscale4
-        ,libswresample4|libswresample3|libswresample2
+        ,libavdevice61|libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,libswscale8|libswscale7|libswscale6|libswscale5|libswscale4
+        ,libswresample5|libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl

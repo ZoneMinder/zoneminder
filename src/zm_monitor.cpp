@@ -3133,6 +3133,7 @@ int Monitor::OpenDecoder() {
     }
   }  // end if have audio stream
 #endif
+  return 1;
 }
 
 int Monitor::Decode() {
@@ -3191,15 +3192,15 @@ int Monitor::Decode() {
   } 
 
   if (!packet) {
-    packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
+    packet_lock = packetqueue.get_packet(decoder_it);
     packet = packet_lock.packet_;
     if (!packet) {
-      Debug(1, "No packet from get_apcket");
+      Debug(1, "No packet from get_packet");
       return -1;
     }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
-      Debug(3, "Not video,probably audio");
+      Debug(4, "Not video,probably audio");
       return 1; // Don't need decode
     }
   }
@@ -3214,17 +3215,21 @@ int Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
       Debug(1, "send_packet %d", packet->image_index);
-      int ret = packet->send_packet(mVideoCodecContext);
+      int ret;
+      do {
+        ret = packet->send_packet(mVideoCodecContext);
+      } while(!ret and !zm_terminate);
+
       if (ret < 0) {
         // No need to push because it didn't get into the decoder.
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
         return -1;
-      } else if (ret == 0) {
-        Debug(1, "EAGAIN");
+      //} else if (ret == 0) {
+        //Debug(1, "EAGAIN");
         // EAGAIN, didn't get into decoder
-        return ret;
+        //return ret;
       } else {
         Debug(1, "Success");
       }
@@ -3254,6 +3259,7 @@ int Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
+        packetqueue.increment_it(decoder_it);
         return -1;
         
       } else { // EAGAIN
@@ -3262,6 +3268,7 @@ int Monitor::Decode() {
           decoder_queue.push_back(std::move(packet_lock));
         //}
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
+        packetqueue.increment_it(decoder_it);
         return 0;
       }
     } else {
@@ -3400,12 +3407,13 @@ int Monitor::Decode() {
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
   }  // end if have image
-    decoding_image_count++;
-    shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
-      Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
-              FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
-    }
+  decoding_image_count++;
+  shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
+    Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
+        FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
+  }
+  packetqueue.increment_it(decoder_it);
   packet->decoded = true;
   return 1;
 }  // end int Monitor::Decode()

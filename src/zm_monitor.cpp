@@ -3034,120 +3034,127 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   return (convert_context != nullptr);
 }
 
-int Monitor::Decode() {
-  if (decoding != DECODING_NONE) {
-    if (!mVideoCodecContext) {
-      AVStream *mVideoStream = camera->getVideoStream();
-      AVStream *mAudioStream = camera->getAudioStream();
-      AVDictionary *opts = nullptr;
+int Monitor::OpenDecoder() {
+  AVStream *mVideoStream = camera->getVideoStream();
+  AVStream *mAudioStream = camera->getAudioStream();
+  AVDictionary *opts = nullptr;
 
-      if (mVideoStream) {
-        const AVCodec *mVideoCodec = nullptr;
-        std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
-        for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
-          const CodecData *chosen_codec_data = *it;
-          Debug(1, "Found codec %s", chosen_codec_data->codec_name);
+  if (mVideoStream) {
+    const AVCodec *mVideoCodec = nullptr;
+    std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
+    for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+      const CodecData *chosen_codec_data = *it;
+      Debug(1, "Found codec %s", chosen_codec_data->codec_name);
 
-          if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
-            if (this->DecoderName() != chosen_codec_data->codec_name) {
-              Debug(1, "Not the specified codec.");
-              continue;
-            }
-          }
-          mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+      if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
+        if (this->DecoderName() != chosen_codec_data->codec_name) {
+          Debug(1, "Not the specified codec.");
+          continue;
+        }
+      }
+      mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
 
-          if (!mVideoCodec) {
-            mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
-            if (!mVideoCodec) {
-              // Try and get the codec from the codec context
-              //Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-              Error("Can't find codec for video stream from ");
-              continue;
-            }
-          }
+      if (!mVideoCodec) {
+        mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+        if (!mVideoCodec) {
+          // Try and get the codec from the codec context
+          //Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
+          Error("Can't find codec for video stream from ");
+          continue;
+        }
+      }
 
-          mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
-          avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
+      mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
+      avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
 
 #ifdef CODEC_FLAG2_FAST
-          mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+      mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
 
-          if (!options.empty()) {
-            av_dict_parse_string(&opts, options.c_str(), "=", ",", 0);
-            // reorder_queparse for avforpts, mOpcodec
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-            av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
-          }
-          av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
+      if (!options.empty()) {
+        av_dict_parse_string(&opts, options.c_str(), "=", ",", 0);
+        // reorder_queparse for avforpts, mOpcodec
+        av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+        av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+      }
+      av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
 
-          int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+      int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
-          AVDictionaryEntry *e = nullptr;
-          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-            Warning("Option %s not recognized by ffmpeg", e->key);
-          }
-          av_dict_free(&opts);
-          if (ret < 0) {
-            Error("Unable to open codec for video stream from ");
-            //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
-            avcodec_free_context(&mVideoCodecContext);
-            continue;
-          }
-          zm_dump_codec(mVideoCodecContext);
-          break;
-        } // end foreach codec
-      } // end if mVideoStream
+      AVDictionaryEntry *e = nullptr;
+      while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+        Warning("Option %s not recognized by ffmpeg", e->key);
+      }
+      av_dict_free(&opts);
+      if (ret < 0) {
+        Error("Unable to open codec for video stream from ");
+        //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+        avcodec_free_context(&mVideoCodecContext);
+        continue;
+      }
+      zm_dump_codec(mVideoCodecContext);
+      break;
+    } // end foreach codec
+  } // end if mVideoStream
 
-      if (!mVideoCodecContext) {
+  if (!mVideoCodecContext) {
+    return -1;
+  }
+
+  if (mAudioStream) {
+    const AVCodec *mAudioCodec = nullptr;
+    if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
+      Debug(1, "Can't find codec for audio stream from ");
+      //Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
+    } else {
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
+
+      //zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
+      // Open the codec
+      if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
+        Error("Unable to open codec for audio stream from ");
+        //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
         return -1;
-      }
-
-      if (mAudioStream) {
-        const AVCodec *mAudioCodec = nullptr;
-        if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
-          Debug(1, "Can't find codec for audio stream from ");
-          //Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
-        } else {
-          mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
-          avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
-
-          //zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
-          // Open the codec
-          if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
-            Error("Unable to open codec for audio stream from ");
-            //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
-            return -1;
-          }  // end if opened
-        }  // end if found decoder
-      } // end if audiostream
+      }  // end if opened
+    }  // end if found decoder
+  } // end if audiostream
 #if 0
-      else if (!monitor->GetSecondPath().empty()) {
-        Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
-        mSecondInput = zm::make_unique<FFmpeg_Input>();
-        if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
-          mSecondFormatContext = mSecondInput->get_format_context();
-          mAudioStreamId = mSecondInput->get_audio_stream_id();
-          mAudioStream = mSecondInput->get_audio_stream();
-          mAudioCodecContext = mSecondInput->get_audio_codec_context();
-        } else {
-          Warning("Failed to open secondary input");
-        }
-      }  // end if have audio stream
+  else if (!monitor->GetSecondPath().empty()) {
+    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    mSecondInput = zm::make_unique<FFmpeg_Input>();
+    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+      mSecondFormatContext = mSecondInput->get_format_context();
+      mAudioStreamId = mSecondInput->get_audio_stream_id();
+      mAudioStream = mSecondInput->get_audio_stream();
+      mAudioCodecContext = mSecondInput->get_audio_codec_context();
+    } else {
+      Warning("Failed to open secondary input");
+    }
+  }  // end if have audio stream
 #endif
+}
 
-      while (decoder_queue.size() and !zm_terminate) {
-        Debug(1, "Send queue packets %ld", decoder_queue.size());
-        // Inject current queue into the decoder.
-        ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
-        auto delayed_packet = delayed_packet_lock->packet_;
-        if (0 != delayed_packet->send_packet(mVideoCodecContext)) {
-          Error("Failed sending packet %d", delayed_packet->image_index);
-          break;
-        } else {
-          decoder_queue.pop_front();
-        }
-      }
+int Monitor::Decode() {
+  if (decoding != DECODING_NONE) {
+    // Not fatal... because we can still record
+    if (!mVideoCodecContext) {
+      if (OpenDecoder() > 0) {
+
+        // If we have queued packets, need to stuff them into the decoder.
+        while (decoder_queue.size() and !zm_terminate) {
+          Debug(1, "Send queue packets %ld", decoder_queue.size());
+          // Inject current queue into the decoder.
+          ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
+          auto delayed_packet = delayed_packet_lock->packet_;
+          if (0 != delayed_packet->send_packet(mVideoCodecContext)) {
+            Error("Failed sending packet %d", delayed_packet->image_index);
+            break;
+          } else {
+            decoder_queue.pop_front();
+          }
+        } // end while packets in queue
+      } // end if success opening codec
     } // end if ! mCodec
   } // end != DECODING_NONE
 

@@ -507,7 +507,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
         Error("Null p?!");
         return ZMPacketLock();
       }
-      Debug(3, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
+      Debug(4, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
 
       {
         std::shared_ptr<ZMPacket> p = *(*it);

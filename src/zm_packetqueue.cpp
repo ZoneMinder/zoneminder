@@ -509,8 +509,7 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
         Error("Null p?!");
         return nullptr;
       }
-      Debug(3, "get_packet using it %p locking index %d",
-            std::addressof(*it), p->image_index);
+      Debug(4, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
 
       lp = new ZMLockedPacket(p);
       if (lp->trylock()) {

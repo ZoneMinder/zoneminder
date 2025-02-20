@@ -368,10 +368,10 @@ bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
 };
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
-  Debug(3, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
   locked = false;
   lck_.unlock();
-  Debug(3, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
   condition_.notify_all();
 };
 

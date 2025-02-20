@@ -729,6 +729,7 @@ void MonitorStream::runStream() {
     }  // end if (buffered_playback && delayed)
 
     int last_index;
+      last_index = (last_read_index+1) % monitor->image_buffer_count;
     int last_count;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
@@ -736,7 +737,6 @@ void MonitorStream::runStream() {
       Debug(4, "Using OBJDETECT");
       //if (last_read_index !=  last_image_count < last_count) {
       //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
-        last_index = (last_read_index+1) % monitor->image_buffer_count;;
       //}
       //last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
@@ -744,14 +744,12 @@ void MonitorStream::runStream() {
       pixelformats = monitor->analysis_image_pixelformats;
     } else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
       Debug(1, "Using ANALYSIS");
-        last_index = (last_read_index+1) % monitor->image_buffer_count;;
       //last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     } else {
       Debug(1, "Using LIVE");
-      last_index = (last_read_index+1) % monitor->image_buffer_count;;
       //last_index = monitor->shared_data->last_write_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
@@ -879,7 +877,7 @@ void MonitorStream::runStream() {
         }
       } // end if buffered playback
     } else {
-      Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
+      Debug(3, "Waiting for capture last_analysis_index=%u == last_read_index=%u",
           //last_write_index,
             monitor->shared_data->last_analysis_index,
             last_read_index);

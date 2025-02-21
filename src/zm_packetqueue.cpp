@@ -299,11 +299,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
         break;
       }
 
-      if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
-        Debug(1, "Found iterator at beginning of queue.");
-        break;
-      }
-
       packets_removed ++;
       pktQueue.pop_front();
       int stream_index = zm_packet->packet ? zm_packet->packet->stream_index : 0;

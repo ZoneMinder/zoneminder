@@ -1175,6 +1175,32 @@ our @options = (
     },
     category    => 'logging',
   },
+   {
+    name        => 'ZM_LOG_LEVEL_TERM',
+    default     => '-1',
+    description => 'Save logging output to stdout',
+    help        => q`
+      ZoneMinder logging is now more integrated between
+      components and allows you to specify the destination for
+      logging output and the individual levels for each. This option
+      lets you control the level of logging output that goes to the
+      terminal stdout. This really only affects ZoneMinder binaries,
+      not so much the web php scripts. This is generally only useful
+      for debugging purposes.
+      This option controls the maximum level
+      of logging that will be written, so Info includes Warnings and
+      Errors etc. To disable entirely, set this option to None.
+      If you want debug
+      you will also need to set a level and component below
+      `,
+    type        => {
+      db_type     => 'integer',
+      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      pattern     => qr|^(\d+)$|,
+      format      => q( $1 )
+    },
+    category    => 'logging',
+  },
   {
     name        => 'ZM_LOG_LEVEL_FILE',
     default     => '1',

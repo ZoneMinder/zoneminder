@@ -728,9 +728,9 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    int last_index;
-      last_index = (last_read_index+1) % monitor->image_buffer_count;
+    int index = (last_read_index+1) % monitor->image_buffer_count;
     int last_count;
+    int last_index;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
     if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
@@ -738,26 +738,27 @@ void MonitorStream::runStream() {
       //if (last_read_index !=  last_image_count < last_count) {
       //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
       //}
-      //last_index = monitor->shared_data->last_analysis_index;
+      last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     } else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
       Debug(1, "Using ANALYSIS");
-      //last_index = monitor->shared_data->last_analysis_index;
+      last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     } else {
       Debug(1, "Using LIVE");
-      //last_index = monitor->shared_data->last_write_index;
+      last_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     }
 
+    Debug(1, "index %d, last_read_index %d, last_index %d, last_image_count %d last_count %d", index, last_read_index, last_index, last_image_count, last_count);
     if (
-        //last_read_index != last_index ||
+        index != last_index ||
         last_image_count < last_count) {
       //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
@@ -891,7 +892,6 @@ void MonitorStream::runStream() {
       }
       std::this_thread::sleep_for( MonitorStream::MAX_SLEEP / 10);
       continue;
-
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     FPSeconds sleep_time;

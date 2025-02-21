@@ -2223,21 +2223,24 @@ int Monitor::Analyse() {
                   }
 
                   int count = 10;
+                  delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+                  delayed_packet = delayed_packet_lock->packet_;
                   do {
                     // packet got to the card
                     Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
-                    delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-                    delayed_packet = delayed_packet_lock->packet_;
 
                     ret = quadra_yolo->receive_detection(delayed_packet);
                     if (0 < ret) {
-                      if (delayed_packet != packet) {
+                      Debug(1, "Success %d", delayed_packet->image_index);
+                      if (delayed_packet.get() != packet.get()) {
                         Debug(1, "Pushing packet, popping delayed");
                         ai_queue.push_back(std::move(packet_lock));
                         packet = delayed_packet;
                         packet_lock = std::move(ai_queue.front());
                         ai_queue.pop_front();
                         packetqueue.increment_it(analysis_it);
+                      } else {
+                        Debug(1, "packet %p != delayed_packet %p", packet.get(), delayed_packet.get());
                       }
                       if (packet->ai_frame)
                         zm_dump_video_frame(packet->ai_frame.get(), "after detect");
@@ -2255,14 +2258,14 @@ int Monitor::Analyse() {
 
                     } else {
                       // EAGAIN
-                      Debug(1, "ret %d EAGAIN", ret);
+                      Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
                       //if (packet == delayed_packet) { // Can this be otherwise?
                       //ai_queue.push_back(std::move(packet_lock));
                       //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
                       //packetqueue.increment_it(analysis_it);
                       //}
                       //return 0;
-                      std::this_thread::sleep_for(Milliseconds(100));
+                      std::this_thread::sleep_for(Milliseconds(10));
                       count -= 1;
                     }
                   } while (ret == 0 and count > 0);
@@ -2643,38 +2646,31 @@ int Monitor::Analyse() {
       // Only do these if it's a video packet.
       unsigned int index = shared_data->last_analysis_index;
       index++;
-      index = index % image_buffer_count;
+      index = (index+1) % image_buffer_count;
       if (packet->ai_frame) {
         analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
         Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
         analysis_image_buffer[index]->Assign(packet->ai_frame.get());
         analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
-        shared_data->last_analysis_index = index;
-
-      shared_data->last_read_index = packet->image_index;
-      shared_data->analysis_image_count++;
       } else if (packet->analysis_image) {
         analysis_image_buffer[index]->Assign(*packet->analysis_image);
         analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
         Debug(1, "analysis %d, for index %d, packet %d", analysis_image_pixelformats[index], index, packet->image_index);
-        shared_data->last_analysis_index = index;
-      shared_data->analysis_image_count++;
       } else if (packet->image) {
         analysis_image_buffer[index]->Assign(*packet->image);
         analysis_image_pixelformats[index] = packet->image->AVPixFormat();
-        shared_data->last_analysis_index = index;
         Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
-      shared_data->analysis_image_count++;
       } else if (packet->in_frame) {
         analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
         Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
         analysis_image_buffer[index]->Assign(packet->in_frame.get());
         analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format);
-        shared_data->last_analysis_index = index;
-      shared_data->analysis_image_count++;
       } else {
         Debug(1, "Unable to find an image to assign for index %d", index);
       }
+      shared_data->last_analysis_index = index;
+      shared_data->last_read_index = index;
+      shared_data->analysis_image_count++;
       shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     } else {
       Debug(3, "Not video, not clearing packets");
@@ -3065,6 +3061,7 @@ int Monitor::OpenDecoder() {
 
       mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
       avcodec_parameters_to_context(mVideoCodecContext, mVideoStream->codecpar);
+      mVideoCodecContext->framerate = mVideoStream->r_frame_rate;
 
 #ifdef CODEC_FLAG2_FAST
       mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
@@ -3200,6 +3197,7 @@ int Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
       Debug(4, "Not video,probably audio");
+      packetqueue.increment_it(decoder_it);
       return 1; // Don't need decode
     }
   }
@@ -3215,9 +3213,10 @@ int Monitor::Decode() {
        ) {
       Debug(1, "send_packet %d", packet->image_index);
       int ret;
-      do {
+      //do {
         ret = packet->send_packet(mVideoCodecContext);
-      } while(!ret and !zm_terminate);
+        if ( 0>=ret) return -1; //make it sleep?
+      //} while(!ret and !zm_terminate);
 
       if (ret < 0) {
         // No need to push because it didn't get into the decoder.
@@ -3882,7 +3881,6 @@ int Monitor::Pause() {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
   }
-  while (ai_queue.size()) ai_queue.pop_front();
 
   Debug(1, "Stopping packetqueue");
   // Wake everyone up
@@ -3902,6 +3900,8 @@ int Monitor::Pause() {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
   }
+  while (decoder_queue.size()) decoder_queue.pop_front();
+  while (ai_queue.size()) ai_queue.pop_front();
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

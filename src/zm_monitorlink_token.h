@@ -158,7 +158,11 @@ class Token {
     return type_  == rhs.type_ && value_ == rhs.value_;
   }
 
-  ~Token() noexcept = default;
+  ~Token() {
+    if (monitor_link_)
+      delete monitor_link_;
+
+  }
   constexpr void type( TokenType const type ) noexcept {
     if ( type != type_ ) {
       type_  = type;

@@ -84,13 +84,12 @@ class Token {
   Token(TokenType const type, std::string_view const value)
     : type_(type)
     , value_(value)
-    , monitor_link_(nullptr) {
+    , monitor_link_(nullptr)
+  {
     if (type_ == TokenType::monitorlink) {
       auto colon_position = value_.find(':');
       unsigned int monitor_id = 0;
       unsigned int zone_id = 0;
-      std::string monitor_name;
-      std::string zone_name;
 
       if (colon_position != std::string::npos) {
         // Has a zone specification
@@ -102,7 +101,7 @@ class Token {
       Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
       std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
+      monitor_link_ = new Monitor::MonitorLink(std::move(monitor), zone_id);
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }
@@ -132,8 +131,6 @@ class Token {
       auto colon_position = value_.find(':');
       unsigned int monitor_id = 0;
       unsigned int zone_id = 0;
-      std::string monitor_name;
-      std::string zone_name;
 
       if (colon_position != std::string::npos) {
         // Has a zone specification
@@ -145,7 +142,7 @@ class Token {
       Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
       std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
+      monitor_link_ = new Monitor::MonitorLink(std::move(monitor), zone_id);
     } else {
       Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
     }
@@ -159,10 +156,12 @@ class Token {
   }
 
   ~Token() {
-    if (monitor_link_)
+    if (monitor_link_) {
       delete monitor_link_;
-
+      monitor_link_ = nullptr;
+    }
   }
+
   constexpr void type( TokenType const type ) noexcept {
     if ( type != type_ ) {
       type_  = type;
@@ -203,8 +202,8 @@ class Token {
   }
 
   [[ nodiscard ]] constexpr int score() const {
-    if ( monitor_link_ ) {
-      if (!monitor_link_->isConnected() ) {
+    if (monitor_link_) {
+      if (!monitor_link_->isConnected()) {
         Debug(1, "connecting");
         if (!monitor_link_->connect()) {
           Debug(1, "failed");
@@ -212,7 +211,7 @@ class Token {
         }
       }
       int s = monitor_link_->score();
-      Debug(1, "Score from monitor %s is %d", monitor_link_->Name(), s);
+      Debug(1, "Score from monitor %s is %d", monitor_link_->Name().c_str(), s);
       return s;
     }
     return 0;

@@ -324,7 +324,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ~MonitorLink();
 
     inline unsigned int Id() const { return monitor->Id(); }
-    inline const char *Name() const { return name.c_str(); }
+    inline const std::string &Name() const { return name; }
+    //inline const std::string &Name() const { return monitor ? monitor->Name() : ""; }
 
     inline bool isConnected() const { return connected && shared_data && shared_data->valid; }
     inline time_t getLastConnectTime() const { return last_connect_time; }
@@ -746,7 +747,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return false;
   }
   inline unsigned int Id() const { return id; }
-  inline const char *Name() const { return name.c_str(); }
+  //inline const char *Name() const { return name.c_str(); }
+  inline const std::string &Name() const { return name; }
   inline bool Deleted() const { return deleted; }
   inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {

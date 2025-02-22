@@ -313,6 +313,28 @@ function initPage() {
     }
   }
 
+  //Manage the RTSP2Web settings div
+  const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+  if (RTSP2WebEnabled) {
+    if (RTSP2WebEnabled.checked) {
+      document.getElementById("RTSP2WebType").hidden = false;
+      document.getElementById("RTSP2WebStream").hidden = false;
+    } else {
+      document.getElementById("RTSP2WebType").hidden = true;
+      document.getElementById("RTSP2WebStream").hidden = true;
+    }
+
+    RTSP2WebEnabled.addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("RTSP2WebType").hidden = false;
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebType").hidden = true;
+        document.getElementById("RTSP2WebStream").hidden = true;
+      }
+    });
+  }
+
   // Amcrest API controller
   const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
   if (ONVIF_Event_Listener) {

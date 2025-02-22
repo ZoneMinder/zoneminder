@@ -113,18 +113,12 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
-        Debug(1, "reorder_queue_size ignored for non-passthrough");
-      } else {
-        reorder_queue_size = std::stoul(entry->value);
-        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-      }
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     } else if (monitor->has_out_of_order_packets()
         and !monitor->WallClockTimestamps()
-        // Only sort packets for passthrough. Encoding uses wallclock by default
-        and monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH
         ) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);

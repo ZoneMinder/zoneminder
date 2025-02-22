@@ -3196,7 +3196,7 @@ int Monitor::Decode() {
     }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
-      Debug(4, "Not video,probably audio");
+      Debug(3, "Not video,probably audio");
       packetqueue.increment_it(decoder_it);
       return 1; // Don't need decode
     }
@@ -3215,7 +3215,7 @@ int Monitor::Decode() {
       int ret;
       //do {
         ret = packet->send_packet(mVideoCodecContext);
-        if ( 0>=ret) return -1; //make it sleep?
+        if (0 == ret) return -1; //make it sleep?
       //} while(!ret and !zm_terminate);
 
       if (ret < 0) {
@@ -3242,7 +3242,6 @@ int Monitor::Decode() {
       if (ret > 0 and !zm_terminate) {
         if (decoder_queue.size()) {
           Debug(1, "Popping off delayed packet size %zu", decoder_queue.size());
-          delayed_packet->decoded = true;
           decoder_queue.push_back(std::move(packet_lock));
           /*
           std::move_iterator< std::list<ZMPacketLock>::iterator > it = std::make_move_iterator(decoder_queue.begin());
@@ -3261,7 +3260,7 @@ int Monitor::Decode() {
         return -1;
         
       } else { // EAGAIN
-        //if (packet == delayed_packet) {
+        //if (packet.get() == delayed_packet.get()) {
           Debug(1, "Pushing origin packet on back of queue");
           decoder_queue.push_back(std::move(packet_lock));
         //}

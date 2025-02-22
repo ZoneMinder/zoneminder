@@ -631,7 +631,6 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
     Error("cannot allocate output filter frame");
     return NIERROR(ENOMEM);
   }
-  int detected = 0;
   for (int i = 0; i < last_roi_count; i++) {
     int ret = draw_roi_box(packet->in_frame.get(), &output, last_roi[i], last_roi_extra[i]);
     if (ret < 0) {

@@ -2276,14 +2276,78 @@ int Monitor::Analyse() {
 
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
-            if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-              speedai->send_image(*(packet->y_image));
-            } else if (packet->image) {
-              speedai->send_image(*(packet->image));
+            ZMPacketLock *delayed_packet_lock;
+            std::shared_ptr<ZMPacket> delayed_packet;
+
+            if (ai_queue.size()) {
+              Debug(1, "Have queued packets %zu, send them to be yolod", ai_queue.size());
+              // Try to ai, without feeding the ai.
+              delayed_packet_lock  = &ai_queue.front();
+              delayed_packet = delayed_packet_lock->packet_;
+              int ret = speedai->receive_detections(delayed_packet);
+              if (ret > 0) {
+                // Success, pop and assign
+                Debug(1, "Success packet %d", packet->image_index);
+                packet_lock = std::move(ai_queue.front());
+                ai_queue.pop_front();
+                packet = delayed_packet;
+                Debug(1, "Fre hwframe %d", packet->image_index);
+                Debug(1, "Success packet %d", packet->image_index);
+              } else if (ret < 0) {
+                Debug(1, "Failed to get frame %d", ret);
+                return ret;
+              } else {
+                Debug(1, "EAGAIN, fall through and send a packet");
+                delayed_packet = nullptr;
+              } // else 0, EAGAIN, fall through and send a packet
             } else {
-              speedai->send_image(Image(packet->in_frame.get()));
+              Debug(1, "Dont Have queued packets %zu", ai_queue.size());
             }
-          }
+
+            Debug(1, "Send_packet %d", packet->image_index);
+            int ret = speedai->send_image(packet);
+            if (ret <= 0) {
+              Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
+              return ret;
+            }
+
+            // packet got to the card
+            Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
+            delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+            delayed_packet = delayed_packet_lock->packet_;
+
+            ret = speedai->receive_detections(delayed_packet);
+            if (0 < ret) {
+              if (delayed_packet != packet) {
+                Debug(1, "Pushing packet, popping delayed");
+                ai_queue.push_back(std::move(packet_lock));
+                packet = delayed_packet;
+                packet_lock = std::move(ai_queue.front());
+                ai_queue.pop_front();
+                packetqueue.increment_it(analysis_it);
+              }
+              if (packet->ai_frame)
+                zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+            } else if (0 > ret) {
+              Debug(1, "Failed yolo");
+              delete speedai;
+              // Since packets are still in the queue, they will get re-fed into it..
+              speedai = nullptr;
+              if (packet != delayed_packet) { // Can this be otherwise?
+                ai_queue.push_back(std::move(packet_lock));
+                Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
+                packetqueue.increment_it(analysis_it);
+              }
+              return ret;
+
+            } else {
+              // EAGAIN
+              Debug(1, "ret %d EAGAIN", ret);
+              //if (packet == delayed_packet) { // Can this be otherwise?
+              //ai_queue.push_back(std::move(packet_lock));
+              //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+            }
+          } // edn if speedai
 #endif
 
           // Ready means that we have captured the warmup # of frames
@@ -3862,13 +3926,11 @@ int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
-  while (decoder_queue.size()) decoder_queue.pop_front();
 
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
   }
-  while (ai_queue.size()) ai_queue.pop_front();
 
   Debug(1, "Stopping packetqueue");
   // Wake everyone up
@@ -3877,6 +3939,7 @@ int Monitor::Pause() {
   if (decoder) {
     Debug(1, "Joining decode");
     decoder->Join();
+    while (decoder_queue.size()) decoder_queue.pop_front();
 
     if (convert_context) {
       sws_freeContext(convert_context);
@@ -3888,6 +3951,7 @@ int Monitor::Pause() {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
   }
+  while (ai_queue.size()) ai_queue.pop_front();
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

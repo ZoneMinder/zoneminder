@@ -52,7 +52,7 @@ class SpeedAI {
       UaiDataBuffer outputBuf;
       UaiEvent event;
     };
-    std::list<Job> jobs;
+    std::list<Job *> jobs;
     float dequantize(uint8_t val, int bias);
 
   public:
@@ -62,7 +62,7 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
-    int send_image(const Image &image);
+    int send_image(std::shared_ptr<ZMPacket>);
     int receive_detections(std::shared_ptr<ZMPacket>);
 };
 #endif

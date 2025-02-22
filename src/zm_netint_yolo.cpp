@@ -626,13 +626,20 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 }
 
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
-  AVFrame *output = av_frame_alloc();
-  if (!output) {
-    Error("cannot allocate output filter frame");
-    return NIERROR(ENOMEM);
-  }
+  AVFrame *in_frame = packet->in_frame.get();
+ // ? packet->in_frame.get() : packet->out_frame.get();
+  if (!in_frame) { return 1; }
+
+  if (!last_roi_count) return 1;
+
   for (int i = 0; i < last_roi_count; i++) {
-    int ret = draw_roi_box(packet->in_frame.get(), &output, last_roi[i], last_roi_extra[i]);
+    AVFrame *output = av_frame_alloc();
+    // TODO use RAII
+    if (!output) {
+      Error("cannot allocate output filter frame");
+      return NIERROR(ENOMEM);
+    }
+    int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
     if (ret < 0) {
       Error("draw %d roi box failed", i);
       return ret;
@@ -642,8 +649,13 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
     Image img(output);
     img.Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 
-    packet->ai_frame = av_frame_ptr(output);
+    if (in_frame != packet->in_frame.get()) {
+      Debug(1, "Freeing input");
+      av_frame_free(&in_frame);
+    }
+    in_frame = output;
   } // end foreach detection
+  packet->ai_frame = av_frame_ptr(in_frame);
   return 1;
 } // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)
 

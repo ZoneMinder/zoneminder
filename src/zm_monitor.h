@@ -326,7 +326,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     inline unsigned int Id() const { return monitor->Id(); }
     inline const char *Name() const { return name.c_str(); }
 
-    inline bool isConnected() const { return connected && shared_data->valid; }
+    inline bool isConnected() const { return connected && shared_data && shared_data->valid; }
     inline time_t getLastConnectTime() const { return last_connect_time; }
 
     inline uint32_t lastFrameScore() {

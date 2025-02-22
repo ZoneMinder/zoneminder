@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
     for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
       auto mid = it->first;
       auto &monitor = it->second;
-      Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name().c_str());
+      Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
       monitors.erase(mid);
       if (sessions.find(mid) != sessions.end()) {
         if (video_sources.find(monitor->Id()) != video_sources.end()) {
@@ -341,7 +341,7 @@ int main(int argc, char *argv[]) {
       delete audio_sources[i];
     }
     if (sessions.find(i) != sessions.end()) {
-      Debug(1, "Removing session for %s", mon_pair.second->Name().c_str());
+      Debug(1, "Removing session for %s", mon_pair.second->Name());
       rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
       sessions.erase(i);
     }

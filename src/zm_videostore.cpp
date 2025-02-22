@@ -113,18 +113,12 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
-        Debug(1, "reorder_queue_size ignored for non-passthrough");
-      } else {
-        reorder_queue_size = std::stoul(entry->value);
-        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-      }
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     } else if (monitor->has_out_of_order_packets()
         and !monitor->WallClockTimestamps()
-        // Only sort packets for passthrough. Encoding uses wallclock by default
-        and monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH
         ) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
@@ -763,13 +757,17 @@ bool VideoStore::setup_resampler() {
   ret = avcodec_get_supported_config(audio_out_ctx, NULL, AV_CODEC_CONFIG_SAMPLE_FORMAT,
       0, (const void **) &sample_fmts,
       &num_sample_fmts);
-  if (ret < 0)
+  if (ret < 0) {
+    Debug(1, "Error %d getting SAMPLE_FORMAT config", ret);
     return ret;
+  }
   if (sample_fmts) {
     int i;
     for (i = 0; i < num_sample_fmts; i++) {
-      if (audio_out_ctx->sample_fmt == sample_fmts[i])
+      if (audio_out_ctx->sample_fmt == sample_fmts[i]) {
+        Debug(1, "Found sample format %s", av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
         break;
+      }
       if (audio_out_ctx->ch_layout.nb_channels == 1 &&
           av_get_planar_sample_fmt(audio_out_ctx->sample_fmt) ==
           av_get_planar_sample_fmt(sample_fmts[i])) {
@@ -778,15 +776,20 @@ bool VideoStore::setup_resampler() {
       }
     }
     if (i == num_sample_fmts) {
-      Error("Specified sample format %s is not supported by the %s encoder",
+      Debug(1, "Specified sample format %s is not supported by the %s encoder",
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt), audio_out_codec->name);
 
-      Error("Supported sample formats:");
+      Debug(1, "Supported sample formats:");
       for (int p = 0; sample_fmts[p] != AV_SAMPLE_FMT_NONE; p++) {
-        Error("  %s", av_get_sample_fmt_name(sample_fmts[p]));
+        Debug(1, "  %s", av_get_sample_fmt_name(sample_fmts[p]));
       }
-
-      return AVERROR(EINVAL);
+      if (num_sample_fmts) {
+        audio_out_ctx->sample_fmt = sample_fmts[0];
+        Debug(1, "Sample format is no good, setting to %s", av_get_sample_fmt_name(sample_fmts[0]));
+      } else {
+        Error("Unable to set sample fmt");
+        return AVERROR(EINVAL);
+      }
     }
   } // end if sample_fmts
 
@@ -800,12 +803,13 @@ bool VideoStore::setup_resampler() {
     for (i = 0; i < num_samplerates; i++)
       if (audio_out_ctx->sample_rate == supported_samplerates[i])
         break;
-    if (i == num_samplerates) {
-      Error("Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
 
-      Error("Supported sample rates:");
+    if (i == num_samplerates) {
+      Debug(1, "Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
+
+      Debug(1, "Supported sample rates:");
       for (int p = 0; supported_samplerates[p]; p++)
-        Error("  %d\n", supported_samplerates[p]);
+        Debug(1, "  %d\n", supported_samplerates[p]);
 
       return AVERROR(EINVAL);
     }
@@ -814,8 +818,7 @@ bool VideoStore::setup_resampler() {
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
     for (unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
-      if (audio_out_ctx->sample_rate ==
-          audio_out_codec->supported_samplerates[i]) {
+      if (audio_out_ctx->sample_rate == audio_out_codec->supported_samplerates[i]) {
         found = 1;
         break;
       }

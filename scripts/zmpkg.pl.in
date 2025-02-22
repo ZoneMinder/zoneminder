@@ -39,14 +39,16 @@ use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
 use autouse 'Pod::Usage'=>qw(pod2usage);
+use Data::Dumper;
 
 # Detaint our environment
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin:/opt/untether/speedai/bin:/opt/untether/speedai/share/scripts';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
-delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+#delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $store_state=''; # PP - will remember state name passed
 
 logInit();
+Debug(Data::Dumper::Dumper(\%ENV));
 
 my $command = $ARGV[0]||'';
 if ( $command eq 'version' ) {

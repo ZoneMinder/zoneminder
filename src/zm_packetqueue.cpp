@@ -269,6 +269,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   Debug(1, "Tail count is %d, queue size is %zu, video_packets %d", tail_count, pktQueue.size(), packet_counts[video_stream_id]);
 
   if (!keep_keyframes) {
+    int packets_removed = 0;
     Debug(3, "Not keeping keyframes");
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
@@ -281,6 +282,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
         break;
       }
 
+      packets_removed ++;
       pktQueue.pop_front();
       int stream_index = zm_packet->packet ? zm_packet->packet->stream_index : 0;
       packet_counts[stream_index] -= 1;
@@ -293,8 +295,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pre_event_video_packet_count,
             pktQueue.size());
     } // end while
-    Debug(3, "Done removing packets from queue. packet_counts %d >? pre_event %d + tail %d = %d",
-        packet_counts[video_stream_id], pre_event_video_packet_count, tail_count, pre_event_video_packet_count + tail_count);
+    Debug(3, "Done removing %d packets from queue. packet_counts %d >? pre_event %d + tail %d = %d",
+        packets_removed, packet_counts[video_stream_id], pre_event_video_packet_count, tail_count, pre_event_video_packet_count + tail_count);
     return;
   }
 
@@ -507,7 +509,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
         Error("Null p?!");
         return ZMPacketLock();
       }
-      Debug(3, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
+      Debug(4, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
 
       {
         std::shared_ptr<ZMPacket> p = *(*it);

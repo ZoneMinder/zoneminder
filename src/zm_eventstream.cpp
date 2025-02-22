@@ -898,7 +898,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
         if ((!mJpegCodecContext) || (
-              mJpegCodecContext->width != send_image->Width() || mJpegCodecContext->height != send_image->Height()
+              static_cast<unsigned int>(mJpegCodecContext->width) != send_image->Width()
+              ||
+              static_cast<unsigned int>(mJpegCodecContext->height) != send_image->Height()
               || mJpegPixelFormat != send_image->AVPixFormat()
               )
             ) {

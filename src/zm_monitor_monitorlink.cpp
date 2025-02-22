@@ -35,10 +35,23 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
   zone_id(p_zone_id),
   zone(nullptr),
   zone_index(-1),
+  //name
+  connected(false),
+  last_connect_time(0),
+#if ZM_MEM_MAPPED
+  map_fd(-1),
+#else // ZM_MEM_MAPPED
+  shm_id(0),
+#endif // ZM_MEM_MAPPED
+  mem_size(0),
+  mem_ptr(nullptr),
   shared_data(nullptr),
   trigger_data(nullptr),
   video_store_data(nullptr),
-  zone_scores(nullptr) {
+  zone_scores(nullptr),
+  last_state(IDLE),
+  last_event_id(0)
+{
   name = monitor->Name();
   if (zone_id) {
     zones = Zone::Load(monitor);
@@ -60,23 +73,13 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
   if (zone) name += " : " + zone->Name();
 
 #if ZM_MEM_MAPPED
-  map_fd = -1;
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), monitor->Id());
-#else // ZM_MEM_MAPPED
-  shm_id = 0;
 #endif // ZM_MEM_MAPPED
-  mem_size = 0;
-  mem_ptr = nullptr;
-
-  last_event_id = 0;
-  last_state = IDLE;
-
-  last_connect_time = 0;
-  connected = false;
 }
 
 Monitor::MonitorLink::~MonitorLink() {
   zones.clear();
+  zone = nullptr;
   disconnect();
 }
 
@@ -129,13 +132,11 @@ bool Monitor::MonitorLink::connect() {
     shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, 0700);
     if (shm_id < 0) {
       Debug(3, "Can't shmget link memory: %s", strerror(errno));
-      connected = false;
       return false;
     }
     mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
     if ((int)mem_ptr == -1) {
       Debug(3, "Can't shmat link memory: %s", strerror(errno));
-      connected = false;
       return false;
     }
 #endif // ZM_MEM_MAPPED
@@ -170,7 +171,6 @@ bool Monitor::MonitorLink::disconnect() {
     }
     if (map_fd >= 0)
       close(map_fd);
-
     map_fd = -1;
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
@@ -193,24 +193,19 @@ bool Monitor::MonitorLink::disconnect() {
       return false;
     }
 #endif // ZM_MEM_MAPPED
-    mem_size = 0;
-    mem_ptr = nullptr;
   }
+  mem_size = 0;
+  shared_data = nullptr;
+  mem_ptr = nullptr;
   return true;
 }
 
 bool Monitor::MonitorLink::isAlarmed() {
-  if (!connected) {
-    return false;
-  }
-  return( shared_data->state == ALARM );
+  return connected and (shared_data->state == ALARM);
 }
 
 bool Monitor::MonitorLink::inAlarm() {
-  if (!connected) {
-    return false;
-  }
-  return( shared_data->state == ALARM || shared_data->state == ALERT );
+  return connected and (shared_data->state == ALARM || shared_data->state == ALERT);
 }
 
 int Monitor::MonitorLink::score() {
@@ -228,6 +223,4 @@ int Monitor::MonitorLink::score() {
 
 bool Monitor::MonitorLink::hasAlarmed() {
   return this->score() > 0;
-  last_event_id = shared_data->last_event_id;
-  return false;
 }

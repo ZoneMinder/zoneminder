@@ -78,7 +78,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin:/opt/untether/speedai/bin:/opt/untether/speedai/share/scripts';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
@@ -89,7 +89,8 @@ if ( $Config{ZM_LD_PRELOAD} ) {
     }
   }
 }
-delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+#delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+Debug(Data::Dumper::Dumper(\%ENV));
 
 my @daemons = (
     'zmc',

@@ -103,6 +103,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
 }
 
 ZMPacket::~ZMPacket() {
+  Debug(1, "Deleting packet %d", image_index);
   delete analysis_image;
   delete image;
   delete y_image;

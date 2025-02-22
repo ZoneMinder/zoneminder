@@ -1192,12 +1192,12 @@ bool Monitor::connect() {
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     SystemTimePoint now = std::chrono::system_clock::now();
     shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
-    shared_data->valid = true;
 
     for (int32_t i = 0; i < image_buffer_count; i++) {
-	    image_pixelformats[i] = AV_PIX_FMT_NONE;
-	    analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
+	    image_pixelformats[i] = image_buffer[i]->AVPixFormat();
+	    analysis_image_pixelformats[i] = analysis_image_buffer[i]->AVPixFormat();
     }
+    shared_data->valid = true;
 
     ReloadLinkedMonitors();
 
@@ -1251,11 +1251,10 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   } else {
-    //for (int32_t i = 0; i < image_buffer_count; i++) {
+    for (int32_t i = 0; i < image_buffer_count; i++) {
       //image_buffer[i]->AVPixFormat(image_pixelformats[i]); /* Don't release the internal buffer or replace it with another */
-      //Debug(1, "Changing image pixformat to %s", av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
-    //}
-
+      Debug(1, "image pixformat for %d is %s", i, av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
+    }
   }
 
   // We set these here because otherwise the first fps calc is meaningless
@@ -2644,34 +2643,53 @@ int Monitor::Analyse() {
       packetqueue.clearPackets(packet);
 
       // Only do these if it's a video packet.
-      unsigned int index = shared_data->last_analysis_index;
-      index++;
-      index = (index+1) % image_buffer_count;
+      unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (packet->ai_frame) {
         analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
         Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
         analysis_image_buffer[index]->Assign(packet->ai_frame.get());
         analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count++;
       } else if (packet->analysis_image) {
         analysis_image_buffer[index]->Assign(*packet->analysis_image);
         analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
         Debug(1, "analysis %d, for index %d, packet %d", analysis_image_pixelformats[index], index, packet->image_index);
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count++;
       } else if (packet->image) {
         analysis_image_buffer[index]->Assign(*packet->image);
         analysis_image_pixelformats[index] = packet->image->AVPixFormat();
         Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count++;
       } else if (packet->in_frame) {
         analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
         Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
         analysis_image_buffer[index]->Assign(packet->in_frame.get());
         analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format);
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count++;
+      } else if (packet->out_frame) {
+        analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->out_frame->format));
+        Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
+        analysis_image_buffer[index]->Assign(packet->out_frame.get());
+        analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->out_frame->format);
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count++;
       } else {
-        Debug(1, "Unable to find an image to assign for index %d", index);
+        Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
       }
-      shared_data->last_analysis_index = index;
-      shared_data->last_read_index = index;
-      shared_data->analysis_image_count++;
-      shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     } else {
       Debug(3, "Not video, not clearing packets");
     }
@@ -3188,19 +3206,22 @@ int Monitor::Decode() {
   } 
 
   if (!packet) {
-    packet_lock = packetqueue.get_packet(decoder_it);
+    packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
     packet = packet_lock.packet_;
     if (!packet) {
       Debug(1, "No packet from get_packet");
       return -1;
-    }
+    } 
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
-      Debug(3, "Not video,probably audio");
-      packetqueue.increment_it(decoder_it);
+      Debug(3, "Not video,probably audio packet %d", packet->image_index);
+      //packetqueue.increment_it(decoder_it);
       return 1; // Don't need decode
     }
+    decoder_queue.push_back(std::move(packet_lock));
   }
+
+  // At this point we know that the packet is on the queue somewhere
 
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
@@ -3212,11 +3233,10 @@ int Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
       Debug(1, "send_packet %d", packet->image_index);
-      int ret;
-      //do {
-        ret = packet->send_packet(mVideoCodecContext);
-        if (0 == ret) return -1; //make it sleep?
-      //} while(!ret and !zm_terminate);
+      int ret = packet->send_packet(mVideoCodecContext);
+      if (0 == ret) {
+        return -1; //make it sleep?
+      }
 
       if (ret < 0) {
         // No need to push because it didn't get into the decoder.
@@ -3224,7 +3244,7 @@ int Monitor::Decode() {
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
         return -1;
-      //} else if (ret == 0) {
+        //} else if (ret == 0) {
         //Debug(1, "EAGAIN");
         // EAGAIN, didn't get into decoder
         //return ret;
@@ -3232,40 +3252,24 @@ int Monitor::Decode() {
         Debug(1, "Success");
       }
 
-      ZMPacketLock *delayed_packet_lock  = decoder_queue.size() ? &decoder_queue.front() : &packet_lock;
+      ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
       auto delayed_packet = delayed_packet_lock->packet_;
       Debug(1, "delayed_packet %d , sent packet %d, queue_size: %ld", delayed_packet->image_index, packet->image_index, decoder_queue.size());
 
-      Debug(1, "Recieving frame to delayedpacket %d", delayed_packet->image_index);
-      Debug(1, "Recieving frame to packet %d", packet->image_index);
       ret = delayed_packet->receive_frame(mVideoCodecContext);
       if (ret > 0 and !zm_terminate) {
-        if (decoder_queue.size()) {
-          Debug(1, "Popping off delayed packet size %zu", decoder_queue.size());
-          decoder_queue.push_back(std::move(packet_lock));
-          /*
-          std::move_iterator< std::list<ZMPacketLock>::iterator > it = std::make_move_iterator(decoder_queue.begin());
-          packet_lock = *it;
-          */
+          Debug(1, "Popping off delayed packet %d queue size %zu, pushing on packet %d", delayed_packet->image_index, decoder_queue.size(), packet->image_index);
           packet_lock = std::move(decoder_queue.front());
           decoder_queue.pop_front();
           packet = delayed_packet;
-        }
       } else if (ret < 0) {
-        decoder_queue.push_back(std::move(packet_lock));
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         avcodec_free_context(&mVideoCodecContext);
         avcodec_free_context(&mAudioCodecContext);
-        packetqueue.increment_it(decoder_it);
         return -1;
         
       } else { // EAGAIN
-        //if (packet.get() == delayed_packet.get()) {
-          Debug(1, "Pushing origin packet on back of queue");
-          decoder_queue.push_back(std::move(packet_lock));
-        //}
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
-        packetqueue.increment_it(decoder_it);
         return 0;
       }
     } else {
@@ -3410,7 +3414,6 @@ int Monitor::Decode() {
     Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
         FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
   }
-  packetqueue.increment_it(decoder_it);
   packet->decoded = true;
   return 1;
 }  // end int Monitor::Decode()

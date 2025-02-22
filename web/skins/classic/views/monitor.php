@@ -1225,9 +1225,13 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_RTSP2WEB_ENABLED']['Help'].'</div>';
   }
 ?>
-            <li>
+            <li id="RTSP2WebType">
               <label><?php echo translate('RTSP2Web Type') ?> <?php echo $monitor->RTSP2WebType() ?> </label>
               <?php echo htmlSelect('newMonitor[RTSP2WebType]', $RTSP2WebTypes, $monitor->RTSP2WebType()); ?>
+            </li>
+            <li id="RTSP2WebStream">
+              <label><?php echo translate('Stream source') ?> </label>
+              <?php echo htmlSelect('newMonitor[RTSP2WebStream]', ZM\Monitor::getRTSP2WebStream(), $monitor->RTSP2WebStream()); ?>
             </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>

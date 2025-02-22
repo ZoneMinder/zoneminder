@@ -96,7 +96,7 @@ std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string
       }
     }
     if (wanted_codec and (enc_codecs[i].codec_id != wanted_codec)) {
-      Debug(1, "Not the right codec id %d %s != %d %s for %s",
+      Debug(4, "Not the right codec id %d %s != %d %s for %s",
           chosen_codec_data->codec_id,
           avcodec_get_name(chosen_codec_data->codec_id),
           wanted_codec,

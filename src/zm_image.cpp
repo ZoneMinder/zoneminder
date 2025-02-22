@@ -5677,9 +5677,9 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
   }
-  Debug(1, "Old size: %d, old pixelformat %d", size, imagePixFormat);
+  Debug(4, "Old size: %d, old pixelformat %d", size, imagePixFormat);
   size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
-  Debug(1, "New size: %d new pixelformat %d", size, new_pixelformat);
+  Debug(4, "New size: %d new pixelformat %d", size, new_pixelformat);
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
   return imagePixFormat = new_pixelformat;
 }

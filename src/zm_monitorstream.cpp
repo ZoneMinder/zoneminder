@@ -537,8 +537,8 @@ void MonitorStream::runStream() {
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   // used to start at image_buffer_count, so next one would actually be 1.  Instead, lets start wherever zmc is at.
-  int32_t last_read_index = monitor->shared_data->last_write_index;
-  int32_t last_image_count = 0;
+  int32_t last_read_index = monitor->shared_data->last_read_index;
+  int32_t last_image_count = monitor->shared_data->analysis_image_count;
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
@@ -728,46 +728,46 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    int index = (last_read_index+1) % monitor->image_buffer_count;
+    int index = (last_image_count+frame_mod) ; // % monitor->image_buffer_count;
     int last_count;
-    int last_index;
+    int last_analysis_index;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
-    if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
-      Debug(4, "Using OBJDETECT");
+    //if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
+      //Debug(4, "Using OBJDETECT");
       //if (last_read_index !=  last_image_count < last_count) {
       //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
       //}
-      last_index = monitor->shared_data->last_analysis_index;
+      //last_analysis_index = monitor->shared_data->last_analysis_index;
+      //last_count = monitor->shared_data->analysis_image_count;
+      //image_buffer = &monitor->analysis_image_buffer;
+      //pixelformats = monitor->analysis_image_pixelformats;
+    //} else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
+      //Debug(1, "Using ANALYSIS");
+      //last_analysis_index = monitor->shared_data->last_analysis_index;
+      //last_count = monitor->shared_data->analysis_image_count;
+      //image_buffer = &monitor->analysis_image_buffer;
+      //pixelformats = monitor->analysis_image_pixelformats;
+    //} else {
+      //Debug(1, "Using LIVE");
+      last_analysis_index = monitor->shared_data->last_analysis_index;
       last_count = monitor->shared_data->analysis_image_count;
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
-    } else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
-      Debug(1, "Using ANALYSIS");
-      last_index = monitor->shared_data->last_analysis_index;
-      last_count = monitor->shared_data->analysis_image_count;
-      image_buffer = &monitor->analysis_image_buffer;
-      pixelformats = monitor->analysis_image_pixelformats;
-    } else {
-      Debug(1, "Using LIVE");
-      last_index = monitor->shared_data->last_analysis_index;
-      last_count = monitor->shared_data->analysis_image_count;
-      image_buffer = &monitor->analysis_image_buffer;
-      pixelformats = monitor->analysis_image_pixelformats;
-    }
+    //}
 
-    Debug(1, "index %d, last_read_index %d, last_index %d, last_image_count %d last_count %d", index, last_read_index, last_index, last_image_count, last_count);
-    if (
-        index != last_index ||
-        last_image_count < last_count) {
+    Debug(1, "our next index %d, our last_read_index %d, analaysis last_index %d, our last_image_count %d last_count %d", index, last_read_index, last_analysis_index, last_image_count, last_count);
+    //if ( index <= last_analysis_index && last_image_count && (last_image_count+frame_mod <= last_count)) {
+    if (index <= last_count) {
+      index %= monitor->image_buffer_count;
       //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int last_write_index = last_index;
+      int last_write_index = index;
       //int last_write_index = monitor->shared_data->last_write_index;
-      int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
+      //int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
                                                                   //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
       Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s", last_write_index,
-          last_index,
+          last_analysis_index,
           last_count,
           pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
       
@@ -783,7 +783,7 @@ void MonitorStream::runStream() {
             Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
                 index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, last_count, paused, delayed);
             last_read_index = last_write_index;
-            last_image_count = last_count;
+            last_image_count += frame_mod; //last_count;
             // Send the next frame
             //
             // Perhaps we should use NOW instead.
@@ -996,8 +996,8 @@ void MonitorStream::runStream() {
     } else {
       Debug(1, "command_processor is not joinable");
     }
+    Debug(1, "command_processor has joined");
   }
-  Debug(1, "command_processor has joined");
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {

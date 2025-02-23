@@ -1294,7 +1294,7 @@ class Monitor extends ZM_Object {
 
     return shmop_read($this->shm_id,
       $this->shm_offsets[$section][$var]['offset'], 
-      $this->shm_offsets[$section][$var]['size'], 
+      $this->shm_offsets[$section][$var]['size']
     );
   }
 
@@ -1325,11 +1325,6 @@ class Monitor extends ZM_Object {
     Debug("Writing $value=>$packed_value at ".$this->shm_offsets[$section][$var]['offset']);
     fseek($this->shm_id, $this->shm_offsets[$section][$var]['offset']);
     return fwrite($this->shm_id, $packed_value, $this->shm_offsets[$section][$var]['size']);
-    #return $this->mmap[$this->shm_offsets[$section][$var]['offset']] = $value;
-
-    return shmop_write($this->shm_id, $value,
-      $this->shm_offsets[$section][$var]['offset'], 
-    );
   }
   
   public function enable() {
@@ -1395,7 +1390,5 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     return $this->shared_read('SharedData', 'last_event');
   }
-  
-
 } // end class Monitor
 ?>

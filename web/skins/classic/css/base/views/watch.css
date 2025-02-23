@@ -60,6 +60,12 @@
 .monitorStream {
   text-align: center;
   margin: 0 auto;
+  display: grid;
+}
+
+.monitorStream .button_zoom,
+.monitorStream .zoompan {
+  grid-area: 1/1;
 }
 
 #monitorStatus {

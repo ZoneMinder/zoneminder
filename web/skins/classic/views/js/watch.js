@@ -842,12 +842,14 @@ function streamPrepareStart(monitor=null) {
 function handleMouseEnter(event) {
   //Displaying "Scale" and other buttons at the top of the monitor image
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#button_zoom' + id).removeClass('hidden');
 }
 
 function handleMouseLeave(event) {
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#button_zoom' + id).addClass('hidden');
 }
 
 function streamStart(monitor = null) {
@@ -1437,6 +1439,7 @@ function monitorsSetScale(id=null) {
 // Kick everything off
 $j( window ).on("load", initPage);
 
+var prevStateStarted = false;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1444,12 +1447,19 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
-        monitorStream.kill();
+        if (monitorStream.started) {
+          prevStateStarted = 'played';
+          //Stop only if playing or paused.
+          monitorStream.kill();
+        } else {
+          prevStateStarted = false;
+        }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && !monitorStream.started && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+    if (monitorStream && prevStateStarted == 'played' && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+      onPlay(); //Set the correct state of the player buttons.
       monitorStream.start();
     }
   }

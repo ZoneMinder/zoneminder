@@ -1227,6 +1227,8 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
+  if (!eventData) return;
+
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
     var th = $j('<th class="label">').addClass('text-right').text(eventDataStrings[key]);
@@ -1704,12 +1706,14 @@ function initPage() {
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+        //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
+        $j('#button_zoom' + id).removeClass('hidden');
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
-        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+        //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
+        $j('#button_zoom' + id).addClass('hidden');
       }
   );
 

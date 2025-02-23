@@ -12,6 +12,10 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.webrtc = null;
+  this.hls = null;
+  this.mse = null;
+  this.wsMSE = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
   this.mseSourceBuffer = null;
@@ -273,9 +277,9 @@ function MonitorStream(monitorData) {
           }
           */
           if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(hlsUrl.href);
-            hls.attachMedia(videoEl);
+            this.hls = new Hls();
+            this.hls.loadSource(hlsUrl.href);
+            this.hls.attachMedia(videoEl);
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             videoEl.src = hlsUrl.href;
           }
@@ -288,12 +292,13 @@ function MonitorStream(monitorData) {
           });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=0";
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
-          startRTSP2WebPlay(videoEl, webrtcUrl.href);
+          startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
         }
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
@@ -346,6 +351,19 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
+    if (this.webrtc) {
+      this.webrtc.close();
+      this.webrtc = null;
+    } else if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    } else if (this.wsMSE) {
+      this.mse.endOfStream();
+      this.wsMSE.close();
+      this.wsMSE = null;
+      this.mseStreamingStarted = false;
+      this.mseSourceBuffer = null;
+    }
   };
 
   this.kill = function() {
@@ -679,6 +697,7 @@ function MonitorStream(monitorData) {
         } // end if have a new auth hash
       } // end if has state
     } else {
+      if (!this.started) return;
       console.error(respObj.message);
       // Try to reload the image stream.
       if (stream.src) {
@@ -771,8 +790,6 @@ function MonitorStream(monitorData) {
           }
           this.buttons.forceAlarmButton.prop('disabled', false);
         }
-      } else {
-        console.log("Can't edit");
       } // end if canEdit.Monitors
 
       this.setAlarmState(monitor.Status);
@@ -980,64 +997,97 @@ const waitUntil = (condition) => {
   });
 };
 
-function startRTSP2WebPlay(videoEl, url) {
-  const webrtc = new RTCPeerConnection({
+function startRTSP2WebPlay(videoEl, url, stream) {
+  const mediaStream = new MediaStream();
+  videoEl.srcObject = mediaStream;
+  stream.webrtc = new RTCPeerConnection({
     iceServers: [{
       urls: ['stun:stun.l.google.com:19302']
     }],
     sdpSemantics: 'unified-plan'
   });
-  webrtc.ontrack = function(event) {
-    console.log(event.streams.length + ' track is delivered');
-    videoEl.srcObject = event.streams[0];
-    videoEl.play();
+
+  /* It doesn't work yet
+  stream.webrtc.ondatachannel = function(event) {
+    console.log('onDataChannel trigger:', event.channel);
+    event.channel.onopen = () => console.log(`Data channel is open`);
+    event.channel.onmessage = (event) => console.log('Event data:', event.data);
   };
-  webrtc.addTransceiver('video', {direction: 'sendrecv'});
-  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
-    const offer = await webrtc.createOffer();
+  */
 
-    await webrtc.setLocalDescription(offer);
-
-    fetch(url, {
-      method: 'POST',
-      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
-    })
-        .catch((rejected) => {
-          console.log(rejected);
-        })
-        .then((response) => response.text())
-        .then((data) => {
-          try {
-            webrtc.setRemoteDescription(
-                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
-            );
-          } catch (e) {
-            console.warn(e);
-          }
-        });
+  stream.webrtc.oniceconnectionstatechange = function(event) {
+    console.log('iceServer changed state to: ', '"', event.currentTarget.connectionState, '"');
+  };
+  stream.webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await stream.webrtc.createOffer({
+      //iceRestart:true,
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true
+    });
+    await stream.webrtc.setLocalDescription(offer);
+    $j.post(url, {
+      data: btoa(stream.webrtc.localDescription.sdp)
+    }, function(data) {
+      try {
+        stream.webrtc.setRemoteDescription(new RTCSessionDescription({
+          type: 'answer',
+          sdp: atob(data)
+        }));
+      } catch (e) {
+        console.warn(e);
+      }
+    });
+  };
+  stream.webrtc.onsignalingstatechange = async function signalingstatechange() {
+    switch (stream.webrtc.signalingState) {
+      case 'have-local-offer':
+        break;
+      case 'stable':
+        /*
+        * There is no ongoing exchange of offer and answer underway.
+        * This may mean that the RTCPeerConnection object is new, in which case both the localDescription and remoteDescription are null;
+        * it may also mean that negotiation is complete and a connection has been established.
+        */
+        break;
+      case 'closed':
+        /*
+         * The RTCPeerConnection has been closed.
+         */
+        break;
+      default:
+        console.log(`unhandled signalingState is ${stream.webrtc.signalingState}`);
+        break;
+    }
   };
 
-  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
+  stream.webrtc.ontrack = function ontrack(event) {
+    console.log(event.track.kind + ' track is delivered');
+    mediaStream.addTrack(event.track);
+  };
+
+  const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
     console.log(`${webrtcSendChannel.label} has opened`);
     webrtcSendChannel.send('ping');
   };
   webrtcSendChannel.onclose = (_event) => {
     console.log(`${webrtcSendChannel.label} has closed`);
-    startRTSP2WebPlay(videoEl, url);
+    if (stream.started) {
+      startRTSP2WebPlay(videoEl, url, stream);
+    }
   };
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }
 
 function startMsePlay(context, videoEl, url) {
-  const mse = new MediaSource();
-  mse.addEventListener('sourceopen', function() {
-    const ws = new WebSocket(url);
-    ws.binaryType = 'arraybuffer';
-    ws.onopen = function(event) {
+  context.mse = new MediaSource();
+  context.mse.addEventListener('sourceopen', function() {
+    context.wsMSE = new WebSocket(url);
+    context.wsMSE.binaryType = 'arraybuffer';
+    context.wsMSE.onopen = function(event) {
       console.log('Connect to ws');
     };
-    ws.onmessage = function(event) {
+    context.wsMSE.onmessage = function(event) {
       const data = new Uint8Array(event.data);
       if (data[0] === 9) {
         let mimeCodec;
@@ -1047,7 +1097,7 @@ function startMsePlay(context, videoEl, url) {
         } else {
           console.log("Browser too old. Doesn't support TextDecoder");
         }
-        context.mseSourceBuffer = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+        context.mseSourceBuffer = context.mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
         context.mseSourceBuffer.mode = 'segments';
         context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
       } else {
@@ -1055,7 +1105,7 @@ function startMsePlay(context, videoEl, url) {
       }
     };
   }, false);
-  videoEl.src = window.URL.createObjectURL(mse);
+  videoEl.src = window.URL.createObjectURL(context.mse);
 }
 
 function pushMsePacket(videoEl, context) {

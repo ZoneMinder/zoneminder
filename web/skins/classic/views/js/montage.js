@@ -843,14 +843,14 @@ function initPage() {
     document.addEventListener('scrollend', on_scroll); // for non-sticky
     document.getElementById('content').addEventListener('scrollend', on_scroll);
   } else {
-    document.onscroll = event => {
-      clearTimeout(window.scrollEndTimer)
+    document.onscroll = () => {
+      clearTimeout(window.scrollEndTimer);
       window.scrollEndTimer = setTimeout(on_scroll, 100);
-    }
-    document.getElementById('content').onscroll = event => {
-      clearTimeout(window.scrollEndTimer)
+    };
+    document.getElementById('content').onscroll = () => {
+      clearTimeout(window.scrollEndTimer);
       window.scrollEndTimer = setTimeout(on_scroll, 100);
-    }
+    };
   }
   window.addEventListener('resize', on_scroll);
 } // end initPage

@@ -839,8 +839,19 @@ function initPage() {
   //Check if the monitor arrangement is complete
   waitingMonitorsPlaced('startMonitors');
 
-  document.addEventListener('scrollend', on_scroll); // for non-sticky
-  document.getElementById('content').addEventListener('scrollend', on_scroll);
+  if ('onscrollend' in window) {
+    document.addEventListener('scrollend', on_scroll); // for non-sticky
+    document.getElementById('content').addEventListener('scrollend', on_scroll);
+  } else {
+    document.onscroll = event => {
+      clearTimeout(window.scrollEndTimer)
+      window.scrollEndTimer = setTimeout(on_scroll, 100);
+    }
+    document.getElementById('content').onscroll = event => {
+      clearTimeout(window.scrollEndTimer)
+      window.scrollEndTimer = setTimeout(on_scroll, 100);
+    }
+  }
   window.addEventListener('resize', on_scroll);
 } // end initPage
 

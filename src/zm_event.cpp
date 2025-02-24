@@ -846,7 +846,7 @@ void Event::Run() {
       packetqueue->increment_it(packetqueue_it);
     } else {
       if (terminate_ or zm_terminate) return;
-      usleep(100000);
+      usleep(10000);
     } // end if packet_lock
   }  // end while
 }  // end Run()

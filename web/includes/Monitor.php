@@ -176,13 +176,10 @@ class Monitor extends ZM_Object {
   }
 
   public function Server() {
-    if (!property_exists($this, 'Server')) {
-      if ($this->ServerId())
-        $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
-      if (!property_exists($this, 'Server')) {
-        $this->{'Server'} = new Server();
-      }
-    }
+    if (!property_exists($this, 'Server'))
+      $this->{'Server'} = $this->ServerId() ? Server::find_one(array('Id'=>$this->{'ServerId'})) : new Server();
+    if (!$this->{'Server'}) # the find_one can return null
+      $this->{'Server'} = new Server();
     return $this->{'Server'};
   }
 

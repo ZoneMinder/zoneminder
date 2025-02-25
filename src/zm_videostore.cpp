@@ -113,18 +113,12 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
-        Debug(1, "reorder_queue_size ignored for non-passthrough");
-      } else {
-        reorder_queue_size = std::stoul(entry->value);
-        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-      }
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     } else if (monitor->has_out_of_order_packets()
         and !monitor->WallClockTimestamps()
-        // Only sort packets for passthrough. Encoding uses wallclock by default
-        and monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH
         ) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
@@ -1048,14 +1042,27 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   bool have_out_of_order = false;
   auto rit = queue.rbegin();
   // Find the previous packet for the stream, and check dts
+  // WHen encoding, dts gets lost.  We need to sort by pts instead.
   while (rit != queue.rend()) {
     AVPacket *p = ((*rit)->packet).get();
-    if (p->dts <= av_pkt->dts) {
-      Debug(1, "Found in order packet");
-      // packets are in order, everything is fine
-      break;
+    if (monitor->GetOptVideoWriter() == Monitor::ENCODE and !monitor->WallClockTimestamps()) {
+      if (p->pts <= av_pkt->pts) {
+        ZM_DUMP_PACKET(p, "Found in order packet");
+        // packets are in order, everything is fine
+        break;
+      } else {
+        ZM_DUMP_PACKET(p, "Found out of order packet");
+        have_out_of_order = true;
+      }
     } else {
-      have_out_of_order = true;
+      if (p->dts <= av_pkt->dts) {
+        ZM_DUMP_PACKET(p, "Found in order packet");
+        // packets are in order, everything is fine
+        break;
+      } else {
+        ZM_DUMP_PACKET(p, "Found out of order packet");
+        have_out_of_order = true;
+      }
     }
     rit++;
   }  // end while
@@ -1076,6 +1083,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   if (queue.size() > reorder_queue_size) {
     auto pkt = queue.front();
     queue.pop_front();
+    ZM_DUMP_PACKET(pkt->packet.get(), "Using packet");
     if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
       return writeVideoFramePacket(pkt);
     } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {

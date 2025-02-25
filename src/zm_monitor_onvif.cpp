@@ -219,6 +219,13 @@ void Monitor::ONVIF::WaitForMessage() {
       }
     } else {
       Debug(1, "ONVIF polling : Got Good Response! %i", result);
+      if (!tev__PullMessagesResponse.wsnt__NotificationMessage.size()) {
+        if (!parent->Event_Poller_Closes_Event and alarmed) {
+          alarmed = false;
+          alarms.clear();
+        }
+      }
+
       for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
         if ((msg->Topic != nullptr) &&
             (msg->Topic->__any.text != nullptr) &&
@@ -256,9 +263,9 @@ void Monitor::ONVIF::WaitForMessage() {
               if (!alarmed) {
                 Info("Triggered Start Event on ONVIF");
                 alarmed = true;
-                // Why sleep?
-                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
               }
+            } else {
+
             }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");

@@ -1964,8 +1964,8 @@ bool Monitor::Analyse() {
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
           // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-          if (!Event_Poller_Closes_Event && state == ALARM)
-            onvif->setAlarmed(false);
+          //if (!Event_Poller_Closes_Event && state == ALARM)
+            //onvif->setAlarmed(false);
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif

@@ -20,6 +20,19 @@
 #include "zm_monitor.h"
 
 #include <cstring>
+#include <sstream>
+
+std::string SOAP_STRINGS[] = {
+  "SOAP_OK", // 0
+  "SOAP_CLI_FAULT", // 1
+  "SOAP_SVR_FAULT",//                  2
+  "SOAP_TAG_MISMATCH",//               3
+  "SOAP_TYPE",//                       4
+  "SOAP_SYNTAX_ERROR",//               5
+  "SOAP_NO_TAG",//                     6
+  "SOAP_IOB",//                        7
+  "SOAP_MUSTUNDERSTAND",//             8
+};
 
 Monitor::ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
@@ -78,13 +91,30 @@ void Monitor::ONVIF::start() {
     proxyEvent.soap_endpoint = full_url.c_str();
     set_credentials(soap);
     const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
+
     if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
       Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
       int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+#if 0
+      std::stringstream ss;
+      soap->os = &ss; // assign a stringstream to write output to
+      soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+      soap->os = NULL; // no longer writing to the stream
+      Debug(1, "Response was %s", ss.str().c_str());
+#endif
 
       if (rc != SOAP_OK) {
         const char *detail = soap_fault_detail(soap);
         Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
+
+        std::stringstream ss;
+        std::ostream *old_stream = soap->os;
+        soap->os = &ss; // assign a stringstream to write output to
+        proxyEvent.CreatePullPointSubscription(&request, response);
+        soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+        soap->os = old_stream; // no longer writing to the stream
+        Debug(1, "Response was %s", ss.str().c_str());
+
         _wsnt__Unsubscribe wsnt__Unsubscribe;
         _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
         proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
@@ -93,11 +123,19 @@ void Monitor::ONVIF::start() {
         soap_free(soap);
         soap = nullptr;
       } else {
+#if 0
+        std::stringstream ss;
+        soap->os = &ss; // assign a stringstream to write output to
+        int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+        soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+        soap->os = NULL; // no longer writing to the stream
+        Debug(1, "Response was %s", ss.str().c_str());
+#endif
         //Empty the stored messages
         set_credentials(soap);
 
-        RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap):nullptr;
-        if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
+        RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : nullptr;
+        if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
           Debug(1, "ONVIF :soap_wsa_request  OK ");
           if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
               (soap->error != SOAP_EOF)
@@ -162,14 +200,32 @@ void Monitor::ONVIF::WaitForMessage() {
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
-      Debug(1, "Result of getting ONVIF result=%d soap_fault_string=%s detail=%s",
+      Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
           result, soap_fault_string(soap), detail ? detail : "null");
+
       if (result != SOAP_EOF) { //Ignore the timeout error
         Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
+
+        std::ostream *old_stream = soap->os;
+        std::stringstream ss;
+        soap->os = &ss; // assign a stringstream to write output to
+        set_credentials(soap);
+        proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
+        soap_write__tev__PullMessagesResponse(soap, &tev__PullMessagesResponse);
+        soap->os = old_stream; // no longer writing to the stream
+        Debug(1, "Response was %s", ss.str().c_str());
+
         // healthy = false;
       }
     } else {
       Debug(1, "ONVIF polling : Got Good Response! %i", result);
+      if (!tev__PullMessagesResponse.wsnt__NotificationMessage.size()) {
+        if (!parent->Event_Poller_Closes_Event and alarmed) {
+          alarmed = false;
+          alarms.clear();
+        }
+      }
+
       for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
         if ((msg->Topic != nullptr) &&
             (msg->Topic->__any.text != nullptr) &&
@@ -207,9 +263,9 @@ void Monitor::ONVIF::WaitForMessage() {
               if (!alarmed) {
                 Info("Triggered Start Event on ONVIF");
                 alarmed = true;
-                // Why sleep?
-                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
               }
+            } else {
+
             }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");

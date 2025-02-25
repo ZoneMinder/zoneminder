@@ -212,6 +212,7 @@ sub BEGIN {
     my %dbgConfig = (
         ZM_LOG_LEVEL_DATABASE => 0,
         ZM_LOG_LEVEL_FILE => 0,
+        ZM_LOG_LEVEL_TERM => 0,
         ZM_LOG_LEVEL_SYSLOG => 0,
         ZM_LOG_DEBUG => 0,
         ZM_LOG_DEBUG_TARGET => '',
@@ -254,7 +255,13 @@ sub initialise( @ ) {
   my $tempFileLevel = $this->{fileLevel};
   my $tempSyslogLevel = $this->{syslogLevel};
 
-  $tempTermLevel = $options{termLevel} if defined($options{termLevel});
+  if ( defined($ENV{LOG_PRINT}) ) {
+    $tempTermLevel = $ENV{LOG_PRINT} ? DEBUG : $this->{termLevel};
+  } elsif ( defined($options{termLevel}) ) {
+    $tempFileLevel = $options{termLevel};
+  } else {
+    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
+  }
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
   } else {
@@ -269,10 +276,6 @@ sub initialise( @ ) {
     $tempSyslogLevel = $options{syslogLevel};
   } else {
     $tempSyslogLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_SYSLOG};
-  }
-
-  if ( defined($ENV{LOG_PRINT}) ) {
-    $tempTermLevel = $ENV{LOG_PRINT}? DEBUG : NOLOG;
   }
 
   my $level;

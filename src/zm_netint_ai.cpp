@@ -61,6 +61,7 @@ bool Monitor::Quadra::setup() {
 
 bool Monitor::Quadra::detect(AVFrame *in_frame) {
 
+#if 0 
   ni_retcode_t retval;
   retval = ni_ai_frame_buffer_alloc(&api_src_frame.data.frame, &network);
   retval = ni_ai_packet_buffer_alloc(&api_dst_packet.data.packet, &network);
@@ -70,7 +71,6 @@ bool Monitor::Quadra::detect(AVFrame *in_frame) {
   //uint8_t *p_data = (uint8_t *)api_src_frame.data.frame.p_data[0] + offset;
 
 
-#if 0 
   uint8_t *img_buffer = in_frame->data;
   int linesize = in_frame->linesize;
   for (int h = 0; h < in_frame->height; h++) {

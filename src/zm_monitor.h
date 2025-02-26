@@ -386,6 +386,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string rtsp_second_path;
 
    public:
     explicit RTSP2WebManager(Monitor *parent_);

@@ -390,7 +390,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ~ONVIF();
     void start();
     void WaitForMessage();
-    bool isAlarmed() const { return alarmed; };
+    bool isAlarmed() {
+      std::unique_lock<std::mutex> lck(alarms_mutex);
+      return alarmed;
+    };
     void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
     bool isHealthy() const { return healthy; };
     void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
@@ -428,6 +431,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string rtsp_second_path;
 
    public:
     explicit RTSP2WebManager(Monitor *parent_);

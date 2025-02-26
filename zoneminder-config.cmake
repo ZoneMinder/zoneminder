@@ -32,7 +32,7 @@
 #cmakedefine HAVE_LIBPTHREAD 1
 #cmakedefine HAVE_PTHREAD_H
 #cmakedefine HAVE_LIBPCRE 1
-#cmakedefine HAVE_PCRE_H 1
+#cmakedefine HAVE_PCRE2_H 1
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1

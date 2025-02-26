@@ -18,7 +18,7 @@ web/skins/classic/js/video.js
 web/skins/classic/assets
 web/js/janus.js
 web/js/ajaxQueue.js
-web/js/hls.js
+web/js/hls-1.5.20/
 web/js/dms.js
 
 # Cannot be parsed as JS

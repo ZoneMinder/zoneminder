@@ -840,10 +840,18 @@ function initPage() {
   waitingMonitorsPlaced('startMonitors');
 
   if ('onscrollend' in window) {
-  document.addEventListener('scrollend', on_scroll); // for non-sticky
-  document.getElementById('content').addEventListener('scrollend', on_scroll);
+    document.addEventListener('scrollend', on_scroll); // for non-sticky
+    document.getElementById('content').addEventListener('scrollend', on_scroll);
   } else {
     console.log('Browser does not support onscrollend');
+    document.onscroll = () => {
+      clearTimeout(window.scrollEndTimer);
+      window.scrollEndTimer = setTimeout(on_scroll, 100);
+    };
+    document.getElementById('content').onscroll = () => {
+      clearTimeout(window.scrollEndTimer);
+      window.scrollEndTimer = setTimeout(on_scroll, 100);
+    };
   }
   window.addEventListener('resize', on_scroll);
 } // end initPage

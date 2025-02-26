@@ -197,6 +197,17 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
+  protected static $RTSP2WebStream = null;
+  public static function getRTSP2WebStream() {
+    if (!isset($RTSP2WebStream)) {
+      $RTSP2WebStream = array(
+        'Primary'   => translate('Primary'),
+        'Secondary' => translate('Secondary'),
+      );
+    }
+    return $RTSP2WebStream;
+  }
+
   protected $defaults = array(
     'Id' => null,
     'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
@@ -221,6 +232,7 @@ class Monitor extends ZM_Object {
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'RTSP2WebType'   => 'HLS',
+    'RTSP2WebStream'   => 'Primary',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',

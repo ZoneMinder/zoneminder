@@ -11,6 +11,7 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.RTSP2WebStream = monitorData.RTSP2WebStream;
   this.webrtc = null;
   this.hls = null;
   this.mse = null;
@@ -264,9 +265,10 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
+        const RTSP2WebChannel = (this.RTSP2WebStream == 'Secondary') ? 1 : 0;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
-          hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/hls/live/index.m3u8";
           /*
           if (useSSL) {
             hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
@@ -290,12 +292,12 @@ function MonitorStream(monitorData) {
           });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=0";
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
-          webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/webrtc";
           startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
         }
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);

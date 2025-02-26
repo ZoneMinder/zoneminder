@@ -358,8 +358,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
    private:
     ni_session_context_t api_ctx;
     ni_network_data_t network;
-    ni_session_data_io_t api_src_frame;
-    ni_session_data_io_t api_dst_packet;
+    //ni_session_data_io_t api_src_frame;
+    //ni_session_data_io_t api_dst_packet;
 
     Monitor *monitor;
   };

@@ -47,8 +47,8 @@ class MonitorLinkExpression {
     Node( Node       && rhs ) noexcept = default;
     Node( Node const  & rhs ) noexcept = delete;
 
-    constexpr Node(Token::TokenType const type) noexcept : token(type) {}
-    constexpr Node(Token const &token) noexcept : token(token) {}
+    Node(Token::TokenType const type) noexcept : token(type) {}
+    Node(Token const &token) noexcept : token(token) {}
 
     Node & operator=( Node && rhs ) noexcept = default;
     Node & operator=( Node const  & rhs ) noexcept = delete;

@@ -839,8 +839,12 @@ function initPage() {
   //Check if the monitor arrangement is complete
   waitingMonitorsPlaced('startMonitors');
 
+  if ('onscrollend' in window) {
   document.addEventListener('scrollend', on_scroll); // for non-sticky
   document.getElementById('content').addEventListener('scrollend', on_scroll);
+  } else {
+    console.log('Browser does not support onscrollend');
+  }
   window.addEventListener('resize', on_scroll);
 } // end initPage
 

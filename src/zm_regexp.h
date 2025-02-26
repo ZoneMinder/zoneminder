@@ -24,20 +24,19 @@
 
 #if HAVE_LIBPCRE
 
-#if HAVE_PCRE_H
-#include <pcre.h>
-#elif HAVE_PCRE_PCRE_H
-#include <pcre/pcre.h>
+#if HAVE_PCRE2_H
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #else
-#error Unable to locate pcre.h, please do 'locate pcre.h' and report location to zoneminder.com
+#error Unable to locate pcre2.h, please do 'locate pcre2.h' and report location to zoneminder.com
 #endif
 
 class RegExpr {
  protected:
-  pcre *regex;
-  pcre_extra *regextra;
+  pcre2_code *regex;
+  pcre2_match_data *match_data;
   int max_matches;
-  int *match_vectors;
+  PCRE2_SIZE *match_vectors;
   mutable char **match_buffers;
   int *match_lengths;
   bool *match_valid;
@@ -50,11 +49,11 @@ class RegExpr {
   bool ok;
 
  public:
-  explicit RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
+  explicit RegExpr( const char *pattern, uint32_t cflags=0, int p_max_matches=32 );
   ~RegExpr();
   bool Ok() const { return( ok ); }
   int MatchCount() const { return( n_matches ); }
-  int Match( const char *subject_string, int subject_length, int flags=0 );
+  int Match( const char *subject_string, PCRE2_SIZE subject_length, uint32_t flags=0 );
   const char *MatchString( int match_index ) const;
   int MatchLength( int match_index ) const;
 };

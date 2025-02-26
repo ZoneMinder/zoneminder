@@ -3877,7 +3877,6 @@ int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
-  while (decoder_queue.size()) decoder_queue.pop_front();
 
   if (analysis_thread) {
     analysis_thread->Stop();
@@ -3897,13 +3896,13 @@ int Monitor::Pause() {
       convert_context = nullptr;
     }
     decoding_image_count = 0;
+    while (decoder_queue.size()) decoder_queue.pop_front();
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
+    while (ai_queue.size()) ai_queue.pop_front();
   }
-  while (decoder_queue.size()) decoder_queue.pop_front();
-  while (ai_queue.size()) ai_queue.pop_front();
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

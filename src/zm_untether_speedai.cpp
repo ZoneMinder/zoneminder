@@ -117,6 +117,10 @@ bool SpeedAI::setup(
 
 int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
   AVFrame * avframe = packet->in_frame.get();
+  if (!avframe) {
+    Error("NO avframe, out of mem?");
+    return -1;
+  }
 
   Debug(1, "SpeedAI::detect");
   // Resize, change to RGB, maybe quantize
@@ -143,50 +147,48 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
       return -1;
     }
   }
-  Job job = Job(module, avframe);
-  Debug(1, "Have job");
-  if (av_frame_get_buffer(job.scaled_frame, 32)) {
+  Job *job = new Job(module, avframe);
+  if (av_frame_get_buffer(job->scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
     return -1;
   }
 
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
-      avframe->linesize, 0, avframe->height, job.scaled_frame->data, job.scaled_frame->linesize);
+      avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
-        avframe->linesize[2], avframe->linesize[3], avframe->height, job.scaled_frame->linesize[0]);
+        avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
     return ret;
   }
 
-  Debug(1, "Attaching %p", job.inputBuf);
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.inputBuf, infos[0].name, inSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
     return -1;
   }
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.outputBuf, infos[1].name, outSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
     return -1;
   }
-  memcpy(job.inputBuf->buffer, job.scaled_frame->buf[0], image_size);
+  memcpy(job->inputBuf->buffer, job->scaled_frame->buf[0], image_size);
 
-  Debug(1, "input %p output %p", job.inputBuf->buffer, job.outputBuf->buffer);
+  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   // Attach buffers to event, so runtime knows where to find input and output buffers to
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
   // hold all data for one batch.
-  job.event.buffers = job.inputBuf;
-  job.inputBuf->next_buffer = job.outputBuf;
+  job->event.buffers = job->inputBuf;
+  job->inputBuf->next_buffer = job->outputBuf;
 
   Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  UaiErr err = uai_module_enqueue(module, &job.event);
+  UaiErr err = uai_module_enqueue(module, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return -1;
   }
-  jobs.push_back(std::move(job));
+  jobs.push_back(job);
   return 1;
 }  // int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet)
 
@@ -199,18 +201,18 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   Debug(1, "SpeedAI::wait");
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  UaiErr err = uai_module_wait(module, &(jobs.front().event), 1000);
+  Job *job = jobs.front();
+  UaiErr err = uai_module_wait(module, &job->event, 1000);
   if (err != UAI_SUCCESS) {
     Error("SpeedAI Failed wait %s", uai_err_string(err));
     return 0;
   }
-  Job job = std::move(jobs.front());
   jobs.pop_front();
   Debug(1, "SpeedAI Completed inference, wait return code is %s", uai_err_string(err));
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
-  Debug(1, "input %p output %p", job.inputBuf->buffer, job.outputBuf->buffer);
-  auto DMAoutput = static_cast<uint8_t*>(job.outputBuf->buffer);
+  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  auto DMAoutput = static_cast<uint8_t*>(job->outputBuf->buffer);
   if (!DMAoutput) {
     return -1;
   }
@@ -274,8 +276,9 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     outputBuffer[outputIndex + 5] = score_float;
   }
 
-  nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job.m_width_rescale, job.m_height_rescale);
+  nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
 
+  delete job;
   Debug(1, "Done");
   return 1;
 }
@@ -300,6 +303,7 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
   const int num_predictions = predictions.size() / 6;
   nlohmann::json coco_predictions = nlohmann::json::array();
 
+  Debug(1, "Num Predictions %d", num_predictions);
   for (int i = 0; i < num_predictions; i++) {
     float l = predictions[i * 6 + 0];
     float t = predictions[i * 6 + 1];

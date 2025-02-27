@@ -91,7 +91,7 @@ class SpeedAI {
           m_module(in.m_module),
           inputBuf(in.inputBuf),
           outputBuf(in.outputBuf),
-          event(std::move(in.event)),
+          event(in.event),
           scaled_frame(in.scaled_frame),
           m_width_rescale(in.m_width_rescale),
           m_height_rescale(in.m_height_rescale)
@@ -131,7 +131,7 @@ class SpeedAI {
       float m_width_rescale;
       float m_height_rescale;
     };
-    std::list<Job> jobs;
+    std::list<Job *> jobs;
     float dequantize(uint8_t val, int bias);
 
   public:

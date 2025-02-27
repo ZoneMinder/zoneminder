@@ -763,7 +763,7 @@ function initPage() {
   });
 
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    var inactivityTime = function () {
+    var inactivityTime = function() {
       var time;
       resetTimer();
       document.onmousemove = resetTimer;

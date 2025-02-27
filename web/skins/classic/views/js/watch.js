@@ -1016,7 +1016,7 @@ function initPage() {
   }
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    var inactivityTime = function () {
+    var inactivityTime = function() {
       var time;
       resetTimer();
       document.onmousemove = resetTimer;

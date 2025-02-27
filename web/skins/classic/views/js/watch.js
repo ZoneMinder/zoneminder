@@ -201,7 +201,7 @@ function streamCmdPlay(action) {
       monitorStream.play();
     } else {
       //Stream has been stopped
-      monitorStream.start();
+      monitorStream.start(monitorStream.currentChannelStream);
     }
   }
 }
@@ -880,6 +880,21 @@ function streamStart(monitor = null) {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
   }
+
+  // Managing the visibility of elements
+  const streamChannel = document.getElementById('streamChannel');
+  const streamQuality = document.getElementById('streamQuality');
+  const rateControl = document.getElementById('rateControl');
+  if (currentMonitor.RTSP2WebEnabled) {
+    streamChannel.classList.remove("hidden-shift");
+    streamQuality.classList.add("hidden-shift");
+    streamChannel.value = currentMonitor.RTSP2WebStream;
+    rateControl.classList.add("hidden-shift");
+  } else {
+    streamQuality.classList.remove("hidden-shift");
+    streamChannel.classList.add("hidden-shift");
+    rateControl.classList.remove("hidden-shift");
+  }
 }
 
 function streamReStart(oldId, newId) {
@@ -1292,6 +1307,16 @@ function panZoomEventPanzoomzoom(event) {
 
 function panZoomEventPanzoomchange(event) {
 
+}
+
+function monitorChangeStreamChannel() {
+  if (currentMonitor.RTSP2WebEnabled) {
+    streamCmdStop(true);
+    setTimeout(function() {
+      monitorStream.start(($j('#streamChannel').val() == "Primary") ? 0 : 1);
+      onPlay();
+    }, 300);
+  }
 }
 
 function monitorsSetScale(id=null) {

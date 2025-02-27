@@ -82,7 +82,7 @@ std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`, "
+  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
   "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
   "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
@@ -346,7 +346,8 @@ Monitor::Monitor() :
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -420,6 +421,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   RTSP2Web_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]);
+  col++;
+  RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]) ;
   col++;
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;

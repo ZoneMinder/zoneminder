@@ -1335,7 +1335,7 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
   }
 
   //const z = n => ('0' + n).slice(-2);
-  let off = d.getTimezoneOffset();
+  //let off = d.getTimezoneOffset();
   //const sign = off < 0 ? '+' : '-';
   //off = Math.abs(off);
   if (highPrecision) {

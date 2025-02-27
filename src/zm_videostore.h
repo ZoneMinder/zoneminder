@@ -112,6 +112,9 @@ class VideoStore {
       return avcodec_get_name(video_out_stream->codecpar->codec_id);
     return "";
   }
+  const AVCodec * get_video_encoder() {
+    return video_out_ctx->codec;
+  }
 };
 
 #endif // ZM_VIDEOSTORE_H

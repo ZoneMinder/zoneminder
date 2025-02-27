@@ -892,9 +892,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State GetState() const { return (State)shared_data->state; }
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
-  AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
+  AVCodecContext *GetAudioCodecContext() const { return mAudioCodecContext; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
-  AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
   std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };

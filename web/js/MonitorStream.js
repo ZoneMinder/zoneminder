@@ -450,7 +450,7 @@ function MonitorStream(monitorData) {
     setTimeout(function() {// During the downtime, the monitor may have already started to work.
       if (!this.started) this.start(channelStream);
     }, delay);
-  }
+  };
 
   this.pause = function() {
     if (this.RTSP2WebEnabled) {

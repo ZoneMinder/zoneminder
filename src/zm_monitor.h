@@ -52,11 +52,13 @@
 #include "zm_untether_speedai.h"
 #endif
 
+#ifdef HAVE_QUADRA
 extern "C" {
 #include <ni_device_api.h>
 #include <ni_av_codec.h>
 #include <ni_util.h>
 }
+#endif
 
 class Group;
 class MonitorLinkExpression;
@@ -65,7 +67,9 @@ class MonitorLinkExpression;
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
 
+#ifdef HAVE_QUADRA
 #include "zm_netint_yolo.h"
+#endif
 
 //
 // This is the main class for monitors. Each monitor is associated
@@ -350,6 +354,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
  protected:
 
 
+#ifdef HAVE_QUADRA
   class Quadra {
    public:
     explicit Quadra(Monitor *p_monitor);
@@ -368,6 +373,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
     Monitor *monitor;
   };
+#endif
 
   class ONVIF {
    protected:
@@ -717,8 +723,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 #ifdef HAVE_UNTETHER_H
   SpeedAI *speedai;
 #endif
+#ifdef HAVE_QUADRA
   Quadra *quadra;
   Quadra_Yolo *quadra_yolo;
+#endif
 
   // Used in check signal
   uint8_t red_val;

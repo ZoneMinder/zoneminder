@@ -1,4 +1,5 @@
 
+#ifdef HAVE_QUADRA
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -123,3 +124,4 @@ bool Monitor::Quadra::detect(AVFrame *in_frame) {
 
   return true;
 }
+#endif

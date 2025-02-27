@@ -1,3 +1,4 @@
+#ifdef HAVE_QUADRA
 
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
@@ -793,5 +794,4 @@ out:
   return ret;
 }
 
-
-
+#endif

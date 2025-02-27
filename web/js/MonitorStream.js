@@ -6,6 +6,7 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
+  this.urlWOPort = deletePortFromUrl(monitorData.url);
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
@@ -808,7 +809,7 @@ function MonitorStream(monitorData) {
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery = function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
+    $j.getJSON(this.urlWOPort + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
   };
@@ -854,7 +855,7 @@ function MonitorStream(monitorData) {
     alarmCmdParms.id = this.id;
 
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url + (auth_relay?'?'+auth_relay:''),
+      url: this.urlWOPort + (auth_relay?'?'+auth_relay:''),
       xhrFields: {withCredentials: true},
       data: alarmCmdParms,
       dataType: 'json'
@@ -868,7 +869,7 @@ function MonitorStream(monitorData) {
 
     this.streamCmdReq = function(streamCmdParms) {
       this.ajaxQueue = jQuery.ajaxQueue({
-        url: this.url + (auth_relay?'?'+auth_relay:''),
+        url: this.urlWOPort + (auth_relay?'?'+auth_relay:''),
         xhrFields: {withCredentials: true},
         data: streamCmdParms,
         dataType: 'json'
@@ -1135,4 +1136,9 @@ function readMsePacket(packet, videoEl, context) {
   if (!context.mseSourceBuffer.updating) {
     pushMsePacket(videoEl, context);
   }
+}
+
+function deletePortFromUrl(url) {
+  let newUrl = new URL(url);
+  return (newUrl.protocol + '//' + (newUrl.username ? newUrl.username + ':' : '') + (newUrl.password ? newUrl.password + '@' : '') + newUrl.hostname + newUrl.pathname + newUrl.search + newUrl.hash);
 }

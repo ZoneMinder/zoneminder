@@ -405,17 +405,17 @@ function MonitorStream(monitorData) {
         resolve();
       }
     })
-    .then(() => {
-      if (this.mseSourceBuffer) {
-        this.mse.removeSourceBuffer(this.mseSourceBuffer);
-        this.mse.endOfStream();
-      }
-      this.closeWebSocket();
-      this.mse = null;
-      this.mseStreamingStarted = false;
-      this.mseSourceBuffer = null;
-      this.RTSP2WebMSEBufferCleared = true;
-    });
+        .then(() => {
+          if (this.mseSourceBuffer) {
+            this.mse.removeSourceBuffer(this.mseSourceBuffer);
+            this.mse.endOfStream();
+          }
+          this.closeWebSocket();
+          this.mse = null;
+          this.mseStreamingStarted = false;
+          this.mseSourceBuffer = null;
+          this.RTSP2WebMSEBufferCleared = true;
+        });
   };
 
   this.kill = function() {
@@ -455,7 +455,7 @@ function MonitorStream(monitorData) {
     setTimeout(function() {
       this.start(channelStream);
     }, delay);
-  }
+  };
 
   this.pause = function() {
     if (this.RTSP2WebEnabled) {
@@ -892,11 +892,11 @@ function MonitorStream(monitorData) {
         const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
         const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
         let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
-          if (delayCurrent < 0) {
-            //Possibly with high client CPU load. Cannot be negative.
-            this.streamStartTime = currentTime - bufferEndTime;
-            delayCurrent = 0
-          }
+        if (delayCurrent < 0) {
+          //Possibly with high client CPU load. Cannot be negative.
+          this.streamStartTime = currentTime - bufferEndTime;
+          delayCurrent = 0;
+        }
 
         $j('#delayValue'+this.id).text(delayCurrent);
 
@@ -1018,7 +1018,7 @@ function MonitorStream(monitorData) {
     }
   }; // end setMaxFPS
 
-  this.closeWebSocket = function () {
+  this.closeWebSocket = function() {
     console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${this.id} is being closed.`);
     if (this.wsMSE && this.wsMSE.readyState !== WebSocket.CLOSING && this.wsMSE.readyState !== WebSocket.CLOSED) {
       //Socket may still be in the "CONNECTING" state. It would be better to wait for the connection and only then close it, but we will not complicate the code, since this happens rarely and does not globally affect the overall work.
@@ -1027,7 +1027,7 @@ function MonitorStream(monitorData) {
     this.mseQueue = []; // ABSOLUTELY NEEDED
   }; // end closeWebSocket
 
-  this.clearWebSocket = function () {
+  this.clearWebSocket = function() {
     if (this.wsMSE) {
       this.wsMSE.onopen = () => {};
       this.wsMSE.onmessage = () => {};
@@ -1036,7 +1036,7 @@ function MonitorStream(monitorData) {
       this.wsMSE = null;
       delete this.wsMSE;
     }
-  }
+  };
 } // end function MonitorStream
 
 async function attachVideo(id, pin) {
@@ -1277,7 +1277,7 @@ function startMsePlay(context, videoEl, url) {
     context.waitingStart = setTimeout(function() {
       startMsePlay(context, videoEl, url);
     }, 100);
-    return
+    return;
   }
 
   context.mse = new MediaSource();
@@ -1317,7 +1317,7 @@ function pushMsePacket(videoEl, context) {
   if (context != undefined && !context.mseSourceBuffer.updating) {
     if (context.mseQueue.length > 0) {
       const packet = context.mseQueue.shift();
-      appendMseBuffer(packet, context)
+      appendMseBuffer(packet, context);
     } else {
       context.mseStreamingStarted = false;
     }

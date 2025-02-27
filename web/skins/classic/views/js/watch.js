@@ -481,7 +481,7 @@ function handleClick(event) {
   }
 
   if (panZoomEnabled) {
-    //event.preventDefault();
+    event.preventDefault();
     //We are looking for an object with an ID, because there may be another element in the button.
     const obj = targetId ? event.target : event.target.parentElement;
     if (!obj) {

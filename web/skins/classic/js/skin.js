@@ -514,7 +514,12 @@ function checkStreamForErrors(funcName, streamObj) {
     Error(funcName+': stream object was null');
     return true;
   }
-  if ( streamObj.result == "Error" ) {
+  if ( streamObj.responseJSON ) {
+    if (streamObj.responseJSON.result == "Error") {
+      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      return true;
+    }
+  } else if ( streamObj.result == "Error" ) {
     Error(funcName+' stream error: '+streamObj.message);
     return true;
   }
@@ -1219,10 +1224,14 @@ function thisClickOnStreamObject(clickObj) {
 
 /* For mobile device Not implemented yet. */
 function thisClickOnTimeline(clickObj) {
+  console.log("thisClickOnTimeline_clickObj=====++>", clickObj);
   return false;
 }
 
 var doubleTouchExecute = function(event, touchEvent) {
+console.log("touchEvent=====++>", touchEvent);
+console.log("event=====++>", event);
+console.log("this=====++>", this);
 //  if (touchEvent.target.id &&
 //    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
   if (thisClickOnStreamObject(touchEvent.target)) {
@@ -1232,10 +1241,23 @@ var doubleTouchExecute = function(event, touchEvent) {
   }
 };
 
+/* For mobile device Not implemented yet. */
+var doubleTouchOnTimeline = function(event, touchEvent) {
+  console.log("+++doubleTouchOnTimeline_event==>", event);
+  console.log("+++doubleTouchOnTimeline_touchEvent==>", touchEvent);
+};
+
 var doubleClickOnStream = function(event, touchEvent) {
+  //console.log("+++shifted==>", shifted);
+  //console.log("+++ctrled==>", ctrled);
+  //console.log("+++alted==>", alted);
   if (shifted || ctrled || alted) return;
   let target = null;
+//console.log("touchEvent=====++>", touchEvent);
+//console.log("event=====++>", event);
+//console.log("this=====++>", this);
   if (event.target) {// Click NOT on touch screen, use THIS
+////console.log("event.target.id=====++>", event.target.id);
     //Process only double clicks directly on the image, excluding clicks,
     //for example, on zoom buttons and other elements located in the image area.
     const fullScreenObject = thisClickOnStreamObject(event.target);
@@ -1250,6 +1272,7 @@ var doubleClickOnStream = function(event, touchEvent) {
     target = event;
     //}
   }
+//console.log("target=====++>", target);
 
   if (target) {
     if (document.fullscreenElement) {

@@ -12,10 +12,16 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
   this.RTSP2WebStream = monitorData.RTSP2WebStream;
+  this.currentChannelStream = null;
+  this.RTSP2WebMSEBufferCleared = true;
   this.webrtc = null;
   this.hls = null;
   this.mse = null;
   this.wsMSE = null;
+  this.streamStartTime = 0; // Initial point of flow start time. Used for flow lag time analysis.
+  this.waitingStart;
+  this.mseListenerSourceopenBind = null;
+  this.mseSourceBufferListenerUpdateendBind = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
   this.mseSourceBuffer = null;
@@ -231,7 +237,8 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
-  this.start = function() {
+  this.start = function(streamChannel = 'default') {
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`);
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -265,10 +272,10 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        const RTSP2WebChannel = (this.RTSP2WebStream == 'Secondary') ? 1 : 0;
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
-          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/hls/live/index.m3u8";
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
           /*
           if (useSSL) {
             hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
@@ -284,22 +291,17 @@ function MonitorStream(monitorData) {
             videoEl.src = hlsUrl.href;
           }
         } else if (this.RTSP2WebType == 'MSE') {
-          videoEl.addEventListener('pause', () => {
-            if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
-              videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
-              videoEl.play();
-            }
-          });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/mse";
-          mseUrl.search = "uuid=" + this.id + "&channel=0";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
-          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + RTSP2WebChannel + "/webrtc";
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
         }
+        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         return;
@@ -338,6 +340,7 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPED`);
     if ( 0 ) {
       const stream = this.getElement();
       if (!stream) return;
@@ -351,19 +354,63 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (this.webrtc) {
+    if (this.RTSP2WebType == 'WebRTC' && this.webrtc) {
       this.webrtc.close();
       this.webrtc = null;
-    } else if (this.hls) {
+    } else if (this.RTSP2WebType == 'HLS' && this.hls) {
       this.hls.destroy();
       this.hls = null;
-    } else if (this.wsMSE) {
-      this.mse.endOfStream();
-      this.wsMSE.close();
-      this.wsMSE = null;
-      this.mseStreamingStarted = false;
-      this.mseSourceBuffer = null;
+    } else if (this.RTSP2WebType == 'MSE') {
+      this.stopMse();
     }
+  };
+
+  this.stopMse = function() {
+    this.RTSP2WebMSEBufferCleared = false;
+    this.streamStartTime = 0;
+    return new Promise((resolve, reject) => {
+      if (this.mseSourceBuffer && this.mseSourceBuffer.updating) {
+        this.mseSourceBuffer.abort();
+      }
+
+      if (this.mseSourceBuffer) {
+        this.mseSourceBuffer.removeEventListener('updateend', this.mseSourceBufferListenerUpdateendBind); // affects memory release
+        this.mseSourceBuffer.addEventListener('updateend', onBufferRemoved, this);
+        try {
+          /*
+          Very, very rarely, on the MOTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
+          Possibly due to high CPU load, the browser does not have time to process.
+          */
+          this.mseSourceBuffer.remove(0, Infinity);
+        } catch (e) {
+          console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
+        }
+      }
+
+      if (this.mse) {
+        this.mse.removeEventListener('sourceopen', this.mseListenerSourceopenBind); // This really makes a big difference in freeing up memory.
+      }
+
+      if (!this.mseSourceBuffer) {
+        resolve();
+      }
+
+      function onBufferRemoved(this_) {
+        this.removeEventListener('updateend', onBufferRemoved);
+        resolve();
+      }
+    })
+        .then(() => {
+          if (this.mseSourceBuffer) {
+            this.mse.removeSourceBuffer(this.mseSourceBuffer);
+            this.mse.endOfStream();
+          }
+          this.closeWebSocket();
+          this.mse = null;
+          this.mseStreamingStarted = false;
+          this.mseSourceBuffer = null;
+          this.RTSP2WebMSEBufferCleared = true;
+        });
   };
 
   this.kill = function() {
@@ -398,21 +445,41 @@ function MonitorStream(monitorData) {
     }
   };
 
+  this.restart = function(channelStream = "default", delay = 200) {
+    this.stop();
+    const this_ = this;
+    setTimeout(function() {// During the downtime, the monitor may have already started to work.
+      if (!this_.started) this_.start(channelStream);
+    }, delay);
+  };
+
   this.pause = function() {
-    if (this.element.src) {
-      this.streamCommand(CMD_PAUSE);
-    } else {
+    if (this.RTSP2WebEnabled) {
+      /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    } else {
+      if (this.element.src) {
+        this.streamCommand(CMD_PAUSE);
+      } else {
+        this.element.pause();
+        this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+      }
     }
   };
 
   this.play = function() {
-    if (this.element.src) {
-      this.streamCommand(CMD_PLAY);
-    } else {
+    if (this.RTSP2WebEnabled) {
+      /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play();
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    } else {
+      if (this.element.src) {
+        this.streamCommand(CMD_PLAY);
+      } else {
+        this.element.play();
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+      }
     }
   };
 
@@ -811,6 +878,45 @@ function MonitorStream(monitorData) {
     $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
+
+    // We correct the lag from real time. Relevant for long viewing and network problems.
+    if (this.RTSP2WebType == 'MSE') {
+      const videoEl = document.getElementById("liveStream" + this.id);
+      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+        const videoElCurrentTime = videoEl.currentTime; // Current time of playback
+        const currentTime = (Date.now() / 1000);
+        const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
+        const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
+        let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
+        if (delayCurrent < 0) {
+          //Possibly with high client CPU load. Cannot be negative.
+          this.streamStartTime = currentTime - bufferEndTime;
+          delayCurrent = 0;
+        }
+
+        $j('#delayValue'+this.id).text(delayCurrent);
+
+        // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
+        if (!videoEl.paused && deltaRealTime > 10) {
+          // Ability to scroll through the last buffered frames when paused.
+          if (bufferEndTime - videoElCurrentTime > 2.0) {
+            // Correcting a flow lag of more than X seconds from the end of the buffer
+            // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
+            //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
+            videoEl.currentTime = bufferEndTime - 0.1;
+          }
+          if (deltaRealTime - bufferEndTime > 1.5) {
+            // Correcting the buffer end lag by more than X seconds from real time
+            console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
+
+            this.restart(this.currentChannelStream);
+          }
+        }
+      } else if (!this.wsMSE && this.started) {
+        console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
+        this.restart(this.currentChannelStream);
+      }
+    }
   };
 
   this.statusQuery = function() {
@@ -867,14 +973,17 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
 
     this.streamCmdReq = function(streamCmdParms) {
-      this.ajaxQueue = jQuery.ajaxQueue({
-        url: this.url + (auth_relay?'?'+auth_relay:''),
-        xhrFields: {withCredentials: true},
-        data: streamCmdParms,
-        dataType: 'json'
-      })
-          .done(this.getStreamCmdResponse.bind(this))
-          .fail(this.onFailure.bind(this));
+      if (!(streamCmdParms.command == CMD_STOP && this.RTSP2WebEnabled)) {
+        //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
+        this.ajaxQueue = jQuery.ajaxQueue({
+          url: this.url + (auth_relay?'?'+auth_relay:''),
+          xhrFields: {withCredentials: true},
+          data: streamCmdParms,
+          dataType: 'json'
+        })
+            .done(this.getStreamCmdResponse.bind(this))
+            .fail(this.onFailure.bind(this));
+      };
     };
   }
   this.analyse_frames = true;
@@ -904,6 +1013,26 @@ function MonitorStream(monitorData) {
       }
     }
   }; // end setMaxFPS
+
+  this.closeWebSocket = function() {
+    console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${this.id} is being closed.`);
+    if (this.wsMSE && this.wsMSE.readyState !== WebSocket.CLOSING && this.wsMSE.readyState !== WebSocket.CLOSED) {
+      //Socket may still be in the "CONNECTING" state. It would be better to wait for the connection and only then close it, but we will not complicate the code, since this happens rarely and does not globally affect the overall work.
+      this.wsMSE.close(1000, "We close the connection");
+    }
+    this.mseQueue = []; // ABSOLUTELY NEEDED
+  }; // end closeWebSocket
+
+  this.clearWebSocket = function() {
+    if (this.wsMSE) {
+      this.wsMSE.onopen = () => {};
+      this.wsMSE.onmessage = () => {};
+      this.wsMSE.onclose = () => {};
+      this.wsMSE.onerror = () => {};
+      this.wsMSE = null;
+      delete this.wsMSE;
+    }
+  };
 } // end function MonitorStream
 
 async function attachVideo(id, pin) {
@@ -1079,60 +1208,173 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }
 
-function startMsePlay(context, videoEl, url) {
-  context.mse = new MediaSource();
-  context.mse.addEventListener('sourceopen', function() {
-    context.wsMSE = new WebSocket(url);
-    context.wsMSE.binaryType = 'arraybuffer';
-    context.wsMSE.onopen = function(event) {
-      console.log('Connect to ws');
-    };
-    context.wsMSE.onmessage = function(event) {
-      const data = new Uint8Array(event.data);
-      if (data[0] === 9) {
-        let mimeCodec;
-        const decodedArr = data.slice(1);
-        if (window.TextDecoder) {
-          mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
-        } else {
-          console.log("Browser too old. Doesn't support TextDecoder");
-        }
-        context.mseSourceBuffer = context.mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
-        context.mseSourceBuffer.mode = 'segments';
-        context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
+function mseListenerSourceopen(context, videoEl, url) {
+  context.wsMSE = new WebSocket(url);
+  context.wsMSE.binaryType = 'arraybuffer';
+
+  window.onbeforeunload = function() {
+    this.started = false;
+    context.closeWebSocket();
+  };
+  context.wsMSE.onopen = function(event) {
+    console.log(`Connect to ws for a video object ID=${context.id}`);
+  };
+  context.wsMSE.onclose = (event) => {
+    context.clearWebSocket();
+    //console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} CLOSED.`);
+  };
+  context.wsMSE.onerror = function(event) {
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} ERROR:`, event);
+  };
+  context.wsMSE.onmessage = function(event) {
+    const data = new Uint8Array(event.data);
+    if (data[0] === 9) {
+      let mimeCodec;
+      const decodedArr = data.slice(1);
+      if (window.TextDecoder) {
+        mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
       } else {
-        readMsePacket(event.data, videoEl, context);
+        console.log("Browser too old. Doesn't support TextDecoder");
       }
-    };
-  }, false);
-  videoEl.src = window.URL.createObjectURL(context.mse);
+
+      if (MediaSource.isTypeSupported('video/mp4; codecs="' + mimeCodec + '"')) {
+        console.log(`For a video object ID=${context.id} codec used: ${mimeCodec}`);
+      } else {
+        console.log(`For a video object ID=${context.id} codec '${mimeCodec}' not supported.`);
+        context.stop();
+        return;
+      }
+
+      context.mseSourceBuffer = context.mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+      context.mseSourceBuffer.mode = 'segments';
+      context.mseSourceBufferListenerUpdateendBind = pushMsePacket.bind(null, videoEl, context);
+      context.mseSourceBuffer.addEventListener('updateend', context.mseSourceBufferListenerUpdateendBind);
+    } else {
+      readMsePacket(event.data, videoEl, context);
+    }
+  };
+}
+
+function startMsePlay(context, videoEl, url) {
+  var startPermitted = true;
+  if (!context.RTSP2WebMSEBufferCleared) {
+    startPermitted = false;
+  }
+  if (context.wsMSE && context.wsMSE.readyState === WebSocket.OPEN) {
+    startPermitted = false;
+    context.closeWebSocket();
+  } else if (context.wsMSE && context.wsMSE.readyState === WebSocket.CONNECTING) {
+    startPermitted = false;
+  }
+
+  if (startPermitted) {
+    clearTimeout(context.waitingStart);
+  } else {
+    context.waitingStart = setTimeout(function() {
+      startMsePlay(context, videoEl, url);
+    }, 100);
+    return;
+  }
+
+  context.mse = new MediaSource();
+  videoEl.onplay = (event) => {
+    context.streamStartTime = (Date.now() / 1000).toFixed(2);
+    if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
+      //For example, after a pause you press Play, you need to adjust the time.
+      console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${context.id} Lag='${(videoEl.buffered.end(videoEl.buffered.length - 1) - videoEl.currentTime).toFixed(2)}sec.`);
+      videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
+    }
+  };
+  videoEl.addEventListener('listener_pause', () => {
+    /* Temporarily not in use */
+  });
+  context.mseListenerSourceopenBind = mseListenerSourceopen.bind(null, context, videoEl, url);
+  context.mse.addEventListener('sourceopen', context.mseListenerSourceopenBind);
+
+  // Older browsers may not have srcObject
+  if ('srcObject' in videoEl) {
+    try {
+      //fileInfo (type) required by safari, but not by chrome..
+      videoEl.srcObject = context.mse;
+    } catch (err) {
+      if (err.name != "TypeError") {
+        throw err;
+      }
+      // Even if they do, they may only support MediaStream
+      videoEl.src = window.URL.createObjectURL(context.mse);
+    }
+  } else {
+    videoEl.src = window.URL.createObjectURL(context.mse);
+  }
+  $j('#delay'+context.id).removeClass('hidden');
 }
 
 function pushMsePacket(videoEl, context) {
   if (context != undefined && !context.mseSourceBuffer.updating) {
     if (context.mseQueue.length > 0) {
       const packet = context.mseQueue.shift();
-      context.mseSourceBuffer.appendBuffer(packet);
+      appendMseBuffer(packet, context);
     } else {
       context.mseStreamingStarted = false;
     }
   }
+  /* This is not required yet, because we have our own algorithm for stopping the stream.
   if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
     if (typeof document.hidden !== 'undefined' && document.hidden) {
-    // no sound, browser paused video without sound in background
+      // no sound, browser paused video without sound in background
       videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5;
     }
-  }
+  }*/
 }
 
 function readMsePacket(packet, videoEl, context) {
-  if (!context.mseStreamingStarted) {
-    context.mseSourceBuffer.appendBuffer(packet);
-    context.mseStreamingStarted = true;
+  if (!context.started) {
+    //Avoid race errors...
     return;
   }
+  if (context.mseSourceBuffer) {
+    if (!context.mseStreamingStarted) {
+      appendMseBuffer(packet, context);
+      context.mseStreamingStarted = true;
+      return;
+    }
+  } else {
+    // An extremely rare situation, but quite possible. Mistakes should be avoided.
+    console.log("Source buffer for MSE missing. Probably the stream was stopped while reading the next packet.");
+    return;
+  }
+
   context.mseQueue.push(packet);
   if (!context.mseSourceBuffer.updating) {
     pushMsePacket(videoEl, context);
+  }
+}
+
+function appendMseBuffer(packet, context) {
+  try {
+    /*
+    You may receive the error "The SourceBuffer is full, and cannot free space to append additional buffers"
+    Browsers do not report the maximum allowed buffer length and do not always clear it correctly in time, especially when there are network problems and key frames are lost during a UDP connection. An error may also appear when the client's CPU load is more than 99%
+    https://developer.chrome.com/blog/quotaexceedederror
+    https://stackoverflow.com/questions/53309874/sourcebuffer-removestart-end-removes-whole-buffered-timerange-how-to-handle
+    https://stackoverflow.com/questions/50333767/html5-video-streaming-video-with-blob-urls/50354182#50354182
+    */
+    context.mseSourceBuffer.appendBuffer(packet);
+  } catch (e) {
+    // We could get the current length of the buffer and trim it, but that's not entirely straightforward, so let's not overcomplicate the code.
+    if (e.name === 'QuotaExceededError') {
+      const videoEl = document.getElementById("liveStream" + context.id);
+      let secondsInBuffer = 0;
+      if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+        secondsInBuffer = (videoEl.buffered.end(videoEl.buffered.length - 1) - videoEl.buffered.start(videoEl.buffered.length - 1)).toFixed(2);
+      }
+      console.warn(`${dateTimeToISOLocal(new Date())} Restarting stream due to an error adding data to the buffer '${secondsInBuffer}'sec., and length = ${videoEl.buffered.length} for ID=${context.id}`, e);
+
+      // The client's browser needs to rest 1000ms.
+      context.restart(context.currentChannelStream, 1000);
+    } else {
+      console.warn(`${dateTimeToISOLocal(new Date())} Error adding buffer to ID=${context.id}.`, e);
+      throw e;
+    }
   }
 }

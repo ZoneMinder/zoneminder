@@ -763,14 +763,15 @@ function initPage() {
   });
 
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    $j('body').on('mousemove', function() {
-      idle = 0;
-    });
-    setInterval(function() {
-      idle += 10;
-      if (idle > ZM_WEB_VIEWING_TIMEOUT) {
+    var inactivityTime = function() {
+      var time;
+      resetTimer();
+      document.onmousemove = resetTimer;
+      document.onkeydown = resetTimer;
+
+      function stopPlayback() {
         for (let i=0, length = monitors.length; i < length; i++) {
-          monitors[i].pause();
+          monitors[i].kill();
         }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -778,8 +779,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
-                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
-                  idle = 0;
+                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
                 });
                 ayswModal.modal('show');
               })
@@ -787,9 +787,14 @@ function initPage() {
         } else {
           ayswModal.modal('show');
         }
-        idle = 0;
       }
-    }, 10*1000);
+
+      function resetTimer() {
+        clearTimeout(time);
+        time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
+      }
+    };
+    inactivityTime();
   }
 
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio

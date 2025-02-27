@@ -516,6 +516,7 @@ CREATE TABLE `Monitors` (
   `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
   `RTSP2WebEnabled` BOOLEAN NOT NULL default false,
   `RTSP2WebType` enum('HLS','MSE','WebRTC') NOT NULL default 'WebRTC',
+  `RTSP2WebStream` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',

@@ -1,3 +1,5 @@
+#include "config.h"
+
 #ifdef HAVE_QUADRA
 /*
  * Copyright (c) 2010 Nicolas George

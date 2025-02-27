@@ -1,4 +1,6 @@
-#ifdef HAVE_QUADRA
+#include "config.h"
+
+#if HAVE_QUADRA
 
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"

@@ -1,5 +1,5 @@
-#ifndef ZM_QUADRA_THREAD_H
-#define ZM_QUADRA_THREAD_H
+#ifndef ZM_QUADRA_H
+#define ZM_QUADRA_H
 
 #include <atomic>
 #include <memory>

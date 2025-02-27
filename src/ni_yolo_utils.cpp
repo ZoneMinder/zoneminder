@@ -1,4 +1,6 @@
-#ifdef HAVE_QUADRA
+#include "config.h"
+
+#if HAVE_QUADRA
 #include "ni_yolo_utils.h"
 #include "zm_logger.h"
 

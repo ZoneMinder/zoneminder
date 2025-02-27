@@ -1,4 +1,6 @@
-#ifdef HAVE_QUADRA
+#include "config.h"
+
+#if HAVE_QUADRA
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

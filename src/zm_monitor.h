@@ -52,7 +52,7 @@
 #include "zm_untether_speedai.h"
 #endif
 
-#ifdef HAVE_QUADRA
+#if HAVE_QUADRA
 extern "C" {
 #include <ni_device_api.h>
 #include <ni_av_codec.h>
@@ -67,7 +67,7 @@ class MonitorLinkExpression;
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
 
-#ifdef HAVE_QUADRA
+#if HAVE_QUADRA
 #include "zm_netint_yolo.h"
 #endif
 
@@ -354,7 +354,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
  protected:
 
 
-#ifdef HAVE_QUADRA
+#if HAVE_QUADRA
   class Quadra {
    public:
     explicit Quadra(Monitor *p_monitor);
@@ -723,7 +723,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 #ifdef HAVE_UNTETHER_H
   SpeedAI *speedai;
 #endif
-#ifdef HAVE_QUADRA
+#if HAVE_QUADRA
   Quadra *quadra;
   Quadra_Yolo *quadra_yolo;
 #endif

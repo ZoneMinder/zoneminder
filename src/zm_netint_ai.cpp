@@ -1,5 +1,7 @@
 
-#ifdef HAVE_QUADRA
+#include "config.h"
+
+#if HAVE_QUADRA
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"

@@ -291,12 +291,6 @@ function MonitorStream(monitorData) {
             videoEl.src = hlsUrl.href;
           }
         } else if (this.RTSP2WebType == 'MSE') {
-          videoEl.addEventListener('pause', () => {
-            if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
-              videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
-              videoEl.play();
-            }
-          });
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
@@ -373,6 +367,7 @@ function MonitorStream(monitorData) {
 
   this.stopMse = function() {
     this.RTSP2WebMSEBufferCleared = false;
+    this.streamStartTime = 0;
     return new Promise((resolve, reject) => {
       if (this.mseSourceBuffer && this.mseSourceBuffer.updating) {
         this.mseSourceBuffer.abort();
@@ -452,10 +447,10 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
-    setTimeout(function() {
-      this.start(channelStream);
+    setTimeout(function() {// During the downtime, the monitor may have already started to work.
+      if (!this.started) this.start(channelStream);
     }, delay);
-  };
+  }
 
   this.pause = function() {
     if (this.RTSP2WebEnabled) {
@@ -886,7 +881,7 @@ function MonitorStream(monitorData) {
     // We correct the lag from real time. Relevant for long viewing and network problems.
     if (this.RTSP2WebType == 'MSE') {
       const videoEl = document.getElementById("liveStream" + this.id);
-      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0 && this.streamStartTime !==0) {
         const videoElCurrentTime = videoEl.currentTime; // Current time of playback
         const currentTime = (Date.now() / 1000);
         const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started

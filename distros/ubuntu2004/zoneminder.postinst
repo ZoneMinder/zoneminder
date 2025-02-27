@@ -61,6 +61,9 @@ if [ "$1" = "configure" ]; then
   done
 
   # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
+  chown www-data:root -R /etc/zm
+  chmod 640 -R /etc/zm/zm.conf
+  chmod 640 -R /etc/zm/conf.d/*
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*

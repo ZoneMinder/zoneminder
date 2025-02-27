@@ -293,8 +293,11 @@ Event::~Event() {
     closedir(video_dir);
   }
 
+  std::string notes;
+  createNotes(notes);
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Notes='%s', Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      zmDbEscapeString(notes).c_str(),
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
@@ -306,7 +309,8 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        "UPDATE Events SET Notes='%s', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        zmDbEscapeString(notes).c_str(),
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
@@ -416,7 +420,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     } // end if have old notes
   } // end if have new notes
 
-  if (update) {
+  if (0 and update) {
     std::string notes;
     createNotes(notes);
 
@@ -625,8 +629,11 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       WriteDbFrames();
       last_db_frame = frames;
 
+      std::string notes;
+      createNotes(notes);
       std::string sql = stringtf(
-                          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          "UPDATE Events SET Notes='%s', Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          zmDbEscapeString(notes).c_str(),
                           FPSeconds(delta_time).count(),
                           frames,
                           alarm_frames,
@@ -777,12 +784,14 @@ void Event::Run() {
   video_incomplete_path = path + "/" + video_incomplete_file;
 
   if (monitor->GetOptVideoWriter() != 0) {
+    AVCodecContext *video_ctx = monitor->GetVideoCodecContext();
+
     /* Save as video */
     videoStore = new VideoStore(
       video_incomplete_path.c_str(),
       container.c_str(),
       monitor->GetVideoStream(),
-      monitor->GetVideoCodecContext(),
+      video_ctx,
       ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
       ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
       monitor );
@@ -793,9 +802,14 @@ void Event::Run() {
       videoStore = nullptr;
       if (!(save_jpegs & 1)) {
         save_jpegs |= 1; // Turn on jpeg storage
-        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id));
+        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d, DefaultVideo=NULL WHERE Id=%" PRIu64, save_jpegs, id));
       }
     } else {
+      const AVCodec *encoder = videoStore->get_video_encoder();
+      if (encoder) {
+        noteSetMap["encoder"].insert(encoder->name);
+      }
+
       std::string codec = videoStore->get_codec();
       video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
       video_path = path + "/" + video_file;

@@ -118,7 +118,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     } // end foreach codec_data
  
     if (!streams[i].context) {
-      if (streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id)) {
+      if ((streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
         Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
         streams[i].context = avcodec_alloc_context3(streams[i].codec);
         avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
@@ -309,7 +309,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   if (frame->pts + 10*input_format_context->streams[stream_id]->time_base.den * frame->pkt_duration < seek_target)
 #endif
   {
-    Debug(1, "Jumping ahead to %d", seek_target);
+    Debug(1, "Jumping ahead to %" PRId64, seek_target);
     if (( ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME) ) < 0) {
       Error("Unable to seek in stream %d", ret);
       return nullptr;

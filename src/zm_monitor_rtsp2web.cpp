@@ -41,6 +41,8 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   }
 
   rtsp_path = parent->path;
+  rtsp_second_path = parent->GetSecondPath();
+
   if (!parent->user.empty()) {
     rtsp_username = escape_json_string(parent->user);
     rtsp_password = escape_json_string(parent->pass);
@@ -49,7 +51,12 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
     } else {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
     }
-  }
+     if (rtsp_second_path.find("rtsp://") == 0) {
+      rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
+    } else {
+      rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
+    }
+  }  // end if !user.empty
   Debug(1, "Monitor %u rtsp url is %s", parent->id, rtsp_path.c_str());
 }
 
@@ -110,9 +117,9 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + "\", \"channels\" : {"
    " \"0\" : {"
    "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" + rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
-   if (!parent->GetSecondPath().empty()) {
+   if (!rtsp_second_path.empty()) {
      postData += ", \"1\" : {"
-       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + parent->GetSecondPath() + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+       "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" + rtsp_second_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
    }
    postData += "}" "}";
 

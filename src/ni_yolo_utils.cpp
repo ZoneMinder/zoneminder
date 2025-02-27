@@ -1,3 +1,4 @@
+#ifdef HAVE_QUADRA
 #include "ni_yolo_utils.h"
 #include "zm_logger.h"
 
@@ -405,3 +406,4 @@ void ni_resize_coords_padding_mode(detection *det, struct roi_box *roi_box,
     roi_box->objectness = det->objectness;
     roi_box->prob       = det->max_prob;
 }
+#endif

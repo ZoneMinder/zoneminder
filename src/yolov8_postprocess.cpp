@@ -1,3 +1,4 @@
+#ifdef HAVE_QUADRA
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -197,3 +198,4 @@ YoloModel yolov8 = {
     .ni_get_boxes  = ni_yolov8_get_boxes,
 };
 
+#endif

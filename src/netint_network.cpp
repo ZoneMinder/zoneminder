@@ -1,3 +1,4 @@
+#ifdef HAVE_QUADRA
 /*
  * Copyright (c) 2010 Nicolas George
  * Copyright (c) 2011 Stefano Sabatini
@@ -545,3 +546,4 @@ int ni_convert_to_tensors(NiNetworkContext *network_ctx, NiNetworkFrame *frame, 
     }
     return 0;
 }
+#endif

@@ -48,7 +48,9 @@
 #include "zm_libvnc_camera.h"
 #endif  // HAVE_LIBVNC
 
+#ifdef HAVE_QUADRA
 #include "libavutil/hwcontext_ni_quad.h"
+#endif
 
 #include <algorithm>
 #include <cstring>
@@ -338,8 +340,10 @@ Monitor::Monitor() :
 #ifdef HAVE_UNTETHER_H
   speedai(nullptr),
 #endif
+#ifdef HAVE_QUADRA
   quadra(nullptr),
   quadra_yolo(nullptr),
+#endif
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1369,8 +1373,10 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
+#ifdef HAVE_QUADRA
   if (quadra) delete quadra;
   if (quadra_yolo) delete quadra_yolo;
+#endif
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -2154,6 +2160,7 @@ int Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
+#ifdef HAVE_QUADRA
           if (objectdetection == OBJECT_DETECTION_QUADRA) {
             if (!quadra_yolo and packet->hw_frame) {
               quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
@@ -2278,6 +2285,7 @@ int Monitor::Analyse() {
             } // end if delayed_packet
           } // end yolo
           packet->hw_frame = nullptr; // Free it?
+#endif
 
 #ifdef HAVE_UNTETHER_H
           if (speedai) {

@@ -2309,49 +2309,55 @@ int Monitor::Analyse() {
               Debug(1, "Dont Have queued packets %zu", ai_queue.size());
             }
 
-            Debug(1, "Send_packet %d", packet->image_index);
-            int ret = speedai->send_image(packet);
-            if (ret <= 0) {
-              Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
-              return ret;
-            }
-
-            // packet got to the card
-            Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
-            delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-            delayed_packet = delayed_packet_lock->packet_;
-
-            ret = speedai->receive_detections(delayed_packet);
-            if (0 < ret) {
-              if (delayed_packet != packet) {
-                Debug(1, "Pushing packet, popping delayed");
-                ai_queue.push_back(std::move(packet_lock));
-                packet = delayed_packet;
-                packet_lock = std::move(ai_queue.front());
-                ai_queue.pop_front();
-                packetqueue.increment_it(analysis_it);
+            if (!delayed_packet) {
+              Debug(1, "Send_packet %d", packet->image_index);
+              int ret = speedai->send_image(packet);
+              if (ret <= 0) {
+                Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
+                return ret;
               }
-              if (packet->ai_frame)
-                zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-            } else if (0 > ret) {
-              Debug(1, "Failed yolo");
-              delete speedai;
-              // Since packets are still in the queue, they will get re-fed into it..
-              speedai = nullptr;
-              if (packet != delayed_packet) { // Can this be otherwise?
-                ai_queue.push_back(std::move(packet_lock));
-                Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
-                packetqueue.increment_it(analysis_it);
-              }
-              return ret;
 
-            } else {
-              // EAGAIN
-              Debug(1, "ret %d EAGAIN", ret);
-              //if (packet == delayed_packet) { // Can this be otherwise?
-              //ai_queue.push_back(std::move(packet_lock));
-              //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-            }
+              // packet got to the card
+              Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
+              delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+              delayed_packet = delayed_packet_lock->packet_;
+
+              int count = 10;
+              do {
+                ret = speedai->receive_detections(delayed_packet);
+                if (0 < ret) {
+                  if (delayed_packet != packet) {
+                    Debug(1, "Pushing packet, popping delayed");
+                    ai_queue.push_back(std::move(packet_lock));
+                    packet = delayed_packet;
+                    packet_lock = std::move(ai_queue.front());
+                    ai_queue.pop_front();
+                    packetqueue.increment_it(analysis_it);
+                  }
+                  if (packet->ai_frame)
+                    zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                } else if (0 > ret) {
+                  Debug(1, "Failed yolo");
+                  delete speedai;
+                  // Since packets are still in the queue, they will get re-fed into it..
+                  speedai = nullptr;
+                  if (packet != delayed_packet) { // Can this be otherwise?
+                    ai_queue.push_back(std::move(packet_lock));
+                    Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
+                    packetqueue.increment_it(analysis_it);
+                  }
+                  return ret;
+
+                } else {
+                  // EAGAIN
+                  Debug(1, "ret %d EAGAIN", ret);
+                  //if (packet == delayed_packet) { // Can this be otherwise?
+                  ai_queue.push_back(std::move(packet_lock));
+                  //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+                }
+                count -= 1;
+              } while (ret == 0 and count > 0);
+            } // end if delayed_packet
           } // edn if speedai
 #endif
 

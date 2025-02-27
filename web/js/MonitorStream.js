@@ -447,8 +447,9 @@ function MonitorStream(monitorData) {
 
   this.restart = function(channelStream = "default", delay = 200) {
     this.stop();
+    const this_ = this;
     setTimeout(function() {// During the downtime, the monitor may have already started to work.
-      if (!this.started) this.start(channelStream);
+      if (!this_.started) this_.start(channelStream);
     }, delay);
   };
 
@@ -881,7 +882,7 @@ function MonitorStream(monitorData) {
     // We correct the lag from real time. Relevant for long viewing and network problems.
     if (this.RTSP2WebType == 'MSE') {
       const videoEl = document.getElementById("liveStream" + this.id);
-      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0 && this.streamStartTime !==0) {
+      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
         const videoElCurrentTime = videoEl.currentTime; // Current time of playback
         const currentTime = (Date.now() / 1000);
         const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started

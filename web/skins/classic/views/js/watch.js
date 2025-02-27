@@ -481,7 +481,7 @@ function handleClick(event) {
   }
 
   if (panZoomEnabled) {
-    //event.preventDefault();
+    event.preventDefault();
     //We are looking for an object with an ID, because there may be another element in the button.
     const obj = targetId ? event.target : event.target.parentElement;
     if (!obj) {
@@ -1031,13 +1031,14 @@ function initPage() {
   }
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    $j('body').on('mousemove', function() {
-      idle = 0;
-    });
-    setInterval(function() {
-      idle += 10;
-      if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
-        streamCmdPause(true);
+    var inactivityTime = function() {
+      var time;
+      resetTimer();
+      document.onmousemove = resetTimer;
+      document.onkeydown = resetTimer;
+
+      function stopPlayback() {
+        streamCmdStop(true);
         const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
@@ -1048,7 +1049,6 @@ function initPage() {
                 ayswModal.on('hidden.bs.modal', function() {
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
-                  idle = 0;
                 });
                 ayswModal.modal('show');
               })
@@ -1057,7 +1057,13 @@ function initPage() {
           ayswModal.modal('show');
         }
       }
-    }, 10*1000);
+
+      function resetTimer() {
+        clearTimeout(time);
+        time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
+      }
+    };
+    inactivityTime();
   }
 
   setInterval(() => {

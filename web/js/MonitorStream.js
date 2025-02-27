@@ -1139,6 +1139,7 @@ function readMsePacket(packet, videoEl, context) {
 }
 
 function deletePortFromUrl(url) {
-  let newUrl = new URL(url);
-  return (newUrl.protocol + '//' + (newUrl.username ? newUrl.username + ':' : '') + (newUrl.password ? newUrl.password + '@' : '') + newUrl.hostname + newUrl.pathname + newUrl.search + newUrl.hash);
+  const newUrl = new URL(url);
+  const port = (location.port) ? ':' + location.port : '';
+  return (newUrl.protocol + '//' + (newUrl.username ? newUrl.username + ':' : '') + (newUrl.password ? newUrl.password + '@' : '') + newUrl.hostname + port + newUrl.pathname + newUrl.search + newUrl.hash);
 }

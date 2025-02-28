@@ -148,11 +148,12 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
     }
   }
   Job *job = new Job(module, avframe);
+
   if (av_frame_get_buffer(job->scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
+    delete job;
     return -1;
   }
-
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
@@ -173,7 +174,7 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
   }
   memcpy(job->inputBuf->buffer, job->scaled_frame->buf[0], image_size);
 
-  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  Debug(1, "SpeedAI input %p output %p size %d", job->inputBuf->buffer, job->outputBuf->buffer, image_size);
   // Attach buffers to event, so runtime knows where to find input and output buffers to
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
@@ -194,7 +195,7 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
 
 int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   if (!jobs.size()) {
-    Error("No jobs in receive_detections");
+    Error("SpeedAI No jobs in receive_detections");
     return 0;
   }
 
@@ -214,6 +215,7 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   auto DMAoutput = static_cast<uint8_t*>(job->outputBuf->buffer);
   if (!DMAoutput) {
+    Error("No DMAOutput");
     return -1;
   }
   // Output buffer for one batch of images

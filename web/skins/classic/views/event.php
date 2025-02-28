@@ -331,7 +331,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
 ?>
-                  <video autoplay id="videoobj" class="video-js vjs-default-skin"
+                  <video muted autoplay id="videoobj" class="video-js vjs-default-skin"
                     style="transform: matrix(1, 0, 0, 1, 0, 0);"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>

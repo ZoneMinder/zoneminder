@@ -1253,8 +1253,18 @@ var doubleClickOnStream = function(event, touchEvent) {
 
   if (target) {
     if (document.fullscreenElement) {
+      if (getCookie('zmEventStats') && eventStats) {
+        eventStats.toggle(true);
+        wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+        changeScale();
+      }
       closeFullscreen();
     } else {
+      if (getCookie('zmEventStats') && eventStats) {
+        eventStats.toggle(false);
+        wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+        changeScale();
+      }
       openFullscreen(target);
     }
     if (isMobile()) {

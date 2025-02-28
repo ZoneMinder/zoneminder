@@ -1364,7 +1364,8 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', playClicked);
+    //vid.on('play', playClicked);
+    vid.on('play', streamPlay); // We have autoplay enabled in the <video> tag, so re-running vid.play() is not required.
     vid.on('pause', pauseClicked);
     vid.on('click', function(event) {
       handleClick(event);
@@ -1391,6 +1392,12 @@ function initPage() {
     if (rate > 0) {
       // rate should be 100 = 1x, etc.
       vid.playbackRate(rate/100);
+    }
+
+    if (performance.getEntriesByType("navigation")[0].type == "navigate" && document.referrer) {
+      vid.muted(false);
+    } else if (performance.getEntriesByType("navigation")[0].type == "reload") {
+      // We're not doing anything yet.
     }
   } else {
     streamCmdInterval = setInterval(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display

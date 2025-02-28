@@ -1253,17 +1253,27 @@ var doubleClickOnStream = function(event, touchEvent) {
 
   if (target) {
     if (document.fullscreenElement) {
-      if (getCookie('zmEventStats') && eventStats) {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
         eventStats.toggle(true);
         wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
         changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(true);
+        monitorsSetScale(monitorId);
       }
       closeFullscreen();
     } else {
-      if (getCookie('zmEventStats') && eventStats) {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
         eventStats.toggle(false);
         wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
         changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(false);
+        monitorsSetScale(monitorId);
       }
       openFullscreen(target);
     }

@@ -1394,9 +1394,10 @@ function initPage() {
       vid.playbackRate(rate/100);
     }
 
-    if (performance.getEntriesByType("navigation")[0].type == "navigate" && document.referrer) {
+    const navigationType = performance.getEntriesByType("navigation")[0].type;
+    if (navigationType == "navigate" && document.referrer) {
       vid.muted(false);
-    } else if (performance.getEntriesByType("navigation")[0].type == "reload") {
+    } else if (navigationType == "reload") {
       // We're not doing anything yet.
     }
   } else {

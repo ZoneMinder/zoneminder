@@ -2330,8 +2330,8 @@ int Monitor::Analyse() {
               delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
               delayed_packet = delayed_packet_lock->packet_;
 
-              int count = 10;
-              do {
+              //int count = 10;
+              //do {
                 ret = speedai->receive_detections(delayed_packet);
                 if (0 < ret) {
                   if (delayed_packet != packet) {
@@ -2363,8 +2363,9 @@ int Monitor::Analyse() {
                   ai_queue.push_back(std::move(packet_lock));
                   //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
                 }
-                count -= 1;
-              } while (ret == 0 and count > 0);
+//count -= 1;
+              //} while (ret == 0 and count > 0);
+              //if 
             } // end if delayed_packet
           } // edn if speedai
 #endif

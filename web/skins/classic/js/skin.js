@@ -1308,6 +1308,48 @@ function setButtonSizeOnStream() {
   });
 }
 
+/*
+* date - object type Date()
+* shift.offset - number (can be negative)
+* shift.period - (Date, Month, Day, Hour, Minute, Sec, MilliSec)
+* highPrecision - accuracy up to thousandths of a second
+*/
+function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
+  var d = date;
+  if (shift.offset && shift.period) {
+    if (shift.period == 'Date') {
+      d = new Date(date.setDate(date.getDate() + shift.offset)); //Day
+    } else if (shift.period == 'Month') {
+      d = new Date(date.setMonth(date.getMonth() + shift.offset)); //Month
+    } else if (shift.period == 'Day') {
+      d = new Date(date.setHours(date.getHours() + shift.offset*24)); //24 hours
+    } else if (shift.period == 'Hour') {
+      d = new Date(date.setHours(date.getHours() + shift.offset)); //Hour
+    } else if (shift.period == 'Minute') {
+      d = new Date(date.setMinutes(date.getMinutes() + shift.offset)); //Minute
+    } else if (shift.period == 'Sec') {
+      d = new Date(date.setSeconds(date.getSeconds() + shift.offset)); //Second
+    } else if (shift.period == 'MilliSec') {
+      d = new Date(date.setMilliseconds(date.getMilliseconds() + shift.offset)); //Millisecond
+    }
+  }
+
+  //const z = n => ('0' + n).slice(-2);
+  //let off = d.getTimezoneOffset();
+  //const sign = off < 0 ? '+' : '-';
+  //off = Math.abs(off);
+  if (highPrecision) {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        .toISOString();
+  } else {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        .toISOString()
+        //.slice(0, -1) + sign + z(off / 60 | 0) + ':' + z(off % 60);
+        .slice(0, -1)
+        .split('.')[0].replace(/[T]/g, ' '); //Transformation from "2024-06-20T15:12:13.145" to "2024-06-20 15:12:13"
+  }
+}
+
 $j(document).on('keyup.global keydown.global', function(e) {
   shifted = e.shiftKey ? e.shiftKey : e.shift;
   ctrled = e.ctrlKey;

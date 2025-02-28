@@ -1161,7 +1161,8 @@ $videowriter_encoders = array(
   'vp9-qsv' => 'vp9-qsv',
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
-  'av1_qsv' => 'av1_qsv'
+  'av1_qsv' => 'av1_qsv',
+  'av1_vaapi' => 'av1_vaapi'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>

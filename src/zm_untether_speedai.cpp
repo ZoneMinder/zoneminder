@@ -205,7 +205,7 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   Job *job = jobs.front();
   UaiErr err = uai_module_wait(module, &job->event, 1000);
   if (err != UAI_SUCCESS) {
-    Error("SpeedAI Failed wait %s", uai_err_string(err));
+    Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
     return 0;
   }
   jobs.pop_front();
@@ -278,7 +278,30 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     outputBuffer[outputIndex + 5] = score_float;
   }
 
+  Rgb colour = kRGBRed;
   nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+  Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
+  if (coco_object.size()) {
+    Image in_image(packet->in_frame.get());
+    Image ai_image;
+    ai_image.Assign(in_image);
+    ai_image.PopulateFrame(packet->get_ai_frame());
+
+    for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
+      nlohmann::json detection = *it;
+      nlohmann::json bbox = detection["bbox"];
+
+      Debug(1, "%s", bbox.dump().c_str());
+      std::vector<Vector2> coords;
+      //auto xy = *coord_it
+      for (auto coord_it = bbox.begin(); coord_it != bbox.end(); ++coord_it) {
+        nlohmann::json coord = *coord_it;
+        coords.push_back(Vector2(coord[0], coord[1]));
+      }
+      Polygon poly(coords);
+      ai_image.Outline(colour, poly);
+    }
+  }
 
   delete job;
   Debug(1, "Done");

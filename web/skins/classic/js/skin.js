@@ -1367,3 +1367,23 @@ $j(document).on('keyup.global keydown.global', function(e) {
 });
 
 loadFontFaceObserver();
+
+function canPlayCodec(filename) {
+  const re = /\.(\w+)\.(\w+)$/i;
+  const matches = re.exec(filename);
+  if (matches.length) {
+    const video = document.createElement('video');
+    if (matches[1] == 'av1') matches[1] = 'avc1';
+    const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
+    if (can == "probably") {
+      console.log("can play "+matches[1]);
+      return true;
+    } else if (can == "maybe") {
+      console.log("can maybe play "+matches[1]);
+      return true;
+    }
+    console.log("cannot play "+matches[1]);
+    return false;
+  }
+  return false;
+}

@@ -1346,6 +1346,7 @@ function initPage() {
   getAvailableTags();
   getSelectedTags();
 
+
   // Load the event stats
   getStat();
   zmPanZoom.init();
@@ -1359,7 +1360,10 @@ function initPage() {
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if (document.getElementById('videoobj')) {
+  const video_element = document.getElementById('videoobj');
+  if (video_element) {
+    canPlayCodec(eventData.DefaultVideo);
+
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load

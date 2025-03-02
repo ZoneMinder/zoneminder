@@ -1215,6 +1215,7 @@ bool Monitor::connect() {
             "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
             )) {
         delete speedai;
+        speedai = nullptr;
       }
     }
 #endif
@@ -3287,25 +3288,10 @@ int Monitor::Decode() {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
   } 
 
-  if (!packet) {
-    packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
-    packet = packet_lock.packet_;
-    if (!packet) {
-      Debug(1, "No packet from get_packet");
-      return -1;
-    } 
-    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-      packet->decoded = true;
-      Debug(3, "Not video,probably audio packet %d", packet->image_index);
-      //packetqueue.increment_it(decoder_it);
-      return 1; // Don't need decode
-    }
-    decoder_queue.push_back(std::move(packet_lock));
-  }
 
   // At this point we know that the packet is on the queue somewhere
 
-  if ((!packet->image) and packet->packet->size and !packet->in_frame) {
+  if ((!packet) || ((!packet->image) and packet->packet->size and !packet->in_frame)) {
     if ((decoding == DECODING_ALWAYS)
         or
         ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
@@ -3314,31 +3300,44 @@ int Monitor::Decode() {
         or
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
-      Debug(1, "send_packet %d", packet->image_index);
-      int ret = packet->send_packet(mVideoCodecContext);
-      if (0 == ret) {
-        return -1; //make it sleep?
-      }
 
-      if (ret < 0) {
-        // No need to push because it didn't get into the decoder.
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
-        avcodec_free_context(&mVideoCodecContext);
-        avcodec_free_context(&mAudioCodecContext);
-        return -1;
-        //} else if (ret == 0) {
-        //Debug(1, "EAGAIN");
-        // EAGAIN, didn't get into decoder
-        //return ret;
-      } else {
-        Debug(1, "Success");
+      if (!packet) {
+        packet_lock = packetqueue.get_packet(decoder_it);
+        packet = packet_lock.packet_;
+        if (!packet) {
+          Debug(1, "No packet from get_packet");
+          return -1;
+        } 
+        if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+          packet->decoded = true;
+          Debug(3, "Not video,probably audio packet %d", packet->image_index);
+          packetqueue.increment_it(decoder_it);
+          return 1; // Don't need decode
+        }
+        Debug(1, "send_packet %d", packet->image_index);
+        int ret = packet->send_packet(mVideoCodecContext);
+        if (0 == ret) {
+          return -1; //make it sleep?
+        }
+
+        if (ret < 0) {
+          // No need to push because it didn't get into the decoder.
+          Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
+          avcodec_free_context(&mVideoCodecContext);
+          avcodec_free_context(&mAudioCodecContext);
+          return -1;
+        } else {
+          Debug(1, "Success");
+        }
+        packetqueue.increment_it(decoder_it);
+        decoder_queue.push_back(std::move(packet_lock));
       }
 
       ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
       auto delayed_packet = delayed_packet_lock->packet_;
       Debug(1, "delayed_packet %d , sent packet %d, queue_size: %ld", delayed_packet->image_index, packet->image_index, decoder_queue.size());
 
-      ret = delayed_packet->receive_frame(mVideoCodecContext);
+      int ret = delayed_packet->receive_frame(mVideoCodecContext);
       if (ret > 0 and !zm_terminate) {
           Debug(1, "Popping off delayed packet %d queue size %zu, pushing on packet %d", delayed_packet->image_index, decoder_queue.size(), packet->image_index);
           packet_lock = std::move(decoder_queue.front());

@@ -41,6 +41,7 @@ var eventData = {
     MaxScore: '<?php echo $Event->MaxScore() ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
+    DefaultVideo: '<?php echo validHtmlStr($Event->DefaultVideo()) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
     Path: '<?php echo $Event->Path() ?>',

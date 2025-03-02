@@ -86,7 +86,7 @@ bool SpeedAI::setup(
   err = uai_module_launch(module);
   if (err != UAI_SUCCESS) {
     Error("Failed launching model %s", uai_err_string(err));
-    //return false;
+    return false;
   }
   // Get info on input/output streams. We assume a simple model (like Resnet50) with one input
   // stream and one output stream from here onwards. To see how larger input/output sizes are
@@ -95,9 +95,8 @@ bool SpeedAI::setup(
   err = uai_module_get_num_streams(module, &numStreams);
   if (err != UAI_SUCCESS) {
     Error("Failed getting num streams %s", uai_err_string(err));
-    //return false;
+    return false;
   }
-  //assert(numStreams == 2);
   Debug(1, "Num streams %zu", numStreams);
   infos = new UaiDataStreamInfo[numStreams];
   uai_module_get_stream_info(module, infos, numStreams);
@@ -116,7 +115,7 @@ bool SpeedAI::setup(
 }
 
 int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
-  AVFrame * avframe = packet->in_frame.get();
+  AVFrame *avframe = packet->in_frame.get();
   if (!avframe) {
     Error("NO avframe, out of mem?");
     return -1;
@@ -278,29 +277,36 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     outputBuffer[outputIndex + 5] = score_float;
   }
 
-  Rgb colour = kRGBRed;
-  nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
-  Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
-  if (coco_object.size()) {
-    Image in_image(packet->in_frame.get());
-    Image ai_image;
-    ai_image.Assign(in_image);
-    ai_image.PopulateFrame(packet->get_ai_frame());
+  try {
+    Rgb colour = kRGBRed;
+    nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+    Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
+    if (coco_object.size()) {
+      Image in_image(packet->in_frame.get());
+      Image ai_image;
+      ai_image.Assign(in_image);
+      ai_image.PopulateFrame(packet->get_ai_frame());
 
-    for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
-      nlohmann::json detection = *it;
-      nlohmann::json bbox = detection["bbox"];
+      for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
+        nlohmann::json detection = *it;
+        nlohmann::json bbox = detection["bbox"];
 
-      Debug(1, "%s", bbox.dump().c_str());
-      std::vector<Vector2> coords;
-      //auto xy = *coord_it
-      for (auto coord_it = bbox.begin(); coord_it != bbox.end(); ++coord_it) {
-        nlohmann::json coord = *coord_it;
-        coords.push_back(Vector2(coord[0], coord[1]));
+        Debug(1, "%s", bbox.dump().c_str());
+        std::vector<Vector2> coords;
+        //auto xy = *coord_it
+        for (auto coord_it = bbox.begin(); coord_it != bbox.end(); ++coord_it) {
+          nlohmann::json x = *coord_it; ++coord_it;
+          nlohmann::json y = *coord_it;
+
+          Debug(1, "%s %s", x.dump().c_str(), y.dump().c_str());
+          coords.push_back(Vector2(x, y));
+        }
+        Polygon poly(coords);
+        ai_image.Outline(colour, poly);
       }
-      Polygon poly(coords);
-      ai_image.Outline(colour, poly);
     }
+  } catch (std::exception const & ex) {
+    Error("SpeedAI Exception: %s", ex.what());
   }
 
   delete job;

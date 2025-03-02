@@ -133,6 +133,7 @@ if ($user) {
     if (!(isset($c['Private']) and $c['Private'])) {
       $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
       $value = preg_replace('/\'/', '\\\\\'', $value);
+      $value = html_entity_decode(validJsStr($value));
       echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
     }
   }

@@ -489,7 +489,7 @@ void MonitorStream::runStream() {
         monitor->setLastViewed();
         sendTextFrame("Waiting for capture");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
-        sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
+        sendTextFrame("Monitor has Decoding==None. We may not be able to provide live stream.");
       } else {
         sendTextFrame("Unable to stream");
       }

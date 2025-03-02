@@ -144,8 +144,7 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
   }
 
   if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
-    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
-    return false;
+    Info("Monitor %d has capturing == NONE. Will likely not be able to connect to it.", monitor_id);
   }
 
   if (monitor->isConnected()) {
@@ -173,11 +172,10 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
-    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
-    return false;
+    Info("Monitor %d has capturing == NONE. Will likely not be able to connect to it.", monitor_id);
   }
   if (!monitor->ShmValid()) {
-    Debug(1, "Monitor shm is not connected");
+    Debug(1, "Monitor shm is not valid");
     return false;
   }
   if ((monitor->GetType() == Monitor::FFMPEG) and (monitor->Decoding() == Monitor::DECODING_NONE) ) {

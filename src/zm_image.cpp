@@ -2385,7 +2385,7 @@ void Image::Annotate(
     uint32 x = x0;
 
     if (colours == ZM_COLOUR_GRAY8) {
-      Debug(1, "Annotate on gray");
+      //Debug(1, "Annotate on gray");
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {

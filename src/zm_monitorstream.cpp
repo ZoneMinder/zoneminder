@@ -519,7 +519,7 @@ void MonitorStream::runStream() {
       zm_terminate = true;
     } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
       monitor->setLastViewed();
-      rc= sendTextFrame("Waiting for capture");
+      rc= sendTextFrame("Waiting for capture of ondemand camera");
     } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
       rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
     } else {
@@ -619,7 +619,7 @@ void MonitorStream::runStream() {
         zm_terminate = true;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        rc= sendTextFrame("Waiting for capture");
+        rc= sendTextFrame("Waiting for capture of ondemand camera");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
         rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
@@ -887,7 +887,7 @@ void MonitorStream::runStream() {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
         } else {
-          sendTextFrame("Waiting for capture");
+          sendTextFrame(stringtf("Waiting for capture last analysis index %d, our last index %d", monitor->shared_data->last_analysis_index, last_read_index).c_str());
         }
       }
       std::this_thread::sleep_for( MonitorStream::MAX_SLEEP / 10);

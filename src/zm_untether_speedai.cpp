@@ -117,7 +117,7 @@ bool SpeedAI::setup(
 int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
   AVFrame *avframe = packet->in_frame.get();
   if (!avframe) {
-    Error("NO avframe, out of mem?");
+    Error("NO inframe in packet %d, out of mem?", packet->image_index);
     return -1;
   }
 
@@ -300,8 +300,8 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
         
         coords.push_back(Vector2(x1, y1));
         coords.push_back(Vector2(x2, y1));
-        coords.push_back(Vector2(x1, y2));
         coords.push_back(Vector2(x2, y2));
+        coords.push_back(Vector2(x1, y2));
 
         Polygon poly(coords);
         ai_image.Outline(colour, poly);

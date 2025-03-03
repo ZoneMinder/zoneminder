@@ -3235,7 +3235,7 @@ int Monitor::OpenDecoder() {
 int Monitor::Decode() {
   if (decoding != DECODING_NONE) {
     // Not fatal... because we can still record
-    if (!mVideoCodecContext) {
+    if (!mVideoCodecContext and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
 
         // If we have queued packets, need to stuff them into the decoder.

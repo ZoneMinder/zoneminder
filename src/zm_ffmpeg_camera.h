@@ -106,6 +106,7 @@ class FfmpegCamera : public Camera {
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
+  bool NeedsDecode() {return true;};
  private:
   static int FfmpegInterruptCallback(void*ctx);
 };

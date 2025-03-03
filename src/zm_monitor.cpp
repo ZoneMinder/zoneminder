@@ -3240,11 +3240,11 @@ int Monitor::Decode() {
 
         // If we have queued packets, need to stuff them into the decoder.
         while (decoder_queue.size() and !zm_terminate) {
-          Debug(1, "Send queue packets %ld", decoder_queue.size());
+          Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());
           // Inject current queue into the decoder.
           ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
           auto delayed_packet = delayed_packet_lock->packet_;
-          if (0 != delayed_packet->send_packet(mVideoCodecContext)) {
+          if (0 > delayed_packet->send_packet(mVideoCodecContext)) {
             Error("Failed sending packet %d", delayed_packet->image_index);
             break;
           } else {
@@ -3287,6 +3287,10 @@ int Monitor::Decode() {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
   } 
 
+  if (!packet and decoder_queue.size() > 20) {
+    Debug(1, "Too many packets in queue. Sleeping");
+    return -1;
+  }
 
   // At this point we know that the packet is on the queue somewhere
 

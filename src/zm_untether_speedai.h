@@ -28,7 +28,7 @@ class Monitor;
 
 class SpeedAI {
   private:
-    //Monitor *monitor;
+    Monitor *monitor;
     UaiModule* module;
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;

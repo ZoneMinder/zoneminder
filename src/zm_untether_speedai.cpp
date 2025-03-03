@@ -48,7 +48,7 @@ static const char * coco_classes[] = {"person", "bicycle", "car", "motorcycle", 
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI(Monitor *monitor_) :
-  //monitor(monitor_),
+  monitor(monitor_),
   module(nullptr),
   //inputBuf({}),
   //outputBuf({}),
@@ -202,7 +202,7 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Job *job = jobs.front();
-  UaiErr err = uai_module_wait(module, &job->event, 1000);
+  UaiErr err = uai_module_wait(module, &job->event, 100);
   if (err != UAI_SUCCESS) {
     Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
     return 0;
@@ -293,16 +293,22 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
 
         Debug(1, "%s", bbox.dump().c_str());
         std::vector<Vector2> coords;
-        //auto xy = *coord_it
-        for (auto coord_it = bbox.begin(); coord_it != bbox.end(); ++coord_it) {
-          nlohmann::json x = *coord_it; ++coord_it;
-          nlohmann::json y = *coord_it;
+        nlohmann::json x1 = bbox[0];
+        nlohmann::json y1 = bbox[1];
+        nlohmann::json x2 = bbox[2];
+        nlohmann::json y2 = bbox[3];
+        
+        coords.push_back(Vector2(x1, y1));
+        coords.push_back(Vector2(x2, y1));
+        coords.push_back(Vector2(x1, y2));
+        coords.push_back(Vector2(x2, y2));
 
-          Debug(1, "%s %s", x.dump().c_str(), y.dump().c_str());
-          coords.push_back(Vector2(x, y));
-        }
         Polygon poly(coords);
         ai_image.Outline(colour, poly);
+        std::string coco_class = detection["class_name"];
+        float score = detection["score"];
+        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
+        ai_image.Annotate(annotation.c_str(), Vector2(x1, y1), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
       }
     }
   } catch (std::exception const & ex) {
@@ -310,7 +316,6 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   }
 
   delete job;
-  Debug(1, "Done");
   return 1;
 }
 

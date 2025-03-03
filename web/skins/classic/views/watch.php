@@ -309,7 +309,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStream(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
           ?>
         </span>

@@ -220,20 +220,22 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
 
     av_frame_ptr new_frame{zm_av_frame_alloc()};
     /* retrieve data from GPU to CPU */
-    hw_frame = std::move(in_frame);
-    zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
     int ret;
-    do {
-      ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
+    //do {
+      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
       if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
+        return ret;
       }
-    } while (ret < 0);
+    //} while (ret < 0);
     
-    ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
+    ret = av_frame_copy_props(new_frame.get(), in_frame.get());
     if (ret < 0) {
       Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
     }
+
+    hw_frame = std::move(in_frame);
+    zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
 
     zm_dump_video_frame(new_frame.get(), "After hwtransfer");
     in_frame = std::move(new_frame);

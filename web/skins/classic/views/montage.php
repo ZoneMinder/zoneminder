@@ -295,7 +295,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
 <?php if ($Montage::$need_janus) { ?>
   <script src="/javascript/janus/janus.js"></script>
 <?php } ?>
-<?php if ($need_hls) { ?>
+<?php if ($Montage::$need_hls) { ?>
   <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>

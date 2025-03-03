@@ -2285,8 +2285,8 @@ int Monitor::Analyse() {
               } // end if has input_frame/hw_frame
             } // end if delayed_packet
           } // end yolo
-          packet->hw_frame = nullptr; // Free it?
 #endif
+          packet->hw_frame = nullptr; // Free it?
 
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
@@ -2305,8 +2305,7 @@ int Monitor::Analyse() {
                 packet_lock = std::move(ai_queue.front());
                 ai_queue.pop_front();
                 packet = delayed_packet;
-                Debug(1, "Fre hwframe %d", packet->image_index);
-                Debug(1, "Success packet %d", packet->image_index);
+                Debug(1, "Success delayed packet %d", packet->image_index);
               } else if (ret < 0) {
                 Debug(1, "Failed to get frame %d", ret);
                 return ret;

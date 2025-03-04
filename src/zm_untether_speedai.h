@@ -54,6 +54,21 @@ class SpeedAI {
     //Image &preprocess_image(const Image &image);
 
     int image_size;
+
+    // Quantization bias
+    int m_bias;
+
+    // Fast map via indexing, for integer values in range [0, 255]
+    std::array<uint8_t, 256> m_fast_map;
+
+    // m_quant_bounds[i].second is uppper limit of bin in floating point domain
+    // that gets mapped to m_quant_bounds[i].first.
+    std::array<std::pair<uint8_t, float>, 256> m_quant_bounds;
+    static bool comparator(const decltype(m_quant_bounds)::value_type& a, const decltype(m_quant_bounds)::value_type& b)
+    {
+        return a.second < b.second;
+    }
+
     class Job {
       public:
         Job(UaiModule *p_module, AVFrame *input) :
@@ -131,8 +146,9 @@ class SpeedAI {
       float m_width_rescale;
       float m_height_rescale;
     };
-    std::list<Job *> jobs;
+    std::list<Job> jobs;
     float dequantize(uint8_t val, int bias);
+    uint8_t quantize(float val) const;
 
   public:
     explicit SpeedAI(Monitor *parent_);

@@ -35,7 +35,8 @@
 #include <vector>
 
 
-static const char * coco_classes[] = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+static const char * coco_classes[] = {
+  "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
   "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
   "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
   "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
@@ -44,7 +45,8 @@ static const char * coco_classes[] = {"person", "bicycle", "car", "motorcycle", 
   "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
   "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote",
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
-  "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
+  "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+};
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI(Monitor *monitor_) :
@@ -60,15 +62,42 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   //image_size(0)
 {
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, MODEL_WIDTH, MODEL_HEIGHT, 32);
+
+  // Populate mapping with all unsorted quantVal/floatVal pairs
+  for (int quantVal(0); quantVal < 256; quantVal++) {
+	  float floatVal = dequantize((uint8_t)quantVal, m_bias);
+	  m_quant_bounds[quantVal] = std::make_pair(quantVal, floatVal);
+  }
+  // Sort all pairs according to float value
+  std::sort(m_quant_bounds.begin(), m_quant_bounds.end(), comparator);
+
+  // Convert float values to upper bounds of associated bins
+  for (size_t i(0); i < m_quant_bounds.size() - 1; i++) {
+	  m_quant_bounds[i].second = (m_quant_bounds[i].second + m_quant_bounds[i + 1].second) / 2;
+  }
+  // Last value's upper bin boundary gets mapped to infinity
+  m_quant_bounds[m_quant_bounds.size() - 1].second = std::numeric_limits<float>::max();
+  for (int imgPixelVal(0); imgPixelVal <= 255; imgPixelVal++) {
+	  m_fast_map[imgPixelVal] = quantize(static_cast<float>(imgPixelVal));
+  }
+
 }
 
 SpeedAI::~SpeedAI() {
   // Clean up
-  if (module)
+  if (module) {
+    Debug(1, "Freeing module");
     uai_module_free(module);
+  }
   //av_frame_unref(&scaled_frame);
-  if (sw_scale_ctx)
+  if (sw_scale_ctx) {
+    Debug(1, "Freeing sw_scale_Ctx");
     sws_freeContext(sw_scale_ctx);
+  }
+  if (infos) {
+    delete infos;
+    infos = nullptr;
+  }
 }
 
 bool SpeedAI::setup(
@@ -146,49 +175,72 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
       return -1;
     }
   }
-  Job *job = new Job(module, avframe);
+  Job job(module, avframe);
 
-  if (av_frame_get_buffer(job->scaled_frame, 32)) {
+  if (av_frame_get_buffer(job.scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
-    delete job;
+    //delete job;
     return -1;
   }
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
-      avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
+      avframe->linesize, 0, avframe->height, job.scaled_frame->data, job.scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
-        avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
+        avframe->linesize[2], avframe->linesize[3], avframe->height, job.scaled_frame->linesize[0]);
     return ret;
   }
 
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
     return -1;
   }
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
     return -1;
   }
-  memcpy(job->inputBuf->buffer, job->scaled_frame->buf[0], image_size);
 
-  Debug(1, "SpeedAI input %p output %p size %d", job->inputBuf->buffer, job->outputBuf->buffer, image_size);
+  // Fill input buffer with data, applying quantization on the fly via this->operator()(uint8_t)
+  uint8_t* uint8Pixel = job.scaled_frame->buf[0]->data;
+  auto totalPixels = image_size;
+  auto* uai_data = job.inputBuf;
+
+  size_t datInd = 0;
+  while (uai_data != nullptr) {
+	  auto bufSize = uai_data->size;
+	  uint8_t* buf = static_cast<uint8_t*>(uai_data->buffer);
+
+	  // Calculate the number of pixels we can safely process
+	  size_t numPixelsToProcess = std::min(bufSize, totalPixels - datInd);
+
+	  // Process pixels without the if statement
+	  for (size_t k = 0; k < numPixelsToProcess; ++k) {
+		  buf[k] = m_fast_map[uint8Pixel[k + datInd]];
+	  }
+
+	  datInd += bufSize;
+	  uai_data = uai_data->next_buffer;
+  }
+
+  //memcpy(job.inputBuf->buffer, job.scaled_frame->buf[0], image_size);
+
+  Debug(1, "SpeedAI input %p output %p size %d", job.inputBuf->buffer, job.outputBuf->buffer, image_size);
   // Attach buffers to event, so runtime knows where to find input and output buffers to
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
   // hold all data for one batch.
-  job->event.buffers = job->inputBuf;
-  job->inputBuf->next_buffer = job->outputBuf;
+  job.event.buffers = job.inputBuf;
+  job.inputBuf->next_buffer = job.outputBuf;
 
   Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  UaiErr err = uai_module_enqueue(module, &job->event);
+  UaiErr err = uai_module_enqueue(module, &job.event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return -1;
   }
-  jobs.push_back(job);
+  jobs.push_back(std::move(job));
   return 1;
 }  // int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet)
 
@@ -201,13 +253,8 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   Debug(1, "SpeedAI::wait");
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  Job *job = jobs.front();
-  UaiErr err = uai_module_wait(module, &job->event, 100);
-  if (err != UAI_SUCCESS) {
-    Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
-    return 0;
-  }
-  jobs.pop_front();
+  Job *job = &jobs.front();
+  UaiErr err = uai_module_wait(module, &job->event, 0);
   Debug(1, "SpeedAI Completed inference, wait return code is %s", uai_err_string(err));
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
@@ -315,8 +362,20 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     Error("SpeedAI Exception: %s", ex.what());
   }
 
-  delete job;
+  jobs.pop_front();
+  //delete job;
   return 1;
+}
+
+uint8_t SpeedAI::quantize(float val) const {
+	// There are two FP8 representations of zero (+- 0.0) and the search below would pick up the
+	// negative one. To stay consistent with the rest of the stack, we want +0.0 though, encoded
+	// as uint8_t(0);
+	if (val == 0) return 0;
+	std::pair<uint8_t, float> dummyQuantPair = std::make_pair(0, val);
+	// lower_bound returns fist elem such that (elem<val).
+	// Implies (elem>=val) implies (upper bound > val) implies (val in bin)
+	return std::lower_bound(m_quant_bounds.begin(), m_quant_bounds.end(), dummyQuantPair, comparator)->first;
 }
 
 float SpeedAI::dequantize(uint8_t val, int bias) {

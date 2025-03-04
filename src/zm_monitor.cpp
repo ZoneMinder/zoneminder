@@ -1208,17 +1208,6 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
-#ifdef HAVE_UNTETHER_H
-    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-      speedai = new SpeedAI(this);
-      if (!speedai->setup(
-            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
-            )) {
-        delete speedai;
-        speedai = nullptr;
-      }
-    }
-#endif
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
@@ -3887,6 +3876,17 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
+#ifdef HAVE_UNTETHER_H
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      speedai = new SpeedAI(this);
+      if (!speedai->setup(
+            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
+            )) {
+        delete speedai;
+        speedai = nullptr;
+      }
+    }
+#endif
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();

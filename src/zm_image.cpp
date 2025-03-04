@@ -2784,11 +2784,25 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double y;
       int x, xinc = (x1<x2)?1:-1;
       grad *= xinc;
-      if ( colours == ZM_COLOUR_GRAY8 ) {
+      if (colours == ZM_COLOUR_YUV420P) {
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
+
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
           buffer[(int(round(y))*width)+x] = colour;
+        }
+        buffer += width*height;
+        // Now U channel
+        for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
+          //Debug( 9, "x:%d, y:%.2f", x, y );
+          buffer[(int(round(y/2))*width)+x/2] = colour;
+        }
+        buffer += width*height/2;
+        // Now V Channel
+        for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
+          //Debug( 9, "x:%d, y:%.2f", x, y );
+          buffer[(int(round(y/2))*width)+x/2] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {

@@ -42,7 +42,7 @@ class SpeedAI {
     //int model_format;
 
     float obj_threshold = 0.25;
-    float nms_threshold = 0.45;
+    //float nms_threshold = 0.45;
 
     //DMABuffers m_dma_bufs;
     //SWScale swscale;
@@ -50,7 +50,9 @@ class SpeedAI {
     UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
-    int quantization_fp8p_bias = -3, dequantization_uint16_bias = 4, dequantization_fp8p_bias = -12;
+    //int quantization_fp8p_bias = -3;
+    int dequantization_uint16_bias = 4;
+    int dequantization_fp8p_bias = -12;
 
     //Image &preprocess_image(const Image &image);
 
@@ -89,7 +91,7 @@ class SpeedAI {
             m_height_rescale = ((float)MODEL_HEIGHT / (float)input->height);
           };
         ~Job() {
-          //Debug(1, "In Job destructor");
+          Debug(1, "In Job destructor");
           if (inputBuf) {
             uai_module_data_buffer_detach(m_module, inputBuf);
             delete inputBuf;
@@ -112,7 +114,7 @@ class SpeedAI {
           m_width_rescale(in.m_width_rescale),
           m_height_rescale(in.m_height_rescale)
         {
-          //Debug(1, "In move");
+          Debug(1, "In move");
           in.inputBuf = nullptr;
           in.outputBuf = nullptr;
           in.scaled_frame = nullptr;
@@ -147,10 +149,12 @@ class SpeedAI {
       float m_width_rescale;
       float m_height_rescale;
     };
-    std::list<Job> jobs;
+    std::list<Job > jobs;
     float dequantize(uint8_t val, int bias);
     uint8_t quantize(float val) const;
     int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
+
+    Quadra_Yolo *quadra;
 
     Quadra_Yolo::filter_worker *drawbox_filter;
     AVFilterContext *drawbox_filter_ctx;
@@ -165,6 +169,8 @@ class SpeedAI {
     int send_image(std::shared_ptr<ZMPacket>);
     int receive_detections(std::shared_ptr<ZMPacket>);
     nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float);
+    Quadra_Yolo *getQuadra() const { return quadra; };
+    bool setQuadra(Quadra_Yolo *quadra);
 };
 #endif
 #endif

@@ -60,6 +60,7 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   //scaled_frame({}),
   sw_scale_ctx(nullptr),
   //image_size(0)
+  quadra(nullptr),
   drawbox_filter(nullptr),
   drawbox_filter_ctx(nullptr)
 {
@@ -147,15 +148,18 @@ bool SpeedAI::setup(
   outSize = infos[1].framesize_hint * batchSize;
   Debug(1, "inSize %zu outSize %zu, max %d", inSize, outSize, UAI_MODULE_MAX_DATA_BUFFER_SIZE);
   Debug(1, "SpeedAI inSize hint inname %s outname %s", infos[0].name, infos[1].name);
+  return true;
+}
 
+bool SpeedAI::setQuadra(Quadra_Yolo *p_quadra) {
   int ret;
-  Quadra_Yolo *quadra = monitor->getQuadra();
+  quadra = p_quadra;
   if (quadra/*draw_box*/) {
     drawbox_filter = (Quadra_Yolo::filter_worker*)malloc(sizeof(Quadra_Yolo::filter_worker));
     drawbox_filter->buffersink_ctx = nullptr;
     drawbox_filter->buffersrc_ctx = nullptr;
     drawbox_filter->filter_graph = nullptr;
-    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false)) < 0) {
+    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false, AV_PIX_FMT_YUV420P)) < 0) {
       Error("cannot initialize drawbox filter");
       return false;
     }
@@ -285,8 +289,8 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Job *job = &jobs.front();
   Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
-  UaiErr err = uai_module_wait(module, &job->event, 1000);
-  if (err != UAI_SUCCESS) {
+  UaiErr err = uai_module_wait(module, &job->event, 10);
+  if (0 and err != UAI_SUCCESS) {
     Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
     return 0;
   }
@@ -375,12 +379,12 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
         nlohmann::json detection = *it;
         nlohmann::json bbox = detection["bbox"];
 
-        Debug(1, "%s", bbox.dump().c_str());
+        //Debug(1, "%s", bbox.dump().c_str());
         std::vector<Vector2> coords;
-        nlohmann::json x1 = bbox[0];
-        nlohmann::json y1 = bbox[1];
-        nlohmann::json x2 = bbox[2];
-        nlohmann::json y2 = bbox[3];
+        int x1 = bbox[0];
+        int y1 = bbox[1];
+        int x2 = bbox[2];
+        int y2 = bbox[3];
 # if 0
         
         coords.push_back(Vector2(x1, y1));
@@ -397,7 +401,7 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
           return NIERROR(ENOMEM);
         }
 
-        int ret = draw_box(in_frame, &out_frame, x1, y1, x2, y2);
+        int ret = draw_box(in_frame, &out_frame, x1, y1, x2-x1, y2-y1);
         if (ret < 0) {
           Error("draw box failed");
           return ret;
@@ -509,7 +513,7 @@ int SpeedAI::draw_box(
   std::string color;
   int n, ret;
 
-  color = "White";
+  color = "green";
 
   n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
   av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);

@@ -42,7 +42,7 @@ class Quadra_Yolo {
     YoloModelCtx *model_ctx;
     ni_network_data_t *network_data;
     NiNetworkFrame frame;
-    ni_session_data_io_t *ai_frame;
+    //ni_session_data_io_t *ai_frame;
 
     AVFrame scaled_frame;
     //SWScale swscale;
@@ -73,7 +73,7 @@ class Quadra_Yolo {
     int  receive_detection(std::shared_ptr<ZMPacket> out_packet);
     int  detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
-    int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);
+    int init_filter(const char *filters_desc, filter_worker *f, bool hwmode, AVPixelFormat in_ipxfmt);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
     int ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame);

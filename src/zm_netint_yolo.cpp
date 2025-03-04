@@ -35,7 +35,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   model_ctx(nullptr),
   network_data(nullptr),
   frame(),
-  ai_frame(nullptr),
+  //ai_frame(nullptr),
   scaled_frame({}),
   //swscale({}),
   sw_scale_ctx(nullptr),
@@ -179,7 +179,7 @@ bool Quadra_Yolo::setup(
     drawbox_filter->buffersink_ctx = nullptr;
     drawbox_filter->buffersrc_ctx = nullptr;
     drawbox_filter->filter_graph = nullptr;
-    if ((ret = init_filter("drawbox", drawbox_filter, false)) < 0) {
+    if ((ret = init_filter("drawbox", drawbox_filter, false, dec_ctx->sw_pix_fmt)) < 0) {
       Error("cannot initialize drawbox filter");
       return false;
     }
@@ -203,7 +203,7 @@ bool Quadra_Yolo::setup(
   hwdl_filter->filter_graph = nullptr;
 
   const char *hwdl_desc = "[in]hwdownload,format=yuv420p[out]";
-  if ((ret = init_filter(hwdl_desc, hwdl_filter, true)) < 0) {
+  if ((ret = init_filter(hwdl_desc, hwdl_filter, true, dec_ctx->pix_fmt)) < 0) {
     Error("cannot initialize hwdl filter");
     return false;
   }
@@ -425,107 +425,101 @@ int Quadra_Yolo::draw_roi_box(
   return 0;
 } // end draw_roi_box
 
-int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hwmode) {
-    char args[512] = { 0 };
-    char name[32] = { 0 };
-    int i, ret = 0;
-    AVFilterInOut *inputs, *outputs, *cur;
-    AVBufferSrcParameters *par;
-    enum AVPixelFormat input_fmt;
-    if (hwmode) {
-        input_fmt = dec_ctx->pix_fmt;
-    } else {
-        input_fmt = dec_ctx->sw_pix_fmt;
-    }
+int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hwmode, AVPixelFormat input_fmt) {
+  char args[512] = { 0 };
+  char name[32] = { 0 };
+  int i, ret = 0;
+  AVFilterInOut *inputs, *outputs, *cur;
+  AVBufferSrcParameters *par;
 
-    f->filter_graph = avfilter_graph_alloc();
-    if (!f->filter_graph) {
-      Error( "failed to allocate filter graph");
-      return AVERROR(ENOMEM);
-    }
+  f->filter_graph = avfilter_graph_alloc();
+  if (!f->filter_graph) {
+    Error( "failed to allocate filter graph");
+    return AVERROR(ENOMEM);
+  }
 
-    ret = avfilter_graph_parse2(f->filter_graph, filters_desc, &inputs, &outputs);
-    if (ret < 0) {
-      avfilter_graph_free(&f->filter_graph);
-      Error( "failed to parse graph");
-      return ret;
-    }
-
-    // link input
-    cur = inputs, i = 0;
-    AVRational time_base = dec_stream->time_base;
-
-    snprintf(name, sizeof(name), "in_%d", i);
-    snprintf(args, sizeof(args),
-        "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d:frame_rate=%d/%d",
-        dec_ctx->width, dec_ctx->height, input_fmt, time_base.num, time_base.den,
-        dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den,dec_ctx->framerate.num,dec_ctx->framerate.den);
-    Debug(1, "Setting filter %s to %s", name, args);
-
-    ret = avfilter_graph_create_filter(&f->buffersrc_ctx, avfilter_get_by_name("buffer"), name,
-                                    args, nullptr, f->filter_graph);
-    if (ret < 0) {
-        Error("Cannot create buffer source");
-        return ret;
-    }
-
-    // decoder out=hw
-    if (hwmode && (dec_ctx->hw_frames_ctx != nullptr)) {
-        Debug(1, "hw mode filter");
-        // Allocate a new AVBufferSrcParameters instance when decoder out=hw
-        par = av_buffersrc_parameters_alloc();
-        if (!par) {
-            Error("cannot allocate hwdl buffersrc parameters");
-            return ret = AVERROR(ENOMEM);
-        }
-        memset(par, 0, sizeof(*par));
-        // set format and hw_frames_ctx to AVBufferSrcParameters when out=hw
-        par->format = AV_PIX_FMT_NONE;
-        par->hw_frames_ctx = dec_ctx->hw_frames_ctx;
-        Debug(1, "hw_frames_ctx %p", par->hw_frames_ctx);
-        // Initialize the buffersrc filter with the provided parameters
-        ret = av_buffersrc_parameters_set(f->buffersrc_ctx, par);
-        av_freep(&par);
-        if (ret < 0)
-            return ret;
-    } else { // decoder out=sw
-        Debug(1, "sw mode filter %d %p", hwmode, dec_ctx->hw_frames_ctx);
-    }
-
-    ret = avfilter_link(f->buffersrc_ctx, 0, cur->filter_ctx, cur->pad_idx);
-    if (ret < 0) {
-        Error("failed to link input filter");
-        return ret;
-    }
-
-    cur = outputs, i = 0;
-    snprintf(name, sizeof(name), "out_%d", i);
-    ret = avfilter_graph_create_filter(&f->buffersink_ctx, avfilter_get_by_name("buffersink"),
-                                        name, nullptr, nullptr, f->filter_graph);
-    if (ret < 0) {
-        Error("failed to create output filter: %d", i);
-       return ret;
-    }
-
-    // connect  dst (index i) pads to one of buffer sink (index 0) pad
-    ret = avfilter_link(cur->filter_ctx, cur->pad_idx, f->buffersink_ctx, 0);
-    if (ret < 0) {
-        Error("failed to link output filter: %d", i);
-        return ret;
-    }
-
-    // configure and validate the filter graph
-    ret = avfilter_graph_config(f->filter_graph, nullptr);
-    if (ret < 0) {
-        Error("%s failed to config graph filter", __func__);
-        return ret;
-    } else {
-        Debug(1, "%s success config graph filter %s", __func__, filters_desc);
-    }
-
-    avfilter_inout_free(&inputs);
-    avfilter_inout_free(&outputs);
+  ret = avfilter_graph_parse2(f->filter_graph, filters_desc, &inputs, &outputs);
+  if (ret < 0) {
+    avfilter_graph_free(&f->filter_graph);
+    Error( "failed to parse graph");
     return ret;
+  }
+
+  // link input
+  cur = inputs, i = 0;
+  AVRational time_base = dec_stream->time_base;
+
+  snprintf(name, sizeof(name), "in_%d", i);
+  snprintf(args, sizeof(args),
+      "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d:frame_rate=%d/%d",
+      dec_ctx->width, dec_ctx->height, input_fmt, time_base.num, time_base.den,
+      dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den,dec_ctx->framerate.num,dec_ctx->framerate.den);
+  Debug(1, "Setting filter %s to %s", name, args);
+
+  ret = avfilter_graph_create_filter(&f->buffersrc_ctx, avfilter_get_by_name("buffer"), name,
+      args, nullptr, f->filter_graph);
+  if (ret < 0) {
+    Error("Cannot create buffer source");
+    return ret;
+  }
+
+  // decoder out=hw
+  if (hwmode && (dec_ctx->hw_frames_ctx != nullptr)) {
+    Debug(1, "hw mode filter");
+    // Allocate a new AVBufferSrcParameters instance when decoder out=hw
+    par = av_buffersrc_parameters_alloc();
+    if (!par) {
+      Error("cannot allocate hwdl buffersrc parameters");
+      return ret = AVERROR(ENOMEM);
+    }
+    memset(par, 0, sizeof(*par));
+    // set format and hw_frames_ctx to AVBufferSrcParameters when out=hw
+    par->format = AV_PIX_FMT_NONE;
+    par->hw_frames_ctx = dec_ctx->hw_frames_ctx;
+    Debug(1, "hw_frames_ctx %p", par->hw_frames_ctx);
+    // Initialize the buffersrc filter with the provided parameters
+    ret = av_buffersrc_parameters_set(f->buffersrc_ctx, par);
+    av_freep(&par);
+    if (ret < 0)
+      return ret;
+  } else { // decoder out=sw
+    Debug(1, "sw mode filter %d %p", hwmode, dec_ctx->hw_frames_ctx);
+  }
+
+  ret = avfilter_link(f->buffersrc_ctx, 0, cur->filter_ctx, cur->pad_idx);
+  if (ret < 0) {
+    Error("failed to link input filter");
+    return ret;
+  }
+
+  cur = outputs, i = 0;
+  snprintf(name, sizeof(name), "out_%d", i);
+  ret = avfilter_graph_create_filter(&f->buffersink_ctx, avfilter_get_by_name("buffersink"),
+      name, nullptr, nullptr, f->filter_graph);
+  if (ret < 0) {
+    Error("failed to create output filter: %d", i);
+    return ret;
+  }
+
+  // connect  dst (index i) pads to one of buffer sink (index 0) pad
+  ret = avfilter_link(cur->filter_ctx, cur->pad_idx, f->buffersink_ctx, 0);
+  if (ret < 0) {
+    Error("failed to link output filter: %d", i);
+    return ret;
+  }
+
+  // configure and validate the filter graph
+  ret = avfilter_graph_config(f->filter_graph, nullptr);
+  if (ret < 0) {
+    Error("%s failed to config graph filter", __func__);
+    return ret;
+  } else {
+    Debug(1, "%s success config graph filter %s", __func__, filters_desc);
+  }
+
+  avfilter_inout_free(&inputs);
+  avfilter_inout_free(&outputs);
+  return ret;
 }
 
 int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {

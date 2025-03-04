@@ -237,8 +237,8 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
     hw_frame = std::move(in_frame);
     zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
 
-    zm_dump_video_frame(new_frame.get(), "After hwtransfer");
     in_frame = std::move(new_frame);
+    zm_dump_video_frame(in_frame.get(), "After hwtransfer");
   } else
 #endif
 #endif

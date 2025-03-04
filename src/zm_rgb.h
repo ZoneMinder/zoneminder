@@ -23,6 +23,7 @@
 #include "zm_define.h"
 
 typedef uint32 Rgb;  // RGB colour type
+typedef uint32 YUV;  // YUV colour type
 
 constexpr uint8 kWhite = 0xff;
 constexpr uint8 kWhiteR = 0xff;
@@ -151,6 +152,17 @@ inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
   }
 
   return result;
+}
+
+inline YUV brg_to_yuv(Rgb colour) {
+  float R = RED_VAL_BGRA(colour)/255;
+  float G = GREEN_VAL_BGRA(colour)/255;
+  float B = BLUE_VAL_BGRA(colour)/255;
+
+  float Y = 0.299*R + 0.587*G + 0.114*B;
+  float U = -0.14713*R - 0.28886*G + 0.436*B;
+  float V = 0.615*R -0.51499*G - 0.10001*B;
+  return (static_cast<uint8_t>(Y)<<16) + (static_cast<uint8_t>(U) << 8) + static_cast<uint8_t>(V);
 }
 
 #endif // ZM_RGB_H

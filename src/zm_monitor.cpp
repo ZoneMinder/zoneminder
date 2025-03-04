@@ -2162,8 +2162,9 @@ int Monitor::Analyse() {
           }  // end if decoding enabled
 
 #if HAVE_QUADRA
-          if (objectdetection == OBJECT_DETECTION_QUADRA) {
-            if (!quadra_yolo and packet->hw_frame) {
+          if (objectdetection != OBJECT_DETECTION_NONE) {
+            //OBJECT_DETECTION_QUADRA) {
+            if (!quadra_yolo) {
               quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
               int deviceid = -1;
               if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
@@ -2184,7 +2185,7 @@ int Monitor::Analyse() {
             }
           }
 
-          if (quadra_yolo) {
+          if (quadra_yolo and (objectdetection == OBJECT_DETECTION_QUADRA)) {
             ZMPacketLock *delayed_packet_lock;
             std::shared_ptr<ZMPacket> delayed_packet;
 
@@ -2290,6 +2291,10 @@ int Monitor::Analyse() {
 
 #ifdef HAVE_UNTETHER_H
           if (speedai) {
+            if (!speedai->getQuadra()) {
+              Error("Setting quadra in speedai");
+              speedai->setQuadra(quadra_yolo);
+            }
             ZMPacketLock *delayed_packet_lock;
             std::shared_ptr<ZMPacket> delayed_packet;
 
@@ -3882,14 +3887,6 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
-#if 0
-    Debug(1, "Quadra setting up");
-    quadra = new Quadra(this);
-    if (!quadra->setup()) {
-      delete quadra;
-      quadra = nullptr;
-    }
-#endif
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();

@@ -724,7 +724,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   SpeedAI *speedai;
 #endif
 #if HAVE_QUADRA
-  Quadra *quadra;
+  Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
 #endif
 
@@ -801,7 +801,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return shared_data->janus_pin;
   }
 #if HAVE_QUADRA
-  Quadra_Yolo *getQuadra() const { return quadra_yolo; };
+  Quadra_Yolo *getQuadra() const { return quadra; };
 #endif
 
   inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };

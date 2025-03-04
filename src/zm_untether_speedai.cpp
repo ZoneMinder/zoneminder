@@ -256,9 +256,6 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
 	  uai_data = uai_data->next_buffer;
   }
 
-  //memcpy(job.inputBuf->buffer, job.scaled_frame->buf[0], image_size);
-
-  Debug(1, "SpeedAI input %p output %p size %d", job.inputBuf->buffer, job.outputBuf->buffer, image_size);
   // Attach buffers to event, so runtime knows where to find input and output buffers to
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
@@ -283,11 +280,12 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     return 0;
   }
 
-  Debug(1, "SpeedAI::wait");
+  Debug(1, "SpeedAI::wait jobs size %zu", jobs.size());
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Job *job = &jobs.front();
-  UaiErr err = uai_module_wait(module, &job->event, 0);
+  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  UaiErr err = uai_module_wait(module, &job->event, 1000);
   if (err != UAI_SUCCESS) {
     Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
     return 0;
@@ -296,7 +294,6 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
 
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
-  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   auto DMAoutput = static_cast<uint8_t*>(job->outputBuf->buffer);
   if (!DMAoutput) {
     Error("No DMAOutput");

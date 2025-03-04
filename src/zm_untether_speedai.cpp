@@ -58,8 +58,10 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   inSize(0),
   outSize(0),
   //scaled_frame({}),
-  sw_scale_ctx(nullptr)
+  sw_scale_ctx(nullptr),
   //image_size(0)
+  drawbox_filter(nullptr),
+  drawbox_filter_ctx(nullptr)
 {
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, MODEL_WIDTH, MODEL_HEIGHT, 32);
 
@@ -98,6 +100,11 @@ SpeedAI::~SpeedAI() {
     delete infos;
     infos = nullptr;
   }
+  if (drawbox_filter) {
+    avfilter_graph_free(&drawbox_filter->filter_graph);
+    free(drawbox_filter);
+  }
+
 }
 
 bool SpeedAI::setup(
@@ -140,6 +147,32 @@ bool SpeedAI::setup(
   outSize = infos[1].framesize_hint * batchSize;
   Debug(1, "inSize %zu outSize %zu, max %d", inSize, outSize, UAI_MODULE_MAX_DATA_BUFFER_SIZE);
   Debug(1, "SpeedAI inSize hint inname %s outname %s", infos[0].name, infos[1].name);
+
+  int ret;
+  Quadra_Yolo *quadra = monitor->getQuadra();
+  if (quadra/*draw_box*/) {
+    drawbox_filter = (Quadra_Yolo::filter_worker*)malloc(sizeof(Quadra_Yolo::filter_worker));
+    drawbox_filter->buffersink_ctx = nullptr;
+    drawbox_filter->buffersrc_ctx = nullptr;
+    drawbox_filter->filter_graph = nullptr;
+    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false)) < 0) {
+      Error("cannot initialize drawbox filter");
+      return false;
+    }
+
+    for (unsigned int i = 0; i < drawbox_filter->filter_graph->nb_filters; i++) {
+      if (strstr(drawbox_filter->filter_graph->filters[i]->name, "drawbox") != nullptr) {
+        drawbox_filter_ctx = drawbox_filter->filter_graph->filters[i];
+        break;
+      }
+    }
+
+    if (drawbox_filter_ctx == nullptr) {
+      Error( "cannot find valid drawbox filter");
+      return false;
+    }
+  } // end if draw_box
+
   return true;
 }
 
@@ -255,7 +288,12 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Job *job = &jobs.front();
   UaiErr err = uai_module_wait(module, &job->event, 0);
+  if (err != UAI_SUCCESS) {
+    Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
+    return 0;
+  }
   Debug(1, "SpeedAI Completed inference, wait return code is %s", uai_err_string(err));
+
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
   Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
@@ -329,10 +367,12 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
     Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
     if (coco_object.size()) {
-      Image in_image(packet->in_frame.get());
-      Image ai_image;
-      ai_image.Assign(in_image);
-      ai_image.PopulateFrame(packet->get_ai_frame());
+      //Image in_image(packet->in_frame.get());
+      //Image ai_image();
+      //Image ai_image(in_image);
+      //ai_image.Assign(in_image);
+      //ai_image.PopulateFrame(packet->get_ai_frame());
+      AVFrame *in_frame = packet->in_frame.get();
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
@@ -344,6 +384,7 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
         nlohmann::json y1 = bbox[1];
         nlohmann::json x2 = bbox[2];
         nlohmann::json y2 = bbox[3];
+# if 0
         
         coords.push_back(Vector2(x1, y1));
         coords.push_back(Vector2(x2, y1));
@@ -352,12 +393,33 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
 
         Polygon poly(coords);
         ai_image.Outline(colour, poly);
+#endif
+        AVFrame *out_frame = av_frame_alloc();
+        if (!out_frame) {
+          Error("cannot allocate output filter frame");
+          return NIERROR(ENOMEM);
+        }
+
+        int ret = draw_box(in_frame, &out_frame, x1, y1, x2, y2);
+        if (ret < 0) {
+          Error("draw box failed");
+          return ret;
+        }
+        zm_dump_video_frame(out_frame, "SpeedAI: boxes");
+
         std::string coco_class = detection["class_name"];
         float score = detection["score"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
+        Image ai_image(out_frame);
         ai_image.Annotate(annotation.c_str(), Vector2(x1, y1), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
-      }
-    }
+
+        if (in_frame != packet->in_frame.get())
+          av_frame_free(&in_frame);
+        in_frame = out_frame;
+      }  // ed foreach detection
+      packet->ai_frame = av_frame_ptr(in_frame);
+      packet->detections = coco_object.dump();
+    }  // end if coco
   } catch (std::exception const & ex) {
     Error("SpeedAI Exception: %s", ex.what());
   }
@@ -435,5 +497,59 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
   }
   return coco_predictions;
 }
+
+int SpeedAI::draw_box(
+    AVFrame *inframe,
+    AVFrame **outframe,
+    int x, int y, int w, int h
+    ) {
+  if (!drawbox_filter_ctx) {
+    Error("No drawbox_filter_ct");
+    return -1;
+  }
+
+  char drawbox_option[32];
+  std::string color;
+  int n, ret;
+
+  color = "White";
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", y); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "y", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", w); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "w", drawbox_option, 0);
+
+  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
+  av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
+
+  ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
+  if (ret < 0) {
+    Error("cannot send drawbox filter command, ret %d.", ret);
+    return ret;
+  }
+
+  ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
+  if (ret < 0) {
+    Error("cannot add frame to drawbox buffer src %d", ret);
+    return ret;
+  }
+
+  do {
+    ret = av_buffersink_get_frame(drawbox_filter->buffersink_ctx, *outframe);
+    if (ret == AVERROR(EAGAIN)) {
+      continue;
+    } else if (ret < 0) {
+      Error("cannot get frame from drawbox buffer sink %d", ret);
+      return ret;
+    } else {
+      break;
+    }
+  } while (!zm_terminate);
+  return 0;
+} 
 
 #endif

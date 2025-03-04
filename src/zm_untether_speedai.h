@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <list>
+#include "zm_netint_yolo.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -149,6 +150,10 @@ class SpeedAI {
     std::list<Job> jobs;
     float dequantize(uint8_t val, int bias);
     uint8_t quantize(float val) const;
+    int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
+
+    Quadra_Yolo::filter_worker *drawbox_filter;
+    AVFilterContext *drawbox_filter_ctx;
 
   public:
     explicit SpeedAI(Monitor *parent_);

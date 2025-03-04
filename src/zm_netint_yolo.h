@@ -23,6 +23,13 @@ extern "C" {
 class Monitor;
 
 class Quadra_Yolo {
+  public:
+    typedef struct _filter_worker {
+      AVFilterContext *buffersink_ctx;
+      AVFilterContext *buffersrc_ctx;
+      AVFilterGraph *filter_graph;
+    }filter_worker;
+
   private:
     Monitor *monitor;
     int model_width = 640;
@@ -41,11 +48,6 @@ class Quadra_Yolo {
     //SWScale swscale;
     SwsContext *sw_scale_ctx;
 
-    typedef struct _filter_worker {
-      AVFilterContext *buffersink_ctx;
-      AVFilterContext *buffersrc_ctx;
-      AVFilterGraph *filter_graph;
-    }filter_worker;
 
     bool draw_box;
     filter_worker *drawbox_filter;
@@ -71,9 +73,9 @@ class Quadra_Yolo {
     int  receive_detection(std::shared_ptr<ZMPacket> out_packet);
     int  detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
+    int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
-    int init_filter(const char *filters_desc, filter_worker *f, bool hwmode);
     int ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame);
     int generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avframe, bool hwframe);
     int process_roi(AVFrame *frame, AVFrame **filt_frame);

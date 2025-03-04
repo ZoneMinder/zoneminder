@@ -800,6 +800,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline const char* get_stream_key() {
     return shared_data->janus_pin;
   }
+#if HAVE_QUADRA
+  Quadra_Yolo *getQuadra() const { return quadra_yolo; };
+#endif
 
   inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
   int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };

@@ -276,10 +276,10 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
 }
 
 Image::Image(const AVFrame *frame, int p_width, int p_height) :
-  colours(ZM_COLOUR_YUVJ420P),
+  colours(ZM_COLOUR_YUV420P),
   padding(0),
   subpixelorder(ZM_SUBPIX_ORDER_YUV420P),
-  imagePixFormat(AV_PIX_FMT_YUVJ420P),
+  imagePixFormat(AV_PIX_FMT_YUV420P),
   buffer(0),
   holdbuffer(0) {
   width = (p_width == -1 ? frame->width : p_width);
@@ -290,9 +290,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   // FIXME
   //(AVPixelFormat)frame->format;
 
-  size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
+  size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_YUVJ420P, width, 0), 32);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_YUV420P, width, 0), 32);
 
   AllocImgBuffer(size);
   this->Assign(frame);
@@ -392,7 +392,7 @@ Image::Image(const Image &p_image) {
     Initialise();
   width = p_image.width;
   linesize = p_image.linesize;
-  padding = 0;
+  padding = p_image.padding;
   height = p_image.height;
   pixels = p_image.pixels;
   colours = p_image.colours;
@@ -711,7 +711,7 @@ uint8_t* Image::WriteBuffer(
 void Image::AssignDirect(const AVFrame *frame) {
   width = frame->width;
   height = frame->height;
-  buffer = frame->data[0];
+  buffer = frame->buf[0]->data;
   linesize = frame->linesize[0];
   allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
@@ -860,12 +860,12 @@ void Image::Assign(
 
 void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
-  //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
+  Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
   Debug(1, "Assign %dx%d %d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   //unsigned int new_size = image.height * image.linesize;
 
-  if ( image.buffer == nullptr ) {
+  if (image.buffer == nullptr) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
@@ -2757,7 +2757,23 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-      if ( colours == ZM_COLOUR_GRAY8 ) {
+      if (colours == ZM_COLOUR_YUV420P) {
+        for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
+          buffer[(y*width)+int(round(x))] = colour;
+        }
+#if 0
+        buffer += width*height;
+        // Now U channel
+        for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
+          buffer[(y*int(round(width/2)))+int(round(x/2))] = colour;
+        }
+        buffer += width*height/2;
+        // Now V Channel
+        for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
+          buffer[(y*int(round(width/2)))+int(round(x/2))] = colour;
+        }
+#endif
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer[(y*width)+int(round(x))] = colour;
         }
@@ -2785,13 +2801,12 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       int x, xinc = (x1<x2)?1:-1;
       grad *= xinc;
       if (colours == ZM_COLOUR_YUV420P) {
-      } else if ( colours == ZM_COLOUR_GRAY8 ) {
-
         //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
           buffer[(int(round(y))*width)+x] = colour;
         }
+#if 0
         buffer += width*height;
         // Now U channel
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
@@ -2803,6 +2818,14 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
           //Debug( 9, "x:%d, y:%.2f", x, y );
           buffer[(int(round(y/2))*width)+x/2] = colour;
+        }
+#endif
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
+
+        //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2lf", x1, x2, y1, y2, grad );
+        for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {
+          //Debug( 9, "x:%d, y:%.2f", x, y );
+          buffer[(int(round(y))*width)+x] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
         for ( y = y1, x = x1; x != x2; x += xinc, y += grad ) {

@@ -59,6 +59,7 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   outSize(0),
   //scaled_frame({}),
   sw_scale_ctx(nullptr),
+  infos(nullptr),
   //image_size(0)
   quadra(nullptr),
   drawbox_filter(nullptr),

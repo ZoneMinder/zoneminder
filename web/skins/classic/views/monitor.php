@@ -866,6 +866,7 @@ $decoders = array(
   'av1' => 'av1',
   'av1_qsv' => 'av1_qsv',
   'av1_cuvid' => 'av1_cuvid',
+  'av1_vaapi' => 'av1_vaapi'
   #'av1_ni_quadra_dec' => 'av1_ni_quadra',
 );
 echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
@@ -1190,6 +1191,7 @@ $videowriter_encoders = array(
   'libaom-av1'  => 'libaom-av1',
   'av1_qsv' => 'av1_qsv',
   'av1_ni_quadra_enc' => 'av1_ni_quadra'
+  'av1_vaapi' => 'av1_vaapi'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>
@@ -1271,7 +1273,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="RTSP2WebStream">
               <label><?php echo translate('Stream source') ?> </label>
-              <?php echo htmlSelect('newMonitor[RTSP2WebStream]', ZM\Monitor::getRTSP2WebStream(), $monitor->RTSP2WebStream()); ?>
+              <?php echo htmlSelect('newMonitor[RTSP2WebStream]', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream()); ?>
             </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>

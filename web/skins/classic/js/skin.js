@@ -1204,7 +1204,7 @@ var doubleTouchExecute = function(event, touchEvent) {
 
 var doubleClickOnStream = function(event, touchEvent) {
   if (shifted || ctrled || alted) {
-    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.";
+    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.");
     return;
   }
   let target = null;

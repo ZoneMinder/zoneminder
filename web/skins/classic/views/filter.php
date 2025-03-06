@@ -43,7 +43,7 @@ if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
-  $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
+  $filterNames[$Filter->Id()] = $Filter->Name();
   if ( $Filter->Background() )
     $filterNames[$Filter->Id()] .= '*';
   if ( $Filter->Concurrent() )

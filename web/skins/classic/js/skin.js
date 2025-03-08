@@ -687,17 +687,19 @@ video.appendChild(track);
 var resizeTimer;
 
 function endOfResize(e) {
-  setCookie('zmBrowserSizes', JSON.stringify({
-    innerWidth: window.innerWidth,
-    innerHeight: window.innerHeight,
-    outerWidth: window.outerWidth,
-    outerHeight: window.outerHeight,
-  }));
-  if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
-    //Only for scaleToFit
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(changeScale, 250);
-  }
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    setCookie('zmBrowserSizes', JSON.stringify({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+    }));
+    if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
+      //Only for scaleToFit
+      changeScale();
+    }
+  }, 250);
 }
 $j(window).on('resize', endOfResize);
 

@@ -701,7 +701,7 @@ function endOfResize(e) {
     }
   }, 250);
 }
-$j(window).on('resize', endOfResize);
+window.onresize = endOfResize;
 
 /* scaleToFit
  *

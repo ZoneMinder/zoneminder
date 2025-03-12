@@ -203,6 +203,7 @@ function selectLayout(new_layout_id) {
   changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
+  on_scroll();
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 

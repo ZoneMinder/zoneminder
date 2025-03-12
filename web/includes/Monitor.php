@@ -197,15 +197,15 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
-  protected static $RTSP2WebStream = null;
-  public static function getRTSP2WebStream() {
-    if (!isset($RTSP2WebStream)) {
-      $RTSP2WebStream = array(
+  protected static $RTSP2WebStreamOptions = null;
+  public static function getRTSP2WebStreamOptions() {
+    if (!isset($RTSP2WebStreamOptions)) {
+      $RTSP2WebStreamOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
       );
     }
-    return $RTSP2WebStream;
+    return $RTSP2WebStreamOptions;
   }
 
   protected $defaults = array(

@@ -343,6 +343,8 @@ void Event::createNotes(std::string &notes) {
         notes += ", ";
       notes += *setIter;
     }
+    if (mapIter != noteSetMap.begin())
+      notes += ", ";
   }
 }  // void Event::createNotes(std::string &notes)
 

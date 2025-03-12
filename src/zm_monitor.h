@@ -47,11 +47,6 @@
 #include <openssl/err.h>
 #endif
 
-#ifdef HAVE_UNTETHER_H
-// Untether runtime API header
-#include "zm_untether_speedai.h"
-#endif
-
 #if HAVE_QUADRA
 extern "C" {
 #include <ni_device_api.h>
@@ -201,14 +196,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
+ public:
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
     int32_t  last_write_index;  /* +4    */
     int32_t  last_read_index;   /* +8    */
     int32_t  last_analysis_index;   /* +8    */
-    int32_t  image_count;       /* +12   */
-    int32_t  analysis_image_count;       /* +12   */
+    int32_t  capture_image_count;       /* +12   */
+    int32_t  decoder_image_count;       /* +12   */
+    int32_t  analysis_image_count;       /* +12  */
     uint32_t state;             /* +16   */
     double      capture_fps;    /* +20   Current capturing fps */
     double      analysis_fps;   /* +28   Current analysis fps */
@@ -621,10 +618,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
-  //int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
-  int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
+  int        last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
@@ -720,9 +715,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
-#ifdef HAVE_UNTETHER_H
-  SpeedAI *speedai;
-#endif
 #if HAVE_QUADRA
   Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
@@ -741,6 +733,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   ~Monitor();
 
+  SharedData *getSharedData() { return shared_data; };
   void AddPrivacyBitmask();
 
   void LoadCamera();
@@ -825,11 +818,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       Debug(4, "Not ready because no keyframe interval.");
       return false;
     }
-    if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+    if (shared_data->decoder_image_count > ready_count) {
+      Debug(4, "Ready because shared_data->decoder_image_count(%d) > ready_count(%d)", shared_data->decoder_image_count, ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because shared_data->decoder_image_count(%d) <= ready_count(%d)", shared_data->decoder_image_count, ready_count);
     return false;
   }
   inline bool Active() const {
@@ -918,6 +911,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  Image *GetImage(int32_t index) {
+    return analysis_image_buffer[index];
+  };
+  Image *GetAnalysisImage(int32_t index) {
+    return analysis_image_buffer[index];
+  };
+
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;

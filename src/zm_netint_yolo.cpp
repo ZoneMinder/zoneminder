@@ -36,7 +36,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   network_data(nullptr),
   frame(),
   //ai_frame(nullptr),
-  scaled_frame({}),
+  //scaled_frame({}),
   //swscale({}),
   sw_scale_ctx(nullptr),
   draw_box(true),
@@ -54,9 +54,10 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
 
   use_hwframe(p_use_hwframe)
 {
-  scaled_frame.width  = model_width;
-  scaled_frame.height = model_height;
-  scaled_frame.format = AV_PIX_FMT_RGB24;
+  scaled_frame = av_frame_ptr{zm_av_frame_alloc()};
+  scaled_frame->width  = model_width;
+  scaled_frame->height = model_height;
+  scaled_frame->format = AV_PIX_FMT_RGB24;
   obj_thresh = monitor->ObjectDetection_Object_Threshold();
   nms_thresh = monitor->ObjectDetection_NMS_Threshold();
 }
@@ -74,8 +75,10 @@ Quadra_Yolo::~Quadra_Yolo() {
   free(last_roi);
   free(last_roi_extra);
 
-  av_frame_unref(&scaled_frame);
-  sws_freeContext(sw_scale_ctx);
+  if (sw_scale_ctx) {
+    sws_freeContext(sw_scale_ctx);
+    sw_scale_ctx = nullptr;
+  }
 
   if (draw_box && drawbox_filter) {
     avfilter_graph_free(&drawbox_filter->filter_graph);
@@ -93,7 +96,8 @@ bool Quadra_Yolo::setup(
     AVCodecContext *decoder_ctx,
     const std::string &modelname,
     const std::string &nbg_file,
-    int deviceid) {
+    int deviceid)
+{
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
   model_ctx = new YoloModelCtx;
@@ -134,18 +138,6 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
-  if (av_frame_get_buffer(&scaled_frame, 32)) {
-    Error("cannot allocate scaled frame buffer");
-    return false;
-  }
-
-#if 0
-  if (!swscale.init()) {
-    Error("Failed to init swscale");
-    return false;
-  }
-#endif
-
   frame.scale_width = model_width;
   frame.scale_height = model_height;
   frame.scale_format = model_format;
@@ -164,11 +156,11 @@ bool Quadra_Yolo::setup(
   }
 
   if (use_hwframe == false) {
-    scaled_frame.width  = model_width;
-    scaled_frame.height = model_height;
-    scaled_frame.format = AV_PIX_FMT_RGB24;
+    scaled_frame->width  = model_width;
+    scaled_frame->height = model_height;
+    scaled_frame->format = AV_PIX_FMT_RGB24;
 
-    if (av_frame_get_buffer(&scaled_frame, 32)) {
+    if (av_frame_get_buffer(scaled_frame.get(), 32)) {
       Error("cannot allocate scaled frame buffer");
       return false;
     }
@@ -217,7 +209,7 @@ int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   if (!use_hwframe && !sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
-        scaled_frame.width, scaled_frame.height, static_cast<AVPixelFormat>(scaled_frame.format),
+        scaled_frame->width, scaled_frame->height, static_cast<AVPixelFormat>(scaled_frame->format),
         SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
       Error("cannot create sw scale context for scaling hwframe: %d", use_hwframe);
@@ -335,21 +327,21 @@ int Quadra_Yolo::generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avfr
 
   if (hwframe == false) {
     ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
-        avframe->linesize, 0, avframe->height, scaled_frame.data, scaled_frame.linesize);
+        avframe->linesize, 0, avframe->height, scaled_frame->data, scaled_frame->linesize);
     if (ret < 0) {
       Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
           (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
-          avframe->linesize[2], avframe->linesize[3], avframe->height, scaled_frame.linesize[0]);
+          avframe->linesize[2], avframe->linesize[3], avframe->height, scaled_frame->linesize[0]);
       return ret;
     }
-    AVFrame *test = &scaled_frame;
+    AVFrame *test = scaled_frame.get();
     zm_dump_video_frame(test, "Quadra: scale_frame");
     ni_retcode_t retval = ni_ai_frame_buffer_alloc(&ai_frame->data.frame, &network_ctx->network_data);
     if (retval != NI_RETCODE_SUCCESS) {
       Error("cannot allocate sw ai frame buffer");
       return NIERROR(ENOMEM);
     }
-    ret = ni_recreate_ai_frame(&ai_frame->data.frame, &scaled_frame);
+    ret = ni_recreate_ai_frame(&ai_frame->data.frame, scaled_frame.get());
     if (ret < 0) {
       Error("cannot recreate sw ai frame");
       return ret;

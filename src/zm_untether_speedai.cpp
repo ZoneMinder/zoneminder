@@ -181,16 +181,23 @@ bool SpeedAI::setQuadra(Quadra_Yolo *p_quadra) {
   return true;
 }
 
-int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
+int SpeedAI::send_image(Image *image) {
+  AVFrame frame;
+  image->PopulateFrame(&frame);
+  return send_frame(&frame);
+}
+
+int SpeedAI::send_packet(std::shared_ptr<ZMPacket> packet) {
   AVFrame *avframe = packet->in_frame.get();
   if (!avframe) {
     Error("NO inframe in packet %d, out of mem?", packet->image_index);
     return -1;
   }
+  return send_frame(avframe);
+}
 
+int SpeedAI::send_frame(AVFrame *avframe) {
   Debug(1, "SpeedAI::detect");
-  // Resize, change to RGB, maybe quantize
-  //Image processed_image = preprocess(image);
 
   if (!sw_scale_ctx) {
     /*
@@ -213,30 +220,34 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
       return -1;
     }
   }
-  Job job(module, avframe);
+  Job *job = new Job(module, avframe);
 
   if (av_frame_get_buffer(job.scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
-    //delete job;
-    return -1;
+    delete job;
+    return nullptr;
   }
+
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job.scaled_frame->data, job.scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
         avframe->linesize[2], avframe->linesize[3], avframe->height, job.scaled_frame->linesize[0]);
-    return ret;
+    delete job;
+    return nullptr;
   }
 
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
-    return -1;
+    delete job;
+    return nullptr;
   }
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
-    return -1;
+    delete job;
+    return nullptr;
   }
 
   // Fill input buffer with data, applying quantization on the fly via this->operator()(uint8_t)
@@ -265,19 +276,21 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
   // hold all data for one batch.
-  job.event.buffers = job.inputBuf;
-  job.inputBuf->next_buffer = job.outputBuf;
+  job->event.buffers = job->inputBuf;
+  job->inputBuf->next_buffer = job->outputBuf;
 
   Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  UaiErr err = uai_module_enqueue(module, &job.event);
+  UaiErr err = uai_module_enqueue(module, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
-    return -1;
+    delete job;
+    return nullptr;
   }
-  jobs.push_back(std::move(job));
-  return 1;
-}  // int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet)
+  return job;
+  //jobs.push_back(std::move(job));
+  //return 1;
+}  // int SpeedAI::send_frame(AVFrame *frame)
 
 int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   if (!jobs.size()) {

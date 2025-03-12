@@ -44,7 +44,7 @@ class Quadra_Yolo {
     NiNetworkFrame frame;
     //ni_session_data_io_t *ai_frame;
 
-    AVFrame scaled_frame;
+    av_frame_ptr scaled_frame;
     //SWScale swscale;
     SwsContext *sw_scale_ctx;
 

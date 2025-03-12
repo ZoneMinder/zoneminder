@@ -166,7 +166,10 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
-    int send_image(std::shared_ptr<ZMPacket>);
+    int send_packet(std::shared_ptr<ZMPacket>);
+    int send_image(Image *image);
+    int send_frame(AVFrame *);
+
     int receive_detections(std::shared_ptr<ZMPacket>);
     nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float);
     Quadra_Yolo *getQuadra() const { return quadra; };

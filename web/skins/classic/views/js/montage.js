@@ -772,7 +772,7 @@ function initPage() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
-				for (let i=0, length = monitors.length; i < length; i++) {
+        for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].kill();
         }
         let ayswModal = $j('#AYSWModal');

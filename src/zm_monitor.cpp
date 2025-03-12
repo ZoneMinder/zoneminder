@@ -1338,9 +1338,6 @@ Monitor::~Monitor() {
   analysis_it = nullptr;
   decoder_it = nullptr;
 
-#ifdef HAVE_UNTETHER_H
-  delete speedai;
-#endif
   delete storage;
   delete linked_monitors;
   linked_monitors = nullptr;
@@ -3281,7 +3278,7 @@ int Monitor::Decode() {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
   } 
 
-  if (!packet and decoder_queue.size() > 20) {
+  if (!packet and decoder_queue.size() > 10) {
     Debug(1, "Too many packets in queue. Sleeping");
     return -1;
   }
@@ -3859,6 +3856,17 @@ unsigned int Monitor::Colours() const { return camera ? camera->Colours() : colo
 unsigned int Monitor::SubpixelOrder() const { return camera ? camera->SubpixelOrder() : 0; }
 
 int Monitor::PrimeCapture() {
+#ifdef HAVE_UNTETHER_H
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      speedai = new SpeedAI(this);
+      if (!speedai->setup(
+            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
+            )) {
+        delete speedai;
+        speedai = nullptr;
+      }
+    }
+#endif
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
 
@@ -3876,17 +3884,6 @@ int Monitor::PrimeCapture() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
 
-#ifdef HAVE_UNTETHER_H
-    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-      speedai = new SpeedAI(this);
-      if (!speedai->setup(
-            "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf"
-            )) {
-        delete speedai;
-        speedai = nullptr;
-      }
-    }
-#endif
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
@@ -3985,6 +3982,10 @@ int Monitor::Pause() {
     analysis_thread->Join();
     while (ai_queue.size()) ai_queue.pop_front();
   }
+#ifdef HAVE_UNTETHER_H
+  delete speedai;
+  speedai = nullptr;
+#endif
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

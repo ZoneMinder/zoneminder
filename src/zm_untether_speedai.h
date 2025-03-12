@@ -74,8 +74,9 @@ class SpeedAI {
 
     class Job {
       public:
-        Job(UaiModule *p_module, AVFrame *input) :
+        Job(UaiModule *p_module, AVFrame *input, int p_index) :
           m_module(p_module),
+          index(p_index),
           //inputBuf(nullptr),
           //outputBuf(nullptr),
           event({})
@@ -107,6 +108,7 @@ class SpeedAI {
         };
         Job(Job &&in) :
           m_module(in.m_module),
+          index(in.index),
           inputBuf(in.inputBuf),
           outputBuf(in.outputBuf),
           event(in.event),
@@ -121,6 +123,7 @@ class SpeedAI {
         }
         Job(const Job &in) :
           m_module(in.m_module),
+          index(in.index),
           inputBuf(in.inputBuf),
           outputBuf(in.outputBuf),
           event(std::move(in.event)),
@@ -132,6 +135,7 @@ class SpeedAI {
         }
         Job& operator=(Job &&in) {
           m_module = in.m_module;
+          index = in.index;
           inputBuf = in.inputBuf;
           outputBuf = in.outputBuf;
           event = std::move(in.event);
@@ -142,6 +146,7 @@ class SpeedAI {
         };
 
       UaiModule *m_module;
+      int index;
       UaiDataBuffer *inputBuf;
       UaiDataBuffer *outputBuf;
       UaiEvent event;

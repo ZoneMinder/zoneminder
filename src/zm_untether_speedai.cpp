@@ -84,10 +84,10 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   for (int imgPixelVal(0); imgPixelVal <= 255; imgPixelVal++) {
 	  m_fast_map[imgPixelVal] = quantize(static_cast<float>(imgPixelVal));
   }
-
 }
 
 SpeedAI::~SpeedAI() {
+  while (jobs.size()) jobs.pop_front();
   // Clean up
   if (module) {
     Debug(1, "Freeing module");
@@ -213,7 +213,7 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
       return -1;
     }
   }
-  Job job(module, avframe);
+  Job job(module, avframe, packet->image_index);
 
   if (av_frame_get_buffer(job.scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
@@ -289,7 +289,10 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Job *job = &jobs.front();
-  Debug(1, "input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  Debug(1, "input %p output %p, packet %d job %d", job->inputBuf->buffer, job->outputBuf->buffer, packet->image_index, job->index);
+  if (packet->image_index != job->index) {
+    Error("Hey packet index %d != %d job index", packet->image_index, job->index);
+  }
   UaiErr err = uai_module_wait(module, &job->event, 10);
   if (0 and err != UAI_SUCCESS) {
     Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));

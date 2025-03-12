@@ -1,7 +1,7 @@
 "use strict";
 const monitors = new Array();
 var monitors_ul = null;
-var idle = 0;
+var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -771,7 +771,8 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
-        for (let i=0, length = monitors.length; i < length; i++) {
+        idleTimeoutTriggered = true;
+				for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].kill();
         }
         let ayswModal = $j('#AYSWModal');
@@ -792,6 +793,7 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
+        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -1203,7 +1205,7 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
-    if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+    if (!idleTimeoutTriggered) {
       //Start monitors when show page
       for (let i = 0, length = monitors.length; i < length; i++) {
         const monitor = monitors[i];

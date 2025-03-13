@@ -26,6 +26,7 @@
 
 extern "C" {
 #include <libavutil/time.h>
+#include <libavutil/display.h>
 }
 
 #include <string>
@@ -50,6 +51,7 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
   { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
@@ -147,13 +149,22 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      reorder_queue_size = std::stoul(entry->value);
+      if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
+        Debug(1, "reorder_queue_size ignored for non-passthrough");
+      } else {
+        reorder_queue_size = std::stoul(entry->value);
+        Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+      }
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-    } else if (monitor->has_out_of_order_packets()) {
+    } else if (monitor->has_out_of_order_packets()
+        and !monitor->WallClockTimestamps()
+        // Only sort packets for passthrough. Encoding uses wallclock by default
+        and monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH
+        ) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
     }
-    Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
   }
 
   oc->metadata = pmetadata;
@@ -181,8 +192,35 @@ bool VideoStore::open() {
       video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
       // Only set orientation if doing passthrough, otherwise the frame image will be rotated
       Monitor::Orientation orientation = monitor->getOrientation();
-      if (orientation) {
+      if (orientation > 1) { // 1 is ROTATE_0
+#if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
+        int32_t* displaymatrix = static_cast<int32_t*>(av_malloc(sizeof(int32_t)*9));
         Debug(3, "Have orientation %d", orientation);
+        if (orientation == Monitor::ROTATE_0) {
+        } else if (orientation == Monitor::ROTATE_90) {
+          av_display_rotation_set(displaymatrix, 90);
+        } else if (orientation == Monitor::ROTATE_180) {
+          av_display_rotation_set(displaymatrix, 180);
+        } else if (orientation == Monitor::ROTATE_270) {
+          av_display_rotation_set(displaymatrix, 270);
+        } else {
+          Warning("Unsupported Orientation(%d)", orientation);
+        }
+#endif
+#if LIBAVCODEC_VERSION_CHECK(60, 31, 102, 31, 102)
+        av_packet_side_data_add(
+            &video_out_stream->codecpar->coded_side_data,
+            &video_out_stream->codecpar->nb_coded_side_data,
+            AV_PKT_DATA_DISPLAYMATRIX,
+            (int32_t *)displaymatrix, sizeof(int32_t)*9, 0);
+#else
+#if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
+        av_stream_add_side_data(video_out_stream,
+            AV_PKT_DATA_DISPLAYMATRIX,
+					(uint8_t *)displaymatrix,
+					sizeof(*displaymatrix));
+#endif
+#endif
         if (orientation == Monitor::ROTATE_0) {
         } else if (orientation == Monitor::ROTATE_90) {
           ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
@@ -300,12 +338,37 @@ bool VideoStore::open() {
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         }
 
+        // We have to re-parse the options because each attempt to open destroys the dictionary
+        AVDictionary *opts = 0;
+        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+        if (ret < 0) {
+          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+        } else {
+          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          if (entry) {
+            reorder_queue_size = std::stoul(entry->value);
+            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+            // remove it to prevent complaining later.
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
-        video_out_ctx->level = 32;
+        const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_level) {
+          video_out_ctx->level = std::stoul(opts_level->value);
+        } else {
+          video_out_ctx->level = 32;
+        }
+        const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_gop_size) {
+          video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+        } else {
+          video_out_ctx->gop_size = 12;
+        }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
         video_out_ctx->width = monitor->Width();
@@ -314,7 +377,6 @@ bool VideoStore::open() {
 
         if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
           video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
         } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
           /* just for testing, we also add B frames */
@@ -363,20 +425,6 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
-        // We have to re-parse the options because each attempt to open destroys the dictionary
-        AVDictionary *opts = 0;
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-        } else {
-          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          if (entry) {
-            reorder_queue_size = std::stoul(entry->value);
-            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-            // remove it to prevent complaining later.
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          }
-        }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -1011,7 +1059,7 @@ bool VideoStore::setup_resampler() {
   return true;
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   int stream_index;
   if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
     stream_index = video_out_stream->index;
@@ -1071,7 +1119,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   return 0;
 }
 
-int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   av_packet_guard pkt_guard;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   av_frame_ptr hw_frame;
@@ -1272,21 +1320,33 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     av_packet_ref(opkt.get(), ipkt);
     pkt_guard.acquire(opkt);
 
-    if (ipkt->dts != AV_NOPTS_VALUE) {
+    if (monitor->WallClockTimestamps()) {
+      int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
       if (video_first_dts == AV_NOPTS_VALUE) {
-        Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
-        video_first_dts = ipkt->dts;
+        Debug(2, "Starting video first_dts will become %" PRId64, ts);
+        video_first_dts = ts;
       }
-      opkt->dts = ipkt->dts - video_first_dts;
-      //} else {
-      //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
-      //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
-    }
-    if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
-      opkt->pts = ipkt->pts - video_first_dts;
-    }
+      opkt->pts = opkt->dts = av_rescale_q(ts-video_first_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
 
-    av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      Debug(2, "dts from timestamp, set to (%" PRId64 ") secs(%.2f), minus first_dts %" PRId64 " = %" PRId64,
+          ts,
+          FPSeconds(zm_packet->timestamp.time_since_epoch()).count(),
+          video_first_dts, ts - video_first_dts);
+    } else {
+      if (ipkt->dts != AV_NOPTS_VALUE) {
+        if (video_first_dts == AV_NOPTS_VALUE) {
+          Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
+          video_first_dts = ipkt->dts;
+        }
+        opkt->dts = ipkt->dts - video_first_dts;
+      }
+      if (ipkt->pts != AV_NOPTS_VALUE) {
+        opkt->pts = ipkt->pts - video_first_dts;
+      }
+      if ((ipkt->pts != AV_NOPTS_VALUE) and (ipkt->dts != AV_NOPTS_VALUE)) {
+        av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      }
+    }  // end if wallclock or not
   }  // end if codec matches
 
   write_packet(opkt.get(), video_out_stream);
@@ -1294,9 +1354,17 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
-int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   AVPacket *ipkt = zm_packet->packet.get();
   ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
+
+  if (monitor->WallClockTimestamps()) {
+    int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+    ipkt->pts = ipkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
+
+    Debug(2, "dts %" PRId64 " from timestamp %" PRId64 " secs(%.2f)",
+        ipkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
+  }
 
   if (audio_first_dts == AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
@@ -1362,7 +1430,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
       opkt->dts = ipkt->dts;
     }
 
-    ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "after pts adjustment");
+    ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
     av_packet_rescale_ts(opkt.get(), audio_in_stream->time_base, audio_out_stream->time_base);
     ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(opkt.get(), audio_out_stream);
@@ -1380,18 +1448,28 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   if (pkt->dts == AV_NOPTS_VALUE) {
     Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);
     if (last_dts[stream->index] == AV_NOPTS_VALUE) {
-      last_dts[stream->index] = 0;
-    }
+      last_dts[stream->index] = -1;
+    } 
     pkt->dts = last_dts[stream->index];
   } else {
-    if ((last_dts[stream->index] != AV_NOPTS_VALUE) and (pkt->dts <= last_dts[stream->index])) {
-      Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
-              pkt->dts, stream->index, last_dts[stream->index], reorder_queue_size);
-      // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
-      pkt->dts = last_dts[stream->index]+1;
+    if (last_dts[stream->index] != AV_NOPTS_VALUE) {
+      if (pkt->dts < last_dts[stream->index]) {
+        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index], reorder_queue_size);
+        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
+      } else if (pkt->dts == last_dts[stream->index]) {
+        // Commonly seen
+        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " stream %d. reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], stream->index, reorder_queue_size);
+        // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
+        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
+      }
     }
     next_dts[stream->index] = pkt->dts + pkt->duration;
     last_dts[stream->index] = pkt->dts;
+    last_duration[stream->index] = pkt->duration;
   }
 
   if (pkt->pts == AV_NOPTS_VALUE) {

@@ -33,7 +33,8 @@ require ZoneMinder::Object;
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
-$debug = 0;
+
+$debug = 1;
 $table = 'Servers';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';
@@ -80,12 +81,13 @@ sub CpuLoad {
 } # end sub CpuLoad
 
 sub CpuUsage {
-  if (-e '/proc/stat') {
-    if (!open(STAT, '/proc/stat')) {
-      ZoneMinder::Logger::Error("Enable to open /proc/stat: $!");
-      return;
-    }
-    my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total);
+
+  my $fileNameCurStat = '/proc/stat';
+  # If we fail, fall through to using top
+  if (-e $fileNameCurStat and open(STAT, $fileNameCurStat)) {
+    my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
+    my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
+
     if (@_==1) {
       $self = shift;
       ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @$self{'prev_user','prev_nice','prev_sys','prev_idle','prev_total'};
@@ -93,9 +95,8 @@ sub CpuUsage {
       $self = {};
       ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @_;
     }
-
-    my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
     while (<STAT>) {
+      # Individual core lines will start with cpu\d+.  We want all cpus, which tends to be the first line, sans digit.
       if (/^cpu\s+[0-9]+/) {
         (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
         last;
@@ -103,26 +104,27 @@ sub CpuUsage {
     }
     close STAT;
 
-    my $total = $cpu_user + $cpu_nice + $cpu_sys + $cpu_idle;
+    my $diff_user = $cpu_user - ($prev_user // 0);
+    my $diff_nice = $cpu_nice - ($prev_nice // 0);
+    my $diff_sys = $cpu_sys - ($prev_sys // 0);
+    my $diff_idle = $cpu_idle - ($prev_idle // 0);
+    my $diff_total = $diff_user + $diff_nice + $diff_sys + $diff_idle;
 
-    my $diff_user = $prev_user ? $cpu_user - $prev_user : $cpu_user;
-    my $diff_nice = $prev_nice ? $cpu_nice - $prev_nice : $cpu_nice;
-    my $diff_sys = $prev_sys ? $cpu_sys - $prev_sys : $cpu_sys;
-    my $diff_idle = $prev_idle ? $cpu_idle - $prev_idle : $cpu_idle;
-    my $diff_total = $prev_total ? $total - $prev_total : $total;
-
-    my $user_percent = 100 * $diff_user / $diff_total;
-    my $nice_percent = 100 * $diff_nice / $diff_total;
-    my $sys_percent = 100 * $diff_sys / $diff_total;
-    my $idle_percent = 100 * $diff_idle / $diff_total;
-    my $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
+    if ($diff_total != 0){
+      $user_percent = 100 * $diff_user / $diff_total;
+      $nice_percent = 100 * $diff_nice / $diff_total;
+      $sys_percent = 100 * $diff_sys / $diff_total;
+      $idle_percent = 100 * $diff_idle / $diff_total;
+      $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
+    }
 
     $$self{prev_user} = $cpu_user;
     $$self{prev_nice} = $cpu_nice;
     $$self{prev_sys} = $cpu_sys;
-    $$self{prev_idle} = $cpu_sys;
-    $$self{prev_total} = $cpu_sys;
+    $$self{prev_idle} = $cpu_idle;
+
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
+
   } else {
     # Get CPU utilization percentages
     my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;
@@ -136,7 +138,7 @@ sub CpuUsage {
       $user = 0;
     }
     if (!$system) {
-      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting system_utilization from $top_output");
       $system = 0;
     }
     return ($user, $nice, $system, $idle, $user + $system);

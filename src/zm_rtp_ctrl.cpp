@@ -243,6 +243,10 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
 }
 
 void RtpCtrlThread::Run() {
+  if (mRtpSource.getLocalCtrlPort()<=1024) {
+    Debug(2, "Not starting control thread");
+    return;
+  }
   Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
   zm::SockAddrInet localAddr, remoteAddr;
 

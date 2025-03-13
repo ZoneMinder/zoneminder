@@ -1,0 +1,27 @@
+name: Nuget CD
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#release
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1
+        with:
+          nuget-api-key: ${{ secrets.nuget_api_key }}
+          
+      - name: Create NuGet pkg
+        working-directory: ./nuget
+        run: nuget pack jwt-cpp.nuspec
+        
+      - name: Publish NuGet pkg
+        working-directory: ./nuget
+        run: nuget push *.nupkg -Source 'https://api.nuget.org/v3/index.json'
+          

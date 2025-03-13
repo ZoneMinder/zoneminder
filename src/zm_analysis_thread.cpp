@@ -11,6 +11,7 @@ AnalysisThread::AnalysisThread(Monitor *monitor) :
 
 AnalysisThread::~AnalysisThread() {
   Stop();
+  if (thread_.joinable()) thread_.join();
 }
 
 void AnalysisThread::Start() {
@@ -22,6 +23,8 @@ void AnalysisThread::Start() {
 
 void AnalysisThread::Stop() {
   terminate_ = true;
+}
+void AnalysisThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 

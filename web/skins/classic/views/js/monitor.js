@@ -136,6 +136,9 @@ function initPage() {
       }
     };
   });
+  document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
+    el.onchange = window['devices_onchange'].bind(el, el);
+  });
   document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
     el.oninput = window['updateMonitorDimensions'].bind(el, el);
   });
@@ -159,7 +162,7 @@ function initPage() {
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['update_estimated_ram_use'].bind(el);
+    el.oninput = window['buffer_setting_oninput'].bind(el);
   });
   update_estimated_ram_use();
 
@@ -167,8 +170,10 @@ function initPage() {
     el.onchange = function() {
       if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
+        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
+        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }
@@ -303,11 +308,8 @@ function initPage() {
     });
 
     const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream.length) {
-      Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
-      console.log("Setup Janus_RTSP_Restream.onclick");
-    } else {
-      console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+    if (Janus_Use_RTSP_Restream) {
+      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
     }
   }
 
@@ -391,6 +393,9 @@ function initPage() {
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
+
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
 } // end function initPage()
 
 function ll2dms(input) {
@@ -507,6 +512,20 @@ function random_WebColour() {
   );
 }
 
+function buffer_setting_oninput(e) {
+  const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
+  const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
+  if (parseInt(max_image_buffer_count.value) &&
+    (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
+  ) {
+    if (this.id == 'newMonitor[PreEventCount]') {
+      max_image_buffer_count.value = pre_event_count.value;
+    } else {
+      pre_event_count.value = max_image_buffer_count.value;
+    }
+  }
+  update_estimated_ram_use();
+}
 function update_estimated_ram_use() {
   const form = document.getElementById('contentForm');
   if (form.elements['newMonitor[Type]'].value == 'WebSite') return;
@@ -516,11 +535,11 @@ function update_estimated_ram_use() {
   const colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
 
   let min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
-  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
+  min_buffer_count += parseInt(document.getElementById('newMonitor[PreEventCount]').value);
   const min_buffer_size = min_buffer_count * width * height * colours;
   document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
 
-  const max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  const max_buffer_count = parseInt(document.getElementById('newMonitor[MaxImageBufferCount]').value);
   if (max_buffer_count) {
     const max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
@@ -660,6 +679,17 @@ function Model_onchange(input) {
 
 function updateLinkedMonitorsUI() {
   expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+}
+
+function devices_onchange(devices) {
+  const selected = $j(devices).val();
+  const device = devices.form.elements['newMonitor[Device]'];
+  if (selected !== '') {
+    device.value = selected;
+    device.style['display'] = 'none';
+  } else {
+    device.style['display'] = 'inline';
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

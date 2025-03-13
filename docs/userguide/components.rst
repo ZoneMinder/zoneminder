@@ -14,23 +14,17 @@ A brief description of each of the principle components follows.
 Binaries
 --------
 **zmc**
-  This is the ZoneMinder Capture daemon. This binary's job is to sit on a video device and suck frames off it as fast as possible, this should 	run at more or less constant speed.
-**zma**
-  This is the ZoneMinder Analysis daemon. This is the component that goes through the captured frames and checks them for motion which might generate an alarm or event. It generally keeps up with the Capture daemon but if very busy may skip some frames to prevent it falling behind.
+  This is the ZoneMinder Capture daemon. This binary's job is to capture video from a network camera or local video capture device. It then optionally performs motion detection and records the video to disk. There will be one zmc process per capture card/camera.
+
 **zms**
   This is the ZoneMinder Streaming server. The web interface connects with this to get real-time or historical streamed images. It runs only when a live monitor stream or event stream is actually being viewed and dies when the event finishes or the associate web page is closed. If you find you have several zms processes running when nothing is being viewed then it is likely you need a patch for apache (see the Troubleshooting section). A non-parsed header version of zms, called nph-zms, is also installed and may be used instead depending on your web server configuration.
+
 **zmu**
   This is the ZoneMinder Utility. It's basically a handy command line interface to several useful functions. It’s not really meant to be used by anyone except the web page (there's only limited 'help' in it so far) but can be if necessary, especially for debugging video problems.
 
 PHP
 ---
-As well as this there are the web PHP files in the web directory. Currently these consist of a single skin with Classic and Flat styles.
-
-**Classic**
-  Original ZoneMinder skin
-**Flat**
-  An updated version of Classic skin, retaining the same layout with a more modern style. Originally a skin this is now just a CSS style.
-
+As well as this there are the web PHP files in the web directory. This UI was designed to be easily themeable, allowing either entirely different UIs (skins) or merely changing colours and layout by altering CSS styles.
 
 Perl
 ----
@@ -39,7 +33,7 @@ Finally some perl scripts in the scripts directory. These scripts all have some 
 **zmpkg.pl**
   This is the ZoneMinder Package Control script. This is used by the web interface and service scripts to control the execution of the system as a whole.
 **zmdc.pl**
-  This is the ZoneMinder Daemon Control script. This is used by the web interface and the zmpkg.pl script to control and maintain the execution of the capture and analysis daemons, amongst others. You should not need to run this script yourself, although you can use it to start/top individual ZM processes.
+  This is the ZoneMinder Daemon Control script. This is used by the web interface and the zmpkg.pl script to control and maintain the execution of the various capture, filters and other background daemons. You should not need to run this script yourself, although you can use it to start/top individual ZM processes.
 **zmfilter.pl**
   This script controls the execution of saved filters and will be started and stopped by the web interface based on whether there are filters that have been defined to be autonomous(background). This script is also responsible for the automatic uploading of events to a 3rd party server.  Prior to 1.32 there was one zmfilter.pl process.  In 1.32 onwards we start a zmfilter.pl process for each background filter so that the processing time of one filter doesn't delay the processing of another filter.
 **zmaudit.pl**
@@ -83,7 +77,7 @@ Finally, there are also a number of ZoneMinder perl modules included. These are 
   This is the base ZoneMinder perl module. It contains only simple data such as version information. It is included by all other ZoneMinder perl modules
 **ZoneMinder/Config.pm**
   This module imports the ZoneMinder configuration from the database.
-**ZoneMinder/Debug.pm**
+**ZoneMinder/Logger.pm**
   This module contains the defined Debug and Error functions etc, that are used by scripts to produce diagnostic information in a standard format.
 **ZoneMinder/Database.pm**
   This module contains database access definitions and functions. Currently not a lot is in this module but it is included as a placeholder for future development.
@@ -91,9 +85,9 @@ Finally, there are also a number of ZoneMinder perl modules included. These are 
   This module contains functions to load, manipulate, delete, copy, move events.
 **ZoneMinder/Filter.pm**
   This module contains functions to load, execute etc filters.
-**ZoneMinder/SharedMem.pm**
+**ZoneMinder/Memory.pm**
   This module contains standard shared memory access functions. These can be used to access the current state of monitors etc as well as issuing commands to the monitors to switch things on and off. This module effectively provides a ZoneMinder API.
-**ZoneMinder/ConfigAdmin.pm**
+**ZoneMinder/ConfigData.pm**
   This module is a specialised module that contains the definition, and other information, about the various configuration options. It is not intended for use by 3rd parties.
 **ZoneMinder/Control/\*.pm**
   These modules contain implementations of the various PTZ protocols.

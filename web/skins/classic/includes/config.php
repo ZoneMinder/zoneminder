@@ -44,17 +44,39 @@ $rates = array(
 $scales = array(
   # We use 0 instead of words because we are saving this in the monitor
   # and use this array to populate the default scale option
-    '0' => translate('Auto'),
-    '400' => '4x',
-    '300' => '3x',
-    '200' => '2x',
-    '150' => '1.5x',
-    '100' => translate('Actual'),
-    '75' => '3/4x',
-    '50' => '1/2x',
-    '33' => '1/3x',
-    '25' => '1/4x',
-    '12.5' => '1/8x',
+  '0' => translate('Auto'),
+  #  '400' => '4x',
+  #  '300' => '3x',
+  #  '200' => '2x',
+  #  '150' => '1.5x',
+  '100' => translate('Actual'),
+  #  '75' => '3/4x',
+  #  '50' => '1/2x',
+  #  '33' => '1/3x',
+  #  '25' => '1/4x',
+  #  '12.5' => '1/8x',
+  'fit_to_width' => translate('Fit to width'),
+  '480px' => translate('Max 480px'),
+  '640px' => translate('Max 640px'),
+  '800px' => translate('Max 800px'),
+  '1024px' => translate('Max 1024px'),
+  '1280px' => translate('Max 1280px'),
+  '1600px' => translate('Max 1600px'),
+);
+
+$streamQuality = array(
+  # In %
+  '+50' => '+50%',
+  '+40' => '+40%',
+  '+30' => '+30%',
+  '+20' => '+20%',
+  '+10' => '+10%',
+  '0' => translate('Optimal'),
+  '-10' => '-10%',
+  '-20' => '-20%',
+  '-30' => '-30%',
+  '-40' => '-40%',
+  '-50' => '-50%',
 );
 
 if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {

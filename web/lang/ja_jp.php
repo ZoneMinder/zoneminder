@@ -51,7 +51,7 @@
 //
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
-header( "Content-Type: text/html; charset=Shift_JIS" );
+header( "Content-Type: text/html; charset=UTF-8" );
 
 // You may need to change your locale here if your default one is incorrect for the
 // language described in this file, or if you have multiple languages supported.
@@ -72,753 +72,1141 @@ header( "Content-Type: text/html; charset=Shift_JIS" );
 
 // Simple String Replacements
 $SLANG = array(
-    '24BitColour'          => '24ﾋﾞｯﾄｶﾗｰ',
-    '32BitColour'          => '32ﾋﾞｯﾄｶﾗｰ',          // Added - 2011-06-15
-    '8BitGrey'             => '8ﾋﾞｯﾄ濃淡画像',
-    'Action'               => 'Action',
-    'Actual'               => '生中継',
-    'AddNewControl'        => 'Add New Control',
-    'AddNewMonitor'        => 'ﾓﾆﾀｰ追加',
-    'AddNewServer'         => 'Add New Server',         // Added - 2018-08-30
-    'AddNewStorage'        => 'Add New Storage',        // Added - 2018-08-30
-    'AddNewUser'           => 'ﾕｰｻﾞ追加',
-    'AddNewZone'           => 'ｿﾞｰﾝ追加',
-    'Alarm'                => 'ｱﾗｰﾑ',
-    'AlarmBrFrames'        => 'ｱﾗｰﾑ<br/>ﾌﾚｰﾑ', 
-    'AlarmFrame'           => 'ｱﾗｰﾑ ﾌﾚｰﾑ',
-    'AlarmFrameCount'      => 'Alarm Frame Count',
-    'AlarmLimits'          => 'ｱﾗｰﾑ限度',
-    'AlarmMaximumFPS'      => 'Alarm Maximum FPS',
-    'AlarmPx'              => 'ｱﾗｰﾑ Px',
-    'AlarmRGBUnset'        => 'You must set an alarm RGB colour',
-    'AlarmRefImageBlendPct'=> 'Alarm Reference Image Blend %ge', // Added - 2015-04-18
-    'Alert'                => '警告',
-    'All'                  => '全て',
-    'AnalysisFPS'          => 'Analysis FPS',           // Added - 2015-07-22
-    'AnalysisUpdateDelay'  => 'Analysis Update Delay',  // Added - 2015-07-23
-    'Apply'                => '適用',
-    'ApplyingStateChange'  => '変更適用中',
-    'ArchArchived'         => '保存分のみ',
-    'ArchUnarchived'       => '保存分以外のみ',
-    'Archive'              => 'ｱｰｶｲﾌﾞ',
-    'Archived'             => 'Archived',
-    'Area'                 => 'Area',
-    'AreaUnits'            => 'Area (px/%)',
-    'AttrAlarmFrames'      => 'ｱﾗｰﾑ ﾌﾚｰﾑ',
-    'AttrArchiveStatus'    => '保存状態',
-    'AttrAvgScore'         => '平均ｽｺｱｰ',
-    'AttrCause'            => 'Cause',
-    'AttrDiskBlocks'       => 'Disk Blocks',
-    'AttrDiskPercent'      => 'Disk Percent',
-    'AttrDiskSpace'        => 'Disk Space',             // Added - 2018-08-30
-    'AttrDuration'         => '継続時間',
-    'AttrEndDate'          => 'End Date',               // Added - 2018-08-30
-    'AttrEndDateTime'      => 'End Date/Time',          // Added - 2018-08-30
-    'AttrEndTime'          => 'End Time',               // Added - 2018-08-30
-    'AttrEndWeekday'       => 'End Weekday',            // Added - 2018-08-30
-    'AttrFilterServer'     => 'Server Filter is Running On', // Added - 2018-08-30
-    'AttrFrames'           => 'ﾌﾚｰﾑ',
-    'AttrId'               => 'Id',
-    'AttrMaxScore'         => '最高ｽｺｱｰ',
-    'AttrMonitorId'        => 'ﾓﾆﾀｰ Id',
-    'AttrMonitorName'      => 'ﾓﾆﾀｰ 名前',
-    'AttrMonitorServer'    => 'Server Monitor is Running On', // Added - 2018-08-30
-    'AttrName'             => 'Name',
-    'AttrNotes'            => 'Notes',
-    'AttrStartDate'        => 'Start Date',             // Added - 2018-08-30
-    'AttrStartDateTime'    => 'Start Date/Time',        // Added - 2018-08-30
-    'AttrStartTime'        => 'Start Time',             // Added - 2018-08-30
-    'AttrStartWeekday'     => 'Start Weekday',          // Added - 2018-08-30
-    'AttrStateId'          => 'Run State',              // Added - 2018-08-30
-    'AttrStorageArea'      => 'Storage Area',           // Added - 2018-08-30
-    'AttrStorageServer'    => 'Server Hosting Storage', // Added - 2018-08-30
-    'AttrSystemLoad'       => 'System Load',
-    'AttrTotalScore'       => '合計ｽｺｱｰ',
-    'Auto'                 => 'Auto',
-    'AutoStopTimeout'      => 'Auto Stop Timeout',
-    'Available'            => 'Available',              // Added - 2009-03-31
-    'AvgBrScore'           => '平均<br/>ｽｺｱｰ',
-    'Background'           => 'Background',
-    'BackgroundFilter'     => 'Run filter in background',
-    'BadAlarmFrameCount'   => 'Alarm frame count must be an integer of one or more',
-    'BadAlarmMaxFPS'       => 'Alarm Maximum FPS must be a positive integer or floating point value',
-    'BadAnalysisFPS'       => 'Analysis FPS must be a positive integer or floating point value', // Added - 2015-07-22
-    'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more', // Added - 2015-07-23
-    'BadChannel'           => 'Channel must be set to an integer of zero or more',
-    'BadColours'           => 'Target colour must be set to a valid value', // Added - 2011-06-15
-    'BadDevice'            => 'Device must be set to a valid value',
-    'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
-    'BadFormat'            => 'Format must be set to an integer of zero or more',
-    'BadFrameSkip'         => 'Frame skip count must be an integer of zero or more',
-    'BadHeight'            => 'Height must be set to a valid value',
-    'BadHost'              => 'Host must be set to a valid ip address or hostname, do not include http://',
-    'BadImageBufferCount'  => 'Image buffer size must be an integer of 2 or more',
-    'BadLabelX'            => 'Label X co-ordinate must be set to an integer of zero or more',
-    'BadLabelY'            => 'Label Y co-ordinate must be set to an integer of zero or more',
-    'BadMaxFPS'            => 'Maximum FPS must be a positive integer or floating point value',
-    'BadMotionFrameSkip'   => 'Motion Frame skip count must be an integer of zero or more',
-    'BadNameChars'         => 'Names may only contain alphanumeric characters, spaces plus hyphen and underscore',
-    'BadPalette'           => 'Palette must be set to a valid value', // Added - 2009-03-31
-    'BadPath'              => 'Path must be set to a valid value',
-    'BadPort'              => 'Port must be set to a valid number',
-    'BadPostEventCount'    => 'Post event image count must be an integer of zero or more',
-    'BadPreEventCount'     => 'Pre event image count must be at least zero, and less than image buffer size',
-    'BadRefBlendPerc'      => 'Reference blend percentage must be a positive integer',
-    'BadSectionLength'     => 'Section length must be an integer of 30 or more',
-    'BadSignalCheckColour' => 'Signal check colour must be a valid RGB colour string',
-    'BadSourceType'        => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"', // Added - 2018-08-30
-    'BadStreamReplayBuffer'=> 'Stream replay buffer must be an integer of zero or more',
-    'BadWarmupCount'       => 'Warmup frames must be an integer of zero or more',
-    'BadWebColour'         => 'Web colour must be a valid web colour string',
-    'BadWebSitePath'       => 'Please enter a complete website url, including the http:// or https:// prefix.', // Added - 2018-08-30
-    'BadWidth'             => 'Width must be set to a valid value',
-    'Bandwidth'            => '帯域幅',
-    'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
-    'BlobPx'               => 'ﾌﾞﾛﾌﾞ Px',
-    'BlobSizes'            => 'ﾌﾞﾛﾌﾞ ｻｲｽﾞ',
-    'Blobs'                => 'ﾌﾞﾛﾌﾞ',
-    'Brightness'           => '輝度',
-    'Buffer'               => 'Buffer',                 // Added - 2015-04-18
-    'Buffers'              => 'ﾊﾞｯﾌｧ',
-    'CSSDescription'       => 'Change the default css for this computer', // Added - 2015-04-18
-    'CanAutoFocus'         => 'Can Auto Focus',
-    'CanAutoGain'          => 'Can Auto Gain',
-    'CanAutoIris'          => 'Can Auto Iris',
-    'CanAutoWhite'         => 'Can Auto White Bal.',
-    'CanAutoZoom'          => 'Can Auto Zoom',
-    'CanFocus'             => 'Can Focus',
-    'CanFocusAbs'          => 'Can Focus Absolute',
-    'CanFocusCon'          => 'Can Focus Continuous',
-    'CanFocusRel'          => 'Can Focus Relative',
-    'CanGain'              => 'Can Gain ',
-    'CanGainAbs'           => 'Can Gain Absolute',
-    'CanGainCon'           => 'Can Gain Continuous',
-    'CanGainRel'           => 'Can Gain Relative',
-    'CanIris'              => 'Can Iris',
-    'CanIrisAbs'           => 'Can Iris Absolute',
-    'CanIrisCon'           => 'Can Iris Continuous',
-    'CanIrisRel'           => 'Can Iris Relative',
-    'CanMove'              => 'Can Move',
-    'CanMoveAbs'           => 'Can Move Absolute',
-    'CanMoveCon'           => 'Can Move Continuous',
-    'CanMoveDiag'          => 'Can Move Diagonally',
-    'CanMoveMap'           => 'Can Move Mapped',
-    'CanMoveRel'           => 'Can Move Relative',
-    'CanPan'               => 'Can Pan' ,
-    'CanReset'             => 'Can Reset',
-	'CanReboot'             => 'Can Reboot',
-    'CanSetPresets'        => 'Can Set Presets',
-    'CanSleep'             => 'Can Sleep',
-    'CanTilt'              => 'Can Tilt',
-    'CanWake'              => 'Can Wake',
-    'CanWhite'             => 'Can White Balance',
-    'CanWhiteAbs'          => 'Can White Bal. Absolute',
-    'CanWhiteBal'          => 'Can White Bal.',
-    'CanWhiteCon'          => 'Can White Bal. Continuous',
-    'CanWhiteRel'          => 'Can White Bal. Relative',
-    'CanZoom'              => 'Can Zoom',
-    'CanZoomAbs'           => 'Can Zoom Absolute',
-    'CanZoomCon'           => 'Can Zoom Continuous',
-    'CanZoomRel'           => 'Can Zoom Relative',
-    'Cancel'               => 'ｷｬﾝｾﾙ',
-    'CancelForcedAlarm'    => '強制ｱﾗｰﾑｷｬﾝｾﾙ',
-    'CaptureHeight'        => '取り込み高さ',
-    'CaptureMethod'        => 'Capture Method',         // Added - 2009-02-08
-    'CapturePalette'       => '取り込みﾊﾟﾚｯﾄ',
-    'CaptureResolution'    => 'Capture Resolution',     // Added - 2015-04-18
-    'CaptureWidth'         => '取り込み幅',
-    'Cause'                => 'Cause',
-    'CheckMethod'          => 'ｱﾗｰﾑ ﾁｪｯｸ方法',
-    'ChooseDetectedCamera' => 'Choose Detected Camera', // Added - 2009-03-31
-    'ChooseFilter'         => 'ﾌｨﾙﾀｰの選択',
-    'ChooseLogFormat'      => 'Choose a log format',    // Added - 2011-06-17
-    'ChooseLogSelection'   => 'Choose a log selection', // Added - 2011-06-17
-    'ChoosePreset'         => 'Choose Preset',
-    'Clear'                => 'Clear',                  // Added - 2011-06-16
-    'CloneMonitor'         => 'Clone',                  // Added - 2018-08-30
-    'Close'                => '閉じる',
-    'Colour'               => '色',
-    'Command'              => 'Command',
-    'Component'            => 'Component',              // Added - 2011-06-16
-    'ConcurrentFilter'     => 'Run filter concurrently', // Added - 2018-08-30
-    'Config'               => 'Config',
-    'ConfiguredFor'        => '設定:',
-    'ConfirmDeleteEvents'  => 'Are you sure you wish to delete the selected events?',
-    'ConfirmPassword'      => 'ﾊﾟｽﾜｰﾄﾞの確認',
-    'ConjAnd'              => '及び',
-    'ConjOr'               => '又は',
-    'Console'              => 'ｺﾝｿｰﾙ',
-    'ContactAdmin'         => '管理者にお問い合わせください。',
-    'Continue'             => 'Continue',
-    'Contrast'             => 'ｺﾝﾄﾗｽﾄ',
-    'Control'              => 'Control',
-    'ControlAddress'       => 'Control Address',
-    'ControlCap'           => 'Control Capability',
-    'ControlCaps'          => 'Control Capabilities',
-    'ControlDevice'        => 'Control Device',
-    'ControlType'          => 'Control Type',
-    'Controllable'         => 'Controllable',
-    'Current'              => 'Current',                // Added - 2015-04-18
-    'Cycle'                => 'Cycle',
-    'CycleWatch'           => 'ｻｲｸﾙ観察',
-    'DateTime'             => 'Date/Time',              // Added - 2011-06-16
-    'Day'                  => '曜日',
-    'Debug'                => 'Debug',
-    'DefaultRate'          => 'Default Rate',
-    'DefaultScale'         => 'Default Scale',
-    'DefaultView'          => 'Default View',
-    'Deinterlacing'        => 'Deinterlacing',          // Added - 2015-04-18
-    'Delay'                => 'Delay',                  // Added - 2015-04-18
-    'Delete'               => '削除',
-    'DeleteAndNext'        => '次を削除',
-    'DeleteAndPrev'        => '前を削除',
-    'DeleteSavedFilter'    => '保存ﾌｨﾙﾀｰの削除',
-    'Description'          => '説明',
-    'DetectedCameras'      => 'Detected Cameras',       // Added - 2009-03-31
-    'DetectedProfiles'     => 'Detected Profiles',      // Added - 2015-04-18
-    'Device'               => 'Device',                 // Added - 2009-02-08
-    'DeviceChannel'        => 'ﾃﾞﾊﾞｲｽ ﾁｬﾝﾈﾙ',
-    'DeviceFormat'         => 'ﾃﾞﾊﾞｲｽ ﾌｫｰﾏｯﾄ',
-    'DeviceNumber'         => 'ﾃﾞﾊﾞｲｽ番号',
-    'DevicePath'           => 'Device Path',
-    'Devices'              => 'Devices',
-    'Dimensions'           => '寸法',
-    'DisableAlarms'        => 'Disable Alarms',
-    'Disk'                 => 'Disk',
-    'Display'              => 'Display',                // Added - 2011-01-30
-    'Displaying'           => 'Displaying',             // Added - 2011-06-16
-    'DoNativeMotionDetection'=> 'Do Native Motion Detection',
-    'Donate'               => 'Please Donate',
-    'DonateAlready'        => 'No, I\'ve already donated',
-    'DonateEnticement'     => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br><br>If you would like to donate please select the option below or go to https://zoneminder.com/donate/ in your browser.<br><br>Thank you for using ZoneMinder and don\'t forget to visit the forums on ZoneMinder.com for support or suggestions about how to make your ZoneMinder experience even better.',
-    'DonateRemindDay'      => 'Not yet, remind again in 1 day',
-    'DonateRemindHour'     => 'Not yet, remind again in 1 hour',
-    'DonateRemindMonth'    => 'Not yet, remind again in 1 month',
-    'DonateRemindNever'    => 'No, I don\'t want to donate, never remind',
-    'DonateRemindWeek'     => 'Not yet, remind again in 1 week',
-    'DonateYes'            => 'Yes, I\'d like to donate now',
-    'Download'             => 'Download',
-    'DownloadVideo'        => 'Download Video',         // Added - 2018-08-30
-    'DuplicateMonitorName' => 'Duplicate Monitor Name', // Added - 2009-03-31
-    'Duration'             => '継続時間',
-    'Edit'                 => '編集',
-    'EditLayout'           => 'Edit Layout',            // Added - 2018-08-30
-    'Email'                => 'ﾒｰﾙ',
-    'EnableAlarms'         => 'Enable Alarms',
-    'Enabled'              => '使用可能',
-    'EnterNewFilterName'   => '新しいﾌｨﾙﾀｰ名の入力',
-    'Error'                => 'エラー',
-    'ErrorBrackets'        => 'エラー、開き括弧と閉じ括弧の数が合っているのかを確認してください',
-    'ErrorValidValue'      => 'エラー、全ての項の数値が有効かどうかを確認してください',
-    'Etc'                  => '等',
-    'Event'                => 'ｲﾍﾞﾝﾄ',
-    'EventFilter'          => 'ｲﾍﾞﾝﾄ ﾌｨﾙﾀｰ',
-    'EventId'              => 'Event Id',
-    'EventName'            => 'Event Name',
-    'EventPrefix'          => 'Event Prefix',
-    'Events'               => 'ｲﾍﾞﾝﾄ',
-    'Exclude'              => '排除',
-    'Execute'              => 'Execute',
-    'Exif'                 => 'Embed EXIF data into image', // Added - 2018-08-30
-    'Export'               => 'Export',
-    'ExportDetails'        => 'Export Event Details',
-    'ExportFailed'         => 'Export Failed',
-    'ExportFormat'         => 'Export File Format',
-    'ExportFormatTar'      => 'Tar',
-    'ExportFormatZip'      => 'Zip',
-    'ExportFrames'         => 'Export Frame Details',
-    'ExportImageFiles'     => 'Export Image Files',
-    'ExportLog'            => 'Export Log',             // Added - 2011-06-17
-    'ExportMiscFiles'      => 'Export Other Files (if present)',
-    'ExportOptions'        => 'Export Options',
-    'ExportSucceeded'      => 'Export Succeeded',       // Added - 2009-02-08
-    'ExportVideoFiles'     => 'Export Video Files (if present)',
-    'Exporting'            => 'Exporting',
-    'FPS'                  => 'fps',
-    'FPSReportInterval'    => 'FPS報告間隔',
-    'FTP'                  => 'FTP',
-    'Far'                  => 'Far',
-    'FastForward'          => 'Fast Forward',
-    'Feed'                 => '送り込む',
-    'Ffmpeg'               => 'Ffmpeg',                 // Added - 2009-02-08
-    'File'                 => 'File',
-    'Filter'               => 'Filter',                 // Added - 2015-04-18
-    'FilterArchiveEvents'  => 'Archive all matches',
-    'FilterDeleteEvents'   => 'Delete all matches',
-    'FilterEmailEvents'    => 'Email details of all matches',
-    'FilterExecuteEvents'  => 'Execute command on all matches',
-    'FilterLog'            => 'Filter log',             // Added - 2015-04-18
-    'FilterMessageEvents'  => 'Message details of all matches',
-    'FilterMoveEvents'     => 'Move all matches',       // Added - 2018-08-30
-    'FilterPx'             => 'ﾌｨﾙﾀｰ Px',
-    'FilterUnset'          => 'You must specify a filter width and height',
-    'FilterUpdateDiskSpace'=> 'Update used disk space', // Added - 2018-08-30
-    'FilterUploadEvents'   => 'Upload all matches',
-    'FilterVideoEvents'    => 'Create video for all matches',
-    'Filters'              => 'Filters',
-    'First'                => '最初',
-    'FlippedHori'          => 'Flipped Horizontally',
-    'FlippedVert'          => 'Flipped Vertically',
-    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
-    'FnModect'              => 'Modect',            // Added 2013.08.16.
-    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
-    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
-    'FnNone'                => 'None',            // Added 2013.08.16.
-    'FnRecord'              => 'Record',            // Added 2013.08.16.
-    'Focus'                => 'Focus',
-    'ForceAlarm'           => '強制ｱﾗｰﾑ',
-    'Format'               => 'Format',
-    'Frame'                => 'ﾌﾚｰﾑ',
-    'FrameId'              => 'ﾌﾚｰﾑ ID',
-    'FrameRate'            => 'ﾌﾚｰﾑﾚｰﾄ',
-    'FrameSkip'            => 'ﾌﾚｰﾑｽｷｯﾌﾟ',
-    'Frames'               => 'ﾌﾚｰﾑ',
-    'Func'                 => '機能',
-    'Function'             => '機能',
-    'Gain'                 => 'Gain',
-    'General'              => 'General',
-    'GenerateDownload'     => 'Generate Download',      // Added - 2018-08-30
-    'GenerateVideo'        => 'ﾋﾞﾃﾞｵの生成',
-    'GeneratingVideo'      => 'ﾋﾞﾃﾞｵ生成中',
-    'GoToZoneMinder'       => 'ZoneMinder.comに行く',
-    'Grey'                 => 'ｸﾞﾚｰ',
-    'Group'                => 'Group',
-    'Groups'               => 'Groups',
-    'HasFocusSpeed'        => 'Has Focus Speed',
-    'HasGainSpeed'         => 'Has Gain Speed',
-    'HasHomePreset'        => 'Has Home Preset',
-    'HasIrisSpeed'         => 'Has Iris Speed',
-    'HasPanSpeed'          => 'Has Pan Speed',
-    'HasPresets'           => 'Has Presets',
-    'HasTiltSpeed'         => 'Has Tilt Speed',
-    'HasTurboPan'          => 'Has Turbo Pan',
-    'HasTurboTilt'         => 'Has Turbo Tilt',
-    'HasWhiteSpeed'        => 'Has White Bal. Speed',
-    'HasZoomSpeed'         => 'Has Zoom Speed',
-    'High'                 => '高',
-    'HighBW'               => '高帯域',
-    'Home'                 => 'Home',
-    'Hostname'             => 'Hostname',               // Added - 2018-08-30
-    'Hour'                 => '時',
-    'Hue'                  => '色相',
-    'Id'                   => 'ID',
-    'Idle'                 => '待機状態',
-    'Ignore'               => '無視',
-    'Image'                => '画像',
-    'ImageBufferSize'      => '画像 ﾊﾞｯﾌｧ ｻｲｽﾞ',
-    'Images'               => 'Images',
-    'In'                   => 'In',
-    'Include'              => '組み込む',
-    'Inverted'             => '反転',
-    'Iris'                 => 'Iris',
-    'KeyString'            => 'Key String',
-    'Label'                => 'Label',
-    'Language'             => '言語',
-    'Last'                 => '最終',
-    'Layout'               => 'Layout',                 // Added - 2009-02-08
-    'Level'                => 'Level',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
-    'LimitResultsPost'     => 'results only;', // This is used at the end of the phrase 'Limit to first N results only'
-    'LimitResultsPre'      => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
-    'Line'                 => 'Line',                   // Added - 2011-06-16
-    'LinkedMonitors'       => 'Linked Monitors',
-    'List'                 => 'List',
-    'ListMatches'          => 'List Matches',           // Added - 2018-08-30
-    'Load'                 => 'Load',
-    'Local'                => 'ﾛｰｶﾙ',
-    'Log'                  => 'Log',                    // Added - 2011-06-16
-    'LoggedInAs'           => 'ﾛｸﾞｲﾝ済み:',
-    'Logging'              => 'Logging',                // Added - 2011-06-16
-    'LoggingIn'            => 'ﾛｸﾞｲﾝ中',
-    'Login'                => 'ﾛｸﾞｲﾝ',
-    'Logout'               => 'ﾛｸﾞｱｳﾄ',
-    'Logs'                 => 'Logs',                   // Added - 2011-06-17
-    'Low'                  => '低',
-    'LowBW'                => '低帯域',
-    'Main'                 => 'Main',
-    'Man'                  => 'Man',
-    'Manual'               => 'Manual',
-    'Mark'                 => '選択',
-    'Max'                  => '最高',
-    'MaxBandwidth'         => 'Max Bandwidth',
-    'MaxBrScore'           => '最高<br/>ｽｺｱｰ',
-    'MaxFocusRange'        => 'Max Focus Range',
-    'MaxFocusSpeed'        => 'Max Focus Speed',
-    'MaxFocusStep'         => 'Max Focus Step',
-    'MaxGainRange'         => 'Max Gain Range',
-    'MaxGainSpeed'         => 'Max Gain Speed',
-    'MaxGainStep'          => 'Max Gain Step',
-    'MaxIrisRange'         => 'Max Iris Range',
-    'MaxIrisSpeed'         => 'Max Iris Speed',
-    'MaxIrisStep'          => 'Max Iris Step',
-    'MaxPanRange'          => 'Max Pan Range',
-    'MaxPanSpeed'          => 'Max Pan Speed',
-    'MaxPanStep'           => 'Max Pan Step',
-    'MaxTiltRange'         => 'Max Tilt Range',
-    'MaxTiltSpeed'         => 'Max Tilt Speed',
-    'MaxTiltStep'          => 'Max Tilt Step',
-    'MaxWhiteRange'        => 'Max White Bal. Range',
-    'MaxWhiteSpeed'        => 'Max White Bal. Speed',
-    'MaxWhiteStep'         => 'Max White Bal. Step',
-    'MaxZoomRange'         => 'Max Zoom Range',
-    'MaxZoomSpeed'         => 'Max Zoom Speed',
-    'MaxZoomStep'          => 'Max Zoom Step',
-    'MaximumFPS'           => '最高 FPS',
-    'Medium'               => '中',
-    'MediumBW'             => '中帯域',
-    'Message'              => 'Message',                // Added - 2011-06-16
-    'MinAlarmAreaLtMax'    => 'Minimum alarm area should be less than maximum',
-    'MinAlarmAreaUnset'    => 'You must specify the minimum alarm pixel count',
-    'MinBlobAreaLtMax'     => '最低ﾌﾞﾛｯﾌﾞ範囲は最高値より以下でなければいけない',
-    'MinBlobAreaUnset'     => 'You must specify the minimum blob pixel count',
-    'MinBlobLtMinFilter'   => 'Minimum blob area should be less than or equal to minimum filter area',
-    'MinBlobsLtMax'        => '最低ﾌﾞﾛｯﾌﾞ数は最高数より以下でなければいけない',
-    'MinBlobsUnset'        => 'You must specify the minimum blob count',
-    'MinFilterAreaLtMax'   => 'Minimum filter area should be less than maximum',
-    'MinFilterAreaUnset'   => 'You must specify the minimum filter pixel count',
-    'MinFilterLtMinAlarm'  => 'Minimum filter area should be less than or equal to minimum alarm area',
-    'MinFocusRange'        => 'Min Focus Range',
-    'MinFocusSpeed'        => 'Min Focus Speed',
-    'MinFocusStep'         => 'Min Focus Step',
-    'MinGainRange'         => 'Min Gain Range',
-    'MinGainSpeed'         => 'Min Gain Speed',
-    'MinGainStep'          => 'Min Gain Step',
-    'MinIrisRange'         => 'Min Iris Range',
-    'MinIrisSpeed'         => 'Min Iris Speed',
-    'MinIrisStep'          => 'Min Iris Step',
-    'MinPanRange'          => 'Min Pan Range',
-    'MinPanSpeed'          => 'Min Pan Speed',
-    'MinPanStep'           => 'Min Pan Step',
-    'MinPixelThresLtMax'   => '最低ﾋﾟｸｾﾙ閾値は最高値より以下でなければいけない',
-    'MinPixelThresUnset'   => 'You must specify a minimum pixel threshold',
-    'MinTiltRange'         => 'Min Tilt Range',
-    'MinTiltSpeed'         => 'Min Tilt Speed',
-    'MinTiltStep'          => 'Min Tilt Step',
-    'MinWhiteRange'        => 'Min White Bal. Range',
-    'MinWhiteSpeed'        => 'Min White Bal. Speed',
-    'MinWhiteStep'         => 'Min White Bal. Step',
-    'MinZoomRange'         => 'Min Zoom Range',
-    'MinZoomSpeed'         => 'Min Zoom Speed',
-    'MinZoomStep'          => 'Min Zoom Step',
-    'Misc'                 => 'その他',
-    'Mode'                 => 'Mode',                   // Added - 2015-04-18
-    'Monitor'              => 'ﾓﾆﾀｰ',
-    'MonitorIds'           => 'ﾓﾆﾀｰ ID',
-    'MonitorPreset'        => 'Monitor Preset',
-    'MonitorPresetIntro'   => 'Select an appropriate preset from the list below.<br><br>Please note that this may overwrite any values you already have configured for this monitor.<br><br>',
-    'MonitorProbe'         => 'Monitor Probe',          // Added - 2009-03-31
-    'MonitorProbeIntro'    => 'The list below shows detected analog and network cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2009-03-31
-    'Monitors'             => 'ﾓﾆﾀｰ',
-    'Montage'              => 'ﾓﾝﾀｰｼﾞｭ',
-    'MontageReview'        => 'Montage Review',         // Added - 2018-08-30
-    'Month'                => '月',
-    'More'                 => 'More',                   // Added - 2011-06-16
-    'MotionFrameSkip'      => 'Motion Frame Skip',
-    'Move'                 => 'Move',
-    'Mtg2widgrd'           => '2-wide grid',              // Added 2013.08.15.
-    'Mtg3widgrd'           => '3-wide grid',              // Added 2013.08.15.
-    'Mtg3widgrx'           => '3-wide grid, scaled, enlarge on alarm',              // Added 2013.08.15.
-    'Mtg4widgrd'           => '4-wide grid',              // Added 2013.08.15.
-    'MtgDefault'           => 'Default',              // Added 2013.08.15.
-    'MustBeGe'             => '同等か以上でなければいけない',
-    'MustBeLe'             => '同等か以下でなければいけない',
-    'MustConfirmPassword'  => 'パスワードの確認をしてください',
-    'MustSupplyPassword'   => 'パスワードを入力してください',
-    'MustSupplyUsername'   => 'ユーザ名を入力してください',
-    'Name'                 => '名前',
-    'Near'                 => 'Near',
-    'Network'              => 'ﾈｯﾄﾜｰｸ',
-    'New'                  => '新規',
-    'NewGroup'             => 'New Group',
-    'NewLabel'             => 'New Label',
-    'NewPassword'          => '新しいﾊﾟｽﾜｰﾄﾞ',
-    'NewState'             => '新規状態',  
-    'NewUser'              => '新しいﾕｰｻﾞ',
-    'Next'                 => '次',
-    'No'                   => 'いいえ',
-    'NoDetectedCameras'    => 'No Detected Cameras',    // Added - 2009-03-31
-    'NoDetectedProfiles'   => 'No Detected Profiles',   // Added - 2018-08-30
-    'NoFramesRecorded'     => 'このｲﾍﾞﾝﾄのﾌﾚｰﾑは登録されていません',
-    'NoGroup'              => 'No Group',
-    'NoSavedFilters'       => '保存されたﾌｨﾙﾀｰはありません',
-    'NoStatisticsRecorded' => 'このｲﾍﾞﾝﾄ/ﾌﾚｰﾑの統計は登録されていません',
-    'None'                 => 'ありません',
-    'NoneAvailable'        => 'ありません',
-    'Normal'               => '普通',
-    'Notes'                => 'Notes',
-    'NumPresets'           => 'Num Presets',
-    'Off'                  => 'Off',
-    'On'                   => 'On',
-    'OnvifCredentialsIntro'=> 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>', // Added - 2015-04-18
-    'OnvifProbe'           => 'ONVIF',                  // Added - 2015-04-18
-    'OnvifProbeIntro'      => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
-    'OpEq'                 => '同等',
-    'OpGt'                 => '以下',
-    'OpGtEq'               => '同等か以上',
-    'OpIn'                 => 'ｾｯﾄに入っている',
-    'OpIs'                 => 'is',                     // Added - 2018-08-30
-    'OpIsNot'              => 'is not',                 // Added - 2018-08-30
-    'OpLt'                 => '以下',
-    'OpLtEq'               => '同等か以下',
-    'OpMatches'            => '一致する',
-    'OpNe'                 => '同等でない',
-    'OpNotIn'              => 'ｾｯﾄに入っていない',
-    'OpNotMatches'         => '一致しない',
-    'Open'                 => 'Open',
-    'OptionHelp'           => 'ｵﾌﾟｼｮﾝ ﾍﾙﾌﾟ',
-    'OptionRestartWarning' => 'この変更は起動中反映されない場合があります。\n変更してからZoneMinderを再起動してください。',
-    'OptionalEncoderParam' => 'Optional Encoder Parameters', // Added - 2018-08-30
-    'Options'              => 'ｵﾌﾟｼｮﾝ',
-    'OrEnterNewName'       => '又は新しい名前を入力してください',
-    'Order'                => 'Order',
-    'Orientation'          => 'ｵﾘｵﾝﾃｰｼｮﾝ',
-    'Out'                  => 'Out',
-    'OverwriteExisting'    => '上書きします',
-    'Paged'                => 'ﾍﾟｰｼﾞ化',
-    'Pan'                  => 'Pan',
-    'PanLeft'              => 'Pan Left',
-    'PanRight'             => 'Pan Right',
-    'PanTilt'              => 'Pan/Tilt',
-    'Parameter'            => 'ﾊﾟﾗﾒｰﾀ',
-    'Password'             => 'ﾊﾟｽﾜｰﾄﾞ',
-    'PasswordsDifferent'   => '新しいパスワードと再入力パスワードが一致しません',
-    'Paths'                => 'ﾊﾟｽ',
-    'Pause'                => 'Pause',
-    'Phone'                => 'Phone',
-    'PhoneBW'              => '携帯用',
-    'Pid'                  => 'PID',                    // Added - 2011-06-16
-    'PixelDiff'            => 'Pixel Diff',
-    'Pixels'               => 'ﾋﾟｸｾﾙ',
-    'Play'                 => 'Play',
-    'PlayAll'              => 'Play All',
-    'PleaseWait'           => 'お待ちください',
-    'Plugins'              => 'Plugins',
-    'Point'                => 'Point',
-    'PostEventImageBuffer' => 'ｲﾍﾞﾝﾄ ｲﾒｰｼﾞ ﾊﾞｯﾌｧ後',
-    'PreEventImageBuffer'  => 'ｲﾍﾞﾝﾄ ｲﾒｰｼﾞ ﾊﾞｯﾌｧ前',
-    'PreserveAspect'       => 'Preserve Aspect Ratio',
-    'Preset'               => 'Preset',
-    'Presets'              => 'Presets',
-    'Prev'                 => '前',
-    'Probe'                => 'Probe',                  // Added - 2009-03-31
-    'ProfileProbe'         => 'Stream Probe',           // Added - 2015-04-18
-    'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
-    'Progress'             => 'Progress',               // Added - 2015-04-18
-    'Protocol'             => 'Protocol',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
-    'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
-    'Rate'                 => 'ﾚｰﾄ',
-    'Real'                 => '生中継',
-    'RecaptchaWarning'     => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // Added - 2018-08-30
-    'Record'               => '録画',
-    'RecordAudio'          => 'Whether to store the audio stream when saving an event.', // Added - 2018-08-30
-    'RefImageBlendPct'     => 'ｲﾒｰｼﾞ ﾌﾞﾚﾝﾄﾞ 参照 %',
-    'Refresh'              => '最新の情報に更新',
-    'Remote'               => 'ﾘﾓｰﾄ',
-    'RemoteHostName'       => 'ﾘﾓｰﾄ ﾎｽﾄ 名',
-    'RemoteHostPath'       => 'ﾘﾓｰﾄ ﾎｽﾄ ﾊﾟｽ',
-    'RemoteHostPort'       => 'ﾘﾓｰﾄ ﾎｽﾄ ﾎﾟｰﾄ',
-    'RemoteHostSubPath'    => 'Remote Host SubPath',    // Added - 2009-02-08
-    'RemoteImageColours'   => 'ﾘﾓｰﾄ ｲﾒｰｼﾞ ｶﾗｰ',
-    'RemoteMethod'         => 'Remote Method',          // Added - 2009-02-08
-    'RemoteProtocol'       => 'Remote Protocol',        // Added - 2009-02-08
-    'Rename'               => '新しい名前をつける',
-    'Replay'               => 'Replay',
-    'ReplayAll'            => 'All Events',
-    'ReplayGapless'        => 'Gapless Events',
-    'ReplaySingle'         => 'Single Event',
-    'ReportEventAudit'     => 'Audit Events Report',    // Added - 2018-08-30
-    'Reset'                => 'Reset',
-    'ResetEventCounts'     => 'ｲﾍﾞﾝﾄ ｶｳﾝﾄ ﾘｾｯﾄ',
-    'Restart'              => '再起動',
-    'Restarting'           => '再起動中',
-    'RestrictedCameraIds'  => '制限されたｶﾒﾗ ID',
-    'RestrictedMonitors'   => 'Restricted Monitors',
-    'ReturnDelay'          => 'Return Delay',
-    'ReturnLocation'       => 'Return Location',
-    'Rewind'               => 'Rewind',
-    'RotateLeft'           => '左に回転',
-    'RotateRight'          => '右に回転',
-    'RunLocalUpdate'       => 'Please run zmupdate.pl to update', // Added - 2011-05-25
-    'RunMode'              => '起動ﾓｰﾄﾞ',
-    'RunState'             => '起動状態',
-    'Running'              => '起動中',
-    'Save'                 => '保存',
-    'SaveAs'               => '名前をつけて保存',
-    'SaveFilter'           => 'ﾌｨﾙﾀｰを保存',
-    'SaveJPEGs'            => 'Save JPEGs',             // Added - 2018-08-30
-    'Scale'                => 'ｽｹｰﾙ',
-    'Score'                => 'ｽｺｱｰ',
-    'Secs'                 => '秒',
-    'Sectionlength'        => '長さ',
-    'Select'               => 'Select',
-    'SelectFormat'         => 'Select Format',          // Added - 2011-06-17
-    'SelectLog'            => 'Select Log',             // Added - 2011-06-17
-    'SelectMonitors'       => 'Select Monitors',
-    'SelfIntersecting'     => 'Polygon edges must not intersect',
-    'Set'                  => 'Set',
-    'SetNewBandwidth'      => '新しい帯域幅の設定',
-    'SetPreset'            => 'Set Preset',
-    'Settings'             => '設定',
-    'ShowFilterWindow'     => 'ﾌｨﾙﾀｰ ｳｲﾝﾄﾞｰの表示',
-    'ShowTimeline'         => 'Show Timeline',
-    'SignalCheckColour'    => 'Signal Check Colour',
-    'SignalCheckPoints'    => 'Signal Check Points',    // Added - 2018-08-30
-    'Size'                 => 'Size',
-    'SkinDescription'      => 'Change the default skin for this computer', // Added - 2011-01-30
-    'Sleep'                => 'Sleep',
-    'SortAsc'              => 'Asc',
-    'SortBy'               => 'Sort by',
-    'SortDesc'             => 'Desc',
-    'Source'               => 'ｿｰｽ',
-    'SourceColours'        => 'Source Colours',         // Added - 2009-02-08
-    'SourcePath'           => 'Source Path',            // Added - 2009-02-08
-    'SourceType'           => 'ｿｰｽ ﾀｲﾌﾟ',
-    'Speed'                => 'Speed',
-    'SpeedHigh'            => 'High Speed',
-    'SpeedLow'             => 'Low Speed',
-    'SpeedMedium'          => 'Medium Speed',
-    'SpeedTurbo'           => 'Turbo Speed',
-    'Start'                => 'ｽﾀｰﾄ',
-    'State'                => '状態',
-    'Stats'                => '統計',
-    'Status'               => '状態',
-    'StatusConnected'      => 'Capturing',              // Added - 2018-08-30
-    'StatusNotRunning'     => 'Not Running',            // Added - 2018-08-30
-    'StatusRunning'        => 'Not Capturing',          // Added - 2018-08-30
-    'StatusUnknown'        => 'Unknown',                // Added - 2018-08-30
-    'Step'                 => 'Step',
-    'StepBack'             => 'Step Back',
-    'StepForward'          => 'Step Forward',
-    'StepLarge'            => 'Large Step',
-    'StepMedium'           => 'Medium Step',
-    'StepNone'             => 'No Step',
-    'StepSmall'            => 'Small Step',
-    'Stills'               => 'ｽﾁｰﾙ画像',
-    'Stop'                 => '停止',
-    'Stopped'              => '停止状態',
-    'StorageArea'          => 'Storage Area',           // Added - 2018-08-30
-    'StorageScheme'        => 'Scheme',                 // Added - 2018-08-30
-    'Stream'               => 'ｽﾄﾘｰﾑ',
-    'StreamReplayBuffer'   => 'Stream Replay Image Buffer',
-    'Submit'               => 'Submit',
-    'System'               => 'ｼｽﾃﾑ',
-    'SystemLog'            => 'System Log',             // Added - 2011-06-16
-    'TargetColorspace'     => 'Target colorspace',      // Added - 2015-04-18
-    'Tele'                 => 'Tele',
-    'Thumbnail'            => 'Thumbnail',
-    'Tilt'                 => 'Tilt',
-    'Time'                 => '時間',
-    'TimeDelta'            => 'ﾃﾞﾙﾀ ﾀｲﾑ',
-    'TimeStamp'            => 'ﾀｲﾑ ｽﾀﾝﾌﾟ',
-    'Timeline'             => 'Timeline',
-    'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
-    'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
-    'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
-    'TimelineTip4'          => 'Use the controls below to zoom out or navigate back and forward through the time range.',              // Added 2013.08.15.
-    'Timestamp'            => 'ﾀｲﾑｽﾀﾝﾌﾟ',
-    'TimestampLabelFormat' => 'ﾀｲﾑｽﾀﾝﾌﾟ ﾗﾍﾞﾙ ﾌｫｰﾏｯﾄ',
-    'TimestampLabelSize'   => 'Font Size',              // Added - 2018-08-30
-    'TimestampLabelX'      => 'ﾀｲﾑｽﾀﾝﾌﾟ ﾗﾍﾞﾙ X',
-    'TimestampLabelY'      => 'ﾀｲﾑｽﾀﾝﾌﾟ ﾗﾍﾞﾙ Y',
-    'Today'                => 'Today',
-    'Tools'                => 'ﾂｰﾙ',
-    'Total'                => 'Total',                  // Added - 2011-06-16
-    'TotalBrScore'         => '合計<br/>ｽｺｱｰ',
-    'TrackDelay'           => 'Track Delay',
-    'TrackMotion'          => 'Track Motion',
-    'Triggers'             => 'ﾄﾘｶﾞｰ',
-    'TurboPanSpeed'        => 'Turbo Pan Speed',
-    'TurboTiltSpeed'       => 'Turbo Tilt Speed',
-    'Type'                 => 'ﾀｲﾌﾟ',
-    'Unarchive'            => '解凍',
-    'Undefined'            => 'Undefined',              // Added - 2009-02-08
-    'Units'                => 'ﾕﾆｯﾄ',
-    'Unknown'              => '不明',
-    'Update'               => 'Update',
-    'UpdateAvailable'      => 'ZoneMinderのｱｯﾌﾟﾃﾞｰﾄがあります',
-    'UpdateNotNecessary'   => 'ｱｯﾌﾟﾃﾞｰﾄの必要はありません',
-    'Updated'              => 'Updated',                // Added - 2011-06-16
-    'Upload'               => 'Upload',                 // Added - 2011-08-23
-    'UseFilter'            => 'ﾌｨﾙﾀｰを使用してください',
-    'UseFilterExprsPost'   => '&nbsp;ﾌｨﾙﾀｰ個数', // This is used at the end of the phrase 'use N filter expressions'
-    'UseFilterExprsPre'    => '指定してください:&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
-    'UsedPlugins'	   => 'Used Plugins',
-    'User'                 => 'ﾕｰｻﾞ',
-    'Username'             => 'ﾕｰｻﾞ名',
-    'Users'                => 'ﾕｰｻﾞ',
-    'V4L'                  => 'V4L',                    // Added - 2015-04-18
-    'V4LCapturesPerFrame'  => 'Captures Per Frame',     // Added - 2015-04-18
-    'V4LMultiBuffer'       => 'Multi Buffering',        // Added - 2015-04-18
-    'Value'                => '数値',
-    'Version'              => 'ﾊﾞｰｼﾞｮﾝ',
-    'VersionIgnore'        => 'このﾊﾞｰｼﾞｮﾝを無視',
-    'VersionRemindDay'     => '1日後に再度知らせる',
-    'VersionRemindHour'    => '1時間後に再度知らせる',
-    'VersionRemindNever'   => '新しいﾊﾞｰｼﾞｮﾝの知らせは必要ない',
-    'VersionRemindWeek'    => '1週間後に再度知らせる',
-    'Video'                => 'ﾋﾞﾃﾞｵ',
-    'VideoFormat'          => 'Video Format',
-    'VideoGenFailed'       => 'ﾋﾞﾃﾞｵ生成の失敗！',
-    'VideoGenFiles'        => 'Existing Video Files',
-    'VideoGenNoFiles'      => 'No Video Files Found',
-    'VideoGenParms'        => 'ﾋﾞﾃﾞｵ生成 ﾊﾟﾗﾒｰﾀ',
-    'VideoGenSucceeded'    => 'Video Generation Succeeded!',
-    'VideoSize'            => 'ﾋﾞﾃﾞｵ ｻｲｽﾞ',
-    'VideoWriter'          => 'Video Writer',           // Added - 2018-08-30
-    'View'                 => '表示',
-    'ViewAll'              => '全部表示',
-    'ViewEvent'            => 'View Event',
-    'ViewPaged'            => 'ﾍﾟｰｼﾞ化の表示',
-    'Wake'                 => 'Wake',
-    'WarmupFrames'         => 'ｳｫｰﾑｱｯﾌﾟ ﾌﾚｰﾑ',
-    'Watch'                => '監視',
-    'Web'                  => 'ｳｪﾌﾞ',
-    'WebColour'            => 'Web Colour',
-    'WebSiteUrl'           => 'Website URL',            // Added - 2018-08-30
-    'Week'                 => '週',
-    'White'                => 'White',
-    'WhiteBalance'         => 'White Balance',
-    'Wide'                 => 'Wide',
-    'X'                    => 'X',
-    'X10'                  => 'X10',
-    'X10ActivationString'  => 'X10起動文字列',
-    'X10InputAlarmString'  => 'X10入力ｱﾗｰﾑ文字列',
-    'X10OutputAlarmString' => 'X10出力ｱﾗｰﾑ文字列',
-    'Y'                    => 'Y',
-    'Yes'                  => 'はい',
-    'YouNoPerms'           => 'この資源のｱｸｾｽ権がありません。',
-    'Zone'                 => 'ｿﾞｰﾝ',
-    'ZoneAlarmColour'      => 'ｱﾗｰﾑ ｶﾗｰ (Red/Green/Blue)',
-    'ZoneArea'             => 'Zone Area',
-    'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
-    'ZoneFilterSize'       => 'Filter Width/Height (pixels)',
-    'ZoneMinMaxAlarmArea'  => 'Min/Max Alarmed Area',
-    'ZoneMinMaxBlobArea'   => 'Min/Max Blob Area',
-    'ZoneMinMaxBlobs'      => 'Min/Max Blobs',
-    'ZoneMinMaxFiltArea'   => 'Min/Max Filtered Area',
-    'ZoneMinMaxPixelThres' => 'Min/Max Pixel Threshold (0-255)',
-    'ZoneMinderLog'        => 'ZoneMinder Log',         // Added - 2011-06-17
-    'ZoneOverloadFrames'   => 'Overload Frame Ignore Count',
-    'Zones'                => 'ｿﾞｰﾝ',
-    'Zoom'                 => 'Zoom',
-    'ZoomIn'               => 'Zoom In',
-    'ZoomOut'              => 'Zoom Out',
+    'SystemLog'             => 'システムログ',
+    'DateTime'              => '日付/時刻',
+    'Pid'                   => 'PID',
+    '24BitColour'           => '24ビットカラー',
+    '32BitColour'           => '32ビットカラー',
+    '8BitGrey'              => '8ビットグレースケール',
+    'AddNewControl'         => '新しいコントロールを追加',
+    'AddNewMonitor'         => '追加',
+    'AddMonitorDisabled'    => 'あなたのユーザーは新しいモニターを追加することが許可されていません',
+    'AddNewServer'          => '新しいサーバーを追加',
+    'AddNewStorage'         => '新しいストレージを追加',
+    'AddNewUser'            => '新しいユーザーを追加',
+    'AddNewZone'            => '新しいゾーンを追加',
+    'AlarmBrFrames'         => 'アラーム<br/>フレーム',
+    'AlarmFrame'            => 'アラームフレーム',
+    'AlarmFrameCount'       => 'アラームフレーム数',
+    'AlarmLimits'           => 'アラーム制限',
+    'AlarmMaximumFPS'       => 'アラーム最大FPS',
+    'AlarmPx'               => 'アラームPx',
+    'AlarmRefImageBlendPct' => 'アラーム参照画像ブレンド％',
+    'AlarmRGBUnset'         => 'アラームRGBカラーを設定する必要があります',
+    'AllTokensRevoked'      => 'すべてのトークンが取り消されました',
+    'AnalysisFPS'           => '分析FPS',
+    'AnalysisUpdateDelay'   => '分析更新遅延',
+    'APIEnabled'            => 'APIが有効',
+    'ApplyingStateChange'   => '状態変更を適用中',
+    'ArchArchived'          => 'アーカイブ済みのみ',
+    'ArchUnarchived'        => '未アーカイブのみ',
+    'AreaUnits'             => 'エリア(px/%）',
+    'AttrAlarmFrames'       => 'アラームフレーム',
+    'AttrAlarmedZone'       => 'アラームゾーン',
+    'AttrArchiveStatus'     => 'アーカイブステータス',
+    'AttrAvgScore'          => '平均スコア',
+    'AttrCause'             => '原因',
+    'AttrStartDate'         => '開始日',
+    'AttrEndDate'           => '終了日',
+    'AttrStartDateTime'     => '開始日時',
+    'AttrEndDateTime'       => '終了日時',
+    'AttrEventDiskSpace'    => 'イベントディスクスペース',
+    'AttrDiskSpace'         => 'ファイルシステムディスクスペース',
+    'AttrDiskBlocks'        => 'ディスクブロック',
+    'AttrDiskPercent'       => 'ディスクパーセント',
+    'AttrDuration'          => '持続時間',
+    'AttrFrames'            => 'フレーム数',
+    'AttrId'                => 'ID',
+    'AttrMaxScore'          => '最大スコア',
+    'AttrMonitorId'         => 'モニターID',
+    'AttrMonitorName'       => 'モニター名',
+    'AttrSecondaryStorageArea' => 'セカンダリーストレージエリア',
+    'AttrStorageArea'       => 'ストレージエリア',
+    'AttrFilterServer'      => 'サーバーフィルターが実行中',
+    'AttrMonitorServer'     => 'サーバーモニターが実行中',
+    'AttrStorageServer'     => 'ストレージホスティングサーバー',
+    'AttrStateId'           => '実行状態',
+    'AttrName'              => '名前',
+    'AttrNotes'             => 'ノート',
+    'AttrSystemLoad'        => 'システム負荷',
+    'AttrStartTime'         => '開始時間',
+    'AttrEndTime'           => '終了時間',
+    'AttrTotalScore'        => '総合スコア',
+    'AttrStartWeekday'      => '開始曜日',
+    'AttrEndWeekday'        => '終了曜日',
+    'AutoStopTimeout'       => '自動停止タイムアウト',
+    'AvgBrScore'            => '平均<br/>スコア',
+    'BackgroundFilter'      => 'フィルターをバックグラウンドで実行',
+    'BadAlarmFrameCount'    => 'アラームフレーム数は1以上の整数である必要があります',
+    'BadAlarmMaxFPS'        => 'アラーム最大FPSは正の整数または浮動小数点値である必要があります',
+    'BadAnalysisFPS'        => '分析FPSは正の整数または浮動小数点値である必要があります',
+    'BadAnalysisUpdateDelay'=> '分析更新遅延は0以上の整数で設定する必要があります',
+    'BadChannel'            => 'チャンネルは0以上の整数で設定する必要があります',
+    'BadDevice'             => 'デバイスは有効な値で設定する必要があります',
+    'BadEncoderParameters'  => 'エンコーダーは、少なくともcrfの値が必要です。詳細はヘルプを参照してください。',
+    'BadFormat'             => 'フォーマットは有効な値で設定する必要があります',
+    'BadFPSReportInterval'  => 'FPSレポート間隔バッファ数は0以上の整数である必要があります',
+    'BadFrameSkip'          => 'フレームスキップ数は0以上の整数である必要があります',
+    'BadMotionFrameSkip'    => 'モーションフレームスキップ数は0以上の整数である必要があります',
+    'BadHeight'             => '高さは有効な値で設定する必要があります',
+    'BadHost'               => 'ホストは有効なIPアドレスまたはホスト名で設定する必要があります。http://を含めないでください。',
+    'BadImageBufferCount'   => 'イメージバッファサイズは2以上の整数である必要があります',
+    'BadLabelX'             => 'ラベルX座標は0以上の整数で設定する必要があります',
+    'BadLabelY'             => 'ラベルY座標は0以上の整数で設定する必要があります',
+    'BadMaxFPS'             => '最大FPSは正の整数または浮動小数点値である必要があります',
+    'BadNameChars'          => '名前には英数字、スペース、ハイフン、アンダースコアのみ使用できます',
+    'BadPalette'            => 'パレットは有効な値で設定する必要があります',
+    'BadColours'            => 'ターゲットカラーは有効な値で設定する必要があります',
+    'BadPassthrough'        => '録画 -> パススルーはffmpegタイプのモニターでのみ機能します。',
+    'BadPath'               => 'ソース -> パスは有効な値で設定する必要があります',
+    'BadPathNotEncoded'     => 'ソース -> パスは有効な値で設定する必要があります。無効な文字 !*\'()$ ,#[] が検出されました。これらはURLパーセントエンコードが必要な場合があります。',
+    'BadPort'               => 'ソース -> ポートは有効な数値で設定する必要があります',
+    'BadPostEventCount'     => 'ポストイベント画像数は0以上の整数である必要があります',
+    'BadPreEventCount'      => 'プレイベント画像数は0以上で、イメージバッファサイズ未満である必要があります',
+    'BadPreEventCountMaxImageBufferCount' => '最大イメージバッファサイズは、プレイベント画像数よりも大きくなければなりません。さもなければ満たされません。',
+    'BadRefBlendPerc'       => '参照ブレンド割合は正の整数である必要があります',
+    'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGsとVideoWriterの両方が無効に設定されています。何も記録されません！',
+    'BadSectionLength'      => 'セクションの長さは30以上の整数である必要があります',
+    'BadSignalCheckColour'  => '信号チェックカラーは有効なRGBカラー文字列である必要があります',
+    'BadStreamReplayBuffer' => 'ストリームリプレイバッファは0以上の整数である必要があります',
+    'BadSourceType'         => 'ソースタイプ「Webサイト」は、機能を「モニター」に設定する必要があります',
+    'BadWarmupCount'        => 'ウォームアップフレームは0以上の整数である必要があります',
+    'BadWebColour'          => 'ウェブカラーは有効なウェブカラー文字列である必要があります',
+    'BadWebSitePath'        => '完全なウェブサイトURLを入力してください。http://またはhttps://のプレフィックスを含めてください。',
+    'BadWidth'              => '幅は有効な値に設定する必要があります',
+    'BandwidthHead'         => '帯域幅',     // This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
+    'BlobPx'                => 'ブロブ ピクセル',
+    'BlobSizes'             => 'ブロブ サイズ',
+    'CanAutoFocus'          => 'オートフォーカス可能',
+    'CanAutoGain'           => 'オートゲイン可能',
+    'CanAutoIris'           => 'オートアイリス可能',
+    'CanAutoWhite'          => 'オートホワイトバランス可能',
+    'CanAutoZoom'           => 'オートズーム可能',
+    'CancelForcedAlarm'     => '強制アラームをキャンセル',
+    'CanFocusAbs'           => '絶対フォーカス可能',
+    'CanFocus'              => 'フォーカス可能',
+    'CanFocusCon'           => '連続フォーカス可能',
+    'CanFocusRel'           => '相対フォーカス可能',
+    'CanGainAbs'            => '絶対ゲイン可能',
+    'CanGain'               => 'ゲイン可能',
+    'CanGainCon'            => '連続ゲイン可能',
+    'CanGainRel'            => '相対ゲイン可能',
+    'CanIrisAbs'            => '絶対アイリス可能',
+    'CanIris'               => 'アイリス可能',
+    'CanIrisCon'            => '連続アイリス可能',
+    'CanIrisRel'            => '相対アイリス可能',
+    'CanMoveAbs'            => '絶対移動可能',
+    'CanMove'               => '移動可能',
+    'CanMoveCon'            => '連続移動可能',
+    'CanMoveDiag'           => '斜め移動可能',
+    'CanMoveMap'            => 'マップ移動可能',
+    'CanMoveRel'            => '相対移動可能',
+    'CanPan'                => '水平移動可能',
+    'CanReset'              => 'リセット可能',
+    'CanReboot'             => '再起動可能',
+    'CanSetPresets'         => 'プリセット設定可能',
+    'CanSleep'              => 'スリープ可能',
+    'CanTilt'               => '垂直移動可能',
+    'CanWake'               => 'ウェイク可能',
+    'CanWhiteAbs'           => '絶対ホワイトバランス可能',
+    'CanWhiteBal'           => 'ホワイトバランス可能',
+    'CanWhite'              => 'ホワイトバランス可能',
+    'CanWhiteCon'           => '連続ホワイトバランス可能',
+    'CanWhiteRel'           => '相対ホワイトバランス可能',
+    'CanZoomAbs'            => '絶対ズーム可能',
+    'CanZoom'               => 'ズーム可能',
+    'CanZoomCon'            => '連続ズーム可能',
+    'CanZoomRel'            => '相対ズーム可能',
+    'CaptureHeight'         => 'キャプチャ高さ',
+    'CaptureMethod'         => 'キャプチャ方法',
+    'CaptureResolution'     => 'キャプチャ解像度',
+    'CapturePalette'        => 'キャプチャパレット',
+    'CaptureWidth'          => 'キャプチャ幅',
+    'CheckMethod'           => 'アラームチェック方法',
+    'ChooseDetectedCamera'  => '検出されたカメラを選択',
+    'ChooseDetectedProfile' => '検出されたプロファイルを選択',
+    'ChooseFilter'          => 'フィルタを選択',
+    'ChooseLogFormat'       => 'ログフォーマットを選択',
+    'ChooseLogSelection'    => 'ログ選択を選択',
+    'ChoosePreset'          => 'プリセットを選択',
+    'CloneMonitor'          => 'クローン',
+    'ConcurrentFilter'      => 'フィルタを同時実行',
+    'ConfigOptions'         => '設定オプション',
+    'ConfigType'            => '設定タイプ',
+    'ConfiguredFor'         => '設定対象',
+    'ConfigURL'             => '設定ベースURL',
+    'ConfirmDeleteControl'  => '警告、制御を削除すると、それを使用するすべてのモニターが制御不能になります。<br><br>本当に削除してもよろしいですか？',
+    'ConfirmDeleteDevices'  => '選択されたデバイスを削除してもよろしいですか？',
+    'ConfirmDeleteEvents'   => '選択されたイベントを削除してもよろしいですか？',
+    'ConfirmDeleteLayout'   => '現在のレイアウトを削除してもよろしいですか？',
+    'ConfirmDeleteTitle'    => '削除確認',
+    'ConfirmPassword'       => 'パスワードを確認',
+    'ConfirmUnarchiveEvents'=> '選択されたイベントのアーカイブを解除してもよろしいですか？',
+    'ConjAnd'               => 'そして',
+    'ConjOr'                => 'または',
+    'ContactAdmin'          => '詳細については管理者に連絡してください。',
+    'ControlAddress'        => '制御アドレス',
+    'ControlCap'            => '制御能力',
+    'ControlCaps'           => '制御機能',
+    'ControlDevice'         => '制御デバイス',
+    'Controllable'          => '制御可能',
+    'ControlType'           => '制御タイプ',
+    'CycleWatch'            => 'サイクルウォッチ',
+    'DefaultRate'           => 'デフォルトレート',
+    'DefaultScale'          => 'デフォルトスケール',
+    'DefaultCodec'          => 'イベントビュー用のデフォルト方法',
+    'DefaultView'           => 'デフォルトビュー',
+    'RTSPDescribe'          => 'RTSP応答メディアURLを使用',
+    'DeleteAndNext'         => '削除 &amp; 次へ',
+    'DeleteAndPrev'         => '削除 &amp; 前へ',
+    'DeleteSavedFilter'     => '保存されたフィルタを削除',
+    'DetectedCameras'       => '検出されたカメラ',
+    'DetectedProfiles'      => '検出されたプロファイル',
+    'DeviceChannel'         => 'デバイスチャンネル',
+    'DeviceFormat'          => 'デバイスフォーマット',
+    'DeviceNumber'          => 'デバイス番号',
+    'DevicePath'            => 'デバイスパス',
+    'DisableAlarms'         => 'アラームを無効化',
+    'DonateAlready'         => 'いいえ、既に寄付しました',
+    'DonateEnticement'      => 'ZoneMinderをしばらく使用しており、自宅や職場のセキュリティに役立っていることを願っています。ZoneMinderは無料かつオープンソースですが、開発とサポートには費用がかかります。将来の開発や新機能のサポートを手助けしたい場合は、寄付を検討してください。寄付はもちろん任意ですが、大変感謝されます。また、好きな金額を寄付することができます。<br/><br/>寄付をご希望の場合は、以下のオプションを選択するか、ブラウザで<a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a>にアクセスしてください。<br/><br/>ZoneMinderを使用していただきありがとうございます。また、サポートやZoneMinderの体験をさらに良くするための提案については、<a href="https://forums.zoneminder.com">ZoneMinder.com</a>のフォーラムを忘れずに訪れてください。',
+    'Donate'                => '寄付をお願いします',
+    'DonateRemindDay'       => 'まだ、1日後にリマインドしてください',
+    'DonateRemindHour'      => 'まだ、1時間後にリマインドしてください',
+    'DonateRemindMonth'     => 'まだ、1ヶ月後にリマインドしてください',
+    'DonateRemindNever'     => 'いいえ、寄付する気はありません。二度とリマインドしないでください',
+    'DonateRemindWeek'      => 'まだ、1週間後にリマインドしてください',
+    'DonateYes'             => 'はい、今すぐ寄付したい',
+    'DoNativeMotionDetection'=> 'ネイティブモーション検出を行う',
+    'DuplicateMonitorName'  => 'モニター名が重複しています',
+    'DuplicateRTSPStreamName' =>  'RTSPストリーム名が重複しています',
+    'EditControl'           => '制御を編集',
+    'EditLayout'            => 'レイアウトを編集',
+    'EnableAlarms'          => 'アラームを有効化',
+    'EnterNewFilterName'    => '新しいフィルタ名を入力',
+    'ErrorBrackets'         => 'エラー、括弧の開きと閉じが等しいことを確認してください',
+    'ErrorValidValue'       => 'エラー、すべての条件が有効な値であることを確認してください',
+    'Etc'                   => 'など',
+    'EventFilter'           => 'イベントフィルタ',
+    'EventId'               => 'イベントID',
+    'EventName'             => 'イベント名',
+    'EventPrefix'           => 'イベント接頭辞',
+    'ExportCompress'        => '圧縮を使用',
+    'ExportDetails'         => 'イベント詳細をエクスポート',
+    'ExportMatches'         => '一致したイベントをエクスポート',
+    'Exif'                  => '画像にEXIFデータを埋め込む',
+    'DownloadVideo'         => 'ビデオをダウンロード',
+    'GenerateDownload'      => 'ダウンロードを生成',
+    'EventsLoading'         => 'イベントを読み込み中',
+    'ExistsInFileSystem'    => 'ファイルシステムに存在',
+    'ExportFailed'          => 'エクスポートに失敗しました',
+    'ExportFormat'          => 'エクスポートファイル形式',
+    'ExportFormatTar'       => 'Tar',
+    'ExportFormatZip'       => 'Zip',
+    'ExportFrames'          => 'フレーム詳細をエクスポート',
+    'ExportImageFiles'      => '画像ファイルをエクスポート',
+    'ExportLog'             => 'ログをエクスポート',
+    'Exporting'             => 'エクスポート中',
+    'ExportMiscFiles'       => 'その他のファイルをエクスポート (存在する場合)',
+    'ExportOptions'         => 'エクスポートオプション',
+    'ExportSucceeded'       => 'エクスポートが成功しました',
+    'ExportVideoFiles'      => 'ビデオファイルをエクスポート (存在する場合)',
+    'FastForward'           => '早送り',
+    'FilterArchiveEvents'   => '一致したイベントをアーカイブ',
+    'FilterUnarchiveEvents' => '一致したイベントのアーカイブを解除',
+    'FilterUpdateDiskSpace' => '使用済みディスクスペースを更新',
+    'FilterDeleteEvents'    => '一致したイベントを削除',
+    'FilterCopyEvents'      => '一致したイベントをコピー',
+    'FilterLockRows'        => '行をロック',
+    'FilterMoveEvents'      => '一致したイベントを移動',
+    'FilterEmailEvents'     => '一致したイベントの詳細をメールで送信',
+    'FilterEmailTo'         => '送信先メールアドレス',
+    'FilterEmailSubject'    => 'メール件名',
+    'FilterEmailBody'       => 'メール本文',
+    'FilterExecuteEvents'   => '一致したイベントに対してコマンドを実行',
+    'FilterLog'             => 'フィルターログ',
+    'FilterMessageEvents'   => '一致したイベントの詳細をメッセージ送信',
+    'FilterPx'              => 'フィルターピクセル',
+    'FilterUnset'           => 'フィルターの幅と高さを指定する必要があります',
+    'FilterUploadEvents'    => '一致したイベントをアップロード',
+    'FilterUser'            => 'フィルターを実行するユーザー',
+    'FilterVideoEvents'     => '一致したイベントのビデオを作成',
+    'FlippedHori'           => '水平に反転',
+    'FlippedVert'           => '垂直に反転',
+    'ForceAlarm'            => 'アラームを強制',
+    'FPS'                   => 'fps',
+    'FPSReportInterval'     => 'FPSレポート間隔',
+    'FrameId'               => 'フレームID',
+    'FrameRate'             => 'フレームレート',
+    'FrameSkip'             => 'フレームスキップ',
+    'MotionFrameSkip'       => 'モーションフレームスキップ',
+    'GenerateVideo'         => 'ビデオを生成',
+    'GeneratingVideo'       => 'ビデオを生成中',
+    'GetCurrentLocation'    => '現在の場所を取得',
+    'GoToZoneMinder'        => 'ZoneMinder.comへ',
+    'HasFocusSpeed'         => 'フォーカス速度を持つ',
+    'HasGainSpeed'          => 'ゲイン速度を持つ',
+    'HasHomePreset'         => 'ホームプリセットを持つ',
+    'HasIrisSpeed'          => 'アイリス速度を持つ',
+    'HasPanSpeed'           => '水平移動速度を持つ',
+    'HasPresets'            => 'プリセットを持つ',
+    'HasTiltSpeed'          => '垂直移動速度を持つ',
+    'HasTurboPan'           => 'ターボ水平移動を持つ',
+    'HasTurboTilt'          => 'ターボ垂直移動を持つ',
+    'HasWhiteSpeed'         => 'ホワイトバランス速度を持つ',
+    'HasZoomSpeed'          => 'ズーム速度を持つ',
+    'HighBW'                => '高帯域',
+    'ImageBufferSize'       => '画像バッファサイズ (フレーム数)',
+    'MaxImageBufferCount'   => '最大画像バッファサイズ (フレーム数)',
+    'InvalidateTokens'      => '生成されたすべてのトークンを無効にする',
+    'KeyString'             => 'キー文字列',
+    'LimitResultsPost'      => '結果のみ', // 「Limit to first N results only」のフレーズの最後に使用されます
+    'LimitResultsPre'       => '最初のN結果に制限', // 「Limit to first N results only」のフレーズの最初に使用されます
+    'LinkedMonitors'        => 'リンクされたモニター',
+    'ListMatches'           => '一致したイベントのリスト',
+    'LoggedInAs'            => 'ログイン中: ',
+    'LoggingIn'             => 'ログイン中',
+    'LowBW'                 => '低帯域',
+    'MaxBandwidth'          => '最大帯域幅',
+    'MaxBrScore'            => '最大<br/>スコア',
+    'MaxFocusRange'         => '最大フォーカス範囲',
+    'MaxFocusSpeed'         => '最大フォーカス速度',
+    'MaxFocusStep'          => '最大フォーカスステップ',
+    'MaxGainRange'          => '最大ゲイン範囲',
+    'MaxGainSpeed'          => '最大ゲイン速度',
+    'MaxGainStep'           => '最大ゲインステップ',
+    'MaximumFPS'            => '最大FPS',
+    'MaxIrisRange'          => '最大アイリス範囲',
+    'MaxIrisSpeed'          => '最大アイリス速度',
+    'MaxIrisStep'           => '最大アイリスステップ',
+    'MaxPanRange'           => '最大水平移動範囲',
+    'MaxPanSpeed'           => '最大水平移動速度',
+    'MaxPanStep'            => '最大水平移動ステップ',
+    'MaxTiltRange'          => '最大垂直移動範囲',
+    'MaxTiltSpeed'          => '最大垂直移動速度',
+    'MaxTiltStep'           => '最大垂直移動ステップ',
+    'MaxWhiteRange'         => '最大ホワイトバランス範囲',
+    'MaxWhiteSpeed'         => '最大ホワイトバランス速度',
+    'MaxWhiteStep'          => '最大ホワイトバランスステップ',
+    'MaxZoomRange'          => '最大ズーム範囲',
+    'MaxZoomSpeed'          => '最大ズーム速度',
+    'MaxZoomStep'           => '最大ズームステップ',
+    'MediumBW'              => '中帯域',
+    'MetaConfig'            => 'メタ構成',
+    'MinAlarmAreaLtMax'     => '最小アラームエリアは最大値未満である必要があります',
+    'MinAlarmAreaUnset'     => '最小アラームピクセル数を指定する必要があります',
+    'MinBlobAreaLtMax'      => '最小ブロブエリアは最大値未満である必要があります',
+    'MinBlobAreaUnset'      => '最小ブロブピクセル数を指定する必要があります',
+    'MinBlobLtMinFilter'    => '最小ブロブエリアは最小フィルターエリア以下である必要があります',
+    'MinBlobsLtMax'         => '最小ブロブ数は最大値未満である必要があります',
+    'MinBlobsUnset'         => '最小ブロブ数を指定する必要があります',
+    'MinFilterAreaLtMax'    => '最小フィルターエリアは最大値未満である必要があります',
+    'MinFilterAreaUnset'    => '最小フィルターピクセル数を指定する必要があります',
+    'MinFilterLtMinAlarm'   => '最小フィルターエリアは最小アラームエリア以下である必要があります',
+    'MinFocusRange'         => '最小フォーカス範囲',
+    'MinFocusSpeed'         => '最小フォーカス速度',
+    'MinFocusStep'          => '最小フォーカスステップ',
+    'MinGainRange'          => '最小ゲイン範囲',
+    'MinGainSpeed'          => '最小ゲイン速度',
+    'MinGainStep'           => '最小ゲインステップ',
+    'MinIrisRange'          => '最小アイリス範囲',
+    'MinIrisSpeed'          => '最小アイリス速度',
+    'MinIrisStep'           => '最小アイリスステップ',
+    'MinPanRange'           => '最小水平移動範囲',
+    'MinPanSpeed'           => '最小水平移動速度',
+    'MinPanStep'            => '最小水平移動ステップ',
+    'MinPixelThresLtMax'    => '最小ピクセルしきい値は最大値未満である必要があります',
+    'MinPixelThresUnset'    => '最小ピクセルしきい値を指定する必要があります',
+    'MinSectionlength'      => '最小セクション長',
+    'MinTiltRange'          => '最小垂直移動範囲',
+    'MinTiltSpeed'          => '最小垂直移動速度',
+    'MinTiltStep'           => '最小垂直移動ステップ',
+    'MinWhiteRange'         => '最小ホワイトバランス範囲',
+    'MinWhiteSpeed'         => '最小ホワイトバランス速度',
+    'MinWhiteStep'          => '最小ホワイトバランスステップ',
+    'MinZoomRange'          => '最小ズーム範囲',
+    'MinZoomSpeed'          => '最小ズーム速度',
+    'MinZoomStep'           => '最小ズームステップ',
+    'ModectDuringPTZ'       => 'PTZ動作中にモーション検出を行う',
+    'MonitorIds'            => 'モニター&nbsp;ID',
+    'MonitorPresetIntro'    => '以下のリストから適切なプリセットを選択してください。<br/><br/>これは、現在のモニターに既に構成されている値を上書きする可能性がある',
+    'MonitorPreset'         => 'モニタープリセット',
+    'MonitorProbeIntro'     => '以下のリストには、検出されたアナログおよびネットワークカメラと、それらがすでに使用されているか、選択可能かどうかが表示されています。<br/><br/>以下のリストから目的のエントリを選択してください。<br/><br/>すべてのカメラが検出されるわけではないことに注意してください。また、ここでカメラを選択すると、現在のモニターに対してすでに構成されている値が上書きされる可能性があります。<br/><br/>',
+    'MonitorProbe'          => 'モニタープローブ',
+    'MontageReview'         => 'モンタージュレビュー',
+    'MtgDefault'            => 'デフォルト',              // Added 2013.08.15.
+    'Mtg2widgrd'            => '2幅グリッド',              // Added 2013.08.15.
+    'Mtg3widgrd'            => '3幅グリッド',              // Added 2013.08.15.
+    'Mtg4widgrd'            => '4幅グリッド',              // Added 2013.08.15.
+    'Mtg3widgrx'            => '3幅グリッド、スケーリング、アラーム時に拡大',              // Added 2013.08.15.
+    'MustBeGe'              => '以上でなければなりません',
+    'MustBeLe'              => '以下でなければなりません',
+    'MustConfirmPassword'   => 'パスワードを確認する必要があります',
+    'MustSupplyPassword'    => 'パスワードを入力する必要があります',
+    'MustSupplyUsername'    => 'ユーザー名を入力する必要があります',
+    'NewGroup'              => '新しいグループ',
+    'NewLabel'              => '新しいラベル',
+    'NewPassword'           => '新しいパスワード',
+    'NewState'              => '新しい状態',
+    'NewUser'               => '新しいユーザー',
+    'NextMonitor'           => '次のモニター',
+    'NoDetectedCameras'     => '検出されたカメラはありません',
+    'NoDetectedProfiles'    => '検出されたプロファイルはありません',
+    'NoFramesRecorded'      => 'このイベントに記録されたフレームはありません',
+    'NoGroup'               => 'グループなし',
+    'NoneAvailable'         => '利用可能なものはありません',
+    'NoSavedFilters'        => '保存されたフィルターはありません',
+    'NoStatisticsRecorded'  => 'このイベント/フレームに記録された統計情報はありません',
+    'NumPresets'            => 'プリセット数',
+    'OnvifProbe'            => 'ONVIF',
+    'OnvifProbeIntro'       => '以下のリストには、検出されたONVIFカメラと、それらがすでに使用されているか、選択可能かどうかが表示されています。<br/><br/>以下のリストから目的のエントリを選択してください。<br/><br/>すべてのカメラが検出されるわけではないことに注意してください。また、ここでカメラを選択すると、現在のモニターに対してすでに構成されている値が上書きされる可能性があります。<br/><br/>',
+    'OnvifCredentialsIntro' => '選択したカメラのユーザー名とパスワードを入力してください。<br/>カメラにユーザーが作成されていない場合、ここで指定したユーザーが指定されたパスワードで作成されます。<br/><br/>',
+    'OpEq'                  => '等しい',
+    'OpGtEq'                => '以上',
+    'OpGt'                  => 'より大きい',
+    'OpIn'                  => 'セット内',
+    'OpLtEq'                => '以下',
+    'OpLt'                  => 'より小さい',
+    'OpMatches'             => '一致する',
+    'OpNe'                  => '等しくない',
+    'OpNotIn'               => 'セット内でない',
+    'OpNotMatches'          => '一致しない',
+    'OpIs'                  => 'は',
+    'OpIsNot'               => 'はない',
+    'OpLike'                => '含む',
+    'OpNotLike'             => '含まない',
+    'OptionalEncoderParam'  => 'オプションエンコーダーパラメータ',
+    'OptionHelp'            => 'オプションヘルプ',
+    'OptionRestartWarning'  => 'これらの変更は、システムが実行中の間は完全には反映されない場合があります。変更が完了したら、ZoneMinderを再起動してください。',
+    'Options'               => 'オプション',
+    'Order'                 => '順序',
+    'OrEnterNewName'        => 'または新しい名前を入力',
+    'OverwriteExisting'     => '既存のものを上書き',
+    'PanLeft'               => '左に水平移動',
+    'PanRight'              => '右に水平移動',
+    'PanTilt'               => '水平移動/垂直移動',
+    'ParentGroup'           => '親グループ',
+    'PasswordsDifferent'    => '新しいパスワードと確認用パスワードが異なります',
+    'PathToIndex'           => 'インデックスへのパス',
+    'PathToZMS'             => 'ZMSへのパス',
+    'PathToApi'             => 'APIへのパス',
+    'PauseCycle'            => 'サイクルを一時停止',
+    'PhoneBW'               => '電話帯域',
+    'PixelDiff'             => 'ピクセル差',
+    'Pixels'                => 'ピクセル',
+    'PlayAll'               => 'すべて再生',
+    'PlayCycle'             => 'サイクルを再生',
+    'PleaseWait'            => 'お待ちください',
+    'PostEventImageBuffer'  => 'イベント後の画像数',
+    'PreEventImageBuffer'   => 'イベント前の画像数',
+    'PreserveAspect'        => 'アスペクト比を保持',
+    'PreviousMonitor'       => '前のモニター',
+    'PrivacyAbout'          => 'プライバシーについて',
+    'PrivacyAboutText'      => '2002年から、ZoneMinderはLinuxプラットフォーム向けの無料およびオープンソースのビデオ管理システム（VMS）ソリューションとして最前線に立っています。ZoneMinderはコミュニティによってサポートされ、プロジェクトに余暇を費やすボランティアによって管理されています。ZoneMinderを改善する最良の方法は、参加することです。',
+    'PrivacyContact'        => '連絡先',
+    'PrivacyContactText'    => 'プライバシーポリシーに関する質問や情報の削除を希望される場合は、<a href="https://zoneminder.com/contact/">こちら</a>からご連絡ください。<br><br>サポートには、以下の3つの主要な方法があります：<ul><li>ZoneMinderの<a href="https://forums.zoneminder.com/">ユーザーフォーラム</a></li><li>ZoneMinderの<a href="https://zoneminder-chat.herokuapp.com/">Slackチャンネル</a></li><li>ZoneMinderの<a href="https://github.com/ZoneMinder/zoneminder/issues">Githubフォーラム</a></li></ul><p>Githubフォーラムはバグ報告専用です。その他の質問やコメントについては、ユーザーフォーラムまたはSlackチャンネルをご利用ください。</p>',
+    'PrivacyCookies'        => 'クッキー',
+    'PrivacyCookiesText'    => 'ZoneMinderサーバーと通信する際にウェブブラウザまたはモバイルアプリを使用する場合、クライアントにZMSESSIDクッキーが作成され、ZoneMinderサーバーとのセッションが一意に識別されます。ZmCSSおよびzmSkinクッキーが作成され、スタイルおよびスキンの選択が記憶されます。',
+    'PrivacyTelemetry'      => 'テレメトリー',
+    'PrivacyTelemetryText'  => 'ZoneMinderはオープンソースであるため、登録せずにインストールすることができます。これにより、どれだけのシステムが存在するのか、最大のシステムはどれか、どのようなシステムが存在するのか、これらのシステムがどこにあるのかなどの質問に答えるのが難しくなります。これらの質問への回答を知ることで、私たちはユーザーからの質問に答え、主要なユーザーベースに基づいて優先順位を設定するのに役立ちます。',
+    'PrivacyTelemetryList'  => 'ZoneMinderテレメトリーデーモンは、次のデータを収集します：
+    <ul>
+      <li>一意の識別子（UUID）</li>
+      <li>都市に基づく位置は<a href="https://ipinfo.io/geo">ipinfo.io</a>をクエリすることで収集されます。都市、地域、国、緯度、経度のパラメータが保存されます。緯度と経度の座標は、都市または町レベルまで正確です！</li>
+      <li>現在の時刻</li>
+      <li>モニターの総数</li>
+      <li>イベントの総数</li>
+      <li>システムアーキテクチャ</li>
+      <li>オペレーティングシステムカーネル、ディストリビューション、ディストリビューションバージョン</li>
+      <li>ZoneMinderのバージョン</li>
+      <li>メモリの総量</li>
+      <li>CPUコア数</li>
+    </ul>',
+    'PrivacyMonitorList'    => '各モニターから収集される構成パラメータは次のとおりです：
+   <ul>
+    <li>Id</li>
+    <li>名前</li>
+    <li>メーカー</li>
+    <li>モデル</li>
+    <li>タイプ</li>
+    <li>機能</li>
+    <li>幅</li>
+    <li>高さ</li>
+    <li>色数</li>
+    <li>最大FPS</li>
+    <li>アラーム最大FPS</li>
+   </ul>',
+    'PrivacyConclusionText' => '私たちは、あなたのカメラから特定の画像データを収集していません。カメラが何を見ているのかはわかりません。このデータは販売されたり、ここに記載されている以外の目的で使用されることはありません。受け入れをクリックすることで、ZoneMinderをより良い製品にするためにこのデータを送信することに同意したことになります。拒否をクリックすると、ZoneMinderとそのすべての機能を自由に使用し続けることができます。',
+    'Probe'                 => 'プローブ',
+    'ProfileProbe'          => 'ストリームプローブ',
+    'ProfileProbeIntro'     => '以下のリストには、選択したカメラの既存のストリームプロファイルが表示されています。<br/><br/>以下のリストから目的のエントリを選択してください。<br/><br/>ZoneMinderは追加のプロファイルを構成することができず、ここでカメラを選択すると、現在のモニターに対してすでに構成されている値が上書きされる可能性があることに注意してください。<br/><br/>',
+    'RecaptchaWarning'      => 'reCaptchaのシークレットキーが無効です。修正してください。さもないと、reCaptchaは機能しません。',
+    'RecordAudio'           => 'イベントを保存する際に音声ストリームを保存するかどうか。',
+    'RefImageBlendPct'      => '参照画像ブレンド％',
+    'RemoteHostName'        => 'ホスト名',
+    'RemoteHostPath'        => 'パス',
+    'RemoteHostSubPath'     => 'サブパス',
+    'RemoteHostPort'        => 'ポート',
+    'RemoteImageColours'    => '画像の色',
+    'RemoteMethod'          => 'メソッド',
+    'RemoteProtocol'        => 'プロトコル',
+    'ReplayAll'             => 'すべてのイベント',
+    'ReplayGapless'         => 'ギャップレスイベント',
+    'ReplaySingle'          => '単一イベント',
+    'ReportEventAudit'      => 'イベント監査レポート',
+    'ResetEventCounts'      => 'イベントカウントをリセット',
+    'RestrictedCameraIds'   => '制限されたカメラID',
+    'RestrictedMonitors'    => '制限されたモニター',
+    'ReturnDelay'           => '戻る遅延',
+    'ReturnLocation'        => '戻る位置',
+    'RevokeAllTokens'       => 'すべてのトークンを取り消す',
+    'RotateLeft'            => '左に回転',
+    'RotateRight'           => '右に回転',
+    'RTSPTransport'         => 'RTSPトランスポートプロトコル',
+    'RunAudit'              => '監査プロセスを実行',
+    'RunLocalUpdate'        => 'zmupdate.plを実行して更新してください',
+    'RunMode'               => '実行モード',
+    'RunState'              => '実行状態',
+    'RunStats'              => '統計プロセスを実行',
+    'RunTrigger'            => 'トリガープロセスを実行',
+    'RunEventNotification'  => 'イベント通知プロセスを実行',
+    'SaveAs'                => '名前を付けて保存',
+    'SaveFilter'            => 'フィルターを保存',
+    'SaveJPEGs'             => 'JPEGを保存',
+    'Sectionlength'         => 'セクションの長さ',
+    'SelectMonitors'        => 'モニターを選択',
+    'SelectFormat'          => 'フォーマットを選択',
+    'SelectLog'             => 'ログを選択',
+    'SelfIntersecting'      => 'ポリゴンのエッジは交差してはいけません',
+    'SetNewBandwidth'       => '新しい帯域幅を設定',
+    'SetPreset'             => 'プリセットを設定',
+    'ShowFilterWindow'      => 'フィルターウィンドウを表示',
+    'ShowTimeline'          => 'タイムラインを表示',
+    'SignalCheckColour'     => '信号チェックの色',
+    'SignalCheckPoints'     => '信号チェックポイント',
+    'SkinDescription'       => 'このセッションのスキンを変更',
+    'CSSDescription'        => 'このセッションのCSSを変更',
+    'SortAsc'               => '昇順',
+    'SortBy'                => '並べ替え',
+    'SortDesc'              => '降順',
+    'SourceColours'         => 'ソースの色',
+    'SourcePath'            => 'ソースパス',
+    'SourceType'            => 'ソースタイプ',
+    'SpeedHigh'             => '高速',
+    'SpeedLow'              => '低速',
+    'SpeedMedium'           => '中速',
+    'SpeedTurbo'            => 'ターボスピード',
+    'StatusUnknown'         => '不明',
+    'StatusConnected'       => 'キャプチャ中',
+    'StatusNotRunning'      => '実行されていません',
+    'StatusRunning'         => 'キャプチャしていません',
+    'StepBack'              => '戻る',
+    'StepForward'           => '進む',
+    'StepLarge'             => '大きなステップ',
+    'StepMedium'            => '中程度のステップ',
+    'StepNone'              => 'ステップなし',
+    'StepSmall'             => '小さなステップ',
+    'StorageArea'           => 'ストレージエリア',
+    'StorageDoDelete'       => '削除する',
+    'StorageScheme'         => 'スキーム',
+    'StreamReplayBuffer'    => 'ストリームリプレイ画像バッファ',
+    'TargetColorspace'      => 'ターゲットカラースペース',
+    'TimeDelta'             => '時間差',
+    'TimelineTip1'          => 'グラフ上にマウスを乗せると、スナップショット画像とイベントの詳細が表示されます。',
+    'TimelineTip2'          => 'グラフの色付きセクションや画像をクリックしてイベントを表示します。',
+    'TimelineTip3'          => '背景をクリックして、クリックに基づいた小さな時間範囲にズームインします。',
+    'TimelineTip4'          => '以下のコントロールを使用して、ズームアウトしたり、時間範囲を前後にナビゲートします。',
+    'TimestampLabelFormat'  => '時刻ラベル形式',
+    'TimestampLabelX'       => '時刻ラベル X',
+    'TimestampLabelY'       => '時刻ラベル Y',
+    'TimestampLabelSize'    => 'フォントサイズ',
+    'TimeStamp'             => '時刻',
+    'TooManyEventsForTimeline' => 'タイムラインに対してイベントが多すぎます。モニターの数を減らすか、タイムラインの表示範囲を狭くしてください。',
+    'TotalBrScore'          => '合計<br/>スコア',
+    'TrackDelay'            => 'トラック遅延',
+    'TrackMotion'           => 'トラックモーション',
+    'TurboPanSpeed'         => 'ターボ水平移動速度',
+    'TurboTiltSpeed'        => 'ターボティルト速度',
+    'TZUnset'               => '設定されていません - php.ini の値を使用',
+    'UpdateAvailable'       => 'ZoneMinder の更新があります。',
+    'UpdateNotNecessary'    => '更新は必要ありません。',
+    'UsedPlugins'           => '使用中のプラグイン',
+    'UseFilterExprsPost'    => '&nbsp;フィルター&nbsp;式',
+    'UseFilterExprsPre'     => '使用&nbsp;',
+    'UseFilter'             => 'フィルターを使用',
+    'VersionIgnore'         => 'このバージョンを無視',
+    'VersionRemindDay'      => '1日後に再通知',
+    'VersionRemindHour'     => '1時間後に再通知',
+    'VersionRemindNever'    => '新しいバージョンについて再通知しない',
+    'VersionRemindWeek'     => '1週間後に再通知',
+    'VersionRemindMonth'    => '1ヶ月後に再通知',
+    'ViewMatches'           => '一致したイベントを表示',
+    'VideoFormat'           => 'ビデオフォーマット',
+    'VideoGenFailed'        => 'ビデオ生成に失敗しました！',
+    'VideoGenFiles'         => '既存のビデオファイル',
+    'VideoGenNoFiles'       => 'ビデオファイルが見つかりません',
+    'VideoGenParms'         => 'ビデオ生成パラメータ',
+    'VideoGenSucceeded'     => 'ビデオ生成に成功しました！',
+    'VideoSize'             => 'ビデオサイズ',
+    'VideoWriter'           => 'ビデオライター',
+    'ViewAll'               => 'すべて表示',
+    'ViewEvent'             => 'イベントを表示',
+    'ViewPaged'             => 'ページ分け表示',
+    'V4LCapturesPerFrame'   => 'フレームごとのキャプチャ数',
+    'V4LMultiBuffer'        => 'マルチバッファリング',
+    'WarmupFrames'          => 'ウォームアップフレーム',
+    'WebColour'             => 'ウェブカラー',
+    'WebSiteUrl'            => 'ウェブサイトURL',
+    'WhiteBalance'          => 'ホワイトバランス',
+    'X10ActivationString'   => 'X10 アクティベーション文字列',
+    'X10InputAlarmString'   => 'X10 入力アラーム文字列',
+    'X10OutputAlarmString'  => 'X10 出力アラーム文字列',
+    'YouNoPerms'            => 'このリソースにアクセスする権限がありません。',
+    'ZoneAlarmColour'       => 'アラームカラー（赤/緑/青）',
+    'ZoneArea'              => 'ゾーンエリア',
+    'ZoneFilterSize'        => 'フィルター幅/高さ（ピクセル）',
+    'ZoneMinderLog'         => 'ZoneMinder ログ',
+    'ZoneMinMaxAlarmArea'   => '最小/最大アラームエリア',
+    'ZoneMinMaxBlobArea'    => '最小/最大ブロブエリア',
+    'ZoneMinMaxBlobs'       => '最小/最大ブロブ',
+    'ZoneMinMaxFiltArea'    => '最小/最大フィルターエリア',
+    'ZoneMinMaxPixelThres'  => '最小/最大ピクセル閾値（0-255）',
+    'ZoneOverloadFrames'    => 'オーバーロードフレーム無視カウント',
+    'ZoneExtendAlarmFrames' => 'アラームフレームカウントを拡張',
+    'ZoomIn'                => 'ズームイン',
+    'ZoomOut'               => 'ズームアウト',
+// language names translation
+    'es_la' => 'スペイン語（ラテンアメリカ）',
+    'es_CR' => 'スペイン語（コスタリカ）',
+    'es_ar' => 'スペイン語（アルゼンチン）',
+    'es_es' => 'スペイン語（スペイン）',
+    'en_gb' => 'イギリス英語',
+    'en_us' => 'アメリカ英語',
+    'fr_fr' => 'フランス語',
+    'cs_cz' => 'チェコ語',
+    'zh_cn' => '簡体字中国語',
+    'zh_tw' => '繁体字中国語',
+    'de_de' => 'ドイツ語',
+    'it_it' => 'イタリア語',
+    'ja_jp' => '日本語',
+    'hu_hu' => 'ハンガリー語',
+    'pl_pl' => 'ポーランド語',
+    'pt_br' => 'ポルトガル語（ブラジル）',
+    'ru_ru' => 'ロシア語',
+    'nl_nl' => 'オランダ語',
+    'se_se' => 'サーミ語',
+    'et_ee' => 'エストニア語',
+    'he_il' => 'ヘブライ語',
+    'dk_dk' => 'デンマーク語',
+    'ro_ro' => 'ルーマニア語',
+    '12.5% (Outdoor)' => '12.5% (屋外)',
+    '1 Hour' => '1 時間',
+    '24 Hour' => '24 時間',
+    '50% (Alarm lasts a moment)' => '50% (アラームは一瞬です)',
+    '6.25% (Indoor)' => '6.25% (屋内)',
+    '8 Hour' => '8 時間',
+    'Accept' => '承認',
+    'Action' => 'アクション',
+    'Actions' => 'アクション',
+    'Actual' => '実際',
+    'Add' => '追加',
+    'Add Monitors' => 'モニターを追加',
+    'Add New Monitor' => '新しいモニターを追加',
+    'Add New Report' => '新しいレポートを追加',
+    'Add New Zone' => '新しいゾーンを追加',
+    'Alarm' => 'アラーム',
+    'Alert' => 'アラート',
+    'All' => 'すべて',
+    'All Events' => 'すべてのイベント',
+    'All Groups' => 'すべてのグループ',
+    'All Manufacturers' => 'すべてのメーカー',
+    'All Monitors' => 'すべてのモニター',
+    'All Tags' => 'すべてのタグ',
+    'Always' => '常に',
+    'Analysing' => '分析中',
+    'Analysis' => '分析',
+    'Analysis Enabled' => '分析が有効',
+    'Analysis FPS' => '分析 FPS',
+    'Analysis Image' => '分析画像',
+    'Analysis images only (if available)' => '分析画像のみ (利用可能な場合)',
+    'Analysis is disabled' => '分析が無効',
+    'AnalysisSource' => '分析ソース',
+    'API' => 'API',
+    'API Enabled' => 'API が有効',
+    'Apply' => '適用',
+    'Apply the last tag, then play the next event' => '最後のタグを適用してから次のイベントを再生',
+    'Apply the last tag, then play the previous event' => '最後のタグを適用してから前のイベントを再生',
+    'Archive' => 'アーカイブ',
+    'Archived' => 'アーカイブ済み',
+    'Are you still watching?' => 'まだ視聴していますか?',
+    'AttrStorageDiskSpace' => '属性ストレージディスクスペース',
+    'Audio recording only available with FFMPEG' => '音声録音は FFMPEG でのみ利用可能',
+    'auto' => '自動',
+    'Auto' => '自動',
+    'Available' => '利用可能',
+    'Back' => '戻る',
+    'Background' => '背景',
+    'Bandwidth' => '帯域幅',
+    'Bind Interfaces' => 'インターフェースをバインド',
+    'Blend' => 'ブレンド',
+    'Blend (25%)' => 'ブレンド (25%)',
+    'Blobs' => 'ブロブ',
+    'Both' => '両方',
+    'Buffer' => 'バッファ',
+    'Buffers' => 'バッファ',
+    'Camera Passthrough' => 'カメラパススルー',
+    'Camera Passthrough - only for FFMPEG' => 'カメラパススルー - FFMPEG のみ',
+    'Cancel' => 'キャンセル',
+    'Capturing' => 'キャプチャ中',
+    'Capturing FPS' => 'キャプチャ FPS',
+    'Cause' => '原因',
+    'Change State' => '状態を変更',
+    'Close' => '閉じる',
+    'Codec' => 'コーデック',
+    'Component' => 'コンポーネント',
+    'Concurrent' => '同時',
+    'Config' => '設定',
+    'Configuration' => '構成',
+    'ConfirmUnarchiveTitle' => 'アーカイブ解除の確認',
+    'Console' => 'コンソール',
+    'Control' => '制御',
+    'Cpu' => 'CPU',
+    'CpuLoad' => 'CPU負荷',
+    'Create' => '作成',
+    'Created By' => '作成者',
+    'Created On' => '作成日',
+    'Current' => '現在',
+    'Custom' => 'カスタム',
+    'Cycle' => 'サイクル',
+    'Data' => 'データ',
+    'Date Time' => '日時',
+    'Day' => '日',
+    'DB' => 'DB',
+    'Debug' => 'デバッグ',
+    'Decline' => '拒否',
+    'Decoder' => 'デコーダー',
+    'DecoderHWAccelDevice' => 'デコーダー HW アクセラレータデバイス',
+    'DecoderHWAccelName' => 'デコーダー HW アクセラレータ名',
+    'Decoding' => 'デコード中',
+    'Decoding Enabled' => 'デコードが有効',
+    'Deep' => '深い',
+    'Default' => 'デフォルト',
+    'Deinterlacing' => 'インターレース解除',
+    'Delay' => '遅延',
+    'Delete' => '削除',
+    'Delete layout' => 'レイアウトを削除',
+    'Description' => '説明',
+    'Device' => 'デバイス',
+    'Devices' => 'デバイス',
+    'DHCP' => 'DHCP',
+    'DHCP Authoritative' => 'DHCP 権威',
+    'DHCP Range' => 'DHCP 範囲',
+    'Disabled' => '無効',
+    'Discard' => '破棄',
+    'Disk' => 'ディスク',
+    'DiskSpace' => 'ディスクスペース',
+    'Display' => '表示',
+    'Displaying' => '表示中',
+    'Download' => 'ダウンロード',
+    'Download Failed' => 'ダウンロード失敗',
+    'Download File Name' => 'ダウンロードファイル名',
+    'Download Image' => '画像をダウンロード',
+    'Downloading' => 'ダウンロード中',
+    'Download Succeeded' => 'ダウンロード成功',
+    'Download Video' => 'ビデオをダウンロード',
+    'Duration' => '期間',
+    'Edit' => '編集',
+    'Edit monitor' => 'モニターを編集',
+    'Effective Permission' => '有効な権限',
+    'Email' => 'メール',
+    'Email Address' => 'メールアドレス',
+    'Emailed' => 'メール送信済み',
+    'Email Format' => 'メール形式',
+    'Enabled' => '有効',
+    'Encode' => 'エンコード',
+    'Encoder' => 'エンコーダー',
+    'End Date/Time' => '終了日時',
+    'Ending' => '終了',
+    'Error' => 'エラー',
+    'Error reading Layout' => 'レイアウト読み込みエラー',
+    'Estimated Ram Use' => '推定 RAM 使用量',
+    'Event Close Mode' => 'イベント終了モード',
+    'Event End Command' => 'イベント終了コマンド',
+    'Event Id' => 'イベント ID',
+    'Events' => 'イベント',
+    'Event Start Command' => 'イベント開始コマンド',
+    'Event Start Time' => 'イベント開始時間',
+    'Event Type' => 'イベントタイプ',
+    'Execute' => '実行',
+    'Execute Interval' => '実行間隔',
+    'Exit Fullscreen' => '全画面表示を終了',
+    'Expires' => '期限切れ',
+    'Export' => 'エクスポート',
+    'Extra Large' => '特大',
+    'False' => '偽',
+    'Far' => '遠い',
+    'Feed' => 'フィード',
+    'Ffmpeg' => 'Ffmpeg',
+    'File' => 'ファイル',
+    'Filename' => 'ファイル名',
+    'Files' => 'ファイル',
+    'Filter' => 'フィルター',
+    'FilterDebug' => 'フィルターデバッグ',
+    'FilterEmailServer' => 'フィルターメールサーバー',
+    'Filters' => 'フィルター',
+    'First' => '最初',
+    'FirstEvent' => '最初のイベント',
+    'Fit' => 'フィット',
+    'Fit to width' => '幅に合わせる',
+    'FnMocord' => 'FnMocord',
+    'FnModect' => 'FnModect',
+    'FnMonitor' => 'FnMonitor',
+    'FnNodect' => 'FnNodect',
+    'FnNone' => 'FnNone',
+    'FnRecord' => 'FnRecord',
+    'Focus' => 'フォーカス',
+    'Four field motion adaptive - Hard' => '4フィールド動き適応 - ハード',
+    'Four field motion adaptive - Medium' => '4フィールド動き適応 - ミディアム',
+    'Four field motion adaptive - Soft' => '4フィールド動き適応 - ソフト',
+    'Frame' => 'フレーム',
+    'Frame Id' => 'フレーム ID',
+    'frames' => 'フレーム',
+    'Frames' => 'フレーム',
+    'Frames + Analysis images (if available)' => 'フレーム + 分析画像 (利用可能な場合)',
+    'Frames only' => 'フレームのみ',
+    'Free' => '無料',
+    'Full Colour' => 'フルカラー',
+    'Full Name' => 'フルネーム',
+    'Fullscreen' => '全画面表示',
+    'Function' => '機能',
+    'Gain' => 'ゲイン',
+    'General' => '一般',
+    'Grayscale' => 'グレースケール',
+    'Grey' => 'グレー',
+    'Group' => 'グループ',
+    'Groups' => 'グループ',
+    'Groups Permissions' => 'グループの権限',
+    'Height' => '高さ',
+    'Hidden' => '非表示',
+    'Hide Zones' => 'ゾーンを非表示',
+    'High' => '高',
+    'Home' => 'ホーム',
+    'Home View' => 'ホームビュー',
+    'Hostname' => 'ホスト名',
+    'HostName' => 'ホスト名',
+    'Hour' => '時間',
+    'Id' => 'ID',
+    'Idle' => 'アイドル',
+    'Image' => '画像',
+    'Images' => '画像',
+    'Importance' => '重要性',
+    'Import CSV' => 'CSVをインポート',
+    'Import Monitors FROM CSV' => 'CSVからモニターをインポート',
+    'In' => '内',
+    'In +' => 'ズームイン',
+    'Individual' => '個別',
+    'Info' => '情報',
+    'Inherit' => '継承',
+    'Inside bottom' => '内部下部',
+    'Interface' => 'インターフェース',
+    'Interval' => '間隔',
+    'Inverted' => '反転',
+    'IP Address' => 'IPアドレス',
+    'IPAddress' => 'IPアドレス',
+    'Iris' => 'アイリス',
+    'It is necessary to place monitors again and resave the Layout.' => 'モニターを再配置し、レイアウトを再保存する必要があります。',
+    'Janus Audio Enabled' => 'Janusオーディオ有効',
+    'Janus Enabled' => 'Janus有効',
+    'Janus Live Stream' => 'Janusライブストリーム',
+    'Janus Live Stream Audio' => 'Janusライブストリームオーディオ',
+    'Janus Profile-ID Override' => 'JanusプロフィールIDオーバーライド',
+    'Janus RTSP Session Timeout Override' => 'Janus RTSPセッションタイムアウトオーバーライド',
+    'Janus Use RTSP Restream' => 'Janus RTSP再ストリーム使用',
+    'Keyframes + Ondemand' => 'キーフレーム + オンデマンド',
+    'KeyFrames Only' => 'キーフレームのみ',
+    'Language' => '言語',
+    'Large' => '大',
+    'Last' => '最終',
+    'Last Access' => '最終アクセス',
+    'LastEvent' => '最終イベント',
+    'Latitude' => '緯度',
+    'Layout' => 'レイアウト',
+    'Less important' => '重要度が低い',
+    'Level' => 'レベル',
+    'Libvlc' => 'Libvlc',
+    'Line' => 'ライン',
+    'Linear' => '線形',
+    'List' => 'リスト',
+    'Live' => 'ライブ',
+    'Load' => '読み込み',
+    'Local' => 'ローカル',
+    'Location' => '場所',
+    'Log' => 'ログ',
+    'Logging' => 'ログ記録',
+    'Login' => 'ログイン',
+    'Logout' => 'ログアウト',
+    'Longitude' => '経度',
+    'Low' => '低',
+    'Mac Address' => 'MACアドレス',
+    'MAC Address' => 'MACアドレス',
+    'Main' => 'メイン',
+    'Man' => '人',
+    'Manufacturer' => 'メーカー',
+    'Map' => 'マップ',
+    'Mark' => 'マーク',
+    'Max 1024px' => '最大1024px',
+    'Max 1280px' => '最大1280px',
+    'Max 1600px' => '最大1600px',
+    'Max 480px' => '最大480px',
+    'Max 640px' => '最大640px',
+    'Max 800px' => '最大800px',
+    'MaxGap' => '最大ギャップ',
+    'Medium' => '中',
+    'Memory' => 'メモリ',
+    'Message' => 'メッセージ',
+    'MinGap' => '最小ギャップ',
+    'minute' => '分',
+    'minutes' => '分',
+    'Misc' => 'その他',
+    'MissingFiles' => '欠落ファイル',
+    'MJPEG' => 'MJPEG',
+    'Mode' => 'モード',
+    'Model' => 'モデル',
+    'Monitor is Deleted, Undelete' => 'モニターは削除されました。復元',
+    'Monitor Permissions' => 'モニターの権限',
+    'Monitors' => 'モニター',
+    'Monitor status position' => 'モニターの状態位置',
+    'Montage' => 'モンタージュ',
+    'Montage Review' => 'モンタージュレビュー',
+    'Month' => '月',
+    'Motion Detection' => '動体検知',
+    'Move' => '移動',
+    'MP4' => 'MP4',
+    'MQTT' => 'MQTT',
+    'MQTT Enabled' => 'MQTT有効',
+    'MQTT Subscriptions' => 'MQTTサブスクリプション',
+    'Name' => '名前',
+    'Near' => '近い',
+    'Network' => 'ネットワーク',
+    'Network Scan' => 'ネットワークスキャン',
+    'New' => '新規',
+    'NewStorage' => '新規ストレージ',
+    'New Token' => '新しいトークン',
+    'Next' => '次',
+    'No' => 'いいえ',
+    'No analysis FPS' => '分析FPSなし',
+    'No blending (Alarm lasts forever)' => 'ブレンドなし (アラームは永続します)',
+    'No capture FPS' => 'キャプチャFPSなし',
+    'None' => 'なし',
+    'Normal' => '通常',
+    'Notes' => 'ノート',
+    'Not important' => '重要でない',
+    'Not Running' => '実行中ではない',
+    'Not Showing Analysis' => '分析を表示していません',
+    'NVSocket' => 'NVSocket',
+    'Off' => 'オフ',
+    'Offline' => 'オフライン',
+    'On' => 'オン',
+    'On Demand' => 'オンデマンド',
+    'On Motion' => '動きに応じて',
+    'On Motion / Trigger / etc' => '動き / トリガー / など',
+    'ONVIF_Alarm_Text' => 'ONVIF_アラーム_テキスト',
+    'ONVIF_Event_Listener' => 'ONVIF_イベント_リスナー',
+    'ONVIF_EVENTS_PATH' => 'ONVIF_EVENTS_PATH',
+    'ONVIF_Options' => 'ONVIF_オプション',
+    'ONVIF_URL' => 'ONVIF_URL',
+    'Open' => '開く',
+    'Open full screen' => '全画面表示を開く',
+    'Open watch page' => '視聴ページを開く',
+    'Optimal' => '最適',
+    'Orientation' => '向き',
+    'Other' => 'その他',
+    'Out' => '外',
+    'Out -' => 'ズームアウト',
+    'OutputCodec' => '出力コーデック',
+    'OutputContainer' => '出力コンテナ',
+    'Outside bottom' => '外部下部',
+    'Pan' => '水平移動',
+    'Password' => 'パスワード',
+    'Path' => 'パス',
+    'Pause' => '一時停止',
+    'Permission' => '権限',
+    'Phone' => '電話',
+    'Play' => '再生',
+    'Plugin' => 'プラグイン',
+    'Point' => 'ポイント',
+    'Port' => 'ポート',
+    'Prealarm' => 'プレアラーム',
+    'Preset' => 'プリセット',
+    'Presets' => 'プリセット',
+    'Prev' => '前',
+    'Primary' => '主要',
+    'Privacy' => 'プライバシー',
+    'Progress' => '進行状況',
+    'Protocol' => 'プロトコル',
+    'PTZ Not available' => 'PTZ利用不可',
+    'Rate' => 'レート',
+    'Ratio' => '比率',
+    'Reboot' => '再起動',
+    'Recording' => '録画',
+    'RecordingSource' => '録画ソース',
+    'Reference' => '参照',
+    'Refresh' => '更新',
+    'Remote' => 'リモート',
+    'Rename' => '名前変更',
+    'Replay' => '再生',
+    'Report Event Audit' => 'イベント監査レポート',
+    'Reports' => 'レポート',
+    'Reset' => 'リセット',
+    'Resolution' => '解像度',
+    'Restart' => '再起動',
+    'Revoke Token' => 'トークンを取り消す',
+    'Rewind' => '巻き戻し',
+    'RTSP2Web Enabled' => 'RTSP2Web有効',
+    'RTSP2Web Live Stream' => 'RTSP2Webライブストリーム',
+    'RTSP2Web Type' => 'RTSP2Webタイプ',
+    'RTSPServer' => 'RTSPサーバー',
+    'RTSPStreamName' => 'RTSPストリーム名',
+    'Running' => '実行中',
+    'Run State' => '実行状態',
+    's3fs' => 's3fs',
+    'Save' => '保存',
+    'Scale' => 'スケール',
+    'Scan Network' => 'ネットワークスキャン',
+    'Score' => 'スコア',
+    'Secondary' => '副',
+    'seconds' => '秒',
+    'select' => '選択',
+    'Select' => '選択',
+    'Server' => 'サーバー',
+    'Servers' => 'サーバー',
+    'Service' => 'サービス',
+    'Set' => '設定',
+    'Settings' => '設定',
+    'Shallow' => '浅い',
+    'Showing Analysis' => '分析を表示',
+    'Show on hover' => 'ホバー時に表示',
+    'Show Zones' => 'ゾーンを表示',
+    'Shutdown' => 'シャットダウン',
+    'Size' => 'サイズ',
+    'Skin' => 'スキン',
+    'Skip Locked' => 'ロックされたものをスキップ',
+    'Sleep' => 'スリープ',
+    'Small' => '小',
+    'Snapshot' => 'スナップショット',
+    'Snapshots' => 'スナップショット',
+    'SOAP WSA COMPLIANCE' => 'SOAP WSA準拠',
+    'Sort' => 'ソート',
+    'Source' => 'ソース',
+    'SourceSecondPath' => 'ソースセカンドパス',
+    'Speed' => '速度',
+    'Start' => '開始',
+    'Start Date/Time' => '開始日時',
+    'Starting' => '開始中',
+    'Startup Delay' => '起動遅延',
+    'State' => '状態',
+    'Stats' => '統計',
+    'Status' => 'ステータス',
+    'Stills' => '静止画',
+    'Stop' => '停止',
+    'Stopped' => '停止',
+    'Storage' => 'ストレージ',
+    'Stream' => 'ストリーム',
+    'Stream quality' => 'ストリーム品質',
+    'Summary' => '概要',
+    'Swap' => 'スワップ',
+    'System' => 'システム',
+    'System Default' => 'システムデフォルト',
+    'Tags' => 'タグ',
+    'Tele' => 'テレ',
+    'Telemetry' => 'テレメトリー',
+    'This Layout was saved in previous version of ZoneMinder!' => 'このレイアウトは以前のバージョンのZoneMinderで保存されました！',
+    'Thumbnail' => 'サムネイル',
+    'Tilt' => '傾斜',
+    'Time' => '時間',
+    'Timeline' => 'タイムライン',
+    'Timestamp' => '時刻',
+    'to' => 'から',
+    'Toggle cycle sidebar' => 'サイドバーの切り替え',
+    'Toggle PTZ Controls' => 'PTZコントロールの切り替え',
+    'Toggle Streaming/Stills' => 'ストリーミング/静止画の切り替え',
+    'Total' => '合計',
+    'Transform' => '変換',
+    'Triggers' => 'トリガー',
+    'True' => '真',
+    'Type' => 'タイプ',
+    'Unarchive' => 'アーカイブ解除',
+    'Unarchived' => 'アーカイブ解除済み',
+    'Units' => '単位',
+    'Unknown' => '不明',
+    'Unlimited' => '無制限',
+    'Unspecified' => '未指定',
+    'Update' => '更新',
+    'Updated' => '更新済み',
+    'Upload' => 'アップロード',
+    'Url' => 'URL',
+    'URL' => 'URL',
+    'use_Amcrest_API' => 'use_Amcrest_API',
+    'Use old ZoomPan' => '古いZoomPanを使用',
+    'User' => 'ユーザー',
+    'User for RTSP Server Auth' => 'RTSPサーバー認証用ユーザー',
+    'Username' => 'ユーザー名',
+    'Users' => 'ユーザー',
+    'Use Wallclock Timestamps' => 'ウォールクロック時刻を使用',
+    'Versions' => 'バージョン',
+    'Video' => 'ビデオ',
+    'Video paused. Continue watching?' => 'ビデオが一時停止しました。続けて視聴しますか？',
+    'View' => 'ビュー',
+    'Viewing' => '視聴中',
+    'Viewing FPS' => '視聴FPS',
+    'VNC' => 'VNC',
+    'Wake' => '起動',
+    'Warn if exceeded' => '超過時に警告',
+    'Web' => 'ウェブ',
+    'Week' => '週',
+    'When' => 'いつ',
+    'White' => '白',
+    'Wide' => 'ワイド',
+    'Width' => '幅',
+    'X' => 'X',
+    'X10' => 'X10',
+    'Y' => 'Y',
+    'Y-Channel (Greyscale)' => 'Yチャネル (グレースケール)',
+    'Yes' => 'はい',
+    'You are not logged in.' => 'ログインしていません。',
+    'ZeroSize' => 'ゼロサイズ',
+    'Zone' => 'ゾーン',
+    'Zones' => 'ゾーン',
+    'Zoom' => 'ズーム',
+    'Zoom IN' => 'ズームイン',
+    'Zoom OUT' => 'ズームアウト',
+    'text or regular expression' => '文字列または正規表現を入力',
+    'leave blank for auto' => '空白の場合は自動採番',
+    'Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text.' => 'Pythonのstrftimeフォーマット。fは100分の1、%Nはモニター名、%Qはテキスト表示',
+    'Camera IP Address' => 'カメラのIPアドレス',
+    'Camera Username' => 'カメラのユーザ名',
+    'Camera Password' => 'カメラのパスワード',
+    'Enter new name for layout if desired' => 'レイアウト名を入力',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
 $CLANG = array(
-    'CurrentLogin'         => 'ただ今\'%1$s\がﾛｸﾞｲﾝしています',
-    'EventCount'           => '%1$s %2$s',
-    'LastEvents'           => '最終 %1$s %2$s',
-    'LatestRelease'        => '最新ﾊﾞｰｼﾞｮﾝは v%1$s、ご利用ﾊﾞｰｼﾞｮﾝはv%2$s.',
-    'MonitorCount'         => '%1$s %2$s',
-    'MonitorFunction'      => 'ﾓﾆﾀｰ%1$s 機能',
-    'RunningRecentVer'     => 'あなたはZoneMinderの最新ﾊﾞｰｼﾞｮﾝ v%s.を使っています',
-    'VersionMismatch'      => 'Version mismatch, system is version %1$s, database is %2$s.', // Added - 2011-05-25
+    'CurrentLogin'          => '現在のログインは \'%1$s\' です',
+    'EventCount'            => '%1$s %2$s', // 例えば '37 イベント' (下記の Vlang から)
+    'LastEvents'            => '直近 %1$s %2$s', // 例えば '直近 37 イベント' (下記の Vlang から)
+    'LatestRelease'         => '最新のリリースは v%1$s です。あなたは v%2$s を使用しています。',
+    'MonitorCount'          => '%1$s %2$s', // 例えば '4 モニター' (下記の Vlang から)
+    'MonitorFunction'       => 'モニター %1$s 機能',
+    'RunningRecentVer'      => 'あなたは最新バージョンの ZoneMinder (v%s) を実行しています。',
+    'VersionMismatch'       => 'バージョンの不一致。システムのバージョンは %1$s で、データベースのバージョンは %2$s です。',
 );
 
-// The next section allows you to describe a series of word ending and counts used to 
+// The next section allows you to describe a series of word ending and counts used to
+// generate the correctly conjugated forms of words depending on a count that is associated
+// with that word.
+// This intended to allow phrases such a '0 potatoes', '1 potato', '2 potatoes' etc to
+// conjugate correctly with the associated count.
+// In some languages such as English this is fairly simple and can be expressed by assigning
+// a count with a singular or plural form of a word and then finding the nearest (lower) value.
 // generate the correctly conjugated forms of words depending on a count that is associated
 // with that word.
 // This intended to allow phrases such a '0 potatoes', '1 potato', '2 potatoes' etc to
@@ -844,7 +1232,7 @@ $CLANG = array(
 //
 // So an example in Russian might be (using English words, and made up endings as I
 // don't know any Russian!!)
-// $zmVlangPotato = array( 1=>'Potati', 2=>'Potaton', 3=>'Potaten' );
+// 'Potato' => array( 1=>'Potati', 2=>'Potaton', 3=>'Potaten' ),
 //
 // and the zmVlang function decides that the first form is used for counts ending in
 // 0, 5-9 or 11-19 and the second form when ending in 1 etc.
@@ -852,35 +1240,31 @@ $CLANG = array(
 
 // Variable arrays expressing plurality, see the zmVlang description above
 $VLANG = array(
-    'Event'                => array( 0=>'ｲﾍﾞﾝﾄ', 1=>'ｲﾍﾞﾝﾄ', 2=>'ｲﾍﾞﾝﾄ' ),
-    'Monitor'              => array( 0=>'ﾓﾆﾀｰ', 1=>'ﾓﾆﾀｰ', 2=>'ﾓﾆﾀｰ' ),
+    'Event'                 => array( 0=>'イベント', 1=>'イベント', 2=>'イベント' ),
+    'Monitor'               => array( 0=>'モニター', 1=>'モニター', 2=>'モニター' ),
 );
-
 // You will need to choose or write a function that can correlate the plurality string arrays
 // with variable counts. This is used to conjugate the Vlang arrays above with a number passed
 // in to generate the correct noun form.
 //
-// In languages such as English this is fairly simple 
+// In languages such as English this is fairly simple
 // Note this still has to be used with printf etc to get the right formatting
-function zmVlang( $langVarArray, $count )
-{
-    krsort( $langVarArray );
-    foreach ( $langVarArray as $key=>$value )
-    {
-        if ( abs($count) >= $key )
-        {
-            return( $value );
-        }
+function zmVlang($langVarArray, $count) {
+  krsort($langVarArray);
+  foreach ($langVarArray as $key=>$value) {
+    if (abs($count) >= $key) {
+      return $value;
     }
-    die( 'Error, unable to correlate variable language string' );
+  }
+  ZM\Error('Unable to correlate variable language string');
 }
 
 // This is an version that could be used in the Russian example above
 // The rules are that the first word form is used if the count ends in
 // 0, 5-9 or 11-19. The second form is used then the count ends in 1
-// (not including 11 as above) and the third form is used when the 
+// (not including 11 as above) and the third form is used when the
 // count ends in 2-4, again excluding any values ending in 12-14.
-// 
+//
 // function zmVlang( $langVarArray, $count )
 // {
 //  $secondlastdigit = substr( $count, -2, 1 );
@@ -888,7 +1272,7 @@ function zmVlang( $langVarArray, $count )
 //  // or
 //  // $secondlastdigit = ($count/10)%10;
 //  // $lastdigit = $count%10;
-// 
+//
 //  // Get rid of the special cases first, the teens
 //  if ( $secondlastdigit == 1 && $lastdigit != 0 )
 //  {
@@ -897,6 +1281,21 @@ function zmVlang( $langVarArray, $count )
 //  switch ( $lastdigit )
 //  {
 //      case 0 :
+//      case 5 :
+//      case 6 :
+//      case 7 :
+//      case 8 :
+//      case 9 :
+//      {
+//          return( $langVarArray[1] );
+//          break;
+//      }
+//      case 1 :
+//      {
+//          return( $langVarArray[2] );
+//          break;
+//      }
+//      case 2 :
 //      case 5 :
 //      case 6 :
 //      case 7 :
@@ -922,30 +1321,178 @@ function zmVlang( $langVarArray, $count )
 //  die( 'Error, unable to correlate variable language string' );
 // }
 
-// This is an example of how the function is used in the code which you can uncomment and 
+// This is an example of how the function is used in the code which you can uncomment and
 // use to test your custom function.
 //$monitors = array();
 //$monitors[] = 1; // Choose any number
-//echo sprintf( $zmClangMonitorCount, count($monitors), zmVlang( $zmVlangMonitor, count($monitors) ) );
+//echo sprintf( $CLANG['MonitorCount'], count($monitors), zmVlang( $VLANG['VlangMonitor'], count($monitors) ) );
 
 // In this section you can override the default prompt and help texts for the options area
 // These overrides are in the form show below where the array key represents the option name minus the initial ZM_
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
-	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
-		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
-	),
-
+    'OPTIONS_FFMPEG' => array(
+        'Help' => '
+      このフィールドに入力されたパラメータはFFmpegに渡されます。複数のパラメータは , で区切ることができます。~~
+      例 (引用符は入力しないでください)~~~~
+      "allowed_media_types=video" カメラから要求するデータ型を設定します (audio, video, data)~~~~
+      "reorder_queue_size=nnn" 再順序付けされたパケットの処理のためにバッファするパケットの数を設定します
+    '
+    ),
+    'OPTIONS_ENCODER_PARAMETERS' => array(
+        'Help' => '
+    エンコーディングコーデックに渡すパラメータ。name=value は , または改行で区切ります。~~
+    例えば、品質を変更するには crf オプションを使用します。1 は最高、51 は最悪、23 がデフォルトです。~~
+~~
+    crf=23~~
+    ~~
+    movflags の値を変更して、異なる動作をサポートすることもできます。frag_keyframe オプションにより、映像の再生に問題がある場合がありますが、このオプションは不完全なイベントの再生を可能にするはずです。詳細については
+    [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
+    を参照してください。ZoneMinder のデフォルトは frag_keyframe,empty_moov~~
+    ',
+    ),
+    'OPTIONS_DECODERHWACCELNAME' => array(
+        'Help' => '
+    これは ffmpeg -hwaccel コマンドラインオプションと同等です。intel グラフィックスのサポートがある場合は "vaapi" を使用します。NVIDIA cuda サポートが必要な場合は "cuda" を使用します。サポートを確認するには、コマンドラインで ffmpeg -hwaccels を実行してください。'
+    ),
+    'OPTIONS_DECODERHWACCELDEVICE' => array(
+        'Help' => '
+    これは ffmpeg -hwaccel_device コマンドラインオプションと同等です。複数の GPU がある場合のみ指定する必要があります。Intel VAAPI の場合の典型的な値は /dev/dri/renderD128 です。'
+    ),
+    'OPTIONS_RTSPTrans' => array(
+        'Help' => '
+        これは FFmpeg の RTSP トランスポートプロトコルを設定します。~~
+        TCP - TCP (RTSP 制御チャネル内のインタリーブ) をトランスポートプロトコルとして使用します。~~
+        UDP - UDP をトランスポートプロトコルとして使用します。高解像度カメラでは UDP を使用すると「ぼやけ」が発生することがあります。その場合は TCP を試してください。~~
+        UDP Multicast - UDP マルチキャストをトランスポートプロトコルとして使用します~~
+        HTTP - HTTP トンネリングをトランスポートプロトコルとして使用します。これはプロキシを通すのに便利です。~~
+      '
+    ),
+    'OPTIONS_LIBVLC' => array(
+        'Help' => '
+      このフィールドに入力されたパラメータは libVLC に渡されます。複数のパラメータは , で区切ることができます。~~
+      例 (引用符は入力しないでください)~~~~
+      "--rtp-client-port=nnn" rtp データ用のローカルポートを設定します~~~~
+      "--verbose=2" libVLC の詳細レベルを設定します
+      '
+    ),
+    'OPTIONS_EXIF' => array(
+        'Help' => 'このオプションを有効にすると、各 JPEG フレームに EXIF データを埋め込むことができます。'
+    ),
+    'OPTIONS_RTSPDESCRIBE' => array(
+        'Help' => '
+      初期 RTSP ハンドシェイク中に、カメラが更新されたメディア URL を送信することがあります。
+      このオプションを有効にすると、ZoneMinder がこの URL を使用するようになります。このオプションを無効にすると、カメラからの値を無視し、モニター設定で入力された値を使用します~~~~
+      一般的にはこれを有効にするべきです。ただし、カメラがファイアウォールを通してストリーミングしている場合など、カメラが自分の URL を間違えることがあります。
+    '
+    ),
+    'OPTIONS_MAXFPS' => array(
+        'Help' => '
+      このフィールドには非ローカルデバイスで使用する際の制限があります。~~
+      これらの制限に従わないと、ライブビデオの遅延、不規則なフレームスキップ、イベントの欠落が発生します~~
+      ストリーミング IP カメラのために、このフィールドを使用してフレームレートを減少させるべきではありません。代わりにカメラでフレームレートを設定してください。過去にはカメラのフレームレートよりも高い値を設定することが推奨されていましたが、現在は必要ありませんし、良い考えでもありません。
+      一部の古い IP カメラはスナップショットモードをサポートしています。この場合、ZoneMinder はカメラから新しい画像を積極的にポーリングします。この場合、このフィールドを使用するのは安全です。
+      '
+    ),
+    'OPTIONS_ALARMMAXFPS' => array(
+        'Help' => '
+    このフィールドには非ローカルデバイスで使用する際の制限があります。~~
+    これらの制限に従わないと、ライブビデオの遅延、不規則なフレームスキップ、イベントの欠落が発生します~
+    この設定は、最大 FPS 値をこの状況で上書きすることを許可します。最大 FPS 設定と同様に、空白のままにすると制限がありません。
+    '
+    ),
+    'OPTIONS_LINKED_MONITORS' => array(
+        'Help' => '
+      このフィールドでは、システム上の他のモニターを選択して、このモニターのトリガーとして使用することができます。例えば、プロパティのある側をカバーするカメラがある場合、そのカメラが動きを検出するとすべてのカメラが録画するように強制できます。リンクされたモニターを選択するには「選択」をクリックしてください。
+      この機能で循環依存関係を作成しないように注意してください。無限に持続するアラームが発生することは、ほぼ間違いなく望んでいることではありません！ モニターのリンクを解除するには、ctrlクリックを使用できます。
+      '
+    ),
+    'OPTIONS_CAPTURING' => array(
+        'Help' => 'キャプチャを行うタイミング:~~~~
+なし: プロセスを実行せず、キャプチャも行いません。古い機能 == なし と同等です。~~~~
+オンデマンド: zmc プロセスが実行されますが、ビューア (ライブビュー、サムネイル、または RTSP サーバー接続) がカメラに接続するまで待機します。~~~~
+常に: zmc プロセスが実行され、直ちに接続し、接続を維持します。~~~~
+',
+    ),
+    'OPTIONS_RTSPSERVER' => array(
+        'Help' => '
+     ZM は独自の RTSP サーバーを提供し、RTSP を再ストリーミングするか、モニターストリームを RTSP に変換しようとします。これは、ZM ホストマシンのリソースを使用して、単一のカメラから複数のクライアントが引き出す代わりに使用したい場合に便利です。~~~~
+     注意:~~
+     オプション > ネットワーク > MIN_RTSP_PORT は構成可能です。
+     ',
+    ),
+    'OPTIONS_RTSPSTREAMNAME' => array(
+        'Help' => '
+     RTSPServer が有効な場合、これがアクセス可能なエンドポイントになります。
+     例えば、モニター ID が 6、MIN_RTSP_PORT が 20000 で、RTSPServerName が "my_camera" に設定されている場合、rtsp://ZM_HOST:20006/my_camera でストリームにアクセスします。
+     ',
+    ),
+    'FUNCTION_ANALYSIS_ENABLED' => array(
+        'Help' => '
+      キャプチャされたビデオで動作検出を実行するタイミング。
+      この設定はプロセスが起動するときのデフォルト状態を設定します。
+      その後、外部トリガー zmtrigger zmu または Web UI を通じてオン/オフを切り替えることができます。
+      有効でない場合、動作検出やリンクされたモニターのチェックは実行されず、イベントも作成されません。
+      '
+    ),
+    'FUNCTION_DECODING' => array(
+        'Help' => '
+      動作検出を実行せず、H264Passthrough を使用して JPEG を保存しない場合、H264/H265 パケットをデコードしない選択肢があります。これにより CPU 使用率が大幅に削減されます。~~~~
+常に: 各フレームがデコードされ、ライブビューとサムネイルが利用可能になります。~~~~
+オンデマンド: 誰かが視聴しているときだけデコードします。~~~~
+キーフレーム: キーフレームのみがデコードされるため、視聴フレームレートはカメラで設定されたキーフレーム間隔に応じて非常に低くなります。~~~~
+なし: フレームはデコードされず、ライブビューとサムネイルは利用できません~~~~
+'
+    ),
+    'FUNCTION_RTSP2WEB_ENABLED' => array(
+        'Help' => '
+      h264/h265 のライブビューのために RTSP2Web ストリーミングサーバーを使用しようとします。実験的ですが、かなり良いパフォーマンスを提供します。'
+    ),
+    'FUNCTION_RTSP2WEB_TYPE' => array(
+        'Help' => '
+      RTSP2Web は MSE (Media Source Extensions)、HLS (HTTP Live Streaming)、および WebRTC をサポートしています。
+      それぞれに利点があり、WebRTC は最もパフォーマンスが良い可能性がありますが、コーデックに対して最も厳しい要求があります。'
+    ),
+    'FUNCTION_JANUS_ENABLED' => array(
+        'Help' => '
+      h264/h265 のライブビューのために Janus ストリーミングサーバーを使用しようとします。実験的ですが、かなり良いパフォーマンスを提供します。'
+    ),
+    'FUNCTION_JANUS_AUDIO_ENABLED' => array(
+        'Help' => '
+      Janus ストリームでオーディオを有効にしようとします。オーディオサポートがないカメラには効果がありませんが、カメラがブラウザでサポートされていないオーディオ形式を送信する場合、ストリームの再生を妨げる可能性があります。'
+    ),
+    'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
+        'Help' => '
+      プロファイル ID を手動で設定し、ブラウザに指定されたストリームを再生させることができます。普遍的にサポートされる値として "42e01f" を試すか、空白のままにしてソースによって指定されたプロファイル ID を使用します。'
+    ),
+    'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+        'Help' => '
+      他のオプションで Janus が機能しない場合は、ZoneMinder の RTSP リストリームを Janus のソースとして使用するためにこのオプションを有効にします。'
+    ),
+    'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
+        'Help' => '
+    RTSP セッションのタイムアウト期間を秒単位で上書きまたは設定します。Janus ログで 401 Unauthorized レスポンスが多く表示される場合に便利です。0 に設定すると、ソースから送信されたタイムアウトを使用します。'
+    ),
+    'ImageBufferCount' => array(
+        'Help' => '
+    /dev/shm に利用可能な生画像の数。現在は 3-5 の範囲に設定するべきです。ライブビューに使用されます。'
+    ),
+    'MaxImageBufferCount' => array(
+        'Help' => '
+    パケットキュー内に保持されるビデオパケットの最大数。
+    パケットキューは通常自動的に管理し、Pre Event Count フレームまたはパススルーモードを使用している場合は最後のキーフレームからすべてを保持します。モニターが RAM を大量に消費しないように最大値を設定できますが、キーフレーム間隔がこの値より大きいとイベントがすべてのフレームを持っていない可能性があります。
+    これについてログにエラーが表示されますので、キーフレーム間隔が低いか、十分な RAM があることを確認してください。
+  '
+    ),
+// Help for soap_wsa issue with chinesse cameras
+    'OPTIONS_SOAP_wsa' => array(
+        'Help' => '
+    もしエラーが発生したら無効にしてください
+    ~~~~ Renew Error 12 ActionNotSupported <env:Text>The device do not support this feature</env:Text> ~~~~
+    ONVIFを有効にする/使用しようとするときに動作させるのに役立つかもしれません... 
+    ONVIFを完全に実装していない一部の中国製カメラで動作することが確認されています。
+    '
+    ),
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"

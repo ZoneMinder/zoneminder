@@ -59,6 +59,10 @@ bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
 }
 
 void RtpDataThread::Run() {
+  if (mRtpSource.getLocalDataPort()<=1024) {
+    Debug(2, "Not starting data thread");
+    return;
+  }
   Debug(2, "Starting data thread %d on port %d",
         mRtpSource.getSsrc(), mRtpSource.getLocalDataPort());
 
@@ -66,12 +70,13 @@ void RtpDataThread::Run() {
   zm::UdpInetServer rtpDataSocket;
   if ( mRtpSource.getLocalHost() != "" ) {
     if ( !rtpDataSocket.bind(mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort()) )
-      Fatal("Failed to bind RTP server");
+      Fatal("Failed to bind RTP server at %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort());
   } else {
     if ( !rtpDataSocket.bind(
            mRtspThread.getAddressFamily() == AF_INET6 ? "::" : "0.0.0.0",
            mRtpSource.getLocalDataPort() ) )
-      Fatal("Failed to bind RTP server");
+      Fatal("Failed to bind RTP server at %s:%d",
+          (mRtspThread.getAddressFamily() == AF_INET6 ? "::" : "0.0.0.0"), mRtpSource.getLocalDataPort());
   }
   Debug(3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort());
 

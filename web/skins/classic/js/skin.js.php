@@ -39,7 +39,7 @@ const cancelString = '<?php echo translate('Cancel') ?>';
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
    try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
-const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
+const thisUrl = '<?php echo preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 const skinPath = '<?php echo ZM_SKIN_PATH ?>';
 const serverId = <?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '0' ?>;
 const Servers = [];
@@ -107,7 +107,9 @@ const STATE_IDLE = <?php echo STATE_IDLE ?>;
 const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
 const STATE_ALARM = <?php echo STATE_ALARM ?>;
 const STATE_ALERT = <?php echo STATE_ALERT ?>;
-const STATE_TAPE = <?php echo STATE_TAPE ?>;
+
+const ANALYSING_NONE = <?php echo ANALYSING_NONE ?>;
+const ANALYSING_ALWAYS = <?php echo ANALYSING_ALWAYS ?>;
 
 const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
 const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
@@ -138,7 +140,6 @@ stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
 stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
 stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 <?php
 global $user;

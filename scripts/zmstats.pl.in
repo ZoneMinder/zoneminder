@@ -79,8 +79,8 @@ while (!$zm_terminate) {
     Debug("Deleted $rows Server Stats table entries by time");
   }
 
-  # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db
-  zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN (SELECT Id FROM Monitors WHERE Capturing=\'None\')');
+  # Clear out statuses for Monitors that aren't updating themselves.
+  zmDbDo('DELETE FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))');
 
   zmDbDo('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
   zmDbDo('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');

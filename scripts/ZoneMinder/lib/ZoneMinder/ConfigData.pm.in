@@ -287,7 +287,7 @@ our @options = (
       limited by their defined permissions.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_TYPE',
@@ -311,7 +311,7 @@ our @options = (
       pattern     => qr|^([br])|i,
       format      => q( $1 =~ /^b/ ? 'builtin' : 'remote' )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
@@ -323,7 +323,7 @@ our @options = (
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_RELAY',
@@ -348,7 +348,7 @@ our @options = (
       pattern     => qr|^([hpn])|i,
       format      => q( ($1 =~ /^h/) ? 'hashed' : ($1 =~ /^p/ ? 'plain' : 'none' ) )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_SECRET',
@@ -367,7 +367,7 @@ our @options = (
     ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
@@ -390,7 +390,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_TTL',
@@ -405,7 +405,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{integer},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
@@ -431,7 +431,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_RTSP2WEB_PATH',
@@ -497,7 +497,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'api',
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
@@ -508,7 +508,7 @@ our @options = (
       Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
@@ -545,7 +545,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_AUTH', value=>'yes'}
                    ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SITEKEY',
@@ -560,7 +560,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SECRETKEY',
@@ -576,7 +576,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        =>  'ZM_OPT_USE_GEOLOCATION',
@@ -1693,22 +1693,6 @@ our @options = (
       overhead as it will call du on the event directory.  In practice
       this overhead is fairly small but may be noticeable on IO-constrained
       systems.
-      `,
-    type        => $types{boolean},
-    category    => 'web',
-  },
-  {
-    name        => 'ZM_WEB_RESIZE_CONSOLE',
-    default     => 'yes',
-    description => 'Should the console window resize itself to fit',
-    help        => q`
-      Traditionally the main ZoneMinder web console window has
-      resized itself to shrink to a size small enough to list only
-      the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyone's
-      tastes, especially if opened in a tab in browsers which support
-      this kind if layout. Switch this option off to have the console
-      window size left to the users preference
       `,
     type        => $types{boolean},
     category    => 'web',

@@ -43,6 +43,7 @@
   border-radius: 0;
   z-index: 11;
   font-size: 8px;
+  overflow:hidden;
 }
 
 #alarmCues span.alarmCue {
@@ -135,6 +136,7 @@ height: 100%;
 }
 
 #monitorStatus #monitorState {
+  display: inline;
 }
 
 #dvrControls {
@@ -353,4 +355,13 @@ svg.zones {
 #frames img {
   float: left;
   z-index: 1000;
+}
+
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
+  display: none;
+}
+
+/*Video.js override*/
+.vjs-tech {
+  pointer-events: auto;
 }

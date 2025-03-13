@@ -19,6 +19,11 @@
 // 
 
 function xhtmlHeaders($file, $title) {
+  xhtmlHeadersStart($file, $title);
+  xhtmlHeadersEnd();
+}
+
+function xhtmlHeadersStart($file, $title) {
   ob_start();
 
   global $css;
@@ -34,54 +39,6 @@ function xhtmlHeaders($file, $title) {
 
   $basename = basename($file, '.php');
 
-  function output_link_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( getSkinFile($file) ) {
-        if ( $cache_bust ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
-        } else  {
-        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  function output_script_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( file_exists('skins/'.$skin.'/'.$file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
-        } else {
-          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
-        }
-      } else if ( file_exists($file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust($file).'"></script>';
-        } else {
-          $html[] = '<script src="'.$file.'"></script>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  
-  function output_cache_busted_stylesheet_links($files) {
-    $html = array();
-    foreach ( $files as $file ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
-    }
-    if ( ! count($html) ) {
-      ZM\Warning("No files found for $files");
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,7 +48,12 @@ function xhtmlHeaders($file, $title) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX) . ' - ' . validHtmlStr($title) ?></title>
 <?php
-if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
+if (defined('ZM_WEB_FAVICON')) {
+  echo '
+  <link rel="icon" type="image/ico" href="'.ZM_WEB_FAVICON.'"/>
+  <link rel="shortcut icon" href="'.ZM_WEB_FAVICON.'"/>
+';
+} else if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   echo "
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
@@ -111,8 +73,8 @@ echo output_cache_busted_stylesheet_links(array(
 echo output_link_if_exists(array(
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
 
 if ( $basename == 'montage' ) {
@@ -124,6 +86,10 @@ if ( $basename == 'montage' ) {
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
 echo output_link_if_exists(array(
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+  'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
+  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
 ), true);
@@ -134,8 +100,7 @@ if ( $css != 'base' )
     'css/'.$css.'/views/'.$basename.'.css',
     'css/'.$css.'/jquery-ui-theme.css',
   ));
-?>
-<?php
+
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
@@ -155,10 +120,12 @@ if ( $css != 'base' )
   if ($viewCssPhpFile) require_once($viewCssPhpFile);
 ?>
   </style>
-
-</head>
 <?php
   echo ob_get_clean();
+} // end function xhtmlHeadersStart( $file, $title )
+
+function xhtmlHeadersEnd() {
+  echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
@@ -198,6 +165,56 @@ function getNavBarHTML() {
   }
 
   return ob_get_clean();
+}
+
+function output_link_if_exists($files, $cache_bust=true) {
+  global $skin;
+  $html = array();
+  foreach ( $files as $file ) {
+    if ( getSkinFile($file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+      } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_script_if_exists($files, $cache_bust=true) {
+  global $skin;
+  $html = array();
+  foreach ( $files as $file ) {
+    if ( file_exists('skins/'.$skin.'/'.$file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+      } else {
+        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+      }
+    } else if ( file_exists($file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust($file).'"></script>';
+      } else {
+        $html[] = '<script src="'.$file.'"></script>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_cache_busted_stylesheet_links($files) {
+  $html = array();
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+  }
+  if ( ! count($html) ) {
+    ZM\Warning("No files found for $files");
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
 }
 
 //
@@ -413,9 +430,11 @@ function getSysLoadHTML() {
   if ( !canView('System') ) return $result;
   global $thisServer;
   if ($thisServer) {
-    $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
-    $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
+    $thisServer->ReadStats();
+
+    $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
+    $result .= '<i class="material-icons md-18" style="display: inline-block;">trending_up</i>';
+    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
     $result .= '</li>'.PHP_EOL;
   } 
   return $result;
@@ -431,7 +450,7 @@ function getDbConHTML() {
   $class = ( $percent_used > 90 ) ? ' text-warning' : '';
 
   $result .= '<li id="getDbConHTML" class="nav-item dropdown mx-2' .$class. '">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
+  $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
   
@@ -479,7 +498,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1" style="display: inline-block;">folder_shared</i>Storage</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  
@@ -575,7 +594,7 @@ function getBandwidthHTML($bandwidth_options, $user) {
   $result = '';
   if (count($bandwidth_options) > 1) {
     $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1" style="display: inline-block;">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
@@ -697,7 +716,7 @@ function getLogIconHTML() {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogIconHTML" class="nav-item">'.
-        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
+        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18" style="display: inline-block;">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
   }
@@ -842,7 +861,7 @@ function getHeaderFlipHTML() {
   $result = '';
   
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18" style="display: inline-block;">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -872,7 +891,7 @@ function getStatusBtnHTML($status) {
 
     if (ZM_SYSTEM_SHUTDOWN) {
       $result .= '<li class="shutdown">'.PHP_EOL;
-      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18" style="display: inline-block;">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 
 
@@ -988,21 +1007,23 @@ function xhtmlFooter() {
   if ( $basename == 'montage' ) {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-  }
-  if ( $basename == 'watch' ) {
+    echo output_script_if_exists(array('js/panzoom.js'));
+  } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   }
 
   echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
-  'js/bootstrap-table-1.22.3/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.22.3/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
+  'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.23.5/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.23.5/extensions/cookie/bootstrap-table-cookie.js',
+  'js/bootstrap-table-1.23.5/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

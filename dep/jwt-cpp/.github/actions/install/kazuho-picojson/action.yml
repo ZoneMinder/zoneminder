@@ -1,0 +1,17 @@
+name: Install PicoJSON
+description: Install PicoJSON for building test application
+inputs:
+  version:
+    description: The desired PicoJSON version to install
+    required: false
+    default: "v1.3.0"
+runs:
+  using: composite
+  steps:
+    - run: |
+        cd /tmp
+        wget https://github.com/kazuho/picojson/archive/${{ inputs.version }}.tar.gz
+        tar -zxf /tmp/${{ inputs.version }}.tar.gz
+        cd picojson-${{ inputs.version }}
+        sudo cp -v picojson.h /usr/local/include/picojson
+      shell: bash

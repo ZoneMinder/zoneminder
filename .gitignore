@@ -199,10 +199,6 @@ web/cmake_install.cmake
 web/events/
 web/images/
 web/includes/config.php
-web/tools/mootools/CMakeFiles/
-web/tools/mootools/cmake_install.cmake
-web/tools/mootools/mootools-core.js
-web/tools/mootools/mootools-more.js
 web/undef.log
 zm.conf
 zmconfgen.pl

@@ -25,6 +25,7 @@
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
 #include "zm_monitorlink_expression.h"
+#include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
@@ -34,7 +35,6 @@
 #include "zm_utils.h"
 #include "zm_uri.h"
 #include "zm_zone.h"
-
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
@@ -94,7 +94,7 @@ std::string load_monitor_sql =
   "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
   "`OutputCodec`, `Encoder`, `OutputContainer`, "
-  "`RecordAudio`, "
+  "`RecordAudio`, WallClockTimestamps,"
   "`Brightness`, `Contrast`, `Hue`, `Colour`, "
   "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
   "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
@@ -223,6 +223,7 @@ Monitor::Monitor() :
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
   record_audio(false),
+  wallclock_timestamps(false),
 //event_prefix
 //label_format
   label_coord(Vector2(0,0)),
@@ -265,7 +266,7 @@ Monitor::Monitor() :
   purpose(QUERY),
   last_camera_bytes(0),
   event_count(0),
-  image_count(0),
+  //image_count(0),
   last_capture_image_count(0),
   analysis_image_count(0),
   decoding_image_count(0),
@@ -315,15 +316,11 @@ Monitor::Monitor() :
   //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
-  Poll_Trigger_State(false),
-  Event_Poller_Healthy(false),
   Event_Poller_Closes_Event(false),
   RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
-#ifdef WITH_GSOAP
-  soap(nullptr),
-#endif
+  onvif(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -355,7 +352,7 @@ Monitor::Monitor() :
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
    "SaveJPEGs, VideoWriter, EncoderParameters,
-   "OutputCodec, Encoder, OutputContainer, RecordAudio, "
+   "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
@@ -549,6 +546,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   record_audio = (*dbrow[col] != '0');
   col++;
+  wallclock_timestamps = (*dbrow[col] != '0');
+  col++;
 
   /* "Brightness, Contrast, Hue, Colour, " */
   brightness = atoi(dbrow[col]);
@@ -603,7 +602,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   if (section_length < min_section_length) {
     section_length = min_section_length;
-    Warning("Section length %ld < Min Section Length %ld. This is invalid.",
+    Warning("Section length %jd < Min Section Length %jd. This is invalid.",
             Seconds(section_length).count(),
             Seconds(min_section_length).count()
            );
@@ -717,7 +716,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
-  Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+  Debug(1, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+#else
+  Debug(1, "Not compiled with MQTT");
 #endif
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
@@ -725,7 +726,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
-  image_count = 0;
+  //shared_data->image_count = 0;
   last_alarm_count = 0;
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
@@ -963,7 +964,7 @@ bool Monitor::connect() {
     Warning("Already connected. Please call disconnect first.");
   }
   if (!camera) LoadCamera();
-  uint64_t image_size = camera->ImageSize();
+  size_t image_size = camera->ImageSize();
   mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
              + (zone_count * sizeof(int)) // Per zone scores
@@ -980,9 +981,9 @@ bool Monitor::connect() {
         "zone_count %d * sizeof int %zu "
         "VideoStoreData=%zu "
         "timestamps=%zu "
-        "images=%dx%" PRIi64 " = %" PRId64 " "
-        "analysis images=%dx%" PRIi64 " = %" PRId64 " "
-        "image_format = %dx%" PRIi64 " = %" PRId64 " "
+        "images=%dx%zu = %zu "
+        "analysis images=%dx%zu = %zu "
+        "image_format = %dx%zu = %zu "
         "total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
@@ -990,9 +991,9 @@ bool Monitor::connect() {
         sizeof(int),
         sizeof(VideoStoreData),
         (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count, image_size, (image_buffer_count * image_size),
-        image_buffer_count, image_size, (image_buffer_count * image_size),
-        image_buffer_count, sizeof(AVPixelFormat), (image_buffer_count * sizeof(AVPixelFormat)),
+        image_buffer_count, image_size, static_cast<size_t>((image_buffer_count * image_size)),
+        image_buffer_count, image_size, static_cast<size_t>((image_buffer_count * image_size)),
+        image_buffer_count, sizeof(AVPixelFormat), static_cast<size_t>(image_buffer_count * sizeof(AVPixelFormat)),
         static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
@@ -1000,7 +1001,7 @@ bool Monitor::connect() {
     map_fd = open(mem_file.c_str(), O_RDWR);
   } else {
     umask(0);
-    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0666);
+    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
   }
 
   if (map_fd < 0) {
@@ -1167,105 +1168,15 @@ bool Monitor::connect() {
 
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
-    Poll_Trigger_State = false;
     if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
-      Event_Poller_Healthy = false;
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         Event_Poller_Closes_Event = true;
       }
       if (use_Amcrest_API) {
         Amcrest_Manager = new AmcrestAPI(this);
       } else { //using GSOAP
-#ifdef WITH_GSOAP
-        tev__PullMessages.Timeout = "PT20S";
-        tev__PullMessages.MessageLimit = 10;
-        std::string Termination_time = "PT60S";
-        wsnt__Renew.TerminationTime = &Termination_time;
-        soap = soap_new();
-        soap->connect_timeout = 0;
-        soap->recv_timeout = 0;
-        soap->send_timeout = 0;
-        //soap->bind_flags |= SO_REUSEADDR;
-        soap_register_plugin(soap, soap_wsse);
-        if (soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);};
-        proxyEvent = PullPointSubscriptionBindingProxy(soap);
-
-        if (!onvif_url.empty()) {
-          std::string full_url = onvif_url + onvif_events_path;
-          proxyEvent.soap_endpoint = full_url.c_str();
-          set_credentials(soap);
-          const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-          if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
-            Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-            if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-              const char *detail = soap_fault_detail(soap);
-              Error("ONVIF Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
-              _wsnt__Unsubscribe wsnt__Unsubscribe;
-              _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-              proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-              soap_destroy(soap);
-              soap_end(soap);
-              soap_free(soap);
-              soap = nullptr;
-            } else {
-              //Empty the stored messages
-              set_credentials(soap);
-              RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap):NULL;
-              if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
-                Debug(1, "ONVIF :soap_wsa_request  OK ");
-                if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-                    (soap->error != SOAP_EOF)
-                   ) { //SOAP_EOF could indicate no messages to pull.
-                  Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = false;
-                } else {
-                  Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = true;
-                }
-              } else {
-                Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                Event_Poller_Healthy = false;
-              }
-
-              // we renew the current subscription .........
-              if (soap_wsa_compl) {
-                set_credentials(soap);
-                RequestMessageID = soap_wsa_rand_uuid(soap);
-                if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-                  Debug(1, "ONVIF :soap_wsa_request OK");
-                  if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-                    Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                    if (soap->error==12) {//ActionNotSupported
-                      Event_Poller_Healthy = true;
-                    } else {
-                      Event_Poller_Healthy = false;
-                    }
-                  } else {
-                    Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                    Event_Poller_Healthy = true;
-                  }
-                } else {
-                  Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
-                        RequestMessageID,
-                        response.SubscriptionReference.Address,
-                        soap->error,
-                        soap_fault_string(soap),
-                        soap_fault_detail(soap));
-                  Event_Poller_Healthy = false;
-                }// end renew
-              }
-            }
-          } else {
-            Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest Error %i %s, %s",
-                  RequestMessageID, proxyEvent.soap_endpoint, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          }
-        } else {
-          Warning("You must specify the url to the ONVIF endpoint");
-        }
-#else
-        Error("zmc not compiled with GSOAP. ONVIF support not built in!");
-#endif
+        onvif = new ONVIF(this);
       }  // end if Armcrest or GSOAP
     } else {
       Debug(1, "Not Starting ONVIF");
@@ -1288,6 +1199,7 @@ bool Monitor::connect() {
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();
   last_analysis_fps_time = std::chrono::system_clock::now();
+  last_capture_image_count = 0;
 
   Debug(3, "Success connecting");
   return true;
@@ -1379,8 +1291,8 @@ Monitor::~Monitor() {
   }
   if (Amcrest_Manager != nullptr) {
     delete Amcrest_Manager;
-  } else {
   }
+  if (onvif) delete onvif;
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -1466,11 +1378,11 @@ SystemTimePoint Monitor::GetTimestamp(int index) const {
   return {};
 }
 
-unsigned int Monitor::GetLastReadIndex() const {
+int Monitor::GetLastReadIndex() const {
   return ( shared_data->last_read_index != image_buffer_count ? shared_data->last_read_index : -1 );
 }
 
-unsigned int Monitor::GetLastWriteIndex() const {
+int Monitor::GetLastWriteIndex() const {
   return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
 }
 
@@ -1785,7 +1697,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
 } // end void Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
-  if (image_count && !(image_count % 10)) {
+  if (shared_data->image_count && !(shared_data->image_count % 10)) {
 
     std::string filename = stringtf("Monitor%u.jpg", id);
     std::string new_filename = stringtf("Monitor%u-new.jpg", id);
@@ -1858,16 +1770,16 @@ void Monitor::CheckAction() {
   if (shared_data->action) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if (shared_data->action & RELOAD) {
-      Info("Received reload indication at count %d", image_count);
+      Info("Received reload indication at count %d", shared_data->image_count);
       shared_data->action &= ~RELOAD;
       Reload();
     }
     if (shared_data->action & SUSPEND) {
       if (Active()) {
-        Info("Received suspend indication at count %d", image_count);
+        Info("Received suspend indication at count %d", shared_data->image_count);
         shared_data->analysing = ANALYSING_NONE;
       } else {
-        Info("Received suspend indication at count %d, but wasn't active", image_count);
+        Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count);
       }
       if (config.max_suspend_time) {
         SystemTimePoint now = std::chrono::system_clock::now();
@@ -1876,7 +1788,7 @@ void Monitor::CheckAction() {
       shared_data->action &= ~SUSPEND;
     } else if (shared_data->action & RESUME) {
       if ( Enabled() && !Active() ) {
-        Info("Received resume indication at count %d", image_count);
+        Info("Received resume indication at count %d", shared_data->image_count);
         shared_data->analysing = analysing;
         ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
         shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1888,7 +1800,7 @@ void Monitor::CheckAction() {
   if (auto_resume_time.time_since_epoch() != Seconds(0)) {
     SystemTimePoint now = std::chrono::system_clock::now();
     if (now >= auto_resume_time) {
-      Info("Auto resuming at count %d", image_count);
+      Info("Auto resuming at count %d", shared_data->image_count);
       auto_resume_time = {};
       shared_data->analysing = analysing;
       ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
@@ -1897,57 +1809,61 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateFPS() {
-  if ( fps_report_interval and
-       (
-         !(image_count%fps_report_interval)
+  SystemTimePoint now = std::chrono::system_clock::now();
+  FPSeconds elapsed = now - last_fps_time;
+
+  // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+  // Also only do the update at most 1/sec
+  if (elapsed > Seconds(1)) {
+    // # of images per interval / the amount of time it took
+    double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed.count();
+    uint32 new_camera_bytes = camera->Bytes();
+    uint32 new_capture_bandwidth =
+      static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
+    double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
+
+    Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
+        shared_data->image_count,
+        last_capture_image_count,
+        shared_data->image_count - last_capture_image_count,
+        FPSeconds(now.time_since_epoch()).count(),
+        FPSeconds(last_fps_time.time_since_epoch()).count(),
+        elapsed.count(),
+        new_capture_fps,
+        new_analysis_fps);
+
+    if ( fps_report_interval and
+        (
+         !(shared_data->image_count%fps_report_interval)
          or
-         ( (image_count < fps_report_interval) and !(image_count%10) )
-       )
-     ) {
-    SystemTimePoint now = std::chrono::system_clock::now();
-    FPSeconds elapsed = now - last_fps_time;
-
-    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    // Also only do the update at most 1/sec
-    if (elapsed > Seconds(1)) {
-      // # of images per interval / the amount of time it took
-      double new_capture_fps = (image_count - last_capture_image_count) / elapsed.count();
-      uint32 new_camera_bytes = camera->Bytes();
-      uint32 new_capture_bandwidth =
-        static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
-
-      Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-            image_count,
-            last_capture_image_count,
-            image_count - last_capture_image_count,
-            FPSeconds(now.time_since_epoch()).count(),
-            FPSeconds(last_fps_time.time_since_epoch()).count(),
-            elapsed.count(),
-            new_capture_fps,
-            new_analysis_fps);
-
+         ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
+        )
+       ) {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-           name.c_str(), image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
+          name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
 #if MOSQUITTOPP_FOUND
       if (mqtt) mqtt->send(stringtf("Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-                                      new_capture_fps, new_capture_bandwidth, new_analysis_fps));
+            new_capture_fps, new_capture_bandwidth, new_analysis_fps));
 #endif
 
-      shared_data->capture_fps = new_capture_fps;
-      last_fps_time = now;
-      last_capture_image_count = image_count;
-      shared_data->analysis_fps = new_analysis_fps;
-      last_motion_frame_count = motion_frame_count;
-      last_camera_bytes = new_camera_bytes;
+    }  // end if fps_report_interval
+    shared_data->capture_fps = new_capture_fps;
+    last_capture_image_count = shared_data->image_count;
+    shared_data->analysis_fps = new_analysis_fps;
+    last_motion_frame_count = motion_frame_count;
+    last_camera_bytes = new_camera_bytes;
+    last_fps_time = now;
 
+    FPSeconds db_elapsed = now - last_status_time;
+    if (db_elapsed > Seconds(10)) {
       std::string sql = stringtf(
-                          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-                          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
-    } // now != last_fps_time
-  } // end if report fps
+      last_status_time = now;
+    }
+  } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 
 //Thread where ONVIF polling, and other similar status polling can happen.
@@ -1956,92 +1872,22 @@ bool Monitor::Poll() {
   // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
-  if (Event_Poller_Healthy) {
-    if (use_Amcrest_API) {
+  if (use_Amcrest_API) {
+    if (Amcrest_Manager->isHealthy()) {
       Amcrest_Manager->WaitForMessage();
     } else {
-#ifdef WITH_GSOAP
-      set_credentials(soap);
-      const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-      if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
-        Debug(1, ":soap_wsa_request OK; starting ONVIF PullMessageRequest ...");
-        int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
-        if (result != SOAP_OK) {
-          const char *detail = soap_fault_detail(soap);
-          Debug(1, "Result of getting  ONVIF messages= %d soap_fault_string=%s detail=%s",
-                result, soap_fault_string(soap), detail ? detail : "null");
-          if (result != SOAP_EOF) { //Ignore the timeout error
-            Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
-            // Event_Poller_Healthy = false;
-          }
-        } else {
-          Debug(1, "ONVIF polling : Got Good Response! %i", result);
-          for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-            if ((msg->Topic != nullptr) &&
-                (msg->Topic->__any.text != nullptr) &&
-                std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-                (msg->Message.__any.elts != nullptr) &&
-                (msg->Message.__any.elts->next != nullptr) &&
-                (msg->Message.__any.elts->next->elts != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
-               ) {
-              Info("Got Motion Alarm!");
-              if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-                //Event Start
-                Info("Triggered on ONVIF");
-                if (!Poll_Trigger_State) {
-                  Info("Triggered Event");
-                  Poll_Trigger_State = true;
-                  std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
-                }
-              } else {
-                Info("Triggered off ONVIF");
-                Poll_Trigger_State = false;
-                if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-                  Event_Poller_Closes_Event = true;
-                  Info("Setting ClosesEvent");
-                }
-              }
-            } else {
-              Debug(1, "Got a message that we couldn't parse");
-            }
-          }  // end foreach msg
-
-          // we renew the current subscription .........
-          if (soap_wsa_compl) {
-            set_credentials(soap);
-            std::string Termination_time = "PT60S";
-            wsnt__Renew.TerminationTime = &Termination_time;
-            RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-            if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK)) {
-              Debug(1, ":soap_wsa_request OK");
-              if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-                Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                if (soap->error==12) {//ActionNotSupported
-                  Event_Poller_Healthy = true;
-                } else {
-                  Event_Poller_Healthy = false;
-                }
-              } else {
-                Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                Event_Poller_Healthy = true;
-              }
-            } else {
-              Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
-                    RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = false;
-            } // end renew
-          }
-        }  // end if SOAP OK/NOT OK
-      } else {
-        Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",
-              RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      }  // end if soap == OK
-#endif
-    }  // end if Amcrest or not
-  }  // end if Healthy
+      delete Amcrest_Manager;
+      Amcrest_Manager = new AmcrestAPI(this);
+    }
+  } else if (onvif) {
+    if (onvif->isHealthy()) {
+      onvif->WaitForMessage();
+    } else {
+      delete onvif;
+      onvif = new ONVIF(this);
+      onvif->start();
+    }
+  }  // end if Amcrest or not
 
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");
@@ -2106,17 +1952,18 @@ bool Monitor::Analyse() {
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
-      if (onvif_event_listener && Event_Poller_Healthy) {
-        if (Poll_Trigger_State) {
+      if (onvif_event_listener) {
+        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
-          noteSet.insert("ONVIF2");
+          noteSet.insert("ONVIF");
+          onvif->setNotes(noteSet);
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
-          //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+          // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
           if (!Event_Poller_Closes_Event && state == ALARM)
-            Poll_Trigger_State = false;
+            onvif->setAlarmed(false);
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif
@@ -2550,17 +2397,17 @@ bool Monitor::Analyse() {
       Debug(3, "Not video, not clearing packets");
     }
 
-    if (event) {
-      event->AddPacket(snap);
-    } else {
+    if (!event) {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
-      if (snap->image and ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE)) {
-        if (!savejpegs) {
-          Debug(1, "Deleting image data for %d", snap->image_index);
-          // Don't need raw images anymore
-          delete snap->image;
-          snap->image = nullptr;
+      if (snap->image) {
+        if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE) {
+          if (!savejpegs) {
+            Debug(1, "Deleting image data for %d", snap->image_index);
+            // Don't need raw images anymore
+            delete snap->image;
+            snap->image = nullptr;
+          }
         }
         if (snap->analysis_image and !(savejpegs & 2)) {
           Debug(1, "Deleting analysis image data for %d", snap->image_index);
@@ -2569,11 +2416,11 @@ bool Monitor::Analyse() {
         }
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
-      snap->out_frame = nullptr;
+      //snap->out_frame = nullptr;
     }
   }  // end scope for event_lock
-  delete packet_lock;
 
+  packetqueue.unlock(packet_lock);
   packetqueue.increment_it(analysis_it);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -2589,7 +2436,7 @@ void Monitor::Reload() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), image_count, event->Id());
+      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), shared_data->image_count, event->Id());
       closeEvent();
     }
   }
@@ -2680,7 +2527,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   std::vector<std::shared_ptr<Monitor>> monitors;
   monitors.reserve(n_monitors);
 
-  for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+  while(MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     monitors.emplace_back(std::make_shared<Monitor>());
     monitors.back()->Load(dbrow, true, purpose);
   }
@@ -2741,18 +2588,20 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = shared_data->image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu", image_buffer.size());
     return -1;
   }
 
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
-  packet->image_index = image_count;
+  packet->image_index = shared_data->image_count;
   packet->timestamp = std::chrono::system_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
+  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->image_count,
+      static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
+      );
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -2769,7 +2618,7 @@ int Monitor::Capture() {
     image_buffer[index]->Assign(*capture_image);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     delete capture_image;
-    image_count++;
+    shared_data->image_count++;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
@@ -2779,9 +2628,10 @@ int Monitor::Capture() {
     if (decoding == DECODING_NONE) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+      packet->decoded = true;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
+          packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
@@ -2816,7 +2666,7 @@ int Monitor::Capture() {
       return 1;
     } // end if audio
 
-    image_count++;
+    shared_data->image_count++;
 
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
@@ -2905,10 +2755,11 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
+
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+    packet->decoded = true;
     Debug(4, "Not video");
-    //packetqueue.unlock(packet_lock);
     delete packet_lock;
     return true; // Don't need decode
   }
@@ -2916,7 +2767,7 @@ bool Monitor::Decode() {
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
-        ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
+        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
         or
@@ -2947,7 +2798,7 @@ bool Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
     } else {
-      Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
@@ -3051,8 +2902,8 @@ bool Monitor::Decode() {
 
     unsigned int index = shared_data->last_write_index;
     index++;
-    decoding_image_count++;
     index = index % image_buffer_count;
+    decoding_image_count++;
     image_buffer[index]->Assign(*(packet->image));
     image_pixelformats[index] = packet->image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
@@ -3138,32 +2989,29 @@ Event * Monitor::openEvent(
 
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                                     *analysis_it,
-                                     (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
-                                   );
+      *analysis_it,
+      (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
+      );
 
-  // This gets a lock on the starting packet
-
-  std::shared_ptr<ZMPacket> starting_packet;
-  ZMLockedPacket *starting_packet_lock = nullptr;
   if (*start_it != *analysis_it) {
-    starting_packet_lock = packetqueue.get_packet(start_it);
+    ZMLockedPacket *starting_packet_lock = packetqueue.get_packet(start_it);
 
     if (!starting_packet_lock) {
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
-    starting_packet = starting_packet_lock->packet_;
+    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
+    delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
+    event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(starting_packet->timestamp);
   } else {
-    starting_packet = snap;
-    ZM_DUMP_PACKET(starting_packet->packet, "First packet from alarm");
+    ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
+    event = new Event(this, start_it, snap->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(snap->timestamp);
   }
 
-  event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
-
   shared_data->last_event_id = event->Id();
-  SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
 #if MOSQUITTOPP_FOUND
@@ -3172,34 +3020,21 @@ Event * Monitor::openEvent(
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
+      Logger *log = Logger::fetch();
+      std::string log_id = log->id();
+      logTerm();
+      int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+      for (int i = 0; i < fdlimit; i++) close(i);
       execlp(event_start_command.c_str(),
              event_start_command.c_str(),
              std::to_string(event->Id()).c_str(),
              std::to_string(event->MonitorId()).c_str(),
              nullptr);
-      Logger *log = Logger::fetch();
-      log->databaseLevel(Logger::NOLOG);
+      logInit(log_id.c_str());
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       std::quick_exit(0);
     }
   }
-
-  // Write out starting packets, do not modify packetqueue it will garbage collect itself
-  while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
-    ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
-
-    event->AddPacket(starting_packet_lock->packet_);
-    delete starting_packet_lock;
-    starting_packet_lock = nullptr;
-
-    packetqueue.increment_it(start_it);
-    if ((*start_it) != *analysis_it) {
-      starting_packet_lock = packetqueue.get_packet(start_it);
-    }
-  }
-  packetqueue.free_it(start_it);
-  delete start_it;
-  start_it = nullptr;
 
   return event;
 }
@@ -3225,12 +3060,16 @@ void Monitor::closeEvent() {
 
     if (!command.empty()) {
       if (fork() == 0) {
+        Logger *log = Logger::fetch();
+        std::string log_id = log->id();
+        logTerm();
+        int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+        for (int i = 0; i < fdlimit; i++) close(i);
         execlp(command.c_str(), command.c_str(),
                std::to_string(event_id).c_str(),
                std::to_string(monitor_id).c_str(),
                nullptr);
-        Logger *log = Logger::fetch();
-        log->databaseLevel(Logger::NOLOG);
+        logInit(log_id.c_str());
         Error("Error execing %s: %s", command.c_str(), strerror(errno));
         std::quick_exit(0);
       }
@@ -3540,25 +3379,32 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
 
   // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) {
-    Debug(1, "Decoder stopping");
-    decoder->Stop();
-    Debug(1, "Decoder stopped");
-  }
-
-  if (convert_context) {
-    sws_freeContext(convert_context);
-    convert_context = nullptr;
-  }
+  if (decoder) decoder->Stop();
 
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
+  }
+
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+
+  if (decoder) {
+    Debug(1, "Joining decode");
+    decoder->Join();
+
+    if (convert_context) {
+      sws_freeContext(convert_context);
+      convert_context = nullptr;
+    }
+    decoding_image_count = 0;
+  }
+  if (analysis_thread) {
+    Debug(1, "Joining analysis");
+    analysis_thread->Join();
   }
 
   // Must close event before closing camera because it uses in_streams
@@ -3570,7 +3416,7 @@ int Monitor::Pause() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->image_count, event->Id());
       closeEvent();
       close_event_thread.join();
     }
@@ -3609,6 +3455,7 @@ int Monitor::Play() {
   return 1;
 } // end int Monitor::Play()
 
+// Close can be called multiple times, for example before object delete, and then in the destructor.
 int Monitor::Close() {
   Pause();
 
@@ -3617,25 +3464,11 @@ int Monitor::Close() {
     Poller->Stop();
     Debug(1, "Poller stopped");
   }
-#ifdef WITH_GSOAP
-  if (onvif_event_listener && (soap != nullptr)) {
-    Debug(1, "Tearing Down Onvif");
-    _wsnt__Unsubscribe wsnt__Unsubscribe;
-    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-    if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)) {
-      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-    } else {
-      Error("Couldn't set wsa headers RequestMessageID=%s; TO= %s; Request=UnsubscribeRequest .... ! Error %i %s, %s",
-            RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    }
+  if (onvif) {
+    delete onvif;
+    onvif = nullptr;
+  }
 
-    soap_destroy(soap);
-    soap_end(soap);
-    soap_free(soap);
-    soap = nullptr;
-  }  //End ONVIF
-#endif
   // RTSP2Web teardown
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
@@ -3744,33 +3577,3 @@ StringVector Monitor::GroupNames() {
   return groupnames;
 } // end Monitor::GroupNames()
 
-#ifdef WITH_GSOAP
-//ONVIF Set Credentials
-void Monitor::set_credentials(struct soap *soap) {
-  soap_wsse_delete_Security(soap);
-  soap_wsse_add_Timestamp(soap, NULL, 10);
-  soap_wsse_add_UsernameTokenDigest(soap, "Auth", onvif_username.c_str(), onvif_password.c_str());
-}
-
-//GSOAP boilerplate
-int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail) {
-  // populate the fault struct from the operation arguments to print it
-  soap_fault(soap);
-  // SOAP 1.1
-  soap->fault->faultcode = faultcode;
-  soap->fault->faultstring = faultstring;
-  soap->fault->faultactor = faultactor;
-  soap->fault->detail = detail;
-  // SOAP 1.2
-  soap->fault->SOAP_ENV__Code = SOAP_ENV__Code;
-  soap->fault->SOAP_ENV__Reason = SOAP_ENV__Reason;
-  soap->fault->SOAP_ENV__Node = SOAP_ENV__Node;
-  soap->fault->SOAP_ENV__Role = SOAP_ENV__Role;
-  soap->fault->SOAP_ENV__Detail = SOAP_ENV__Detail;
-  // set error
-  soap->error = SOAP_FAULT;
-  // handle or display the fault here with soap_stream_fault(soap, std::cerr);
-  // return HTTP 202 Accepted
-  return soap_send_empty_response(soap, SOAP_OK);
-}
-#endif

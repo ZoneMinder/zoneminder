@@ -258,7 +258,7 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
 static void dont_free(void *opaque, uint8_t *data) {
 }
 
-int Image::PopulateFrame(AVFrame *frame) {
+int Image::PopulateFrame(AVFrame *frame) const {
   Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)

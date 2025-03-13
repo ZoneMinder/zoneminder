@@ -1204,7 +1204,6 @@ $OLANG = array(
 	'WEB_M_VIDEO_MAXFPS' => array ( 'Prompt'=>'Cuál debe ser la velocidad de cuadro máxima para la transmisión de video'),
 	'WEB_NAVBAR_TYPE' => array ( 'Prompt'=>'Estilo de la barra de navegación de la consola web'),
 	'WEB_POPUP_ON_ALARM' => array ( 'Prompt'=>'Debe la ventana del monitor pasar a primer plano si ocurre una alarma'),
-	'WEB_RESIZE_CONSOLE' => array ( 'Prompt'=>'Debe la ventana de la consola cambiar de tamaño para ajustarse al monitor'),
 	'WEB_SOUND_ON_ALARM' => array ( 'Prompt'=>'Debería la ventana del monitor reproducir un sonido si ocurre una alarma'),
 	'WEB_TITLE' => array ( 'Prompt'=>'Mostrar el título si el sitio hace referencia a sí mismo.'),
 	'WEB_TITLE_PREFIX' => array ( 'Prompt'=>'El prefijo del título que se muestra en cada ventana'),

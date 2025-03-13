@@ -5,6 +5,7 @@ configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
+  zm_ai_server.cpp
   zm_analysis_thread.cpp
   zm_poll_thread.cpp
   zm_buffer.cpp
@@ -52,6 +53,7 @@ set(ZM_BIN_SRC_FILES
   zm_packet.cpp
   zm_packetqueue.cpp
   zm_poly.cpp
+  zm_quadra.cpp
   zm_regexp.cpp
   zm_remote_camera.cpp
   zm_remote_camera_http.cpp
@@ -260,3 +262,14 @@ if(HAVE_RTSP_SERVER)
       ${CMAKE_DL_LIBS})
   install(TARGETS zm_rtsp_server RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()
+
+#if(HAVE_AI_SERVER)
+  add_executable(zm_ai_server zm_ai_server.cpp)
+  target_link_libraries(zm_ai_server
+    PRIVATE
+      zm-core-interface
+      zm
+      ${ZM_EXTRA_LIBS}
+      ${CMAKE_DL_LIBS})
+  install(TARGETS zm_ai_server RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  #endif()

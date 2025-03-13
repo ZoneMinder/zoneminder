@@ -93,23 +93,24 @@ if ( $Config{ZM_LD_PRELOAD} ) {
 Debug(Data::Dumper::Dumper(\%ENV));
 
 my @daemons = (
-    'zmc',
-    'zmfilter.pl',
-    'zmaudit.pl',
-    'zmtrigger.pl',
-    'zmx10.pl',
-    'zmwatch.pl',
-    'zmupdate.pl',
-    'zmstats.pl',
-    'zmtrack.pl',
-    'zmcontrol.pl',
-    'zm_rtsp_server',
-    'zmtelemetry.pl',
-    'zmalarm-server.py'
-    );
+  'zm_ai_server',
+  'zmc',
+  'zmfilter.pl',
+  'zmaudit.pl',
+  'zmtrigger.pl',
+  'zmx10.pl',
+  'zmwatch.pl',
+  'zmupdate.pl',
+  'zmstats.pl',
+  'zmtrack.pl',
+  'zmcontrol.pl',
+  'zm_rtsp_server',
+  'zmtelemetry.pl',
+  'zmalarm-server.py'
+);
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
-	push @daemons, 'zmeventnotification.pl';
+  push @daemons, 'zmeventnotification.pl';
 }
 
 my $command = shift @ARGV;

@@ -49,8 +49,7 @@ static const char * coco_classes[] = {
 };
 
 #ifdef HAVE_UNTETHER_H
-SpeedAI::SpeedAI(Monitor *monitor_) :
-  monitor(monitor_),
+SpeedAI::SpeedAI() :
   module(nullptr),
   //inputBuf({}),
   //outputBuf({}),
@@ -63,7 +62,8 @@ SpeedAI::SpeedAI(Monitor *monitor_) :
   //image_size(0)
   quadra(nullptr),
   drawbox_filter(nullptr),
-  drawbox_filter_ctx(nullptr)
+  drawbox_filter_ctx(nullptr),
+  count(0)
 {
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, MODEL_WIDTH, MODEL_HEIGHT, 32);
 
@@ -104,9 +104,8 @@ SpeedAI::~SpeedAI() {
   }
   if (drawbox_filter) {
     avfilter_graph_free(&drawbox_filter->filter_graph);
-    free(drawbox_filter);
+    delete drawbox_filter;
   }
-
 }
 
 bool SpeedAI::setup(
@@ -152,15 +151,15 @@ bool SpeedAI::setup(
   return true;
 }
 
-bool SpeedAI::setQuadra(Quadra_Yolo *p_quadra) {
+bool SpeedAI::setQuadra(Quadra *p_quadra, int width, int height) {
   int ret;
   quadra = p_quadra;
   if (quadra/*draw_box*/) {
-    drawbox_filter = (Quadra_Yolo::filter_worker*)malloc(sizeof(Quadra_Yolo::filter_worker));
+    drawbox_filter = new Quadra::filter_worker();
     drawbox_filter->buffersink_ctx = nullptr;
     drawbox_filter->buffersrc_ctx = nullptr;
     drawbox_filter->filter_graph = nullptr;
-    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false, AV_PIX_FMT_YUV420P)) < 0) {
+    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false, width, height, AV_PIX_FMT_YUV420P)) < 0) {
       Error("cannot initialize drawbox filter");
       return false;
     }
@@ -181,16 +180,24 @@ bool SpeedAI::setQuadra(Quadra_Yolo *p_quadra) {
   return true;
 }
 
-int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
+SpeedAI::Job * SpeedAI::send_image(Image *image) {
+  AVFrame frame;
+  image->PopulateFrame(&frame);
+  return send_frame(&frame);
+}
+
+SpeedAI::Job * SpeedAI::send_packet(std::shared_ptr<ZMPacket> packet) {
   AVFrame *avframe = packet->in_frame.get();
   if (!avframe) {
     Error("NO inframe in packet %d, out of mem?", packet->image_index);
-    return -1;
+    return nullptr;
   }
+  return send_frame(avframe);
+}
 
-  Debug(1, "SpeedAI::detect");
-  // Resize, change to RGB, maybe quantize
-  //Image processed_image = preprocess(image);
+SpeedAI::Job * SpeedAI::send_frame(AVFrame *avframe) {
+  count++;
+  Debug(1, "SpeedAI::detect %d", count);
 
   if (!sw_scale_ctx) {
     /*
@@ -210,39 +217,43 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
         SWS_BICUBIC, nullptr, nullptr, nullptr);
     if (!sw_scale_ctx) {
       Error("cannot create sw scale context");
-      return -1;
+      return nullptr;
     }
   }
-  Job job(module, avframe, packet->image_index);
+  Job *job = new Job(module, avframe);
 
-  if (av_frame_get_buffer(job.scaled_frame, 32)) {
+  if (av_frame_get_buffer(job->scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
-    //delete job;
-    return -1;
+    delete job;
+    return nullptr;
   }
+
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
-      avframe->linesize, 0, avframe->height, job.scaled_frame->data, job.scaled_frame->linesize);
+      avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
-        avframe->linesize[2], avframe->linesize[3], avframe->height, job.scaled_frame->linesize[0]);
-    return ret;
+        avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
+    delete job;
+    return nullptr;
   }
 
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.inputBuf, infos[0].name, inSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
-    return -1;
+    delete job;
+    return nullptr;
   }
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job.outputBuf, infos[1].name, outSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
-    return -1;
+    delete job;
+    return nullptr;
   }
 
   // Fill input buffer with data, applying quantization on the fly via this->operator()(uint8_t)
-  uint8_t* uint8Pixel = job.scaled_frame->buf[0]->data;
+  uint8_t* uint8Pixel = job->scaled_frame->buf[0]->data;
   auto totalPixels = image_size;
-  auto* uai_data = job.inputBuf;
+  auto* uai_data = job->inputBuf;
 
   size_t datInd = 0;
   while (uai_data != nullptr) {
@@ -265,47 +276,48 @@ int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet) {
   // read/write data. All buffers are chained together linearly. Here we again assume that we only
   // have one input stream and one output stream, and that one buffer per stream is big enough to
   // hold all data for one batch.
-  job.event.buffers = job.inputBuf;
-  job.inputBuf->next_buffer = job.outputBuf;
+  job->event.buffers = job->inputBuf;
+  job->inputBuf->next_buffer = job->outputBuf;
 
   Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  UaiErr err = uai_module_enqueue(module, &job.event);
+  UaiErr err = uai_module_enqueue(module, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
-    return -1;
+    delete job;
+    return nullptr;
   }
-  jobs.push_back(std::move(job));
-  return 1;
-}  // int SpeedAI::send_image(std::shared_ptr<ZMPacket> packet)
+  Debug(1, "SpeedAI:: success enqueue");
+  return job;
+  //jobs.push_back(std::move(job));
+  //return 1;
+}  // int SpeedAI::send_frame(AVFrame *frame)
 
-int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
-  if (!jobs.size()) {
-    Error("SpeedAI No jobs in receive_detections");
-    return 0;
-  }
+const nlohmann::json SpeedAI::receive_detections(Job *job) {
+  nlohmann::json coco_object;
 
-  Debug(1, "SpeedAI::wait jobs size %zu", jobs.size());
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  Job *job = &jobs.front();
-  Debug(1, "input %p output %p, packet %d job %d", job->inputBuf->buffer, job->outputBuf->buffer, packet->image_index, job->index);
-  if (packet->image_index != job->index) {
-    Error("Hey packet index %d != %d job index", packet->image_index, job->index);
-  }
+  Debug(1, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   UaiErr err = uai_module_wait(module, &job->event, 10);
-  if (0 and err != UAI_SUCCESS) {
-    Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
-    return 0;
+#if 0
+  while (!zm_terminate) {
+    UaiErr err = uai_module_wait(module, &job->event, 10);
+    if ( err != UAI_SUCCESS) {
+      Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
+    } else {
+      break;
+    }
   }
-  Debug(1, "SpeedAI Completed inference, wait return code is %s", uai_err_string(err));
+#endif
+  Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
 
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
   auto DMAoutput = static_cast<uint8_t*>(job->outputBuf->buffer);
   if (!DMAoutput) {
     Error("No DMAOutput");
-    return -1;
+    return coco_object;
   }
   // Output buffer for one batch of images
 
@@ -366,18 +378,17 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
     outputBuffer[outputIndex + 4] = object_class;
     outputBuffer[outputIndex + 5] = score_float;
   }
+  return coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+}
+
+int SpeedAI::draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size) {
+  Rgb colour = kRGBRed;
 
   try {
-    Rgb colour = kRGBRed;
-    nlohmann::json coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
     Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
     if (coco_object.size()) {
-      //Image in_image(packet->in_frame.get());
-      //Image ai_image();
-      //Image ai_image(in_image);
-      //ai_image.Assign(in_image);
-      //ai_image.PopulateFrame(packet->get_ai_frame());
-      AVFrame *in_frame = packet->in_frame.get();
+      AVFrame * in_frame;
+      in_image->PopulateFrame(in_frame);
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
@@ -390,7 +401,6 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
         int x2 = bbox[2];
         int y2 = bbox[3];
 # if 0
-        
         coords.push_back(Vector2(x1, y1));
         coords.push_back(Vector2(x2, y1));
         coords.push_back(Vector2(x2, y2));
@@ -415,22 +425,19 @@ int SpeedAI::receive_detections(std::shared_ptr<ZMPacket> packet) {
         std::string coco_class = detection["class_name"];
         float score = detection["score"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
-        Image ai_image(out_frame);
-        ai_image.Annotate(annotation.c_str(), Vector2(x1, y1), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+        Image temp_image(out_frame);
+        temp_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
 
-        if (in_frame != packet->in_frame.get())
-          av_frame_free(&in_frame);
         in_frame = out_frame;
-      }  // ed foreach detection
-      packet->ai_frame = av_frame_ptr(in_frame);
-      packet->detections = coco_object.dump();
+      }  // end foreach detection
+      out_image->Assign(in_frame);
+    } else {
+      out_image->Assign(*in_image);
     }  // end if coco
   } catch (std::exception const & ex) {
     Error("SpeedAI Exception: %s", ex.what());
   }
 
-  jobs.pop_front();
-  //delete job;
   return 1;
 }
 
@@ -465,7 +472,6 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
   const int num_predictions = predictions.size() / 6;
   nlohmann::json coco_predictions = nlohmann::json::array();
 
-  Debug(1, "Num Predictions %d", num_predictions);
   for (int i = 0; i < num_predictions; i++) {
     float l = predictions[i * 6 + 0];
     float t = predictions[i * 6 + 1];
@@ -497,8 +503,7 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
     // map class_id to class name
     std::string class_name = coco_classes[class_id];
 
-    coco_predictions.push_back(
-        {{"class_name", class_name}, {"bbox", bbox}, {"score", score}});
+    coco_predictions.push_back({{"class_name", class_name}, {"bbox", bbox}, {"score", score}});
   }
   return coco_predictions;
 }

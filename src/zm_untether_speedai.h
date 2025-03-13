@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <list>
-#include "zm_netint_yolo.h"
+#include "zm_quadra.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -29,7 +29,6 @@ class Monitor;
 
 class SpeedAI {
   private:
-    Monitor *monitor;
     UaiModule* module;
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
@@ -71,16 +70,14 @@ class SpeedAI {
     {
         return a.second < b.second;
     }
+    int count;
 
+  public:
     class Job {
       public:
-        Job(UaiModule *p_module, AVFrame *input, int p_index) :
+        Job(UaiModule *p_module, AVFrame *input) :
           m_module(p_module),
-          index(p_index),
-          //inputBuf(nullptr),
-          //outputBuf(nullptr),
           event({})
-          //scaled_frame(0)
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
@@ -159,23 +156,26 @@ class SpeedAI {
     uint8_t quantize(float val) const;
     int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
 
-    Quadra_Yolo *quadra;
+    Quadra *quadra;
 
-    Quadra_Yolo::filter_worker *drawbox_filter;
+    Quadra::filter_worker *drawbox_filter;
     AVFilterContext *drawbox_filter_ctx;
 
-  public:
-    explicit SpeedAI(Monitor *parent_);
+    explicit SpeedAI();
     ~SpeedAI();
     bool setup(
         const std::string &model_type,
         const std::string &model_file
         );
-    int send_image(std::shared_ptr<ZMPacket>);
-    int receive_detections(std::shared_ptr<ZMPacket>);
+    Job * send_packet(std::shared_ptr<ZMPacket>);
+    Job * send_image(Image *image);
+    Job * send_frame(AVFrame *);
+
+    const nlohmann::json receive_detections(Job *job);
+    int draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size);
     nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float);
-    Quadra_Yolo *getQuadra() const { return quadra; };
-    bool setQuadra(Quadra_Yolo *quadra);
+    Quadra *getQuadra() const { return quadra; };
+    bool setQuadra(Quadra *quadra, int width, int height);
 };
 #endif
 #endif

@@ -150,6 +150,7 @@ our %mem_data = (
     last_read_index  => { type=>'int32', seq=>$mem_seq++ },
     last_analysis_index  => { type=>'int32', seq=>$mem_seq++ },
     image_count      => { type=>'int32', seq=>$mem_seq++ },
+    decoder_image_count => { type=>'int32', seq=>$mem_seq++ },
     analysis_image_count      => { type=>'int32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
     capture_fps      => { type=>'double', seq=>$mem_seq++ },

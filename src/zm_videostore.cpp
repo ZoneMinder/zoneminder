@@ -59,6 +59,7 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
+  { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -779,7 +780,7 @@ VideoStore::~VideoStore() {
   video_in_ctx = nullptr;
 
   if (video_out_ctx) {
-    avcodec_close(video_out_ctx);
+    //avcodec_close(video_out_ctx);
     Debug(3, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
     if (hw_device_ctx) {
@@ -791,13 +792,13 @@ VideoStore::~VideoStore() {
   if (audio_out_stream) {
     audio_in_codec = nullptr;
     if (audio_in_ctx) {
-      avcodec_close(audio_in_ctx);
+      //avcodec_close(audio_in_ctx);
       avcodec_free_context(&audio_in_ctx);
     }
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");
-      avcodec_close(audio_out_ctx);
+      //avcodec_close(audio_out_ctx);
       avcodec_free_context(&audio_out_ctx);
     }
 

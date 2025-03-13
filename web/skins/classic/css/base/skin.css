@@ -1142,9 +1142,9 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
 
 /* +++ Control button block in the Stream image*/
 .block-button-center {
-  position: absolute;
-  left: 35%;
-  right: 35%;
+  display: inline-block;
+  position: relative;
+  margin: 0 20%;
   top: 2px;
   z-index: 10;
 }

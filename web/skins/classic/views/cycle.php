@@ -203,7 +203,7 @@ if ( $monitor->JanusEnabled() ) {
 <?php
 if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 ?>
-  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
 <?php
 }
 ?>

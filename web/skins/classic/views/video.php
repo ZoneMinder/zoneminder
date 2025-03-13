@@ -212,6 +212,8 @@ if (isset($_REQUEST['showIndex'])) {
     $index = 0;
     foreach ( $videoFiles as $file ) {
       if ( filesize($file) > 0 ) {
+        $rateText = '';
+        $scaleText = '';
         $path_parts = pathinfo($file);
 
         foreach (explode('-', $path_parts['filename']) as $option) {

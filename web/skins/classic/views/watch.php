@@ -103,10 +103,16 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
+$hasHLS = false;
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
+  }
+  if ( $m->RTSP2WebEnabled() and $m->RTSP2WebType == "HLS") {
+    $hasHLS = true;
+  }
+  if ($hasPtzControls && $hasHLS) {
     break;
   }
 }
@@ -302,7 +308,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </span>
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+          <?php
+              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
+              echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
+          ?>
         </span>
       </div><!--sizeControl-->
     </div><!--control header-->
@@ -494,9 +503,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
   </div>
 </div>
 <?php
-if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+if ($hasHLS) {
 ?>
-  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
 <?php
 }
 ?>

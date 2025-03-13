@@ -242,12 +242,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       }
       return -1;
     }
-    if (packet->stream_index == mAudioStreamId) {
-      lastPTS = mLastAudioPTS;
-    } else if ( packet->stream_index == mVideoStreamId) {
+
+    if ( packet->stream_index == mVideoStreamId) {
       lastPTS = mLastVideoPTS;
+    } else if (packet->stream_index == mAudioStreamId) {
+      lastPTS = mLastAudioPTS;
     } else {
-      Debug(1, "Have packet which isn't for video or audio stream.");
+      Debug(1, "Have packet (%d) which isn't for video (%d) or audio stream (%d).", packet->stream_index, mVideoStreamId, mAudioStreamId);
+      return 0;
     }
   }
 
@@ -394,7 +396,8 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
-    const AVStream *stream = mFormatContext->streams[i];
+    AVStream *stream = mFormatContext->streams[i];
+    zm_dump_stream_format(mFormatContext, i, 0, 0);
     if (is_video_stream(stream)) {
       if (!(stream->codecpar->width && stream->codecpar->height)) {
         Warning("No width and height in video stream. Trying again");
@@ -402,9 +405,16 @@ int FfmpegCamera::OpenFfmpeg() {
       }
       if (mVideoStreamId == -1) {
         mVideoStreamId = i;
-        mVideoStream = mFormatContext->streams[i];
+        mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
+	if (stream->codecpar->width == width and stream->codecpar->height == height) {
+		Debug(1, "Choosing alternate video stream because it matches our resolution.");
+		mVideoStreamId = i;
+		mVideoStream = stream;
+	} else {
+		stream->discard = AVDISCARD_ALL;
+	}
       }
     } else if (is_audio_stream(stream)) {
       if (mAudioStreamId == -1) {
@@ -413,6 +423,8 @@ int FfmpegCamera::OpenFfmpeg() {
       } else {
         Debug(2, "Have another audio stream.");
       }
+    } else {
+	    Debug(1, "Unknown stream type for stream %d", i);
     }
   }  // end foreach stream
 
@@ -609,14 +621,14 @@ int FfmpegCamera::Close() {
   mLastAudioPTS = 0;
 
   if (mVideoCodecContext) {
-    avcodec_close(mVideoCodecContext);
+    //avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = nullptr;
   }
 
   if (mAudioCodecContext and !mSecondInput) {
     // If second input, then these will get freed in FFmpeg_Input's destructor
-    avcodec_close(mAudioCodecContext);
+    //avcodec_close(mAudioCodecContext);
     avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = nullptr;
   }

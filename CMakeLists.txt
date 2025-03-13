@@ -193,7 +193,7 @@ set(ZM_ONVIF "ON" CACHE BOOL
   "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not
     work with all cameras claiming to be ONVIF compliant. default: ON")
 set(ZM_NO_PCRE "OFF" CACHE BOOL
-  "Set to ON to skip libpcre3 checks and force building ZM without libpcre3. default: OFF")
+  "Set to ON to skip libpcre2 checks and force building ZM without libpcre2. default: OFF")
 set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
@@ -424,17 +424,17 @@ endif()
 # Do not check for cURL if ZM_NO_CURL is on
 if(NOT ZM_NO_PRCE)
   # pcre (using find_library and find_path)
-  find_library(PCRE_LIBRARIES pcre)
+  find_library(PCRE_LIBRARIES pcre2-8)
   if(PCRE_LIBRARIES)
     set(HAVE_LIBPCRE 1)
     list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
-    find_path(PCRE_INCLUDE_DIR pcre.h)
+    find_path(PCRE_INCLUDE_DIR pcre2.h)
     if(PCRE_INCLUDE_DIR)
       include_directories("${PCRE_INCLUDE_DIR}")
       set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
-    check_include_file("pcre.h" HAVE_PCRE_H)
+    check_include_file("pcre2.h" HAVE_PCRE2_H -DPCRE2_CODE_UNIT_WIDTH=8)
     set(optlibsfound "${optlibsfound} PCRE")
   else()
     set(optlibsnotfound "${optlibsnotfound} PCRE")

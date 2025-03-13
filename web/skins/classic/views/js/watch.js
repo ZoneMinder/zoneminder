@@ -201,7 +201,7 @@ function streamCmdPlay(action) {
       monitorStream.play();
     } else {
       //Stream has been stopped
-      monitorStream.start();
+      monitorStream.start(monitorStream.currentChannelStream);
     }
   }
 }
@@ -481,7 +481,7 @@ function handleClick(event) {
   }
 
   if (panZoomEnabled) {
-    //event.preventDefault();
+    event.preventDefault();
     //We are looking for an object with an ID, because there may be another element in the button.
     const obj = targetId ? event.target : event.target.parentElement;
     if (!obj) {
@@ -842,12 +842,14 @@ function streamPrepareStart(monitor=null) {
 function handleMouseEnter(event) {
   //Displaying "Scale" and other buttons at the top of the monitor image
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#button_zoom' + id).removeClass('hidden');
 }
 
 function handleMouseLeave(event) {
   const id = stringToNumber(this.id);
-  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  //$j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#button_zoom' + id).addClass('hidden');
 }
 
 function streamStart(monitor = null) {
@@ -877,6 +879,21 @@ function streamStart(monitor = null) {
   } else {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+  }
+
+  // Managing the visibility of elements
+  const streamChannel = document.getElementById('streamChannel');
+  const streamQuality = document.getElementById('streamQuality');
+  const rateControl = document.getElementById('rateControl');
+  if (currentMonitor.RTSP2WebEnabled) {
+    streamChannel.classList.remove("hidden-shift");
+    streamQuality.classList.add("hidden-shift");
+    streamChannel.value = currentMonitor.RTSP2WebStream;
+    rateControl.classList.add("hidden-shift");
+  } else {
+    streamQuality.classList.remove("hidden-shift");
+    streamChannel.classList.add("hidden-shift");
+    rateControl.classList.remove("hidden-shift");
   }
 }
 
@@ -1014,13 +1031,14 @@ function initPage() {
   }
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    $j('body').on('mousemove', function() {
-      idle = 0;
-    });
-    setInterval(function() {
-      idle += 10;
-      if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
-        streamCmdPause(true);
+    var inactivityTime = function() {
+      var time;
+      resetTimer();
+      document.onmousemove = resetTimer;
+      document.onkeydown = resetTimer;
+
+      function stopPlayback() {
+        streamCmdStop(true);
         const cycle_was = cycle;
         cyclePause();
         let ayswModal = $j('#AYSWModal');
@@ -1031,7 +1049,6 @@ function initPage() {
                 ayswModal.on('hidden.bs.modal', function() {
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
-                  idle = 0;
                 });
                 ayswModal.modal('show');
               })
@@ -1040,7 +1057,13 @@ function initPage() {
           ayswModal.modal('show');
         }
       }
-    }, 10*1000);
+
+      function resetTimer() {
+        clearTimeout(time);
+        time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
+      }
+    };
+    inactivityTime();
   }
 
   setInterval(() => {
@@ -1292,6 +1315,16 @@ function panZoomEventPanzoomchange(event) {
 
 }
 
+function monitorChangeStreamChannel() {
+  if (currentMonitor.RTSP2WebEnabled) {
+    streamCmdStop(true);
+    setTimeout(function() {
+      monitorStream.start(($j('#streamChannel').val() == "Primary") ? 0 : 1);
+      onPlay();
+    }, 300);
+  }
+}
+
 function monitorsSetScale(id=null) {
   //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
   if (id || typeof monitorStream !== 'undefined') {
@@ -1437,6 +1470,7 @@ function monitorsSetScale(id=null) {
 // Kick everything off
 $j( window ).on("load", initPage);
 
+var prevStateStarted = false;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1444,12 +1478,19 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
-        monitorStream.kill();
+        if (monitorStream.started) {
+          prevStateStarted = 'played';
+          //Stop only if playing or paused.
+          monitorStream.kill();
+        } else {
+          prevStateStarted = false;
+        }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && !monitorStream.started && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+    if (monitorStream && prevStateStarted == 'played' && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+      onPlay(); //Set the correct state of the player buttons.
       monitorStream.start();
     }
   }

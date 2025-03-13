@@ -601,20 +601,6 @@ sub set_config {
   return !undef;
 }
 
-sub ping {
-  my $self = shift;
-  my $ip = @_ ? shift : $$self{host};
-  return undef if ! $ip;
-
-  require Net::Ping;
-  Debug("Pinging $ip");
-
-  my $p = Net::Ping->new();
-  my $rv = $p->ping($ip);
-  $p->close();
-  Debug("Pinging $ip $rv");
-  return $rv;
-}
 
 sub probe {
   my ($ip, $username, $password) = @_;

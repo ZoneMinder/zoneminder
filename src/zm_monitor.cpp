@@ -82,7 +82,7 @@ std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-  "`RTSP2WebEnabled`, `RTSP2WebType`, "
+  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
   "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
   "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
@@ -346,12 +346,13 @@ Monitor::Monitor() :
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-   "SaveJPEGs, VideoWriter, EncoderParameters,
+   "SaveJPEGs, VideoWriter, EncoderParameters,"
    "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
@@ -420,6 +421,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   RTSP2Web_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]);
+  col++;
+  RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]) ;
   col++;
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
@@ -580,7 +583,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   packetqueue.setPreEventVideoPackets(pre_event_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
-  packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH || recording != RECORDING_NONE);
+  packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
   post_event_count = atoi(dbrow[col]);
   col++;
   stream_replay_buffer = atoi(dbrow[col]);
@@ -1858,8 +1861,10 @@ void Monitor::UpdateFPS() {
     FPSeconds db_elapsed = now - last_status_time;
     if (db_elapsed > Seconds(10)) {
       std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+		      "INSERT INTO Monitor_Status (MonitorId, Status,CaptureFPS,CaptureBandwidth, AnalysisFPS, UpdatedOn) VALUES (%u, 'Connected',%.2lf, %u, %.2lf, NOW()) ON DUPLICATE KEY "
+          "UPDATE Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW()",
+	  id, new_capture_fps, new_capture_bandwidth, new_analysis_fps,
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps);
       dbQueue.push(std::move(sql));
       last_status_time = now;
     }
@@ -1962,8 +1967,8 @@ bool Monitor::Analyse() {
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
           // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-          if (!Event_Poller_Closes_Event && state == ALARM)
-            onvif->setAlarmed(false);
+          //if (!Event_Poller_Closes_Event && state == ALARM)
+            //onvif->setAlarmed(false);
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif

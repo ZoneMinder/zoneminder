@@ -2703,6 +2703,7 @@ int Monitor::Analyse() {
         } else {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
+      } else {
       }
     } else {
       Debug(3, "Not video, not clearing packets");
@@ -3412,18 +3413,21 @@ int Monitor::Decode() {
       TimestampImage(capture_image, packet->timestamp);
     }
 
-    unsigned int index = shared_data->last_write_index;
-    index++;
-    index = index % image_buffer_count;
-    if (packet->image) {
-      image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
-      Debug(1, "Assigning %s for index %d", packet->image->toString().c_str(), index);
-      image_buffer[index]->Assign(*(packet->image));
-    }
-    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
-    shared_data->last_write_index = index;
   }  // end if have image
+ 
+  unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
+  if (packet->image) {
+    image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
+    Debug(1, "Assigning %s for index %d", packet->image->toString().c_str(), index);
+    image_buffer[index]->Assign(*(packet->image));
+  } else if (packet->in_frame) {
+    Debug(1, "Assigning for index %d", index);
+    image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
+    image_buffer[index]->Assign(packet->in_frame.get());
+  }
+  shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+  shared_data->last_write_index = index;
   shared_data->decoder_image_count++;
   shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {

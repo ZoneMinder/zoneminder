@@ -62,7 +62,9 @@ class SpeedAI {
 
     // Fast map via indexing, for integer values in range [0, 255]
     std::array<uint8_t, 256> m_fast_map;
-
+    const int NUM_NMS_PREDICTIONS = 256;// * 6; // 256 boxes, each with 6 elements [l, t, r, b, class, score]
+    std::vector<float> m_out_buf;
+    float* outputBuffer;
     // m_quant_bounds[i].second is uppper limit of bin in floating point domain
     // that gets mapped to m_quant_bounds[i].first.
     std::array<std::pair<uint8_t, float>, 256> m_quant_bounds;
@@ -75,7 +77,7 @@ class SpeedAI {
   public:
     class Job {
       public:
-        Job(UaiModule *p_module, AVFrame *input) :
+        Job(UaiModule *p_module) :
           m_module(p_module),
           event({})
           {
@@ -85,8 +87,8 @@ class SpeedAI {
             scaled_frame->width = MODEL_WIDTH;
             scaled_frame->height = MODEL_HEIGHT;
             scaled_frame->format = AV_PIX_FMT_RGB24;
-            m_width_rescale = ((float)MODEL_WIDTH / (float)input->width);
-            m_height_rescale = ((float)MODEL_HEIGHT / (float)input->height);
+            //m_width_rescale = ((float)MODEL_WIDTH / (float)input->width);
+            //m_height_rescale = ((float)MODEL_HEIGHT / (float)input->height);
           };
         ~Job() {
           Debug(1, "In Job destructor");
@@ -103,6 +105,8 @@ class SpeedAI {
           if (scaled_frame)
             av_frame_unref(scaled_frame);
         };
+        void setFrame(AVFrame *frame) {
+        }
         Job(Job &&in) :
           m_module(in.m_module),
           index(in.index),
@@ -151,13 +155,12 @@ class SpeedAI {
       float m_width_rescale;
       float m_height_rescale;
     };
-    std::list<Job > jobs;
+    std::list<Job *> jobs;
     float dequantize(uint8_t val, int bias);
     uint8_t quantize(float val) const;
     int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
 
     Quadra *quadra;
-
     Quadra::filter_worker *drawbox_filter;
     AVFilterContext *drawbox_filter_ctx;
 
@@ -167,12 +170,13 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
-    Job * send_packet(std::shared_ptr<ZMPacket>);
-    Job * send_image(Image *image);
-    Job * send_frame(AVFrame *);
+    Job * get_job();
+    Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
+    Job * send_image(Job *job, Image *image);
+    Job * send_frame(Job *job, AVFrame *);
+    //Job * send_job(Job *);
 
     const nlohmann::json receive_detections(Job *job);
-    int draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size);
     nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float);
     Quadra *getQuadra() const { return quadra; };
     bool setQuadra(Quadra *quadra, int width, int height);

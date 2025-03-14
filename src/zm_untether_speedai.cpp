@@ -60,10 +60,10 @@ SpeedAI::SpeedAI() :
   sw_scale_ctx(nullptr),
   infos(nullptr),
   //image_size(0)
+  count(0),
   quadra(nullptr),
   drawbox_filter(nullptr),
-  drawbox_filter_ctx(nullptr),
-  count(0)
+  drawbox_filter_ctx(nullptr)
 {
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, MODEL_WIDTH, MODEL_HEIGHT, 32);
 
@@ -84,10 +84,17 @@ SpeedAI::SpeedAI() :
   for (int imgPixelVal(0); imgPixelVal <= 255; imgPixelVal++) {
 	  m_fast_map[imgPixelVal] = quantize(static_cast<float>(imgPixelVal));
   }
+
+  m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
+  outputBuffer = m_out_buf.data();
+
 }
 
 SpeedAI::~SpeedAI() {
-  while (jobs.size()) jobs.pop_front();
+  while (jobs.size()) {
+    delete jobs.front();
+    jobs.pop_front();
+  }
   // Clean up
   if (module) {
     Debug(1, "Freeing module");
@@ -151,65 +158,45 @@ bool SpeedAI::setup(
   return true;
 }
 
-bool SpeedAI::setQuadra(Quadra *p_quadra, int width, int height) {
-  int ret;
-  quadra = p_quadra;
-  if (quadra/*draw_box*/) {
-    drawbox_filter = new Quadra::filter_worker();
-    drawbox_filter->buffersink_ctx = nullptr;
-    drawbox_filter->buffersrc_ctx = nullptr;
-    drawbox_filter->filter_graph = nullptr;
-    if ((ret = quadra->init_filter("drawbox", drawbox_filter, false, width, height, AV_PIX_FMT_YUV420P)) < 0) {
-      Error("cannot initialize drawbox filter");
-      return false;
-    }
-
-    for (unsigned int i = 0; i < drawbox_filter->filter_graph->nb_filters; i++) {
-      if (strstr(drawbox_filter->filter_graph->filters[i]->name, "drawbox") != nullptr) {
-        drawbox_filter_ctx = drawbox_filter->filter_graph->filters[i];
-        break;
-      }
-    }
-
-    if (drawbox_filter_ctx == nullptr) {
-      Error( "cannot find valid drawbox filter");
-      return false;
-    }
-  } // end if draw_box
-
-  return true;
-}
-
-SpeedAI::Job * SpeedAI::send_image(Image *image) {
+SpeedAI::Job * SpeedAI::send_image(Job *job, Image *image) {
   AVFrame frame;
   image->PopulateFrame(&frame);
-  return send_frame(&frame);
+  return send_frame(job, &frame);
 }
 
-SpeedAI::Job * SpeedAI::send_packet(std::shared_ptr<ZMPacket> packet) {
+SpeedAI::Job * SpeedAI::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
   AVFrame *avframe = packet->in_frame.get();
   if (!avframe) {
     Error("NO inframe in packet %d, out of mem?", packet->image_index);
     return nullptr;
   }
-  return send_frame(avframe);
+  return send_frame(job, avframe);
 }
 
-SpeedAI::Job * SpeedAI::send_frame(AVFrame *avframe) {
+SpeedAI::Job * SpeedAI::get_job() {
+  Job *job = new Job(module);
+  // TODO, use the inputBuf as the scaled_frame data to avoid a copy
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
+    Error("Failed attaching inputbuf");
+    return nullptr;
+  }
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
+    Error("Failed attaching outputbuf");
+    return nullptr;
+  }
+  if (av_frame_get_buffer(job->scaled_frame, 32)) {
+    Error("cannot allocate scaled frame buffer");
+    return nullptr;
+  }
+  jobs.push_back(job);
+  return job;
+}
+
+SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "SpeedAI::detect %d", count);
 
   if (!sw_scale_ctx) {
-    /*
-    scaled_frame.width = MODEL_WIDTH;
-    scaled_frame.height = MODEL_HEIGHT;
-    scaled_frame.format = AV_PIX_FMT_RGB24;
-    if (av_frame_get_buffer(&scaled_frame, 32)) {
-      Error("cannot allocate scaled frame buffer");
-      return -1;
-    }
-
-    */
     sw_scale_ctx = sws_getContext(
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
         MODEL_WIDTH, MODEL_HEIGHT, AV_PIX_FMT_RGB24,
@@ -220,13 +207,7 @@ SpeedAI::Job * SpeedAI::send_frame(AVFrame *avframe) {
       return nullptr;
     }
   }
-  Job *job = new Job(module, avframe);
 
-  if (av_frame_get_buffer(job->scaled_frame, 32)) {
-    Error("cannot allocate scaled frame buffer");
-    delete job;
-    return nullptr;
-  }
 
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
@@ -234,21 +215,11 @@ SpeedAI::Job * SpeedAI::send_frame(AVFrame *avframe) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
         avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
-    delete job;
     return nullptr;
   }
+  job->m_width_rescale = ((float)MODEL_WIDTH / (float)avframe->width);
+  job->m_height_rescale = ((float)MODEL_HEIGHT / (float)avframe->height);
 
-  // TODO, use the inputBuf as the scaled_frame data to avoid a copy
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
-    Error("Failed attaching inputbuf");
-    delete job;
-    return nullptr;
-  }
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
-    Error("Failed attaching outputbuf");
-    delete job;
-    return nullptr;
-  }
 
   // Fill input buffer with data, applying quantization on the fly via this->operator()(uint8_t)
   uint8_t* uint8Pixel = job->scaled_frame->buf[0]->data;
@@ -284,13 +255,10 @@ SpeedAI::Job * SpeedAI::send_frame(AVFrame *avframe) {
   UaiErr err = uai_module_enqueue(module, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
-    delete job;
     return nullptr;
   }
   Debug(1, "SpeedAI:: success enqueue");
   return job;
-  //jobs.push_back(std::move(job));
-  //return 1;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 
 const nlohmann::json SpeedAI::receive_detections(Job *job) {
@@ -299,16 +267,19 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Debug(1, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
-  UaiErr err = uai_module_wait(module, &job->event, 10);
+  //UaiErr err = uai_module_synchronize(module, &job->event);
 #if 0
+  UaiErr err;
   while (!zm_terminate) {
-    UaiErr err = uai_module_wait(module, &job->event, 10);
-    if ( err != UAI_SUCCESS) {
-      Debug(1, "SpeedAI Failed wait %s", uai_err_string(err));
+    err = uai_module_wait(module, &job->event, 10);
+    if (err != UAI_SUCCESS) {
+      Debug(1, "SpeedAI Failed wait %d, %s", err, uai_err_string(err));
     } else {
       break;
     }
   }
+#else
+  UaiErr err = uai_module_wait(module, &job->event, 10);
 #endif
   Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
 
@@ -325,14 +296,10 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
   int m_fp8p_bias = dequantization_fp8p_bias = -12;
   std::vector<std::vector<int>> m_index_map;
 
-  const int NUM_NMS_PREDICTIONS = 256 * 6; // 256 boxes, each with 6 elements [l, t, r, b, class, score]
-  std::vector<float> m_out_buf;
-  m_out_buf.resize(NUM_NMS_PREDICTIONS);
-  float* outputBuffer = m_out_buf.data();
 
   for (int row = 0; row < 256; row++) {
     uint8_t l_low, l_top, t_low, t_top, r_low, r_top, b_low, b_top, score;
-    float object_class;
+   
     // l_low = *(DMAoutput + m_index_map[row][0]);
     // l_top = *(DMAoutput + m_index_map[row][1]);
     // t_low = *(DMAoutput + m_index_map[row][2]);
@@ -352,7 +319,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     r_top = *(DMAoutput + outputDMAIndex + 5);
     b_low = *(DMAoutput + outputDMAIndex + 6);
     b_top = *(DMAoutput + outputDMAIndex + 7);
-    object_class = static_cast<float>(*(DMAoutput + outputDMAIndex + 8));
+    float  object_class = static_cast<float>(*(DMAoutput + outputDMAIndex + 8));
     score = *(DMAoutput + outputDMAIndex + 9);
 
     // Combine the uint8_t pairs into uint16_t values
@@ -381,65 +348,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
   return coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
 }
 
-int SpeedAI::draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size) {
-  Rgb colour = kRGBRed;
-
-  try {
-    Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
-    if (coco_object.size()) {
-      AVFrame * in_frame;
-      in_image->PopulateFrame(in_frame);
-
-      for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
-        nlohmann::json detection = *it;
-        nlohmann::json bbox = detection["bbox"];
-
-        //Debug(1, "%s", bbox.dump().c_str());
-        std::vector<Vector2> coords;
-        int x1 = bbox[0];
-        int y1 = bbox[1];
-        int x2 = bbox[2];
-        int y2 = bbox[3];
-# if 0
-        coords.push_back(Vector2(x1, y1));
-        coords.push_back(Vector2(x2, y1));
-        coords.push_back(Vector2(x2, y2));
-        coords.push_back(Vector2(x1, y2));
-
-        Polygon poly(coords);
-        ai_image.Outline(colour, poly);
-#endif
-        AVFrame *out_frame = av_frame_alloc();
-        if (!out_frame) {
-          Error("cannot allocate output filter frame");
-          return NIERROR(ENOMEM);
-        }
-
-        int ret = draw_box(in_frame, &out_frame, x1, y1, x2-x1, y2-y1);
-        if (ret < 0) {
-          Error("draw box failed");
-          return ret;
-        }
-        zm_dump_video_frame(out_frame, "SpeedAI: boxes");
-
-        std::string coco_class = detection["class_name"];
-        float score = detection["score"];
-        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
-        Image temp_image(out_frame);
-        temp_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
-
-        in_frame = out_frame;
-      }  // end foreach detection
-      out_image->Assign(in_frame);
-    } else {
-      out_image->Assign(*in_image);
-    }  // end if coco
-  } catch (std::exception const & ex) {
-    Error("SpeedAI Exception: %s", ex.what());
-  }
-
-  return 1;
-}
 
 uint8_t SpeedAI::quantize(float val) const {
 	// There are two FP8 representations of zero (+- 0.0) and the search below would pick up the
@@ -508,58 +416,5 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
   return coco_predictions;
 }
 
-int SpeedAI::draw_box(
-    AVFrame *inframe,
-    AVFrame **outframe,
-    int x, int y, int w, int h
-    ) {
-  if (!drawbox_filter_ctx) {
-    Error("No drawbox_filter_ct");
-    return -1;
-  }
-
-  char drawbox_option[32];
-  std::string color;
-  int n, ret;
-
-  color = "green";
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", y); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "y", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", w); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "w", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
-
-  ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
-  if (ret < 0) {
-    Error("cannot send drawbox filter command, ret %d.", ret);
-    return ret;
-  }
-
-  ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
-  if (ret < 0) {
-    Error("cannot add frame to drawbox buffer src %d", ret);
-    return ret;
-  }
-
-  do {
-    ret = av_buffersink_get_frame(drawbox_filter->buffersink_ctx, *outframe);
-    if (ret == AVERROR(EAGAIN)) {
-      continue;
-    } else if (ret < 0) {
-      Error("cannot get frame from drawbox buffer sink %d", ret);
-      return ret;
-    } else {
-      break;
-    }
-  } while (!zm_terminate);
-  return 0;
-} 
 
 #endif

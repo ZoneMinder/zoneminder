@@ -912,7 +912,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image *GetAlarmImage();
   Image *GetDecodedImage(int32_t index) {
-    return analysis_image_buffer[index];
+    return image_buffer[index];
   };
   Image *GetAnalysisImage(int32_t index) {
     return analysis_image_buffer[index];

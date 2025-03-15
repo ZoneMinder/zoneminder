@@ -719,9 +719,7 @@ function initPage() {
   });
 
   // Disable the back button if there is nothing to go back to
-  //backBtn.prop('disabled', !document.referrer.length);
-  const referer = (new URL(window.location.href)).url.searchParams.get('referer');
-  backBtn.prop('disabled', (!document.referrer.length && !referer));
+  backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {

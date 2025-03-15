@@ -715,11 +715,7 @@ function initPage() {
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
-    if (document.referrer.length) {
-      window.history.back();
-    } else {
-      window.location.assign((new URL(window.location.href)).searchParams.get('referer'));
-    }
+    window.history.back();
   });
 
   // Disable the back button if there is nothing to go back to

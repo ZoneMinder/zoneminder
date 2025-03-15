@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'SpeedAI' AND Id=1";
+  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'SpeedAI'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (monitor_id > 0)
@@ -261,6 +261,8 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
       Error( "cannot find valid drawbox filter");
       //return false;
     }
+
+    // Start at latest decoded image
     shared_data->analysis_image_count = shared_data->decoder_image_count;
 
     while (!zm_terminate) {

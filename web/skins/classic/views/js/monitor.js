@@ -485,6 +485,10 @@ function saveMonitorData(href = '') {
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
       if (href) window.location.assign(href);
+    },
+    error: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      alert('An error occurred while saving data.'); /* Proper formatting required! */
     }
   });
   $j('#saveConfirm').modal('hide');

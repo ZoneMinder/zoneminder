@@ -94,6 +94,7 @@ class Image {
   blend_fptr_t blend;
 
   void update_function_pointers();
+SwsContext *sws_convert_context;
 
  protected:
   inline void AllocImgBuffer(size_t p_bufsize) {

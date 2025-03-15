@@ -51,7 +51,6 @@ static short *g_v_table;
 static short *g_u_table;
 static short *b_u_table;
 
-struct SwsContext *sws_convert_context = nullptr;
 
 jpeg_compress_struct *Image::writejpg_ccinfo[101] = { };
 jpeg_compress_struct *Image::encodejpg_ccinfo[101] = { };
@@ -125,6 +124,7 @@ Image::Image() :
   delta8_abgr(&std_delta8_abgr),
   delta8_gray8(&std_delta8_gray8),
   blend(&std_blend),
+  sws_convert_context(nullptr),
   width(0),
   linesize(0),
   height(0),
@@ -143,7 +143,9 @@ Image::Image() :
   blend = fptr_blend;
 }
 
-Image::Image(const std::string &filename) {
+Image::Image(const std::string &filename) :
+  sws_convert_context(nullptr)
+{
   if ( !initialised )
     Initialise();
   filename_ = filename;
@@ -165,6 +167,7 @@ Image::Image(const std::string &filename) {
 
 Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, 
     unsigned long p_allocation, unsigned int p_padding) :
+  sws_convert_context(nullptr),
   width(p_width),
   height(p_height),
   colours(p_colours),
@@ -206,6 +209,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
 }
 
 Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) :
+  sws_convert_context(nullptr),
   width(p_width),
   height(p_height),
   colours(p_colours),
@@ -246,6 +250,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
 }
 Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder,
     uint8_t *p_buffer, unsigned int p_padding) :
+  sws_convert_context(nullptr),
   width(p_width),
   linesize(p_linesize),
   height(p_height),
@@ -276,6 +281,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
 }
 
 Image::Image(const AVFrame *frame, int p_width, int p_height) :
+  sws_convert_context(nullptr),
   colours(ZM_COLOUR_YUV420P),
   padding(0),
   subpixelorder(ZM_SUBPIX_ORDER_YUV420P),
@@ -298,7 +304,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   this->Assign(frame);
 }
 
-Image::Image(const AVFrame *frame) {
+Image::Image(const AVFrame *frame) :
+  sws_convert_context(nullptr)
+{
   AssignDirect(frame);
 }
 
@@ -387,7 +395,9 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   return true;
 }  // end Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame)
 
-Image::Image(const Image &p_image) {
+Image::Image(const Image &p_image) :
+  sws_convert_context(nullptr)
+{
   if ( !initialised )
     Initialise();
   width = p_image.width;
@@ -443,10 +453,12 @@ void Image::Deinitialise() {
     }
   } // end foreach quality
 
+#if 0
   if (sws_convert_context) {
     sws_freeContext(sws_convert_context);
     sws_convert_context = nullptr;
   }
+#endif
 }  // end void Image::Deinitialise()
 
 void Image::Initialise() {

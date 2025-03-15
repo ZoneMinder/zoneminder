@@ -2703,7 +2703,6 @@ int Monitor::Analyse() {
         } else {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
-      } else {
       }
     } else {
       Debug(3, "Not video, not clearing packets");
@@ -3908,7 +3907,8 @@ int Monitor::Pause() {
       sws_freeContext(convert_context);
       convert_context = nullptr;
     }
-    shared_data->decoder_image_count = 0;
+    if (shared_data) shared_data->decoder_image_count = 0;
+    Debug(1, "Clearing decoder_queue %zu", decoder_queue.size());
     while (decoder_queue.size()) decoder_queue.pop_front();
   }
   if (analysis_thread) {

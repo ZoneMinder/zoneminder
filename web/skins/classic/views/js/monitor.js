@@ -304,8 +304,7 @@ function initPage() {
 
   // Manage the SAVE CONFIRMATION modal button
   function manageSaveConfirmModalBtns() {
-    //const href = '?view=zones&mid='+mid;
-    const href = '?view=zones&mid='+mid+'&referer='+window.location.pathname+window.location.search+window.location.hash;
+    const href = '?view=zones&mid='+mid;
     document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
       document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
       evt.preventDefault();

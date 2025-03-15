@@ -278,7 +278,7 @@ function initPage() {
   // Manage the ZONES Button
   document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
     const data = {
-      request: "modal", 
+      request: "modal",
       modal: "saveconfirm",
       key: messageSavingDataWhenLeavingPage
     };
@@ -475,15 +475,15 @@ function initPage() {
 
 function saveMonitorData(href = '') {
   const alertBlock = $j("#alertSaveMonitorData");
-  let form_data = $j("#contentForm").serializeArray();
-  alertBlock.fadeIn( { duration: 'fast' });
+  const form_data = $j("#contentForm").serializeArray();
+  alertBlock.fadeIn({duration: 'fast'});
   form_data.push({name: "action", value: "save"});
   $j.ajax({
     type: "POST",
     url: "?view=monitor",
     data: form_data,
     success: function () {
-      alertBlock.fadeOut( { duration: 'fast' });
+      alertBlock.fadeOut({duration: 'fast'});
       if (href) window.location.assign(href);
     }
   });

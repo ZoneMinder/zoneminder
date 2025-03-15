@@ -1212,6 +1212,22 @@ button.btn.btn-view-watch:hover {
 
 /* --- Control button block in the Stream image*/
 
+.fixed-t-r {
+  position: fixed;
+  top: 50px;
+  right: 50px;
+  min-width: 250px;
+}
+
+@media screen and (max-width:767px) {
+  .fixed-t-r {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    min-width: 200px;
+  }
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

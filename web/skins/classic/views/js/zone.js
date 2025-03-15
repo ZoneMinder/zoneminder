@@ -715,11 +715,17 @@ function initPage() {
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
-    window.history.back();
+    if (document.referrer.length) {
+      window.history.back();
+    } else {
+      window.location.assign((new URL(window.location.href)).searchParams.get('referer'));
+    }
   });
 
   // Disable the back button if there is nothing to go back to
-  backBtn.prop('disabled', !document.referrer.length);
+  //backBtn.prop('disabled', !document.referrer.length);
+  const referer = (new URL(window.location.href)).url.searchParams.get('referer');
+  backBtn.prop('disabled', (!document.referrer.length && !referer));
 
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {

@@ -482,7 +482,7 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function () {
+    success: function() {
       alertBlock.fadeOut({duration: 'fast'});
       if (href) window.location.assign(href);
     }

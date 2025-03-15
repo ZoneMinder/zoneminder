@@ -7,6 +7,8 @@
 #include <nlohmann/json.hpp>
 
 #include <list>
+#include <mutex>
+
 #include "zm_quadra.h"
 
 extern "C" {
@@ -30,6 +32,8 @@ class Monitor;
 class SpeedAI {
   private:
     UaiModule* module;
+    std::mutex  mutex_;
+
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
     size_t batchSize;

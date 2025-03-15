@@ -175,6 +175,13 @@ SpeedAI::Job * SpeedAI::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) 
 
 SpeedAI::Job * SpeedAI::get_job() {
   Job *job = new Job(module);
+  if (av_frame_get_buffer(job->scaled_frame, 32)) {
+    Error("cannot allocate scaled frame buffer");
+    return nullptr;
+  }
+
+  std::unique_lock<std::mutex> lck(mutex_);
+
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
@@ -182,10 +189,6 @@ SpeedAI::Job * SpeedAI::get_job() {
   }
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
-    return nullptr;
-  }
-  if (av_frame_get_buffer(job->scaled_frame, 32)) {
-    Error("cannot allocate scaled frame buffer");
     return nullptr;
   }
   jobs.push_back(job);
@@ -196,18 +199,12 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "SpeedAI::detect %d", count);
 
-  if (!sw_scale_ctx) {
-    sw_scale_ctx = sws_getContext(
+  std::unique_lock<std::mutex> lck(mutex_);
+
+  sw_scale_ctx = sws_getCachedContext(sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
         MODEL_WIDTH, MODEL_HEIGHT, AV_PIX_FMT_RGB24,
-        //scaled_frame.width, scaled_frame.height, static_cast<AVPixelFormat>(scaled_frame.format),
         SWS_BICUBIC, nullptr, nullptr, nullptr);
-    if (!sw_scale_ctx) {
-      Error("cannot create sw scale context");
-      return nullptr;
-    }
-  }
-
 
   int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
@@ -219,7 +216,6 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   }
   job->m_width_rescale = ((float)MODEL_WIDTH / (float)avframe->width);
   job->m_height_rescale = ((float)MODEL_HEIGHT / (float)avframe->height);
-
 
   // Fill input buffer with data, applying quantization on the fly via this->operator()(uint8_t)
   uint8_t* uint8Pixel = job->scaled_frame->buf[0]->data;

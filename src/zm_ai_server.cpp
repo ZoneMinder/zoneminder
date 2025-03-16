@@ -329,13 +329,14 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
 int draw_boxes(
     Quadra::filter_worker *drawbox_filter,
     AVFilterContext *drawbox_filter_ctx,
-    Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size) {
+    Image *in_image, Image *out_image,
+    const nlohmann::json &coco_object, int font_size) {
   //Rgb colour = kRGBRed;
 
   try {
     Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
     if (coco_object.size()) {
-      AVFrame * in_frame = av_frame_alloc();
+      AVFrame *in_frame = av_frame_alloc();
       in_image->PopulateFrame(in_frame);
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
@@ -348,15 +349,6 @@ int draw_boxes(
         int y1 = bbox[1];
         int x2 = bbox[2];
         int y2 = bbox[3];
-# if 0
-        coords.push_back(Vector2(x1, y1));
-        coords.push_back(Vector2(x2, y1));
-        coords.push_back(Vector2(x2, y2));
-        coords.push_back(Vector2(x1, y2));
-
-        Polygon poly(coords);
-        ai_image.Outline(colour, poly);
-#endif
         AVFrame *out_frame = av_frame_alloc();
         if (!out_frame) {
           Error("cannot allocate output filter frame");
@@ -376,6 +368,7 @@ int draw_boxes(
         Image temp_image(out_frame);
         temp_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
 
+        av_frame_free(&in_frame);
         in_frame = out_frame;
       }  // end foreach detection
       out_image->Assign(in_frame);
@@ -402,10 +395,9 @@ int draw_box(
   }
 
   char drawbox_option[32];
-  std::string color;
+  std::string color = "green";
   int n, ret;
 
-  color = "green";
 
   n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
   av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);

@@ -3105,6 +3105,22 @@ int Monitor::OpenDecoder() {
         av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
         av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
       }
+      if (chosen_codec_data->options_defaults) {
+        AVDictionary *opts_defaults = nullptr;
+        av_dict_parse_string(&opts_defaults, chosen_codec_data->options_defaults, "=", ",", 0);
+        AVDictionaryEntry *e = nullptr;
+        while ((e = av_dict_get(opts_defaults, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+          const AVDictionaryEntry *entry = av_dict_get(opts, e->key, nullptr, AV_DICT_MATCH_CASE);
+          if (!entry) {
+            int ret;
+            if ((ret = av_dict_set(&opts, e->key, e->value, 0)) < 0) {
+              Error("Couldn't set default Option %s set to %s", e->key, e->value);
+            }
+            Debug(1, "Option %s set to %s from default", e->key, e->value);
+          }
+        }
+        av_dict_free(&opts_defaults);
+      }
       av_opt_set(mVideoCodecContext->priv_data, "dec", (decoder_hwaccel_device != "" ? decoder_hwaccel_device.c_str() : "-1"), 0);
 
       int ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);

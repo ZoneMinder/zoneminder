@@ -61,6 +61,7 @@ and perform AI analysis on latest frames
 #include <thread>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 #include "zm_quadra.h"
 #ifdef HAVE_UNTETHER_H
 // Untether runtime API header
@@ -211,8 +212,10 @@ int main(int argc, char *argv[]) {
     monitor->disconnect();
   }  // end foreach monitor
 
+#ifdef HAVE_UNTETHER_H
   delete speedai;
   speedai = nullptr;
+#endif
 
   Image::Deinitialise();
   logTerm();
@@ -222,6 +225,7 @@ int main(int argc, char *argv[]) {
 }
 
 void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
+#ifdef HAVE_UNTETHER_H
   SpeedAI::Job *job = speedai->get_job();
   Quadra::filter_worker *drawbox_filter;
   AVFilterContext *drawbox_filter_ctx;
@@ -324,6 +328,7 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
     delete drawbox_filter;
   }
 
+#endif
 } // end SpeedAIDetect   
 
 int draw_boxes(

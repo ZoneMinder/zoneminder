@@ -325,6 +325,7 @@ struct CodecData {
   const AVHWDeviceType hwdevice_type;
 #endif
   const char *hwdevice_default;
+  const char *options_defaults;
 };
 std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_coder) ;
 std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;

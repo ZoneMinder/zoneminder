@@ -87,20 +87,14 @@ $attrTypes = ZM\Filter::attrTypes();
 
 $opTypes = ZM\Filter::opTypes();
 $tags_opTypes = ZM\Filter::tags_opTypes();
-$is_isnot_opTypes = array(
-  'IS'  => translate('OpIs'),
-  'IS NOT'  => translate('OpIsNot'),
-);
+$is_isnot_opTypes = ZM\Filter::is_isnot_opTypes();
 
 $archiveTypes = array(
   '0' => translate('ArchUnarchived'),
   '1' => translate('ArchArchived')
 );
 
-$booleanValues = array(
-  'false' => translate('False'),
-  'true' => translate('True')
-);
+$booleanValues = ZM\Filter::booleanValues();
 
 $focusWindow = true;
 

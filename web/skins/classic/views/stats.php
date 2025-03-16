@@ -29,9 +29,9 @@ $fid = validInt($_REQUEST['fid']);
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Stats').' - '.$eid.' - '.$fid);
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">

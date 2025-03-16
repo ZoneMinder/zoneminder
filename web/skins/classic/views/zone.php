@@ -115,9 +115,9 @@ $monitor->connKey();
 # So we need javascript to figure out browser width, figure out scale and then activate the stream.  
 
 xhtmlHeaders(__FILE__, translate('Zone'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div class="w-100">
       <div class="float-left pl-3 pt-1">

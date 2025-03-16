@@ -277,6 +277,7 @@ function initPage() {
 
   // Manage the ZONES Button
   document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
+    evt.preventDefault();
     const data = {
       request: "modal",
       modal: "saveconfirm",
@@ -485,6 +486,7 @@ function saveMonitorData(href = '') {
     success: function() {
       alertBlock.fadeOut({duration: 'fast'});
       if (href) window.location.assign(href);
+      //document.getElementById('zones-tab').classList.remove("disabled");
     },
     error: function() {
       alertBlock.fadeOut({duration: 'fast'});

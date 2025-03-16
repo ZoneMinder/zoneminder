@@ -375,24 +375,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
     });
 
-    // Manage the web console filter bar minimize chevron
-    /*$j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow", function() {
-        if ($j.isFunction('changeScale')) {
-          changeScale();
-        }
-      });
-      var mfbflip = $j("#mfbflip");
-      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
-        mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up');
-      } else {
-        mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
-      }
-    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -514,7 +496,12 @@ function checkStreamForErrors(funcName, streamObj) {
     Error(funcName+': stream object was null');
     return true;
   }
-  if ( streamObj.result == "Error" ) {
+  if ( streamObj.responseJSON ) {
+    if (streamObj.responseJSON.result == "Error") {
+      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      return true;
+    }
+  } else if ( streamObj.result == "Error" ) {
     Error(funcName+' stream error: '+streamObj.message);
     return true;
   }
@@ -727,22 +714,6 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     newHeight = newWidth / ratio;
   }
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
-  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
-  const scales = $j('#scale option').map(function() {
-    return parseInt($j(this).val());
-  }).get();
-  scales.shift(); // pop off Scale To Fit
-  let closest = null;
-  $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  if (closest) {
-    console.log("Setting to closest: " + closest + " instead of " + autoScale);
-    autoScale = closest;
-  }
-  */
   // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
   autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
@@ -1210,7 +1181,6 @@ function thisClickOnStreamObject(clickObj) {
       return true;
     } else if (clickObj.id.indexOf('monitorStatus') != -1) {
       return document.getElementById('monitor'+stringToNumber(clickObj.id));
-      //return clickObj;
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
@@ -1233,7 +1203,10 @@ var doubleTouchExecute = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
-  if (shifted || ctrled || alted) return;
+  if (shifted || ctrled || alted) {
+    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.");
+    return;
+  }
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
     //Process only double clicks directly on the image, excluding clicks,

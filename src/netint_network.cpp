@@ -202,8 +202,6 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
             Error("failed to initialize hw scale");
             goto failed_out;
         }
-    } else {
-      Error("Not using hwframe");
     }
     *p_network_ctx = network_ctx;
     return 0;

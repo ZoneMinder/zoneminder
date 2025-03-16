@@ -1493,7 +1493,7 @@ document.onvisibilitychange = () => {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
       onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start();
+      monitorStream.start(monitorStream.currentChannelStream);
     }
   }
 };

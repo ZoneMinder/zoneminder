@@ -48,6 +48,4 @@ echo getNavBarHTML();
       </form>
     </div>
   </div>
-</body>
-</html>
 <?php xhtmlFooter() ?>

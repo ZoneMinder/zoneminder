@@ -636,6 +636,11 @@ body.sticky #page {
     margin-bottom: 0;
 }
 
+#contentForm {
+    width: 100%;
+    overflow: auto;
+}
+
 #footer {
     width: 96%;
     margin: 8px auto;

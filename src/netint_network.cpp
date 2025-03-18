@@ -135,8 +135,6 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         bool hwframe, int devid, int keep_alive_timeout, int scale_format,
         int scale_width, int scale_height, const char *nbg_file)
 {
-    ni_retcode_t retval;
-    NiNetworkContext *network_ctx;
     int ret;
 
     if ((nbg_file == NULL) || (access(nbg_file, R_OK) != 0)) {
@@ -144,13 +142,14 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         return NIERROR(EINVAL);
     }
 
-    network_ctx = (NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
+    NiNetworkContext *network_ctx = new NiNetworkContext();
+    //(NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
     if (!network_ctx) {
         Error("failed to allocate network context");
         return NIERROR(ENOMEM);
     }
 
-    retval = ni_device_session_context_init(&network_ctx->npu_api_ctx);
+    ni_retcode_t retval = ni_device_session_context_init(&network_ctx->npu_api_ctx);
     if (retval != NI_RETCODE_SUCCESS) {
         Error("failed to initialize npu session context");
         return NIERROR(EIO);
@@ -162,14 +161,12 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         network_ctx->npu_api_ctx.hw_action = NI_CODEC_HW_ENABLE;
     }
     network_ctx->npu_api_ctx.hw_id = devid;
-
     network_ctx->npu_api_ctx.device_type = NI_DEVICE_TYPE_AI;
     network_ctx->npu_api_ctx.keep_alive_timeout = keep_alive_timeout;
     retval = ni_device_session_open(&network_ctx->npu_api_ctx, NI_DEVICE_TYPE_AI);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to open npu session. retval %d",
-               retval);
-        return NIERROR(EIO);
+      Error("failed to open npu session. retval %d", retval);
+      return NIERROR(EIO);
     }
 
     retval = ni_ai_config_network_binary(&network_ctx->npu_api_ctx,

@@ -419,6 +419,10 @@ Image::Image(const Image &p_image) :
 
 Image::~Image() {
   DumpImgBuffer();
+  if (sws_convert_context) {
+    sws_freeContext(sws_convert_context);
+    sws_convert_context = nullptr;
+  }
 }
 
 const std::string Image::toString() {

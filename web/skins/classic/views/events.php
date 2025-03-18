@@ -84,9 +84,9 @@ $filterQuery = $filter->querystring();
 
 xhtmlHeaders(__FILE__, translate('Events'));
 getBodyTopHTML();
+echo getNavBarHTML();
 ?>
   <div id="page">
-<?php echo getNavBarHTML(); ?>
     <div id="content" class="container-fluid">
       <!-- Toolbar button placement and styling handled by bootstrap-tables -->
       <div id="toolbar" class="container-fluid">

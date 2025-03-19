@@ -89,6 +89,7 @@ class SpeedAI {
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
+            scaled_frame = av_frame_ptr(zm_av_frame_alloc());
             scaled_frame->width = MODEL_WIDTH;
             scaled_frame->height = MODEL_HEIGHT;
             scaled_frame->format = AV_PIX_FMT_RGB24;

@@ -31,8 +31,9 @@ $optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blan
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('OptionHelp'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
@@ -45,5 +46,4 @@ xhtmlHeaders(__FILE__, translate('OptionHelp'));
       <p class="textblock"><?php echo $optionHelpText ?></p>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

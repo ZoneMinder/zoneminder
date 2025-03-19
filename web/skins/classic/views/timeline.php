@@ -673,9 +673,9 @@ function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Timeline'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page p-0">
     <div class="d-flex p-1">
       <div class="mr-auto" id="toolbar" >

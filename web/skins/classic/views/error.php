@@ -21,9 +21,9 @@
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Error') );
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div id="header">
       <h1>ZoneMinder <?php echo translate('Error') ?></h1>
@@ -37,5 +37,4 @@ xhtmlHeaders(__FILE__, translate('Error') );
       </p>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

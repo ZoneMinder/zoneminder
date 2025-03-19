@@ -126,10 +126,10 @@ session_write_close();
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));
+getBodyTopHTML();
+echo $navbar = getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo $navbar = getNavBarHTML(); ?>
     <div id="header">
       <div id="headerButtons">
 <?php if ( $options['mode'] == 'stream' ) { ?>

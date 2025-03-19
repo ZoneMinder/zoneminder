@@ -51,8 +51,9 @@ $monitor = new ZM\Monitor($mid);
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Control'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
@@ -72,5 +73,4 @@ xhtmlHeaders(__FILE__, translate('Control'));
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

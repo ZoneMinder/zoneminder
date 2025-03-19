@@ -323,10 +323,12 @@ void AIThread::Run() {
     }  // end if have a new image
        //
     if (!zm_terminate and !terminate_) {
-      Microseconds delay = monitor_->GetCaptureDelay();
-      if (delay==Microseconds(0)) delay = Microseconds(3000);
-      Debug(1, "Sleeping for %ld microseconds", delay.count());
-      std::this_thread::sleep_for(delay);
+      if (shared_data->decoder_image_count == shared_data->analysis_image_count) {
+        Microseconds delay = monitor_->GetCaptureDelay();
+        if (delay==Microseconds(0)) delay = Microseconds(3000);
+        Debug(1, "Sleeping for %ld microseconds", delay.count());
+        std::this_thread::sleep_for(delay);
+      }
     }
   }  // end while !zm_terminate
   if (drawbox_filter) {
@@ -345,7 +347,7 @@ int draw_boxes(
   //Rgb colour = kRGBRed;
 
   try {
-    Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
+    //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
     if (coco_object.size()) {
       AVFrame *in_frame = av_frame_alloc();
       in_image->PopulateFrame(in_frame);
@@ -371,7 +373,7 @@ int draw_boxes(
           Error("draw box failed");
           return ret;
         }
-        zm_dump_video_frame(out_frame, "SpeedAI: boxes");
+        //zm_dump_video_frame(out_frame, "SpeedAI: boxes");
 
         std::string coco_class = detection["class_name"];
         float score = detection["score"];

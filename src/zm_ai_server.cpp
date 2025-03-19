@@ -163,6 +163,7 @@ int main(int argc, char *argv[]) {
   if (!speedai->setup( "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf")) {
     delete speedai;
     speedai = nullptr;
+    return 0;
   }
 #endif
 
@@ -181,7 +182,11 @@ int main(int argc, char *argv[]) {
       } else {
         Debug(1, "Adding monitor %d to monitors", monitor->Id());
         monitors[monitor->Id()] = monitor;
-        threads[monitor->Id()] = new AIThread(monitor, speedai);
+        threads[monitor->Id()] = new AIThread(monitor
+#if HAVE_UNTETHER_H
+            , speedai
+#endif
+            );
         threads[monitor->Id()]->Start();
       }
     }
@@ -443,9 +448,15 @@ int draw_box(
   return 0;
 }
 
-AIThread::AIThread(const std::shared_ptr<Monitor> monitor, SpeedAI *p_speedai) :
-  monitor_(monitor), terminate_(false),
-  speedai(p_speedai)
+AIThread::AIThread(const std::shared_ptr<Monitor> monitor
+#if HAVE_UNTETHER_H
+    , SpeedAI *p_speedai
+#endif
+    ) :
+  monitor_(monitor), terminate_(false)
+#if HAVE_UNTETHER_H
+  , speedai(p_speedai)
+#endif
 {
   thread_ = std::thread(&AIThread::Run, this);
 }

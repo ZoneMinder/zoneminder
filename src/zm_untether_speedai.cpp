@@ -155,9 +155,9 @@ bool SpeedAI::setup(
 }
 
 SpeedAI::Job * SpeedAI::send_image(Job *job, Image *image) {
-  AVFrame frame;
-  image->PopulateFrame(&frame);
-  return send_frame(job, &frame);
+  av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
+  image->PopulateFrame(frame.get());
+  return send_frame(job, frame.get());
 }
 
 SpeedAI::Job * SpeedAI::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
@@ -271,7 +271,11 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     }
   }
 #else
-  UaiErr err = uai_module_wait(module_, &job->event, 0);
+  UaiErr err = uai_module_wait(module_, &job->event, 10);
+  if (err != UAI_SUCCESS) {
+    Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
+    return coco_object;
+  }
 #endif
   Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
 

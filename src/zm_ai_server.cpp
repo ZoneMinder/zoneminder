@@ -211,6 +211,7 @@ int main(int argc, char *argv[]) {
   for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {
     unsigned int i = mon_pair.first;
     threads[i]->Stop();
+    threads[i]->Join();
 
     auto monitor = mon_pair.second;
     monitor->disconnect();
@@ -242,103 +243,91 @@ void AIThread::Run() {
   Quadra::filter_worker *drawbox_filter;
   AVFilterContext *drawbox_filter_ctx;
 
-  while (!zm_terminate and !terminate_) {
-    Debug(1, "Checking monitor %d %s", monitor_->Id(), monitor_->Name());
 
-    if (!monitor_->isConnected()) {
+  int ret;
+  drawbox_filter = new Quadra::filter_worker();
+  if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
+    Error("cannot initialize drawbox filter");
+    return;
+  }
+  drawbox_filter_ctx = drawbox_filter->find_filter_ctx("drawbox");
+  if (drawbox_filter_ctx == nullptr) {
+    Error( "cannot find valid drawbox filter");
+    return;
+  }
+
+  if (!monitor_->ShmValid()) {
+    Debug(1, "!ShmValid");
+    monitor_->disconnect();
+    if (!monitor_->connect()) {
+      Warning("Couldn't connect to monitor %d", monitor_->Id());
+      return;
+    }  // end if failed to connect
+  }  // end if !ShmValid
+     //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
+  Monitor::SharedData *shared_data = monitor_->getSharedData();
+  int image_buffer_count = monitor_->GetImageBufferCount();
+  // Start at latest decoded image
+  shared_data->analysis_image_count = shared_data->decoder_image_count;
+
+  while (!zm_terminate and !terminate_) {
+    if (!monitor_->ShmValid()) {
+      Debug(1, "!ShmValid");
+      monitor_->disconnect();
       if (!monitor_->connect()) {
         Warning("Couldn't connect to monitor %d", monitor_->Id());
         monitor_->Reload();  // This is to pickup change of colours, width, height, etc
-        continue;
       }  // end if failed to connect
-    }
+    }  // end if !ShmValid
+       //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
+       //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
 
-    Monitor::SharedData *shared_data = monitor_->getSharedData();
-    int image_buffer_count = monitor_->GetImageBufferCount();
+    if (shared_data->decoder_image_count > shared_data->analysis_image_count) {
+      int32_t decoder_image_index = shared_data->decoder_image_count % image_buffer_count;
+      int32_t our_image_index = (shared_data->analysis_image_count+1) % image_buffer_count;
 
-    int ret;
-    drawbox_filter = new Quadra::filter_worker();
-    drawbox_filter->buffersink_ctx = nullptr;
-    drawbox_filter->buffersrc_ctx = nullptr;
-    drawbox_filter->filter_graph = nullptr;
-    if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
-      Error("cannot initialize drawbox filter");
-      //return false;
-    }
+      Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
 
-    for (unsigned int i = 0; i < drawbox_filter->filter_graph->nb_filters; i++) {
-      if (strstr(drawbox_filter->filter_graph->filters[i]->name, "drawbox") != nullptr) {
-        drawbox_filter_ctx = drawbox_filter->filter_graph->filters[i];
-        break;
-      }
-    }
+      if (speedai) {
+        Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
+            monitor_->Id(), shared_data->decoder_image_count, decoder_image_index,
+            shared_data->analysis_image_count, our_image_index);
 
-    if (drawbox_filter_ctx == nullptr) {
-      Error( "cannot find valid drawbox filter");
-      //return false;
-    }
-
-    // Start at latest decoded image
-    shared_data->analysis_image_count = shared_data->decoder_image_count;
-
-    while (!zm_terminate and !terminate_) {
-      if (!monitor_->ShmValid()) {
-        Debug(1, "!ShmValid");
-        monitor_->disconnect();
-        if (!monitor_->connect()) {
-          Warning("Couldn't connect to monitor %d", monitor_->Id());
-          monitor_->Reload();  // This is to pickup change of colours, width, height, etc
-          break;
-        }  // end if failed to connect
-      }  // end if !ShmValid
-      //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
-          //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
-
-      if (shared_data->decoder_image_count > shared_data->analysis_image_count) {
-        int32_t decoder_image_index = shared_data->decoder_image_count % image_buffer_count;
-        int32_t our_image_index = (shared_data->analysis_image_count+1) % image_buffer_count;
-
-        Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
-
-#if HAVE_UNTETHER_H
-        if (speedai) {
-          Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
-              monitor_->Id(), shared_data->decoder_image_count, decoder_image_index,
-              shared_data->analysis_image_count, our_image_index);
-
-          do {
-            job = speedai->send_image(job, in_image);
-            if (!job) {
-              Warning("Can't send_packet %d", decoder_image_index);
-            }
-          } while (!job);
-
-          Image *ai_image = monitor_->GetAnalysisImage(our_image_index);
-          nlohmann::json detections = speedai->receive_detections(job);
-          Debug(1, "detections %s", detections.dump().c_str());
-          if (detections.size()) {
-            draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, detections, monitor_->LabelSize());
-          } else {
-            ai_image->Assign(*in_image);
+        do {
+          job = speedai->send_image(job, in_image);
+          if (!job) {
+            Warning("Can't send_packet %d", decoder_image_index);
           }
+        } while (!job and !zm_terminate and !terminate_);
 
-          shared_data->analysis_image_count++;
-          shared_data->last_analysis_index = our_image_index;
-        } // end if speedai
-#endif
-      } else {
-        Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder index is %d Our index is %d",
-            monitor_->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
-      }  // end if have a new image
+        Image *ai_image = monitor_->GetAnalysisImage(our_image_index);
+        nlohmann::json detections = speedai->receive_detections(job);
+        Debug(1, "detections %s", detections.dump().c_str());
+        if (detections.size()) {
+          draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, detections, monitor_->LabelSize());
+        } else {
+          ai_image->Assign(*in_image);
+        }
+
+        shared_data->analysis_image_count++;
+        shared_data->last_analysis_index = our_image_index;
+      } // end if speedai
+    } else {
+      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder index is %d Our index is %d",
+          monitor_->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
+    }  // end if have a new image
+       //
+    if (!zm_terminate and !terminate_) {
       Microseconds delay = monitor_->GetCaptureDelay();
       if (delay==Microseconds(0)) delay = Microseconds(3000);
       Debug(1, "Sleeping for %ld microseconds", delay.count());
       std::this_thread::sleep_for(delay);
-    }  // end while !zm_terminate
+    }
   }  // end while !zm_terminate
   if (drawbox_filter) {
-    avfilter_graph_free(&drawbox_filter->filter_graph);
     delete drawbox_filter;
+    drawbox_filter = nullptr;
+    drawbox_filter_ctx = nullptr;
   }
 #endif
 } // end SpeedAIDetect   

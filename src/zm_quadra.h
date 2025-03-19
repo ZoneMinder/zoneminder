@@ -16,11 +16,31 @@ extern "C" {
 
 class Quadra {
   public:
-    typedef struct _filter_worker {
-      AVFilterContext *buffersink_ctx;
-      AVFilterContext *buffersrc_ctx;
-      AVFilterGraph *filter_graph;
-    } filter_worker;
+    class filter_worker {
+      public:
+        AVFilterContext *buffersink_ctx;
+        AVFilterContext *buffersrc_ctx;
+        AVFilterGraph *filter_graph;
+        filter_worker()  :
+          buffersink_ctx(nullptr),
+          buffersrc_ctx(nullptr),
+          filter_graph(nullptr)
+      {};
+        ~filter_worker() {
+          if (filter_graph) {
+            avfilter_graph_free(&filter_graph);
+            filter_graph = nullptr;
+          }
+        };
+        AVFilterContext * find_filter_ctx(const char *name) {
+          for (unsigned int i = 0; i < filter_graph->nb_filters; i++) {
+            if (strstr(filter_graph->filters[i]->name, name) != nullptr) {
+              return filter_graph->filters[i];
+            }
+          }
+          return nullptr;
+      };
+    };
 
   private:
     av_frame_ptr scaled_frame;

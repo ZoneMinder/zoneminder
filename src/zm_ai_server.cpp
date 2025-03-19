@@ -68,6 +68,8 @@ and perform AI analysis on latest frames
 #include "zm_untether_speedai.h"
 #endif
 
+#include "zm_ai_server.h"
+
 void Usage() {
   fprintf(stderr, "zm_ai_server -m <monitor_id>\n");
 
@@ -77,10 +79,6 @@ void Usage() {
   fprintf(stderr, "  -v, --version              : Report the installed version of ZoneMinder\n");
   exit(0);
 }
-
-void SpeedAIDetect(std::shared_ptr<Monitor> monitor);
-int draw_boxes( Quadra::filter_worker *drawbox_filter, AVFilterContext *drawbox_filter_ctx, Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size);
-int draw_box( Quadra::filter_worker * drawbox_filter, AVFilterContext *drawbox_filter_ctx, AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
 
 #ifdef HAVE_UNTETHER_H
   SpeedAI *speedai;
@@ -168,49 +166,57 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  std::unordered_map<unsigned int, std::thread> threads;
-  std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
-
-  std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
-  for (const auto &monitor : new_monitors) {
-    auto old_monitor_it = old_monitors.find(monitor->Id());
-    if (old_monitor_it != old_monitors.end()) {
-      Debug(1, "Found monitor in oldmonitors, clearing it");
-      old_monitors.erase(old_monitor_it);
-    } else {
-      Debug(1, "Adding monitor %d to monitors", monitor->Id());
-      monitors[monitor->Id()] = monitor;
-      threads[monitor->Id()] = std::thread(&SpeedAIDetect, monitor);
-    }
-  }
-  // Remove monitors that are no longer doing ai
-  for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
-    auto mid = it->first;
-    auto &monitor = it->second;
-    Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
-    monitors.erase(mid);
-  }
+  std::unordered_map<unsigned int, AIThread *> threads;
 
   while (!zm_terminate) {
+
+    std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
+    std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
+
+    for (const auto &monitor : new_monitors) {
+      auto old_monitor_it = old_monitors.find(monitor->Id());
+      if (old_monitor_it != old_monitors.end()) {
+        Debug(1, "Found monitor in oldmonitors, clearing it");
+        old_monitors.erase(old_monitor_it);
+      } else {
+        Debug(1, "Adding monitor %d to monitors", monitor->Id());
+        monitors[monitor->Id()] = monitor;
+        threads[monitor->Id()] = new AIThread(monitor, speedai);
+        threads[monitor->Id()]->Start();
+      }
+    }
+
+    // Remove monitors that are no longer doing ai
+    for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
+      auto mid = it->first;
+      auto &monitor = it->second;
+      threads[monitor->Id()]->Stop();
+      threads[monitor->Id()]->Join();
+      Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
+      monitors.erase(mid);
+    }
+
     //for (auto it = monitors.begin(); it != monitors.end(); ++it) {
     //auto &monitor = it->second;
-    if (zm_reload) {
+    if (0 and zm_reload) {
       logTerm();
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload
-    sleep(1);
+    sleep(10);
   } // end while !zm_terminate
 
   Info("AI Server shutting down");
 
   for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {
     unsigned int i = mon_pair.first;
-    if (threads[i].joinable()) threads[i].join();
+    threads[i]->Stop();
 
     auto monitor = mon_pair.second;
     monitor->disconnect();
   }  // end foreach monitor
+  
+  monitors.clear();
 
 #ifdef HAVE_UNTETHER_H
   delete speedai;
@@ -218,38 +224,44 @@ int main(int argc, char *argv[]) {
 #endif
 
   Image::Deinitialise();
-  logTerm();
+  dbQueue.stop();
   zmDbClose();
+  logTerm();
 
   return 0;
 }
 
-void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
+void AIThread::Run() {
 #ifdef HAVE_UNTETHER_H
+  if (!speedai) {
+    Error("No speedai");
+    return;
+  }
+
   SpeedAI::Job *job = speedai->get_job();
   Quadra::filter_worker *drawbox_filter;
   AVFilterContext *drawbox_filter_ctx;
 
-  while (!zm_terminate) {
-    Debug(1, "Checking monitor %d %s", monitor->Id(), monitor->Name());
+  while (!zm_terminate and !terminate_) {
+    Debug(1, "Checking monitor %d %s", monitor_->Id(), monitor_->Name());
 
-    if (!monitor->isConnected()) {
-      if (!monitor->connect()) {
-        Warning("Couldn't connect to monitor %d", monitor->Id());
-        monitor->Reload();  // This is to pickup change of colours, width, height, etc
+    if (!monitor_->isConnected()) {
+      if (!monitor_->connect()) {
+        Warning("Couldn't connect to monitor %d", monitor_->Id());
+        monitor_->Reload();  // This is to pickup change of colours, width, height, etc
         continue;
       }  // end if failed to connect
     }
 
-    Monitor::SharedData *shared_data = monitor->getSharedData();
-    int image_buffer_count = monitor->GetImageBufferCount();
+    Monitor::SharedData *shared_data = monitor_->getSharedData();
+    int image_buffer_count = monitor_->GetImageBufferCount();
 
     int ret;
     drawbox_filter = new Quadra::filter_worker();
     drawbox_filter->buffersink_ctx = nullptr;
     drawbox_filter->buffersrc_ctx = nullptr;
     drawbox_filter->filter_graph = nullptr;
-    if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor->Width(), monitor->Height(), AV_PIX_FMT_YUV420P)) < 0) {
+    if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
       Error("cannot initialize drawbox filter");
       //return false;
     }
@@ -269,13 +281,13 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
     // Start at latest decoded image
     shared_data->analysis_image_count = shared_data->decoder_image_count;
 
-    while (!zm_terminate) {
-      if (!monitor->ShmValid()) {
+    while (!zm_terminate and !terminate_) {
+      if (!monitor_->ShmValid()) {
         Debug(1, "!ShmValid");
-        monitor->disconnect();
-        if (!monitor->connect()) {
-          Warning("Couldn't connect to monitor %d", monitor->Id());
-          monitor->Reload();  // This is to pickup change of colours, width, height, etc
+        monitor_->disconnect();
+        if (!monitor_->connect()) {
+          Warning("Couldn't connect to monitor %d", monitor_->Id());
+          monitor_->Reload();  // This is to pickup change of colours, width, height, etc
           break;
         }  // end if failed to connect
       }  // end if !ShmValid
@@ -286,12 +298,12 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
         int32_t decoder_image_index = shared_data->decoder_image_count % image_buffer_count;
         int32_t our_image_index = (shared_data->analysis_image_count+1) % image_buffer_count;
 
-        Image *in_image = monitor->GetDecodedImage(decoder_image_index);
+        Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
 
-#ifdef HAVE_UNTETHER_H
+#if HAVE_UNTETHER_H
         if (speedai) {
           Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
-              monitor->Id(), shared_data->decoder_image_count, decoder_image_index,
+              monitor_->Id(), shared_data->decoder_image_count, decoder_image_index,
               shared_data->analysis_image_count, our_image_index);
 
           do {
@@ -301,11 +313,11 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
             }
           } while (!job);
 
-          Image *ai_image = monitor->GetAnalysisImage(our_image_index);
+          Image *ai_image = monitor_->GetAnalysisImage(our_image_index);
           nlohmann::json detections = speedai->receive_detections(job);
           Debug(1, "detections %s", detections.dump().c_str());
           if (detections.size()) {
-            draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, detections, monitor->LabelSize());
+            draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, detections, monitor_->LabelSize());
           } else {
             ai_image->Assign(*in_image);
           }
@@ -316,9 +328,10 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
 #endif
       } else {
         Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder index is %d Our index is %d",
-            monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
+            monitor_->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
       }  // end if have a new image
-      Microseconds delay = monitor->GetCaptureDelay();
+      Microseconds delay = monitor_->GetCaptureDelay();
+      if (delay==Microseconds(0)) delay = Microseconds(3000);
       Debug(1, "Sleeping for %ld microseconds", delay.count());
       std::this_thread::sleep_for(delay);
     }  // end while !zm_terminate
@@ -327,7 +340,6 @@ void SpeedAIDetect(std::shared_ptr<Monitor> monitor) {
     avfilter_graph_free(&drawbox_filter->filter_graph);
     delete drawbox_filter;
   }
-
 #endif
 } // end SpeedAIDetect   
 
@@ -441,3 +453,30 @@ int draw_box(
   } while (!zm_terminate);
   return 0;
 }
+
+AIThread::AIThread(const std::shared_ptr<Monitor> monitor, SpeedAI *p_speedai) :
+  monitor_(monitor), terminate_(false),
+  speedai(p_speedai)
+{
+  thread_ = std::thread(&AIThread::Run, this);
+}
+
+AIThread::~AIThread() {
+  Stop();
+  if (thread_.joinable()) thread_.join();
+}
+
+void AIThread::Start() {
+  if (thread_.joinable()) thread_.join();
+  terminate_ = false;
+  Debug(3, "Starting analysis thread");
+  thread_ = std::thread(&AIThread::Run, this);
+}
+
+void AIThread::Stop() {
+  terminate_ = true;
+}
+void AIThread::Join() {
+  if (thread_.joinable()) thread_.join();
+}
+

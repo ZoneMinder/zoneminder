@@ -65,7 +65,7 @@ SpeedAI::SpeedAI() :
 
   // Populate mapping with all unsorted quantVal/floatVal pairs
   for (int quantVal=0; quantVal < 256; quantVal++) {
-	  float floatVal = dequantize((uint8_t)quantVal, m_bias);
+	  float floatVal = dequantize((uint8_t)quantVal, quantization_fp8p_bias);
 	  m_quant_bounds[quantVal] = std::make_pair(quantVal, floatVal);
   }
   // Sort all pairs according to float value
@@ -101,12 +101,13 @@ SpeedAI::~SpeedAI() {
     sws_freeContext(sw_scale_ctx);
   }
   if (infos) {
-    delete infos;
+    delete [] infos;
     infos = nullptr;
   }
   if (drawbox_filter) {
     avfilter_graph_free(&drawbox_filter->filter_graph);
     delete drawbox_filter;
+    drawbox_filter = nullptr;
   }
 }
 
@@ -139,8 +140,8 @@ bool SpeedAI::setup(
   Debug(1, "Num streams %zu", numStreams);
   infos = new UaiDataStreamInfo[numStreams];
   uai_module_get_stream_info(module_, infos, numStreams);
-  assert(infos[0].io_type == UAI_DATA_STREAM_HOST_TO_DEVICE);
-  assert(infos[1].io_type == UAI_DATA_STREAM_DEVICE_TO_HOST);
+  //assert(infos[0].io_type == UAI_DATA_STREAM_HOST_TO_DEVICE);
+  //assert(infos[1].io_type == UAI_DATA_STREAM_DEVICE_TO_HOST);
   // Allocate input and output buffers, and attach them to the module_. There is a size limitation
   // that applies to the IO buffers and in the most general case one may have to utilize mutiple
   // buffers per stream. Here we just assert that one buffer per input/output stream is sufficient
@@ -170,7 +171,7 @@ SpeedAI::Job * SpeedAI::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) 
 
 SpeedAI::Job * SpeedAI::get_job() {
   Job *job = new Job(module_);
-  if (av_frame_get_buffer(job->scaled_frame, 32)) {
+  if (av_frame_get_buffer(job->scaled_frame.get(), 32)) {
     Error("cannot allocate scaled frame buffer");
     return nullptr;
   }
@@ -270,7 +271,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     }
   }
 #else
-  UaiErr err = uai_module_wait(module_, &job->event, 10);
+  UaiErr err = uai_module_wait(module_, &job->event, 0);
 #endif
   Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
 

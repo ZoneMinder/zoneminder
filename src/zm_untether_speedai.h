@@ -44,16 +44,13 @@ class SpeedAI {
     UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
-    //int quantization_fp8p_bias = -3;
+    int quantization_fp8p_bias = -3;
     int dequantization_uint16_bias = 4;
     int dequantization_fp8p_bias = -12;
 
     //Image &preprocess_image(const Image &image);
 
     int image_size;
-
-    // Quantization bias
-    int m_bias;
 
     // Fast map via indexing, for integer values in range [0, 255]
     std::array<uint8_t, 256> m_fast_map;
@@ -71,13 +68,27 @@ class SpeedAI {
   public:
     class Job {
       public:
+
+        UaiModule *m_module;
+        int index;
+        UaiDataBuffer *inputBuf;
+        UaiDataBuffer *outputBuf;
+        UaiEvent event;
+        av_frame_ptr scaled_frame;
+        float m_width_rescale;
+        float m_height_rescale;
+
         Job(UaiModule *p_module) :
           m_module(p_module),
-          event({})
+          index(0),
+          inputBuf(nullptr),
+          outputBuf(nullptr),
+          event({}),
+          m_width_rescale(1.0),
+          m_height_rescale(1.0)
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
-            scaled_frame = new AVFrame();
             scaled_frame->width = MODEL_WIDTH;
             scaled_frame->height = MODEL_HEIGHT;
             scaled_frame->format = AV_PIX_FMT_RGB24;
@@ -96,8 +107,6 @@ class SpeedAI {
             delete outputBuf;
             outputBuf = nullptr;
           }
-          if (scaled_frame)
-            av_frame_unref(scaled_frame);
         };
         void setFrame(AVFrame *frame) {
         }
@@ -107,14 +116,14 @@ class SpeedAI {
           inputBuf(in.inputBuf),
           outputBuf(in.outputBuf),
           event(in.event),
-          scaled_frame(in.scaled_frame),
+          scaled_frame(std::move(in.scaled_frame)),
           m_width_rescale(in.m_width_rescale),
           m_height_rescale(in.m_height_rescale)
         {
           Debug(1, "In move");
           in.inputBuf = nullptr;
           in.outputBuf = nullptr;
-          in.scaled_frame = nullptr;
+          //in.scaled_frame = nullptr;
         }
         Job(const Job &in) :
           m_module(in.m_module),
@@ -122,7 +131,7 @@ class SpeedAI {
           inputBuf(in.inputBuf),
           outputBuf(in.outputBuf),
           event(std::move(in.event)),
-          scaled_frame(in.scaled_frame),
+          scaled_frame(in.scaled_frame.get()),
           m_width_rescale(in.m_width_rescale),
           m_height_rescale(in.m_height_rescale)
         {
@@ -134,20 +143,12 @@ class SpeedAI {
           inputBuf = in.inputBuf;
           outputBuf = in.outputBuf;
           event = std::move(in.event);
-          scaled_frame = in.scaled_frame;
+          scaled_frame = std::move(in.scaled_frame);
           m_width_rescale = in.m_width_rescale;
           m_height_rescale = in.m_height_rescale;
           return *this;
         };
 
-      UaiModule *m_module;
-      int index;
-      UaiDataBuffer *inputBuf;
-      UaiDataBuffer *outputBuf;
-      UaiEvent event;
-      AVFrame *scaled_frame;
-      float m_width_rescale;
-      float m_height_rescale;
     };
     std::list<Job *> jobs;
     float dequantize(uint8_t val, int bias);

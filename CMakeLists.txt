@@ -583,6 +583,12 @@ else()
   set(HAVE_RTSP_SERVER 0)
 endif()
 
+if(NOT ZM_NO_AI_SERVER)
+  set(HAVE_AI_SERVER 1)
+else()
+  set(HAVE_AI_SERVER 0)
+endif()
+
 #
 # *** END OF LIBRARY CHECKS ***
 

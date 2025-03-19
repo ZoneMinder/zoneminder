@@ -23,32 +23,23 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-class Monitor;
-
 #ifdef HAVE_UNTETHER_H
 #define MODEL_WIDTH 640
 #define MODEL_HEIGHT 640
 
 class SpeedAI {
   private:
-    UaiModule* module;
+    UaiModule* module_;
     std::mutex  mutex_;
-
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
     size_t batchSize;
     size_t inSize;
     size_t outSize;
 
-    //int model_width = 640;
-    //int model_height = 640;
-    //int model_format;
-
     float obj_threshold = 0.25;
     //float nms_threshold = 0.45;
 
-    //DMABuffers m_dma_bufs;
-    //SWScale swscale;
     SwsContext *sw_scale_ctx;
     UaiDataStreamInfo *infos;
 
@@ -72,9 +63,8 @@ class SpeedAI {
     // m_quant_bounds[i].second is uppper limit of bin in floating point domain
     // that gets mapped to m_quant_bounds[i].first.
     std::array<std::pair<uint8_t, float>, 256> m_quant_bounds;
-    static bool comparator(const decltype(m_quant_bounds)::value_type& a, const decltype(m_quant_bounds)::value_type& b)
-    {
-        return a.second < b.second;
+    static bool comparator(const decltype(m_quant_bounds)::value_type& a, const decltype(m_quant_bounds)::value_type& b) {
+      return a.second < b.second;
     }
     int count;
 

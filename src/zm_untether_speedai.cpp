@@ -50,16 +50,12 @@ static const char * coco_classes[] = {
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
-  module(nullptr),
-  //inputBuf({}),
-  //outputBuf({}),
+  module_(nullptr),
   batchSize(0),
   inSize(0),
   outSize(0),
-  //scaled_frame({}),
   sw_scale_ctx(nullptr),
   infos(nullptr),
-  //image_size(0)
   count(0),
   quadra(nullptr),
   drawbox_filter(nullptr),
@@ -68,7 +64,7 @@ SpeedAI::SpeedAI() :
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, MODEL_WIDTH, MODEL_HEIGHT, 32);
 
   // Populate mapping with all unsorted quantVal/floatVal pairs
-  for (int quantVal(0); quantVal < 256; quantVal++) {
+  for (int quantVal=0; quantVal < 256; quantVal++) {
 	  float floatVal = dequantize((uint8_t)quantVal, m_bias);
 	  m_quant_bounds[quantVal] = std::make_pair(quantVal, floatVal);
   }
@@ -76,18 +72,17 @@ SpeedAI::SpeedAI() :
   std::sort(m_quant_bounds.begin(), m_quant_bounds.end(), comparator);
 
   // Convert float values to upper bounds of associated bins
-  for (size_t i(0); i < m_quant_bounds.size() - 1; i++) {
+  for (size_t i=0; i < m_quant_bounds.size() - 1; i++) {
 	  m_quant_bounds[i].second = (m_quant_bounds[i].second + m_quant_bounds[i + 1].second) / 2;
   }
   // Last value's upper bin boundary gets mapped to infinity
   m_quant_bounds[m_quant_bounds.size() - 1].second = std::numeric_limits<float>::max();
-  for (int imgPixelVal(0); imgPixelVal <= 255; imgPixelVal++) {
+  for (int imgPixelVal=0; imgPixelVal <= 255; imgPixelVal++) {
 	  m_fast_map[imgPixelVal] = quantize(static_cast<float>(imgPixelVal));
   }
 
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
-
 }
 
 SpeedAI::~SpeedAI() {
@@ -96,9 +91,9 @@ SpeedAI::~SpeedAI() {
     jobs.pop_front();
   }
   // Clean up
-  if (module) {
-    Debug(1, "Freeing module");
-    uai_module_free(module);
+  if (module_) {
+    Debug(1, "Freeing module_");
+    uai_module_free(module_);
   }
   //av_frame_unref(&scaled_frame);
   if (sw_scale_ctx) {
@@ -119,15 +114,15 @@ bool SpeedAI::setup(
     const std::string &model_type,
     const std::string &model_file
     ) {
-  // Load and launch module
+  // Load and launch module_
   Debug(1, "SpeedAI: Loading model %s", model_file.c_str());
-  UaiErr err = uai_module_load(model_file.c_str(), &module);
+  UaiErr err = uai_module_load(model_file.c_str(), &module_);
   if (err != UAI_SUCCESS) {
     Error("Failed loading model %s", uai_err_string(err));
     //return false;
   }
   Debug(1, "SpeedAI: launching");
-  err = uai_module_launch(module);
+  err = uai_module_launch(module_);
   if (err != UAI_SUCCESS) {
     Error("Failed launching model %s", uai_err_string(err));
     return false;
@@ -136,17 +131,17 @@ bool SpeedAI::setup(
   // stream and one output stream from here onwards. To see how larger input/output sizes are
   // handled, please refer to the other demos.
   size_t numStreams;
-  err = uai_module_get_num_streams(module, &numStreams);
+  err = uai_module_get_num_streams(module_, &numStreams);
   if (err != UAI_SUCCESS) {
     Error("Failed getting num streams %s", uai_err_string(err));
     return false;
   }
   Debug(1, "Num streams %zu", numStreams);
   infos = new UaiDataStreamInfo[numStreams];
-  uai_module_get_stream_info(module, infos, numStreams);
+  uai_module_get_stream_info(module_, infos, numStreams);
   assert(infos[0].io_type == UAI_DATA_STREAM_HOST_TO_DEVICE);
   assert(infos[1].io_type == UAI_DATA_STREAM_DEVICE_TO_HOST);
-  // Allocate input and output buffers, and attach them to the module. There is a size limitation
+  // Allocate input and output buffers, and attach them to the module_. There is a size limitation
   // that applies to the IO buffers and in the most general case one may have to utilize mutiple
   // buffers per stream. Here we just assert that one buffer per input/output stream is sufficient
   // for one whole batch of IO data.
@@ -174,7 +169,7 @@ SpeedAI::Job * SpeedAI::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) 
 }
 
 SpeedAI::Job * SpeedAI::get_job() {
-  Job *job = new Job(module);
+  Job *job = new Job(module_);
   if (av_frame_get_buffer(job->scaled_frame, 32)) {
     Error("cannot allocate scaled frame buffer");
     return nullptr;
@@ -183,11 +178,11 @@ SpeedAI::Job * SpeedAI::get_job() {
   std::unique_lock<std::mutex> lck(mutex_);
 
   // TODO, use the inputBuf as the scaled_frame data to avoid a copy
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->inputBuf, infos[0].name, inSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
     return nullptr;
   }
-  if (UAI_SUCCESS != uai_module_data_buffer_attach(module, job->outputBuf, infos[1].name, outSize)) {
+  if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
     return nullptr;
   }
@@ -248,7 +243,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
 
   Debug(1, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
-  UaiErr err = uai_module_enqueue(module, &job->event);
+  UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
@@ -263,11 +258,11 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   Debug(1, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
-  //UaiErr err = uai_module_synchronize(module, &job->event);
+  //UaiErr err = uai_module_synchronize(module_, &job->event);
 #if 0
   UaiErr err;
   while (!zm_terminate) {
-    err = uai_module_wait(module, &job->event, 10);
+    err = uai_module_wait(module_, &job->event, 10);
     if (err != UAI_SUCCESS) {
       Debug(1, "SpeedAI Failed wait %d, %s", err, uai_err_string(err));
     } else {
@@ -275,7 +270,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     }
   }
 #else
-  UaiErr err = uai_module_wait(module, &job->event, 10);
+  UaiErr err = uai_module_wait(module_, &job->event, 10);
 #endif
   Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
 

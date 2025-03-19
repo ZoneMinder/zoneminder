@@ -163,6 +163,7 @@ int main(int argc, char *argv[]) {
   if (!speedai->setup( "yolov5", "/var/cache/zoneminder/models/speedai_yolo.uxf")) {
     delete speedai;
     speedai = nullptr;
+    return 0;
   }
 #endif
 

@@ -223,6 +223,7 @@ int main(int argc, char *argv[]) {
   }  // end foreach monitor
   
   monitors.clear();
+  threads.clear();
 
 #ifdef HAVE_UNTETHER_H
   delete speedai;
@@ -247,7 +248,6 @@ void AIThread::Run() {
   SpeedAI::Job *job = speedai->get_job();
   Quadra::filter_worker *drawbox_filter;
   AVFilterContext *drawbox_filter_ctx;
-
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();
@@ -286,17 +286,23 @@ void AIThread::Run() {
     }  // end if !ShmValid
        //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
        //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
+    int32_t decoder_image_count = shared_data->decoder_image_count;
+    int32_t analysis_image_count = shared_data->analysis_image_count;
 
-    if (shared_data->decoder_image_count > shared_data->analysis_image_count) {
-      int32_t decoder_image_index = shared_data->decoder_image_count % image_buffer_count;
-      int32_t our_image_index = (shared_data->analysis_image_count+1) % image_buffer_count;
+    if (decoder_image_count > analysis_image_count) {
+      if (decoder_image_count - analysis_image_count > image_buffer_count) {
+        Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
+        shared_data->analysis_image_count = decoder_image_count;
+      }
+      int32_t decoder_image_index = decoder_image_count % image_buffer_count;
+      int32_t our_image_index = (analysis_image_count+1) % image_buffer_count;
 
       Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
 
       if (speedai) {
         Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
-            monitor_->Id(), shared_data->decoder_image_count, decoder_image_index,
-            shared_data->analysis_image_count, our_image_index);
+            monitor_->Id(), decoder_image_count, decoder_image_index,
+            analysis_image_count, our_image_index);
 
         do {
           job = speedai->send_image(job, in_image);
@@ -314,7 +320,7 @@ void AIThread::Run() {
           ai_image->Assign(*in_image);
         }
 
-        shared_data->analysis_image_count++;
+        shared_data->analysis_image_count = analysis_image_count;
         shared_data->last_analysis_index = our_image_index;
       } // end if speedai
     } else {
@@ -385,6 +391,7 @@ int draw_boxes(
         in_frame = out_frame;
       }  // end foreach detection
       out_image->Assign(in_frame);
+      av_frame_free(&in_frame);
     } else {
       out_image->Assign(*in_image);
     }  // end if coco

@@ -1445,6 +1445,7 @@ bool Image::WriteJpeg(const std::string &filename,
   return true;
 }
 
+/* written jpeg will be thewidthxheight in the codec context, not ours. */
 bool Image::WriteJpeg(const std::string &filename,
                       AVCodecContext *p_jpegcodeccontext,
                       SwsContext *p_jpegswscontext) const {
@@ -1481,10 +1482,10 @@ bool Image::WriteJpeg(const std::string &filename,
     av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
     PopulateFrame(temp_frame.get());
 
-    frame->width  = width;
-    frame->height = height;
+    frame->width  = p_jpegcodeccontext->width;
+    frame->height = p_jpegcodeccontext->height;
     frame->format = AV_PIX_FMT_YUVJ420P;
-    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, width);
+    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
     av_frame_get_buffer(frame.get(), 32);
 
     sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
@@ -2384,28 +2385,35 @@ void Image::Annotate(
     max_line_length = std::max(max_line_length, s.size());
   }
 
-  uint32 x0_max = width - (max_line_length * char_width);
-  uint32 y0_max = height - (lines.size() * char_height);
+  int32_t x0_max = width - (max_line_length * char_width);
+  if (x0_max < 0) x0_max = 0;
+
+  int32_t y0_max = height - (lines.size() * char_height);
+  if (y0_max < 0) y0_max = 0;
+  Debug(1, "Max Coords: %dx%d", x0_max, y0_max);
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
-  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
-  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
+  int32_t x0 = zm::clamp(static_cast<int32_t>(coord.x_), 0, x0_max);
+  int32_t y0 = zm::clamp(static_cast<int32_t>(coord.y_), 0, y0_max);
+  Debug(1, "Coords: %dx%d", x0, y0);
 
   uint32 y = y0;
   for (const std::string &line : lines) {
-    uint32 x = x0;
+    int32_t x = x0;
 
     if (colours == ZM_COLOUR_GRAY8) {
       //Debug(1, "Annotate on gray");
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
+        Debug(1, "%c", c);
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
           }
 
           while (cp_row != 0) {
+            Debug(1, "%" PRIu64, cp_row);
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);

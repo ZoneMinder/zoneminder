@@ -2170,6 +2170,7 @@ int Monitor::Analyse() {
             ZMPacketLock *delayed_packet_lock;
             std::shared_ptr<ZMPacket> delayed_packet;
 
+#if 0
             // See if we can drain the buffer. If we can, it will replace packet and packet_lock.
             if (ai_queue.size()) {
               Debug(1, "Have queued packets %zu, send them to be yolod", ai_queue.size());
@@ -2185,7 +2186,6 @@ int Monitor::Analyse() {
                 packet_lock = std::move(ai_queue.front());
                 ai_queue.pop_front();
                 packet = delayed_packet;
-                Debug(1, "Fre hwframe %d", packet->image_index);
                 Debug(1, "Success packet %d", packet->image_index);
               } else if (ret < 0) {
                 Debug(1, "Failed to get frame %d", ret);
@@ -2197,6 +2197,7 @@ int Monitor::Analyse() {
             } else {
               Debug(1, "Dont Have queued packets %zu", ai_queue.size());
             }
+#endif
 
             if (!delayed_packet) {
               if (analysis_fps_limit) {
@@ -2211,8 +2212,8 @@ int Monitor::Analyse() {
                   int ret = quadra_yolo->send_packet(packet);
                   if (ret <= 0) {
                     Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
-                    return ret;
-                  }
+                    //return ret;
+                  } else {
 
                   int count = 10;
                   delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
@@ -2224,6 +2225,7 @@ int Monitor::Analyse() {
                     ret = quadra_yolo->receive_detection(delayed_packet);
                     if (0 < ret) {
                       Debug(1, "Success %d", delayed_packet->image_index);
+#if 0
                       if (delayed_packet.get() != packet.get()) {
                         Debug(1, "Pushing packet, popping delayed");
                         ai_queue.push_back(std::move(packet_lock));
@@ -2234,6 +2236,7 @@ int Monitor::Analyse() {
                       } else {
                         Debug(1, "packet %p != delayed_packet %p", packet.get(), delayed_packet.get());
                       }
+#endif
                       if (packet->ai_frame)
                         zm_dump_video_frame(packet->ai_frame.get(), "after detect");
                     } else if (0 > ret) {
@@ -2241,12 +2244,14 @@ int Monitor::Analyse() {
                       delete quadra_yolo;
                       // Since packets are still in the queue, they will get re-fed into it..
                       quadra_yolo = nullptr;
+#if 0
                       if (packet != delayed_packet) { // Can this be otherwise?
                         ai_queue.push_back(std::move(packet_lock));
                         Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
                         packetqueue.increment_it(analysis_it);
                       }
                       return ret;
+#endif
 
                     } else {
                       // EAGAIN
@@ -2261,8 +2266,9 @@ int Monitor::Analyse() {
                       count -= 1;
                     }
                   } while (ret == 0 and count > 0);
+                  } // end if failed to send
                 } else {
-                  quadra_yolo->draw_last_roi(packet);
+                  //quadra_yolo->draw_last_roi(packet);
                 } // end if skip_frame
               } // end if has input_frame/hw_frame
             } // end if delayed_packet
@@ -2288,6 +2294,7 @@ int Monitor::Analyse() {
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+
                   if (!packet->y_image and (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P)) {
                     Debug(1, "Creating y-image");
                     packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);

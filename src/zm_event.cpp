@@ -219,6 +219,7 @@ int Event::OpenJpegCodec(const Image *image) {
     return -1;
   }
 
+  Debug(1, "Done opening codec");
   if (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != image->AVPixFormat())) {
 
         //mJpegSwsContext->src_format != image->AVPixFormat())) {
@@ -231,14 +232,17 @@ int Event::OpenJpegCodec(const Image *image) {
         av_get_pix_fmt_name(image->AVPixFormat())
         );
     sws_freeContext(mJpegSwsContext);
+    mJpegSwsContext = nullptr;
   }
-  if (!mJpegSwsContext)
+  if (!mJpegSwsContext) {
+    Debug(1, "Getting swsCnotext");
     mJpegSwsContext = sws_getContext(
         image->Width(), image->Height(), image->AVPixFormat(),
         mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUVJ420P,
         SWS_BICUBIC, nullptr, nullptr, nullptr);
-  if (!mJpegSwsContext) {
-    return -1;
+    if (!mJpegSwsContext) {
+      return -1;
+    }
   }
   return 0;
 }

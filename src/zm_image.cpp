@@ -342,7 +342,7 @@ int Image::PopulateFrame(AVFrame *frame) const {
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  zm_dump_video_frame(frame, "Image.Populate(frame)");
+  //zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
 
@@ -876,9 +876,9 @@ void Image::Assign(
 
 void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
-  Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
+  //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
-  Debug(1, "Assign %dx%d %d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
+  //Debug(1, "Assign %dx%d %d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
   //unsigned int new_size = image.height * image.linesize;
 
   if (image.buffer == nullptr) {
@@ -927,7 +927,7 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
+  //Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }

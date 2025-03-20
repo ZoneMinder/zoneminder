@@ -838,8 +838,8 @@ void Event::Run() {
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
-      if (!packet->ai_frame) {
-        Debug(1, "No aiframe");
+      if (!packet->analyzed) {
+        Debug(1, "Not analyzed");
         packet_lock.unlock();
         // Stay behind ai
         Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);

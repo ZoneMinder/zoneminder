@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
             , speedai
 #endif
             );
-        threads[monitor->Id()]->Start();
+        //threads[monitor->Id()]->Start();
       }
     }
 
@@ -272,8 +272,9 @@ void AIThread::Run() {
      //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
+
   // Start at latest decoded image
-  shared_data->analysis_image_count = shared_data->decoder_image_count;
+  int32_t analysis_image_count = shared_data->decoder_image_count;
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
@@ -287,15 +288,14 @@ void AIThread::Run() {
        //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
        //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
     int32_t decoder_image_count = shared_data->decoder_image_count;
-    int32_t analysis_image_count = shared_data->analysis_image_count;
 
-    if (decoder_image_count > analysis_image_count) {
+    if (decoder_image_count >= analysis_image_count) {
       if (decoder_image_count - analysis_image_count > image_buffer_count) {
         Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
-        shared_data->analysis_image_count = decoder_image_count;
+        analysis_image_count = decoder_image_count;
       }
       int32_t decoder_image_index = decoder_image_count % image_buffer_count;
-      int32_t our_image_index = (analysis_image_count+1) % image_buffer_count;
+      int32_t our_image_index = analysis_image_count % image_buffer_count;
 
       Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
 
@@ -322,16 +322,18 @@ void AIThread::Run() {
 
         shared_data->analysis_image_count = analysis_image_count;
         shared_data->last_analysis_index = our_image_index;
+        analysis_image_count++;
       } // end if speedai
     } else {
       Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder index is %d Our index is %d",
           monitor_->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
     }  // end if have a new image
-       //
+
     if (!zm_terminate and !terminate_) {
       if (shared_data->decoder_image_count == shared_data->analysis_image_count) {
         Microseconds delay = monitor_->GetCaptureDelay();
-        if (delay==Microseconds(0)) delay = Microseconds(3000);
+        //if (delay==Microseconds(0));
+        delay = Microseconds(3000);
         Debug(1, "Sleeping for %ld microseconds", delay.count());
         std::this_thread::sleep_for(delay);
       }
@@ -478,7 +480,7 @@ AIThread::~AIThread() {
 void AIThread::Start() {
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
-  Debug(3, "Starting analysis thread");
+  Debug(3, "Starting ai thread");
   thread_ = std::thread(&AIThread::Run, this);
 }
 

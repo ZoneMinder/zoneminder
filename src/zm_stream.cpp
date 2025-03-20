@@ -114,10 +114,10 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
   }
 
   mJpegPixelFormat = format;
-  if (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != format)) {
+  if (mJpegSwsContext) {
+    //&& (mJpegCodecContext->sw_pix_fmt != format)) {
     sws_freeContext(mJpegSwsContext);
   }
-
 
   mJpegSwsContext = sws_getContext(
       //monitor->Width(), monitor->Height(), 

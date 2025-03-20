@@ -538,7 +538,7 @@ void MonitorStream::runStream() {
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   // used to start at image_buffer_count, so next one would actually be 1.  Instead, lets start wherever zmc is at.
   int32_t last_read_index = monitor->shared_data->last_read_index;
-  int32_t last_image_count = monitor->shared_data->analysis_image_count;
+  int32_t image_count = monitor->shared_data->analysis_image_count;
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
@@ -685,10 +685,7 @@ void MonitorStream::runStream() {
           }
         } else if (step != 0) {
           temp_read_index = MOD_ADD(temp_read_index, (step>0?1:-1), temp_image_buffer_count);
-
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
-
-          // Send the next frame
           if (!sendFrame(
                 temp_image_buffer[temp_read_index].file_name,
                 temp_image_buffer[temp_read_index].timestamp)
@@ -727,15 +724,18 @@ void MonitorStream::runStream() {
         replay_rate = ZM_RATE_BASE;
       }
     }  // end if (buffered_playback && delayed)
+    if (image_count > monitor->shared_data->analysis_image_count) {
+      image_count = monitor->shared_data->analysis_image_count;
+    }
 
-    int index = (last_image_count+frame_mod) ; // % monitor->image_buffer_count;
-    int last_count;
+    int new_count = (image_count+frame_mod) ; // % monitor->image_buffer_count;
+    int analysis_count;
     int last_analysis_index;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
     //if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
       //Debug(4, "Using OBJDETECT");
-      //if (last_read_index !=  last_image_count < last_count) {
+      //if (last_read_index !=  image_count < last_count) {
       //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
       //}
       //last_analysis_index = monitor->shared_data->last_analysis_index;
@@ -751,24 +751,32 @@ void MonitorStream::runStream() {
     //} else {
       //Debug(1, "Using LIVE");
       last_analysis_index = monitor->shared_data->last_analysis_index;
-      last_count = monitor->shared_data->analysis_image_count;
+      analysis_count = monitor->shared_data->analysis_image_count;
+
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     //}
 
-    Debug(1, "our next index %d, our last_read_index %d, analaysis last_index %d, our last_image_count %d last_count %d", index, last_read_index, last_analysis_index, last_image_count, last_count);
-    //if ( index <= last_analysis_index && last_image_count && (last_image_count+frame_mod <= last_count)) {
-    if (index <= last_count) {
-      index %= monitor->image_buffer_count;
-      //if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
+    Debug(1, "our next count %d, our last_read_index %d, analaysis last_index %d, our image_count %d analysis_count %d",
+        new_count, last_read_index, last_analysis_index, image_count, analysis_count);
+    //if ( index <= last_analysis_index && image_count && (image_count+frame_mod <= last_count)) {
+    if (new_count <= analysis_count) {
+      if (analysis_count - new_count > monitor->image_buffer_count ) {
+        Warning("Fell behind, maybe increase Image Buffers analysis_count %d - index %d > %d",
+            analysis_count, new_count, monitor->image_buffer_count);
+        new_count = analysis_count;
+      }
+      int index = new_count % monitor->image_buffer_count;
+      //if (last_read_index != monitor->shared_data->last_write_index || image_count < monitor->shared_data->image_count) {
       // have a new image to send
       int last_write_index = index;
       //int last_write_index = monitor->shared_data->last_write_index;
       //int index = last_write_index % monitor->image_buffer_count; // This shouldn't be necessary
                                                                   //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
-      Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s", last_write_index,
+      Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s",
+          index,
           last_analysis_index,
-          last_count,
+          analysis_count,
           pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
       
       if (now >= when_to_send_next_frame) {
@@ -781,18 +789,17 @@ void MonitorStream::runStream() {
             }
           } else {
             Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, last_count, paused, delayed);
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, image_count, analysis_count, paused, delayed);
             last_read_index = last_write_index;
-            last_image_count += frame_mod; //last_count;
+            image_count += frame_mod; //last_count;
             // Send the next frame
             //
             // Perhaps we should use NOW instead.
             last_frame_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
-            Image *send_image = nullptr;
             // Analysis Image can be gray scale
             AVPixelFormat pixformat = pixelformats[index];
-            send_image = (*image_buffer)[index];
+            Image *send_image = (*image_buffer)[index];
             Debug(1, "Sending regular image index %d, pix format is %d %s size %d",
                 index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
             send_image->AVPixFormat(pixelformats[index]);
@@ -877,17 +884,21 @@ void MonitorStream::runStream() {
           Warning("Unable to store frame as shared memory invalid");
         }
       } // end if buffered playback
-    } else {
-      Debug(3, "Waiting for capture last_analysis_index=%u == last_read_index=%u",
+    } else { // ahead of writer
+      Debug(3, "Waiting for capture last_analysis_index=%u, count %d == last_read_index=%u",
           //last_write_index,
             monitor->shared_data->last_analysis_index,
-            last_read_index);
+            monitor->shared_data->analysis_image_count,
+            new_count);
 
       if (now - last_frame_sent > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
         } else {
-          sendTextFrame(stringtf("Waiting for capture last analysis index %d, our last index %d", monitor->shared_data->last_analysis_index, last_read_index).c_str());
+          sendTextFrame(stringtf("Waiting for capture last analysis index %d, count %d our last read index %d, current %d",
+                monitor->shared_data->last_analysis_index,
+                monitor->shared_data->analysis_image_count,
+                last_read_index, new_count).c_str());
         }
       }
       std::this_thread::sleep_for( MonitorStream::MAX_SLEEP / 10);

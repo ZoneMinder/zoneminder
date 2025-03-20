@@ -65,12 +65,12 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
 Quadra_Yolo::~Quadra_Yolo() {
   ni_frame_buffer_free(&frame.api_frame.data.frame);
   ni_packet_buffer_free(&frame.api_packet.data.packet);
-
+  if (network_ctx)
+    ni_cleanup_network_context(network_ctx, use_hwframe);
   if (model) {
     model->destroy_model(model_ctx);
     delete model_ctx;
   }
-  ni_cleanup_network_context(network_ctx, use_hwframe);
 
   free(last_roi);
   free(last_roi_extra);

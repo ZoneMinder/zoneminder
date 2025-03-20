@@ -290,12 +290,11 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
 
   int m_uint16_bias = dequantization_uint16_bias = 4;
   int m_fp8p_bias = dequantization_fp8p_bias = -12;
-  std::vector<std::vector<int>> m_index_map;
+  //std::vector<std::vector<int>> m_index_map;
 
+  uint8_t l_low, l_top, t_low, t_top, r_low, r_top, b_low, b_top, score;
 
   for (int row = 0; row < 256; row++) {
-    uint8_t l_low, l_top, t_low, t_top, r_low, r_top, b_low, b_top, score;
-   
     // l_low = *(DMAoutput + m_index_map[row][0]);
     // l_top = *(DMAoutput + m_index_map[row][1]);
     // t_low = *(DMAoutput + m_index_map[row][2]);
@@ -305,18 +304,19 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     // b_low = *(DMAoutput + m_index_map[row][6]);
     // b_top = *(DMAoutput + m_index_map[row][7]);
 
-    int outputDMAIndex = row * 64; // Each row has 6 values to store as per NMS struct
+    //int outputDMAIndex = row * 64; // Each row has 6 values to store as per NMS struct
                                    // BUT IS PADDED TO 64 BYTES
-    l_low = *(DMAoutput + outputDMAIndex + 0);
-    l_top = *(DMAoutput + outputDMAIndex + 1);
-    t_low = *(DMAoutput + outputDMAIndex + 2);
-    t_top = *(DMAoutput + outputDMAIndex + 3);
-    r_low = *(DMAoutput + outputDMAIndex + 4);
-    r_top = *(DMAoutput + outputDMAIndex + 5);
-    b_low = *(DMAoutput + outputDMAIndex + 6);
-    b_top = *(DMAoutput + outputDMAIndex + 7);
-    float  object_class = static_cast<float>(*(DMAoutput + outputDMAIndex + 8));
-    score = *(DMAoutput + outputDMAIndex + 9);
+    l_low = *DMAoutput; DMAoutput++;
+    l_top = *DMAoutput; DMAoutput++;
+    t_low = *DMAoutput; DMAoutput++;
+    t_top = *DMAoutput; DMAoutput++;
+    r_low = *DMAoutput; DMAoutput++;
+    r_top = *DMAoutput; DMAoutput++;
+    b_low = *DMAoutput; DMAoutput++;
+    b_top = *DMAoutput; DMAoutput++;
+    float  object_class = static_cast<float>(*(DMAoutput)); DMAoutput++;
+    score = *DMAoutput; DMAoutput++;
+    DMAoutput += 54;
 
     // Combine the uint8_t pairs into uint16_t values
     uint16_t l = (static_cast<uint16_t>(l_top) << 8) | l_low;
@@ -334,14 +334,17 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     int outputIndex = row * 6; // Assuming each row has 6 values to store
 
     // Insert the values into the output buffer
-    outputBuffer[outputIndex] = l_float;
-    outputBuffer[outputIndex + 1] = t_float;
-    outputBuffer[outputIndex + 2] = r_float;
-    outputBuffer[outputIndex + 3] = b_float;
-    outputBuffer[outputIndex + 4] = object_class;
-    outputBuffer[outputIndex + 5] = score_float;
+    outputBuffer[outputIndex] = l_float; outputIndex++;
+    outputBuffer[outputIndex] = t_float; outputIndex++;
+    outputBuffer[outputIndex] = r_float; outputIndex++;
+    outputBuffer[outputIndex] = b_float; outputIndex++;
+    outputBuffer[outputIndex] = object_class; outputIndex++;
+    outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  return coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+  Debug(1, "Done dequantizing");
+  coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+  Debug(1, "Done convert to coco");
+  return coco_object;
 }
 
 
@@ -411,6 +414,5 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
   }
   return coco_predictions;
 }
-
 
 #endif

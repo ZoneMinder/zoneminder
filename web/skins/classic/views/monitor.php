@@ -45,6 +45,7 @@ $monitors_by_name = array_flip($monitors_by_id);
 
 $mid = null;
 $monitor = null;
+$thisNewMonitor = false;
 if (!empty($_REQUEST['mid'])) {
   $mid = validInt($_REQUEST['mid']);
   $monitor = new ZM\Monitor($mid);
@@ -59,6 +60,7 @@ if (!empty($_REQUEST['mid'])) {
 }
 
 if (!$monitor) {
+  $thisNewMonitor = true;
   $monitor = new ZM\Monitor();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   while (isset($monitors_by_name[$monitor->Name()])) {
@@ -403,10 +405,11 @@ foreach ($tabs as $name=>$value) {
     <li class="nav-item form-control-sm my-1">
       <a 
         id="<?php echo $name?>-tab"
-        class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
+        class="nav-link<?php echo ($tab == $name ? ' active' : '') . ' ' . (($name == 'zones' && $thisNewMonitor === true) ? 'disabled' : '')?>"
         <?php 
         if ($name == 'zones') {
-          echo 'href="index.php?view=zones&mid=' . $monitor->Id() . '" ';
+          //echo 'href="index.php?view=zones&mid=' . $monitor->Id() . '" ';
+          echo 'href="#"';
         } else {
           echo 'href="#pills-' . $name . '" '; 
           echo 'role="tab" '; 
@@ -1611,7 +1614,8 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
 </div><!--tab-content-->
         <div id="contentButtons" class="pr-3">
-          <button type="submit" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="button" id="saveBtn" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? ($thisNewMonitor === true ? ' disabled="disabled"' : '') : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="submit" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? '' : ' disabled="disabled"' ?>><?php echo translate('SaveAndClose') ?></button>
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
@@ -1619,6 +1623,11 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 </div><!-- flex column container-->
     </div><!--content-->
   </div><!--page-->
+  <div id="alertSaveMonitorData" class="fixed-t-r alert alert-info" role="alert" style="display: none;">
+    <h2 class="alert-heading"><?php echo translate('PleaseWait') ?></h2>
+    <?php echo translate('MonitorDataIsSaved') ?>
+  </div>
+
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
 <script type="module" nonce="<?php echo $cspNonce ?>">
   import DmsCoordinates, {parseDms} from "./js/dms.js";

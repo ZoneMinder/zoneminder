@@ -228,6 +228,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t format;             /* +93   */
     uint8_t reserved1;          /* +94   */
     uint8_t reserved2;          /* +95   */
+    uint32_t camera_width;
+    uint32_t camera_height;
     uint32_t imagesize;         /* +96   */
     uint32_t last_frame_score;  /* +100   */
     uint32_t audio_frequency;   /* +104   */

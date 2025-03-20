@@ -173,6 +173,8 @@ our %mem_data = (
     format           => { type=>'uint8', seq=>$mem_seq++ },
     reserved1        => { type=>'uint8', seq=>$mem_seq++ },
     reserved2        => { type=>'uint8', seq=>$mem_seq++ },
+    camera_width     => { type=>'uint32', seq=>$mem_seq++ },
+    camera_height    => { type=>'uint32', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
     audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },

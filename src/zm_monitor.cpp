@@ -3192,6 +3192,16 @@ int Monitor::OpenDecoder() {
     }
   }  // end if have audio stream
 #endif
+  if (
+    ((unsigned int)mVideoCodecContext->width != width)
+    ||
+    ((unsigned int)mVideoCodecContext->height != height)
+  ) {
+    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+          width, height, mVideoCodecContext->width, mVideoCodecContext->height);
+  }
+  shared_data->camera_width = mVideoCodecContext->width;
+  shared_data->camera_height = mVideoCodecContext->height;
   return 1;
 }
 

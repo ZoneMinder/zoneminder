@@ -48,7 +48,9 @@ ZMPacket::ZMPacket() :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(false) {
+  decoded(false),
+  analyzed(false)
+{
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
@@ -73,7 +75,8 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(false)
+  decoded(false),
+  analyzed(false)
 {
   packet = av_packet_ptr{av_packet_alloc()};
 }
@@ -93,7 +96,9 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   image_index(p.image_index),
   codec_imgsize(0),
   pts(p.pts),
-  decoded(p.decoded) {
+  decoded(p.decoded),
+  analyzed(p.analyzed)
+{
   packet = av_packet_ptr{av_packet_alloc()};
 
   Error("Packet copy");
@@ -218,7 +223,7 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
         av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
         );
 
-    av_frame_ptr new_frame{zm_av_frame_alloc()};
+    av_frame_ptr new_frame{av_frame_alloc()};
     /* retrieve data from GPU to CPU */
     int ret;
     //do {
@@ -266,11 +271,11 @@ Image *ZMPacket::get_image(Image *i) {
     return nullptr;
   }
   if (!image) {
-    if (!i) {
-      Error("Need a pre-allocated image buffer");
-      return nullptr;
+    if (i) {
+      image = i;
+    } else {
+      image = new Image(in_frame.get());
     }
-    image = i;
   }
   image->Assign(in_frame.get());
   return image;
@@ -279,6 +284,13 @@ Image *ZMPacket::get_image(Image *i) {
 Image *ZMPacket::set_image(Image *i) {
   image = i;
   return image;
+}
+
+Image *ZMPacket::get_y_image() {
+  if (!y_image) {
+    y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
+  }
+  return y_image;
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {

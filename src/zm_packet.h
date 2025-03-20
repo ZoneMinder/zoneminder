@@ -62,6 +62,7 @@ class ZMPacket {
   int codec_imgsize;
   int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
   bool decoded;
+  bool analyzed;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
   std::string detections;
@@ -72,6 +73,7 @@ class ZMPacket {
   AVFrame *av_frame() { return out_frame.get(); }
   Image *get_image(Image *i = nullptr);
   Image *set_image(Image *);
+  Image *get_y_image();
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };

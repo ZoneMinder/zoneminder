@@ -389,6 +389,9 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
+  width = mVideoStream->codecpar->width;
+  height = mVideoStream->codecpar->height;
+
   Debug(3, "Found video stream at index %d, audio stream at index %d",
         mVideoStreamId, mAudioStreamId);
 

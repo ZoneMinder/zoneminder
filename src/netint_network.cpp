@@ -126,6 +126,7 @@ void ni_cleanup_network_context(NiNetworkContext *network_ctx, bool hwframe)
         if (hwframe == true) {
             cleanup_hwframe_scale(network_ctx);
         }
+        //delete network_ctx;
         free(network_ctx);
         network_ctx = nullptr;
     }
@@ -142,8 +143,8 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         return NIERROR(EINVAL);
     }
 
-    NiNetworkContext *network_ctx = new NiNetworkContext();
-    //(NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
+    //NiNetworkContext *network_ctx = new NiNetworkContext();
+    NiNetworkContext *network_ctx = (NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
     if (!network_ctx) {
         Error("failed to allocate network context");
         return NIERROR(ENOMEM);

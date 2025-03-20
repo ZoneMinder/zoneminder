@@ -367,7 +367,9 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     } else if (is_audio_stream(stream)) {
+      Debug(1, "Have audio stream");
       if (!monitor->RecordAudio()) {
+        Debug(1, "Have audio stream, but discarding");
         stream->discard = AVDISCARD_ALL;
       } else {
         if (mAudioStreamId == -1) {

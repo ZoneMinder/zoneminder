@@ -2239,6 +2239,13 @@ int Monitor::Analyse() {
 #endif
                       if (packet->ai_frame)
                         zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                      if (config.timestamp_on_capture) {
+                        Debug(1, "timestamping ai image");
+                        Image *ai_image = packet->get_ai_image();
+                        TimestampImage(ai_image, packet->timestamp);
+                      } else {
+                        Debug(1, "Not timestamping");
+                      }
                     } else if (0 > ret) {
                       Debug(1, "Failed yolo");
                       delete quadra_yolo;
@@ -2267,10 +2274,6 @@ int Monitor::Analyse() {
                     }
                   } while (ret == 0 and count > 0);
 
-                  if (!config.timestamp_on_capture) {
-                    Image *ai_image = packet->get_ai_image();
-                    TimestampImage(ai_image, packet->timestamp);
-                  }
                   } // end if failed to send
                 } else {
                   //quadra_yolo->draw_last_roi(packet);

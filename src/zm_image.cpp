@@ -1460,14 +1460,10 @@ bool Image::WriteJpeg(const std::string &filename,
     return false;
   }
 
-  FILE *outfile = nullptr;
-  int raw_fd = 0;
-  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
-
-  raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  int raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (raw_fd < 0)
     return false;
-  outfile = fdopen(raw_fd, "wb");
+  FILE *outfile = fdopen(raw_fd, "wb");
   if (outfile == nullptr) {
     close(raw_fd);
     return false;
@@ -1478,7 +1474,10 @@ bool Image::WriteJpeg(const std::string &filename,
     Error("Couldn't get lock on %s, continuing", filename.c_str());
   }
 
+  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+
   if ( p_jpegswscontext ) {
+    Debug(1, "Have sws context, converting");
     av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
     PopulateFrame(temp_frame.get());
 
@@ -1489,22 +1488,19 @@ bool Image::WriteJpeg(const std::string &filename,
     av_frame_get_buffer(frame.get(), 32);
 
     sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
-
-    av_frame_unref(temp_frame.get());
   } else {
     PopulateFrame(frame.get());
   }
 
-  zm_dump_video_frame(frame, "Image.Assign(frame)");
+  zm_dump_video_frame(frame, "Image.WriteJpeg(frame)");
 
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   while (ret == EAGAIN and !zm_terminate)
     ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
-  Debug(1, "Recode from avcodec_send_frame, %d", ret);
+  Debug(1, "Retcode from avcodec_send_frame, %d", ret);
   if (ret == 0) {
     Debug(1, "After send frame");
     AVPacket *pkt = av_packet_alloc();
-    ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
     while (!zm_terminate) {
       Debug(1, "Getting packet");
       ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
@@ -1513,7 +1509,9 @@ bool Image::WriteJpeg(const std::string &filename,
         fwrite(pkt->data, 1, pkt->size, outfile);
         break;
       } else if (ret == EAGAIN) {
+        Debug(1, "EAGAIN");
       } else if (ret < 0) {
+        Warning("Error getting packet %d", ret);
         break;
       }
     }
@@ -1521,8 +1519,6 @@ bool Image::WriteJpeg(const std::string &filename,
   } else {
     Error("Ret from send_frame %d", ret);
   }
-
-  av_frame_unref(frame.get());
 
   fl.l_type = F_UNLCK;  /* set to unlock same region */
   if (fcntl(raw_fd, F_SETLK, &fl) == -1) {

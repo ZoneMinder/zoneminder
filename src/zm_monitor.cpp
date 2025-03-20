@@ -2257,7 +2257,7 @@ int Monitor::Analyse() {
                       //packetqueue.increment_it(analysis_it);
                       //}
                       //return 0;
-                      std::this_thread::sleep_for(Milliseconds(10));
+                      std::this_thread::sleep_for(Microseconds(100));
                       count -= 1;
                     }
                   } while (ret == 0 and count > 0);
@@ -2730,6 +2730,7 @@ int Monitor::Analyse() {
       //packet->out_frame = nullptr;
     } // end if !event
   }  // end scope for event_lock
+  packet->analyzed = true;
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it);
@@ -3282,8 +3283,9 @@ int Monitor::Decode() {
         }
         packetqueue.increment_it(decoder_it);
         decoder_queue.push_back(std::move(packet_lock));
+        return 0;
       }
-
+#if 0
       ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
       auto delayed_packet = delayed_packet_lock->packet_;
       Debug(1, "delayed_packet %d , sent packet %d, queue_size: %ld", delayed_packet->image_index, packet->image_index, decoder_queue.size());
@@ -3304,6 +3306,7 @@ int Monitor::Decode() {
         Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         return 0;
       }
+#endif
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
@@ -3312,7 +3315,8 @@ int Monitor::Decode() {
   }  // end if need_decoding
   // Pretty much assured to have a packet
 
-  if (0 and packet->in_frame and !packet->image) {
+  if (packet->in_frame and !packet->image) {
+#if 0
     const AVFrame *in_frame = packet->in_frame.get();
 
     //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
@@ -3334,6 +3338,9 @@ int Monitor::Decode() {
       delete packet->image;
       packet->image = nullptr;
     }  // end if have convert_context
+#else
+    packet->get_image();
+#endif
   }  // end if need transfer to image
 
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
@@ -3341,9 +3348,9 @@ int Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
       ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+    Image *y_image = packet->get_y_image();
     if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-      packet->y_image->Scale(camera_width, camera_height);
+      y_image->Scale(camera_width, camera_height);
 
     if (orientation != ROTATE_0) {
       switch (orientation) {
@@ -3353,11 +3360,11 @@ int Monitor::Decode() {
       case ROTATE_90 :
       case ROTATE_180 :
       case ROTATE_270 :
-        packet->y_image->Rotate((orientation-1)*90);
+        y_image->Rotate((orientation-1)*90);
         break;
       case FLIP_HORI :
       case FLIP_VERT :
-        packet->y_image->Flip(orientation==FLIP_HORI);
+        y_image->Flip(orientation==FLIP_HORI);
         break;
       }
     } // end if have rotation

@@ -2261,6 +2261,11 @@ int Monitor::Analyse() {
                       count -= 1;
                     }
                   } while (ret == 0 and count > 0);
+
+                  if (!config.timestamp_on_capture) {
+                    Image *ai_image = packet->get_ai_image();
+                    TimestampImage(ai_image, packet->timestamp);
+                  }
                 } else {
                   quadra_yolo->draw_last_roi(packet);
                 } // end if skip_frame
@@ -3269,17 +3274,16 @@ int Monitor::Decode() {
         Debug(1, "send_packet %d", packet->image_index);
         int ret = packet->send_packet(mVideoCodecContext);
         if (0 == ret) {
+          // AGAIN
           return -1; //make it sleep?
-        }
-
-        if (ret < 0) {
+        } else if (ret < 0) {
           // No need to push because it didn't get into the decoder.
           Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
           avcodec_free_context(&mVideoCodecContext);
           avcodec_free_context(&mAudioCodecContext);
           return -1;
         } else {
-          Debug(1, "Success");
+          //Debug(1, "Success");
         }
         packetqueue.increment_it(decoder_it);
         decoder_queue.push_back(std::move(packet_lock));

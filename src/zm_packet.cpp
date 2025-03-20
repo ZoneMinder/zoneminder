@@ -332,15 +332,22 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       alignment = 1;
     }
 
-    codec_imgsize = av_image_get_buffer_size(
-                      format, width, height, alignment);
+    out_frame->width = width;
+    out_frame->height = height;
+    out_frame->format = format;
+
+    int ret = av_frame_get_buffer(out_frame.get(), alignment);
+#if 0
+    codec_imgsize = av_image_get_buffer_size(format, width, height, alignment);
     Debug(1, "buffer size %u from %s %dx%d", codec_imgsize, av_get_pix_fmt_name(format), width, height);
     out_frame->buf[0] = av_buffer_alloc(codec_imgsize);
-    if (!out_frame->buf[0]) {
+#endif
+    if (ret) {
       Error("Unable to allocate a frame buffer");
       out_frame = nullptr;
       return nullptr;
     }
+#if 0
     int ret;
     if ((ret=av_image_fill_arrays(
                out_frame->data,
@@ -354,10 +361,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       out_frame = nullptr;
       return nullptr;
     }
-
-    out_frame->width = width;
-    out_frame->height = height;
-    out_frame->format = format;
+#endif
   }
   return out_frame.get();
 } // end AVFrame *ZMPacket::get_out_frame( AVCodecContext *ctx );

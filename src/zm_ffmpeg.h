@@ -173,7 +173,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
 
 #if LIBAVUTIL_VERSION_CHECK(58, 7, 100, 7, 0)
-#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%dx%dx%d data:%p,%p,%p,%p pts: %" PRId64 " keyframe: %d", \
+#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%dx%dx%d data:%p,%p,%p,%p buf[0].size %zu, pts: %" PRId64 " keyframe: %d", \
       text, \
       frame->format, \
       av_get_pix_fmt_name((AVPixelFormat)frame->format), \
@@ -183,6 +183,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       frame->linesize[2], frame->linesize[3], \
       frame->data[0], frame->data[1], \
       frame->data[2], frame->data[3], \
+      frame->buf[0]->size, \
       frame->pts, \
       frame->flags & AV_FRAME_FLAG_KEY \
       );
@@ -308,8 +309,9 @@ struct av_packet_guard {
 
 struct zm_free_av_frame {
   void operator()(AVFrame *frame) const {
-    //Debug(1, "Freeing frame at %p", frame->data);
-    av_frame_free(&frame);
+    Debug(1, "Freeing frame at %p", &frame);
+    Debug(1, "Freeing frame at %p", frame->data);
+    if (frame) av_frame_free(&frame);
   }
 };
 

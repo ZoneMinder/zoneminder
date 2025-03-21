@@ -106,7 +106,7 @@ void Monitor::ONVIF::start() {
 
       if (rc != SOAP_OK) {
         const char *detail = soap_fault_detail(soap);
-        Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
+        Error("ONVIF Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(), rc, soap_fault_string(soap), detail ? detail : "null");
 
         std::stringstream ss;
         std::ostream *old_stream = soap->os;

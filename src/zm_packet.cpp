@@ -113,8 +113,6 @@ ZMPacket::~ZMPacket() {
   delete image;
   delete y_image;
   delete ai_image;
-  // We don't want to av_free the hw_frame
-  //hw_frame = nullptr;
 }
 
 ssize_t ZMPacket::ram() {
@@ -273,11 +271,11 @@ Image *ZMPacket::get_image(Image *i) {
   if (!image) {
     if (i) {
       image = i;
+      image->Assign(in_frame.get());
     } else {
       image = new Image(in_frame.get());
     }
   }
-  image->Assign(in_frame.get());
   return image;
 }
 

@@ -305,7 +305,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
 }
 
 Image::Image(const AVFrame *frame) :
-  sws_convert_context(nullptr)
+  sws_convert_context(nullptr),
+  buffer(0),
+  holdbuffer(0)
 {
   AssignDirect(frame);
 }
@@ -342,7 +344,7 @@ int Image::PopulateFrame(AVFrame *frame) const {
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  //zm_dump_video_frame(frame, "Image.Populate(frame)");
+  zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
 
@@ -728,16 +730,20 @@ void Image::AssignDirect(const AVFrame *frame) {
   width = frame->width;
   height = frame->height;
   buffer = frame->buf[0]->data;
+  allocation = frame->buf[0]->size;
   linesize = frame->linesize[0];
-  allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
+  size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
+  Debug(1, "Size %u, allocation %lu", size, allocation);
+  size = allocation;
+
   switch(static_cast<AVPixelFormat>(frame->format)) {
-    case  AV_PIX_FMT_RGBA:
+    case AV_PIX_FMT_RGBA:
       subpixelorder = ZM_SUBPIX_ORDER_RGBA;
       colours = ZM_COLOUR_RGB32;
       break;
-    case  AV_PIX_FMT_YUV420P:
-    case  AV_PIX_FMT_YUVJ420P:
+    case AV_PIX_FMT_YUV420P:
+    case AV_PIX_FMT_YUVJ420P:
       colours = ZM_COLOUR_YUV420P;
       subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       break;
@@ -745,6 +751,7 @@ void Image::AssignDirect(const AVFrame *frame) {
 Warning("Unknown pixel format %d", frame->format);
       break;
   }
+  holdbuffer = true;
   buffertype = ZM_BUFTYPE_DONTFREE;
   pixels = width * height;
 }
@@ -875,10 +882,11 @@ void Image::Assign(
 }
 
 void Image::Assign(const Image &image) {
-  unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
+  unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
+    //av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
   //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
-  new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
-  //Debug(1, "Assign %dx%d %d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
+  Debug(1, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
+      av_get_pix_fmt_name(image.AVPixFormat()), new_size, size);
   //unsigned int new_size = image.height * image.linesize;
 
   if (image.buffer == nullptr) {
@@ -927,7 +935,7 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  //Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
+  Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -1485,7 +1493,7 @@ bool Image::WriteJpeg(const std::string &filename,
     frame->width  = p_jpegcodeccontext->width;
     frame->height = p_jpegcodeccontext->height;
     frame->format = AV_PIX_FMT_YUVJ420P;
-    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+    //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
     av_frame_get_buffer(frame.get(), 32);
 
     sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
@@ -2398,22 +2406,20 @@ void Image::Annotate(
   int32_t y0 = zm::clamp(static_cast<int32_t>(coord.y_), 0, y0_max);
   Debug(1, "Coords: %dx%d", x0, y0);
 
-  uint32 y = y0;
+  uint32_t y = y0;
   for (const std::string &line : lines) {
-    int32_t x = x0;
+    uint32_t x = static_cast<uint32_t>(x0);
 
     if (colours == ZM_COLOUR_GRAY8) {
       //Debug(1, "Annotate on gray");
       uint8 *ptr = &buffer[(y * width) + x0];
       for (char c : line) {
-        Debug(1, "%c", c);
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
             std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
           }
 
           while (cp_row != 0) {
-            Debug(1, "%" PRIu64, cp_row);
             uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);

@@ -2658,7 +2658,7 @@ int Monitor::Analyse() {
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
           shared_data->analysis_image_count++;
-        } else if (packet->image) {
+        } else if (0 and packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
           Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
@@ -2688,7 +2688,7 @@ int Monitor::Analyse() {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
-        if (packet->image) {
+        if (0 and packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
           Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
@@ -3366,6 +3366,7 @@ int Monitor::Decode() {
 #endif
   }  // end if need transfer to image
 
+#if 0
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
         ||
@@ -3392,6 +3393,7 @@ int Monitor::Decode() {
       }
     } // end if have rotation
   }
+#endif
 
   if (packet->image) {
     Image* capture_image = packet->image;
@@ -3462,7 +3464,7 @@ int Monitor::Decode() {
   }  // end if have image
  
   unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
-  if (packet->image) {
+  if (0 and packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
     Debug(1, "Assigning %s for index %d", packet->image->toString().c_str(), index);
     image_buffer[index]->Assign(*(packet->image));

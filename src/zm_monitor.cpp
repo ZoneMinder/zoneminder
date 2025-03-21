@@ -3466,12 +3466,15 @@ int Monitor::Decode() {
   unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
   if (0 and packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
-    Debug(1, "Assigning %s for index %d", packet->image->toString().c_str(), index);
+    Debug(1, "Assigning %s for index %d to %s",
+        packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
     Debug(1, "Assigning for index %d", index);
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
     image_buffer[index]->Assign(packet->in_frame.get());
+  } else {
+    Warning("Unable to assign an image to shm for %d", index);
   }
   shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
   shared_data->last_write_index = index;

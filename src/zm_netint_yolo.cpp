@@ -196,7 +196,7 @@ bool Quadra_Yolo::setup(
 
   const char *hwdl_desc = "[in]hwdownload,format=yuv420p[out]";
   if ((ret = init_filter(hwdl_desc, hwdl_filter, true, dec_ctx->pix_fmt)) < 0) {
-    Error("cannot initialize hwdl filter");
+    Error("cannot initialize hwdl filter %d %s", ret, av_make_error_string(ret).c_str());
     return false;
   }
 

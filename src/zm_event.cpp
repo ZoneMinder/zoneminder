@@ -364,7 +364,7 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
   */
-  if (!mJpegCodecContext) {
+  if (!mJpegCodecContext || (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != image->AVPixFormat()))) {
     Debug(1, "Need to open codec.  ctx %p", mJpegCodecContext);
     OpenJpegCodec(image);
   }

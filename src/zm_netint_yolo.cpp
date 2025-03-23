@@ -376,8 +376,7 @@ int Quadra_Yolo::draw_roi_box(
   w = roi.right - roi.left;
   h = roi.bottom - roi.top;
 
-  Debug(4, "x %d, y %d, w %d, h %d class %s prob %f",
-      x, y, w, h, roi_class[cls], prob);
+  Debug(4, "x %d, y %d, w %d, h %d class %s prob %f", x, y, w, h, roi_class[cls], prob);
 
   n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
   av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);

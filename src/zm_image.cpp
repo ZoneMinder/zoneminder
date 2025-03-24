@@ -320,6 +320,10 @@ int Image::PopulateFrame(AVFrame *frame) const {
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)
        );
+  if (frame->buf[0]) {
+    Warning("Frame is not empty!");
+  }
+#if 1
   AVBufferRef *ref = av_buffer_create(buffer, size,
                                       dont_free, /* Free callback */
                                       nullptr, /* opaque */
@@ -329,6 +333,7 @@ int Image::PopulateFrame(AVFrame *frame) const {
     Warning("Failed to create av_buffer");
   }
   frame->buf[0] = ref;
+#endif
 
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
   int rc_size = av_image_fill_arrays(
@@ -1486,15 +1491,16 @@ bool Image::WriteJpeg(const std::string &filename,
   av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
 
   if ( p_jpegswscontext ) {
-    Debug(1, "Have sws context, converting");
     av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
     PopulateFrame(temp_frame.get());
+    Debug(1, "Have sws context, converting from %dx%d %s", temp_frame->width, temp_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(temp_frame->format)));
 
     frame->width  = p_jpegcodeccontext->width;
     frame->height = p_jpegcodeccontext->height;
     frame->format = AV_PIX_FMT_YUVJ420P;
     //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
     av_frame_get_buffer(frame.get(), 32);
+    zm_dump_video_frame(frame, "Image.WriteJpeg(temp_frame)");
 
     sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
   } else {
@@ -1897,8 +1903,8 @@ void Image::Overlay( const Image &image ) {
   }
 
   if ( colours == image.colours && subpixelorder != image.subpixelorder ) {
-    Warning("Attempt to overlay images of same format but with different subpixel order %d != %d.",
-            subpixelorder, image.subpixelorder);
+    Warning("Attempt to overlay images of same format %d but with different subpixel order %d != %d.",
+            colours, subpixelorder, image.subpixelorder);
   }
 
   /* Grayscale on top of grayscale - complete */

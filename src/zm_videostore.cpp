@@ -1117,7 +1117,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         return 0;
       }
 
-      if (zm_packet->image) {
+      if (0 and zm_packet->image) {
         Debug(2, "Have an image, convert it");
         //Go straight to out frame
         if (
@@ -1151,8 +1151,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          zm_packet->out_frame = std::move(zm_packet->in_frame);
-          zm_packet->in_frame = nullptr;
+          out_frame = zm_packet->in_frame.get();
         } else {
           // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());

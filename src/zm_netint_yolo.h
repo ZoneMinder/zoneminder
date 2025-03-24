@@ -64,6 +64,7 @@ class Quadra_Yolo {
 
     bool use_hwframe;
     std::string result_json;
+    int filt_cnt;
 
   public:
     Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);

@@ -52,7 +52,8 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   last_roi_extra(nullptr),
   last_roi_count(0),
 
-  use_hwframe(p_use_hwframe)
+  use_hwframe(p_use_hwframe),
+  filt_cnt(0)
 {
   scaled_frame = av_frame_ptr{zm_av_frame_alloc()};
   scaled_frame->width  = model_width;
@@ -519,7 +520,6 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data(
       frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
   AVFrame *input = nullptr;
-  static int filt_cnt = 0;
 
   Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
 
@@ -573,7 +573,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         Error("draw %d roi box failed", i);
         return ret;
       }
-      zm_dump_video_frame(output, "Quadra: boxes");
+      //zm_dump_video_frame(output, "Quadra: boxes");
       std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
       Image img(output);
       img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);

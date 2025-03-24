@@ -283,6 +283,8 @@ void AIThread::Run() {
       if (!monitor_->connect()) {
         Warning("Couldn't connect to monitor %d", monitor_->Id());
         monitor_->Reload();  // This is to pickup change of colours, width, height, etc
+        sleep(1);
+        continue;
       }  // end if failed to connect
     }  // end if !ShmValid
        //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",

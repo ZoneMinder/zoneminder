@@ -1526,7 +1526,7 @@ bool Image::WriteJpeg(const std::string &filename,
       } else if (ret == EAGAIN) {
         Debug(1, "EAGAIN");
       } else if (ret < 0) {
-        Warning("Error getting packet %d", ret);
+        Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());
         break;
       }
     }

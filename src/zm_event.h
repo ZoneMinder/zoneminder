@@ -72,6 +72,7 @@ class Event {
     Image *alarm_frame;
   };
   std::queue<Frame*> frame_data;
+  av_frame_ptr output_frame;
 
   static int pre_alarm_count;
   static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
@@ -99,6 +100,7 @@ class Event {
   SwsContext          *mJpegSwsContext;
   AVBufferRef *hw_device_ctx;
   int OpenJpegCodec(const Image *);
+  int OpenJpegCodec(AVFrame *frame);
 
   std::string container;
   std::string codec;
@@ -193,5 +195,6 @@ class Event {
     EmptyPreAlarmFrames();
   }
   int MonitorId() const;
+  bool WriteJpeg(AVFrame *temp_frame, const std::string &filename);
 };
 #endif // ZM_EVENT_H

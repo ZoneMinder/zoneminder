@@ -206,13 +206,13 @@ class Monitor extends ZM_Object {
     }
     if (!isset($RTSP2WebStreamOptions )) {
       $RTSP2WebStreamOptions  = array(
-        'Primary'   => translate('Primary'),
+        'Primary'   => translate('Primary')
       );
       if ($monitor && $monitor->{'SecondPath'}) {
         $RTSP2WebStreamOptions['Secondary'] = translate('Secondary');
       }
     }
-    return $RTSP2WebStreamOptions ;
+    return $RTSP2WebStreamOptions;
   }
 
   protected $defaults = array(

@@ -424,7 +424,7 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
       } else if (ret == EAGAIN) {
         Debug(1, "EAGAIN");
       } else if (ret < 0) {
-        Warning("Error getting packet %d", ret);
+        Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());
         break;
       }
     }
@@ -948,7 +948,7 @@ void Event::Run() {
         packet_lock.unlock();
         // Stay behind ai
         Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE/10);
-        Debug(3, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
@@ -959,19 +959,18 @@ void Event::Run() {
       if (packet->image) {
         if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
           if (!save_jpegs) {
-            Debug(1, "Deleting image data for %d", packet->image_index);
+            Debug(4, "Deleting image data for %d", packet->image_index);
             // Don't need raw images anymore
             delete packet->image;
             packet->image = nullptr;
           }
         }
         if (packet->analysis_image and !(save_jpegs & 2)) {
-          Debug(1, "Deleting analysis image data for %d", packet->image_index);
+          Debug(4, "Deleting analysis image data for %d", packet->image_index);
           delete packet->analysis_image;
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
-      Debug(1, "Deleting packet lock");
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

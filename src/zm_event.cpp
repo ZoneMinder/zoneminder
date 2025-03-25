@@ -947,8 +947,8 @@ void Event::Run() {
         Debug(1, "Not analyzed");
         packet_lock.unlock();
         // Stay behind ai
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
-        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE/10);
+        Debug(3, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
         continue;
       }

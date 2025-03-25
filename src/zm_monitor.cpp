@@ -2268,7 +2268,7 @@ int Monitor::Analyse() {
                       //packetqueue.increment_it(analysis_it);
                       //}
                       //return 0;
-                      std::this_thread::sleep_for(Microseconds(10000));
+                      std::this_thread::sleep_for(Microseconds(1000));
                       count -= 1;
                     }
                   } while (ret == 0 and count > 0);
@@ -3260,7 +3260,8 @@ int Monitor::Decode() {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
   } 
 
-  if (!packet and decoder_queue.size() > 10) {
+  // Might have to be keyframe interval
+  if (!packet and decoder_queue.size() > 50) {
     Debug(1, "Too many packets in queue. Sleeping");
     return -1;
   }
@@ -3485,6 +3486,7 @@ int Monitor::Decode() {
         FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
   }
   packet->decoded = true;
+  packetqueue.notify_all();
   return 1;
 }  // end int Monitor::Decode()
 

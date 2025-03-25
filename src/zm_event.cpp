@@ -408,7 +408,7 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
   zm_dump_video_frame(in_frame, "Image.WriteJpeg(frame)");
 
   int ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
-  while (ret == EAGAIN and !zm_terminate)
+  while (ret == AVERROR(EAGAIN) and !zm_terminate)
     ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
   Debug(1, "Retcode from avcodec_send_frame, %d", ret);
   if (ret == 0) {
@@ -421,7 +421,7 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
         Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
         fwrite(pkt->data, 1, pkt->size, outfile);
         break;
-      } else if (ret == EAGAIN) {
+      } else if (ret == AVERROR(EAGAIN)) {
         Debug(1, "EAGAIN");
       } else if (ret < 0) {
         Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());

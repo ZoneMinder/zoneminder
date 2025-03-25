@@ -1510,7 +1510,7 @@ bool Image::WriteJpeg(const std::string &filename,
   zm_dump_video_frame(frame, "Image.WriteJpeg(frame)");
 
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
-  while (ret == EAGAIN and !zm_terminate)
+  while (ret == AVERROR(EAGAIN) and !zm_terminate)
     ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   Debug(1, "Retcode from avcodec_send_frame, %d", ret);
   if (ret == 0) {
@@ -1523,7 +1523,7 @@ bool Image::WriteJpeg(const std::string &filename,
         Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
         fwrite(pkt->data, 1, pkt->size, outfile);
         break;
-      } else if (ret == EAGAIN) {
+      } else if (ret == AVERROR(EAGAIN)) {
         Debug(1, "EAGAIN");
       } else if (ret < 0) {
         Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());
@@ -1902,8 +1902,8 @@ void Image::Overlay( const Image &image ) {
           width, height, image.width, image.height);
   }
 
-  if ( colours == image.colours && subpixelorder != image.subpixelorder ) {
-    Warning("Attempt to overlay images of same format %d but with different subpixel order %d != %d.",
+  if ((colours != ZM_COLOUR_GRAY8) and (colours == image.colours && subpixelorder != image.subpixelorder)) {
+    Warning("Attempt to overlay images of same format %d but with different subpixel order ours, %d != overlay %d.",
             colours, subpixelorder, image.subpixelorder);
   }
 

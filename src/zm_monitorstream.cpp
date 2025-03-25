@@ -724,12 +724,15 @@ void MonitorStream::runStream() {
         replay_rate = ZM_RATE_BASE;
       }
     }  // end if (buffered_playback && delayed)
-    if (image_count > monitor->shared_data->analysis_image_count) {
-      image_count = monitor->shared_data->analysis_image_count;
+
+    int32_t analysis_image_count = monitor->shared_data->analysis_image_count;
+
+    // Perhaps it restarted?
+    if (image_count > analysis_image_count) {
+      image_count = analysis_image_count;
     }
 
     int new_count = (image_count+frame_mod) ; // % monitor->image_buffer_count;
-    int analysis_count;
     int last_analysis_index;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;
@@ -751,20 +754,19 @@ void MonitorStream::runStream() {
     //} else {
       //Debug(1, "Using LIVE");
       last_analysis_index = monitor->shared_data->last_analysis_index;
-      analysis_count = monitor->shared_data->analysis_image_count;
 
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
     //}
 
-    Debug(1, "our next count %d, our last_read_index %d, analaysis last_index %d, our image_count %d analysis_count %d",
-        new_count, last_read_index, last_analysis_index, image_count, analysis_count);
+    Debug(1, "our next count %d, our last_read_index %d, analaysis last_index %d, our image_count %d analysis_image_count %d",
+        new_count, last_read_index, last_analysis_index, image_count, analysis_image_count);
     //if ( index <= last_analysis_index && image_count && (image_count+frame_mod <= last_count)) {
-    if (new_count <= analysis_count) {
-      if (analysis_count - new_count > monitor->image_buffer_count ) {
-        Warning("Fell behind, maybe increase Image Buffers analysis_count %d - index %d > %d",
-            analysis_count, new_count, monitor->image_buffer_count);
-        new_count = analysis_count;
+    if (new_count <= analysis_image_count) {
+      if (analysis_image_count - new_count > monitor->image_buffer_count ) {
+        Warning("Fell behind, maybe increase Image Buffers analysis_image_count %d - index %d > %d",
+            analysis_image_count, new_count, monitor->image_buffer_count);
+        new_count = analysis_image_count;
       }
       int index = new_count % monitor->image_buffer_count;
       //if (last_read_index != monitor->shared_data->last_write_index || image_count < monitor->shared_data->image_count) {
@@ -776,7 +778,7 @@ void MonitorStream::runStream() {
       Debug(1, "Pixelformat for index %d= last_index %d count %d is %d %s",
           index,
           last_analysis_index,
-          analysis_count,
+          analysis_image_count,
           pixelformats[index], av_get_pix_fmt_name(pixelformats[index]));
       
       if (now >= when_to_send_next_frame) {
@@ -789,7 +791,7 @@ void MonitorStream::runStream() {
             }
           } else {
             Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, image_count, analysis_count, paused, delayed);
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, image_count, analysis_image_count, paused, delayed);
             last_read_index = last_write_index;
             image_count += frame_mod; //last_count;
             // Send the next frame

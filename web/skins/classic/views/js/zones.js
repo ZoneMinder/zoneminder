@@ -11,10 +11,8 @@ function initPage() {
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
 
-    // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].setStreamScale();
-    monitors[i].start(delay);
+    monitors[i].start();
   }
   $j('svg polygon').on('click', function(e) {
     window.location='?view=zone&mid='+this.getAttribute('data-mid')+'&zid='+this.getAttribute('data-zid');

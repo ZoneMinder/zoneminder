@@ -55,6 +55,11 @@
   display: none;
 }
 
+.material-icons.md-8 { font-size: 8px; }
+.material-icons.md-10 { font-size: 10px; }
+.material-icons.md-12 { font-size: 12px; }
+.material-icons.md-14 { font-size: 14px; }
+.material-icons.md-16 { font-size: 16px; }
 .material-icons.md-18 { font-size: 18px; }
 .material-icons.md-20 { font-size: 20px; }
 .material-icons.md-22 { font-size: 22px; }

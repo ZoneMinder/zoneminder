@@ -7,7 +7,7 @@ var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
-var idle = 0;
+var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
 
@@ -1038,6 +1038,7 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        idleTimeoutTriggered = true;
         streamCmdStop(true);
         const cycle_was = cycle;
         cyclePause();
@@ -1060,6 +1061,7 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
+        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -1121,14 +1123,14 @@ function initPage() {
 
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');
-  if (btn.firstElementChild.innerHTML=='fullscreen') {
+  if (btn.firstElementChild.innerHTML == 'fullscreen') {
     const content = document.getElementById('content');
     openFullscreen(content);
-    btn.firstElementChild.innerHTML='fullscreen_exit';
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
     btn.setAttribute('title', translate["Exit Fullscreen"]);
   } else {
     closeFullscreen();
-    btn.firstElementChild.innerHTML='fullscreen';
+    btn.firstElementChild.innerHTML = 'fullscreen';
     btn.setAttribute('title', translate["Fullscreen"]);
   }
 }
@@ -1497,9 +1499,9 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && prevStateStarted == 'played' && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
       onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start();
+      monitorStream.start(monitorStream.currentChannelStream);
     }
   }
 };

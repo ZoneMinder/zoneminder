@@ -139,7 +139,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     int ret;
 
     if ((nbg_file == NULL) || (access(nbg_file, R_OK) != 0)) {
-        Error("invalid network binary path");
+        Error("invalid network binary path %s", nbg_file);
         return NIERROR(EINVAL);
     }
 

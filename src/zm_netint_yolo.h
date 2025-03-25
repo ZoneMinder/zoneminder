@@ -8,6 +8,7 @@ extern "C" {
 #include <libavfilter/buffersink.h>
 #include <libavfilter/buffersrc.h>
 
+#include <libavutil/frame.h>
 #include <libavutil/opt.h>
 
 #include <libswscale/swscale.h>

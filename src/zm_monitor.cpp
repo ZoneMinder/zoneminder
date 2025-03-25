@@ -2154,7 +2154,7 @@ int Monitor::Analyse() {
               Debug(1, "Quadra setting up on %d", deviceid);
               if (!quadra_yolo->setup(camera->getVideoStream(), 
                     mVideoCodecContext,
-                    "yolov5", "/usr/share/zoneminder/network_binary_yolov5s_improved.nb",
+                    "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
                     deviceid)) {
                 delete quadra_yolo;
                 quadra_yolo = nullptr;

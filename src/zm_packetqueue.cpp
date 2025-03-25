@@ -171,7 +171,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           if (warned_count < 2) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
-            Warning("Found locked packet when trying to free up video packets. This means that decoding is not keeping up.");
+            Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
           }
           ++it;
           break;
@@ -274,7 +274,10 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
       ZMLockedPacket lp(zm_packet);
-      if (!lp.trylock()) break;
+      if (!lp.trylock()) {
+        Debug(1, "Failed locking packet %d", zm_packet->image_index);
+        break;
+      }
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Debug(1, "Found iterator at beginning of queue.");

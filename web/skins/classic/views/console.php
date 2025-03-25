@@ -411,6 +411,9 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     if ($monitor['Analysing'] != 'None') {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
     }
+    if ($monitor['ObjectDetection'] != 'none') {
+      echo translate('Object Detection') . ': '.translate($monitor['ObjectDetection']).'<br/>';
+    }
     if ($monitor['Recording'] != 'None') {
       echo translate('Recording') . ': '.translate($monitor['Recording']) . ($monitor['ONVIF_Event_Listener'] ? ' Use ONVIF' : "") . '<br/>';
     }

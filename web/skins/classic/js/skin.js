@@ -310,10 +310,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
 
     // Manage visible object & control button (when pressing a button)
-    $j("[data-flip-сontrol-object]").click(function() {
+    $j("[data-flip-control-object]").click(function() {
       const _this_ = $j(this);
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       changeButtonIcon(_this_, objIconButton);
 
@@ -343,12 +343,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
+    $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       if (obj.parent().css('display') != 'block') {
         obj.wrap('<div style="display: block"></div>');
@@ -417,14 +417,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function changeButtonIcon(pressedBtn, target, params) {
     const visibility = (!params) ? null : params.visibility;
     const objIconButton = pressedBtn.find("i");
-    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    const obj = $j(pressedBtn.attr('data-flip-control-object'));
     if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         objIconButton.html(objIconButton.attr('data-icon-hidden'));
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'hidden');
     } else { //hidden
       obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
@@ -432,7 +432,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'visible');
     }
   }
 

@@ -292,7 +292,10 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
       ZMPacketLock packet_lock(zm_packet);
-      if (!packet_lock.trylock()) break;
+      if (!packet_lock.trylock()) {
+        Debug(1, "Failed locking packet %d", zm_packet->image_index);
+        break;
+      }
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Debug(1, "Found iterator at beginning of queue.");

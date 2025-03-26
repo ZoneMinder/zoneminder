@@ -1063,10 +1063,12 @@ function manageRTSP2WebChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
-    var curentMonitor = monitorData.find((o) => {
+    const monitor = monitorData.find((o) => {
       return parseInt(o["id"]) === monitorId;
     });
-    secondPath_ = curentMonitor['SecondPath'];
+    if (monitor) {
+      secondPath_ = monitor['SecondPath'];
+    }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;

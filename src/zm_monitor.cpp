@@ -2208,23 +2208,36 @@ int Monitor::Analyse() {
               }
               if (packet->hw_frame or packet->in_frame) {
                 if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                  SystemTimePoint starttime = std::chrono::system_clock::now();
                   Debug(1, "Send_packet %d", packet->image_index);
                   int ret = quadra_yolo->send_packet(packet);
                   if (ret <= 0) {
                     Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
                     //return ret;
                   } else {
+                    SystemTimePoint endtime = std::chrono::system_clock::now();
+                    if (endtime - starttime > Seconds(1)) {
+                      Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                    } else {
+                      Debug(1, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                    }
 
-                  int count = 10;
-                  delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-                  delayed_packet = delayed_packet_lock->packet_;
-                  do {
+                    int count = 10;
+                    delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+                    delayed_packet = delayed_packet_lock->packet_;
+                    do {
                     // packet got to the card
-                    Debug(1, "Doing receive_detection queue size: %zu", ai_queue.size());
+                    Debug(1, "Doing receive_detection queue size: %zu image_index %d", ai_queue.size(), delayed_packet->image_index);
+                    starttime = std::chrono::system_clock::now();
 
                     ret = quadra_yolo->receive_detection(delayed_packet);
                     if (0 < ret) {
-                      Debug(1, "Success %d", delayed_packet->image_index);
+                      endtime = std::chrono::system_clock::now();
+                      if (endtime - starttime > Seconds(1)) {
+                        Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                      } else {
+                        Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                      }
 #if 0
                       if (delayed_packet.get() != packet.get()) {
                         Debug(1, "Pushing packet, popping delayed");

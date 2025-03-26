@@ -729,6 +729,7 @@ void MonitorStream::runStream() {
 
     // Perhaps it restarted?
     if (image_count > analysis_image_count) {
+      Debug(1, "Image_count > analysis?  DId it restart? %d > %d", image_count, analysis_image_count);
       image_count = analysis_image_count;
     }
 
@@ -753,11 +754,17 @@ void MonitorStream::runStream() {
       //pixelformats = monitor->analysis_image_pixelformats;
     //} else {
       //Debug(1, "Using LIVE");
+      if ( analysis_image_count == monitor->image_buffer_count) {
+        // Use ccapture
+        new_count = monitor->shared_data->last_write_index;
+        image_buffer = &monitor->image_buffer;
+        pixelformats = monitor->image_pixelformats;
+      } else {
       last_analysis_index = monitor->shared_data->last_analysis_index;
 
       image_buffer = &monitor->analysis_image_buffer;
       pixelformats = monitor->analysis_image_pixelformats;
-    //}
+    }
 
     Debug(1, "our next count %d, our last_read_index %d, analaysis last_index %d, our image_count %d analysis_image_count %d",
         new_count, last_read_index, last_analysis_index, image_count, analysis_image_count);
@@ -887,7 +894,7 @@ void MonitorStream::runStream() {
         }
       } // end if buffered playback
     } else { // ahead of writer
-      Debug(3, "Waiting for capture last_analysis_index=%u, count %d == last_read_index=%u",
+      Debug(1, "Waiting for capture last_analysis_index=%u, count %d == last_read_index=%u",
           //last_write_index,
             monitor->shared_data->last_analysis_index,
             monitor->shared_data->analysis_image_count,

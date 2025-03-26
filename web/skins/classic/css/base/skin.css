@@ -983,6 +983,10 @@ a.flip {
     flex-wrap: wrap;
   }
 }
+#ui-datepicker-div {
+  z-index:1001!important;
+}
+
 #fieldsTable ul.chosen-choices {
   max-height: 100px;
   overflow-y:auto;

@@ -1435,13 +1435,6 @@ function canPlayCodec(filename) {
 /* Processing any key press*/
 function handleKeydownGeneral(evt) {
   const target = evt.target;
-  const key = evt.key;
-  // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
-  if (!useOldMenuView && key == 'Enter') {
-    if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
-      submitThisForm();
-    }
-  }
 
   if (target.tagName == 'INPUT') {
     // Managing availability of channel stream selection

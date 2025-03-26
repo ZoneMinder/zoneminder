@@ -1080,7 +1080,7 @@ function manageRTSP2WebChannelStream() {
         el.disabled = false;
       }
       applyChosen(select);
-    })
+    });
   }
 }
 
@@ -1452,7 +1452,7 @@ function initPageGeneral() {
   /* Assigning global handlers!
   ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
   */
-  document.body.addEventListener('keydown', function (event) {
+  document.body.addEventListener('keydown', function(event) {
     handleKeydownGeneral(event);
   });
 }

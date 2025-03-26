@@ -1432,14 +1432,10 @@ function canPlayCodec(filename) {
   return false;
 }
 
-/* Processing any key press*/
-function handleKeydownGeneral(evt) {
-  const target = evt.target;
-
-  if (target.tagName == 'INPUT') {
-    // Managing availability of channel stream selection
-    manageRTSP2WebChannelStream();
-  }
+/* Handling <input> change */
+function handleChangeInputTag(evt) {
+  // Managing availability of channel stream selection
+  manageRTSP2WebChannelStream();
 }
 
 function initPageGeneral() {
@@ -1452,8 +1448,8 @@ function initPageGeneral() {
   /* Assigning global handlers!
   ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
   */
-  document.body.addEventListener('keydown', function(event) {
-    handleKeydownGeneral(event);
+  document.body.addEventListener('input', function(event) {
+    handleChangeInputTag(event);
   });
 }
 

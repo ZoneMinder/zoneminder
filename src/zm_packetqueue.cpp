@@ -35,7 +35,9 @@ PacketQueue::PacketQueue():
   keep_keyframes(false),
   warned_count(0),
   has_out_of_order_packets_(false),
-  max_keyframe_interval_(0) {
+  max_keyframe_interval_(0),
+  frames_since_last_keyframe_(0)
+{
 }
 
 /* Assumes queue is empty when adding streams
@@ -108,6 +110,18 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
 
+    if (video_stream_id==add_packet->packet->stream_index) {
+      if (!add_packet->keyframe) {
+        frames_since_last_keyframe_ ++;
+        if (frames_since_last_keyframe_ > max_keyframe_interval_)
+          max_keyframe_interval_ = frames_since_last_keyframe_; 
+      } else {
+        frames_since_last_keyframe_ = 0;
+      }
+    }
+
+#if 0
+    // FIXME: This is pointless if we are encoding. Need to do something in ffmpeg_camera to more efficiently count keyframe
     if (!max_keyframe_interval_ and add_packet->keyframe and (video_stream_id==add_packet->packet->stream_index)) {
       auto rit = pktQueue.rbegin();
       int packet_count = 0;
@@ -122,6 +136,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       Debug(1, "Have keyframe interval: %d", packet_count);
       max_keyframe_interval_ = packet_count;
     }
+#endif
 
     pktQueue.push_back(add_packet);
 

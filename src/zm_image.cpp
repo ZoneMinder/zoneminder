@@ -2404,13 +2404,13 @@ void Image::Annotate(
 
   int32_t y0_max = height - (lines.size() * char_height);
   if (y0_max < 0) y0_max = 0;
-  Debug(1, "Max Coords: %dx%d", x0_max, y0_max);
+  //Debug(1, "Max Coords: %dx%d", x0_max, y0_max);
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
   int32_t x0 = zm::clamp(static_cast<int32_t>(coord.x_), 0, x0_max);
   int32_t y0 = zm::clamp(static_cast<int32_t>(coord.y_), 0, y0_max);
-  Debug(1, "Coords: %dx%d", x0, y0);
+  //Debug(1, "Coords: %dx%d", x0, y0);
 
   uint32_t y = y0;
   for (const std::string &line : lines) {

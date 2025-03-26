@@ -1058,7 +1058,32 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
-var thumbnail_timeout;
+/* Controls the availability of options for selection*/
+function manageRTSP2WebChannelStream() {
+  let select = null;
+  let secondPath_ = null;
+  if (currentView == 'watch') {
+    var curentMonitor = monitorData.find((o) => {
+      return parseInt(o["id"]) === monitorId;
+    });
+    secondPath_ = curentMonitor['SecondPath'];
+    select = document.querySelector('select[name="streamChannel"]');
+  } else if (currentView == 'monitor') {
+    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+  }
+  if (select) {
+    select.querySelectorAll("option").forEach(function(el) {
+      if (el.value == 'Secondary' && !secondPath_) {
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+      }
+      applyChosen(select);
+    })
+  }
+}
+
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
@@ -1182,13 +1207,30 @@ function isMobile() {
   return result;
 }
 
-function applyChosen() {
-  const limit_search_threshold = 10;
+function destroyChosen(selector = '') {
+  if (typeof selector === 'string') {
+    $j(selector + '.chosen').chosen('destroy');
+  } else {
+    $j(selector).find('.chosen').chosen('destroy');
+  }
+}
 
-  $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
-  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+function applyChosen(selector = '') {
+  const limit_search_threshold = 10;
+  var [obj_1, obj_2, obj_3] = '';
+  destroyChosen(selector);
+  if (typeof selector === 'string') {
+    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+  } else {
+    obj_1 = $j(selector).find('.chosen').not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).find('.chosen.chosen-full-width');
+    obj_3 = $j(selector).find('.chosen.chosen-auto-width');
+  }
+  obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 function stringToNumber(str) {
@@ -1370,14 +1412,6 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
   }
 }
 
-$j(document).on('keyup.global keydown.global', function(e) {
-  shifted = e.shiftKey ? e.shiftKey : e.shift;
-  ctrled = e.ctrlKey;
-  alted = e.altKey;
-});
-
-loadFontFaceObserver();
-
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
@@ -1397,3 +1431,39 @@ function canPlayCodec(filename) {
   }
   return false;
 }
+
+/* Processing any key press*/
+function handleKeydownGeneral(evt) {
+  const target = evt.target;
+  const key = evt.key;
+  // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
+  if (!useOldMenuView && key == 'Enter') {
+    if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
+      submitThisForm();
+    }
+  }
+
+  if (target.tagName == 'INPUT') {
+    // Managing availability of channel stream selection
+    manageRTSP2WebChannelStream();
+  }
+}
+
+function initPageGeneral() {
+  $j(document).on('keyup.global keydown.global', function(e) {
+    shifted = e.shiftKey ? e.shiftKey : e.shift;
+    ctrled = e.ctrlKey;
+    alted = e.altKey;
+  });
+
+  /* Assigning global handlers!
+  ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
+  */
+  document.body.addEventListener('keydown', function (event) {
+    handleKeydownGeneral(event);
+  });
+}
+
+loadFontFaceObserver();
+
+$j( window ).on("load", initPageGeneral);

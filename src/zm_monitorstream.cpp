@@ -733,7 +733,7 @@ void MonitorStream::runStream() {
       image_count = analysis_image_count;
     }
 
-    int new_count = (image_count+frame_mod) ; // % monitor->image_buffer_count;
+    int new_count = image_count; //(image_count+frame_mod) ; // % monitor->image_buffer_count;
     int last_analysis_index;
     std::vector<Image *> *image_buffer;
     AVPixelFormat *pixelformats;

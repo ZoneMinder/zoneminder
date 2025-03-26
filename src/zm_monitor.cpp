@@ -2225,19 +2225,18 @@ int Monitor::Analyse() {
                     int count = 10;
                     delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
                     delayed_packet = delayed_packet_lock->packet_;
-                    do {
                     // packet got to the card
                     Debug(1, "Doing receive_detection queue size: %zu image_index %d", ai_queue.size(), delayed_packet->image_index);
                     starttime = std::chrono::system_clock::now();
-
-                    ret = quadra_yolo->receive_detection(delayed_packet);
-                    if (0 < ret) {
-                      endtime = std::chrono::system_clock::now();
-                      if (endtime - starttime > Seconds(1)) {
-                        Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                      } else {
-                        Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                      }
+                    do {
+                      ret = quadra_yolo->receive_detection(delayed_packet);
+                      if (0 < ret) {
+                        endtime = std::chrono::system_clock::now();
+                        if (endtime - starttime > Seconds(1)) {
+                          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                        } else {
+                          Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                        }
 #if 0
                       if (delayed_packet.get() != packet.get()) {
                         Debug(1, "Pushing packet, popping delayed");
@@ -2250,41 +2249,41 @@ int Monitor::Analyse() {
                         Debug(1, "packet %p != delayed_packet %p", packet.get(), delayed_packet.get());
                       }
 #endif
-                      if (packet->ai_frame) {
-                        zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                        if (config.timestamp_on_capture) {
-                          Debug(1, "timestamping ai image");
-                          Image *ai_image = packet->get_ai_image();
-                          TimestampImage(ai_image, packet->timestamp);
+                        if (packet->ai_frame) {
+                          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                          if (config.timestamp_on_capture) {
+                            Debug(1, "timestamping ai image");
+                            Image *ai_image = packet->get_ai_image();
+                            TimestampImage(ai_image, packet->timestamp);
+                          }
                         }
-                      }
-                    } else if (0 > ret) {
-                      Debug(1, "Failed yolo");
-                      delete quadra_yolo;
-                      // Since packets are still in the queue, they will get re-fed into it..
-                      quadra_yolo = nullptr;
+                      } else if (0 > ret) {
+                        Debug(1, "Failed yolo");
+                        delete quadra_yolo;
+                        // Since packets are still in the queue, they will get re-fed into it..
+                        quadra_yolo = nullptr;
 #if 0
-                      if (packet != delayed_packet) { // Can this be otherwise?
-                        ai_queue.push_back(std::move(packet_lock));
-                        Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
-                        packetqueue.increment_it(analysis_it);
-                      }
-                      return ret;
+                        if (packet != delayed_packet) { // Can this be otherwise?
+                          ai_queue.push_back(std::move(packet_lock));
+                          Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
+                          packetqueue.increment_it(analysis_it);
+                        }
+                        return ret;
 #endif
 
-                    } else {
-                      // EAGAIN
-                      Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
-                      //if (packet == delayed_packet) { // Can this be otherwise?
-                      //ai_queue.push_back(std::move(packet_lock));
-                      //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-                      //packetqueue.increment_it(analysis_it);
-                      //}
-                      //return 0;
-                      std::this_thread::sleep_for(Microseconds(1000));
-                      count -= 1;
-                    }
-                  } while (ret == 0 and count > 0);
+                      } else {
+                        // EAGAIN
+                        Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
+                        //if (packet == delayed_packet) { // Can this be otherwise?
+                        //ai_queue.push_back(std::move(packet_lock));
+                        //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+                        //packetqueue.increment_it(analysis_it);
+                        //}
+                        //return 0;
+                        std::this_thread::sleep_for(Microseconds(10000));
+                        count -= 1;
+                      }
+                    } while (ret == 0 and count > 0);
 
                   } // end if failed to send
                 } else {

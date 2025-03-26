@@ -198,7 +198,6 @@ class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
 
   protected static $RTSP2WebStreamOptions  = null;
-
   public static function getRTSP2WebStreamOptions($mid = null) {
     if (!isset($RTSP2WebStreamOptions )) {
       $RTSP2WebStreamOptions  = array(

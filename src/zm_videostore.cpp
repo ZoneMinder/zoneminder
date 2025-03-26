@@ -1104,6 +1104,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
+    AVFrame *frame = nullptr;
+
     if (!zm_packet->out_frame) {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
@@ -1111,11 +1113,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
             video_out_ctx->width, video_out_ctx->height
            );
-      AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-      if (!out_frame) {
-        Error("Unable to allocate a frame");
-        return 0;
-      }
 
       if (0 and zm_packet->image) {
         Debug(2, "Have an image, convert it");
@@ -1140,8 +1137,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               );
         }
       } else if (!zm_packet->in_frame) {
-        Debug(1, "Have neither in_frame or image in packet %d!",
-            zm_packet->image_index);
+        Debug(1, "Have neither in_frame or image in packet %d!", zm_packet->image_index);
         return 0;
       } else {
         if (
@@ -1151,15 +1147,18 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          out_frame = zm_packet->in_frame.get();
+          frame = zm_packet->in_frame.get();
         } else {
+          frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+          if (!out_frame) {
+            Error("Unable to allocate a frame");
+            return 0;
+          }
           // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
         }
       } // end if no in_frame
     } // end if no out_frame
-
-    AVFrame *frame = zm_packet->out_frame.get();
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
@@ -1176,7 +1175,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Outof ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), zm_packet->out_frame.get(), 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }

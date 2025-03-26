@@ -242,14 +242,14 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
-  Debug(1, "SpeedAI::enqueue");
+  Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
   }
-  Debug(1, "SpeedAI:: success enqueue");
+  Debug(3, "SpeedAI:: success enqueue");
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 
@@ -258,7 +258,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
 
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  Debug(1, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   //UaiErr err = uai_module_synchronize(module_, &job->event);
 #if 0
   UaiErr err;
@@ -341,9 +341,9 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  Debug(1, "Done dequantizing");
+  //Debug(1, "Done dequantizing");
   coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
-  Debug(1, "Done convert to coco");
+  //Debug(1, "Done convert to coco");
   return coco_object;
 }
 

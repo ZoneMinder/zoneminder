@@ -381,8 +381,8 @@ bool Image::Assign(const AVFrame *frame) {
 
 bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame) {
   PopulateFrame(temp_frame);
-  zm_dump_video_frame(frame, "source frame before convert");
-  zm_dump_video_frame(temp_frame, "dest frame before convert");
+  //zm_dump_video_frame(frame, "source frame before convert");
+  //zm_dump_video_frame(temp_frame, "dest frame before convert");
   temp_frame->pts = frame->pts;
 
   //Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);

@@ -40,7 +40,6 @@ class SpeedAI {
     float obj_threshold = 0.25;
     //float nms_threshold = 0.45;
 
-    SwsContext *sw_scale_ctx;
     UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
@@ -77,6 +76,7 @@ class SpeedAI {
         av_frame_ptr scaled_frame;
         float m_width_rescale;
         float m_height_rescale;
+        SwsContext *sw_scale_ctx;
 
         Job(UaiModule *p_module) :
           m_module(p_module),
@@ -85,7 +85,8 @@ class SpeedAI {
           outputBuf(nullptr),
           event({}),
           m_width_rescale(1.0),
-          m_height_rescale(1.0)
+          m_height_rescale(1.0),
+          sw_scale_ctx(nullptr)
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
@@ -107,6 +108,9 @@ class SpeedAI {
             uai_module_data_buffer_detach(m_module, outputBuf);
             delete outputBuf;
             outputBuf = nullptr;
+          }
+          if (sw_scale_ctx) {
+            sws_freeContext(sw_scale_ctx);
           }
         };
         void setFrame(AVFrame *frame) {

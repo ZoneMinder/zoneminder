@@ -54,7 +54,6 @@ SpeedAI::SpeedAI() :
   batchSize(0),
   inSize(0),
   outSize(0),
-  sw_scale_ctx(nullptr),
   infos(nullptr),
   count(0),
   quadra(nullptr),
@@ -96,10 +95,6 @@ SpeedAI::~SpeedAI() {
     uai_module_free(module_);
   }
   //av_frame_unref(&scaled_frame);
-  if (sw_scale_ctx) {
-    Debug(1, "Freeing sw_scale_Ctx");
-    sws_freeContext(sw_scale_ctx);
-  }
   if (infos) {
     delete [] infos;
     infos = nullptr;
@@ -195,14 +190,14 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "SpeedAI::detect %d", count);
 
-  std::unique_lock<std::mutex> lck(mutex_);
 
-  sw_scale_ctx = sws_getCachedContext(sw_scale_ctx,
+  job->sw_scale_ctx = sws_getCachedContext(job->sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
         MODEL_WIDTH, MODEL_HEIGHT, AV_PIX_FMT_RGB24,
         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-  int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
+  Debug(1, "Start scale");
+  int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
@@ -218,6 +213,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   auto totalPixels = image_size;
   auto* uai_data = job->inputBuf;
 
+  Debug(1, "Start quantisation");
   size_t datInd = 0;
   while (uai_data != nullptr) {
 	  auto bufSize = uai_data->size;
@@ -242,6 +238,8 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
+  Debug(3, "SpeedAI::locking");
+  std::unique_lock<std::mutex> lck(mutex_);
   Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);

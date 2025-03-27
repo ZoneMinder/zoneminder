@@ -111,7 +111,7 @@ if (isset($_REQUEST['zmMontageLayout'])) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {
-  $layout_id = $layoutsByName['Auto']->Id();
+  $layout_id = isset( $layoutsByName['Auto']) ? $layoutsByName['Auto']->Id() : 0;
 }
 $layout = $layoutsById[$layout_id];
 $layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;

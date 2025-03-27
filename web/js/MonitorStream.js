@@ -5,6 +5,7 @@ const streaming = [];
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
+  this.started = false;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
@@ -1227,6 +1228,7 @@ function mseListenerSourceopen(context, videoEl, url) {
   };
   context.wsMSE.onerror = function(event) {
     console.warn(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} ERROR:`, event);
+    if (this.started) this.restart();
   };
   context.wsMSE.onmessage = function(event) {
     const data = new Uint8Array(event.data);

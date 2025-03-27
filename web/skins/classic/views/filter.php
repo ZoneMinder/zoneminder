@@ -87,20 +87,14 @@ $attrTypes = ZM\Filter::attrTypes();
 
 $opTypes = ZM\Filter::opTypes();
 $tags_opTypes = ZM\Filter::tags_opTypes();
-$is_isnot_opTypes = array(
-  'IS'  => translate('OpIs'),
-  'IS NOT'  => translate('OpIsNot'),
-);
+$is_isnot_opTypes = ZM\Filter::is_isnot_opTypes();
 
 $archiveTypes = array(
   '0' => translate('ArchUnarchived'),
   '1' => translate('ArchArchived')
 );
 
-$booleanValues = array(
-  'false' => translate('False'),
-  'true' => translate('True')
-);
+$booleanValues = ZM\Filter::booleanValues();
 
 $focusWindow = true;
 
@@ -319,7 +313,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="filter[ExecuteInterval]"><?php echo translate('Execute Interval') ?></label>
-              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /><?php echo translate('seconds'); ?>
+              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /> <?php echo translate('seconds'); ?>
             </p>
             <p>
               <label for="filter[Concurrent]"><?php echo translate('ConcurrentFilter') ?></label>

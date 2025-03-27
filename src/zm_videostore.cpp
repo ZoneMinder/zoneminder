@@ -59,6 +59,7 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
+  { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -649,13 +650,15 @@ void VideoStore::flush_codecs() {
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // Put encoder into flushing mode
-    while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, *pkt)) > 0) {
-      av_packet_guard pkt_guard{pkt};
-      av_packet_rescale_ts(pkt.get(),
-                           video_out_ctx->time_base,
-                           video_out_stream->time_base);
-      write_packet(pkt.get(), video_out_stream);
-    } // while have buffered frames
+    if (0 > avcodec_send_frame(video_out_ctx, nullptr)) {
+      Error("Failure sending null to flush codec");
+    } else {
+      while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
+        av_packet_guard pkt_guard{pkt};
+        av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
+        write_packet(pkt.get(), video_out_stream);
+      } // while have buffered frames
+    }
     Debug(1, "Done writing buffered video.");
   } // end if have delay capability
 
@@ -692,7 +695,7 @@ void VideoStore::flush_codecs() {
       Debug(1, "Remaining samples in fifo for AAC codec frame_size %d > fifo size %d",
             frame_size, av_audio_fifo_size(fifo));
 
-      // SHould probably set the frame size to what is reported FIXME
+      // SHould probably set the frame size to what is reported FIXME also deprecate zm_send_frame_receive_packet
       if (av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size)) {
         if (zm_send_frame_receive_packet(audio_out_ctx, out_frame.get(), *pkt)) {
           av_packet_guard pkt_guard{pkt};

@@ -153,6 +153,7 @@ if ($user) {
       if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
         echo 'const '. $name . ' = '.$value.';'.PHP_EOL;
       } else {
+        $value = html_entity_decode(validJsStr($value));
         echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
       }
     }

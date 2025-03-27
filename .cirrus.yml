@@ -2,8 +2,9 @@ task:
   name: freebsd-build
   freebsd_instance:
     matrix:
-      - image_family: freebsd-14-0
-      - image_family: freebsd-13-3
+      - image_family: freebsd-15-0
+      - image_family: freebsd-14-2
+      - image_family: freebsd-13-5
 
   prepare_script:
     - pkg install -yq git cmake pkgconf jpeg-turbo mysql80-client ffmpeg libvncserver libjwt catch2 p5-DBI p5-DBD-mysql p5-Date-Manip p5-Test-LWP-UserAgent p5-Sys-Mmap v4l_compat

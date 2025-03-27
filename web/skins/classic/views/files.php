@@ -67,10 +67,10 @@ function guess_material_icon($file) {
 }
 
 xhtmlHeaders(__FILE__, translate('Files'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
       <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
 <?php

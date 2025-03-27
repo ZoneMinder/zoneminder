@@ -961,9 +961,11 @@ function getStatsTableHTML($eid, $fid, $row='') {
           
           $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
           $result .= '<td class="colScore">' .$stat['Score']. '</td>'.PHP_EOL;
+        $result .= '</tr>'.PHP_EOL;
       }
     } else {
       $result .= '<tr>'.PHP_EOL;
+        //IMPORTANT! There is a problem with Bootstrap here. The class is being moved from <th> and "colspan" is not being applied
         $result .= '<td class="rowNoStats" colspan="9">' .translate('NoStatisticsRecorded'). '</td>'.PHP_EOL;
       $result .= '</tr>'.PHP_EOL;
     }

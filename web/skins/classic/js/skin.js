@@ -1276,8 +1276,28 @@ var doubleClickOnStream = function(event, touchEvent) {
 
   if (target) {
     if (document.fullscreenElement) {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
+        eventStats.toggle(true);
+        wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+        changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(true);
+        monitorsSetScale(monitorId);
+      }
       closeFullscreen();
     } else {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
+        eventStats.toggle(false);
+        wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+        changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(false);
+        monitorsSetScale(monitorId);
+      }
       openFullscreen(target);
     }
     if (isMobile()) {
@@ -1380,3 +1400,23 @@ $j(document).on('keyup.global keydown.global', function(e) {
 });
 
 loadFontFaceObserver();
+
+function canPlayCodec(filename) {
+  const re = /\.(\w+)\.(\w+)$/i;
+  const matches = re.exec(filename);
+  if (matches.length) {
+    const video = document.createElement('video');
+    if (matches[1] == 'av1') matches[1] = 'avc1';
+    const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
+    if (can == "probably") {
+      console.log("can play "+matches[1]);
+      return true;
+    } else if (can == "maybe") {
+      console.log("can maybe play "+matches[1]);
+      return true;
+    }
+    console.log("cannot play "+matches[1]);
+    return false;
+  }
+  return false;
+}

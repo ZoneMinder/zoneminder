@@ -3,7 +3,7 @@ var monitors = new Array();
 var monitorsId = new Array();
 var arrRatioMonitors = [];
 var monitors_ul = null;
-var idle = 0;
+var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -316,6 +316,7 @@ function selectLayout(new_layout_id) {
   changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
+  on_scroll();
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 
@@ -1080,6 +1081,7 @@ function initPageLive() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        idleTimeoutTriggered = true;
         for (let i=0, length = monitors.length; i < length; i++) {
           const monitor = monitors[i];
           const objStream = getStream(monitor.id);
@@ -1108,6 +1110,7 @@ function initPageLive() {
 
       function resetTimer() {
         clearTimeout(time);
+        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -2059,6 +2062,7 @@ function getGridMonitors() {
       } else {
         initPageReview();
       }
+
       applyChosen(); //ToDo Is it necessary???
       dataOnChangeThis();
       dataOnChange();

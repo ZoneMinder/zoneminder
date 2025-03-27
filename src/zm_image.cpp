@@ -1819,6 +1819,9 @@ RESEND:
   pkt = av_packet_alloc();
   // Thing is, this section of code for now deals in single images really.  So if we get EAGAIN, we can just resubmit the same image until we get something out.
   ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
+  while (ret == AVERROR(EAGAIN)) {
+	  ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
+  }
   if (ret == 0) {
     Debug(1, "receive_packet success");
     memcpy(outbuffer, pkt->data, pkt->size);

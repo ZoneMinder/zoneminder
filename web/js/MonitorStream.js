@@ -1213,7 +1213,7 @@ function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE = new WebSocket(url);
   context.wsMSE.binaryType = 'arraybuffer';
 
-  window.addEventListener('beforeunload', function (event) {
+  window.addEventListener('beforeunload', function(event) {
     this.started = false;
     context.closeWebSocket();
   });

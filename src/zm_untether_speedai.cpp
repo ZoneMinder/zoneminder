@@ -51,6 +51,7 @@ static const char * coco_classes[] = {
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
   module_(nullptr),
+  terminate_(false),
   batchSize(0),
   inSize(0),
   outSize(0),
@@ -82,9 +83,12 @@ SpeedAI::SpeedAI() :
 
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
+
+  thread_ = std::thread(&SpeedAI::Run, this);
 }
 
 SpeedAI::~SpeedAI() {
+  terminate_ = true;
   while (jobs.size()) {
     delete jobs.front();
     jobs.pop_front();
@@ -104,6 +108,8 @@ SpeedAI::~SpeedAI() {
     delete drawbox_filter;
     drawbox_filter = nullptr;
   }
+  if (thread_.joinable()) thread_.join();
+
 }
 
 bool SpeedAI::setup(
@@ -149,6 +155,24 @@ bool SpeedAI::setup(
   return true;
 }
 
+void SpeedAI::Run() {
+  while (!(terminate_ or zm_terminate)) {
+    std::unique_lock<std::mutex> lck(mutex_);
+    while (send_queue.size()) {
+      Job *job = send_queue.front();
+      send_queue.pop_front();
+      Debug(3, "SpeedAI::enqueue");
+      // Enqueue event, inference will start asynchronously.
+      UaiErr err = uai_module_enqueue(module_, &job->event);
+      if (err != UAI_SUCCESS) {
+        Error("Failed enqueue %s", uai_err_string(err));
+      } else {
+        Debug(3, "SpeedAI:: success enqueue");
+      }
+    }
+  }
+}
+
 SpeedAI::Job * SpeedAI::send_image(Job *job, Image *image) {
   av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
   image->PopulateFrame(frame.get());
@@ -189,7 +213,6 @@ SpeedAI::Job * SpeedAI::get_job() {
 SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "SpeedAI::detect %d", count);
-
 
   job->sw_scale_ctx = sws_getCachedContext(job->sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
@@ -240,6 +263,8 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
 
   Debug(3, "SpeedAI::locking");
   std::unique_lock<std::mutex> lck(mutex_);
+  send_queue.push_back(job);
+#if 0
   Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
@@ -248,6 +273,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     return nullptr;
   }
   Debug(3, "SpeedAI:: success enqueue");
+#endif
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 

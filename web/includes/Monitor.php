@@ -201,8 +201,8 @@ class Monitor extends ZM_Object {
   public static function getRTSP2WebStreamOptions() {
     if (!isset($RTSP2WebStreamOptions)) {
       $RTSP2WebStreamOptions = array(
-        'Primary'   => translate('Primary'),
-        'Secondary' => translate('Secondary'),
+        'Primary' => translate('Primary'),
+        'Secondary' => translate('Secondary')
       );
     }
     return $RTSP2WebStreamOptions;

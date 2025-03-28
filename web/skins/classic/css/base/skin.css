@@ -211,6 +211,10 @@ input[disabled] {
     color: #888888;
 }
 
+option:disabled {
+    color: #BBBBBB;
+}
+
 .modal img {
     max-width: 100%;
 }

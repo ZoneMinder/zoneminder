@@ -944,6 +944,7 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   loadFontFaceObserver();
+  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
@@ -1111,6 +1112,7 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
+  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {

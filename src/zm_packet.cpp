@@ -146,6 +146,10 @@ int ZMPacket::send_packet(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN
   // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
+  while (ret == AVERROR(EAGAIN) and !zm_terminate) {
+    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    ret = avcodec_send_packet(ctx, packet.get());
+  }
   if (ret < 0) {
     Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     //return ret;

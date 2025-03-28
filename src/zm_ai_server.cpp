@@ -261,6 +261,17 @@ void AIThread::Run() {
     return;
   }
 
+  while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
+    Debug(1, "!ShmValid");
+    monitor_->disconnect();
+    if (!monitor_->connect()) {
+      Warning("Couldn't connect to monitor %d", monitor_->Id());
+      monitor_->Reload();  // This is to pickup change of colours, width, height, etc
+      sleep(1);
+      continue;
+    }  // end if failed to connect
+  }  // end if !ShmValid
+
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
 

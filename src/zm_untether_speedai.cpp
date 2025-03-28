@@ -339,12 +339,11 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  //Debug(1, "Done dequantizing");
+  Debug(3, "Done dequantizing");
   coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
-  //Debug(1, "Done convert to coco");
+  Debug(3, "Done convert to coco");
   return coco_object;
 }
-
 
 uint8_t SpeedAI::quantize(float val) const {
 	// There are two FP8 representations of zero (+- 0.0) and the search below would pick up the

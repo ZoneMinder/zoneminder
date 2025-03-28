@@ -316,7 +316,7 @@ static void dont_free(void *opaque, uint8_t *data) {
 }
 
 int Image::PopulateFrame(AVFrame *frame) const {
-  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
+  Debug(4, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)
        );
@@ -739,7 +739,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
-  Debug(1, "Size %u, allocation %lu", size, allocation);
+  Debug(4, "Size %u, allocation %lu", size, allocation);
   size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {
@@ -890,7 +890,7 @@ void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
     //av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
   //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
-  Debug(1, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
+  Debug(4, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
       av_get_pix_fmt_name(image.AVPixFormat()), new_size, size);
   //unsigned int new_size = image.height * image.linesize;
 

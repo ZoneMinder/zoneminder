@@ -261,6 +261,17 @@ void AIThread::Run() {
     return;
   }
 
+  while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
+    Debug(1, "!ShmValid");
+    monitor_->disconnect();
+    if (!monitor_->connect()) {
+      Warning("Couldn't connect to monitor %d", monitor_->Id());
+      monitor_->Reload();  // This is to pickup change of colours, width, height, etc
+      sleep(1);
+      continue;
+    }  // end if failed to connect
+  }  // end if !ShmValid
+
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
 
@@ -360,6 +371,12 @@ int draw_boxes(
     if (coco_object.size()) {
       AVFrame *in_frame = av_frame_alloc();
       in_image->PopulateFrame(in_frame);
+      AVFrame *out_frame = av_frame_alloc();
+      if (!out_frame) {
+        Error("cannot allocate output filter frame");
+        return NIERROR(ENOMEM);
+      }
+      AVFrame *swap_frame = nullptr;
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
@@ -371,11 +388,6 @@ int draw_boxes(
         int y1 = bbox[1];
         int x2 = bbox[2];
         int y2 = bbox[3];
-        AVFrame *out_frame = av_frame_alloc();
-        if (!out_frame) {
-          Error("cannot allocate output filter frame");
-          return NIERROR(ENOMEM);
-        }
 
         int ret = draw_box(drawbox_filter, drawbox_filter_ctx, in_frame, &out_frame, x1, y1, x2-x1, y2-y1);
         if (ret < 0) {
@@ -390,11 +402,21 @@ int draw_boxes(
         Image temp_image(out_frame);
         temp_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
 
-        av_frame_free(&in_frame);
-        in_frame = out_frame;
+        if (!swap_frame) {
+          // Cuz it points to shm
+          av_frame_free(&in_frame);
+          in_frame = out_frame;
+          swap_frame = out_frame = av_frame_alloc();
+        } else {
+          av_frame_unref(in_frame);
+          swap_frame = in_frame;
+          in_frame = out_frame;
+          out_frame = swap_frame;
+        }
       }  // end foreach detection
       out_image->Assign(in_frame);
       av_frame_free(&in_frame);
+      av_frame_free(&out_frame);
     } else {
       out_image->Assign(*in_image);
     }  // end if coco

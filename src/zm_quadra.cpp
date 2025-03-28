@@ -211,9 +211,8 @@ int Quadra::init_filter(
   if (ret < 0) {
     Error("%s failed to config graph filter", __func__);
     return ret;
-  } else {
-    Debug(1, "%s success config graph filter %s", __func__, filters_desc);
   }
+  Debug(1, "%s success config graph filter %s", __func__, filters_desc);
 
   avfilter_inout_free(&inputs);
   avfilter_inout_free(&outputs);

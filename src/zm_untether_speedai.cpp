@@ -84,11 +84,12 @@ SpeedAI::SpeedAI() :
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
 
-  thread_ = std::thread(&SpeedAI::Run, this);
+  //thread_ = std::thread(&SpeedAI::Run, this);
 }
 
 SpeedAI::~SpeedAI() {
   terminate_ = true;
+  if (thread_.joinable()) thread_.join();
   while (jobs.size()) {
     delete jobs.front();
     jobs.pop_front();
@@ -108,8 +109,6 @@ SpeedAI::~SpeedAI() {
     delete drawbox_filter;
     drawbox_filter = nullptr;
   }
-  if (thread_.joinable()) thread_.join();
-
 }
 
 bool SpeedAI::setup(
@@ -121,7 +120,7 @@ bool SpeedAI::setup(
   UaiErr err = uai_module_load(model_file.c_str(), &module_);
   if (err != UAI_SUCCESS) {
     Error("Failed loading model %s", uai_err_string(err));
-    //return false;
+    return false;
   }
   Debug(1, "SpeedAI: launching");
   err = uai_module_launch(module_);
@@ -263,8 +262,8 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
 
   Debug(3, "SpeedAI::locking");
   std::unique_lock<std::mutex> lck(mutex_);
-  send_queue.push_back(job);
-#if 0
+  //send_queue.push_back(job);
+#if 1
   Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);

@@ -316,7 +316,7 @@ static void dont_free(void *opaque, uint8_t *data) {
 }
 
 int Image::PopulateFrame(AVFrame *frame) const {
-  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
+  Debug(4, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)
        );
@@ -739,7 +739,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
-  Debug(1, "Size %u, allocation %lu", size, allocation);
+  Debug(4, "Size %u, allocation %lu", size, allocation);
   size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {
@@ -890,7 +890,7 @@ void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
     //av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
   //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
-  Debug(1, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
+  Debug(4, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
       av_get_pix_fmt_name(image.AVPixFormat()), new_size, size);
   //unsigned int new_size = image.height * image.linesize;
 
@@ -1819,6 +1819,9 @@ RESEND:
   pkt = av_packet_alloc();
   // Thing is, this section of code for now deals in single images really.  So if we get EAGAIN, we can just resubmit the same image until we get something out.
   ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
+  while (ret == AVERROR(EAGAIN)) {
+	  ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
+  }
   if (ret == 0) {
     Debug(1, "receive_packet success");
     memcpy(outbuffer, pkt->data, pkt->size);
@@ -2404,13 +2407,13 @@ void Image::Annotate(
 
   int32_t y0_max = height - (lines.size() * char_height);
   if (y0_max < 0) y0_max = 0;
-  Debug(1, "Max Coords: %dx%d", x0_max, y0_max);
+  //Debug(1, "Max Coords: %dx%d", x0_max, y0_max);
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
   int32_t x0 = zm::clamp(static_cast<int32_t>(coord.x_), 0, x0_max);
   int32_t y0 = zm::clamp(static_cast<int32_t>(coord.y_), 0, y0_max);
-  Debug(1, "Coords: %dx%d", x0, y0);
+  //Debug(1, "Coords: %dx%d", x0, y0);
 
   uint32_t y = y0;
   for (const std::string &line : lines) {

@@ -8,6 +8,9 @@
 
 #include <list>
 #include <mutex>
+#include <atomic>
+#include <memory>
+#include <thread>
 
 #include "zm_quadra.h"
 
@@ -31,6 +34,9 @@ class SpeedAI {
   private:
     UaiModule* module_;
     std::mutex  mutex_;
+    std::atomic<bool> terminate_;
+    std::thread thread_;
+
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
     size_t batchSize;
@@ -40,7 +46,6 @@ class SpeedAI {
     float obj_threshold = 0.25;
     //float nms_threshold = 0.45;
 
-    SwsContext *sw_scale_ctx;
     UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
@@ -77,6 +82,7 @@ class SpeedAI {
         av_frame_ptr scaled_frame;
         float m_width_rescale;
         float m_height_rescale;
+        SwsContext *sw_scale_ctx;
 
         Job(UaiModule *p_module) :
           m_module(p_module),
@@ -85,7 +91,8 @@ class SpeedAI {
           outputBuf(nullptr),
           event({}),
           m_width_rescale(1.0),
-          m_height_rescale(1.0)
+          m_height_rescale(1.0),
+          sw_scale_ctx(nullptr)
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
@@ -107,6 +114,9 @@ class SpeedAI {
             uai_module_data_buffer_detach(m_module, outputBuf);
             delete outputBuf;
             outputBuf = nullptr;
+          }
+          if (sw_scale_ctx) {
+            sws_freeContext(sw_scale_ctx);
           }
         };
         void setFrame(AVFrame *frame) {
@@ -152,6 +162,7 @@ class SpeedAI {
 
     };
     std::list<Job *> jobs;
+    std::list<Job *> send_queue;
     float dequantize(uint8_t val, int bias);
     uint8_t quantize(float val) const;
     int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
@@ -166,6 +177,7 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
+    void Run();
     Job * get_job();
     Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
     Job * send_image(Job *job, Image *image);

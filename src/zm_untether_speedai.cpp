@@ -51,10 +51,10 @@ static const char * coco_classes[] = {
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
   module_(nullptr),
+  terminate_(false),
   batchSize(0),
   inSize(0),
   outSize(0),
-  sw_scale_ctx(nullptr),
   infos(nullptr),
   count(0),
   quadra(nullptr),
@@ -83,9 +83,12 @@ SpeedAI::SpeedAI() :
 
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
+
+  thread_ = std::thread(&SpeedAI::Run, this);
 }
 
 SpeedAI::~SpeedAI() {
+  terminate_ = true;
   while (jobs.size()) {
     delete jobs.front();
     jobs.pop_front();
@@ -96,10 +99,6 @@ SpeedAI::~SpeedAI() {
     uai_module_free(module_);
   }
   //av_frame_unref(&scaled_frame);
-  if (sw_scale_ctx) {
-    Debug(1, "Freeing sw_scale_Ctx");
-    sws_freeContext(sw_scale_ctx);
-  }
   if (infos) {
     delete [] infos;
     infos = nullptr;
@@ -109,6 +108,8 @@ SpeedAI::~SpeedAI() {
     delete drawbox_filter;
     drawbox_filter = nullptr;
   }
+  if (thread_.joinable()) thread_.join();
+
 }
 
 bool SpeedAI::setup(
@@ -154,6 +155,24 @@ bool SpeedAI::setup(
   return true;
 }
 
+void SpeedAI::Run() {
+  while (!(terminate_ or zm_terminate)) {
+    std::unique_lock<std::mutex> lck(mutex_);
+    while (send_queue.size()) {
+      Job *job = send_queue.front();
+      send_queue.pop_front();
+      Debug(3, "SpeedAI::enqueue");
+      // Enqueue event, inference will start asynchronously.
+      UaiErr err = uai_module_enqueue(module_, &job->event);
+      if (err != UAI_SUCCESS) {
+        Error("Failed enqueue %s", uai_err_string(err));
+      } else {
+        Debug(3, "SpeedAI:: success enqueue");
+      }
+    }
+  }
+}
+
 SpeedAI::Job * SpeedAI::send_image(Job *job, Image *image) {
   av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
   image->PopulateFrame(frame.get());
@@ -195,14 +214,13 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "SpeedAI::detect %d", count);
 
-  std::unique_lock<std::mutex> lck(mutex_);
-
-  sw_scale_ctx = sws_getCachedContext(sw_scale_ctx,
+  job->sw_scale_ctx = sws_getCachedContext(job->sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
         MODEL_WIDTH, MODEL_HEIGHT, AV_PIX_FMT_RGB24,
         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-  int ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
+  Debug(1, "Start scale");
+  int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
@@ -218,6 +236,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   auto totalPixels = image_size;
   auto* uai_data = job->inputBuf;
 
+  Debug(1, "Start quantisation");
   size_t datInd = 0;
   while (uai_data != nullptr) {
 	  auto bufSize = uai_data->size;
@@ -242,14 +261,19 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
-  Debug(1, "SpeedAI::enqueue");
+  Debug(3, "SpeedAI::locking");
+  std::unique_lock<std::mutex> lck(mutex_);
+  send_queue.push_back(job);
+#if 0
+  Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
   }
-  Debug(1, "SpeedAI:: success enqueue");
+  Debug(3, "SpeedAI:: success enqueue");
+#endif
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 
@@ -258,7 +282,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
 
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  Debug(1, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   //UaiErr err = uai_module_synchronize(module_, &job->event);
 #if 0
   UaiErr err;
@@ -341,12 +365,11 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  Debug(1, "Done dequantizing");
+  Debug(3, "Done dequantizing");
   coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
-  Debug(1, "Done convert to coco");
+  Debug(3, "Done convert to coco");
   return coco_object;
 }
-
 
 uint8_t SpeedAI::quantize(float val) const {
 	// There are two FP8 representations of zero (+- 0.0) and the search below would pick up the

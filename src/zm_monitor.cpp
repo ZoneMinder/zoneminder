@@ -1162,7 +1162,7 @@ bool Monitor::connect() {
     shared_data->last_analysis_index = image_buffer_count;
     shared_data->capture_image_count = 0;
     shared_data->decoder_image_count = 0;
-    shared_data->analysis_image_count = 0;
+    shared_data->analysis_image_count = -1;
     shared_data->last_write_time = 0;
     shared_data->last_event_id = 0;
     shared_data->action = (Action)0;
@@ -1242,11 +1242,11 @@ bool Monitor::connect() {
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
-  } else {
-    for (int32_t i = 0; i < image_buffer_count; i++) {
+  //} else {
+    //for (int32_t i = 0; i < image_buffer_count; i++) {
       //image_buffer[i]->AVPixFormat(image_pixelformats[i]); /* Don't release the internal buffer or replace it with another */
-      Debug(1, "image pixformat for %d is %s", i, av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
-    }
+      //Debug(1, "image pixformat for %d is %s", i, av_get_pix_fmt_name((AVPixelFormat)image_pixelformats[i]));
+    //}
   }
 
   // We set these here because otherwise the first fps calc is meaningless
@@ -1886,7 +1886,7 @@ void Monitor::UpdateFPS() {
     uint32 new_camera_bytes = camera->Bytes();
     uint32 new_capture_bandwidth =
       static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-    double new_analysis_fps = (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
+    double new_analysis_fps = (shared_data->analysis_image_count == -1) ? 0 : (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
 
     Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
         shared_data->capture_image_count,
@@ -1990,6 +1990,10 @@ int Monitor::Analyse() {
     Debug(4, "No packet lock, returning false");
     return -1;
   }
+  // What is in shared memory is the last completed value
+  int32_t analysis_image_count = shared_data->analysis_image_count;
+  analysis_image_count ++;
+
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
   // Is it possible for packet->score to be ! -1 ? Not if everything is working correctly
@@ -2054,7 +2058,7 @@ int Monitor::Analyse() {
         if (!signal) {
           if (event) {
             event->addNote(SIGNAL_CAUSE, "Lost");
-            Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), shared_data->analysis_image_count, event->Id());
+            Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
             closeEvent();
           }
         } else if (shared_data->recording == RECORDING_ALWAYS) {
@@ -2207,7 +2211,7 @@ int Monitor::Analyse() {
                     motion_frame_skip, capture_fps, analysis_fps_limit);
               }
               if (packet->hw_frame or packet->in_frame) {
-                if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                if (!(analysis_image_count % (motion_frame_skip+1))) {
                   SystemTimePoint starttime = std::chrono::system_clock::now();
                   Debug(1, "Send_packet %d", packet->image_index);
                   int ret = quadra_yolo->send_packet(packet);
@@ -2340,7 +2344,7 @@ int Monitor::Analyse() {
                 }
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
-                if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+                if (!(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
                   Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
                   // Get new score.
@@ -2442,7 +2446,7 @@ int Monitor::Analyse() {
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
               shared_data->state = state = ALARM;
             } else if (state != PREALARM) {
-              Info("%s: %03d - Gone into prealarm state", name.c_str(), shared_data->analysis_image_count);
+              Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = PREALARM;
               // incremement pre alarm image count
               Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
@@ -2453,16 +2457,16 @@ int Monitor::Analyse() {
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
             Debug(1, "%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
-                  name.c_str(), shared_data->analysis_image_count, alert_to_alarm_frame_count);
+                  name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
             if (alert_to_alarm_frame_count == 0) {
-              Info("%s: %03d - ExtAlm - Gone back into alarm state", name.c_str(), shared_data->analysis_image_count);
+              Info("%s: %03d - ExtAlm - Gone back into alarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALARM;
             }
           } else {
             Debug(1, "Staying in %s", State_Strings[state].c_str());
           }
           if (state == ALARM) {
-            last_alarm_count = shared_data->analysis_image_count;
+            last_alarm_count = analysis_image_count;
           } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
         } else {
           Debug(1, "!score state=%s, packet->score %d", State_Strings[state].c_str(), packet->score);
@@ -2471,12 +2475,12 @@ int Monitor::Analyse() {
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
             if (state == ALARM) {
-              Info("%s: %03d - Gone into alert state", name.c_str(), shared_data->analysis_image_count);
+              Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALERT;
             } else if (state == ALERT) {
-              if ((shared_data->analysis_image_count - last_alarm_count) > post_event_count) {
+              if ((analysis_image_count - last_alarm_count) > post_event_count) {
                 shared_data->state = state = IDLE;
-                Info("%s: %03d - Left alert state", name.c_str(), shared_data->analysis_image_count);
+                Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
               }
             } else if (state == PREALARM) {
               // Back to IDLE
@@ -2486,9 +2490,9 @@ int Monitor::Analyse() {
                   "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
                   state,
                   State_Strings[state].c_str(),
-                  shared_data->analysis_image_count,
+                  analysis_image_count,
                   last_alarm_count,
-                  shared_data->analysis_image_count - last_alarm_count,
+                  analysis_image_count - last_alarm_count,
                   post_event_count,
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
@@ -2545,8 +2549,8 @@ int Monitor::Analyse() {
                           event->Id(), event->AlarmFrames(), alarm_frame_count);
                   }
                 } else if (state == IDLE) {
-                  if (event->AlarmFrames() > alarm_frame_count and (shared_data->analysis_image_count - last_alarm_count > post_event_count)) {
-                    Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), shared_data->analysis_image_count, event->Id());
+                  if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
+                    Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
                     closeEvent();
                   } else if (event->Duration() > section_length) {
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
@@ -2596,7 +2600,7 @@ int Monitor::Analyse() {
                 Warning("CLOSE_MODE Unknown");
               }  // end if event_close_mode
             } else if (shared_data->recording == RECORDING_ONMOTION) {
-              if (event->Duration() > section_length or (IDLE==state and (shared_data->analysis_image_count - last_alarm_count > post_event_count))) {
+              if (event->Duration() > section_length or (IDLE==state and (analysis_image_count - last_alarm_count > post_event_count))) {
                 Info("%s: %03d - Closing event %" PRIu64 " %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                      name.c_str(),
                      packet->image_index,
@@ -2641,7 +2645,7 @@ int Monitor::Analyse() {
     } else {
       Debug(3, "trigger == off");
       if (event) {
-        Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), shared_data->analysis_image_count, event->Id());
+        Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
         closeEvent();
       }
       shared_data->state = state = IDLE;
@@ -2661,7 +2665,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
@@ -2669,7 +2673,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (0 and packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
@@ -2677,7 +2681,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->in_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
           Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
@@ -2686,7 +2690,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->out_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->out_frame->format));
           Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
@@ -2695,7 +2699,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
@@ -2707,7 +2711,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->in_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
           Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
@@ -2716,7 +2720,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->out_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->out_frame->format));
           Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
@@ -2725,7 +2729,7 @@ int Monitor::Analyse() {
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
-          shared_data->analysis_image_count++;
+          shared_data->analysis_image_count = analysis_image_count;
         } else {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }

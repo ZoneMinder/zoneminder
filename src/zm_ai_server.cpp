@@ -261,15 +261,17 @@ void AIThread::Run() {
     return;
   }
 
-  if (!monitor_->ShmValid()) {
+  while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
     Debug(1, "!ShmValid");
     monitor_->disconnect();
     if (!monitor_->connect()) {
       Warning("Couldn't connect to monitor %d", monitor_->Id());
-      return;
+      monitor_->Reload();  // This is to pickup change of colours, width, height, etc
+      sleep(1);
+      continue;
     }  // end if failed to connect
   }  // end if !ShmValid
-     //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
+
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
 
@@ -286,10 +288,17 @@ void AIThread::Run() {
         sleep(1);
         continue;
       }  // end if failed to connect
+      shared_data = monitor_->getSharedData();
+      image_buffer_count = monitor_->GetImageBufferCount();
     }  // end if !ShmValid
        //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
        //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
     int32_t decoder_image_count = shared_data->decoder_image_count;
+
+    if (analysis_image_count - decoder_image_count > image_buffer_count) {
+      // Somehow got way ahead?
+      analysis_image_count = decoder_image_count;
+    }
 
     if (decoder_image_count >= analysis_image_count) {
       if (decoder_image_count - analysis_image_count > image_buffer_count) {
@@ -327,12 +336,13 @@ void AIThread::Run() {
         analysis_image_count++;
       } // end if speedai
     } else {
-      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder index is %d Our index is %d",
-          monitor_->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
+      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d Our count is %d, fresh is %d => %d",
+          monitor_->Id(), decoder_image_count, analysis_image_count, 
+          shared_data->decoder_image_count, shared_data->analysis_image_count);
     }  // end if have a new image
 
     if (!zm_terminate and !terminate_) {
-      if (shared_data->decoder_image_count == shared_data->analysis_image_count) {
+      if (shared_data->decoder_image_count <= shared_data->analysis_image_count) {
         Microseconds delay = monitor_->GetCaptureDelay();
         //if (delay==Microseconds(0));
         delay = Microseconds(3000);

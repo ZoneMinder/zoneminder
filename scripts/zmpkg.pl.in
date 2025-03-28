@@ -286,9 +286,9 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     if ( $Config{ZM_MIN_RTSP_PORT} ) {
       runCommand('zmdc.pl start zm_rtsp_server');
     }
-    #if ( $Config{ZM_MIN_RTSP_PORT} ) {
-    #runCommand('zmdc.pl start zm_ai_server');
-      #}
+    if ( $Config{ZM_OPT_USE_AISERVER} ) {
+      runCommand('zmdc.pl start zm_ai_server');
+    }
     # run and pass parameters to AlarmServer.py
     if ($Config{ZM_OPT_USE_ALARMSERVER} ) {
        my $cmd='zmdc.pl start zmalarm-server.py '. $Config{ZM_OPT_ALS_PORT};

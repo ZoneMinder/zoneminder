@@ -8,6 +8,9 @@
 
 #include <list>
 #include <mutex>
+#include <atomic>
+#include <memory>
+#include <thread>
 
 #include "zm_quadra.h"
 
@@ -31,6 +34,9 @@ class SpeedAI {
   private:
     UaiModule* module_;
     std::mutex  mutex_;
+    std::atomic<bool> terminate_;
+    std::thread thread_;
+
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
     size_t batchSize;
@@ -156,6 +162,7 @@ class SpeedAI {
 
     };
     std::list<Job *> jobs;
+    std::list<Job *> send_queue;
     float dequantize(uint8_t val, int bias);
     uint8_t quantize(float val) const;
     int draw_box( AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
@@ -170,6 +177,7 @@ class SpeedAI {
         const std::string &model_type,
         const std::string &model_file
         );
+    void Run();
     Job * get_job();
     Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
     Job * send_image(Job *job, Image *image);

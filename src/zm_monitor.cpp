@@ -3250,7 +3250,7 @@ int Monitor::Decode() {
   if (decoder_queue.size()) {
     Debug(1, "Have queued packets %zu, send them to be filled by decoder", decoder_queue.size());
     // Try to decode, without feeding the decoder.
-    ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
+    ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
     auto delayed_packet = delayed_packet_lock->packet_;
 
     int ret = delayed_packet->receive_frame(mVideoCodecContext);
@@ -3308,7 +3308,15 @@ int Monitor::Decode() {
           return 1; // Don't need decode
         }
         Debug(1, "send_packet %d", packet->image_index);
+        SystemTimePoint starttime = std::chrono::system_clock::now();
         int ret = packet->send_packet(mVideoCodecContext);
+        SystemTimePoint endtime = std::chrono::system_clock::now();
+        if (endtime - starttime > Milliseconds(30)) {
+          Warning("send_packet is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+        } else {
+          Debug(1, "send_packet took: %.3f seconds", FPSeconds(endtime - starttime).count());
+        }
+
         if (0 == ret) {
           // AGAIN
           return -1; //make it sleep?
@@ -3325,28 +3333,6 @@ int Monitor::Decode() {
         decoder_queue.push_back(std::move(packet_lock));
         return 0;
       }
-#if 0
-      ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
-      auto delayed_packet = delayed_packet_lock->packet_;
-      Debug(1, "delayed_packet %d , sent packet %d, queue_size: %ld", delayed_packet->image_index, packet->image_index, decoder_queue.size());
-
-      int ret = delayed_packet->receive_frame(mVideoCodecContext);
-      if (ret > 0 and !zm_terminate) {
-          Debug(1, "Popping off delayed packet %d queue size %zu, pushing on packet %d", delayed_packet->image_index, decoder_queue.size(), packet->image_index);
-          packet_lock = std::move(decoder_queue.front());
-          decoder_queue.pop_front();
-          packet = delayed_packet;
-      } else if (ret < 0) {
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
-        avcodec_free_context(&mVideoCodecContext);
-        avcodec_free_context(&mAudioCodecContext);
-        return -1;
-        
-      } else { // EAGAIN
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
-        return 0;
-      }
-#endif
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding

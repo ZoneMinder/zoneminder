@@ -729,7 +729,7 @@ void MonitorStream::runStream() {
 
     // Perhaps it restarted?
     if (image_count - monitor->image_buffer_count > analysis_image_count) {
-      Debug(1, "Image_count > analysis?  DId it restart? %d > %d", image_count, analysis_image_count);
+      Warning( "Image_count > analysis?  DId it restart? %d > %d", image_count, analysis_image_count);
       image_count = analysis_image_count;
     }
 
@@ -754,7 +754,7 @@ void MonitorStream::runStream() {
       //pixelformats = monitor->analysis_image_pixelformats;
     //} else {
       //Debug(1, "Using LIVE");
-      if (analysis_image_count == -1) {
+      if (new_count == -1 || analysis_image_count == -1) {
         // Use ccapture
         new_count = monitor->shared_data->last_write_index;
         image_buffer = &monitor->image_buffer;
@@ -810,6 +810,10 @@ void MonitorStream::runStream() {
             Image *send_image = (*image_buffer)[index];
             Debug(1, "Sending regular image index %d, pix format is %d %s size %d",
                 index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
+
+            std::string annotation = stringtf("image %.2d %d", index, new_count);
+            send_image->Annotate(annotation.c_str(), Vector2(0, 20), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+
             send_image->AVPixFormat(pixelformats[index]);
 
             if (!sendFrame(send_image, last_frame_timestamp)) {

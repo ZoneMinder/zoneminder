@@ -310,10 +310,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
 
     // Manage visible object & control button (when pressing a button)
-    $j("[data-flip-сontrol-object]").click(function() {
+    $j("[data-flip-control-object]").click(function() {
       const _this_ = $j(this);
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       changeButtonIcon(_this_, objIconButton);
 
@@ -343,12 +343,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
+    $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       if (obj.parent().css('display') != 'block') {
         obj.wrap('<div style="display: block"></div>');
@@ -375,24 +375,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
     });
 
-    // Manage the web console filter bar minimize chevron
-    /*$j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow", function() {
-        if ($j.isFunction('changeScale')) {
-          changeScale();
-        }
-      });
-      var mfbflip = $j("#mfbflip");
-      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
-        mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up');
-      } else {
-        mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
-      }
-    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -417,14 +399,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function changeButtonIcon(pressedBtn, target, params) {
     const visibility = (!params) ? null : params.visibility;
     const objIconButton = pressedBtn.find("i");
-    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    const obj = $j(pressedBtn.attr('data-flip-control-object'));
     if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         objIconButton.html(objIconButton.attr('data-icon-hidden'));
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'hidden');
     } else { //hidden
       obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
@@ -432,7 +414,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'visible');
     }
   }
 
@@ -514,7 +496,12 @@ function checkStreamForErrors(funcName, streamObj) {
     Error(funcName+': stream object was null');
     return true;
   }
-  if ( streamObj.result == "Error" ) {
+  if ( streamObj.responseJSON ) {
+    if (streamObj.responseJSON.result == "Error") {
+      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      return true;
+    }
+  } else if ( streamObj.result == "Error" ) {
     Error(funcName+' stream error: '+streamObj.message);
     return true;
   }
@@ -727,22 +714,6 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     newHeight = newWidth / ratio;
   }
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
-  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
-  const scales = $j('#scale option').map(function() {
-    return parseInt($j(this).val());
-  }).get();
-  scales.shift(); // pop off Scale To Fit
-  let closest = null;
-  $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  if (closest) {
-    console.log("Setting to closest: " + closest + " instead of " + autoScale);
-    autoScale = closest;
-  }
-  */
   // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
   autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
@@ -1210,7 +1181,6 @@ function thisClickOnStreamObject(clickObj) {
       return true;
     } else if (clickObj.id.indexOf('monitorStatus') != -1) {
       return document.getElementById('monitor'+stringToNumber(clickObj.id));
-      //return clickObj;
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
@@ -1233,7 +1203,10 @@ var doubleTouchExecute = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
-  if (shifted || ctrled || alted) return;
+  if (shifted || ctrled || alted) {
+    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.");
+    return;
+  }
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
     //Process only double clicks directly on the image, excluding clicks,

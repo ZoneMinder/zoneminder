@@ -280,6 +280,8 @@ ul.tabList li.active a {
 }
 
 #content {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   overflow: hidden auto;
   margin: 0 auto 0 auto;
@@ -287,9 +289,15 @@ ul.tabList li.active a {
   text-align: center;
   clear: both;
 }
+
+#content.row{
+  flex-direction: row;
+}
+
 #content::backdrop {
   background-color: white;
 }
+
 body.sticky #content {
 /*
   flex: 1 1 auto;
@@ -634,6 +642,11 @@ body.sticky #page {
 
 #contentButtons a.btn, #contentButtons button.btn {
     margin-bottom: 0;
+}
+
+#contentForm {
+    width: 100%;
+    overflow: auto;
 }
 
 #footer {
@@ -1220,6 +1233,22 @@ button.btn.btn-view-watch:hover {
 }
 
 /* --- Control button block in the Stream image*/
+
+.fixed-t-r {
+  position: fixed;
+  top: 50px;
+  right: 50px;
+  min-width: 250px;
+}
+
+@media screen and (max-width:767px) {
+  .fixed-t-r {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    min-width: 200px;
+  }
+}
 
 /* +++ This block should always be located at the end! */
 .hidden {

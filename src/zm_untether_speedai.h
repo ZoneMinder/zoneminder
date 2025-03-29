@@ -43,9 +43,6 @@ class SpeedAI {
     size_t inSize;
     size_t outSize;
 
-    float obj_threshold = 0.25;
-    //float nms_threshold = 0.45;
-
     UaiDataStreamInfo *infos;
 
     // SpeedAI Yolo params
@@ -184,8 +181,8 @@ class SpeedAI {
     Job * send_frame(Job *job, AVFrame *);
     //Job * send_job(Job *);
 
-    const nlohmann::json receive_detections(Job *job);
-    nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float);
+    const nlohmann::json receive_detections(Job *job, float threshold);
+    nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float, float threshold);
     Quadra *getQuadra() const { return quadra; };
     bool setQuadra(Quadra *quadra, int width, int height);
 };

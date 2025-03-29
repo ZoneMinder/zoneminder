@@ -1157,12 +1157,13 @@ bool Monitor::connect() {
     shared_data->latitude = latitude;
     shared_data->longitude = longitude;
     shared_data->state = state = IDLE;
-    shared_data->last_write_index = image_buffer_count;
+    shared_data->last_capture_index = image_buffer_count;
+    shared_data->last_decoder_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
     shared_data->last_analysis_index = image_buffer_count;
     shared_data->capture_image_count = 0;
     shared_data->decoder_image_count = 0;
-    shared_data->analysis_image_count = -1;
+    shared_data->analysis_image_count = 0;
     shared_data->last_write_time = 0;
     shared_data->last_event_id = 0;
     shared_data->action = (Action)0;
@@ -1241,6 +1242,7 @@ bool Monitor::connect() {
 #endif
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
+    disconnect();
     return false;
   //} else {
     //for (int32_t i = 0; i < image_buffer_count; i++) {
@@ -1389,7 +1391,7 @@ Image *Monitor::GetAlarmImage() {
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
-    index = shared_data->last_write_index;
+    index = shared_data->last_decoder_index;
   }
   if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
     Error("Image Buffer has not been allocated");
@@ -1421,7 +1423,7 @@ int Monitor::GetImage(int32_t index, int scale) {
 
 ZMPacket *Monitor::getSnapshot(int index) const {
   if ((index < 0) || (index >= image_buffer_count)) {
-    index = shared_data->last_write_index;
+    index = shared_data->last_decoder_index;
   }
   if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
     Error("Image Buffer has not been allocated");
@@ -1449,7 +1451,7 @@ int Monitor::GetLastReadIndex() const {
 }
 
 int Monitor::GetLastWriteIndex() const {
-  return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
+  return ( shared_data->last_decoder_index != image_buffer_count ? shared_data->last_decoder_index : -1 );
 }
 
 uint64_t Monitor::GetLastEventId() const {
@@ -1695,7 +1697,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   Image *zone_image = nullptr;
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
-    int index = shared_data->last_write_index;
+    int index = shared_data->last_decoder_index;
     ZMPacket *packet = getSnapshot(index);
     zone_image = new Image(*packet->image);
   } else {
@@ -2146,160 +2148,124 @@ int Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
-#if HAVE_QUADRA
           if (objectdetection != OBJECT_DETECTION_NONE) {
-            //OBJECT_DETECTION_QUADRA) {
-            if (!quadra_yolo) {
-              quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
-              int deviceid = -1;
-              if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
-                deviceid = ni_get_cardno(packet->hw_frame.get());
+            if (objectdetection != OBJECT_DETECTION_SPEEDAI) {
+              while (shared_data->analysis_image_count < packet->image_index and !zm_terminate) {
+                Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
+                std::this_thread::sleep_for(Microseconds(10000));
               }
-              Debug(1, "Quadra setting up on %d", deviceid);
-              if (!quadra_yolo->setup(camera->getVideoStream(), 
-                    mVideoCodecContext,
-                    "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
-                    deviceid)) {
-                delete quadra_yolo;
-                quadra_yolo = nullptr;
+              if (shared_data->analysis_image_count >= packet->image_index) {
+                Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
+                packet->ai_image = analysis_image_buffer[packet->image_index % image_buffer_count];
               }
-              // give up... 
-
-            } else {
-              Debug(1, "Have quadra %p and hw_frame %p", quadra_yolo, packet->hw_frame.get());
             }
-          }
+#if HAVE_QUADRA
+            else {
+              //OBJECT_DETECTION_QUADRA) {
+              if (!quadra_yolo) {
+                quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
+                int deviceid = -1;
+                if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
+                  deviceid = ni_get_cardno(packet->hw_frame.get());
+                }
+                Debug(1, "Quadra setting up on %d", deviceid);
+                if (!quadra_yolo->setup(camera->getVideoStream(), 
+                      mVideoCodecContext,
+                      "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
+                      deviceid)) {
+                  delete quadra_yolo;
+                  quadra_yolo = nullptr;
+                }
+                // give up... 
 
-          if (quadra_yolo and (objectdetection == OBJECT_DETECTION_QUADRA)) {
-            ZMPacketLock *delayed_packet_lock;
-            std::shared_ptr<ZMPacket> delayed_packet;
-
-#if 0
-            // See if we can drain the buffer. If we can, it will replace packet and packet_lock.
-            if (ai_queue.size()) {
-              Debug(1, "Have queued packets %zu, send them to be yolod", ai_queue.size());
-              // Try to ai, without feeding the ai.
-              delayed_packet_lock  = &ai_queue.front();
-              delayed_packet = delayed_packet_lock->packet_;
-
-              Debug(1, "Sending packet %d for detection", delayed_packet->image_index);
-              int ret = quadra_yolo->receive_detection(delayed_packet);
-              if (ret > 0) {
-                // Success, pop and assign
-                Debug(1, "Success packet %d", packet->image_index);
-                packet_lock = std::move(ai_queue.front());
-                ai_queue.pop_front();
-                packet = delayed_packet;
-                Debug(1, "Success packet %d", packet->image_index);
-              } else if (ret < 0) {
-                Debug(1, "Failed to get frame %d", ret);
-                return ret;
               } else {
-                Debug(1, "EAGAIN, fall through and send a packet");
-                delayed_packet = nullptr;
-              } // else 0, EAGAIN, fall through and send a packet
-            } else {
-              Debug(1, "Dont Have queued packets %zu", ai_queue.size());
-            }
-#endif
-
-            if (!delayed_packet) {
-              if (analysis_fps_limit) {
-                double capture_fps = get_capture_fps();
-                motion_frame_skip = capture_fps / analysis_fps_limit;
-                Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                    motion_frame_skip, capture_fps, analysis_fps_limit);
+                Debug(1, "Have quadra %p and hw_frame %p", quadra_yolo, packet->hw_frame.get());
               }
-              if (packet->hw_frame or packet->in_frame) {
-                if (!(analysis_image_count % (motion_frame_skip+1))) {
+            }
+
+            if (quadra_yolo and (objectdetection == OBJECT_DETECTION_QUADRA)) {
+              ZMPacketLock *delayed_packet_lock;
+              std::shared_ptr<ZMPacket> delayed_packet;
+
+              if (!delayed_packet) {
+                if (analysis_fps_limit) {
+                  double capture_fps = get_capture_fps();
+                  motion_frame_skip = capture_fps / analysis_fps_limit;
+                  Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                      motion_frame_skip, capture_fps, analysis_fps_limit);
+                }
+                if (packet->hw_frame or packet->in_frame) {
+                  if (!(analysis_image_count % (motion_frame_skip+1))) {
 #if 1
-                  SystemTimePoint starttime = std::chrono::system_clock::now();
-                  Debug(1, "Send_packet %d", packet->image_index);
+                    SystemTimePoint starttime = std::chrono::system_clock::now();
+                    Debug(1, "Send_packet %d", packet->image_index);
 #endif
-                  int ret = quadra_yolo->send_packet(packet);
-                  if (ret <= 0) {
-                    Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
-                    //return ret;
-                  } else {
-#if 1
-                    SystemTimePoint endtime = std::chrono::system_clock::now();
-                    if (endtime - starttime > Seconds(1)) {
-                      Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                    int ret = quadra_yolo->send_packet(packet);
+                    if (ret <= 0) {
+                      Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
+                      //return ret;
                     } else {
-                      Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                    }
-#endif
-
-                    int count = 10;
-                    delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-                    delayed_packet = delayed_packet_lock->packet_;
-                    // packet got to the card
-                    Debug(1, "Doing receive_detection queue size: %zu image_index %d", ai_queue.size(), delayed_packet->image_index);
-                    starttime = std::chrono::system_clock::now();
-                    do {
-                      ret = quadra_yolo->receive_detection(delayed_packet);
-                      if (0 < ret) {
-                        endtime = std::chrono::system_clock::now();
-                        if (endtime - starttime > Seconds(1)) {
-                          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                        } else {
-                          Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                        }
-#if 0
-                      if (delayed_packet.get() != packet.get()) {
-                        Debug(1, "Pushing packet, popping delayed");
-                        ai_queue.push_back(std::move(packet_lock));
-                        packet = delayed_packet;
-                        packet_lock = std::move(ai_queue.front());
-                        ai_queue.pop_front();
-                        packetqueue.increment_it(analysis_it);
+#if 1
+                      SystemTimePoint endtime = std::chrono::system_clock::now();
+                      if (endtime - starttime > Seconds(1)) {
+                        Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
                       } else {
-                        Debug(1, "packet %p != delayed_packet %p", packet.get(), delayed_packet.get());
+                        Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
                       }
 #endif
-                        if (packet->ai_frame) {
-                          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                          if (config.timestamp_on_capture) {
-                            Debug(1, "timestamping ai image");
-                            Image *ai_image = packet->get_ai_image();
-                            TimestampImage(ai_image, packet->timestamp);
+
+                      int count = 10;
+                      delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
+                      delayed_packet = delayed_packet_lock->packet_;
+                      // packet got to the card
+                      // According to docs, we should be able to now get detections without sending another frame
+                      Debug(1, "Doing receive_detection queue size: %zu image_index %d", ai_queue.size(), delayed_packet->image_index);
+                      starttime = std::chrono::system_clock::now();
+                      do {
+                        ret = quadra_yolo->receive_detection(delayed_packet);
+                        if (0 < ret) {
+                          endtime = std::chrono::system_clock::now();
+                          if (endtime - starttime > Seconds(1)) {
+                            Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                          } else {
+                            Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
                           }
+                          if (packet->ai_frame) {
+                            zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                            if (config.timestamp_on_capture) {
+                              Debug(1, "timestamping ai image");
+                              Image *ai_image = packet->get_ai_image();
+                              TimestampImage(ai_image, packet->timestamp);
+                            }
+                          }
+                        } else if (0 > ret) {
+                          Debug(1, "Failed yolo");
+                          delete quadra_yolo;
+                          // Since packets are still in the queue, they will get re-fed into it..
+                          quadra_yolo = nullptr;
+                          break;
+                        } else {
+                          // EAGAIN
+                          Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
+                          //if (packet == delayed_packet) { // Can this be otherwise?
+                          //ai_queue.push_back(std::move(packet_lock));
+                          //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
+                          //packetqueue.increment_it(analysis_it);
+                          //}
+                          //return 0;
+                          std::this_thread::sleep_for(Microseconds(10000));
+                          //count -= 1;
                         }
-                      } else if (0 > ret) {
-                        Debug(1, "Failed yolo");
-                        delete quadra_yolo;
-                        // Since packets are still in the queue, they will get re-fed into it..
-                        quadra_yolo = nullptr;
-#if 0
-                        if (packet != delayed_packet) { // Can this be otherwise?
-                          ai_queue.push_back(std::move(packet_lock));
-                          Debug(1, "Pushing packet on queue, size now %zu", ai_queue.size());
-                          packetqueue.increment_it(analysis_it);
-                        }
-                        return ret;
-#endif
+                      } while (ret == 0 and count > 0);
 
-                      } else {
-                        // EAGAIN
-                        Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
-                        //if (packet == delayed_packet) { // Can this be otherwise?
-                        //ai_queue.push_back(std::move(packet_lock));
-                        //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-                        //packetqueue.increment_it(analysis_it);
-                        //}
-                        //return 0;
-                        std::this_thread::sleep_for(Microseconds(10000));
-                        count -= 1;
-                      }
-                    } while (ret == 0 and count > 0);
-
-                  } // end if failed to send
-                } else {
-                  //quadra_yolo->draw_last_roi(packet);
-                } // end if skip_frame
-              } // end if has input_frame/hw_frame
-            } // end if delayed_packet
-          } // end yolo
+                    } // end if failed to send
+                  } else {
+                    //quadra_yolo->draw_last_roi(packet);
+                  } // end if skip_frame
+                } // end if has input_frame/hw_frame
+              } // end if delayed_packet
+            } // end yolo
+            }
 #endif
           packet->hw_frame = nullptr; // Free it?
 
@@ -2776,7 +2742,6 @@ void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name.c_str());
 
   // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event.
-  // Need a mutex on it I guess.  FIXME
   // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
   {
     std::lock_guard<std::mutex> lck(event_mutex);
@@ -2792,10 +2757,8 @@ void Monitor::Reload() {
     Error("Can't run query: %s", mysql_error(&dbconn));
   } else if (MYSQL_ROW dbrow = row->mysql_row()) {
     Load(dbrow, true /*load zones */, purpose);
-
     delete row;
   }  // end if row
-
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
@@ -2953,15 +2916,16 @@ int Monitor::Capture() {
     // Fake a signal loss image
     // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
     Rgb signalcolor;
+    //FIXME< just put the no signal on the queue
     /* HTML colour code is actually BGR in memory, we want RGB */
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
     Image capture_image(width, height, camera->Colours(), camera->SubpixelOrder());
     capture_image.Fill(signalcolor);
     shared_data->signal = false;
-    shared_data->last_write_index = index;
-    shared_data->last_write_time = shared_timestamps[index].tv_sec;
-    image_buffer[index]->Assign(capture_image);
-    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+    //shared_data->last_capture_index = index;
+    //shared_data->last_write_time = shared_timestamps[index].tv_sec;
+    //image_buffer[index]->Assign(capture_image);
+    //shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->capture_image_count++;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
@@ -2970,7 +2934,7 @@ int Monitor::Capture() {
     shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
     // If we captured, let's assume signal, Decode will detect further
     if (decoding == DECODING_NONE) {
-      shared_data->last_write_index = index;
+      shared_data->last_capture_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
     }
@@ -3015,7 +2979,7 @@ int Monitor::Capture() {
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
   } else { // result == 0
-    // Question is, do we update last_write_index etc?
+    // Question is, do we update last_decoder_index etc?
     return 0;
   } // end if result
 
@@ -3259,7 +3223,7 @@ int Monitor::Decode() {
 
     int ret = delayed_packet->receive_frame(mVideoCodecContext);
     if (ret > 0) {
-      Debug(1, "Success");
+      //Debug(1, "Success");
       // Success, pop and assign
       packet_lock = std::move( decoder_queue.front() );
       decoder_queue.pop_front();
@@ -3281,7 +3245,7 @@ int Monitor::Decode() {
   } 
 
   // Might have to be keyframe interval
-  if (!packet and decoder_queue.size() > 50) {
+  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
     Debug(1, "Too many packets in queue. Sleeping");
     return -1;
   }
@@ -3291,7 +3255,7 @@ int Monitor::Decode() {
   if ((!packet) || ((!packet->image) and packet->packet->size and !packet->in_frame)) {
     if ((decoding == DECODING_ALWAYS)
         or
-        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
+        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_decoder_index == image_buffer_count)))
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
         or
@@ -3312,15 +3276,17 @@ int Monitor::Decode() {
           return 1; // Don't need decode
         }
         Debug(1, "send_packet %d", packet->image_index);
+#if 0
         SystemTimePoint starttime = std::chrono::system_clock::now();
         int ret = packet->send_packet(mVideoCodecContext);
-#if 0
         SystemTimePoint endtime = std::chrono::system_clock::now();
         if (endtime - starttime > Milliseconds(30)) {
           Warning("send_packet is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
         } else {
           Debug(1, "send_packet took: %.3f seconds", FPSeconds(endtime - starttime).count());
         }
+#else
+        int ret = packet->send_packet(mVideoCodecContext);
 #endif
 
         if (0 == ret) {
@@ -3472,21 +3438,22 @@ int Monitor::Decode() {
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   }  // end if have image
  
-  unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
+  unsigned int index = packet->image_index % image_buffer_count;
+  //unsigned int index = (shared_data->last_decoder_index + 1) % image_buffer_count;
   if (0 and packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
     Debug(1, "Assigning %s for index %d to %s",
         packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
-    Debug(1, "Assigning for index %d", index);
+    //Debug(1, "Assigning for index %d", index);
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
     image_buffer[index]->Assign(packet->in_frame.get());
   } else {
     Warning("Unable to assign an image to shm for %d", index);
   }
   shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-  shared_data->last_write_index = index;
+  shared_data->last_decoder_index = index;
   shared_data->decoder_image_count++;
   shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
@@ -3494,10 +3461,10 @@ int Monitor::Decode() {
         FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
   }
   packet->decoded = true;
-  packetqueue.notify_all();
+  // The idea is that capture is firing often enough
+  //packetqueue.notify_all();
   return 1;
 }  // end int Monitor::Decode()
-
 
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";
@@ -4098,7 +4065,7 @@ void Monitor::get_ref_image() {
     and !zm_terminate) {
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64 ")",
-          shared_data->last_write_index, static_cast<int64>(shared_data->last_write_time));
+          shared_data->last_decoder_index, static_cast<int64>(shared_data->last_write_time));
     if (packet_lock.packet_ and ! packet_lock.packet_->image) {
       packet_lock.unlock();
       // can't analyse it anyways, incremement

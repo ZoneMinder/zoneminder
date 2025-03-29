@@ -2149,7 +2149,7 @@ int Monitor::Analyse() {
           }  // end if decoding enabled
 
           if (objectdetection != OBJECT_DETECTION_NONE) {
-            if (objectdetection != OBJECT_DETECTION_SPEEDAI) {
+            if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
               while (shared_data->analysis_image_count < packet->image_index and !zm_terminate) {
                 Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
                 std::this_thread::sleep_for(Microseconds(10000));

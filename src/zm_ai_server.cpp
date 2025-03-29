@@ -272,11 +272,6 @@ void AIThread::Run() {
     }  // end if failed to connect
   }  // end if !ShmValid
 
-  Monitor::SharedData *shared_data = monitor_->getSharedData();
-  int image_buffer_count = monitor_->GetImageBufferCount();
-
-  // Start at latest decoded image
-  int32_t analysis_image_count = shared_data->decoder_image_count;
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
@@ -288,9 +283,12 @@ void AIThread::Run() {
         sleep(1);
         continue;
       }  // end if failed to connect
-      shared_data = monitor_->getSharedData();
-      image_buffer_count = monitor_->GetImageBufferCount();
     }  // end if !ShmValid
+    Monitor::SharedData *shared_data = monitor_->getSharedData();
+    int image_buffer_count = monitor_->GetImageBufferCount();
+
+    // Start at latest decoded image
+    int32_t analysis_image_count = shared_data->decoder_image_count;
        //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
        //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
     int32_t decoder_image_count = shared_data->decoder_image_count;

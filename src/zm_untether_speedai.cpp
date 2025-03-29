@@ -218,7 +218,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
         MODEL_WIDTH, MODEL_HEIGHT, AV_PIX_FMT_RGB24,
         SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-  Debug(1, "Start scale");
+  //Debug(1, "Start scale");
   int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
@@ -235,7 +235,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   auto totalPixels = image_size;
   auto* uai_data = job->inputBuf;
 
-  Debug(1, "Start quantisation");
+  //Debug(1, "Start quantisation");
   size_t datInd = 0;
   while (uai_data != nullptr) {
 	  auto bufSize = uai_data->size;
@@ -260,18 +260,18 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
-  Debug(3, "SpeedAI::locking");
+  //Debug(3, "SpeedAI::locking");
   std::unique_lock<std::mutex> lck(mutex_);
   //send_queue.push_back(job);
 #if 1
-  Debug(3, "SpeedAI::enqueue");
+  //Debug(3, "SpeedAI::enqueue");
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
   }
-  Debug(3, "SpeedAI:: success enqueue");
+  //Debug(3, "SpeedAI:: success enqueue");
 #endif
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)

@@ -275,6 +275,60 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
+  // Manage the ZONES Button
+  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
+    evt.preventDefault();
+    const data = {
+      request: "modal",
+      modal: "saveconfirm",
+      key: messageSavingDataWhenLeavingPage
+    };
+
+    if (!document.getElementById('saveConfirm')) {
+      // Load the save confirmation modal into the DOM
+      $j.getJSON(thisUrl, data)
+          .done(function(data) {
+            insertModalHtml('saveConfirm', data.html);
+            manageSaveConfirmModalBtns();
+            $j('#saveConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting saveconfirm', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+      return;
+    } else {
+      document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+      $j('#saveConfirm').modal('show');
+    }
+  });
+
+  // Manage the SAVE CONFIRMATION modal button
+  function manageSaveConfirmModalBtns() {
+    const href = '?view=zones&mid='+mid;
+    document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
+      evt.preventDefault();
+      saveMonitorData(href);
+    });
+
+    // Manage the Don't SAVE modal button
+    document.getElementById('dontSaveBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      evt.preventDefault();
+      window.location.assign(href);
+    });
+
+    // Manage the CANCEL modal button
+    document.getElementById('saveCancelBtn').addEventListener('click', function onSaveCancelClick(evt) {
+      $j('#saveConfirm').modal('hide');
+    });
+  }
+
+  // Manage the SAVE Button
+  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+    saveMonitorData();
+  });
+
   const form = document.getElementById('contentForm');
 
   //manage the Janus settings div
@@ -421,6 +475,28 @@ function initPage() {
 
   manageRTSP2WebChannelStream();
 } // end function initPage()
+
+function saveMonitorData(href = '') {
+  const alertBlock = $j("#alertSaveMonitorData");
+  const form_data = $j("#contentForm").serializeArray();
+  alertBlock.fadeIn({duration: 'fast'});
+  form_data.push({name: "action", value: "save"});
+  $j.ajax({
+    type: "POST",
+    url: "?view=monitor",
+    data: form_data,
+    success: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      if (href) window.location.assign(href);
+      //document.getElementById('zones-tab').classList.remove("disabled");
+    },
+    error: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      alert('An error occurred while saving data.'); /* Proper formatting required! */
+    }
+  });
+  $j('#saveConfirm').modal('hide');
+}
 
 function ll2dms(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');

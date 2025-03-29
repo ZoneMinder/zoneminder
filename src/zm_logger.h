@@ -115,6 +115,10 @@ class Logger {
   bool mHasTerminal;
   bool mFlush;
 
+  // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
+  char            timeString[64];
+  char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
+  va_list         argPtr;
  private:
   Logger();
   ~Logger();

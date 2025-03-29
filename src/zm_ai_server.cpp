@@ -262,8 +262,10 @@ void AIThread::Run() {
   }
 
   while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
-    Debug(1, "!ShmValid");
-    monitor_->disconnect();
+    if (monitor_->isConnected()) {
+      Debug(1, "!ShmValid");
+      monitor_->disconnect();
+    }
     if (!monitor_->connect()) {
       Warning("Couldn't connect to monitor %d", monitor_->Id());
       monitor_->Reload();  // This is to pickup change of colours, width, height, etc
@@ -274,9 +276,18 @@ void AIThread::Run() {
 
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
-
+  shared_data->analysis_image_count = 0;
   // Start at latest decoded image
+  while (shared_data->decoder_image_count <= 0 and !(zm_terminate or terminate_)) {
+        Microseconds delay = monitor_->GetCaptureDelay();
+    delay = Microseconds(3000);
+    Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+    std::this_thread::sleep_for(delay);
+  }
   int32_t analysis_image_count = shared_data->decoder_image_count;
+  if (analysis_image_count <0) analysis_image_count = 0;
+  int32_t decoder_image_count = shared_data->decoder_image_count;
+  nlohmann::json last_detections;
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
@@ -290,59 +301,71 @@ void AIThread::Run() {
       }  // end if failed to connect
       shared_data = monitor_->getSharedData();
       image_buffer_count = monitor_->GetImageBufferCount();
+      shared_data->analysis_image_count = 0;
     }  // end if !ShmValid
-       //Debug(1, "Doing monitor %d.  Decoder index is %d Our index is %d",
-       //monitor->Id(), shared_data->decoder_image_count, shared_data->analysis_image_count);
-    int32_t decoder_image_count = shared_data->decoder_image_count;
 
-    if (analysis_image_count - decoder_image_count > image_buffer_count) {
+    decoder_image_count = shared_data->decoder_image_count;
+
+#if 0
+    if (analysis_image_count - 1 > decoder_image_count ) {
       // Somehow got way ahead?
+      Debug(1, "Analysis got beyond decoder? analysis_image_count:%d - decoder_image_count:%d > %d", analysis_image_count, decoder_image_count, image_buffer_count);
       analysis_image_count = decoder_image_count;
-    }
+      if (analysis_image_count <0) analysis_image_count = 0;
+#endif
+      while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
+        Microseconds delay = monitor_->GetCaptureDelay();
+        delay = Microseconds(3000);
+        Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+        std::this_thread::sleep_for(delay);
+      }
 
-    if (decoder_image_count >= analysis_image_count) {
       if (decoder_image_count - analysis_image_count > image_buffer_count) {
         Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
         analysis_image_count = decoder_image_count;
       }
-      int32_t decoder_image_index = decoder_image_count % image_buffer_count;
-      int32_t our_image_index = analysis_image_count % image_buffer_count;
+    if (shared_data->last_decoder_index != shared_data->last_analysis_index) {
+      int32_t image_index = shared_data->last_decoder_index % image_buffer_count;
 
-      Image *in_image = monitor_->GetDecodedImage(decoder_image_index);
+      Image *unsafe_image = monitor_->GetDecodedImage(image_index);
+      // Have to copy it in case it gets overwritten
+      Image in_image(*unsafe_image);
 
       if (speedai) {
         Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
-            monitor_->Id(), decoder_image_count, decoder_image_index,
-            analysis_image_count, our_image_index);
+            monitor_->Id(), decoder_image_count, image_index,
+            analysis_image_count, image_index);
 
-        do {
-          job = speedai->send_image(job, in_image);
-          if (!job) {
-            Warning("Can't send_packet %d", decoder_image_index);
-          }
-        } while (!job and !zm_terminate and !terminate_);
+        speedai->send_image(job, &in_image);
 
-        Image *ai_image = monitor_->GetAnalysisImage(our_image_index);
-        nlohmann::json detections = speedai->receive_detections(job);
+        Image *ai_image = monitor_->GetAnalysisImage(image_index);
+        nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
         Debug(1, "detections %s", detections.dump().c_str());
+
         if (detections.size()) {
-          draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, detections, monitor_->LabelSize());
+          draw_boxes(drawbox_filter, drawbox_filter_ctx, &in_image, ai_image, detections, monitor_->LabelSize());
+          //last_detections = detections;
         } else {
-          ai_image->Assign(*in_image);
+          //if (last_detections.size()) {
+            //draw_boxes(drawbox_filter, drawbox_filter_ctx, in_image, ai_image, last_detections, monitor_->LabelSize());
+            //last_detections = nlohmann::json(nullptr);
+          //} else {
+            ai_image->Assign(in_image);
+          //}
         }
 
-        shared_data->analysis_image_count = analysis_image_count;
-        shared_data->last_analysis_index = our_image_index;
         analysis_image_count++;
+        shared_data->analysis_image_count = analysis_image_count;
+        shared_data->last_analysis_index = image_index;
       } // end if speedai
     } else {
-      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d Our count is %d, fresh is %d => %d",
-          monitor_->Id(), decoder_image_count, analysis_image_count, 
-          shared_data->decoder_image_count, shared_data->analysis_image_count);
+      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, fresh is %d => %d %d",
+          monitor_->Id(), decoder_image_count, analysis_image_count, shared_data->last_decoder_index,
+          shared_data->decoder_image_count, shared_data->analysis_image_count, shared_data->last_analysis_index);
     }  // end if have a new image
 
     if (!zm_terminate and !terminate_) {
-      if (shared_data->decoder_image_count <= shared_data->analysis_image_count) {
+      if (shared_data->decoder_image_count <= analysis_image_count) {
         Microseconds delay = monitor_->GetCaptureDelay();
         //if (delay==Microseconds(0));
         delay = Microseconds(3000);
@@ -351,6 +374,7 @@ void AIThread::Run() {
       }
     }
   }  // end while !zm_terminate
+  shared_data->analysis_image_count = 0;
   if (drawbox_filter) {
     delete drawbox_filter;
     drawbox_filter = nullptr;

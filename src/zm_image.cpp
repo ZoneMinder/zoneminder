@@ -190,7 +190,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   imagePixFormat = AVPixFormat();
   linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
   size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
-  Debug(1, "Choosing pixformat %s size %d allocation %ld", toString().c_str(), size, allocation);
+//Debug(1, "Choosing pixformat %s size %d allocation %ld", toString().c_str(), size, allocation);
 
   if (p_buffer) {
     if (!allocation) allocation = size;
@@ -349,7 +349,7 @@ int Image::PopulateFrame(AVFrame *frame) const {
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  zm_dump_video_frame(frame, "Image.Populate(frame)");
+  //zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
 
@@ -397,7 +397,7 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
           av_make_error_string(ret).c_str());
     return false;
   }
-  zm_dump_video_frame(temp_frame, "dest frame after convert");
+  //zm_dump_video_frame(temp_frame, "dest frame after convert");
   update_function_pointers();
   return true;
 }  // end Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame)
@@ -739,7 +739,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
-  Debug(4, "Size %u, allocation %lu", size, allocation);
+  //Debug(4, "Size %u, allocation %lu", size, allocation);
   size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {

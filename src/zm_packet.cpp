@@ -112,7 +112,7 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
   delete y_image;
-  delete ai_image;
+  if (ai_image and !ai_image->IsBufferHeld()) delete ai_image;
 }
 
 ssize_t ZMPacket::ram() {
@@ -146,18 +146,16 @@ int ZMPacket::send_packet(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN
   // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
+  if (ret == AVERROR(EAGAIN)) {
+    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    //ret = avcodec_send_packet(ctx, packet.get());
+    return 0;
+  }
   if (ret < 0) {
     Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    //return ret;
-  } else {
-    Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-  }
-
-  if (ret == AVERROR(EAGAIN)) {
-    return 0;
-  } else if (ret < 0) {
     return ret;
   }
+  Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   return 1;
 }
 

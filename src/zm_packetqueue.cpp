@@ -207,6 +207,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       warned_count--;
     }  // end if not able catch up
   }  // end lock scope
+ 
   // We signal on every packet because someday we may analyze sound
   Debug(4, "packetqueue queuepacket, unlocked signalling");
   condition.notify_all();

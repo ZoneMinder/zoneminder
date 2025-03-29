@@ -200,7 +200,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    int32_t  last_write_index;  /* +4    */
+    int32_t  last_capture_index;  /* +4    */
+    int32_t  last_decoder_index;  /* +4    */
     int32_t  last_read_index;   /* +8    */
     int32_t  last_analysis_index;   /* +8    */
     int32_t  capture_image_count;       /* +12   */

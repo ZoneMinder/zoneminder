@@ -17,6 +17,9 @@ extern "C" {
 #include "yolo_model.h"
 #include "netint_network.h"
 
+
+#include <nlohmann/json.hpp>
+
 #define NI_TRANSCODE_FRAME_NUM 3
 #define NI_SAME_CENTER_THRESH 2
 #define NI_SAME_BORDER_THRESH 8
@@ -64,7 +67,8 @@ class Quadra_Yolo {
     int last_roi_count;
 
     bool use_hwframe;
-    std::string result_json;
+    nlohmann::json detections;
+
     int filt_cnt;
 
   public:

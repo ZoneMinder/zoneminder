@@ -60,6 +60,8 @@
 #include <string>
 #include <utility>
 
+#include <nlohmann/json.hpp>
+
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
 #include <fcntl.h>

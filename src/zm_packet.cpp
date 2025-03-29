@@ -112,7 +112,7 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
   delete y_image;
-  delete ai_image;
+  if (ai_image and !ai_image->IsBufferHeld()) delete ai_image;
 }
 
 ssize_t ZMPacket::ram() {

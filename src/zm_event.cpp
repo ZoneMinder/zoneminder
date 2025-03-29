@@ -546,7 +546,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
     AddFrame(packet);
   }
   if (!packet->detections.empty()) {
-    std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.c_str());
+    std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
     dbQueue.push(std::move(sql));
   }
 

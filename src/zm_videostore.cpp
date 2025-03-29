@@ -1140,7 +1140,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Debug(1, "Have neither in_frame or image in packet %d!", zm_packet->image_index);
         return 0;
       } else {
-        if (
+        if (zm_packet->ai_frame) {
+          frame = zm_packet->ai_frame.get();
+        } else if (
             zm_packet->in_frame->width == video_out_ctx->width
             and
             zm_packet->in_frame->height == video_out_ctx->height
@@ -1193,8 +1195,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
         frame->pts = 0;
       } else {
-        Microseconds useconds = std::chrono::duration_cast<Microseconds>(
-            zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
+        Microseconds useconds = std::chrono::duration_cast<Microseconds>(zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
         frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
         Debug(2,
             "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->timestamp(%" PRIi64 " - first %" PRId64 " us %" PRId64 " ) @ %d/%d",

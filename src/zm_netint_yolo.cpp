@@ -280,7 +280,7 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
     return 0;
   }
 
-  out_packet->detections = std::move(result_json);
+  out_packet->detections = std::move(detections);
   return 1;
 } // end receive_detection
 
@@ -552,7 +552,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   }
   num = sd->size / roi->self_size;
 
-  result_json = "";
+  nlohmann::json detections = nlohmann::json::array();
 
   int detected = 0;
   for (i = 0; i < num; i++) {
@@ -581,9 +581,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       av_frame_free(&input);
       input = output;
     }
-    result_json += stringtf("   type:%s,left:%d,right:%d,top:%d,bottom:%d,prob:%f\n",
-        roi_class[roi_extra[i].cls], roi[i].left, roi[i].right, roi[i].top,
-        roi[i].bottom, roi_extra[i].prob);
+    std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
+    detections.push_back({{"class_name", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
   }
   *filt_frame = input;
   free(last_roi);

@@ -2212,19 +2212,23 @@ int Monitor::Analyse() {
               }
               if (packet->hw_frame or packet->in_frame) {
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
+#if 1
                   SystemTimePoint starttime = std::chrono::system_clock::now();
                   Debug(1, "Send_packet %d", packet->image_index);
+#endif
                   int ret = quadra_yolo->send_packet(packet);
                   if (ret <= 0) {
                     Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
                     //return ret;
                   } else {
+#if 1
                     SystemTimePoint endtime = std::chrono::system_clock::now();
                     if (endtime - starttime > Seconds(1)) {
                       Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
                     } else {
-                      Debug(1, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                      Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
                     }
+#endif
 
                     int count = 10;
                     delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
@@ -2239,7 +2243,7 @@ int Monitor::Analyse() {
                         if (endtime - starttime > Seconds(1)) {
                           Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
                         } else {
-                          Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                          Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
                         }
 #if 0
                       if (delayed_packet.get() != packet.get()) {
@@ -3310,12 +3314,14 @@ int Monitor::Decode() {
         Debug(1, "send_packet %d", packet->image_index);
         SystemTimePoint starttime = std::chrono::system_clock::now();
         int ret = packet->send_packet(mVideoCodecContext);
+#if 0
         SystemTimePoint endtime = std::chrono::system_clock::now();
         if (endtime - starttime > Milliseconds(30)) {
           Warning("send_packet is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
         } else {
           Debug(1, "send_packet took: %.3f seconds", FPSeconds(endtime - starttime).count());
         }
+#endif
 
         if (0 == ret) {
           // AGAIN

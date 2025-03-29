@@ -48,6 +48,9 @@ static const char * coco_classes[] = {
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
 };
 
+#define USE_THREAD 0
+#define USE_LOCK 1
+
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
   module_(nullptr),
@@ -83,8 +86,9 @@ SpeedAI::SpeedAI() :
 
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
-
-  //thread_ = std::thread(&SpeedAI::Run, this);
+#if USE_THREAD
+  thread_ = std::thread(&SpeedAI::Run, this);
+#endif
 }
 
 SpeedAI::~SpeedAI() {
@@ -235,7 +239,6 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   auto totalPixels = image_size;
   auto* uai_data = job->inputBuf;
 
-  Debug(1, "Start quantisation");
   size_t datInd = 0;
   while (uai_data != nullptr) {
 	  auto bufSize = uai_data->size;
@@ -260,29 +263,44 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
-  Debug(3, "SpeedAI::locking");
+#if USE_LOCK
+  SystemTimePoint starttime = std::chrono::system_clock::now();
   std::unique_lock<std::mutex> lck(mutex_);
-  //send_queue.push_back(job);
-#if 1
-  Debug(3, "SpeedAI::enqueue");
+#endif
+
+#if USE_THREAD
+  send_queue.push_back(job);
+#else
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  if (endtime - starttime > Milliseconds(30)) {
+    Warning("SpeedAI locking is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+  } else {
+    Debug(3, "SpeedAI locking took: %.3f seconds", FPSeconds(endtime - starttime).count());
+  }
+  starttime = endtime;
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
   }
-  Debug(3, "SpeedAI:: success enqueue");
+  endtime = std::chrono::system_clock::now();
+  if (endtime - starttime > Milliseconds(30)) {
+    Warning("SpeedAI enqueue is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+  } else {
+    Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
+  }
 #endif
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 
-const nlohmann::json SpeedAI::receive_detections(Job *job) {
+const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshold) {
   nlohmann::json coco_object;
 
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
-  Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
-  //UaiErr err = uai_module_synchronize(module_, &job->event);
+  //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+  SystemTimePoint starttime = std::chrono::system_clock::now();
 #if 0
   UaiErr err;
   while (!zm_terminate) {
@@ -294,13 +312,19 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     }
   }
 #else
-  UaiErr err = uai_module_wait(module_, &job->event, 10);
+  UaiErr err = uai_module_synchronize(module_, &job->event);
+  //UaiErr err = uai_module_wait(module_, &job->event, 10);
   if (err != UAI_SUCCESS) {
     Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
     return coco_object;
   }
 #endif
-  Debug(1, "SpeedAI Completed inference %d %s", err, uai_err_string(err));
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  if (endtime - starttime > Milliseconds(30)) {
+    Warning("receive_detections is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+  } else {
+    Debug(1, "receive_detections took: %.3f seconds", FPSeconds(endtime - starttime).count());
+  }
 
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.
@@ -353,7 +377,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     float r_float = static_cast<float>(r) / std::pow(2, m_uint16_bias);
     float b_float = static_cast<float>(b) / std::pow(2, m_uint16_bias);
     float score_float = static_cast<float>(dequantize(score, m_fp8p_bias));
-
     int outputIndex = row * 6; // Assuming each row has 6 values to store
 
     // Insert the values into the output buffer
@@ -365,7 +388,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job) {
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
   Debug(3, "Done dequantizing");
-  coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale);
+  coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale, object_threshold);
   Debug(3, "Done convert to coco");
   return coco_object;
 }
@@ -397,7 +420,7 @@ float SpeedAI::dequantize(uint8_t val, int bias) {
   return sgn * float(mnt) * pow(2, (int)exp + bias);
 }
 
-nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<float>& predictions, float m_width_rescale, float m_height_rescale) {
+nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<float>& predictions, float m_width_rescale, float m_height_rescale, float object_threshold) {
   const int num_predictions = predictions.size() / 6;
   nlohmann::json coco_predictions = nlohmann::json::array();
 
@@ -411,7 +434,7 @@ nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<flo
 
     // if score < m_conf_threshold we break as the predictions
     // are sorted by score
-    if (score < obj_threshold) {
+    if (score < object_threshold) {
       break;
     }
 

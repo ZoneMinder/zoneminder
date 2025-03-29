@@ -1184,7 +1184,7 @@ function destroyChosen(selector = '') {
   if (typeof selector === 'string') {
     $j(selector + '.chosen').chosen('destroy');
   } else {
-    $j(selector).find('.chosen').chosen('destroy');
+    $j(selector).chosen('destroy');
   }
 }
 
@@ -1197,13 +1197,19 @@ function applyChosen(selector = '') {
     obj_2 = $j(selector + '.chosen.chosen-full-width');
     obj_3 = $j(selector + '.chosen.chosen-auto-width');
   } else {
-    obj_1 = $j(selector).find('.chosen').not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector).find('.chosen.chosen-full-width');
-    obj_3 = $j(selector).find('.chosen.chosen-auto-width');
+    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).hasClass('.chosen.chosen-full-width');
+    obj_3 = $j(selector).hasClass('.chosen.chosen-auto-width');
   }
-  obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
-  obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
-  obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  if (obj_1) {
+    obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  }
+  if (obj_2) {
+    obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  }
+  if (obj_3) {
+    obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  }
 }
 
 function stringToNumber(str) {

@@ -739,7 +739,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
-  Debug(4, "Size %u, allocation %lu", size, allocation);
+  //Debug(4, "Size %u, allocation %lu", size, allocation);
   size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {

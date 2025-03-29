@@ -146,6 +146,7 @@ our $mem_seq = 0;
 our %mem_data = (
   shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
     size             => { type=>'uint32', seq=>$mem_seq++ },
+    last_capture_index => { type=>'int32', seq=>$mem_seq++ },
     last_write_index => { type=>'int32', seq=>$mem_seq++ },
     last_read_index  => { type=>'int32', seq=>$mem_seq++ },
     last_analysis_index  => { type=>'int32', seq=>$mem_seq++ },

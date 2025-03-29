@@ -313,7 +313,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="filter[ExecuteInterval]"><?php echo translate('Execute Interval') ?></label>
-              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /><?php echo translate('seconds'); ?>
+              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /> <?php echo translate('seconds'); ?>
             </p>
             <p>
               <label for="filter[Concurrent]"><?php echo translate('ConcurrentFilter') ?></label>

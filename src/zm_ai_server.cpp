@@ -374,7 +374,7 @@ void AIThread::Run() {
       }
     }
   }  // end while !zm_terminate
-  shared_data->analysis_image_count = 0;
+  if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
   if (drawbox_filter) {
     delete drawbox_filter;
     drawbox_filter = nullptr;

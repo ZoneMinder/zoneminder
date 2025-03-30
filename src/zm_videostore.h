@@ -96,7 +96,7 @@ class VideoStore {
     AVCodecContext  *audio_in_ctx,
     Monitor * p_monitor);
   ~VideoStore();
-  bool  open();
+  bool open();
 
   void write_video_packet(AVPacket pkt);
   void write_audio_packet(AVPacket pkt);
@@ -113,7 +113,7 @@ class VideoStore {
     return "";
   }
   const AVCodec * get_video_encoder() {
-    return video_out_ctx->codec;
+    return video_out_ctx ? video_out_ctx->codec : nullptr;
   }
 };
 

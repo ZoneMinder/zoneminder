@@ -2240,6 +2240,7 @@ int Monitor::Analyse() {
                               Image *ai_image = packet->get_ai_image();
                               TimestampImage(ai_image, packet->timestamp);
                             }
+                            packet->in_frame = nullptr; // Don't need it anymore
                           }
                         } else if (0 > ret) {
                           Debug(1, "Failed yolo");
@@ -3459,6 +3460,10 @@ int Monitor::Decode() {
     //Debug(1, "Assigning for index %d", index);
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
     image_buffer[index]->Assign(packet->in_frame.get());
+    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+      // Won't be using hwframe
+      packet->hw_frame = nullptr;
+    }
   } else {
     Warning("Unable to assign an image to shm for %d", index);
   }

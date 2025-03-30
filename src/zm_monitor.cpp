@@ -3132,9 +3132,10 @@ int Monitor::OpenDecoder() {
       }
       av_dict_free(&opts);
       if (ret < 0) {
-        Error("Unable to open codec for video stream from ");
+        Error("Unable to open codec for video stream %d %s", ret, av_make_error_string(ret).c_str());
         //Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
         avcodec_free_context(&mVideoCodecContext);
+        mVideoCodecContext = nullptr;
         continue;
       }
       zm_dump_codec(mVideoCodecContext);
@@ -3143,6 +3144,7 @@ int Monitor::OpenDecoder() {
   } // end if mVideoStream
 
   if (!mVideoCodecContext) {
+    Warning("Failed to find codec");
     return -1;
   }
 
@@ -3277,6 +3279,12 @@ int Monitor::Decode() {
           Debug(3, "Not video,probably audio packet %d", packet->image_index);
           packetqueue.increment_it(decoder_it);
           return 1; // Don't need decode
+        }
+        if (!mVideoCodecContext) {
+          Debug(1, "No decoder");
+          packet->decoded = true;
+          packetqueue.increment_it(decoder_it);
+          return 1;
         }
         Debug(1, "send_packet %d", packet->image_index);
 #if 0

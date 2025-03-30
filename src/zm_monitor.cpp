@@ -3196,19 +3196,20 @@ int Monitor::Decode() {
     // Not fatal... because we can still record
     if (!mVideoCodecContext and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
-
-        // If we have queued packets, need to stuff them into the decoder.
+         // If we have queued packets, need to stuff them into the decoder.
         while (decoder_queue.size() and !zm_terminate) {
           Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());
           // Inject current queue into the decoder.
           ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
           auto delayed_packet = delayed_packet_lock->packet_;
-          if (0 > delayed_packet->send_packet(mVideoCodecContext)) {
-            Error("Failed sending packet %d", delayed_packet->image_index);
-            break;
-          } else {
+          delayed_packet->decoded = true;
+
+          ////if (0 > delayed_packet->send_packet(mVideoCodecContext)) {
+            //Error("Failed sending packet %d", delayed_packet->image_index);
+            //break;
+         //} else {
             decoder_queue.pop_front();
-          }
+          //}
         } // end while packets in queue
       } // end if success opening codec
     } // end if ! mCodec
@@ -3231,7 +3232,7 @@ int Monitor::Decode() {
       decoder_queue.pop_front();
       packet = delayed_packet;
     } else if (ret < 0) {
-      Debug(1, "Failed to get frame %d", ret);
+      Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
         // Need to close and re-open codec.
         avcodec_free_context(&mVideoCodecContext);
@@ -3291,12 +3292,18 @@ int Monitor::Decode() {
         int ret = packet->send_packet(mVideoCodecContext);
 #endif
 
+        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         if (0 == ret) {
+          Warning( "Getting frame");
+          ret = packet->receive_frame(mVideoCodecContext);
+          if (ret > 0) {
+            Debug(1, "SUCCESS");
+          } else {
           // AGAIN
           return -1; //make it sleep?
+                     }
         } else if (ret < 0) {
           // No need to push because it didn't get into the decoder.
-          Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
           avcodec_free_context(&mVideoCodecContext);
           avcodec_free_context(&mAudioCodecContext);
           return -1;

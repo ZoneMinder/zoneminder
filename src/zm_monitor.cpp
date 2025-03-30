@@ -3199,6 +3199,7 @@ int Monitor::Decode() {
     // Not fatal... because we can still record
     if (!mVideoCodecContext and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
+      } // end if success opening codec
          // If we have queued packets, need to stuff them into the decoder.
         while (decoder_queue.size() and !zm_terminate) {
           Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());
@@ -3214,7 +3215,6 @@ int Monitor::Decode() {
             decoder_queue.pop_front();
           //}
         } // end while packets in queue
-      } // end if success opening codec
     } // end if ! mCodec
   } // end != DECODING_NONE
 

@@ -2196,7 +2196,8 @@ int Monitor::Analyse() {
                   Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                       motion_frame_skip, capture_fps, analysis_fps_limit);
                 }
-                if (packet->hw_frame or packet->in_frame) {
+                if (packet->hw_frame) {
+                //TODO if (packet->hw_frame or packet->in_frame) {
                   if (!(analysis_image_count % (motion_frame_skip+1))) {
 #if 1
                     SystemTimePoint starttime = std::chrono::system_clock::now();
@@ -3300,16 +3301,8 @@ int Monitor::Decode() {
         int ret = packet->send_packet(mVideoCodecContext);
 #endif
 
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
         if (0 == ret) {
-          Warning( "Getting frame");
-          ret = packet->receive_frame(mVideoCodecContext);
-          if (ret > 0) {
-            Debug(1, "SUCCESS");
-          } else {
-          // AGAIN
-          return -1; //make it sleep?
-                     }
+          return 0; //make it sleep?
         } else if (ret < 0) {
           // No need to push because it didn't get into the decoder.
           avcodec_free_context(&mVideoCodecContext);

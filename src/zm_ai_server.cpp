@@ -359,9 +359,9 @@ void AIThread::Run() {
         shared_data->last_analysis_index = image_index;
       } // end if speedai
     } else {
-      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, fresh is %d => %d %d",
-          monitor_->Id(), decoder_image_count, analysis_image_count, shared_data->last_decoder_index,
-          shared_data->decoder_image_count, shared_data->analysis_image_count, shared_data->last_analysis_index);
+      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
+          monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
+          shared_data->analysis_image_count, shared_data->last_analysis_index);
     }  // end if have a new image
 
     if (!zm_terminate and !terminate_) {

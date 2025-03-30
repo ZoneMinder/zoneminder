@@ -1198,8 +1198,8 @@ function applyChosen(selector = '') {
     obj_3 = $j(selector + '.chosen.chosen-auto-width');
   } else {
     obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector).hasClass('.chosen.chosen-full-width');
-    obj_3 = $j(selector).hasClass('.chosen.chosen-auto-width');
+    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
   }
   if (obj_1) {
     obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});

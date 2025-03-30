@@ -106,7 +106,6 @@ FfmpegCamera::FfmpegCamera(
     Panic("Unexpected colours: %d", colours);
   }
 
-  packet = av_packet_ptr{av_packet_alloc()};
 }  // FfmpegCamera::FfmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -136,6 +135,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int ret;
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
+  av_packet_ptr packet = av_packet_ptr{av_packet_alloc()};
+  av_packet_guard pkt_guard{packet};
 
   if ( mSecondFormatContext and
        (
@@ -223,7 +224,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
   }
 
-  av_packet_guard pkt_guard{packet};
 
 
   zm_packet->codec_type = stream->codecpar->codec_type;

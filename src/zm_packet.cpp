@@ -113,6 +113,9 @@ ZMPacket::~ZMPacket() {
   delete image;
   delete y_image;
   if (ai_image and !ai_image->IsBufferHeld()) delete ai_image;
+  if (hw_frame) {
+    Warning("Should not have hw_frame in destructor");
+  }
 }
 
 ssize_t ZMPacket::ram() {
@@ -124,19 +127,17 @@ ssize_t ZMPacket::ram() {
 }
 
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
-  AVFrame *receive_frame = zm_av_frame_alloc();
-  int ret = avcodec_receive_frame(ctx, receive_frame);
+  av_frame_ptr receive_frame{av_frame_alloc()};
+  int ret = avcodec_receive_frame(ctx, receive_frame.get());
   Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   if (ret == AVERROR(EAGAIN)) {
-    av_frame_free(&receive_frame);
     return 0;
   } else if (ret < 0) {
-    av_frame_free(&receive_frame);
     return ret;
   }
 
-  in_frame = av_frame_ptr{receive_frame};
-  zm_dump_video_frame(in_frame.get(), "got frame");
+  in_frame = std::move(receive_frame);
+  //zm_dump_video_frame(in_frame.get(), "got frame");
 
   get_hwframe(ctx);
   return 1;
@@ -169,18 +170,16 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
 
   int ret = send_packet(ctx);
 
-  AVFrame *receive_frame = zm_av_frame_alloc();
-  ret = avcodec_receive_frame(ctx, receive_frame);
+  av_frame_ptr receive_frame{av_frame_alloc()};
+  ret = avcodec_receive_frame(ctx, receive_frame.get());
   Debug(1, "Ret from receive_frame %d %s", ret, av_make_error_string(ret).c_str());
   if (ret == AVERROR(EAGAIN)) {
-    av_frame_free(&receive_frame);
     return 0;
   } else if (ret < 0) {
-    av_frame_free(&receive_frame);
     return ret;
   }
 
-  delayed_packet->in_frame = av_frame_ptr{receive_frame};
+  delayed_packet->in_frame = std::move(receive_frame);
   zm_dump_video_frame(delayed_packet->in_frame.get(), "got frame");
   //delayed_packet->get_hwframe(ctx);
   return 1;
@@ -210,7 +209,7 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
   if (needs_hw_transfer(ctx)) {
-    Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
+    Debug(4, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
         ctx->pix_fmt,
         av_get_pix_fmt_name(ctx->pix_fmt),
         ctx->sw_pix_fmt,

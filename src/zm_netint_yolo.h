@@ -44,8 +44,7 @@ class Quadra_Yolo {
     NiNetworkContext *network_ctx;
     YoloModel *model;
     YoloModelCtx *model_ctx;
-    ni_network_data_t *network_data;
-    NiNetworkFrame frame;
+    NiNetworkFrame net_frame;
     //ni_session_data_io_t *ai_frame;
 
     av_frame_ptr scaled_frame;

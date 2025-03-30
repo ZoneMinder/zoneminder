@@ -33,11 +33,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   network_ctx(nullptr),
   model(nullptr),
   model_ctx(nullptr),
-  network_data(nullptr),
-  frame(),
-  //ai_frame(nullptr),
-  //scaled_frame({}),
-  //swscale({}),
+  net_frame(),
   sw_scale_ctx(nullptr),
   draw_box(true),
   drawbox_filter(nullptr),
@@ -64,8 +60,8 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
 }
 
 Quadra_Yolo::~Quadra_Yolo() {
-  ni_frame_buffer_free(&frame.api_frame.data.frame);
-  ni_packet_buffer_free(&frame.api_packet.data.packet);
+  ni_frame_buffer_free(&net_frame.api_frame.data.frame);
+  ni_packet_buffer_free(&net_frame.api_packet.data.packet);
   if (network_ctx)
     ni_cleanup_network_context(network_ctx, use_hwframe);
   if (model) {
@@ -118,7 +114,6 @@ bool Quadra_Yolo::setup(
     Error("failed to allocate network context on card %d", devid);
     return false;
   }
-  network_data = &network_ctx->network_data;
 
   if (modelname == "yolov4") {
       model = &yolov4;
@@ -133,24 +128,24 @@ bool Quadra_Yolo::setup(
       return false;
   }
 
-  ret = model->create_model(model_ctx, network_data, obj_thresh, nms_thresh, model_width, model_height);
+  ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
   if (ret != 0) {
     Error("failed to initialize yolo model");
     return false;
   }
 
-  frame.scale_width = model_width;
-  frame.scale_height = model_height;
-  frame.scale_format = model_format;
+  net_frame.scale_width = model_width;
+  net_frame.scale_height = model_height;
+  net_frame.scale_format = model_format;
 
-  ret = ni_ai_packet_buffer_alloc(&frame.api_packet.data.packet, &network_ctx->network_data);
+  ret = ni_ai_packet_buffer_alloc(&net_frame.api_packet.data.packet, &network_ctx->network_data);
   if (ret != NI_RETCODE_SUCCESS) {
     Error( "failed to allocate packet on card %d", devid);
     return false;
   }
-  ret = ni_frame_buffer_alloc_hwenc(&frame.api_frame.data.frame,
-      frame.scale_width,
-      frame.scale_height, 0);
+  ret = ni_frame_buffer_alloc_hwenc(&net_frame.api_frame.data.frame,
+      net_frame.scale_width,
+      net_frame.scale_height, 0);
   if (ret != NI_RETCODE_SUCCESS) {
     Error("failed to allocate frame on card %d", devid);
     return false;
@@ -204,6 +199,7 @@ bool Quadra_Yolo::setup(
   return true;
 }
 
+/* Ideally we could hangle intermixed hwframes and swframes. */
 int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   AVFrame *avframe = in_packet->hw_frame.get();
 
@@ -227,16 +223,12 @@ int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
     return -1;
   }
 
-  Debug(1, "Quadra: ni_set_network_input");
-  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr, avframe->width, avframe->height, &frame, true);
+  ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr, avframe->width, avframe->height, &net_frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error while feeding the ai");
     return -1;
   }
-  if (ret == NIERROR(EAGAIN)) {
-    return 0;
-  }
-  return 1;
+  return (ret == NIERROR(EAGAIN)) ? 0 : 1;
 } // int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet)
 
 /* in_packet and out_packet maybe be th same*/
@@ -252,14 +244,14 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
  */
 int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
   /* pull filtered frames from the filtergraph */
-  int ret = ni_get_network_output(network_ctx, use_hwframe, &frame, false /* blockable */, true /*convert*/, model_ctx->out_tensor);
+  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
     AVFrame *hw_frame = out_packet->hw_frame.get();
-    Debug(1, "hw_frame %p, data %p", hw_frame, hw_frame->data);
-    ret = ni_read_roi(out_packet->hw_frame.get(), aiframe_number);
+    Debug(1, "hw_frame %p, data %p ai_frame_number %d", hw_frame, hw_frame->data, aiframe_number);
+    ret = ni_read_roi(hw_frame, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
       return -1;
@@ -269,7 +261,8 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
     }
     aiframe_number++;
     AVFrame *out_frame;
-    ret = process_roi(out_packet->hw_frame.get(), &out_frame);
+    // Allocates out_frame
+    ret = process_roi(hw_frame, &out_frame);
     if (ret < 0) {
       Error("cannot draw roi");
       return -1;
@@ -284,30 +277,30 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
   return 1;
 } // end receive_detection
 
-int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {
+int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *avframe) {
   uint8_t *p_data = ni_frame->p_data[0];
 
   Debug(1,
       "linesize %d/%d/%d, data %p/%p/%p, pixel %dx%d",
-      frame->linesize[0], frame->linesize[1], frame->linesize[2],
-      frame->data[0], frame->data[1], frame->data[2], frame->width,
-      frame->height);
+      avframe->linesize[0], avframe->linesize[1], avframe->linesize[2],
+      avframe->data[0], avframe->data[1], avframe->data[2], avframe->width,
+      avframe->height);
 
-  if (frame->format == AV_PIX_FMT_RGB24) {
+  if (avframe->format == AV_PIX_FMT_RGB24) {
     /* RGB24 -> BGRP */
-    uint8_t *r_data = p_data + frame->width * frame->height * 2;
-    uint8_t *g_data = p_data + frame->width * frame->height * 1;
-    uint8_t *b_data = p_data + frame->width * frame->height * 0;
-    uint8_t *fdata  = frame->data[0];
+    uint8_t *r_data = p_data + avframe->width * avframe->height * 2;
+    uint8_t *g_data = p_data + avframe->width * avframe->height * 1;
+    uint8_t *b_data = p_data + avframe->width * avframe->height * 0;
+    uint8_t *fdata  = avframe->data[0];
     int x, y;
 
     Debug(1, "%s(): rgb24 to bgrp, pix %dx%d, linesize %d", __func__,
-        frame->width, frame->height, frame->linesize[0]);
+        avframe->width, avframe->height, avframe->linesize[0]);
 
-    for (y = 0; y < frame->height; y++) {
-      for (x = 0; x < frame->width; x++) {
-        int fpos  = y * frame->linesize[0];
-        int ppos  = y * frame->width;
+    for (y = 0; y < avframe->height; y++) {
+      for (x = 0; x < avframe->width; x++) {
+        int fpos  = y * avframe->linesize[0];
+        int ppos  = y * avframe->width;
         uint8_t r = fdata[fpos + x * 3 + 0];
         uint8_t g = fdata[fpos + x * 3 + 1];
         uint8_t b = fdata[fpos + x * 3 + 2];
@@ -326,7 +319,7 @@ int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame) {
 int Quadra_Yolo::generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avframe, bool hwframe) {
   int ret = 0;
 
-  if (hwframe == false) {
+  if (!hwframe) {
     ret = sws_scale(sw_scale_ctx, (const uint8_t * const *)avframe->data,
         avframe->linesize, 0, avframe->height, scaled_frame->data, scaled_frame->linesize);
     if (ret < 0) {
@@ -514,15 +507,18 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, bool hw
   return ret;
 }
 
+/* frame is the output from the model, not an image. Just raw info in the side data
+ * file_frame is where we will stick the image with the bounding boxes.
+ */
 int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   int i, num, ret;
   AVFrameSideData *sd = frame->side_data ? av_frame_get_side_data(frame, AV_FRAME_DATA_REGIONS_OF_INTEREST) : nullptr;
-  AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data(
-      frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
-  AVFrame *input = nullptr;
+  AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data( frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
 
   Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
 
+  // Allocates the frame, gets the image from hw
+  AVFrame *input = nullptr;
   ret = dlhw_frame(frame, &input);
   if (ret < 0) {
     Error("cannot download hwframe");
@@ -554,12 +550,10 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
   nlohmann::json detections = nlohmann::json::array();
 
-  int detected = 0;
   for (i = 0; i < num; i++) {
     //if (check_movement(roi[i], roi_extra[i])) {
       //continue;
     //}
-    detected++;
 
     if (draw_box) {
       AVFrame *output = av_frame_alloc();
@@ -578,6 +572,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       Image img(output);
       img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 
+      // First through frees the frame allocaed by hwdl
       av_frame_free(&input);
       input = output;
     }
@@ -609,7 +604,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   last_roi_extra = cur_roi_extra;
   last_roi_count = num;
 
-  return detected;
+  return detections.size();
 }
 
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
@@ -645,6 +640,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   packet->ai_frame = av_frame_ptr(in_frame);
   return 1;
 } // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)
+
 
 int Quadra_Yolo::dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame) {
   int ret;

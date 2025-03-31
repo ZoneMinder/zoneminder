@@ -541,7 +541,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
         }
       }
       
-      Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+      Debug(2, "waiting on packet %d.  Queue size %zu it == end? %d", p->image_index, pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
     }  // end while !lp
   }  // end scope for lock

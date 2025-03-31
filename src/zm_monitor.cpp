@@ -3232,8 +3232,7 @@ int Monitor::Decode() {
   } 
 
   // Might have to be keyframe interval
-  if (!packet and (decoder_queue.size() > 10)) {
-  //if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
+  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
     Debug(1, "Too many packets (10) in queue. Sleeping");
     return -1;
   }
@@ -3270,14 +3269,17 @@ int Monitor::Decode() {
           return 1;
         }
         Debug(1, "send_packet %d", packet->image_index);
-#if 0
+#if 1
         SystemTimePoint starttime = std::chrono::system_clock::now();
         int ret = packet->send_packet(mVideoCodecContext);
         SystemTimePoint endtime = std::chrono::system_clock::now();
-        if (endtime - starttime > Milliseconds(30)) {
-          Warning("send_packet is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
-        } else {
-          Debug(1, "send_packet took: %.3f seconds", FPSeconds(endtime - starttime).count());
+        int fps = int(get_capture_fps());
+        if (fps > 0) {
+          if (endtime - starttime > Milliseconds(1000/fps)) {
+            Warning("send_packet is too slow: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
+          } else {
+            Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
+          }
         }
 #else
         int ret = packet->send_packet(mVideoCodecContext);

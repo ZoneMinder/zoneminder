@@ -2179,96 +2179,75 @@ int Monitor::Analyse() {
                   quadra_yolo = nullptr;
                 }
                 // give up... 
-
-              } else {
-                Debug(1, "Have quadra %p and hw_frame %p", quadra_yolo, packet->hw_frame.get());
               }
             }
 
             if (quadra_yolo and (objectdetection == OBJECT_DETECTION_QUADRA)) {
-              ZMPacketLock *delayed_packet_lock;
-              std::shared_ptr<ZMPacket> delayed_packet;
-
-              if (!delayed_packet) {
-                if (analysis_fps_limit) {
-                  double capture_fps = get_capture_fps();
-                  motion_frame_skip = capture_fps / analysis_fps_limit;
-                  Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                      motion_frame_skip, capture_fps, analysis_fps_limit);
-                }
-                if (packet->hw_frame) {
+              if (analysis_fps_limit) {
+                double capture_fps = get_capture_fps();
+                motion_frame_skip = capture_fps / analysis_fps_limit;
+                Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                    motion_frame_skip, capture_fps, analysis_fps_limit);
+              }
+              if (packet->hw_frame) {
                 //TODO if (packet->hw_frame or packet->in_frame) {
-                  if (!(analysis_image_count % (motion_frame_skip+1))) {
+                if (!(analysis_image_count % (motion_frame_skip+1))) {
 #if 1
-                    SystemTimePoint starttime = std::chrono::system_clock::now();
-                    Debug(1, "Send_packet %d", packet->image_index);
+                  SystemTimePoint starttime = std::chrono::system_clock::now();
+                  Debug(1, "Send_packet %d to quadra", packet->image_index);
 #endif
-                    int ret = quadra_yolo->send_packet(packet);
-                    if (ret <= 0) {
-                      Debug(1, "Can't send_packet %d queue size: %zu", packet->image_index, ai_queue.size());
-                      //return ret;
-                    } else {
-#if 1
-                      SystemTimePoint endtime = std::chrono::system_clock::now();
-                      if (endtime - starttime > Seconds(1)) {
-                        Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                      } else {
-                        Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                      }
-#endif
-
-                      int count = 10;
-                      delayed_packet_lock = ai_queue.size() ? &ai_queue.front() : &packet_lock;
-                      delayed_packet = delayed_packet_lock->packet_;
-                      // packet got to the card
-                      // According to docs, we should be able to now get detections without sending another frame
-                      Debug(1, "Doing receive_detection queue size: %zu image_index %d", ai_queue.size(), delayed_packet->image_index);
-                      starttime = std::chrono::system_clock::now();
-                      do {
-                        ret = quadra_yolo->receive_detection(delayed_packet);
-                        if (0 < ret) {
-                          endtime = std::chrono::system_clock::now();
-                          if (endtime - starttime > Seconds(1)) {
-                            Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                          } else {
-                            Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                          }
-                          if (packet->ai_frame) {
-                            zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                            if (config.timestamp_on_capture) {
-                              Debug(1, "timestamping ai image");
-                              Image *ai_image = packet->get_ai_image();
-                              TimestampImage(ai_image, packet->timestamp);
-                            }
-                            packet->in_frame = nullptr; // Don't need it anymore
-                          }
-                        } else if (0 > ret) {
-                          Debug(1, "Failed yolo");
-                          delete quadra_yolo;
-                          // Since packets are still in the queue, they will get re-fed into it..
-                          quadra_yolo = nullptr;
-                          break;
-                        } else {
-                          // EAGAIN
-                          Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
-                          //if (packet == delayed_packet) { // Can this be otherwise?
-                          //ai_queue.push_back(std::move(packet_lock));
-                          //Debug(1, "Pushing packet %d on queue, size now %zu", packet->image_index, ai_queue.size());
-                          //packetqueue.increment_it(analysis_it);
-                          //}
-                          //return 0;
-                          std::this_thread::sleep_for(Microseconds(10000));
-                          //count -= 1;
-                        }
-                      } while (ret == 0 and count > 0);
-
-                    } // end if failed to send
+                  int ret = quadra_yolo->send_packet(packet);
+                  if (ret <= 0) {
+                    Debug(1, "Can't send_packet %d", packet->image_index);
+                    //return ret;
                   } else {
-                    //quadra_yolo->draw_last_roi(packet);
-                  } // end if skip_frame
-                } // end if has input_frame/hw_frame
-              } // end if delayed_packet
-            } // end yolo
+#if 1
+                    SystemTimePoint endtime = std::chrono::system_clock::now();
+                    if (endtime - starttime > Seconds(1)) {
+                      Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                    } else {
+                      Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                    }
+#endif
+
+                    int count = 10;
+                    // packet got to the card
+                    // According to docs, we should be able to now get detections without sending another frame
+                    starttime = std::chrono::system_clock::now();
+                    do {
+                      ret = quadra_yolo->receive_detection(packet);
+                      if (0 < ret) {
+                        endtime = std::chrono::system_clock::now();
+                        if (endtime - starttime > Seconds(1)) {
+                          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+                        } else {
+                          Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                        }
+                        if (packet->ai_frame) {
+                          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                          if (config.timestamp_on_capture) {
+                            Image *ai_image = packet->get_ai_image();
+                            TimestampImage(ai_image, packet->timestamp);
+                          }
+                          packet->in_frame = nullptr; // Don't need it anymore
+                        }
+                      } else if (0 > ret) {
+                        Debug(1, "Failed yolo");
+                        delete quadra_yolo;
+                        quadra_yolo = nullptr;
+                      } else {
+                        // EAGAIN
+                        Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
+                        std::this_thread::sleep_for(Microseconds(10000));
+                      }
+                    } while (ret == 0 and count > 0);
+
+                  } // end if failed to send
+                } else {
+                  //quadra_yolo->draw_last_roi(packet);
+                } // end if skip_frame
+              } // end if has input_frame/hw_frame
+              } // end yolo
             }
 #endif
           packet->hw_frame = nullptr; // Free it?
@@ -3253,8 +3232,9 @@ int Monitor::Decode() {
   } 
 
   // Might have to be keyframe interval
-  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
-    Debug(1, "Too many packets in queue. Sleeping");
+  if (!packet and (decoder_queue.size() > 10)) {
+  //if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
+    Debug(1, "Too many packets (10) in queue. Sleeping");
     return -1;
   }
 

@@ -1296,6 +1296,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
       video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);
+      zm_packet->in_frame = nullptr;
+      zm_packet->ai_frame = nullptr;
     } // end while receive_packet
   } else { // Passthrough
     AVPacket *ipkt = zm_packet->packet.get();
@@ -1332,6 +1334,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
+    zm_av_packet_unref(zm_packet->packet.get());
   }  // end if codec matches
 
   return 1;
@@ -1419,7 +1422,9 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     write_packet(opkt.get(), audio_out_stream);
 
     zm_av_packet_unref(opkt.get());
+    zm_av_packet_unref(zm_packet->packet.get());
   }  // end if encoding or copying
+
 
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)

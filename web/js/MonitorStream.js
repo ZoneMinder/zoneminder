@@ -700,7 +700,7 @@ function MonitorStream(monitorData) {
           } // end if paused or delayed
           if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
             if (this.status.scale != 0) {
-              console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+              console.log("Stream not scaled on "+this.id+", re-applying", this.scale, this.status.scale);
               this.streamCommand({command: CMD_SCALE, scale: this.scale});
             }
           }

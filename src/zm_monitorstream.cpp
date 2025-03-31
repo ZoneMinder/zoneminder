@@ -394,12 +394,21 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
-    /*
     int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
     int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
-    */
-    int l_width  = send_image->Width();
-    int l_height = send_image->Height();
+
+    if (l_width < 144) {
+      float factor = 144.0/l_width;
+      l_width = 144;
+      l_height = floor(l_height * factor);
+      Debug(1, "Adjust width to 144 using factor %.2f", factor);
+    }
+    if (l_height < 128) {
+      float factor = 128.0/l_height;
+      l_height = 128;
+      l_width = floor(l_width * factor);
+      Debug(1, "Adjust height to 128 using factor %.2f", factor);
+    }
 
     reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
 
@@ -417,7 +426,8 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
                 mJpegCodecContext->width, mJpegCodecContext->height, mJpegPixelFormat, config.jpeg_stream_quality,
                 l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
           }
-          initContexts(l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
+          initContexts(send_image->Width(), send_image->Height(), send_image->AVPixFormat(),
+              l_width, l_height, config.jpeg_stream_quality);
         }
         if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
           fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -1063,11 +1073,25 @@ void MonitorStream::SingleImage(int scale) {
 
   int l_width  = floor(snap_image->Width()  * scale / ZM_SCALE_BASE);
   int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
+  if (l_width < 144) {
+    float factor = 144.0/l_width;
+    l_width = 144;
+    l_height = floor(l_height * factor);
+    Debug(1, "Adjust width to 144 using factor %.2f", factor);
+  }
+  if (l_height < 128) {
+    float factor = 128.0/l_height;
+    l_height = 128;
+    l_width = floor(l_width * factor);
+    Debug(1, "Adjust height to 128 using factor %.2f", factor);
+  }
+
   if ((!mJpegCodecContext) 
       || mJpegCodecContext->width != l_width 
       || mJpegCodecContext->height != l_height 
       || mJpegPixelFormat != pixformat) {
-    initContexts(l_width, l_height, pixformat, config.jpeg_stream_quality);
+    initContexts(snap_image->Width(), snap_image->Height(), pixformat,
+        l_width, l_height, config.jpeg_stream_quality);
   }
   if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
     fprintf(stdout,

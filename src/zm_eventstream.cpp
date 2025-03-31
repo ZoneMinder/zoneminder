@@ -887,8 +887,19 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
       Image *send_image = prepareImage(image);
       int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
-      l_width += l_width % 4; // encoders like width to be a multiple of 4
       int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+      if (l_width < 144) {
+        float factor = 144.0/l_width;
+        l_width = 144;
+        l_height = floor(l_height * factor);
+        Debug(1, "Adjust width to 144 using factor %.2f", factor);
+      }
+      if (l_height < 128) {
+        float factor = 128.0/l_height;
+        l_height = 128;
+        l_width = floor(l_width * factor);
+        Debug(1, "Adjust height to 128 using factor %.2f", factor);
+      }
 
       reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, send_image->Width(), send_image->Height(), 32));
       int img_buffer_size = 0;

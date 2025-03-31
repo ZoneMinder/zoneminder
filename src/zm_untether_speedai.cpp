@@ -312,7 +312,15 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     }
   }
 #else
-  UaiErr err = uai_module_synchronize(module_, &job->event);
+  UaiErr err;
+#if USE_LOCK
+  {
+  std::unique_lock<std::mutex> lck(mutex_);
+  err = uai_module_synchronize(module_, &job->event);
+  }
+#else
+  err = uai_module_synchronize(module_, &job->event);
+#endif
   //UaiErr err = uai_module_wait(module_, &job->event, 10);
   if (err != UAI_SUCCESS) {
     Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));

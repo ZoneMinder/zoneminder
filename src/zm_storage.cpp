@@ -58,7 +58,7 @@ Storage::Storage(MYSQL_ROW &dbrow) {
 Storage::Storage(unsigned int p_id) : id(p_id) {
   if (id) {
     std::string sql = stringtf("SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=%u", id);
-    Debug(2, "Loading Storage for %u using %s", id, sql.c_str());
+    Debug(4, "Loading Storage for %u using %s", id, sql.c_str());
     zmDbRow dbrow;
     if (!dbrow.fetch(sql)) {
       Error("Unable to load storage area for id %d: %s", id, mysql_error(&dbconn));
@@ -76,7 +76,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
       } else {
         scheme = SHALLOW;
       }
-      Debug(1, "Loaded Storage area %d '%s'", id, name);
+      Debug(4, "Loaded Storage area %d '%s'", id, name);
     }
   }
   if (!id) {
@@ -87,7 +87,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
     } else {
       strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) - 1);
     }
-    Debug(1, "No id passed to Storage constructor.  Using default path %s instead", path);
+    Debug(4, "No id passed to Storage constructor.  Using default path %s instead", path);
     strcpy(name, "Default");
     scheme = MEDIUM;
     scheme_str = "Medium";

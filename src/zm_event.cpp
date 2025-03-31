@@ -671,9 +671,12 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
         Debug(1, "Writing alarm image to %s", alarm_file.c_str());
-
-        if (!WriteJpeg(packet->in_frame.get(), alarm_file.c_str())) {
-          Error("Failed to write frame image");
+        if (packet->ai_frame) {
+          WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
+        } else if (packet->in_frame) {
+          WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
+        } else if(packet->image) {
+          WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
         }
 #if 0
         if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {

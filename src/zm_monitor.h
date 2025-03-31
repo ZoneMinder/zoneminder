@@ -749,7 +749,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     if (shared_data && shared_data->valid) {
       timeval now = {};
       gettimeofday(&now, nullptr);
-      Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
+      Debug(4, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
             static_cast<int64>(shared_data->heartbeat_time),
             static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),

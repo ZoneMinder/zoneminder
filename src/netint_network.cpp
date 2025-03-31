@@ -72,11 +72,10 @@ static int init_hwframe_scale(NiNetworkContext *network_ctx,
         goto out;
     }
 
-    Debug(1, "initialize scaler, %dx%d, format %d",
-            scale_width, scale_height, scale_format);
+    Debug(1, "initialize scaler, %dx%d, format %d", scale_width, scale_height, scale_format);
 
-    ni_log2(scale_api_ctx, NI_LOG_INFO, "Initialize Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id,
-            scale_api_ctx->blk_io_handle);
+    //ni_log2(scale_api_ctx, NI_LOG_INFO, "Initialize Scaler: device %d, blk_io_handle %d\n", scale_api_ctx->hw_id,
+            //scale_api_ctx->blk_io_handle);
 
     /* Create scale frame pool on device */
     retval = ni_device_alloc_frame(scale_api_ctx,

@@ -159,6 +159,7 @@ int Event::OpenJpegCodec(const Image *image) {
 }
 
 int Event::OpenJpegCodec(AVFrame *frame) {
+  if(!frame) return -1;
   if (mJpegCodecContext) {
     avcodec_free_context(&mJpegCodecContext);
     mJpegCodecContext = nullptr;
@@ -238,6 +239,7 @@ int Event::OpenJpegCodec(AVFrame *frame) {
     sws_freeContext(mJpegSwsContext);
     mJpegSwsContext = nullptr;
   }
+
   if (!mJpegSwsContext) {
     Debug(1, "Getting swsContext for %dx%d %s to %dx%d %s", 
         frame->width, frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)),
@@ -649,17 +651,15 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
-      if (packet->ai_frame) {
-#if 0
-        Image aiImage(packet->ai_frame.get());
-        WriteFrameImage(&aiImage, packet->timestamp, snapshot_file.c_str());
-#else
-        WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str());
-#endif
-      //} else {
-        //WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      if (
+          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or (packet->in_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+         ) {
+        snapshot_file_written = true;
+      } else {
+        Warning("Fail to write snapshot");
       }
-      snapshot_file_written = true;
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }
@@ -675,7 +675,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
           WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
         } else if (packet->in_frame) {
           WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
-        } else if(packet->image) {
+        } else if (packet->image) {
           WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
         }
 #if 0

@@ -1040,6 +1040,7 @@ function changeStreamQuality() {
 
 function monitorsSetScale(id=null) {
   // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  id = parseInt(id);
   if (id || typeof monitorStream !== 'undefined') {
     //monitorStream used on Watch page.
     if (typeof monitorStream !== 'undefined') {

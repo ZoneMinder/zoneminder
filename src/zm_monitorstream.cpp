@@ -403,12 +403,14 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       l_height = floor(l_height * factor);
       Debug(1, "Adjust width to 144 using factor %.2f", factor);
     }
+    l_width += (2-l_width)%2;
     if (l_height < 128) {
       float factor = 128.0/l_height;
       l_height = 128;
       l_width = floor(l_width * factor);
       Debug(1, "Adjust height to 128 using factor %.2f", factor);
     }
+    l_width += (2-l_width)%2;
 
     reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
 

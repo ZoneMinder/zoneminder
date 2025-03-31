@@ -1219,22 +1219,12 @@ document.onvisibilitychange = () => {
   }
 };
 
-
-/*
+// This is to stop the streams in a nicer way (no broken image) and hopefully faster.
 window.onbeforeunload = function(e) {
-  console.log('unload');
-  //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();
   }
+  return;
+// Returning any value here, including undefined causes an undesired popup.
   var e = e || window.event;
-
-  // For IE and Firefox
-  if (e) {
-    e.returnValue = undefined;
-  }
-
-  // For Safari
-  return undefined;
 };
-*/

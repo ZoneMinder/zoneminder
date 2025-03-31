@@ -421,7 +421,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else {
     Fatal("Bogus monitor type '%s' for monitor %d", dbrow[col], id);
   }
-  Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   capturing = (CapturingOption)atoi(dbrow[col]);
   col++;
@@ -567,8 +566,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   encoderparams = dbrow[col] ? dbrow[col] : "";
   col++;
-
-  Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
   /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0;
@@ -753,7 +750,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
-  Debug(1, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+  Debug(4, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
 #else
   Debug(1, "Not compiled with MQTT");
 #endif

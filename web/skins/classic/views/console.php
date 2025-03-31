@@ -133,6 +133,8 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     $scaleHeight = reScale($monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
     if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
+  } else {
+     $monitor['Status'] = 'NotRunning';
   }
   $zoneCount += $monitor['ZoneCount'];
 

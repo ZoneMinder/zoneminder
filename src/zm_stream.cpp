@@ -46,7 +46,9 @@ StreamBase::~StreamBase() {
   }
 }
 
-bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, unsigned int quality) {
+bool StreamBase::initContexts(int in_width, int in_height, AVPixelFormat format,
+    int out_width, int out_height, unsigned int quality) {
+
   if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
 
   std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
@@ -71,8 +73,8 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     }
 
     //mJpegCodecContext->bit_rate = 2000000;
-    mJpegCodecContext->width = p_width;
-    mJpegCodecContext->height = p_height;
+    mJpegCodecContext->width = out_width;
+    mJpegCodecContext->height = out_height;
     mJpegCodecContext->time_base= (AVRational) {1, 25};
     //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
     mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
@@ -101,9 +103,10 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
     }
 #endif
 
-    if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+    if (avcodec_open2(mJpegCodecContext, mJpegCodec, nullptr) < 0) {
       Error("Could not open mjpeg codec");
       avcodec_free_context(&mJpegCodecContext);
+      mJpegCodecContext = nullptr;
       //av_buffer_unref(&hw_device_ctx);
       continue;
     }
@@ -122,15 +125,18 @@ bool StreamBase::initContexts(int p_width, int p_height, AVPixelFormat format, u
   mJpegSwsContext = sws_getContext(
       //monitor->Width(), monitor->Height(), 
       // theoretically, the stream can be any size not necessarily monitor size. I think. This is here more for format conversion than scaling.
-      p_width, p_height, format,
-      p_width, p_height, mJpegCodecContext->pix_fmt,
+      // No we are doing scaling here too. It got removed from prepareImage
+      in_width, in_height, format,
+      out_width, out_height, mJpegCodecContext->pix_fmt,
       SWS_BICUBIC, nullptr, nullptr, nullptr);
 
   if (!mJpegSwsContext) {
+    Warning("Failed to alloc swscontext");
     return false;
   } else {
-    Debug(1, "Configured swsContext to %dx%d %d %s to %dx%d %d %s", p_width, p_height, format, av_get_pix_fmt_name(format),
-        p_width, p_height, mJpegCodecContext->pix_fmt, av_get_pix_fmt_name(mJpegCodecContext->pix_fmt));
+    Debug(1, "Configured swsContext to %dx%d %d %s to %dx%d %d %s",
+        in_width, in_height, format, av_get_pix_fmt_name(format),
+        out_width, out_height, mJpegCodecContext->pix_fmt, av_get_pix_fmt_name(mJpegCodecContext->pix_fmt));
   }
   return true;
 }
@@ -378,7 +384,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         || mJpegCodecContext->height != height 
         || mJpegPixelFormat != pixformat) {
       Debug(1, "Need to reinit contexts");
-      initContexts(width, height, pixformat, config.jpeg_stream_quality);
+      initContexts(width, height, pixformat, width, height, config.jpeg_stream_quality);
     }
     image.EncodeJpeg(buffer, &n_bytes);
 

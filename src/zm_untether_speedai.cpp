@@ -184,6 +184,7 @@ void SpeedAI::Run() {
         } else {
           Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
         }
+        std::unique_lock<std::mutex> lck(mutex_);
         send_queue.pop_front();
       }
       job = nullptr;

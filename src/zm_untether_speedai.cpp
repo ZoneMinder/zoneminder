@@ -169,7 +169,7 @@ void SpeedAI::Run() {
         job = send_queue.front();
       } else {
         Microseconds delay = Microseconds(30000);
-        Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+        Debug(4, "Sleeping for %ld microseconds waiting for decoder", delay.count());
         std::this_thread::sleep_for(delay);
       }
     }

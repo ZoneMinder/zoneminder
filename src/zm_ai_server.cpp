@@ -281,7 +281,7 @@ void AIThread::Run() {
   while (shared_data->decoder_image_count <= 0 and !(zm_terminate or terminate_)) {
         Microseconds delay = monitor_->GetCaptureDelay();
     delay = Microseconds(3000);
-    Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+    //Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
     std::this_thread::sleep_for(delay);
   }
   int32_t analysis_image_count = shared_data->decoder_image_count;

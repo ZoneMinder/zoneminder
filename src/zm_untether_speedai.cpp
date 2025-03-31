@@ -48,7 +48,7 @@ static const char * coco_classes[] = {
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
 };
 
-#define USE_THREAD 0
+#define USE_THREAD 1
 #define USE_LOCK 1
 
 #ifdef HAVE_UNTETHER_H
@@ -160,20 +160,39 @@ bool SpeedAI::setup(
 
 void SpeedAI::Run() {
   while (!(terminate_ or zm_terminate)) {
-    std::unique_lock<std::mutex> lck(mutex_);
-    while (send_queue.size()) {
-      Job *job = send_queue.front();
-      send_queue.pop_front();
+    Job *job = nullptr;
+
+    {
+      Debug(1, "SpeedAI locking, queue size %zu", send_queue.size());
+      std::unique_lock<std::mutex> lck(mutex_);
+      if (send_queue.size()) {
+        job = send_queue.front();
+      } else {
+        Microseconds delay = Microseconds(30000);
+        Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+        std::this_thread::sleep_for(delay);
+      }
+    }
+
+    if (job) {
       Debug(3, "SpeedAI::enqueue");
+      SystemTimePoint starttime = std::chrono::system_clock::now();
       // Enqueue event, inference will start asynchronously.
       UaiErr err = uai_module_enqueue(module_, &job->event);
       if (err != UAI_SUCCESS) {
         Error("Failed enqueue %s", uai_err_string(err));
       } else {
-        Debug(3, "SpeedAI:: success enqueue");
+        SystemTimePoint endtime = std::chrono::system_clock::now();
+        if (endtime - starttime > Milliseconds(30)) {
+          Warning("SpeedAI enqueue is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+        } else {
+          Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
+        }
+        send_queue.pop_front();
       }
-    }
-  }
+      job = nullptr;
+    }  // end if job
+  }  // end while forever
 }
 
 SpeedAI::Job * SpeedAI::send_image(Job *job, Image *image) {
@@ -263,14 +282,14 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->event.buffers = job->inputBuf;
   job->inputBuf->next_buffer = job->outputBuf;
 
+#if USE_THREAD
+  std::unique_lock<std::mutex> lck(mutex_);
+  send_queue.push_back(job);
+#else
 #if USE_LOCK
   SystemTimePoint starttime = std::chrono::system_clock::now();
   std::unique_lock<std::mutex> lck(mutex_);
 #endif
-
-#if USE_THREAD
-  send_queue.push_back(job);
-#else
   SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("SpeedAI locking is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());

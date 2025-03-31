@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
     for (const auto &monitor : new_monitors) {
       auto old_monitor_it = old_monitors.find(monitor->Id());
       if (old_monitor_it != old_monitors.end()) {
-        Debug(1, "Found monitor in oldmonitors, clearing it");
+        //Debug(1, "Found monitor %d in oldmonitors, clearing it", monitor->Id());
         old_monitors.erase(old_monitor_it);
       } else {
         Debug(1, "Adding monitor %d to monitors", monitor->Id());

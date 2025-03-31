@@ -86,9 +86,6 @@ SpeedAI::SpeedAI() :
 
   m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
   outputBuffer = m_out_buf.data();
-#if USE_THREAD
-  thread_ = std::thread(&SpeedAI::Run, this);
-#endif
 }
 
 SpeedAI::~SpeedAI() {
@@ -155,6 +152,9 @@ bool SpeedAI::setup(
   outSize = infos[1].framesize_hint * batchSize;
   Debug(1, "inSize %zu outSize %zu, max %d", inSize, outSize, UAI_MODULE_MAX_DATA_BUFFER_SIZE);
   Debug(1, "SpeedAI inSize hint inname %s outname %s", infos[0].name, infos[1].name);
+#if USE_THREAD
+  thread_ = std::thread(&SpeedAI::Run, this);
+#endif
   return true;
 }
 

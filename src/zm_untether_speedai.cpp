@@ -167,10 +167,6 @@ void SpeedAI::Run() {
       std::unique_lock<std::mutex> lck(mutex_);
       if (send_queue.size()) {
         job = send_queue.front();
-      } else {
-        Microseconds delay = Microseconds(30000);
-        Debug(4, "Sleeping for %ld microseconds waiting for decoder", delay.count());
-        std::this_thread::sleep_for(delay);
       }
     }
 
@@ -191,6 +187,10 @@ void SpeedAI::Run() {
         send_queue.pop_front();
       }
       job = nullptr;
+    } else {
+      Microseconds delay = Microseconds(30000);
+      Debug(4, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+      std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
 }
@@ -234,7 +234,7 @@ SpeedAI::Job * SpeedAI::get_job() {
 
 SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
-  Debug(1, "SpeedAI::detect %d", count);
+  Debug(1, "SpeedAI::send_frame %d", count);
 
   job->sw_scale_ctx = sws_getCachedContext(job->sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
@@ -283,7 +283,9 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->inputBuf->next_buffer = job->outputBuf;
 
 #if USE_THREAD
+  Debug(1, "Locking");
   std::unique_lock<std::mutex> lck(mutex_);
+  Debug(1, "Pushing");
   send_queue.push_back(job);
 #else
 #if USE_LOCK

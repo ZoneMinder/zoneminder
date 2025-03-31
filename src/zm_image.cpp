@@ -1779,39 +1779,36 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
 
   //std::unique_lock<std::mutex> lck(jpeg_mutex);
 
-  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+  av_frame_ptr send_frame = av_frame_ptr{zm_av_frame_alloc()};
   AVPacket *pkt;
 
   if ( p_jpegswscontext ) {
-    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
-    PopulateFrame(temp_frame.get());
+    av_frame_ptr img_frame = av_frame_ptr{zm_av_frame_alloc()};
+    PopulateFrame(img_frame.get());
 
-    frame->width  = width;
-    frame->height = height;
-    frame->format = AV_PIX_FMT_YUVJ420P;
-    av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, width);
-    av_frame_get_buffer(frame.get(), 32);
+    send_frame->width  = p_jpegcodeccontext->width;
+    send_frame->height = p_jpegcodeccontext->height;
+    send_frame->format = AV_PIX_FMT_YUVJ420P;
+    av_image_fill_linesizes(send_frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+    av_frame_get_buffer(send_frame.get(), 32);
 
-    sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
-
-    av_frame_unref(temp_frame.get());
+    sws_scale(p_jpegswscontext, img_frame->data, img_frame->linesize, 0, height, send_frame->data, send_frame->linesize);
   } else {
-    PopulateFrame(frame.get());
+    Debug(1, "Ppoulate");
+    PopulateFrame(send_frame.get());
   }
 
-  if (frame->format != AV_PIX_FMT_YUVJ420P) {
-    Error("Jpeg frame format incorrect, got %d", frame->format);
-    av_frame_unref(frame.get());
+  if (send_frame->format != AV_PIX_FMT_YUVJ420P) {
+    Error("Jpeg frame format incorrect, got %d", send_frame->format);
     return false;
   }
 
-  zm_dump_video_frame(frame, "EncodeJpeg");
+  zm_dump_video_frame(send_frame, "EncodeJpeg");
 
 RESEND:
-  int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  int ret = avcodec_send_frame(p_jpegcodeccontext, send_frame.get());
   if (0>ret) {
-    Error("send_frame returned %d", ret);
-    av_frame_unref(frame.get());
+    Error("send_frame returned %d %s", ret, av_make_error_string(ret).c_str());
     return false;
   }
   Debug(1, "Send_frame success, calling receive_packet");
@@ -1832,7 +1829,6 @@ RESEND:
   }
 
   av_packet_free(&pkt);
-  av_frame_unref(frame.get());
 
   return (ret == 0);
 }

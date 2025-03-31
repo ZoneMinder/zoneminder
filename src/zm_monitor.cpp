@@ -3917,7 +3917,7 @@ int Monitor::Pause() {
     Debug(1, "Analysis stopped");
   }
 
-  Debug(1, "Stopping packetqueue");
+  //Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
 

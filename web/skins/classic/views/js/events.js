@@ -105,7 +105,7 @@ function getArchivedSelections() {
   var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
-  return selection.includes("Yes");
+  return selection.includes(yesString);
 }
 
 // Load the Delete Confirmation Modal HTML via Ajax call

@@ -50,6 +50,7 @@ static const char * coco_classes[] = {
 
 #define USE_THREAD 0
 #define USE_LOCK 1
+#define SPLIT 1
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
@@ -315,20 +316,21 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
 
+#if !SPLIT
   starttime = endtime;
   // Block execution until the inference job associate to our event has finished. Alternatively,
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
 #if 1
     //Debug(1, "getting receive lock");
-    err = uai_module_wait(module_, &job->event, 10);
+    err = uai_module_wait(module_, &job->event, 1);
     //err = uai_module_synchronize(module_, &job->event);
 #else
   err = uai_module_synchronize(module_, &job->event);
 #endif
   if (err != UAI_SUCCESS) {
     Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
-    return nullptr;
+    //return nullptr;
   }
   endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
@@ -337,12 +339,40 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     Debug(1, "receive_detections took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
 #endif
+#endif
   return job;
 }  // int SpeedAI::send_frame(AVFrame *frame)
 
 const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshold) {
   nlohmann::json coco_object;
 
+#if SPLIT
+  SystemTimePoint starttime = std::chrono::system_clock::now();
+  UaiErr err;
+  int count = 10;
+  while (count) {
+    std::unique_lock<std::mutex> lck(mutex_);
+    // Block execution until the inference job associate to our event has finished. Alternatively,
+    // we could repeatedly poll the status of the job using `uai_module_wait`.
+    //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
+    //Debug(1, "getting receive lock");
+    err = uai_module_wait(module_, &job->event, 1);
+    //err = uai_module_synchronize(module_, &job->event);
+    if (err != UAI_SUCCESS) {
+      Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
+      //return nullptr;
+    } else {
+      break;
+    }
+    count --;
+  }
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  if (endtime - starttime > Milliseconds(30)) {
+    Warning("receive_detections is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
+  } else {
+    Debug(1, "receive_detections took: %.3f seconds", FPSeconds(endtime - starttime).count());
+  }
+#endif
 
   // Now print out the result of the inference job. Note again that the designated memory address
   // on the host side is UaiDataBuffer::buffer.

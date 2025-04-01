@@ -364,14 +364,16 @@ void AIThread::Run() {
         analysis_image_count = decoder_image_count;
       }
 
-    if (shared_data->last_decoder_index != shared_data->last_analysis_index) {
-      int32_t image_index = shared_data->last_decoder_index % image_buffer_count;
+      int32_t image_index = shared_data->last_analysis_index;
+
+    if (shared_data->last_decoder_index != image_index) {
+      image_index = shared_data->last_decoder_index % image_buffer_count;
 
       Image *unsafe_image = monitor_->GetDecodedImage(image_index);
       // Have to copy it in case it gets overwritten
-      Image in_image(*unsafe_image);
+      Image *in_image = new Image(*unsafe_image);
       std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
-      packet->image = &in_image;
+      packet->image = in_image;
       packet->image_index = image_index;
 
       Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",

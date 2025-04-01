@@ -479,6 +479,8 @@ function initPage() {
 
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
+
+  manageRTSP2WebChannelStream();
 } // end function initPage()
 
 function saveMonitorData(href = '') {

@@ -310,10 +310,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
 
     // Manage visible object & control button (when pressing a button)
-    $j("[data-flip-сontrol-object]").click(function() {
+    $j("[data-flip-control-object]").click(function() {
       const _this_ = $j(this);
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       changeButtonIcon(_this_, objIconButton);
 
@@ -343,12 +343,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
+    $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       if (obj.parent().css('display') != 'block') {
         obj.wrap('<div style="display: block"></div>');
@@ -375,24 +375,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
     });
 
-    // Manage the web console filter bar minimize chevron
-    /*$j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow", function() {
-        if ($j.isFunction('changeScale')) {
-          changeScale();
-        }
-      });
-      var mfbflip = $j("#mfbflip");
-      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
-        mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up');
-      } else {
-        mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
-      }
-    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -417,14 +399,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function changeButtonIcon(pressedBtn, target, params) {
     const visibility = (!params) ? null : params.visibility;
     const objIconButton = pressedBtn.find("i");
-    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    const obj = $j(pressedBtn.attr('data-flip-control-object'));
     if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         objIconButton.html(objIconButton.attr('data-icon-hidden'));
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'hidden');
     } else { //hidden
       obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
@@ -432,7 +414,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
       }
-      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'visible');
     }
   }
 
@@ -732,22 +714,6 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     newHeight = newWidth / ratio;
   }
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
-  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
-  const scales = $j('#scale option').map(function() {
-    return parseInt($j(this).val());
-  }).get();
-  scales.shift(); // pop off Scale To Fit
-  let closest = null;
-  $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  if (closest) {
-    console.log("Setting to closest: " + closest + " instead of " + autoScale);
-    autoScale = closest;
-  }
-  */
   // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
   autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
@@ -1063,7 +1029,34 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
-var thumbnail_timeout;
+/* Controls the availability of options for selection*/
+function manageRTSP2WebChannelStream() {
+  let select = null;
+  let secondPath_ = null;
+  if (currentView == 'watch') {
+    const monitor = monitorData.find((o) => {
+      return parseInt(o["id"]) === monitorId;
+    });
+    if (monitor) {
+      secondPath_ = monitor['SecondPath'];
+    }
+    select = document.querySelector('select[name="streamChannel"]');
+  } else if (currentView == 'monitor') {
+    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+  }
+  if (select) {
+    select.querySelectorAll("option").forEach(function(el) {
+      if (el.value == 'Secondary' && !secondPath_) {
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+      }
+      applyChosen(select);
+    });
+  }
+}
+
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
@@ -1187,13 +1180,39 @@ function isMobile() {
   return result;
 }
 
-function applyChosen() {
-  const limit_search_threshold = 10;
+function destroyChosen(selector = '') {
+  if (typeof selector === 'string') {
+    $j(selector + '.chosen').chosen('destroy');
+  } else {
+    if ($j(selector).hasClass('chosen')) {
+      $j(selector).chosen('destroy');
+    }
+  }
+}
 
-  $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
-  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+function applyChosen(selector = '') {
+  const limit_search_threshold = 10;
+  var [obj_1, obj_2, obj_3] = '';
+  destroyChosen(selector);
+  if (typeof selector === 'string') {
+    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+  } else {
+    if (!$j(selector).hasClass('chosen')) return;
+    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+  }
+  if (obj_1) {
+    obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  }
+  if (obj_2) {
+    obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  }
+  if (obj_3) {
+    obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  }
 }
 
 function stringToNumber(str) {
@@ -1215,7 +1234,6 @@ function thisClickOnStreamObject(clickObj) {
       return true;
     } else if (clickObj.id.indexOf('monitorStatus') != -1) {
       return document.getElementById('monitor'+stringToNumber(clickObj.id));
-      //return clickObj;
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
@@ -1248,14 +1266,11 @@ var doubleTouchOnTimeline = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
-  //console.log("+++shifted==>", shifted);
-  //console.log("+++ctrled==>", ctrled);
-  //console.log("+++alted==>", alted);
-  if (shifted || ctrled || alted) return;
+  if (shifted || ctrled || alted) {
+    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.");
+    return;
+  }
   let target = null;
-//console.log("touchEvent=====++>", touchEvent);
-//console.log("event=====++>", event);
-//console.log("this=====++>", this);
   if (event.target) {// Click NOT on touch screen, use THIS
 ////console.log("event.target.id=====++>", event.target.id);
     //Process only double clicks directly on the image, excluding clicks,
@@ -1393,14 +1408,6 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
   }
 }
 
-$j(document).on('keyup.global keydown.global', function(e) {
-  shifted = e.shiftKey ? e.shiftKey : e.shift;
-  ctrled = e.ctrlKey;
-  alted = e.altKey;
-});
-
-loadFontFaceObserver();
-
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
@@ -1420,3 +1427,69 @@ function canPlayCodec(filename) {
   }
   return false;
 }
+
+/* Handling <input> change */
+function handleChangeInputTag(evt) {
+  // Managing availability of channel stream selection
+  manageRTSP2WebChannelStream();
+}
+
+function handleMouseover(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'show');
+}
+
+function handleMouseout(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'hide');
+}
+
+function manageVisibilityVideoPlayerControlPanel(evt, action) {
+  if (thisClickOnStreamObject(evt.target)) {
+    let video = evt.target.querySelector('video');
+    if (!video) {
+      video = evt.target.tagName == 'VIDEO' ? evt.target : null;
+    }
+    if (!video) {
+      video = evt.target.getAttribute('tagName');
+    }
+    if (video) {
+      if (action == 'hide') {
+        video.removeAttribute('controls');
+      } else if (action == 'show') {
+        video.setAttribute('controls', '');
+      }
+    }
+  }
+}
+
+function initPageGeneral() {
+  $j(document).on('keyup.global keydown.global', function(e) {
+    shifted = e.shiftKey ? e.shiftKey : e.shift;
+    ctrled = e.ctrlKey;
+    alted = e.altKey;
+  });
+
+  /* Assigning global handlers!
+  ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
+  */
+  document.body.addEventListener('input', function(event) {
+    handleChangeInputTag(event);
+  });
+  document.body.addEventListener('mouseover', function(event) {
+    handleMouseover(event);
+  });
+  document.body.addEventListener('mouseout', function(event) {
+    handleMouseout(event);
+  });
+
+  // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'
+  setTimeout(function() {
+    // Delay required for DOM rendering
+    document.querySelectorAll("video").forEach(function removeControlsAttributeFromVideoTags(el) {
+      el.removeAttribute('controls');
+    });
+  }, 200);
+}
+
+loadFontFaceObserver();
+
+$j( window ).on("load", initPageGeneral);

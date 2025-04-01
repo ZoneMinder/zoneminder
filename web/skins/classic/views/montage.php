@@ -104,7 +104,7 @@ echo getNavBarHTML();
   <div id="header">
 <?php
     $html = '<a class="flip" href="#" 
-             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-control-object="#mfbpanel" 
              data-flip-сontrol-run-after-func="applyChosen" 
              data-flip-сontrol-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>

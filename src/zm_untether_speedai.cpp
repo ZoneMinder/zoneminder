@@ -328,8 +328,9 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
   UaiErr err;
 #if USE_LOCK
   {
-  std::unique_lock<std::mutex> lck(mutex_);
-  err = uai_module_synchronize(module_, &job->event);
+    Debug(1, "getting receive lock");
+    //std::unique_lock<std::mutex> lck(mutex_);
+    err = uai_module_synchronize(module_, &job->event);
   }
 #else
   err = uai_module_synchronize(module_, &job->event);
@@ -407,9 +408,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  Debug(3, "Done dequantizing");
   coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale, object_threshold);
-  Debug(3, "Done convert to coco");
   return coco_object;
 }
 

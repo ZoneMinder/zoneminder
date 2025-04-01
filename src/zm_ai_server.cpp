@@ -239,6 +239,19 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
+  job = speedai->get_job();
+
+  int ret;
+  drawbox_filter = new Quadra::filter_worker();
+  if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
+    Error("cannot initialize drawbox filter");
+    return;
+  }
+  drawbox_filter_ctx = drawbox_filter->find_filter_ctx("drawbox");
+  if (drawbox_filter_ctx == nullptr) {
+    Error( "cannot find valid drawbox filter");
+    return;
+  }
 
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
@@ -253,6 +266,7 @@ void AIThread::Inference() {
 
     if (packet) {
       Monitor::SharedData *shared_data = monitor_->getSharedData();
+      Debug(1, "Sending image %d", packet->image_index);
       speedai->send_image(job, packet->image);
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
@@ -273,12 +287,18 @@ void AIThread::Inference() {
     } else if (!zm_terminate and !terminate_) {
       float capture_fps = monitor_->GetFPS();
       Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
-      if (delay < Microseconds(1000)) delay = Microseconds(30000);
-      if (delay < Microseconds(1000)) delay = Microseconds(30000);
+      if (delay < Microseconds(30000)) delay = Microseconds(30000);
+      if (delay > Microseconds(300000)) delay = Microseconds(300000);
       Debug(3, "Sleeping for %ld microseconds waiting for new image", delay.count());
       std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
+  
+  if (drawbox_filter) {
+    delete drawbox_filter;
+    drawbox_filter = nullptr;
+    drawbox_filter_ctx = nullptr;
+  }
 }  // end AIThread::Inference
 
 void AIThread::Run() {
@@ -288,20 +308,6 @@ void AIThread::Run() {
     return;
   }
 
-  job = speedai->get_job();
-
-
-  int ret;
-  drawbox_filter = new Quadra::filter_worker();
-  if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
-    Error("cannot initialize drawbox filter");
-    return;
-  }
-  drawbox_filter_ctx = drawbox_filter->find_filter_ctx("drawbox");
-  if (drawbox_filter_ctx == nullptr) {
-    Error( "cannot find valid drawbox filter");
-    return;
-  }
 
   while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
     if (monitor_->isConnected()) {
@@ -359,7 +365,11 @@ void AIThread::Run() {
       analysis_image_count = decoder_image_count;
     }
 
-    if (shared_data->last_decoder_index != image_index) {
+    if (
+        (shared_data->last_decoder_index != image_index)
+        and
+        (send_queue.size() <= static_cast<unsigned int>(image_buffer_count))
+        ) {
       image_index = shared_data->last_decoder_index % image_buffer_count;
       Debug(3, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
           monitor_->Id(),
@@ -382,8 +392,8 @@ void AIThread::Run() {
         if (shared_data->decoder_image_count <= analysis_image_count) {
           float capture_fps = monitor_->GetFPS();
           Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
-          if (delay < Microseconds(1000)) delay = Microseconds(30000);
-          if (delay < Microseconds(1000)) delay = Microseconds(30000);
+          if (delay < Microseconds(30000)) delay = Microseconds(30000);
+          if (delay > Microseconds(300000)) delay = Microseconds(300000);
           Debug(4, "Sleeping for %ld microseconds after queuing", delay.count());
           std::this_thread::sleep_for(delay);
         }
@@ -397,19 +407,14 @@ void AIThread::Run() {
       if (!zm_terminate and !terminate_) {
         float capture_fps = monitor_->GetFPS();
         Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
-        if (delay < Microseconds(1000)) delay = Microseconds(30000);
-        if (delay < Microseconds(1000)) delay = Microseconds(30000);
+        if (delay < Microseconds(30000)) delay = Microseconds(30000);
+        if (delay > Microseconds(300000)) delay = Microseconds(300000);
         Debug(4, "Sleeping for %ld microseconds waiting for image", delay.count());
         std::this_thread::sleep_for(delay);
       }
     }  // end if have a new image
   }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
-  if (drawbox_filter) {
-    delete drawbox_filter;
-    drawbox_filter = nullptr;
-    drawbox_filter_ctx = nullptr;
-  }
 #endif
 } // end SpeedAIDetect   
 

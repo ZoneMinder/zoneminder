@@ -1444,7 +1444,7 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
         video.removeAttribute('controls');
       } else if (action == 'show') {
         video.setAttribute('controls', '');
-	  }
+      }
     }
   }
 }

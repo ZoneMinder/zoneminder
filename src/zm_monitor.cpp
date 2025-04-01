@@ -2802,7 +2802,7 @@ void Monitor::ReloadLinkedMonitors() {
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &where, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE " + where;
-  Debug(1, "Loading Monitors with %s", sql.c_str());
+  //Debug(1, "Loading Monitors with %s", sql.c_str());
 
   MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
@@ -2810,7 +2810,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
     return {};
   }
   int n_monitors = mysql_num_rows(result);
-  Debug(1, "Got %d monitors", n_monitors);
+  //Debug(1, "Got %d monitors", n_monitors);
 
   std::vector<std::shared_ptr<Monitor>> monitors;
   monitors.reserve(n_monitors);
@@ -3917,7 +3917,7 @@ int Monitor::Pause() {
     Debug(1, "Analysis stopped");
   }
 
-  Debug(1, "Stopping packetqueue");
+  //Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
 

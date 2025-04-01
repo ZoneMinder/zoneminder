@@ -48,7 +48,7 @@ static const char * coco_classes[] = {
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
 };
 
-#define USE_THREAD 1
+#define USE_THREAD 0
 #define USE_LOCK 1
 
 #ifdef HAVE_UNTETHER_H
@@ -167,10 +167,6 @@ void SpeedAI::Run() {
       std::unique_lock<std::mutex> lck(mutex_);
       if (send_queue.size()) {
         job = send_queue.front();
-      } else {
-        Microseconds delay = Microseconds(30000);
-        Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
-        std::this_thread::sleep_for(delay);
       }
     }
 
@@ -188,9 +184,14 @@ void SpeedAI::Run() {
         } else {
           Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
         }
+        std::unique_lock<std::mutex> lck(mutex_);
         send_queue.pop_front();
       }
       job = nullptr;
+    } else {
+      Microseconds delay = Microseconds(30000);
+      Debug(4, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+      std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
 }
@@ -234,7 +235,7 @@ SpeedAI::Job * SpeedAI::get_job() {
 
 SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   count++;
-  Debug(1, "SpeedAI::detect %d", count);
+  Debug(1, "SpeedAI::send_frame %d", count);
 
   job->sw_scale_ctx = sws_getCachedContext(job->sw_scale_ctx,
         avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
@@ -283,8 +284,12 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->inputBuf->next_buffer = job->outputBuf;
 
 #if USE_THREAD
-  std::unique_lock<std::mutex> lck(mutex_);
-  send_queue.push_back(job);
+  Debug(1, "Locking in send_frame");
+  {
+    std::unique_lock<std::mutex> lck(mutex_);
+    Debug(1, "Pushing");
+    send_queue.push_back(job);
+  }
 #else
 #if USE_LOCK
   SystemTimePoint starttime = std::chrono::system_clock::now();
@@ -320,22 +325,12 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   SystemTimePoint starttime = std::chrono::system_clock::now();
-#if 0
-  UaiErr err;
-  while (!zm_terminate) {
-    err = uai_module_wait(module_, &job->event, 10);
-    if (err != UAI_SUCCESS) {
-      Debug(1, "SpeedAI Failed wait %d, %s", err, uai_err_string(err));
-    } else {
-      break;
-    }
-  }
-#else
   UaiErr err;
 #if USE_LOCK
   {
-  std::unique_lock<std::mutex> lck(mutex_);
-  err = uai_module_synchronize(module_, &job->event);
+    Debug(1, "getting receive lock");
+    //std::unique_lock<std::mutex> lck(mutex_);
+    err = uai_module_synchronize(module_, &job->event);
   }
 #else
   err = uai_module_synchronize(module_, &job->event);
@@ -345,7 +340,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
     return coco_object;
   }
-#endif
   SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("receive_detections is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
@@ -414,9 +408,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  Debug(3, "Done dequantizing");
   coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale, object_threshold);
-  Debug(3, "Done convert to coco");
   return coco_object;
 }
 

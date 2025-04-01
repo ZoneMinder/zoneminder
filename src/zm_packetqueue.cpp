@@ -777,13 +777,13 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<
 
 void PacketQueue::setMaxVideoPackets(int p) {
   max_video_packet_count = p;
-  Debug(1, "Setting max_video_packet_count to %d", p);
+  Debug(4, "Setting max_video_packet_count to %d", p);
   if (max_video_packet_count < 0)
     max_video_packet_count = 0 ;
 }
 void PacketQueue::setPreEventVideoPackets(int p) {
   pre_event_video_packet_count = p;
-  Debug(1, "Setting pre_event_video_packet_count to %d", p);
+  Debug(4, "Setting pre_event_video_packet_count to %d", p);
   if (pre_event_video_packet_count < 1)
     pre_event_video_packet_count = 1;
   // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue

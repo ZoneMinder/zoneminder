@@ -259,9 +259,11 @@ void AIThread::Inference() {
     {
       //Debug(1, "locking, queue size %zu", send_queue.size());
       std::unique_lock<std::mutex> lck(mutex_);
-      if (send_queue.size()) {
-        packet = send_queue.front();
+      while (!send_queue.size() and !terminate_) {
+        condition_.wait(lck);
       }
+      if (terminate_) break;
+      packet = send_queue.front();
     }
 
     if (packet) {
@@ -286,13 +288,6 @@ void AIThread::Inference() {
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.pop_front();
       packet = nullptr;
-    } else if (!zm_terminate and !terminate_) {
-      float capture_fps = monitor_->GetFPS();
-      Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
-      if (delay < Microseconds(30000)) delay = Microseconds(30000);
-      if (delay > Microseconds(300000)) delay = Microseconds(300000);
-      Debug(3, "Sleeping for %ld microseconds waiting for new image", delay.count());
-      std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
   
@@ -387,6 +382,7 @@ void AIThread::Run() {
 
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.push_back(packet);
+      condition_.notify_all();
       analysis_image_count++;
       shared_data->analysis_image_count = analysis_image_count;
 

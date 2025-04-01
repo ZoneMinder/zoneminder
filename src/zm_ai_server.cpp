@@ -244,7 +244,7 @@ void AIThread::Inference() {
     std::shared_ptr<ZMPacket> packet = nullptr;
 
     {
-      Debug(1, "locking, queue size %zu", send_queue.size());
+      //Debug(1, "locking, queue size %zu", send_queue.size());
       std::unique_lock<std::mutex> lck(mutex_);
       if (send_queue.size()) {
         packet = send_queue.front();
@@ -257,10 +257,11 @@ void AIThread::Inference() {
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
       nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
-      Debug(1, "detections %s", detections.dump().c_str());
+      //Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
         draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize());
+      } else {
         ai_image->Assign(*packet->image);
       }
 
@@ -269,9 +270,11 @@ void AIThread::Inference() {
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.pop_front();
       packet = nullptr;
-    } else {
-      Microseconds delay = Microseconds(30000);
-      Debug(4, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+    } else if (!zm_terminate and !terminate_) {
+      float capture_fps = monitor_->GetFPS();
+      Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+      if (delay == Microseconds(0)) delay = Microseconds(30000);
+      Debug(3, "Sleeping for %ld microseconds waiting for new image", delay.count());
       std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
@@ -312,21 +315,21 @@ void AIThread::Run() {
     }  // end if failed to connect
   }  // end if !ShmValid
 
-
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
   shared_data->analysis_image_count = 0;
   // Start at latest decoded image
   while (shared_data->decoder_image_count <= 0 and !(zm_terminate or terminate_)) {
-        Microseconds delay = monitor_->GetCaptureDelay();
-    delay = Microseconds(3000);
+    int capture_fps = static_cast<int>(monitor_->GetFPS());
+    Microseconds delay = Microseconds(1000*capture_fps);
+    //delay = Microseconds(3000);
     //Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
     std::this_thread::sleep_for(delay);
   }
   analysis_image_count = shared_data->decoder_image_count;
   if (analysis_image_count <0) analysis_image_count = 0;
   int32_t decoder_image_count = shared_data->decoder_image_count;
-  nlohmann::json last_detections;
+  int32_t image_index = shared_data->last_analysis_index;
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
@@ -344,39 +347,30 @@ void AIThread::Run() {
     }  // end if !ShmValid
 
     decoder_image_count = shared_data->decoder_image_count;
+    while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
+      Microseconds delay = Microseconds(30000);
+      Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+      std::this_thread::sleep_for(delay);
+    }
 
-#if 0
-    if (analysis_image_count - 1 > decoder_image_count ) {
-      // Somehow got way ahead?
-      Debug(1, "Analysis got beyond decoder? analysis_image_count:%d - decoder_image_count:%d > %d", analysis_image_count, decoder_image_count, image_buffer_count);
+    if (decoder_image_count - analysis_image_count > image_buffer_count) {
+      Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
       analysis_image_count = decoder_image_count;
-      if (analysis_image_count <0) analysis_image_count = 0;
-#endif
-      while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
-        Microseconds delay = monitor_->GetCaptureDelay();
-        delay = Microseconds(3000);
-        Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
-        std::this_thread::sleep_for(delay);
-      }
+    }
 
-      if (decoder_image_count - analysis_image_count > image_buffer_count) {
-        Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
-        analysis_image_count = decoder_image_count;
-      }
-
-    if (shared_data->last_decoder_index != shared_data->last_analysis_index) {
-      int32_t image_index = shared_data->last_decoder_index % image_buffer_count;
+    if (shared_data->last_decoder_index != image_index) {
+      image_index = shared_data->last_decoder_index % image_buffer_count;
+      Debug(3, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
+          monitor_->Id(),
+          decoder_image_count, shared_data->last_decoder_index,
+          analysis_image_count, image_index, send_queue.size());
 
       Image *unsafe_image = monitor_->GetDecodedImage(image_index);
       // Have to copy it in case it gets overwritten
-      Image in_image(*unsafe_image);
+      Image *in_image = new Image(*unsafe_image);
       std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
-      packet->image = &in_image;
+      packet->image = in_image;
       packet->image_index = image_index;
-
-      Debug(1, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d",
-          monitor_->Id(), decoder_image_count, image_index,
-          analysis_image_count, image_index);
 
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.push_back(packet);
@@ -384,16 +378,16 @@ void AIThread::Run() {
       shared_data->analysis_image_count = analysis_image_count;
 
     } else {
-      Debug(1, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
+      Debug(3, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
           monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
           shared_data->analysis_image_count, shared_data->last_analysis_index);
     }  // end if have a new image
 
     if (!zm_terminate and !terminate_) {
       if (shared_data->decoder_image_count <= analysis_image_count) {
-        Microseconds delay = monitor_->GetCaptureDelay();
-        //if (delay==Microseconds(0));
-        delay = Microseconds(3000);
+        float capture_fps = monitor_->GetFPS();
+        Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+        if (delay == Microseconds(0)) delay = Microseconds(30000);
         Debug(1, "Sleeping for %ld microseconds", delay.count());
         std::this_thread::sleep_for(delay);
       }
@@ -536,14 +530,15 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 
 AIThread::~AIThread() {
   Stop();
-  if (thread_.joinable()) thread_.join();
+  Join();
 }
 
 void AIThread::Start() {
-  if (thread_.joinable()) thread_.join();
+  Join();
   terminate_ = false;
   Debug(3, "Starting ai thread");
   thread_ = std::thread(&AIThread::Run, this);
+  inference_thread_ = std::thread(&AIThread::Inference, this);
 }
 
 void AIThread::Stop() {
@@ -551,5 +546,6 @@ void AIThread::Stop() {
 }
 void AIThread::Join() {
   if (thread_.joinable()) thread_.join();
+  if (inference_thread_.joinable()) inference_thread_.join();
 }
 

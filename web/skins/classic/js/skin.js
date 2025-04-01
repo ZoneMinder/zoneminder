@@ -1454,9 +1454,9 @@ function initPageGeneral() {
       target.css({flex: "0 1 auto"});
     }
 
-    target.animate({height: 0}, 300,function(){
-      $j('body').find('#btn-collapse').css({display:"none"});
-      target.css({display:"none"});
+    target.animate({height: 0}, 300, function() {
+      $j('body').find('#btn-collapse').css({display: "none"});
+      target.css({display: "none"});
     });
     //event.returnValue = '';
   });

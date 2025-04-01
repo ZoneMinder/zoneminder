@@ -1466,15 +1466,6 @@ function managePanZoomButton(evt) {
 
     if (obj.className.includes('btn-view-watch')) {
       url = '?view=watch&mid='+monitorId_;
-    } else if (obj.className.includes('btn-view-event')) {
-      const eventInfo = getEventInfoFromEventsTable({what: 'current', mid: monitorId_});
-      const fid = frameCalculationByTime(
-        timeline.getCurrentTime(),
-        eventInfo.start,
-        eventInfo.end,
-        eventInfo.frames,
-      );
-      url = '?view=event&eid='+eventInfo.eventId+'&fid='+fid;
     } else if (obj.className.includes('btn-edit-monitor')) {
       url = '?view=monitor&mid='+monitorId_;
     } else if (obj.className.includes('btn-fullscreen')) {
@@ -1513,7 +1504,7 @@ function initPageGeneral() {
   });
 
   // Support for touch devices.
-  "touchstart touchend touchcancel touchmove".split(" ").forEach(function(action){
+  "touchstart touchend touchcancel touchmove".split(" ").forEach(function(action) {
     document.addEventListener(action, function(event) {
       handleTouchActionGeneral(action, event);
     }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."

@@ -362,12 +362,12 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     }
 
     if (retcode != NI_RETCODE_SUCCESS) {
-        Error("Can't allocate device input frame %d %dx%d index %d %d",
-               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx, GC620_I420);
+        Error("Can't allocate device input frame %d %dx%d index %d",
+               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
         return NIERROR(ENOMEM);
     }
-        Debug(1, "Can allocate device input frame %d %dx%d index %d %d",
-               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx, GC620_I420);
+        Debug(1, "Can allocate device input frame %d %dx%d index %d",
+               retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
 
     /* Allocate hardware device destination frame. This acquires a frame from
      * the pool */

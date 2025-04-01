@@ -1422,6 +1422,33 @@ function handleChangeInputTag(evt) {
   manageRTSP2WebChannelStream();
 }
 
+function handleMouseover(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'show');
+}
+
+function handleMouseout(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'hide');
+}
+
+function manageVisibilityVideoPlayerControlPanel(evt, action) {
+  if (thisClickOnStreamObject(evt.target)) {
+    let video = evt.target.querySelector('video');
+    if (!video) {
+      video = evt.target.tagName == 'VIDEO' ? evt.target : null;
+    }
+    if (!video) {
+      video = evt.target.getAttribute('tagName');
+    }
+    if (video) {
+      if (action == 'hide') {
+        video.removeAttribute('controls');
+      } else if (action == 'show') {
+        video.setAttribute('controls', '');
+      }
+    }
+  }
+}
+
 function initPageGeneral() {
   $j(document).on('keyup.global keydown.global', function(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;
@@ -1435,6 +1462,21 @@ function initPageGeneral() {
   document.body.addEventListener('input', function(event) {
     handleChangeInputTag(event);
   });
+
+  document.body.addEventListener('mouseover', function(event) {
+    handleMouseover(event);
+  });
+  document.body.addEventListener('mouseout', function(event) {
+    handleMouseout(event);
+  });
+
+  // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'
+  setTimeout(function() {
+    // Delay required for DOM rendering
+    document.querySelectorAll("video").forEach(function removeControlsAttributeFromVideoTags(el) {
+      el.removeAttribute('controls');
+    });
+  }, 200);
 
   window.addEventListener('beforeunload', function(event) {
     //event.preventDefault();

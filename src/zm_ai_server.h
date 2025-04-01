@@ -5,6 +5,8 @@
 #include <memory>
 #include <thread>
 
+#include "zm_packet.h"
+
 #if HAVE_UNTETHER_H
 #include "zm_untether_speedai.h"
 #endif
@@ -29,13 +31,21 @@ class AIThread {
 
  private:
   void Run();
+  void Inference();
 
   std::shared_ptr<Monitor> monitor_;
   std::atomic<bool> terminate_;
   std::thread thread_;
 #if HAVE_UNTETHER_H
   SpeedAI *speedai;
+  SpeedAI::Job *job;
 #endif
+  Quadra::filter_worker *drawbox_filter;
+  AVFilterContext *drawbox_filter_ctx;
+  int32_t analysis_image_count;
+
+  std::list<std::shared_ptr<ZMPacket>> send_queue;
+  std::mutex  mutex_;
 };
 
 int draw_boxes( Quadra::filter_worker *drawbox_filter, AVFilterContext *drawbox_filter_ctx, Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size);

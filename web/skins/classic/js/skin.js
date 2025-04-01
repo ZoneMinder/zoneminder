@@ -1504,7 +1504,7 @@ function initPageGeneral() {
   });
 
   // Support for touch devices.
-  "touchstart touchend touchcancel touchmove".split(" ").forEach(function(action) {
+  ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
     document.addEventListener(action, function(event) {
       handleTouchActionGeneral(action, event);
     }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."

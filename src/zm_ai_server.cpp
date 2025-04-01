@@ -271,8 +271,10 @@ void AIThread::Inference() {
       send_queue.pop_front();
       packet = nullptr;
     } else if (!zm_terminate and !terminate_) {
-      Microseconds delay = Microseconds(3000);
-      //Debug(3, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+      float capture_fps = monitor_->GetFPS();
+      Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+      if (delay == Microseconds(0)) delay = Microseconds(30000);
+      Debug(3, "Sleeping for %ld microseconds waiting for new image", delay.count());
       std::this_thread::sleep_for(delay);
     }  // end if job
   }  // end while forever
@@ -313,20 +315,21 @@ void AIThread::Run() {
     }  // end if failed to connect
   }  // end if !ShmValid
 
-
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
   shared_data->analysis_image_count = 0;
   // Start at latest decoded image
   while (shared_data->decoder_image_count <= 0 and !(zm_terminate or terminate_)) {
-        Microseconds delay = monitor_->GetCaptureDelay();
-    delay = Microseconds(3000);
+    int capture_fps = static_cast<int>(monitor_->GetFPS());
+    Microseconds delay = Microseconds(1000*capture_fps);
+    //delay = Microseconds(3000);
     //Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
     std::this_thread::sleep_for(delay);
   }
   analysis_image_count = shared_data->decoder_image_count;
   if (analysis_image_count <0) analysis_image_count = 0;
   int32_t decoder_image_count = shared_data->decoder_image_count;
+  int32_t image_index = shared_data->last_analysis_index;
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
@@ -345,8 +348,7 @@ void AIThread::Run() {
 
     decoder_image_count = shared_data->decoder_image_count;
     while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
-      Microseconds delay = monitor_->GetCaptureDelay();
-      delay = Microseconds(3000);
+      Microseconds delay = Microseconds(30000);
       Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
       std::this_thread::sleep_for(delay);
     }
@@ -356,11 +358,9 @@ void AIThread::Run() {
       analysis_image_count = decoder_image_count;
     }
 
-    int32_t image_index = shared_data->last_analysis_index;
-
     if (shared_data->last_decoder_index != image_index) {
       image_index = shared_data->last_decoder_index % image_buffer_count;
-      Debug(4, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
+      Debug(3, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
           monitor_->Id(),
           decoder_image_count, shared_data->last_decoder_index,
           analysis_image_count, image_index, send_queue.size());
@@ -378,21 +378,21 @@ void AIThread::Run() {
       shared_data->analysis_image_count = analysis_image_count;
 
     } else {
-      Debug(4, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
+      Debug(3, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
           monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
           shared_data->analysis_image_count, shared_data->last_analysis_index);
     }  // end if have a new image
 
     if (!zm_terminate and !terminate_) {
       if (shared_data->decoder_image_count <= analysis_image_count) {
-        Microseconds delay = monitor_->GetCaptureDelay();
-        //if (delay==Microseconds(0));
-        delay = Microseconds(3000);
-        //Debug(1, "Sleeping for %ld microseconds", delay.count());
+        float capture_fps = monitor_->GetFPS();
+        Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+        if (delay == Microseconds(0)) delay = Microseconds(30000);
+        Debug(1, "Sleeping for %ld microseconds", delay.count());
         std::this_thread::sleep_for(delay);
       }
     }
-    }  // end while !zm_terminate
+  }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
   if (drawbox_filter) {
     delete drawbox_filter;
@@ -530,14 +530,15 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 
 AIThread::~AIThread() {
   Stop();
-  if (thread_.joinable()) thread_.join();
+  Join();
 }
 
 void AIThread::Start() {
-  if (thread_.joinable()) thread_.join();
+  Join();
   terminate_ = false;
   Debug(3, "Starting ai thread");
   thread_ = std::thread(&AIThread::Run, this);
+  inference_thread_ = std::thread(&AIThread::Inference, this);
 }
 
 void AIThread::Stop() {
@@ -545,5 +546,6 @@ void AIThread::Stop() {
 }
 void AIThread::Join() {
   if (thread_.joinable()) thread_.join();
+  if (inference_thread_.joinable()) inference_thread_.join();
 }
 

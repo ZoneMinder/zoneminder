@@ -36,6 +36,7 @@ class AIThread {
   std::shared_ptr<Monitor> monitor_;
   std::atomic<bool> terminate_;
   std::thread thread_;
+  std::thread inference_thread_;
 #if HAVE_UNTETHER_H
   SpeedAI *speedai;
   SpeedAI::Job *job;

@@ -239,7 +239,6 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
-  Monitor::SharedData *shared_data = monitor_->getSharedData();
 
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
@@ -253,6 +252,7 @@ void AIThread::Inference() {
     }
 
     if (packet) {
+      Monitor::SharedData *shared_data = monitor_->getSharedData();
       speedai->send_image(job, packet->image);
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
@@ -286,7 +286,6 @@ void AIThread::Run() {
 
   job = speedai->get_job();
 
-  thread_ = std::thread(&AIThread::Inference, this);
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();
@@ -312,6 +311,7 @@ void AIThread::Run() {
       continue;
     }  // end if failed to connect
   }  // end if !ShmValid
+
 
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
@@ -531,6 +531,7 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #endif
 {
   thread_ = std::thread(&AIThread::Run, this);
+  inference_thread_ = std::thread(&AIThread::Inference, this);
 }
 
 AIThread::~AIThread() {

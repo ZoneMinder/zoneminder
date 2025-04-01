@@ -267,6 +267,7 @@ void AIThread::Inference() {
     if (packet) {
       Monitor::SharedData *shared_data = monitor_->getSharedData();
       Debug(1, "Sending image %d", packet->image_index);
+#ifdef HAVE_UNTETHER_H
       speedai->send_image(job, packet->image);
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
@@ -278,6 +279,7 @@ void AIThread::Inference() {
       } else {
         ai_image->Assign(*packet->image);
       }
+#endif
 
       shared_data->last_analysis_index = packet->image_index;
 

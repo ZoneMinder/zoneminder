@@ -543,7 +543,9 @@ void MonitorStream::runStream() {
       continue;
     }
     std::this_thread::sleep_for(MAX_SLEEP);
-    continue;
+  }
+  if (zm_terminate) {
+    return;
   }
   updateFrameRate(monitor->GetFPS());
 

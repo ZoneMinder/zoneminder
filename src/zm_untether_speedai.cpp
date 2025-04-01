@@ -48,7 +48,7 @@ static const char * coco_classes[] = {
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
 };
 
-#define USE_THREAD 1
+#define USE_THREAD 0
 #define USE_LOCK 1
 
 #ifdef HAVE_UNTETHER_H
@@ -284,10 +284,12 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   job->inputBuf->next_buffer = job->outputBuf;
 
 #if USE_THREAD
-  Debug(1, "Locking");
-  std::unique_lock<std::mutex> lck(mutex_);
-  Debug(1, "Pushing");
-  send_queue.push_back(job);
+  Debug(1, "Locking in send_frame");
+  {
+    std::unique_lock<std::mutex> lck(mutex_);
+    Debug(1, "Pushing");
+    send_queue.push_back(job);
+  }
 #else
 #if USE_LOCK
   SystemTimePoint starttime = std::chrono::system_clock::now();
@@ -323,17 +325,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
   // we could repeatedly poll the status of the job using `uai_module_wait`.
   //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
   SystemTimePoint starttime = std::chrono::system_clock::now();
-#if 0
-  UaiErr err;
-  while (!zm_terminate) {
-    err = uai_module_wait(module_, &job->event, 10);
-    if (err != UAI_SUCCESS) {
-      Debug(1, "SpeedAI Failed wait %d, %s", err, uai_err_string(err));
-    } else {
-      break;
-    }
-  }
-#else
   UaiErr err;
 #if USE_LOCK
   {
@@ -348,7 +339,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
     return coco_object;
   }
-#endif
   SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("receive_detections is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());

@@ -781,6 +781,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
                 });
                 ayswModal.modal('show');
@@ -793,7 +794,6 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
-        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };

@@ -154,12 +154,13 @@ Event::Event(
 }
 
 int Event::OpenJpegCodec(const Image *image) {
-  Debug(1, "Nope");
-  return -1;
+  av_frame_ptr frame(zm_av_frame_alloc());
+  image->PopulateFrame(frame.get());
+  return OpenJpegCodec(frame.get());
 }
 
 int Event::OpenJpegCodec(AVFrame *frame) {
-  if(!frame) return -1;
+  if (!frame) return -1;
   if (mJpegCodecContext) {
     avcodec_free_context(&mJpegCodecContext);
     mJpegCodecContext = nullptr;
@@ -652,9 +653,9 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       if (
-          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or (packet->in_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+          (packet->ai_frame and !WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or (packet->in_frame and !WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or (packet->image and !WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
          ) {
         snapshot_file_written = true;
       } else {

@@ -377,21 +377,29 @@ void AIThread::Run() {
       analysis_image_count++;
       shared_data->analysis_image_count = analysis_image_count;
 
-    } else {
-      Debug(3, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, index is %d",
-          monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
-          shared_data->analysis_image_count, shared_data->last_analysis_index);
-    }  // end if have a new image
+      if (!zm_terminate and !terminate_) {
+        if (shared_data->decoder_image_count <= analysis_image_count) {
+          float capture_fps = monitor_->GetFPS();
+          Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+          if (delay == Microseconds(0)) delay = Microseconds(30000);
+          Debug(1, "Sleeping for %ld microseconds", delay.count());
+          std::this_thread::sleep_for(delay);
+        }
+      }
 
-    if (!zm_terminate and !terminate_) {
-      if (shared_data->decoder_image_count <= analysis_image_count) {
+    } else {
+      Debug(3, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, last_index is %d, index %d",
+          monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
+          shared_data->analysis_image_count, shared_data->last_analysis_index, image_index);
+
+      if (!zm_terminate and !terminate_) {
         float capture_fps = monitor_->GetFPS();
         Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
         if (delay == Microseconds(0)) delay = Microseconds(30000);
         Debug(1, "Sleeping for %ld microseconds", delay.count());
         std::this_thread::sleep_for(delay);
       }
-    }
+    }  // end if have a new image
   }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
   if (drawbox_filter) {

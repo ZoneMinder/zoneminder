@@ -922,6 +922,7 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   loadFontFaceObserver();
+  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
@@ -1026,6 +1027,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
                 });
@@ -1039,7 +1041,6 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
-        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -1089,6 +1090,7 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
+  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {

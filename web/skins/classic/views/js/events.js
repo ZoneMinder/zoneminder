@@ -134,7 +134,7 @@ function getArchivedSelections() {
   const selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
-  return selection.includes('Yes');
+  return selection.includes(yesString);
 }
 
 function onDeleteClick(evt) {

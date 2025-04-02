@@ -1462,6 +1462,7 @@ function initPageGeneral() {
   document.body.addEventListener('input', function(event) {
     handleChangeInputTag(event);
   });
+
   document.body.addEventListener('mouseover', function(event) {
     handleMouseover(event);
   });
@@ -1476,6 +1477,31 @@ function initPageGeneral() {
       el.removeAttribute('controls');
     });
   }, 200);
+
+  window.addEventListener('beforeunload', function(event) {
+    //event.preventDefault();
+    let target;
+    if (!useOldMenuView) {
+      closeMbExtruder(updateCookie = true);
+    }
+    if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe'].includes(currentView)) {
+      target = $j('#page');
+    } else if (currentView == 'options') {
+      target = $j('#optionsContainer');
+    } else {
+      target = $j('#content');
+    }
+    if (target.css('display') == 'flex') {
+      // If flex-grow is set to a value > 0 then "height" will be ignored!
+      target.css({flex: "0 1 auto"});
+    }
+
+    target.animate({height: 0}, 300, function() {
+      $j('body').find('#btn-collapse').css({display: "none"});
+      target.css({display: "none"});
+    });
+    //event.returnValue = '';
+  });
 }
 
 loadFontFaceObserver();

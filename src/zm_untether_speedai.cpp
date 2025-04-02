@@ -221,13 +221,14 @@ SpeedAI::Job * SpeedAI::get_job() {
 
   std::unique_lock<std::mutex> lck(mutex_);
 
-  // TODO, use the inputBuf as the scaled_frame data to avoid a copy
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
+    delete job;
     return nullptr;
   }
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
+    delete job;
     return nullptr;
   }
   jobs.push_back(job);

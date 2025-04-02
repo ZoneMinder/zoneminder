@@ -239,7 +239,10 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
-  job = speedai->get_job();
+  while (!terminate_ and ( job = speedai->get_job() )) {
+    Warning("Waiting for job");
+    sleep(1);
+  }
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();
@@ -288,7 +291,7 @@ void AIThread::Inference() {
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.pop_front();
       packet = nullptr;
-    }  // end if job
+    }  // end if packet
   }  // end while forever
   
   if (drawbox_filter) {

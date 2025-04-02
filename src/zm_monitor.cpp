@@ -2155,7 +2155,7 @@ int Monitor::Analyse() {
               }
               if (shared_data->analysis_image_count >= packet->image_index) {
                 Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
-                packet->ai_image = analysis_image_buffer[packet->image_index % image_buffer_count];
+                packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
               }
             }
 #if HAVE_QUADRA

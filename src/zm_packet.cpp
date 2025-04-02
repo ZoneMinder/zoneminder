@@ -112,7 +112,7 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   if (image) delete image;
   if (y_image) delete y_image;
-  if (ai_image and !ai_image->IsBufferHeld()) delete ai_image;
+  if (ai_image) delete ai_image;
   if (hw_frame) {
     Warning("Should not have hw_frame in destructor %d", image_index);
   }

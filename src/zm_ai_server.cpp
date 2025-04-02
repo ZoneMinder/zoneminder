@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
-  while (!terminate_ and ( job = speedai->get_job() )) {
+  while (!terminate_ and !( job = speedai->get_job() )) {
     Warning("Waiting for job");
     sleep(1);
   }
@@ -361,7 +361,7 @@ void AIThread::Run() {
     }
 
     if (decoder_image_count - analysis_image_count > image_buffer_count) {
-      Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
+      //Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
       analysis_image_count = decoder_image_count;
     }
 

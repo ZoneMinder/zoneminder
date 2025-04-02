@@ -940,7 +940,7 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
+  //Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }

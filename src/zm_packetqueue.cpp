@@ -172,7 +172,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
                 " The queue is full. Either Analysis is not keeping up or"
                 " your camera's keyframe interval %d is larger than this setting."
                 , max_video_packet_count, max_keyframe_interval_);
-    //condition.wait(lck);
       }
 
       for (

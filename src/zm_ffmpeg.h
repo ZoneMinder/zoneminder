@@ -310,7 +310,7 @@ struct av_packet_guard {
 
 struct zm_free_av_frame {
   void operator()(AVFrame *frame) const {
-   Debug(1, "Freeing frame at %p", frame);
+   //Debug(1, "Freeing frame at %p", frame);
     //Debug(1, "Freeing frame at %p", frame->data);
     if (frame) av_frame_free(&frame);
   }

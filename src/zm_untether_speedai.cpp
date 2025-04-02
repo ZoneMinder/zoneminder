@@ -49,8 +49,8 @@ static const char * coco_classes[] = {
 };
 
 #define USE_THREAD 0
-#define USE_LOCK 1
-#define SPLIT 1
+#define USE_LOCK 0
+#define SPLIT 0
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
@@ -221,13 +221,14 @@ SpeedAI::Job * SpeedAI::get_job() {
 
   std::unique_lock<std::mutex> lck(mutex_);
 
-  // TODO, use the inputBuf as the scaled_frame data to avoid a copy
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->inputBuf, infos[0].name, inSize)) {
     Error("Failed attaching inputbuf");
+    delete job;
     return nullptr;
   }
   if (UAI_SUCCESS != uai_module_data_buffer_attach(module_, job->outputBuf, infos[1].name, outSize)) {
     Error("Failed attaching outputbuf");
+    delete job;
     return nullptr;
   }
   jobs.push_back(job);
@@ -292,10 +293,9 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     send_queue.push_back(job);
   }
 #else
-#if USE_LOCK
   SystemTimePoint starttime = std::chrono::system_clock::now();
+#if USE_LOCK
   std::unique_lock<std::mutex> lck(mutex_);
-#endif
   SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("SpeedAI locking is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
@@ -303,13 +303,14 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     Debug(3, "SpeedAI locking took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
   starttime = endtime;
+#endif
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
     Error("Failed enqueue %s", uai_err_string(err));
     return nullptr;
   }
-  endtime = std::chrono::system_clock::now();
+  SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("SpeedAI enqueue is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
   } else {
@@ -323,8 +324,8 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
 #if 1
     //Debug(1, "getting receive lock");
-    err = uai_module_wait(module_, &job->event, 1);
-    //err = uai_module_synchronize(module_, &job->event);
+    //err = uai_module_wait(module_, &job->event, 1);
+    err = uai_module_synchronize(module_, &job->event);
 #else
   err = uai_module_synchronize(module_, &job->event);
 #endif
@@ -349,15 +350,14 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
 #if SPLIT
   SystemTimePoint starttime = std::chrono::system_clock::now();
   UaiErr err;
-  int count = 10;
+  int count = 1;
   while (count) {
-    std::unique_lock<std::mutex> lck(mutex_);
     // Block execution until the inference job associate to our event has finished. Alternatively,
     // we could repeatedly poll the status of the job using `uai_module_wait`.
     //Debug(3, "Wait input %p output %p", job->inputBuf->buffer, job->outputBuf->buffer);
     //Debug(1, "getting receive lock");
-    err = uai_module_wait(module_, &job->event, 1);
-    //err = uai_module_synchronize(module_, &job->event);
+    //err = uai_module_wait(module_, &job->event, 1);
+    err = uai_module_synchronize(module_, &job->event);
     if (err != UAI_SUCCESS) {
       Warning("SpeedAI Failed wait %d, %s", err, uai_err_string(err));
       //return nullptr;

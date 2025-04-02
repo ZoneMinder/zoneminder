@@ -3075,7 +3075,8 @@ int Monitor::OpenDecoder() {
       mVideoCodecContext->framerate = mVideoStream->r_frame_rate;
 
 #ifdef CODEC_FLAG2_FAST
-      mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+      // Apparently if the stream has b-frames, this is bad.  
+      //mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
 
       if (!options.empty()) {

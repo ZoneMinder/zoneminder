@@ -358,6 +358,8 @@ Event::~Event() {
 void Event::createNotes(std::string &notes) {
   notes.clear();
   for (StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter) {
+    if (mapIter != noteSetMap.begin())
+      notes += ", ";
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
@@ -366,8 +368,6 @@ void Event::createNotes(std::string &notes) {
         notes += ", ";
       notes += *setIter;
     }
-    if (mapIter != noteSetMap.begin())
-      notes += ", ";
   }
 }  // void Event::createNotes(std::string &notes)
 
@@ -653,9 +653,9 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       if (
-          (packet->ai_frame and !WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or (packet->in_frame and !WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or (packet->image and !WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
+          or (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
          ) {
         snapshot_file_written = true;
       } else {

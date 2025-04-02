@@ -239,7 +239,10 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
-  job = speedai->get_job();
+  while (!terminate_ and !( job = speedai->get_job() )) {
+    Warning("Waiting for job");
+    sleep(1);
+  }
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();
@@ -288,7 +291,7 @@ void AIThread::Inference() {
       std::unique_lock<std::mutex> lck(mutex_);
       send_queue.pop_front();
       packet = nullptr;
-    }  // end if job
+    }  // end if packet
   }  // end while forever
   
   if (drawbox_filter) {
@@ -390,8 +393,8 @@ void AIThread::Run() {
         if (shared_data->decoder_image_count <= analysis_image_count) {
           float capture_fps = monitor_->GetFPS();
           Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
-          if (delay < Microseconds(30000)) delay = Microseconds(30000);
-          if (delay > Microseconds(300000)) delay = Microseconds(300000);
+          if (delay < Microseconds(3000)) delay = Microseconds(3000);
+          if (delay > Microseconds(30000)) delay = Microseconds(30000);
           Debug(4, "Sleeping for %ld microseconds after queuing", delay.count());
           std::this_thread::sleep_for(delay);
         }
@@ -404,7 +407,7 @@ void AIThread::Run() {
 
       if (!zm_terminate and !terminate_) {
         float capture_fps = monitor_->GetFPS();
-        Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
+        Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / 2*capture_fps));
         if (delay < Microseconds(30000)) delay = Microseconds(30000);
         if (delay > Microseconds(300000)) delay = Microseconds(300000);
         Debug(4, "Sleeping for %ld microseconds waiting for image", delay.count());
@@ -421,7 +424,6 @@ int draw_boxes(
     AVFilterContext *drawbox_filter_ctx,
     Image *in_image, Image *out_image,
     const nlohmann::json &coco_object, int font_size) {
-  //Rgb colour = kRGBRed;
 
   try {
     //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());

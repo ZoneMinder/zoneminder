@@ -675,8 +675,20 @@ var resizeTimer;
 
 function endOfResize(e) {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
+  resizeTimer = setTimeout(function() {
+    setCookie('zmBrowserSizes', JSON.stringify({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+    }));
+    if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
+      //Only for scaleToFit
+      changeScale();
+    }
+  }, 250);
 }
+window.onresize = endOfResize;
 
 /* scaleToFit
  *
@@ -687,7 +699,7 @@ function endOfResize(e) {
  * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
-  $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
+  //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");

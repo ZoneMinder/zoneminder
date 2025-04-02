@@ -4,6 +4,8 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <condition_variable>
+
 
 #include "zm_packet.h"
 
@@ -47,6 +49,7 @@ class AIThread {
 
   std::list<std::shared_ptr<ZMPacket>> send_queue;
   std::mutex  mutex_;
+  std::condition_variable condition_;
 };
 
 int draw_boxes( Quadra::filter_worker *drawbox_filter, AVFilterContext *drawbox_filter_ctx, Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size);

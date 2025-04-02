@@ -717,7 +717,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
 
   if (roi_num == 0) {
     Debug(1, "no roi available");
-    return 0;
+    goto out;
   }
 #if 0
   if (0) {

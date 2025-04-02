@@ -1231,7 +1231,7 @@ function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE.onmessage = function(event) {
     const data = new Uint8Array(event.data);
     if (data[0] === 9) {
-      if (context.wsMSE.readyState !== WebSocket.OPEN ) return;
+      if (context.mse.readyState !== "open") return;
       let mimeCodec;
       const decodedArr = data.slice(1);
       if (window.TextDecoder) {

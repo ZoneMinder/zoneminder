@@ -917,6 +917,11 @@ function MonitorStream(monitorData) {
         console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
         this.restart(this.currentChannelStream);
       }
+    } else if (this.RTSP2WebType == 'WebRTC') {
+      if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+        console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
+        this.restart(this.currentChannelStream);
+      }
     }
   };
 
@@ -1222,10 +1227,10 @@ function mseListenerSourceopen(context, videoEl, url) {
   };
   context.wsMSE.onclose = (event) => {
     context.clearWebSocket();
-    //console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} CLOSED.`);
+    console.log(`${dateTimeToISOLocal(new Date())} WebSocket CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} ERROR:`, event);
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket ERROR for a video object ID=${context.id}:`, event);
     if (this.started) this.restart();
   };
   context.wsMSE.onmessage = function(event) {

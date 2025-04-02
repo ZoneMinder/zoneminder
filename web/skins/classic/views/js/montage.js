@@ -872,7 +872,8 @@ function on_scroll() {
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      monitor.stop();
+      //monitor.stop(); // does not work without replacing SRC to stop ZMS
+      monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll

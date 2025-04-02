@@ -239,10 +239,12 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
+#ifdef HAVE_UNTETHER_H
   while (!terminate_ and !( job = speedai->get_job() )) {
     Warning("Waiting for job");
     sleep(1);
   }
+#endif
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();

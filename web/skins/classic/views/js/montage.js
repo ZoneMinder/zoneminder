@@ -531,42 +531,7 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
-  var id;
-
-  // We are looking for an object with an ID, because there may be another element in the button.
-  const obj = evt.target.id ? evt.target : evt.target.parentElement;
-
-  if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-  if (obj.className.includes('btn-view-watch')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=watch&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-edit-monitor')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=monitor&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-fullscreen')) {
-    if (document.fullscreenElement) {
-      closeFullscreen();
-    } else {
-      openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
-    }
-  }
-
-  if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-    id = stringToNumber(obj.getAttribute('id'));
-    zmPanZoom.click(id);
-  }
+  managePanZoomButton(evt);
 }
 
 function startMonitors() {

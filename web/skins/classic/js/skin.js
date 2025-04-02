@@ -1449,6 +1449,73 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
   }
 }
 
+/* Handle any action on the touch screen */
+function handleTouchActionGeneral(action, evt) {
+  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
+  if (action == 'touchstart') {
+    managePanZoomButton(evt);
+  } else if (action == 'touchend') {
+  } else if (action == 'touchcancel') {
+  } else if (action == 'touchmove') {
+    //evt.preventDefault();
+  }
+}
+
+function managePanZoomButton(evt) {
+  var url = null;
+  if (panZoomEnabled) {
+    const targetId = evt.target.id;
+    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
+    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
+      // Click was outside '.imageFeed'
+      $j('[id^="button_zoom"]').addClass('hidden');
+      return;
+    } else {
+      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
+    }
+    //evt.preventDefault();
+    // We are looking for an object with an ID, because there may be another element in the button.
+    const obj = targetId ? evt.target : evt.target.parentElement;
+    if (!obj) {
+      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+      return;
+    }
+
+    if (currentView == 'watch') {
+      monitorId_ = monitorId;
+    } else if (currentView == 'montage') {
+      // On Montage page with mode==EDITING it is forbidden to use PanZoom
+      if (mode == EDITING) return;
+      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
+    } else if (currentView == 'event') {
+      monitorId_ = eventData.MonitorId;
+    }
+
+    if (obj.className.includes('btn-view-watch')) {
+      url = '?view=watch&mid='+monitorId_;
+    } else if (obj.className.includes('btn-edit-monitor')) {
+      url = '?view=monitor&mid='+monitorId_;
+    } else if (obj.className.includes('btn-fullscreen')) {
+      if (document.fullscreenElement) {
+        closeFullscreen();
+      } else {
+        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+      }
+    }
+    if (url) {
+      if (evt.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        window.location.assign(url);
+      }
+    }
+    // Zoom by mouse click
+    if (thisClickOnStreamObject(obj)) {
+      zmPanZoom.click(monitorId_);
+    }
+  }
+}
+
 function initPageGeneral() {
   $j(document).on('keyup.global keydown.global', function(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;
@@ -1468,6 +1535,13 @@ function initPageGeneral() {
   });
   document.body.addEventListener('mouseout', function(event) {
     handleMouseout(event);
+  });
+
+  // Support for touch devices.
+  ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
+    document.addEventListener(action, function(event) {
+      handleTouchActionGeneral(action, event);
+    }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."
   });
 
   // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'

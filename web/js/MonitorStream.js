@@ -1163,7 +1163,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       offerToReceiveAudio: true,
       offerToReceiveVideo: true
     });
-		if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
+    if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
     await stream.webrtc.setLocalDescription(offer);
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)

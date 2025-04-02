@@ -3140,6 +3140,8 @@ int Monitor::OpenDecoder() {
       // Open the codec
       if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
         Error("Unable to open codec for audio stream from ");
+        avcodec_free_context(&mAudioCodecContext);
+        mAudioCodecContext = nullptr;
         //Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
         return -1;
       }  // end if opened

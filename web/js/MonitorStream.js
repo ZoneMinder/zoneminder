@@ -1134,6 +1134,10 @@ const waitUntil = (condition) => {
 
 function startRTSP2WebPlay(videoEl, url, stream) {
   const mediaStream = new MediaStream();
+  if (stream.webrtc) {
+    stream.webrtc.close();
+    stream.webrtc = null;
+  }
   videoEl.srcObject = mediaStream;
   stream.webrtc = new RTCPeerConnection({
     iceServers: [{

@@ -358,7 +358,7 @@ void AIThread::Run() {
     }
 
     if (decoder_image_count - analysis_image_count > image_buffer_count) {
-      Warning("Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
+      Debug(1,"Falling behind %d - %d > %d", decoder_image_count, analysis_image_count, image_buffer_count);
       analysis_image_count = decoder_image_count;
     }
 

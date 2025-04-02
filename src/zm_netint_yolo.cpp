@@ -559,12 +559,14 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       AVFrame *output = av_frame_alloc();
       if (!output) {
         Error("cannot allocate output filter frame");
+        av_frame_free(&input);
         return NIERROR(ENOMEM);
       }
 
       ret = draw_roi_box(input, &output, roi[i], roi_extra[i]);
       if (ret < 0) {
         Error("draw %d roi box failed", i);
+        av_frame_free(&input);
         return ret;
       }
       //zm_dump_video_frame(output, "Quadra: boxes");
@@ -609,7 +611,6 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   AVFrame *in_frame = packet->in_frame.get();
- // ? packet->in_frame.get() : packet->out_frame.get();
   if (!in_frame) { return 1; }
 
   if (!last_roi_count) return 1;
@@ -624,6 +625,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
     int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
     if (ret < 0) {
       Error("draw %d roi box failed", i);
+      av_frame_free(&output);
       return ret;
     }
     zm_dump_video_frame(output, "Quadra: boxes");
@@ -643,16 +645,13 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
 
 
 int Quadra_Yolo::dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame) {
-  int ret;
-  AVFrame *output;
-
-  output = av_frame_alloc();
+  AVFrame *output = av_frame_alloc();
   if (!output) {
     Error("cannot allocate output filter frame");
     return NIERROR(ENOMEM);
   }
 
-  ret = av_buffersrc_add_frame_flags(hwdl_filter->buffersrc_ctx, hwframe, AV_BUFFERSRC_FLAG_KEEP_REF);
+  int ret = av_buffersrc_add_frame_flags(hwdl_filter->buffersrc_ctx, hwframe, AV_BUFFERSRC_FLAG_KEEP_REF);
   if (ret < 0) {
     av_frame_free(&output);
     Error("cannot add frame to hwdl buffer src");
@@ -697,27 +696,20 @@ int Quadra_Yolo::check_movement(
 }
 
 int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
-  AVFrameSideData *sd;
-  AVFrameSideData *sd_roi_extra;
-  AVRegionOfInterest *roi;
-  AVRegionOfInterestNetintExtra *roi_extra;
   struct roi_box *roi_box = nullptr;
   int roi_num = 0;
-  int ret = 1;
-  int i, j;
-  int width = out->width;
-  int height = out->height;
 
-  ret = model->ni_get_boxes(model_ctx, width, height, &roi_box, &roi_num);
+  int ret = model->ni_get_boxes(model_ctx, out->width, out->height, &roi_box, &roi_num);
   if (ret < 0) {
     Error( "failed to get roi.");
+    if (roi_box) free(roi_box);
     return ret;
   }
-  ret = 1;
 
   if (roi_num == 0) {
     Debug(1, "no roi available");
-    goto out;
+    if (roi_box) free(roi_box);
+    return 1;
   }
 #if 0
   if (0) {
@@ -739,20 +731,18 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
     goto out;
   }
 #endif
-  sd = av_frame_new_side_data(out, AV_FRAME_DATA_REGIONS_OF_INTEREST,
-      (int)(roi_num * sizeof(AVRegionOfInterest)));
-  sd_roi_extra = av_frame_new_side_data(
-      out, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA,
-      (int)(roi_num * sizeof(AVRegionOfInterestNetintExtra)));
+  AVFrameSideData *sd = av_frame_new_side_data(out, AV_FRAME_DATA_REGIONS_OF_INTEREST, (int)(roi_num * sizeof(AVRegionOfInterest)));
+  AVFrameSideData *sd_roi_extra = av_frame_new_side_data( out, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA, (int)(roi_num * sizeof(AVRegionOfInterestNetintExtra)));
   if (!sd || !sd_roi_extra) {
     ret = NIERROR(ENOMEM);
     Error("Failed to allocate roi sidedata %ld roi_num %d ret:%d", roi_num * sizeof(AVRegionOfInterestNetintExtra), roi_num, ret);
-    Error("%d", out->nb_side_data);
-    goto out;
+    if (roi_box) free(roi_box);
+    return ret;
   }
 
-  roi = (AVRegionOfInterest *)sd->data;
-  roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
+  AVRegionOfInterest * roi = (AVRegionOfInterest *)sd->data;
+  AVRegionOfInterestNetintExtra *roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
+  int i, j;
   for (i = 0, j = 0; i < roi_num; i++) {
     //if (roi_box[i].ai_class == 0 || roi_box[i].ai_class == 7) {
       roi[j].self_size = sizeof(*roi);
@@ -764,7 +754,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
       roi_extra[j].self_size = sizeof(*roi_extra);
       roi_extra[j].cls       = roi_box[i].ai_class;
       roi_extra[j].prob      = roi_box[i].prob;
-      Debug(1, "roi %d: top %d, bottom %d, left %d, right %d, class %d prob %f qpo %d/%d",
+      Debug(4, "roi %d: top %d, bottom %d, left %d, right %d, class %d prob %f qpo %d/%d",
           j, roi[j].top, roi[j].bottom, roi[j].left, roi[j].right,
           roi_extra[j].cls, roi_extra[j].prob, roi[j].qoffset.num, roi[j].qoffset.den);
       j++;
@@ -772,7 +762,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   }
 
 out:
-  free(roi_box);
+  if (roi_box) free(roi_box);
   return ret;
 }
 

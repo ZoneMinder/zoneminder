@@ -675,7 +675,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         if (packet->ai_frame) {
           WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
         } else if (packet->in_frame) {
-          WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
+          WriteJpeg(packet->in_frame.get(), alarm_file.c_str());
         } else if (packet->image) {
           WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
         }

@@ -3229,8 +3229,8 @@ int Monitor::Decode() {
   } 
 
   // Might have to be keyframe interval
-  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
-    Debug(1, "Too many packets (10) in queue. Sleeping");
+  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > 2*static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
+    Debug(1, "Too many packets (%d) in queue. Sleeping", packetqueue.get_max_keyframe_interval());
     return -1;
   }
 

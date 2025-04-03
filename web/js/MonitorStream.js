@@ -1168,7 +1168,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
-      if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'stable') {
+      if (('sctp' in stream.webrtc) && stream.webrtc.sctp.state != 'stable') {
         try {
           stream.webrtc.setRemoteDescription(new RTCSessionDescription({
             type: 'answer',

@@ -676,7 +676,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
-  std::list<ZMPacketLock> ai_queue;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
   av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions

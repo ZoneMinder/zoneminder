@@ -1354,7 +1354,7 @@ loadFontFaceObserver();
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
-  if (matches.length) {
+  if (matches && matches.length) {
     const video = document.createElement('video');
     if (matches[1] == 'av1') matches[1] = 'avc1';
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');

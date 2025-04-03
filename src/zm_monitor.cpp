@@ -3914,7 +3914,7 @@ int Monitor::Pause() {
 
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
-
+  // FIXME delete codec?
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
@@ -3935,12 +3935,11 @@ int Monitor::Pause() {
     }
     if (shared_data) shared_data->decoder_image_count = 0;
     Debug(1, "Clearing decoder_queue %zu", decoder_queue.size());
-    while (decoder_queue.size()) decoder_queue.pop_front();
+    decoder_queue.clear();
   }
   if (analysis_thread) {
     Debug(1, "Joining analysis");
     analysis_thread->Join();
-    while (ai_queue.size()) ai_queue.pop_front();
   }
 
   // Must close event before closing camera because it uses in_streams

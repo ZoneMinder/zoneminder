@@ -1168,13 +1168,15 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
-      try {
-        stream.webrtc.setRemoteDescription(new RTCSessionDescription({
-          type: 'answer',
-          sdp: atob(data)
-        }));
-      } catch (e) {
-        console.warn(e);
+      if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'stable') {
+        try {
+          stream.webrtc.setRemoteDescription(new RTCSessionDescription({
+            type: 'answer',
+            sdp: atob(data)
+          }));
+        } catch (e) {
+          console.warn(e);
+        }
       }
     });
   };

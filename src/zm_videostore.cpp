@@ -270,6 +270,15 @@ bool VideoStore::open() {
       std::string wanted_encoder = monitor->Encoder();
 
       std::list<const CodecData *>codec_data = get_encoder_data(wanted_codec, wanted_encoder);
+      if (!codec_data.size() and !wanted_encoder.empty()) {
+        Warning("Did not find encoder matching %s. Trying without.", wanted_encoder.c_str());
+        codec_data = get_encoder_data(wanted_codec, "");
+      }
+      if (!codec_data.size() and wanted_codec) {
+        Warning("Did not find encoder matching codec %d. Trying without.", wanted_codec);
+        codec_data = get_encoder_data(0, "");
+      }
+
       for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
         chosen_codec_data = *it;
         Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);

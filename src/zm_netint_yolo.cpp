@@ -760,7 +760,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
       j++;
     //}
   }
-
+  ret = roi_num;
 out:
   if (roi_box) free(roi_box);
   return ret;

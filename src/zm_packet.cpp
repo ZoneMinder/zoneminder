@@ -321,17 +321,11 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       return nullptr;
     }
 
-    int alignment = 32;
-    if (width % alignment) {
-      Warning("Bad alignment for %d", width);
-      alignment = 1;
-    }
-
     out_frame->width = width;
     out_frame->height = height;
     out_frame->format = format;
 
-    int ret = av_frame_get_buffer(out_frame.get(), alignment);
+    int ret = av_frame_get_buffer(out_frame.get(), 0);
 #if 0
     codec_imgsize = av_image_get_buffer_size(format, width, height, alignment);
     Debug(1, "buffer size %u from %s %dx%d", codec_imgsize, av_get_pix_fmt_name(format), width, height);
@@ -339,7 +333,6 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
 #endif
     if (ret) {
       Error("Unable to allocate a frame buffer");
-      out_frame = nullptr;
       return nullptr;
     }
 #if 0

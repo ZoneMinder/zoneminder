@@ -195,6 +195,7 @@ int Event::OpenJpegCodec(AVFrame *frame) {
     mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
+    // Should be able to just set quality with the q setting.  Need to convert the old quality to 2-31
     int quality = config.jpeg_file_quality;
 
       //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
@@ -260,8 +261,8 @@ int Event::OpenJpegCodec(AVFrame *frame) {
   output_frame->height = mJpegCodecContext->height;
   output_frame->format = AV_PIX_FMT_YUVJ420P;
   //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
-  av_frame_get_buffer(output_frame.get(), 32);
-  zm_dump_video_frame(output_frame, "Image.WriteJpeg(temp_frame)");
+  av_frame_get_buffer(output_frame.get(), 0);
+  zm_dump_video_frame(output_frame, "OpenCodec(output_frame)");
 
   return 0;
 }
@@ -378,7 +379,11 @@ void Event::addNote(const char *cause, const std::string &note) {
 /* written jpeg will be thewidthxheight in the codec context, not ours. */
 bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
 
-  if (!mJpegCodecContext || (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != in_frame->format))) {
+  if (!mJpegCodecContext || !mJpegSwsContext
+     // ||
+      //(mJpegSwsContext->src_format != in_frame->format)
+      // Apparently swsScale ignores src wxh anyways
+      ) {
     Debug(1, "Need to open codec.  ctx %p", mJpegCodecContext);
     //OpenJpegCodec(image);
     OpenJpegCodec(in_frame);
@@ -638,12 +643,17 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-      if (packet->in_frame) {
-        if (!WriteJpeg(packet->in_frame.get(), event_file.c_str())) {
-          Error("Failed to write frame image");
-        }
-      //} else if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
-        //Error("Failed to write frame image");
+      if (
+          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), event_file.c_str()))
+          or
+          (packet->in_frame and WriteJpeg(packet->in_frame.get(), event_file.c_str()))
+          or
+          (packet->image and WriteFrameImage(packet->image, packet->timestamp, event_file.c_str()))
+      ) {
+      Debug(1, "Wrote capture frame %d to %s", frames, event_file.c_str());
+        // Success
+      } else {
+        Error("Failed to write frame image");
       }
     }  // end if save_jpegs
 
@@ -654,8 +664,10 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       if (
           (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
-          or (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+          or
+          (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
+          or
+          (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
          ) {
         snapshot_file_written = true;
       } else {

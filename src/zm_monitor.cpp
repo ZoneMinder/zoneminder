@@ -3188,6 +3188,9 @@ int Monitor::Decode() {
     if (!mVideoCodecContext and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
       } // end if success opening codec
+        //
+     // THe proper thing to do might be to remove packets until we hit a keyframe, then start inserting. 
+     // If we don't enconter a keyframe, then.... keep popping off until we get one.
          // If we have queued packets, need to stuff them into the decoder.
         while (decoder_queue.size() and !zm_terminate) {
           Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());

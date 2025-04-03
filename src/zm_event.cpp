@@ -975,6 +975,8 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
+      packet->in_frame = nullptr;
+      packet->ai_frame = nullptr;
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

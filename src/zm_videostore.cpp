@@ -1296,8 +1296,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
       video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);
-      zm_packet->in_frame = nullptr;
-      zm_packet->ai_frame = nullptr;
     } // end while receive_packet
   } else { // Passthrough
     AVPacket *ipkt = zm_packet->packet.get();

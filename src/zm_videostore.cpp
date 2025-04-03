@@ -1152,7 +1152,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           frame = zm_packet->in_frame.get();
         } else {
           frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          if (!out_frame) {
+          if (!frame) {
             Error("Unable to allocate a frame");
             return 0;
           }

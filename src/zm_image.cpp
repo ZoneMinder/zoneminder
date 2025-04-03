@@ -1474,6 +1474,32 @@ bool Image::WriteJpeg(const std::string &filename,
     return false;
   }
 
+
+  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+
+  if ( p_jpegswscontext ) {
+    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
+    PopulateFrame(temp_frame.get());
+    Debug(1, "Have sws context, converting from %dx%d %s", temp_frame->width, temp_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(temp_frame->format)));
+
+    frame->width  = p_jpegcodeccontext->width;
+    frame->height = p_jpegcodeccontext->height;
+    frame->format = AV_PIX_FMT_YUVJ420P;
+    //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+        int ret = av_frame_get_buffer(frame.get(), 0);
+    if (0>ret) {
+      Error("Couldn't allocate frame buffer %d %s", ret, av_make_error_string(ret).c_str());
+      return false;
+    }
+    zm_dump_video_frame(frame, "Image.WriteJpeg(temp_frame)");
+
+    sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
+  } else {
+    PopulateFrame(frame.get());
+  }
+
+  zm_dump_video_frame(frame, "Image.WriteJpeg(frame)");
+
   int raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   if (raw_fd < 0)
     return false;
@@ -1487,27 +1513,6 @@ bool Image::WriteJpeg(const std::string &filename,
   if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
     Error("Couldn't get lock on %s, continuing", filename.c_str());
   }
-
-  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
-
-  if ( p_jpegswscontext ) {
-    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
-    PopulateFrame(temp_frame.get());
-    Debug(1, "Have sws context, converting from %dx%d %s", temp_frame->width, temp_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(temp_frame->format)));
-
-    frame->width  = p_jpegcodeccontext->width;
-    frame->height = p_jpegcodeccontext->height;
-    frame->format = AV_PIX_FMT_YUVJ420P;
-    //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
-    av_frame_get_buffer(frame.get(), 32);
-    zm_dump_video_frame(frame, "Image.WriteJpeg(temp_frame)");
-
-    sws_scale(p_jpegswscontext, temp_frame->data, temp_frame->linesize, 0, height, frame->data, frame->linesize);
-  } else {
-    PopulateFrame(frame.get());
-  }
-
-  zm_dump_video_frame(frame, "Image.WriteJpeg(frame)");
 
   int ret = avcodec_send_frame(p_jpegcodeccontext, frame.get());
   while (ret == AVERROR(EAGAIN) and !zm_terminate)

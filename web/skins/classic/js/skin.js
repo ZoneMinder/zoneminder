@@ -1451,7 +1451,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video) {
+    if (video && !video.closest('#videoobj')) {
+      // We do not touch the video.js object, since it has its own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {

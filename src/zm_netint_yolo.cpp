@@ -201,7 +201,7 @@ bool Quadra_Yolo::setup(
 
 /* Ideally we could hangle intermixed hwframes and swframes. */
 int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
-  AVFrame *avframe = in_packet->hw_frame.get();
+  AVFrame *avframe = (use_hwframe and in_packet->hw_frame) ? in_packet->hw_frame.get() : in_packet->in_frame.get();
 
   if (!use_hwframe && !sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(
@@ -760,10 +760,8 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
       j++;
     //}
   }
-  ret = roi_num;
-out:
   if (roi_box) free(roi_box);
-  return ret;
+  return roi_num;
 }
 
 #endif

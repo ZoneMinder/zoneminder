@@ -229,6 +229,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->codec_type = stream->codecpar->codec_type;
 
   bytes += packet->size;
+  zm_packet->set_packet(packet.get());
   zm_packet->stream = stream;
   zm_packet->pts = av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q);
   if (packet->pts != AV_NOPTS_VALUE) {
@@ -244,8 +245,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       mLastAudioPTS = packet->pts - mFirstAudioPTS;
     }
   }
-  zm_packet->packet = std::move(packet);
-  //zm_packet->set_packet(packet.get());
 
   return 1;
 } // FfmpegCamera::Capture

@@ -1145,29 +1145,41 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               video_out_ctx->height
               );
         }
-      } else if (!zm_packet->in_frame) {
-        Debug(1, "Have neither in_frame or image in packet %d!", zm_packet->image_index);
-        return 0;
-      } else {
-        if (zm_packet->ai_frame) {
-          frame = zm_packet->ai_frame.get();
-        } else if (
-            zm_packet->in_frame->width == video_out_ctx->width
-            and
-            zm_packet->in_frame->height == video_out_ctx->height
-            and
-            static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
-           ) {
-          frame = zm_packet->in_frame.get();
-        } else {
-          frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          if (!frame) {
-            Error("Unable to allocate a frame");
-            return 0;
+      } else if (zm_packet->ai_frame) {
+        if (zm_packet->ai_frame->width == video_out_ctx->width
+          and
+          zm_packet->ai_frame->height == video_out_ctx->height
+          and
+          static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
+          ) {
+            frame = zm_packet->ai_frame.get();
+          } else {
+            frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+            if (!frame) {
+              Error("Unable to allocate a frame");
+              return 0;
+            }
+            // Have in_frame.... may need to convert it to out_frame
+            swscale.Convert(zm_packet->ai_frame.get(), frame);
           }
-          // Have in_frame.... may need to convert it to out_frame
-          swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
-        }
+      } else if (zm_packet->in_frame) {
+        if (
+        zm_packet->in_frame->width == video_out_ctx->width
+          and
+          zm_packet->in_frame->height == video_out_ctx->height
+          and
+          static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
+          ) {
+            frame = zm_packet->in_frame.get();
+          } else {
+            frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+            if (!frame) {
+              Error("Unable to allocate a frame");
+              return 0;
+            }
+            // Have in_frame.... may need to convert it to out_frame
+            swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
+          }
       } // end if no in_frame
     } // end if no out_frame
 

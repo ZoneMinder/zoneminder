@@ -1645,7 +1645,7 @@ function initPage() {
     el.addEventListener('dblclick', doubleClickOnStream);
   });
 
-  streamPlay();
+  streamPause();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     const mapDiv = document.getElementById('LocationMap');

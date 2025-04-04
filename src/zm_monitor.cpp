@@ -2172,6 +2172,7 @@ int Monitor::Analyse() {
                       mVideoCodecContext,
                       "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
                       deviceid)) {
+                  Warning("Failed Quadra");
                   delete quadra_yolo;
                   quadra_yolo = nullptr;
                 }

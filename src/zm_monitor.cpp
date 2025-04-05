@@ -3048,17 +3048,24 @@ int Monitor::OpenDecoder() {
 
   if (mVideoStream) {
     const AVCodec *mVideoCodec = nullptr;
-    std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
+    std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, this->DecoderName().c_str());
+    if (codec_data.size() == 0 and (!this->DecoderName().empty() and (this->DecoderName() != "auto"))) {
+      Warning("No decoder for codec %d found with name %s. Trying auto.", mVideoStream->codecpar->codec_id, this->DecoderName().c_str());
+      codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
+    }
+
     for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
       const CodecData *chosen_codec_data = *it;
       Debug(1, "Found codec %s", chosen_codec_data->codec_name);
 
+#if 0
       if (!this->DecoderName().empty() and (this->DecoderName() != "auto")) {
         if (this->DecoderName() != chosen_codec_data->codec_name) {
           Debug(1, "Not the specified codec.");
           continue;
         }
       }
+#endif
       mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
 
       if (!mVideoCodec) {
@@ -3124,7 +3131,7 @@ int Monitor::OpenDecoder() {
   } // end if mVideoStream
 
   if (!mVideoCodecContext) {
-    Warning("Failed to find codec");
+    Warning("Failed to open codec");
     return -1;
   }
 

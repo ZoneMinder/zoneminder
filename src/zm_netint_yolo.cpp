@@ -167,9 +167,16 @@ bool Quadra_Yolo::setup(
     drawbox_filter->buffersink_ctx = nullptr;
     drawbox_filter->buffersrc_ctx = nullptr;
     drawbox_filter->filter_graph = nullptr;
-    if ((ret = init_filter("drawbox", drawbox_filter, false, dec_ctx->sw_pix_fmt)) < 0) {
-      Error("cannot initialize drawbox filter");
-      return false;
+    if (use_hwframe and 0) {
+      if ((ret = init_filter("drawbox", drawbox_filter, true, dec_ctx->pix_fmt)) < 0) {
+        Error("cannot initialize drawbox filter");
+        return false;
+      }
+    } else {
+      if ((ret = init_filter("drawbox", drawbox_filter, false, dec_ctx->sw_pix_fmt)) < 0) {
+        Error("cannot initialize drawbox filter");
+        return false;
+      }
     }
 
     for (unsigned int i = 0; i < drawbox_filter->filter_graph->nb_filters; i++) {

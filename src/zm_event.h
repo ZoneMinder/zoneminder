@@ -38,6 +38,9 @@
 #include <set>
 #include <thread>
 
+extern "C" {
+  #include <libswscale/swscale.h>
+}
 
 class EventStream;
 class Frame;

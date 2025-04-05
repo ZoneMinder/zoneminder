@@ -63,7 +63,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
+  //{ AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
 #endif
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
@@ -123,7 +123,8 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 
   for (unsigned int i = 0; i < sizeof(dec_codecs) / sizeof(*dec_codecs); i++) {
     const CodecData *chosen_codec_data = &dec_codecs[i];
-    if (wanted_decoder != "" and wanted_decoder != "auto") {
+    Debug(1, "Looking at codec %s for %d, want %s %d", chosen_codec_data->codec_name, chosen_codec_data->codec_id, wanted_decoder.c_str(), wanted_codec);
+    if (!wanted_decoder.empty() and wanted_decoder != "auto") {
       if (wanted_decoder != chosen_codec_data->codec_name) {
         Debug(1, "Not the right codec name %s != %s", chosen_codec_data->codec_name, wanted_decoder.c_str());
         continue;
@@ -144,8 +145,10 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
       Debug(1, "Didn't find codec for %s", chosen_codec_data->codec_name);
       continue;
     }
+    Debug(1, "Found codec %s for %d", chosen_codec_data->codec_name, chosen_codec_data->codec_id);
     results.push_back(chosen_codec_data);
   }
+  Debug(1, "Results size %zu", results.size());
   return results;
 }
 

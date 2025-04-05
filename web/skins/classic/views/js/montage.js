@@ -537,16 +537,6 @@ function handleClick(evt) {
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
-    // Why are we scaling here instead of in monitorstream?
-    const obj = document.getElementById('liveStream'+monitor.id);
-    if (obj.src) {
-      const url = new URL(obj.src);
-      let scale = parseInt(obj.clientWidth / monitor.width * 100);
-      if (scale > 100) scale = 100;
-      url.searchParams.set('scale', scale);
-      obj.src = url;
-    }
-
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();
@@ -830,6 +820,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
+  if (!checkEndMonitorsPlaced()) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 

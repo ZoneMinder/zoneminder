@@ -1146,6 +1146,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               );
         }
       } else if (zm_packet->ai_frame) {
+        Debug(1, "Using ai_frame");
         if (zm_packet->ai_frame->width == video_out_ctx->width
           and
           zm_packet->ai_frame->height == video_out_ctx->height
@@ -1163,8 +1164,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             swscale.Convert(zm_packet->ai_frame.get(), frame);
           }
       } else if (zm_packet->in_frame) {
-        if (
-        zm_packet->in_frame->width == video_out_ctx->width
+        Debug(1, "Using in_frame");
+        if (zm_packet->in_frame->width == video_out_ctx->width
           and
           zm_packet->in_frame->height == video_out_ctx->height
           and
@@ -1185,6 +1186,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
+      Debug(1, "Using hwframe");
       int ret;
       hw_frame = av_frame_ptr{zm_av_frame_alloc()};
       if (!hw_frame) {
@@ -1202,10 +1204,18 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
+      ret = av_frame_copy_props(frame, hw_frame.get());
+      if (ret < 0) {
+        Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
+      }
 
       frame = hw_frame.get();
     }  // end if hwaccel
 #endif
+    if (!frame) {
+      Error("No output frame");
+      return -1;
+    }
 
     if (monitor->WallClockTimestamps() or !(zm_packet->in_frame || zm_packet->packet)) {
       if (video_first_pts == AV_NOPTS_VALUE) {

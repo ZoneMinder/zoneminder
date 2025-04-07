@@ -416,7 +416,7 @@ function getCpuUsageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
   global $thisServer;
-  if ($thisServer) {
+  if ($thisServer and $thisServer->Id()) {
     $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
     $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;

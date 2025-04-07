@@ -1,6 +1,6 @@
 /**
- * dd-resizable.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * dd-resizable.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 import { DDBaseImplement, HTMLElementExtendOpt } from './dd-base-impl';
 import { DDUIData, GridItemHTMLElement } from './types';
@@ -8,7 +8,9 @@ export interface DDResizableOpt {
     autoHide?: boolean;
     handles?: string;
     maxHeight?: number;
+    maxHeightMoveUp?: number;
     maxWidth?: number;
+    maxWidthMoveLeft?: number;
     minHeight?: number;
     minWidth?: number;
     start?: (event: Event, ui: DDUIData) => void;

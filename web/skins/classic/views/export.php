@@ -59,10 +59,10 @@ $focusWindow = true;
 $connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Export'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
       <div class="w-100 py-1">
         <div class="float-left pl-3">
           <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>

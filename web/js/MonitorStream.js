@@ -4,6 +4,7 @@ const streaming = [];
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
+  this.started = false;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
@@ -70,7 +71,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
+      console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdQuery.bind(this);
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
@@ -916,6 +917,11 @@ function MonitorStream(monitorData) {
         console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
         this.restart(this.currentChannelStream);
       }
+    } else if (this.RTSP2WebType == 'WebRTC') {
+      if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+        console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
+        this.restart(this.currentChannelStream);
+      }
     }
   };
 
@@ -1128,6 +1134,10 @@ const waitUntil = (condition) => {
 
 function startRTSP2WebPlay(videoEl, url, stream) {
   const mediaStream = new MediaStream();
+  if (stream.webrtc) {
+    stream.webrtc.close();
+    stream.webrtc = null;
+  }
   videoEl.srcObject = mediaStream;
   stream.webrtc = new RTCPeerConnection({
     iceServers: [{
@@ -1212,21 +1222,23 @@ function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE = new WebSocket(url);
   context.wsMSE.binaryType = 'arraybuffer';
 
-  window.onbeforeunload = function() {
+  window.addEventListener('beforeunload', function(event) {
     this.started = false;
     context.closeWebSocket();
-  };
+  });
   context.wsMSE.onopen = function(event) {
     console.log(`Connect to ws for a video object ID=${context.id}`);
   };
   context.wsMSE.onclose = (event) => {
     context.clearWebSocket();
-    //console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} CLOSED.`);
+    console.log(`${dateTimeToISOLocal(new Date())} WebSocket CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} ERROR:`, event);
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket ERROR for a video object ID=${context.id}:`, event);
+    if (this.started) this.restart();
   };
   context.wsMSE.onmessage = function(event) {
+    if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
     const data = new Uint8Array(event.data);
     if (data[0] === 9) {
       let mimeCodec;

@@ -107,9 +107,9 @@ if (isset($_REQUEST['deleteIndex'])) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Video'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div class="w-100 py-1">
       <div class="float-left pl-3">

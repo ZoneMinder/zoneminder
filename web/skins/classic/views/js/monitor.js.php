@@ -1,5 +1,6 @@
 const hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
+const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
 
 <?php
 if (ZM_OPT_CONTROL and canView('Control')) {

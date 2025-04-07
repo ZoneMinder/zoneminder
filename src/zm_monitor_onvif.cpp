@@ -216,6 +216,16 @@ void Monitor::ONVIF::WaitForMessage() {
         Debug(1, "Response was %s", ss.str().c_str());
 
         // healthy = false;
+      } else {
+        // EOF
+        std::unique_lock<std::mutex> lck(alarms_mutex);
+
+        if (!tev__PullMessagesResponse.wsnt__NotificationMessage.size()) {
+          if (!parent->Event_Poller_Closes_Event and alarmed) {
+            alarmed = false;
+            alarms.clear();
+          }
+        }
       }
     } else {
       Debug(1, "ONVIF polling : Got Good Response! %i", result);

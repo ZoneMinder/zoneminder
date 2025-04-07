@@ -7,7 +7,7 @@ var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
-var idle = 0;
+var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
 
@@ -482,29 +482,7 @@ function handleClick(event) {
 
   if (panZoomEnabled) {
     event.preventDefault();
-    //We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? event.target : event.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, event.target, event.target.parentElement);
-      return;
-    }
-    if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-
-    if (obj.className.includes('btn-edit-monitor')) {
-      const url = '?view=monitor&mid='+monitorId;
-      if (event.ctrlKey) {
-        window.open(url, '_blank');
-      } else {
-        window.location.assign(url);
-      }
-    }
-
-    const obj_id = obj.getAttribute('id');
-    if (obj_id) {
-      if (obj_id.indexOf("liveStream") >= 0) zmPanZoom.click(monitorId);
-    } else {
-      console.log("obj does not have an id", obj);
-    }
+    managePanZoomButton(event);
   } else {
     // +++ Old ZoomPan algorithm.
     if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
@@ -944,6 +922,7 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   loadFontFaceObserver();
+  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
@@ -1038,6 +1017,7 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        idleTimeoutTriggered = true;
         streamCmdStop(true);
         const cycle_was = cycle;
         cyclePause();
@@ -1047,6 +1027,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
                 });
@@ -1109,18 +1090,19 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
+  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');
-  if (btn.firstElementChild.innerHTML=='fullscreen') {
+  if (btn.firstElementChild.innerHTML == 'fullscreen') {
     const content = document.getElementById('content');
     openFullscreen(content);
-    btn.firstElementChild.innerHTML='fullscreen_exit';
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
     btn.setAttribute('title', translate["Exit Fullscreen"]);
   } else {
     closeFullscreen();
-    btn.firstElementChild.innerHTML='fullscreen';
+    btn.firstElementChild.innerHTML = 'fullscreen';
     btn.setAttribute('title', translate["Fullscreen"]);
   }
 }
@@ -1489,9 +1471,9 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && prevStateStarted == 'played' && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
+    if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
       onPlay(); //Set the correct state of the player buttons.
-      monitorStream.start();
+      monitorStream.start(monitorStream.currentChannelStream);
     }
   }
 };

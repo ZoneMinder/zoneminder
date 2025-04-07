@@ -433,9 +433,9 @@ if ( count($cameras) <= 1 )
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('MonitorProbe') );
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <h2><?php echo translate('MonitorProbe') ?></h2>
     <div id="content">

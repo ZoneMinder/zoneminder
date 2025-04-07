@@ -55,6 +55,11 @@
   display: none;
 }
 
+.material-icons.md-8 { font-size: 8px; }
+.material-icons.md-10 { font-size: 10px; }
+.material-icons.md-12 { font-size: 12px; }
+.material-icons.md-14 { font-size: 14px; }
+.material-icons.md-16 { font-size: 16px; }
 .material-icons.md-18 { font-size: 18px; }
 .material-icons.md-20 { font-size: 20px; }
 .material-icons.md-22 { font-size: 22px; }
@@ -206,6 +211,10 @@ input[disabled] {
     color: #888888;
 }
 
+option:disabled {
+    color: #BBBBBB;
+}
+
 .modal img {
     max-width: 100%;
 }
@@ -275,6 +284,8 @@ ul.tabList li.active a {
 }
 
 #content {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   overflow: hidden auto;
   margin: 0 auto 0 auto;
@@ -282,9 +293,15 @@ ul.tabList li.active a {
   text-align: center;
   clear: both;
 }
+
+#content.row{
+  flex-direction: row;
+}
+
 #content::backdrop {
   background-color: white;
 }
+
 body.sticky #content {
 /*
   flex: 1 1 auto;
@@ -629,6 +646,11 @@ body.sticky #page {
 
 #contentButtons a.btn, #contentButtons button.btn {
     margin-bottom: 0;
+}
+
+#contentForm {
+    width: 100%;
+    overflow: auto;
 }
 
 #footer {
@@ -978,6 +1000,10 @@ a.flip {
     flex-wrap: wrap;
   }
 }
+#ui-datepicker-div {
+  z-index:1001!important;
+}
+
 #fieldsTable ul.chosen-choices {
   max-height: 100px;
   overflow-y:auto;
@@ -1211,6 +1237,22 @@ button.btn.btn-view-watch:hover {
 }
 
 /* --- Control button block in the Stream image*/
+
+.fixed-t-r {
+  position: fixed;
+  top: 50px;
+  right: 50px;
+  min-width: 250px;
+}
+
+@media screen and (max-width:767px) {
+  .fixed-t-r {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    min-width: 200px;
+  }
+}
 
 /* +++ This block should always be located at the end! */
 .hidden {

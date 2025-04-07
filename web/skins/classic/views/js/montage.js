@@ -1,7 +1,7 @@
 "use strict";
 const monitors = new Array();
 var monitors_ul = null;
-var idle = 0;
+var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -203,7 +203,7 @@ function selectLayout(new_layout_id) {
   changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
-  on_scroll();
+  setTimeout(on_scroll, 100);
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 
@@ -531,57 +531,12 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
-  var id;
-
-  // We are looking for an object with an ID, because there may be another element in the button.
-  const obj = evt.target.id ? evt.target : evt.target.parentElement;
-
-  if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-  if (obj.className.includes('btn-view-watch')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=watch&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-edit-monitor')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=monitor&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-fullscreen')) {
-    if (document.fullscreenElement) {
-      closeFullscreen();
-    } else {
-      openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
-    }
-  }
-
-  if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-    id = stringToNumber(obj.getAttribute('id'));
-    zmPanZoom.click(id);
-  }
+  managePanZoomButton(evt);
 }
 
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
-    // Why are we scaling here instead of in monitorstream?
-    const obj = document.getElementById('liveStream'+monitor.id);
-    if (obj.src) {
-      const url = new URL(obj.src);
-      let scale = parseInt(obj.clientWidth / monitor.width * 100);
-      if (scale > 100) scale = 100;
-      url.searchParams.set('scale', scale);
-      obj.src = url;
-    }
-
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();
@@ -771,6 +726,7 @@ function initPage() {
       document.onkeydown = resetTimer;
 
       function stopPlayback() {
+        idleTimeoutTriggered = true;
         for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].kill();
         }
@@ -780,6 +736,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
                 });
                 ayswModal.modal('show');
@@ -863,6 +820,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
+  if (!checkEndMonitorsPlaced()) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
@@ -870,7 +828,8 @@ function on_scroll() {
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      monitor.stop();
+      //monitor.stop(); // does not work without replacing SRC to stop ZMS
+      monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -1038,6 +997,7 @@ function changeStreamQuality() {
 
 function monitorsSetScale(id=null) {
   // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  id = parseInt(id);
   if (id || typeof monitorStream !== 'undefined') {
     //monitorStream used on Watch page.
     if (typeof monitorStream !== 'undefined') {
@@ -1203,7 +1163,7 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
-    if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+    if (!idleTimeoutTriggered) {
       //Start monitors when show page
       for (let i = 0, length = monitors.length; i < length; i++) {
         const monitor = monitors[i];

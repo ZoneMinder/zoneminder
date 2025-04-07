@@ -275,7 +275,7 @@ getBodyTopHTML();
     <div id="header">
 <?php
 $html = '<a class="flip" href="#" 
-         data-flip-сontrol-object="#mfbpanel" 
+         data-flip-control-object="#mfbpanel" 
          data-flip-сontrol-run-after-func="applyChosen drawGraph" 
          data-flip-сontrol-run-after-complet-func="changeScale">
            <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
@@ -328,7 +328,7 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
-<button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
+<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
             <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
           </button>
         </div>

@@ -2,6 +2,7 @@
 const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
+var monitorInitComplete = false;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -820,7 +821,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
-  if (!checkEndMonitorsPlaced()) return;
+  if (!monitorInitComplete) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
@@ -1101,6 +1102,7 @@ function waitingMonitorsPlaced(action = null) {
       //}
       if (action == 'startMonitors') {
         startMonitors();
+        monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
           return;

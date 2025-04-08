@@ -3,5 +3,5 @@ https://github.com/timmywil/panzoom
 https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.js
 https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js
 ***********************************
-gridstack - v10.1.2 on Mar 31, 2024
+gridstack - v11.1.2 on Dec 9, 2024 (Newer versions have a significant bug: https://github.com/gridstack/gridstack.js/issues/2978)
 https://github.com/gridstack/gridstack.js

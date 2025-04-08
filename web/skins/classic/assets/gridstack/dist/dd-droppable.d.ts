@@ -1,6 +1,6 @@
 /**
- * dd-droppable.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * dd-droppable.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 import { DDBaseImplement, HTMLElementExtendOpt } from './dd-base-impl';
 import { DDUIData } from './types';

@@ -2,6 +2,7 @@
 const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
+var monitorInitComplete = false;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -820,7 +821,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
-  if (!checkEndMonitorsPlaced()) return;
+  if (!monitorInitComplete) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
@@ -874,9 +875,9 @@ function watchFullscreen() {
 
 function initGridStack(grid=null) {
   const opts = {
-    margin: 0,
-    cellHeight: '1px',
-    //sizeToContent: true, // default to make them all fit
+    margin: '0 1px 0 1px',
+    cellHeight: '4px', //Required for correct use of objGridStack.resizeToContent
+    sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,
@@ -1101,6 +1102,7 @@ function waitingMonitorsPlaced(action = null) {
       //}
       if (action == 'startMonitors') {
         startMonitors();
+        monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
           return;

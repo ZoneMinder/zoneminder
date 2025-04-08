@@ -1175,7 +1175,9 @@ bool Image::WriteJpeg(const std::string &filename,
     return false;
   }
 
-  struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+  flock fl({});
+  fl.l_type = F_WRLCK;
+  fl.l_whence = SEEK_SET;
   if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
     Error("Couldn't get lock on %s, continuing", filename.c_str());
   }

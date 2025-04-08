@@ -759,16 +759,16 @@ function initPage() {
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = document.getElementById('liveStream'+item);
+        const img = getStream(item);
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
           setRatioForMonitor(img, item);
-          objGridStack.resizeToContent(document.getElementById('m'+item));
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
           changedMonitors.splice(object.length - 1 - index, 1);
         }
         monitorsSetScale(item);
       });
     }
-  }, 100);
+  }, 200);
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');

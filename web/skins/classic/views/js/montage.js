@@ -875,9 +875,9 @@ function watchFullscreen() {
 
 function initGridStack(grid=null) {
   const opts = {
-    margin: 0,
-    cellHeight: '1px',
-    //sizeToContent: true, // default to make them all fit
+    margin: '0 1px 0 1px',
+    cellHeight: '4px', //Required for correct use of objGridStack.resizeToContent
+    sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,

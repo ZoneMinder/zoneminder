@@ -565,7 +565,7 @@ function vjsPlay() { //catches if we change mode programatically
   streamPlay();
 }
 
-function streamPlay( ) {
+function streamPlay() {
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -1318,7 +1318,6 @@ function initPage() {
   getAvailableTags();
   getSelectedTags();
 
-
   // Load the event stats
   getStat();
   zmPanZoom.init();
@@ -1645,7 +1644,12 @@ function initPage() {
     el.addEventListener('dblclick', doubleClickOnStream);
   });
 
-  streamPause();
+  const video = document.querySelector('video');
+  if (!vid || (vid && video.autoplay && !video.paused)) {
+    streamPlay();
+  } else {
+    streamPause();
+  }
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     const mapDiv = document.getElementById('LocationMap');

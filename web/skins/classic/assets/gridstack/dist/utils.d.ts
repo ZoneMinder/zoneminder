@@ -1,6 +1,6 @@
 /**
- * utils.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * utils.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 import { GridStackElement, GridStackNode, GridStackOptions, numberOrString, GridStackPosition, GridStackWidget } from './types';
 export interface HeightData {
@@ -29,6 +29,10 @@ export declare class Utils {
     static getElements(els: GridStackElement, root?: HTMLElement | Document): HTMLElement[];
     /** convert a potential selector into actual single element. optional root which defaults to document (for shadow dom) */
     static getElement(els: GridStackElement, root?: HTMLElement | Document): HTMLElement;
+    /** create the default grid item divs, and content possibly lazy loaded calling GridStack.renderCB */
+    static createWidgetDivs(itemClass: string, n: GridStackNode): HTMLElement;
+    /** create a div with the given classes */
+    static createDiv(classes: string[], parent?: HTMLElement): HTMLElement;
     /** true if we should resize to content. strict=true when only 'sizeToContent:true' and not a number which lets user adjust */
     static shouldSizeToContent(n: GridStackNode | undefined, strict?: boolean): boolean;
     /** returns true if a and b overlap */
@@ -105,4 +109,9 @@ export declare class Utils {
      * returns the scale and offsets from said element
     */
     static getValuesFromTransformedElement(parent: HTMLElement): DragTransform;
+    /** swap the given object 2 field values */
+    static swap(o: unknown, a: string, b: string): void;
+    /** returns true if event is inside the given element rectangle */
+    /** true if the item can be rotated (checking for prop, not space available) */
+    static canBeRotated(n: GridStackNode): boolean;
 }

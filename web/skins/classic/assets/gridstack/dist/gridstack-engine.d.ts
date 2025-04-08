@@ -1,6 +1,6 @@
 /**
- * gridstack-engine.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * gridstack-engine.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 import { GridStackNode, GridStackPosition, GridStackMoveOpts, SaveFcn, CompactOptions } from './types';
 /** callback to update the DOM attributes since this class is generic (no HTML or other info) for items that changed - see _notify() */
@@ -26,6 +26,7 @@ export declare class GridStackEngine {
     addedNodes: GridStackNode[];
     removedNodes: GridStackNode[];
     batchMode: boolean;
+    defaultColumn: number;
     constructor(opts?: GridStackEngineOptions);
     batchUpdate(flag?: boolean, doPack?: boolean): GridStackEngine;
     protected _useEntireRowArea(node: GridStackNode, nn: GridStackPosition): boolean;

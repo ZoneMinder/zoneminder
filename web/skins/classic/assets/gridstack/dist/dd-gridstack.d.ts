@@ -1,8 +1,8 @@
 /**
- * dd-gridstack.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * dd-gridstack.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
-import { GridItemHTMLElement, GridStackElement, DDDragInOpt } from './types';
+import { GridItemHTMLElement, GridStackElement, DDDragOpt } from './types';
 import { DDElementHost } from './dd-element';
 /** Drag&Drop drop options */
 export type DDDropOpt = {
@@ -11,7 +11,7 @@ export type DDDropOpt = {
 };
 /** drag&drop options currently called from the main code, but others can be passed in grid options */
 export type DDOpts = 'enable' | 'disable' | 'destroy' | 'option' | string | any;
-export type DDKey = 'minWidth' | 'minHeight' | 'maxWidth' | 'maxHeight';
+export type DDKey = 'minWidth' | 'minHeight' | 'maxWidth' | 'maxHeight' | 'maxHeightMoveUp' | 'maxWidthMoveLeft';
 export type DDValue = number | string;
 /** drag&drop events callbacks */
 export type DDCallback = (event: Event, arg2: GridItemHTMLElement, helper?: GridItemHTMLElement) => void;
@@ -21,7 +21,7 @@ export type DDCallback = (event: Event, arg2: GridItemHTMLElement, helper?: Grid
 export declare class DDGridStack {
     resizable(el: GridItemHTMLElement, opts: DDOpts, key?: DDKey, value?: DDValue): DDGridStack;
     draggable(el: GridItemHTMLElement, opts: DDOpts, key?: DDKey, value?: DDValue): DDGridStack;
-    dragIn(el: GridStackElement, opts: DDDragInOpt): DDGridStack;
+    dragIn(el: GridStackElement, opts: DDDragOpt): DDGridStack;
     droppable(el: GridItemHTMLElement, opts: DDOpts | DDDropOpt, key?: DDKey, value?: DDValue): DDGridStack;
     /** true if element is droppable */
     isDroppable(el: DDElementHost): boolean;

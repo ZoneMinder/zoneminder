@@ -1,6 +1,6 @@
 /**
- * dd-manager.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * dd-manager.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 /**
  * globals that are shared across Drag & Drop instances

@@ -1,6 +1,6 @@
 /**
- * dd-resizable-handle.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * dd-resizable-handle.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 import { isTouch, pointerdown, touchend, touchmove, touchstart } from './dd-touch';
 class DDResizableHandle {
@@ -14,6 +14,7 @@ class DDResizableHandle {
         this._mouseDown = this._mouseDown.bind(this);
         this._mouseMove = this._mouseMove.bind(this);
         this._mouseUp = this._mouseUp.bind(this);
+        this._keyEvent = this._keyEvent.bind(this);
         this._init();
     }
     /** @internal */
@@ -60,7 +61,7 @@ class DDResizableHandle {
     }
     /** @internal */
     _mouseMove(e) {
-        let s = this.mouseDownEvent;
+        const s = this.mouseDownEvent;
         if (this.moving) {
             this._triggerEvent('move', e);
         }
@@ -69,6 +70,8 @@ class DDResizableHandle {
             this.moving = true;
             this._triggerEvent('start', this.mouseDownEvent);
             this._triggerEvent('move', e);
+            // now track keyboard events to cancel
+            document.addEventListener('keydown', this._keyEvent);
         }
         e.stopPropagation();
         // e.preventDefault(); passive = true
@@ -77,6 +80,7 @@ class DDResizableHandle {
     _mouseUp(e) {
         if (this.moving) {
             this._triggerEvent('stop', e);
+            document.removeEventListener('keydown', this._keyEvent);
         }
         document.removeEventListener('mousemove', this._mouseMove, true);
         document.removeEventListener('mouseup', this._mouseUp, true);
@@ -88,6 +92,13 @@ class DDResizableHandle {
         delete this.mouseDownEvent;
         e.stopPropagation();
         e.preventDefault();
+    }
+    /** @internal call when keys are being pressed - use Esc to cancel */
+    _keyEvent(e) {
+        if (e.key === 'Escape') {
+            this.host.gridstackNode?.grid?.engine.restoreInitial();
+            this._mouseUp(this.mouseDownEvent);
+        }
     }
     /** @internal */
     _triggerEvent(name, event) {

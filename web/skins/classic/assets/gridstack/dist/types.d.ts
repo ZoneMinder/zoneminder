@@ -1,12 +1,10 @@
 /**
- * types.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * types.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 import { GridStack } from './gridstack';
 import { GridStackEngine } from './gridstack-engine';
 export declare const gridDefaults: GridStackOptions;
-/** default dragIn options */
-export declare const dragInDefaultOptions: DDDragInOpt;
 /**
  * different layout options when changing # of columns, including a custom function that takes new/old column count, and array of new/old positions
  * Note: new list may be partially already filled if we have a cache of the layout at that size and new items were added later.
@@ -35,19 +33,21 @@ export type GridStackEventHandlerCallback = GridStackEventHandler | GridStackEle
 export type AddRemoveFcn = (parent: HTMLElement, w: GridStackWidget, add: boolean, grid: boolean) => HTMLElement | undefined;
 /** optional function called during save() to let the caller add additional custom data to the GridStackWidget structure that will get returned */
 export type SaveFcn = (node: GridStackNode, w: GridStackWidget) => void;
+/** optional function called during load()/addWidget() to let the caller create custom content other than plan text */
+export type RenderFcn = (el: HTMLElement, w: GridStackWidget) => void;
 export type ResizeToContentFcn = (el: GridItemHTMLElement) => void;
-/** describes the responsive nature of the grid */
+/** describes the responsive nature of the grid. NOTE: make sure to have correct extra CSS to support this. */
 export interface Responsive {
-    /** wanted width to maintain (+-50%) to dynamically pick a column count */
+    /** wanted width to maintain (+-50%) to dynamically pick a column count. NOTE: make sure to have correct extra CSS to support this. */
     columnWidth?: number;
-    /** maximum number of columns allowed (default: 12). Note: make sure to have correct extra CSS to support this.*/
+    /** maximum number of columns allowed (default: 12). NOTE: make sure to have correct extra CSS to support this. */
     columnMax?: number;
-    /** global re-layout mode when changing columns */
-    layout?: ColumnOptions;
+    /** explicit width:column breakpoints instead of automatic 'columnWidth'. NOTE: make sure to have correct extra CSS to support this. */
+    breakpoints?: Breakpoint[];
     /** specify if breakpoints are for window size or grid size (default:false = grid) */
     breakpointForWindow?: boolean;
-    /** explicit width:column breakpoints instead of automatic 'columnWidth'. Note: make sure to have correct extra CSS to support this.*/
-    breakpoints?: Breakpoint[];
+    /** global re-layout mode when changing columns */
+    layout?: ColumnOptions;
 }
 export interface Breakpoint {
     /** <= width for the breakpoint to trigger */
@@ -122,6 +122,10 @@ export interface GridStackOptions {
     handleClass?: string;
     /** additional widget class (default?: 'grid-stack-item') */
     itemClass?: string;
+    /** re-layout mode when we're a subgrid and we are being resized. default to 'list' */
+    layout?: ColumnOptions;
+    /** true when widgets are only created when they scroll into view (visible) */
+    lazyLoad?: boolean;
     /**
      * gap between grid item and content (default?: 10). This will set all 4 sides and support the CSS formats below
      *  an integer (px)
@@ -164,11 +168,12 @@ export interface GridStackOptions {
     row?: number;
     /**
      * if true turns grid to RTL. Possible values are true, false, 'auto' (default?: 'auto')
-     * See [example](http://gridstack.github.io/gridstack.js/demo/rtl.html)
+     * See [example](http://gridstack.github.io/gridstack.js/demo/right-to-left(rtl).html)
      */
     rtl?: boolean | 'auto';
     /** set to true if all grid items (by default, but item can also override) height should be based on content size instead of WidgetItem.h to avoid v-scrollbars.
-     Note: this is still row based, not pixels, so it will use ceil(getBoundingClientRect().height / getCellHeight()) */
+     * Note: this is still row based, not pixels, so it will use ceil(getBoundingClientRect().height / getCellHeight())
+     */
     sizeToContent?: boolean;
     /**
      * makes grid static (default?: false). If `true` widgets are not movable/resizable.
@@ -242,6 +247,8 @@ export interface GridStackWidget extends GridStackPosition {
     id?: string;
     /** html to append inside as content */
     content?: string;
+    /** true when widgets are only created when they scroll into view (visible) */
+    lazyLoad?: boolean;
     /** local (vs grid) override - see GridStackOptions.
      * Note: This also allow you to set a maximum h value (but user changeable during normal resizing) to prevent unlimited content from taking too much space (get scrollbar) */
     sizeToContent?: boolean | number;
@@ -279,10 +286,12 @@ export interface DDDragOpt {
     scroll?: boolean;
     /** prevents dragging from starting on specified elements, listed as comma separated selectors (eg: '.no-drag'). default built in is 'input,textarea,button,select,option' */
     cancel?: string;
-}
-export interface DDDragInOpt extends DDDragOpt {
     /** helper function when dropping: 'clone' or your own method */
-    helper?: 'clone' | ((event: Event) => HTMLElement);
+    helper?: 'clone' | ((el: HTMLElement) => HTMLElement);
+    /** callbacks */
+    start?: (event: Event, ui: DDUIData) => void;
+    stop?: (event: Event) => void;
+    drag?: (event: Event, ui: DDUIData) => void;
 }
 export interface Size {
     width: number;
@@ -310,4 +319,6 @@ export interface GridStackNode extends GridStackWidget {
     grid?: GridStack;
     /** actual sub-grid instance */
     subGrid?: GridStack;
+    /** allow delay creation when visible */
+    visibleObservable?: IntersectionObserver;
 }

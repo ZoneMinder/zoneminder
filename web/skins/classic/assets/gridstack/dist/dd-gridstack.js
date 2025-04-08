@@ -1,6 +1,6 @@
 /**
- * dd-gridstack.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * dd-gridstack.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 import { Utils } from './utils';
 import { DDManager } from './dd-manager';
@@ -64,7 +64,7 @@ export class DDGridStack {
                 dEl.setupDraggable({
                     ...grid.opts.draggable,
                     ...{
-                        // containment: (grid.parentGridItem && !grid.opts.dragOut) ? grid.el.parentElement : (grid.opts.draggable.containment || null),
+                        // containment: (grid.parentGridNode && grid.opts.dragOut === false) ? grid.el.parentElement : (grid.opts.draggable.containment || null),
                         start: opts.start,
                         stop: opts.stop,
                         drag: opts.drag
@@ -103,15 +103,15 @@ export class DDGridStack {
     }
     /** true if element is droppable */
     isDroppable(el) {
-        return !!(el && el.ddElement && el.ddElement.ddDroppable && !el.ddElement.ddDroppable.disabled);
+        return !!(el?.ddElement?.ddDroppable && !el.ddElement.ddDroppable.disabled);
     }
     /** true if element is draggable */
     isDraggable(el) {
-        return !!(el && el.ddElement && el.ddElement.ddDraggable && !el.ddElement.ddDraggable.disabled);
+        return !!(el?.ddElement?.ddDraggable && !el.ddElement.ddDraggable.disabled);
     }
     /** true if element is draggable */
     isResizable(el) {
-        return !!(el && el.ddElement && el.ddElement.ddResizable && !el.ddElement.ddResizable.disabled);
+        return !!(el?.ddElement?.ddResizable && !el.ddElement.ddResizable.disabled);
     }
     on(el, name, callback) {
         this._getDDElements(el).forEach(dEl => dEl.on(name, (event) => {
@@ -125,10 +125,10 @@ export class DDGridStack {
     }
     /** @internal returns a list of DD elements, creating them on the fly by default */
     _getDDElements(els, create = true) {
-        let hosts = Utils.getElements(els);
+        const hosts = Utils.getElements(els);
         if (!hosts.length)
             return [];
-        let list = hosts.map(e => e.ddElement || (create ? DDElement.init(e) : null));
+        const list = hosts.map(e => e.ddElement || (create ? DDElement.init(e) : null));
         if (!create) {
             list.filter(d => d);
         } // remove nulls

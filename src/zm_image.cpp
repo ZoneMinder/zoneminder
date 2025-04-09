@@ -1175,7 +1175,7 @@ bool Image::WriteJpeg(const std::string &filename,
     return false;
   }
 
-  flock fl({});
+  struct flock fl({});
   fl.l_type = F_WRLCK;
   fl.l_whence = SEEK_SET;
   if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {

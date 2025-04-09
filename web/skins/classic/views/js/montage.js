@@ -553,7 +553,7 @@ function startMonitors() {
       console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
     }
     /* --- */
-		const isOut = isOutOfViewport(monitor.getElement());
+    const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();
     }

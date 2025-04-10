@@ -449,7 +449,7 @@ function getDbConHTML() {
   $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -503,7 +503,7 @@ function getStorageHTML() {
     $result .= '</div>'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -538,7 +538,7 @@ function getRamHTML() {
     } # end if SwapTotal
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -643,7 +643,7 @@ function getZMVersionHTML() {
   $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
   $result .= $content;
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -669,11 +669,11 @@ function getNavBrandHTML() {
 function getConsoleHTML() {
   global $user;
   $result = '';
-  
+
   if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -684,7 +684,7 @@ function getOptionsHTML() {
   if ( canView('System') ) {
     $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -706,7 +706,7 @@ function getLogHTML() {
 // Returns the html representing the log icon
 function getLogIconHTML() {
   $result = '';
-  
+
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
@@ -716,18 +716,18 @@ function getLogIconHTML() {
         '</li>'.PHP_EOL;
     }
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the X10 Devices menu item
 function getDevicesHTML() {
   $result = '';
-  
+
   if ( ZM_OPT_X10 && canView('Devices') ) {
     $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -942,7 +942,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
     $result .= '</thead>'.PHP_EOL;
 
     $result .= '<tbody>'.PHP_EOL;
-    
+
     if ( count($stats) ) {
       foreach ( $stats as $stat ) {
         $result .= '<tr>'.PHP_EOL;
@@ -972,7 +972,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
 
     $result .= '</tbody>'.PHP_EOL;
   $result .= '</table>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -993,6 +993,28 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
+
+  echo output_script_if_exists(array(
+    'js/fontfaceobserver.standalone.js',
+  ));
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+    const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
+    fontMaterialIcons.load(null, 30000).then(function() {
+      console.log("Material Icons is loaded");
+      document.querySelectorAll(".material-icons").forEach(function(el) {
+        el.style.display = "inline-block";
+      });
+    }, function() {
+      console.log("Material Icons is NOT loaded");
+      // This code doesn't make sense, because if the Font hasn't loaded, then there's nothing to display. I left it because it was there before.
+      document.querySelectorAll(".material-icons").forEach(function(el) {
+        el.style.display = "inline-block";
+      });
+    });
+  </script>
+<?php
+
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
@@ -1012,7 +1034,6 @@ function xhtmlFooter() {
   }
 
   echo output_script_if_exists(array(
-  'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
   'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',

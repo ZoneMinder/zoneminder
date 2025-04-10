@@ -538,6 +538,21 @@ function handleClick(evt) {
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
+    // Why are we scaling here instead of in monitorstream?
+    /* +++ If you delete this code, then Firefox will slow down terribly... you need to UNDERSTAND the problem!!!*/
+    const obj = document.getElementById('liveStream'+monitor.id);
+    if (obj) {
+      if (obj.src) {
+        const url = new URL(obj.src);
+        let scale = parseInt(obj.clientWidth / monitor.width * 100);
+        if (scale > 100) scale = 100;
+        url.searchParams.set('scale', scale);
+        obj.src = url;
+      }
+    } else {
+      console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
+    }
+    /* --- */
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();

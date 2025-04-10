@@ -287,7 +287,9 @@ ul.tabList li.active a {
   display: flex;
   flex-direction: column;
   width: 100%;
-  overflow: hidden auto;
+  /*"Pale moon" browser does not understand overflow: hidden auto;*/
+  overflow-x: hidden;
+  overflow-y: auto;
   margin: 0 auto 0 auto;
   line-height: 130%;
   text-align: center;
@@ -1267,4 +1269,3 @@ button.btn.btn-view-watch:hover {
     visibility: hidden;
 }
 /* --- This block should always be located at the end! */
-

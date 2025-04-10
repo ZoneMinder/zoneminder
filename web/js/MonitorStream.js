@@ -1142,7 +1142,9 @@ const waitUntil = (condition) => {
 
 function startRTSP2WebPlay(videoEl, url, stream) {
   if (typeof RTCPeerConnection !== 'function') {
-    console.log(`Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`);
+    const msg = `Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`;
+    console.log(msg);
+    stream.getElement().before(document.createTextNode(msg));
     stream.RTSP2WebType = null; // Avoid repeated restarts.
     return;
   }

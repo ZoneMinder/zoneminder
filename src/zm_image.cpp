@@ -1911,6 +1911,11 @@ void Image::Overlay( const Image &image ) {
             colours, subpixelorder, image.subpixelorder);
   }
 
+  if (!image.buffer) {
+    Error("Empty image passed to Overlay!");
+    return;
+  }
+
   /* Grayscale on top of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;

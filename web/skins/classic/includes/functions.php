@@ -64,6 +64,7 @@ if (defined('ZM_WEB_FAVICON')) {
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
 ';
 }
+echo output_link_if_exists(array('css/base/material-icons.css'));
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',

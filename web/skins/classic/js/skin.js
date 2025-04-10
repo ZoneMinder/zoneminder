@@ -1568,9 +1568,11 @@ function initPageGeneral() {
   window.addEventListener('beforeunload', function(event) {
     //event.preventDefault();
     let target;
+    /*
     if (!useOldMenuView) {
       closeMbExtruder(updateCookie = true);
     }
+    */
     if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe'].includes(currentView)) {
       target = $j('#page');
     } else if (currentView == 'options') {

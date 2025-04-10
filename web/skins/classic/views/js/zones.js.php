@@ -11,6 +11,7 @@ var monitorData = new Array();
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'name': '<?php echo $monitor->Name() ?>',
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
@@ -21,6 +22,7 @@ monitorData[monitorData.length] = {
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
+  'capturing': '<?php echo $monitor->Capturing() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>',
   'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };

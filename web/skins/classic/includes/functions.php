@@ -65,6 +65,24 @@ if (defined('ZM_WEB_FAVICON')) {
 ';
 }
 echo output_link_if_exists(array('css/base/material-icons.css'));
+echo output_script_if_exists(array(
+  'js/fontfaceobserver.standalone.js',
+));
+
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+    const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
+    fontMaterialIcons.load(null, 30000).then(function() {
+      console.log("Material Icons is loaded");
+      var _style_ = document.createElement('style');
+      _style_.innerHTML = `.material-icons {display: inline-block !important;}`;
+       document.querySelector('head').prepend(_style_);
+    }, function() {
+      console.log("Material Icons is NOT loaded");
+    });
+  </script>
+<?php
+
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
@@ -761,7 +779,7 @@ function getCycleHTML($view) {
     $class = $view == 'cycle' ? ' selected' : '';
     $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -769,12 +787,12 @@ function getCycleHTML($view) {
 function getMontageHTML($view) {
   global $user;
   $result = '';
-  
+
   if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -801,42 +819,42 @@ function getMontageReviewHTML($view) {
     $class = $view == 'montagereview' ? ' selected' : '';
     $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Montage menu item
 function getSnapshotsHTML($view) {
   $result = '';
-  
+
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 function getReportsHTML($view) {
   $result = '';
-  
+
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
     $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
   $result = '';
-  
+
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
     $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -993,27 +1011,6 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
-
-  echo output_script_if_exists(array(
-    'js/fontfaceobserver.standalone.js',
-  ));
-?>
-  <script nonce="<?php echo $cspNonce; ?>">
-    const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
-    fontMaterialIcons.load(null, 30000).then(function() {
-      console.log("Material Icons is loaded");
-      document.querySelectorAll(".material-icons").forEach(function(el) {
-        el.style.display = "inline-block";
-      });
-    }, function() {
-      console.log("Material Icons is NOT loaded");
-      // This code doesn't make sense, because if the Font hasn't loaded, then there's nothing to display. I left it because it was there before.
-      document.querySelectorAll(".material-icons").forEach(function(el) {
-        el.style.display = "inline-block";
-      });
-    });
-  </script>
-<?php
 
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');

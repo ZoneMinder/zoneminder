@@ -1231,15 +1231,6 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-function loadFontFaceObserver() {
-  const font = new FontFaceObserver('Material Icons', {weight: 400});
-  font.load().then(function() {
-    $j('.material-icons').css('display', 'inline-block');
-  }, function() {
-    $j('.material-icons').css('display', 'inline-block');
-  });
-}
-
 function thisClickOnStreamObject(clickObj) {
   if (clickObj.id) {
     if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
@@ -1592,7 +1583,5 @@ function initPageGeneral() {
     //event.returnValue = '';
   });
 }
-
-loadFontFaceObserver();
 
 $j( window ).on("load", initPageGeneral);

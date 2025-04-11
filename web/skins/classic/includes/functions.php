@@ -64,7 +64,28 @@ if (defined('ZM_WEB_FAVICON')) {
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
 ';
 }
-echo output_link_if_exists(array('css/base/material-icons.css'));
+
+echo output_link_if_exists(array('fonts/material-icons.woff2'), false, $param = ['global', 'preload', '  as="font" type="font/woff2" crossorigin']);
+//echo output_link_if_exists(array('fonts/material-icons.woff'), false, $param = ['global', 'preload', '  as="font" type="font/woff" crossorigin']);
+echo output_link_if_exists(array('css/base/material-icons.css'), false);
+echo output_script_if_exists(array(
+  'js/fontfaceobserver.standalone.js',
+));
+
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+    const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
+    fontMaterialIcons.load(null, 30000).then(function() {
+      console.log("Material Icons is loaded");
+      var _style_ = document.createElement('style');
+      _style_.innerHTML = `.material-icons {display: inline-block !important;}`;
+       document.querySelector('head').prepend(_style_);
+    }, function() {
+      console.log("Material Icons is NOT loaded");
+    });
+  </script>
+<?php
+
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
@@ -161,15 +182,25 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
-function output_link_if_exists($files, $cache_bust=true) {
+function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();
+  if ($param) {
+    $global_file = $param[0]; // The file is global or from a skin
+    $rel = '"'.$param[1].'"';
+    $suffix = $param[2];
+  } else {
+    $global_file = false;
+    $rel = '"stylesheet"';
+    $suffix = ' type="text/css"';
+  }
   foreach ( $files as $file ) {
-    if ( getSkinFile($file) ) {
+    $file_ = ($global_file && file_exists($file)) ? $file : getSkinFile($file);
+    if ($file_) {
       if ( $cache_bust ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        $html[] = '<link rel='.$rel.' href="'.cache_bust($file_).'" '.$suffix.'/>';
       } else  {
-        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        $html[] = '<link rel='.$rel.' href="'.$file_.'" '.$suffix.'/>';
       }
     }
   }
@@ -449,7 +480,7 @@ function getDbConHTML() {
   $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -503,7 +534,7 @@ function getStorageHTML() {
     $result .= '</div>'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -538,7 +569,7 @@ function getRamHTML() {
     } # end if SwapTotal
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -643,7 +674,7 @@ function getZMVersionHTML() {
   $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
   $result .= $content;
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -669,11 +700,11 @@ function getNavBrandHTML() {
 function getConsoleHTML() {
   global $user;
   $result = '';
-  
+
   if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -684,7 +715,7 @@ function getOptionsHTML() {
   if ( canView('System') ) {
     $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -706,7 +737,7 @@ function getLogHTML() {
 // Returns the html representing the log icon
 function getLogIconHTML() {
   $result = '';
-  
+
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
@@ -716,18 +747,18 @@ function getLogIconHTML() {
         '</li>'.PHP_EOL;
     }
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the X10 Devices menu item
 function getDevicesHTML() {
   $result = '';
-  
+
   if ( ZM_OPT_X10 && canView('Devices') ) {
     $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -761,7 +792,7 @@ function getCycleHTML($view) {
     $class = $view == 'cycle' ? ' selected' : '';
     $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -769,12 +800,12 @@ function getCycleHTML($view) {
 function getMontageHTML($view) {
   global $user;
   $result = '';
-  
+
   if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -801,42 +832,42 @@ function getMontageReviewHTML($view) {
     $class = $view == 'montagereview' ? ' selected' : '';
     $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Montage menu item
 function getSnapshotsHTML($view) {
   $result = '';
-  
+
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 function getReportsHTML($view) {
   $result = '';
-  
+
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
     $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
   $result = '';
-  
+
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
     $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -942,7 +973,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
     $result .= '</thead>'.PHP_EOL;
 
     $result .= '<tbody>'.PHP_EOL;
-    
+
     if ( count($stats) ) {
       foreach ( $stats as $stat ) {
         $result .= '<tr>'.PHP_EOL;
@@ -972,7 +1003,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
 
     $result .= '</tbody>'.PHP_EOL;
   $result .= '</table>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -993,6 +1024,7 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
+
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
@@ -1012,7 +1044,6 @@ function xhtmlFooter() {
   }
 
   echo output_script_if_exists(array(
-  'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
   'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',

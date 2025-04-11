@@ -64,7 +64,10 @@ if (defined('ZM_WEB_FAVICON')) {
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
 ';
 }
-echo output_link_if_exists(array('css/base/material-icons.css'));
+
+echo output_link_if_exists(array('fonts/material-icons.woff2'), false, $param = ['global', 'preload', '  as="font" type="font/woff2" crossorigin']);
+//echo output_link_if_exists(array('fonts/material-icons.woff'), false, $param = ['global', 'preload', '  as="font" type="font/woff" crossorigin']);
+echo output_link_if_exists(array('css/base/material-icons.css'), false);
 echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
 ));
@@ -179,15 +182,25 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
-function output_link_if_exists($files, $cache_bust=true) {
+function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();
+  if ($param) {
+    $global_file = $param[0]; // The file is global or from a skin
+    $rel = '"'.$param[1].'"';
+    $suffix = $param[2];
+  } else {
+    $global_file = false;
+    $rel = '"stylesheet"';
+    $suffix = ' type="text/css"';
+  }
   foreach ( $files as $file ) {
-    if ( getSkinFile($file) ) {
+    $file_ = ($global_file && file_exists($file)) ? $file : getSkinFile($file);
+    if ($file_) {
       if ( $cache_bust ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        $html[] = '<link rel='.$rel.' href="'.cache_bust($file_).'" '.$suffix.'/>';
       } else  {
-        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        $html[] = '<link rel='.$rel.' href="'.$file_.'" '.$suffix.'/>';
       }
     }
   }

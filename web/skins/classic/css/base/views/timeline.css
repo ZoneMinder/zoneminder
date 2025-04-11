@@ -38,6 +38,8 @@
     position: relative;
     min-height: 220px;
     margin: 4px auto 6px;
+    display: block;
+    width: 100%;
 }
 #topPanel:after {
   content: ".";
@@ -108,9 +110,11 @@
 }
 
 #chartPanel {
-  clear: both;
+    clear: both;
     position: relative;
     margin: 0 auto;
+    display: block;
+    width: 100%;
 }
 
 #chartPanel #chart {
@@ -154,6 +158,8 @@
 #chartLabels {
     margin: 25px auto 0;
     text-align: center;
+    display: block;
+    width: 100%;
 }
 
 #range {

@@ -36,7 +36,7 @@
 
 #topPanel {
     position: relative;
-    min-height: 220px;
+    /*min-height: 220px;*/
     margin: 4px auto 6px;
     display: block;
     width: 100%;

@@ -68,6 +68,7 @@ if (defined('ZM_WEB_FAVICON')) {
 echo output_link_if_exists(array('fonts/material-icons.woff2'), false, $param = ['global', 'preload', '  as="font" type="font/woff2" crossorigin']);
 //echo output_link_if_exists(array('fonts/material-icons.woff'), false, $param = ['global', 'preload', '  as="font" type="font/woff" crossorigin']);
 echo output_link_if_exists(array('css/base/material-icons.css'), false);
+echo output_link_if_exists(array('fonts/fontawesome-webfont.woff2?v=4.7.0'), false, $param = ['global', 'preload font', '  as="font" type="font/woff2" crossorigin']);
 echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
 ));
@@ -195,7 +196,8 @@ function output_link_if_exists($files, $cache_bust=true, $param=false) {
     $suffix = ' type="text/css"';
   }
   foreach ( $files as $file ) {
-    $file_ = ($global_file && file_exists($file)) ? $file : getSkinFile($file);
+    // The file name can be for example "fontawesome-webfont.woff2?v=4.7.0". We need to select what is before the "?"
+    $file_ = ($global_file && file_exists(explode('?', $file)[0])) ? $file : getSkinFile($file);
     if ($file_) {
       if ( $cache_bust ) {
         $html[] = '<link rel='.$rel.' href="'.cache_bust($file_).'" '.$suffix.'/>';

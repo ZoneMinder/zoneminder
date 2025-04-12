@@ -921,7 +921,6 @@ function streamReStart(oldId, newId) {
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
-  loadFontFaceObserver();
   manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }

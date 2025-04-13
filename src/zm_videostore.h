@@ -115,6 +115,7 @@ class VideoStore {
   const AVCodec * get_video_encoder() {
     return video_out_ctx ? video_out_ctx->codec : nullptr;
   }
+  size_t get_reorder_queue_size() const { return reorder_queue_size; };
 };
 
 #endif // ZM_VIDEOSTORE_H

@@ -987,8 +987,11 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
-      packet->in_frame = nullptr;
-      packet->ai_frame = nullptr;
+      if (!videoStore->get_reorder_queue_size()) {
+        // Don't do this because videostore might buffer for reordering
+        packet->in_frame = nullptr;
+        packet->ai_frame = nullptr;
+      }
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

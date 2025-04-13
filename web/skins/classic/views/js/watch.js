@@ -482,29 +482,7 @@ function handleClick(event) {
 
   if (panZoomEnabled) {
     event.preventDefault();
-    //We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? event.target : event.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, event.target, event.target.parentElement);
-      return;
-    }
-    if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-
-    if (obj.className.includes('btn-edit-monitor')) {
-      const url = '?view=monitor&mid='+monitorId;
-      if (event.ctrlKey) {
-        window.open(url, '_blank');
-      } else {
-        window.location.assign(url);
-      }
-    }
-
-    const obj_id = obj.getAttribute('id');
-    if (obj_id) {
-      if (obj_id.indexOf("liveStream") >= 0) zmPanZoom.click(monitorId);
-    } else {
-      console.log("obj does not have an id", obj);
-    }
+    managePanZoomButton(event);
   } else {
     // +++ Old ZoomPan algorithm.
     if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
@@ -944,6 +922,7 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   loadFontFaceObserver();
+  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
@@ -1048,6 +1027,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   streamCmdPlay(true);
                   if (cycle_was) cycleStart();
                 });
@@ -1061,7 +1041,6 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
-        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -1119,6 +1098,7 @@ function initPage() {
     };
   });
 
+  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {

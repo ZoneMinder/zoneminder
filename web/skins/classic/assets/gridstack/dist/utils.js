@@ -1,11 +1,12 @@
 /**
- * utils.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * utils.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
+import { GridStack } from './gridstack';
 /** checks for obsolete method names */
 // eslint-disable-next-line
 export function obsolete(self, f, oldName, newName, rev) {
-    let wrapper = (...args) => {
+    const wrapper = (...args) => {
         console.warn('gridstack.js: Function `' + oldName + '` is deprecated in ' + rev + ' and has been replaced ' +
             'with `' + newName + '`. It will be **removed** in a future release');
         return f.apply(self, args);
@@ -29,7 +30,7 @@ export function obsoleteOptsDel(opts, oldName, rev, info) {
 }
 /** checks for obsolete Jquery element attributes */
 export function obsoleteAttr(el, oldName, newName, rev) {
-    let oldAttr = el.getAttribute(oldName);
+    const oldAttr = el.getAttribute(oldName);
     if (oldAttr !== null) {
         el.setAttribute(newName, oldAttr);
         console.warn('gridstack.js: attribute `' + oldName + '`=' + oldAttr + ' is deprecated on this object in ' + rev + ' and has been replaced with `' +
@@ -90,6 +91,35 @@ export class Utils {
         }
         return els;
     }
+    /** create the default grid item divs, and content possibly lazy loaded calling GridStack.renderCB */
+    static createWidgetDivs(itemClass, n) {
+        const el = Utils.createDiv(['grid-stack-item', itemClass]);
+        const cont = Utils.createDiv(['grid-stack-item-content'], el);
+        const lazyLoad = n.lazyLoad || n.grid?.opts?.lazyLoad && n.lazyLoad !== false;
+        if (lazyLoad) {
+            if (!n.visibleObservable) {
+                n.visibleObservable = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) {
+                        n.visibleObservable?.disconnect();
+                        delete n.visibleObservable;
+                        GridStack.renderCB(cont, n);
+                    }
+                });
+                window.setTimeout(() => n.visibleObservable?.observe(el)); // wait until callee sets position attributes
+            }
+        }
+        else
+            GridStack.renderCB(cont, n);
+        return el;
+    }
+    /** create a div with the given classes */
+    static createDiv(classes, parent) {
+        const el = document.createElement('div');
+        classes.forEach(c => { if (c)
+            el.classList.add(c); });
+        parent?.appendChild(el);
+        return el;
+    }
     /** true if we should resize to content. strict=true when only 'sizeToContent:true' and not a number which lets user adjust */
     static shouldSizeToContent(n, strict = false) {
         return n?.grid && (strict ?
@@ -106,12 +136,12 @@ export class Utils {
     }
     /** returns the area a and b overlap */
     static areaIntercept(a, b) {
-        let x0 = (a.x > b.x) ? a.x : b.x;
-        let x1 = (a.x + a.w < b.x + b.w) ? a.x + a.w : b.x + b.w;
+        const x0 = (a.x > b.x) ? a.x : b.x;
+        const x1 = (a.x + a.w < b.x + b.w) ? a.x + a.w : b.x + b.w;
         if (x1 <= x0)
             return 0; // no overlap
-        let y0 = (a.y > b.y) ? a.y : b.y;
-        let y1 = (a.y + a.h < b.y + b.h) ? a.y + a.h : b.y + b.h;
+        const y0 = (a.y > b.y) ? a.y : b.y;
+        const y1 = (a.y + a.h < b.y + b.h) ? a.y + a.h : b.y + b.h;
         if (y1 <= y0)
             return 0; // no overlap
         return (x1 - x0) * (y1 - y0);
@@ -128,7 +158,7 @@ export class Utils {
     static sort(nodes, dir = 1) {
         const und = 10000;
         return nodes.sort((a, b) => {
-            let diffY = dir * ((a.y ?? und) - (b.y ?? und));
+            const diffY = dir * ((a.y ?? und) - (b.y ?? und));
             if (diffY === 0)
                 return dir * ((a.x ?? und) - (b.x ?? und));
             return diffY;
@@ -145,7 +175,7 @@ export class Utils {
      * if none supplied it will be appended to the document head instead.
      */
     static createStylesheet(id, parent, options) {
-        let style = document.createElement('style');
+        const style = document.createElement('style');
         const nonce = options?.nonce;
         if (nonce)
             style.nonce = nonce;
@@ -172,7 +202,7 @@ export class Utils {
     /** removed the given stylesheet id */
     static removeStylesheet(id, parent) {
         const target = parent || document;
-        let el = target.querySelector('STYLE[gs-style-id=' + id + ']');
+        const el = target.querySelector('STYLE[gs-style-id=' + id + ']');
         if (el && el.parentNode)
             el.remove();
     }
@@ -206,7 +236,7 @@ export class Utils {
             if (val === 'auto' || val === '')
                 h = 0;
             else {
-                let match = val.match(/^(-[0-9]+\.[0-9]+|[0-9]*\.[0-9]+|-[0-9]+|[0-9]+)(px|em|rem|vh|vw|%|cm|mm)?$/);
+                const match = val.match(/^(-[0-9]+\.[0-9]+|[0-9]*\.[0-9]+|-[0-9]+|[0-9]+)(px|em|rem|vh|vw|%|cm|mm)?$/);
                 if (!match) {
                     throw new Error(`Invalid height val = ${val}`);
                 }
@@ -299,17 +329,14 @@ export class Utils {
         if (typeof a !== 'object' || typeof b !== 'object')
             return;
         for (let key in a) {
-            let val = a[key];
-            if (key[0] === '_' || val === b[key]) {
+            const aVal = a[key];
+            const bVal = b[key];
+            if (key[0] === '_' || aVal === bVal) {
                 delete a[key];
             }
-            else if (val && typeof val === 'object' && b[key] !== undefined) {
-                for (let i in val) {
-                    if (val[i] === b[key][i] || i[0] === '_') {
-                        delete val[i];
-                    }
-                }
-                if (!Object.keys(val).length) {
+            else if (aVal && typeof aVal === 'object' && bVal !== undefined) {
+                Utils.removeInternalAndSame(aVal, bVal);
+                if (!Object.keys(aVal).length) {
                     delete a[key];
                 }
             }
@@ -357,7 +384,7 @@ export class Utils {
         };
     }
     static removePositioningStyles(el) {
-        let style = el.style;
+        const style = el.style;
         if (style.position) {
             style.removeProperty('position');
         }
@@ -390,18 +417,18 @@ export class Utils {
     /** @internal */
     static updateScrollPosition(el, position, distance) {
         // is widget in view?
-        let rect = el.getBoundingClientRect();
-        let innerHeightOrClientHeight = (window.innerHeight || document.documentElement.clientHeight);
+        const rect = el.getBoundingClientRect();
+        const innerHeightOrClientHeight = (window.innerHeight || document.documentElement.clientHeight);
         if (rect.top < 0 ||
             rect.bottom > innerHeightOrClientHeight) {
             // set scrollTop of first parent that scrolls
             // if parent is larger than el, set as low as possible
             // to get entire widget on screen
-            let offsetDiffDown = rect.bottom - innerHeightOrClientHeight;
-            let offsetDiffUp = rect.top;
-            let scrollEl = this.getScrollElement(el);
+            const offsetDiffDown = rect.bottom - innerHeightOrClientHeight;
+            const offsetDiffUp = rect.top;
+            const scrollEl = this.getScrollElement(el);
             if (scrollEl !== null) {
-                let prevScroll = scrollEl.scrollTop;
+                const prevScroll = scrollEl.scrollTop;
                 if (rect.top < 0 && distance < 0) {
                     // moving up
                     if (el.offsetHeight > innerHeightOrClientHeight) {
@@ -531,10 +558,6 @@ export class Utils {
             cancelable: true,
             target: info.target ? info.target : e.target
         };
-        // don't check for `instanceof DragEvent` as Safari use MouseEvent #1540
-        if (e.dataTransfer) {
-            evt['dataTransfer'] = e.dataTransfer; // workaround 'readonly' field.
-        }
         ['altKey', 'ctrlKey', 'metaKey', 'shiftKey'].forEach(p => evt[p] = e[p]); // keys
         ['pageX', 'pageY', 'clientX', 'clientY', 'screenX', 'screenY'].forEach(p => evt[p] = e[p]); // point info
         return { ...evt, ...obj };
@@ -585,6 +608,30 @@ export class Utils {
             xOffset: transformValues.left,
             yOffset: transformValues.top,
         };
+    }
+    /** swap the given object 2 field values */
+    static swap(o, a, b) {
+        if (!o)
+            return;
+        const tmp = o[a];
+        o[a] = o[b];
+        o[b] = tmp;
+    }
+    /** returns true if event is inside the given element rectangle */
+    // Note: Safari Mac has null event.relatedTarget which causes #1684 so check if DragEvent is inside the coordinates instead
+    //    this.el.contains(event.relatedTarget as HTMLElement)
+    // public static inside(e: MouseEvent, el: HTMLElement): boolean {
+    //   // srcElement, toElement, target: all set to placeholder when leaving simple grid, so we can't use that (Chrome)
+    //   const target: HTMLElement = e.relatedTarget || (e as any).fromElement;
+    //   if (!target) {
+    //     const { bottom, left, right, top } = el.getBoundingClientRect();
+    //     return (e.x < right && e.x > left && e.y < bottom && e.y > top);
+    //   }
+    //   return el.contains(target);
+    // }
+    /** true if the item can be rotated (checking for prop, not space available) */
+    static canBeRotated(n) {
+        return !(!n || n.w === n.h || n.locked || n.noResize || n.grid?.opts.disableResize || (n.minW && n.minW === n.maxW) || (n.minH && n.minH === n.maxH));
     }
 }
 //# sourceMappingURL=utils.js.map

@@ -675,8 +675,20 @@ var resizeTimer;
 
 function endOfResize(e) {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
+  resizeTimer = setTimeout(function() {
+    setCookie('zmBrowserSizes', JSON.stringify({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+    }));
+    if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
+      //Only for scaleToFit
+      changeScale();
+    }
+  }, 250);
 }
+window.onresize = endOfResize;
 
 /* scaleToFit
  *
@@ -687,7 +699,7 @@ function endOfResize(e) {
  * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
-  $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
+  //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
@@ -1029,7 +1041,34 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
-var thumbnail_timeout;
+/* Controls the availability of options for selection*/
+function manageRTSP2WebChannelStream() {
+  let select = null;
+  let secondPath_ = null;
+  if (currentView == 'watch') {
+    const monitor = monitorData.find((o) => {
+      return parseInt(o["id"]) === monitorId;
+    });
+    if (monitor) {
+      secondPath_ = monitor['SecondPath'];
+    }
+    select = document.querySelector('select[name="streamChannel"]');
+  } else if (currentView == 'monitor') {
+    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+  }
+  if (select) {
+    select.querySelectorAll("option").forEach(function(el) {
+      if (el.value == 'Secondary' && !secondPath_) {
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+      }
+      applyChosen(select);
+    });
+  }
+}
+
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
@@ -1153,26 +1192,43 @@ function isMobile() {
   return result;
 }
 
-function applyChosen() {
-  const limit_search_threshold = 10;
+function destroyChosen(selector = '') {
+  if (typeof selector === 'string') {
+    $j(selector + '.chosen').chosen('destroy');
+  } else {
+    if ($j(selector).hasClass('chosen')) {
+      $j(selector).chosen('destroy');
+    }
+  }
+}
 
-  $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
-  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+function applyChosen(selector = '') {
+  const limit_search_threshold = 10;
+  var [obj_1, obj_2, obj_3] = '';
+  destroyChosen(selector);
+  if (typeof selector === 'string') {
+    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+  } else {
+    if (!$j(selector).hasClass('chosen')) return;
+    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+  }
+  if (obj_1) {
+    obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  }
+  if (obj_2) {
+    obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  }
+  if (obj_3) {
+    obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  }
 }
 
 function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
-}
-
-function loadFontFaceObserver() {
-  const font = new FontFaceObserver('Material Icons', {weight: 400});
-  font.load().then(function() {
-    $j('.material-icons').css('display', 'inline-block');
-  }, function() {
-    $j('.material-icons').css('display', 'inline-block');
-  });
 }
 
 function thisClickOnStreamObject(clickObj) {
@@ -1343,14 +1399,6 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
   }
 }
 
-$j(document).on('keyup.global keydown.global', function(e) {
-  shifted = e.shiftKey ? e.shiftKey : e.shift;
-  ctrled = e.ctrlKey;
-  alted = e.altKey;
-});
-
-loadFontFaceObserver();
-
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
@@ -1370,3 +1418,170 @@ function canPlayCodec(filename) {
   }
   return false;
 }
+
+/* Handling <input> change */
+function handleChangeInputTag(evt) {
+  // Managing availability of channel stream selection
+  manageRTSP2WebChannelStream();
+}
+
+function handleMouseover(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'show');
+}
+
+function handleMouseout(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'hide');
+}
+
+function manageVisibilityVideoPlayerControlPanel(evt, action) {
+  if (thisClickOnStreamObject(evt.target)) {
+    let video = evt.target.querySelector('video');
+    if (!video) {
+      video = evt.target.tagName == 'VIDEO' ? evt.target : null;
+    }
+    if (!video) {
+      video = evt.target.getAttribute('tagName');
+    }
+    if (video && !video.closest('#videoobj')) {
+      // We do not touch the video.js object, since it has its own controls.
+      if (action == 'hide') {
+        video.removeAttribute('controls');
+      } else if (action == 'show') {
+        video.setAttribute('controls', '');
+      }
+    }
+  }
+}
+
+/* Handle any action on the touch screen */
+function handleTouchActionGeneral(action, evt) {
+  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
+  if (action == 'touchstart') {
+    managePanZoomButton(evt);
+  } else if (action == 'touchend') {
+  } else if (action == 'touchcancel') {
+  } else if (action == 'touchmove') {
+    //evt.preventDefault();
+  }
+}
+
+function managePanZoomButton(evt) {
+  var url = null;
+  if (panZoomEnabled) {
+    const targetId = evt.target.id;
+    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
+    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
+      // Click was outside '.imageFeed'
+      $j('[id^="button_zoom"]').addClass('hidden');
+      return;
+    } else {
+      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
+    }
+    //evt.preventDefault();
+    // We are looking for an object with an ID, because there may be another element in the button.
+    const obj = targetId ? evt.target : evt.target.parentElement;
+    if (!obj) {
+      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+      return;
+    }
+
+    if (currentView == 'watch') {
+      monitorId_ = monitorId;
+    } else if (currentView == 'montage') {
+      // On Montage page with mode==EDITING it is forbidden to use PanZoom
+      if (mode == EDITING) return;
+      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
+    } else if (currentView == 'event') {
+      monitorId_ = eventData.MonitorId;
+    }
+
+    if (obj.className.includes('btn-view-watch')) {
+      url = '?view=watch&mid='+monitorId_;
+    } else if (obj.className.includes('btn-edit-monitor')) {
+      url = '?view=monitor&mid='+monitorId_;
+    } else if (obj.className.includes('btn-fullscreen')) {
+      if (document.fullscreenElement) {
+        closeFullscreen();
+      } else {
+        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+      }
+    }
+    if (url) {
+      if (evt.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        window.location.assign(url);
+      }
+    }
+    // Zoom by mouse click
+    if (thisClickOnStreamObject(obj)) {
+      zmPanZoom.click(monitorId_);
+    }
+  }
+}
+
+function initPageGeneral() {
+  $j(document).on('keyup.global keydown.global', function(e) {
+    shifted = e.shiftKey ? e.shiftKey : e.shift;
+    ctrled = e.ctrlKey;
+    alted = e.altKey;
+  });
+
+  /* Assigning global handlers!
+  ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
+  */
+  document.body.addEventListener('input', function(event) {
+    handleChangeInputTag(event);
+  });
+
+  document.body.addEventListener('mouseover', function(event) {
+    handleMouseover(event);
+  });
+  document.body.addEventListener('mouseout', function(event) {
+    handleMouseout(event);
+  });
+
+  // Support for touch devices.
+  ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
+    document.addEventListener(action, function(event) {
+      handleTouchActionGeneral(action, event);
+    }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."
+  });
+
+  // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'
+  setTimeout(function() {
+    // Delay required for DOM rendering
+    document.querySelectorAll("video").forEach(function removeControlsAttributeFromVideoTags(el) {
+      el.removeAttribute('controls');
+    });
+  }, 200);
+
+  window.addEventListener('beforeunload', function(event) {
+    //event.preventDefault();
+    let target;
+    /*
+    if (!useOldMenuView) {
+      closeMbExtruder(updateCookie = true);
+    }
+    */
+    if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe'].includes(currentView)) {
+      target = $j('#page');
+    } else if (currentView == 'options') {
+      target = $j('#optionsContainer');
+    } else {
+      target = $j('#content');
+    }
+    if (target.css('display') == 'flex') {
+      // If flex-grow is set to a value > 0 then "height" will be ignored!
+      target.css({flex: "0 1 auto"});
+    }
+
+    target.animate({height: 0}, 300, function() {
+      $j('body').find('#btn-collapse').css({display: "none"});
+      target.css({display: "none"});
+    });
+    //event.returnValue = '';
+  });
+}
+
+$j( window ).on("load", initPageGeneral);

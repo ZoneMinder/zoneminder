@@ -43,6 +43,7 @@ foreach ($monitors as $m) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $m->Id() ?>,
+  'name': '<?php echo $m->Name() ?>',
   'server_id': '<?php echo $m->ServerId() ?>',
   'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
@@ -50,10 +51,12 @@ monitorData[monitorData.length] = {
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
   'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
+  'SecondPath':'<?php echo $m->SecondPath() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
   'type': '<?php echo $m->Type() ?>',
+  'capturing': '<?php echo $m->Capturing() ?>',
   'refresh': '<?php echo $m->Refresh() ?>',
   'janus_pin': '<?php echo $m->Janus_Pin() ?>',
   'streamHTML': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['StreamHTML']) ?>',

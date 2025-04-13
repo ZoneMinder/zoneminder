@@ -2,6 +2,7 @@
 const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
+var monitorInitComplete = false;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -203,7 +204,7 @@ function selectLayout(new_layout_id) {
   changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
-  on_scroll();
+  setTimeout(on_scroll, 100);
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 
@@ -531,57 +532,27 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
-  var id;
-
-  // We are looking for an object with an ID, because there may be another element in the button.
-  const obj = evt.target.id ? evt.target : evt.target.parentElement;
-
-  if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-  if (obj.className.includes('btn-view-watch')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=watch&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-edit-monitor')) {
-    const el = evt.currentTarget;
-    id = el.getAttribute("data-monitor-id");
-    const url = '?view=monitor&mid='+id;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-fullscreen')) {
-    if (document.fullscreenElement) {
-      closeFullscreen();
-    } else {
-      openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
-    }
-  }
-
-  if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-    id = stringToNumber(obj.getAttribute('id'));
-    zmPanZoom.click(id);
-  }
+  managePanZoomButton(evt);
 }
 
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
     // Why are we scaling here instead of in monitorstream?
+    /* +++ If you delete this code, then Firefox will slow down terribly... you need to UNDERSTAND the problem!!!*/
     const obj = document.getElementById('liveStream'+monitor.id);
-    if (obj.src) {
-      const url = new URL(obj.src);
-      let scale = parseInt(obj.clientWidth / monitor.width * 100);
-      if (scale > 100) scale = 100;
-      url.searchParams.set('scale', scale);
-      obj.src = url;
+    if (obj) {
+      if (obj.src) {
+        const url = new URL(obj.src);
+        let scale = parseInt(obj.clientWidth / monitor.width * 100);
+        if (scale > 100) scale = 100;
+        url.searchParams.set('scale', scale);
+        obj.src = url;
+      }
+    } else {
+      console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
     }
-
+    /* --- */
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();
@@ -781,6 +752,7 @@ function initPage() {
               .done(function(data) {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
+                  idleTimeoutTriggered = false;
                   for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
                 });
                 ayswModal.modal('show');
@@ -793,7 +765,6 @@ function initPage() {
 
       function resetTimer() {
         clearTimeout(time);
-        idleTimeoutTriggered = false;
         time = setTimeout(stopPlayback, ZM_WEB_VIEWING_TIMEOUT * 1000);
       }
     };
@@ -803,16 +774,16 @@ function initPage() {
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = document.getElementById('liveStream'+item);
+        const img = getStream(item);
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
           setRatioForMonitor(img, item);
-          objGridStack.resizeToContent(document.getElementById('m'+item));
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
           changedMonitors.splice(object.length - 1 - index, 1);
         }
         monitorsSetScale(item);
       });
     }
-  }, 100);
+  }, 200);
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');
@@ -865,6 +836,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
+  if (!monitorInitComplete) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
@@ -872,7 +844,8 @@ function on_scroll() {
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      monitor.stop();
+      //monitor.stop(); // does not work without replacing SRC to stop ZMS
+      monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -917,9 +890,9 @@ function watchFullscreen() {
 
 function initGridStack(grid=null) {
   const opts = {
-    margin: 0,
-    cellHeight: '1px',
-    //sizeToContent: true, // default to make them all fit
+    margin: '0 1px 0 1px',
+    cellHeight: '4px', //Required for correct use of objGridStack.resizeToContent
+    sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,
@@ -1040,6 +1013,7 @@ function changeStreamQuality() {
 
 function monitorsSetScale(id=null) {
   // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  id = parseInt(id);
   if (id || typeof monitorStream !== 'undefined') {
     //monitorStream used on Watch page.
     if (typeof monitorStream !== 'undefined') {
@@ -1143,6 +1117,7 @@ function waitingMonitorsPlaced(action = null) {
       //}
       if (action == 'startMonitors') {
         startMonitors();
+        monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
           return;

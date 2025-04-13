@@ -1,6 +1,6 @@
 /**
- * dd-base-impl.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * dd-base-impl.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 export class DDBaseImplement {
     constructor() {

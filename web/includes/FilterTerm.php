@@ -332,6 +332,8 @@ class FilterTerm {
         $subterms[] = $subterm;
       }
       $sql .= '('.implode(' OR ', $subterms).')';
+    } elseif (($this->attr === 'Tags') && ($values[0] === '')) {
+      $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
     } else {
       $sql .= $this->sql_attr();
       if ($this->collate) $sql .= ' COLLATE '.$this->collate;
@@ -343,7 +345,6 @@ class FilterTerm {
         $sql .= $values[0];
       }
     }
-
     if ( isset($this->cbr) ) {
       $sql .= ' '.str_repeat(')', $this->cbr);
     }

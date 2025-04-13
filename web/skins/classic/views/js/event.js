@@ -565,7 +565,7 @@ function vjsPlay() { //catches if we change mode programatically
   streamPlay();
 }
 
-function streamPlay( ) {
+function streamPlay() {
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -1039,35 +1039,7 @@ function progressBarNav() {
 
 function handleClick(event) {
   if (panZoomEnabled) {
-    if (!event.target.closest('#wrapperEventVideo')) {
-      return;
-    }
-
-    //event.preventDefault();
-    const monitorId = eventData.MonitorId; // Event page
-    //We are looking for an object with an ID, because there may be another element in the button.
-    const obj = event.target.id ? event.target : event.target.parentElement;
-
-    if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-    if (obj.className.includes('btn-edit-monitor')) {
-      const url = '?view=monitor&mid='+monitorId;
-      if (event.ctrlKey) {
-        window.open(url, '_blank');
-      } else {
-        window.location.assign(url);
-      }
-    }
-
-    const obj_id = obj.getAttribute('id');
-    //if (obj.getAttribute('id').indexOf("liveStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Montage & Watch page
-    if (obj_id && (
-      obj_id.indexOf("evtStream") >= 0 ||
-      obj_id.indexOf("button_zoom") >= 0 ||
-      obj.querySelector('video'))
-    ) { //Event page
-      //panZoom[monitorId].setOptions({disablePan: false});
-      zmPanZoom.click(monitorId);
-    }
+    managePanZoomButton(event);
   } else {
     // +++ Old ZoomPan algorithm.
     /*
@@ -1345,7 +1317,6 @@ function onStatsResize(vidWidth) {
 function initPage() {
   getAvailableTags();
   getSelectedTags();
-
 
   // Load the event stats
   getStat();
@@ -1673,7 +1644,12 @@ function initPage() {
     el.addEventListener('dblclick', doubleClickOnStream);
   });
 
-  streamPlay();
+  const video = document.querySelector('video');
+  if (!vid || (vid && video.autoplay && !video.paused)) {
+    streamPlay();
+  } else {
+    streamPause();
+  }
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     const mapDiv = document.getElementById('LocationMap');

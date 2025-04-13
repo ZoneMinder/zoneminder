@@ -1,6 +1,7 @@
 
 var map = null;
 var marker = null;
+var sourceFormMonitor = null;
 
 function updateMonitorDimensions(element) {
   var form = element.form;
@@ -273,31 +274,37 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
+  var sourceFormMonitor = $j('#contentForm').serialize();
   // Manage the ZONES Button
   document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
-    evt.preventDefault();
-    const data = {
-      request: "modal",
-      modal: "saveconfirm",
-      key: messageSavingDataWhenLeavingPage
-    };
+    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+      evt.preventDefault();
+      const data = {
+        request: "modal",
+        modal: "saveconfirm",
+        key: messageSavingDataWhenLeavingPage
+      };
 
-    if (!document.getElementById('saveConfirm')) {
-      // Load the save confirmation modal into the DOM
-      $j.getJSON(thisUrl, data)
-          .done(function(data) {
-            insertModalHtml('saveConfirm', data.html);
-            manageSaveConfirmModalBtns();
-            $j('#saveConfirm').modal('show');
-          })
-          .fail(function(jqXHR) {
-            console.log('error getting saveconfirm', jqXHR);
-            logAjaxFail(jqXHR);
-          });
-      return;
+      if (!document.getElementById('saveConfirm')) {
+        // Load the save confirmation modal into the DOM
+        $j.getJSON(thisUrl, data)
+            .done(function(data) {
+              insertModalHtml('saveConfirm', data.html);
+              manageSaveConfirmModalBtns();
+              $j('#saveConfirm').modal('show');
+            })
+            .fail(function(jqXHR) {
+              console.log('error getting saveconfirm', jqXHR);
+              logAjaxFail(jqXHR);
+            });
+        return;
+      } else {
+        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+        $j('#saveConfirm').modal('show');
+      }
     } else {
-      document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
-      $j('#saveConfirm').modal('show');
+      const href = '?view=zones&mid='+mid;
+      window.location.assign(href);
     }
   });
 
@@ -470,6 +477,8 @@ function initPage() {
 
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
+
+  manageRTSP2WebChannelStream();
 } // end function initPage()
 
 function saveMonitorData(href = '') {

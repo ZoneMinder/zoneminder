@@ -4,6 +4,7 @@ const streaming = [];
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
+  this.name = monitorData.name;
   this.started = false;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
@@ -22,6 +23,7 @@ function MonitorStream(monitorData) {
   this.streamStartTime = 0; // Initial point of flow start time. Used for flow lag time analysis.
   this.waitingStart;
   this.mseListenerSourceopenBind = null;
+  this.streamListenerBind = null;
   this.mseSourceBufferListenerUpdateendBind = null;
   this.mseStreamingStarted = false;
   this.mseQueue = [];
@@ -46,6 +48,7 @@ function MonitorStream(monitorData) {
   };
   this.ajaxQueue = null;
   this.type = monitorData.type;
+  this.capturing = monitorData.capturing;
   this.refresh = monitorData.refresh;
 
   this.buttons = {}; // index by name
@@ -71,7 +74,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
+      console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdQuery.bind(this);
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
@@ -240,6 +243,8 @@ function MonitorStream(monitorData) {
 
   this.start = function(streamChannel = 'default') {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`);
+    this.streamListenerBind = streamListener.bind(null, this);
+
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -261,6 +266,7 @@ function MonitorStream(monitorData) {
       attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       this.started = true;
+      this.streamListenerBind();
       return;
     }
     if (this.RTSP2WebEnabled) {
@@ -305,6 +311,7 @@ function MonitorStream(monitorData) {
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
+        this.streamListenerBind();
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -338,6 +345,7 @@ function MonitorStream(monitorData) {
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
     this.started = true;
+    this.streamListenerBind();
   }; // this.start
 
   this.stop = function() {
@@ -917,6 +925,11 @@ function MonitorStream(monitorData) {
         console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
         this.restart(this.currentChannelStream);
       }
+    } else if (this.RTSP2WebType == 'WebRTC') {
+      if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+        console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
+        this.restart(this.currentChannelStream);
+      }
     }
   };
 
@@ -1128,7 +1141,19 @@ const waitUntil = (condition) => {
 };
 
 function startRTSP2WebPlay(videoEl, url, stream) {
+  if (typeof RTCPeerConnection !== 'function') {
+    const msg = `Your browser does not support 'RTCPeerConnection'. Monitor '${stream.name}' ID=${stream.id} not started.`;
+    console.log(msg);
+    stream.getElement().before(document.createTextNode(msg));
+    stream.RTSP2WebType = null; // Avoid repeated restarts.
+    return;
+  }
+
   const mediaStream = new MediaStream();
+  if (stream.webrtc) {
+    stream.webrtc.close();
+    stream.webrtc = null;
+  }
   videoEl.srcObject = mediaStream;
   stream.webrtc = new RTCPeerConnection({
     iceServers: [{
@@ -1209,26 +1234,29 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }
 
+function streamListener(stream) {
+  window.addEventListener('beforeunload', function(event) {
+    stream.kill();
+  });
+}
+
 function mseListenerSourceopen(context, videoEl, url) {
   context.wsMSE = new WebSocket(url);
   context.wsMSE.binaryType = 'arraybuffer';
 
-  window.addEventListener('beforeunload', function(event) {
-    this.started = false;
-    context.closeWebSocket();
-  });
   context.wsMSE.onopen = function(event) {
     console.log(`Connect to ws for a video object ID=${context.id}`);
   };
   context.wsMSE.onclose = (event) => {
     context.clearWebSocket();
-    //console.log(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} CLOSED.`);
+    console.log(`${dateTimeToISOLocal(new Date())} WebSocket CLOSED for a video object ID=${context.id}.`);
   };
   context.wsMSE.onerror = function(event) {
-    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket for a video object ID=${context.id} ERROR:`, event);
+    console.warn(`${dateTimeToISOLocal(new Date())} WebSocket ERROR for a video object ID=${context.id}:`, event);
     if (this.started) this.restart();
   };
   context.wsMSE.onmessage = function(event) {
+    if (!context.mse || (context.mse && context.mse.readyState !== "open")) return;
     const data = new Uint8Array(event.data);
     if (data[0] === 9) {
       let mimeCodec;
@@ -1242,8 +1270,11 @@ function mseListenerSourceopen(context, videoEl, url) {
       if (MediaSource.isTypeSupported('video/mp4; codecs="' + mimeCodec + '"')) {
         console.log(`For a video object ID=${context.id} codec used: ${mimeCodec}`);
       } else {
-        console.log(`For a video object ID=${context.id} codec '${mimeCodec}' not supported.`);
+        const msg = `For a video object ID=${context.id} codec '${mimeCodec}' not supported. Monitor '${context.name}' ID=${context.id} not starting.`;
+        console.log(msg);
+        context.getElement().before(document.createTextNode(msg));
         context.stop();
+        context.RTSP2WebType = null; // Avoid repeated restarts
         return;
       }
 

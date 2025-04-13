@@ -1,6 +1,6 @@
 /**
- * gridstack SASS styles 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * gridstack SASS styles 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 
 $columns: 12 !default;
@@ -76,14 +76,14 @@ $animation_speed: .3s !default;
   }
 
   > .ui-resizable-ne {
-    @include vendor(transform, translate(0, 10px) rotate(45deg));
+    @include vendor(transform, rotate(45deg));
   }
   > .ui-resizable-sw {
     @include vendor(transform, rotate(45deg));
   }
 
   > .ui-resizable-nw {
-    @include vendor(transform, translate(0, 10px) rotate(-45deg));
+    @include vendor(transform, rotate(-45deg));
   }
   > .ui-resizable-se {
     @include vendor(transform, rotate(-45deg));

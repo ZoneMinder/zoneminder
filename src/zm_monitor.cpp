@@ -3222,7 +3222,7 @@ int Monitor::Decode() {
       packet_lock = std::move( decoder_queue.front() );
       decoder_queue.pop_front();
       packet = delayed_packet;
-      av_packet_unref(packet->packet.get());
+      //av_packet_unref(packet->packet.get());
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {

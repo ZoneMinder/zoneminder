@@ -1,13 +1,13 @@
 /*!
- * GridStack 10.1.2
+ * GridStack 11.1.2
  * https://gridstackjs.com/
  *
- * Copyright (c) 2021-2022 Alain Dumesny
+ * Copyright (c) 2021-2024  Alain Dumesny
  * see root license https://github.com/gridstack/gridstack.js/tree/master/LICENSE
  */
 import { GridStackEngine } from './gridstack-engine';
 import { Utils } from './utils';
-import { ColumnOptions, GridItemHTMLElement, GridStackElement, GridStackEventHandlerCallback, GridStackNode, GridStackWidget, numberOrString, DDDragInOpt, GridStackOptions, GridStackEventHandler, GridStackNodesHandler, AddRemoveFcn, SaveFcn, CompactOptions, ResizeToContentFcn, GridStackDroppedHandler, GridStackElementHandler } from './types';
+import { ColumnOptions, GridItemHTMLElement, GridStackElement, GridStackEventHandlerCallback, GridStackNode, GridStackWidget, numberOrString, DDDragOpt, GridStackOptions, GridStackEventHandler, GridStackNodesHandler, AddRemoveFcn, SaveFcn, CompactOptions, ResizeToContentFcn, GridStackDroppedHandler, GridStackElementHandler, Position, RenderFcn } from './types';
 import { DDGridStack } from './dd-gridstack';
 export * from './types';
 export * from './utils';
@@ -49,10 +49,10 @@ export declare class GridStack {
      * @param elOrString element or CSS selector (first one used) to convert to a grid (default to '.grid-stack' class selector)
      *
      * @example
-     * let grid = GridStack.init();
+     * const grid = GridStack.init();
      *
      * Note: the HTMLElement (of type GridHTMLElement) will store a `gridstack: GridStack` value that can be retrieve later
-     * let grid = document.querySelector('.grid-stack').gridstack;
+     * const grid = document.querySelector('.grid-stack').gridstack;
      */
     static init(options?: GridStackOptions, elOrString?: GridStackElement): GridStack;
     /**
@@ -61,7 +61,7 @@ export declare class GridStack {
      * @param selector elements selector to convert to grids (default to '.grid-stack' class selector)
      *
      * @example
-     * let grids = GridStack.initAll();
+     * const grids = GridStack.initAll();
      * grids.forEach(...)
      */
     static initAll(options?: GridStackOptions, selector?: string): GridStack[];
@@ -91,6 +91,11 @@ export declare class GridStack {
      * callback during saving to application can inject extra data for each widget, on top of the grid layout properties
      */
     static saveCB?: SaveFcn;
+    /**
+     * callback to create the content of widgets so the app can control how to store and restore it
+     * By default this lib will do 'el.textContent = w.content' forcing text only support for avoiding potential XSS issues.
+     */
+    static renderCB?: RenderFcn;
     /** callback to use for resizeToContent instead of the built in one */
     static resizeToContentCB?: ResizeToContentFcn;
     /** parent class for sizing content. defaults to '.grid-stack-item-content' */
@@ -102,7 +107,9 @@ export declare class GridStack {
     /** engine used to implement non DOM grid functionality */
     engine: GridStackEngine;
     /** point to a parent grid item if we're nested (inside a grid-item in between 2 Grids) */
-    parentGridItem?: GridStackNode;
+    parentGridNode?: GridStackNode;
+    /** time to wait for animation (if enabled) to be done so content sizing can happen */
+    animationDelay: number;
     protected static engineClass: typeof GridStackEngine;
     protected resizeObserver: ResizeObserver;
     private _skipInitialResize;
@@ -117,17 +124,16 @@ export declare class GridStack {
      *
      * Widget will be always placed even if result height is more than actual grid height.
      * You need to use `willItFit()` before calling addWidget for additional check.
-     * See also `makeWidget()`.
+     * See also `makeWidget(el)` for DOM element.
      *
      * @example
-     * let grid = GridStack.init();
+     * const grid = GridStack.init();
      * grid.addWidget({w: 3, content: 'hello'});
-     * grid.addWidget('<div class="grid-stack-item"><div class="grid-stack-item-content">hello</div></div>', {w: 3});
      *
-     * @param el  GridStackWidget (which can have content string as well), html element, or string definition to add
+     * @param w GridStackWidget definition. used MakeWidget(el) if you have dom element instead.
      * @param options widget position/size options (optional, and ignore if first param is already option) - see GridStackWidget
      */
-    addWidget(els?: GridStackWidget | GridStackElement, options?: GridStackWidget): GridItemHTMLElement;
+    addWidget(w: GridStackWidget): GridItemHTMLElement;
     /**
      * Convert an existing gridItem element into a sub-grid with the given (optional) options, else inherit them
      * from the parent's subGrid options.
@@ -259,9 +265,8 @@ export declare class GridStack {
      * @param options widget definition to use instead of reading attributes or using default sizing values
      *
      * @example
-     * let grid = GridStack.init();
-     * grid.el.appendChild('<div id="1" gs-w="3"></div>');
-     * grid.el.appendChild('<div id="2"></div>');
+     * const grid = GridStack.init();
+     * grid.el.innerHtml = '<div id="1" gs-w="3"></div><div id="2"></div>';
      * grid.makeWidget('1');
      * grid.makeWidget('2', {w:2, content: 'hello'});
      */
@@ -310,8 +315,9 @@ export declare class GridStack {
     /**
      * Toggle the grid animation state.  Toggles the `grid-stack-animate` class.
      * @param doAnimate if true the grid will animate.
+     * @param delay if true setting will be set on next event loop.
      */
-    setAnimation(doAnimate: boolean): GridStack;
+    setAnimation(doAnimate?: boolean, delay?: boolean): GridStack;
     /**
      * Toggle the grid static state, which permanently removes/add Drag&Drop support, unlike disable()/enable() that just turns it off/on.
      * Also toggle the grid-stack-static class.
@@ -336,6 +342,11 @@ export declare class GridStack {
     resizeToContent(el: GridItemHTMLElement): void;
     /** call the user resize (so they can do extra work) else our build in version */
     private resizeToContentCBCheck;
+    /** rotate (by swapping w & h) the passed in node - called when user press 'r' during dragging
+     * @param els  widget or selector of objects to modify
+     * @param relative optional pixel coord relative to upper/left corner to rotate around (will keep that cell under cursor)
+     */
+    rotate(els: GridStackElement, relative?: Position): GridStack;
     /**
      * Updates the margins which will set all 4 sides at once - see `GridStackOptions.margin` for format options (CSS string format of 1,2,4 values or single number).
      * @param value margin value
@@ -361,7 +372,7 @@ export declare class GridStack {
      * and remember the prev columns we used, or get our count from parent, as well as check for cellHeight==='auto' (square)
      * or `sizeToContent` gridItem options.
      */
-    onResize(): GridStack;
+    onResize(clientWidth?: number): GridStack;
     /** resizes content for given node (or all) if shouldSizeToContent() is true */
     private resizeToContentCheck;
     /** add or remove the grid element size event handler */
@@ -373,11 +384,12 @@ export declare class GridStack {
      * call to setup dragging in from the outside (say toolbar), by specifying the class selection and options.
      * Called during GridStack.init() as options, but can also be called directly (last param are used) in case the toolbar
      * is dynamically create and needs to be set later.
-     * @param dragIn string selector (ex: '.sidebar .grid-stack-item') or list of dom elements
-     * @param dragInOptions options - see DDDragInOpt. (default: {handle: '.grid-stack-item-content', appendTo: 'body'}
-     * @param root optional root which defaults to document (for shadow dom pas the parent HTMLDocument)
+     * @param dragIn string selector (ex: '.sidebar-item') or list of dom elements
+     * @param dragInOptions options - see DDDragOpt. (default: {handle: '.grid-stack-item-content', appendTo: 'body'}
+     * @param widgets GridStackWidget def to assign to each element which defines what to create on drop
+     * @param root optional root which defaults to document (for shadow dom pass the parent HTMLDocument)
      */
-    static setupDragIn(dragIn?: string | HTMLElement[], dragInOptions?: DDDragInOpt, root?: HTMLElement | Document): void;
+    static setupDragIn(dragIn?: string | HTMLElement[], dragInOptions?: DDDragOpt, widgets?: GridStackWidget[], root?: HTMLElement | Document): void;
     /**
      * Enables/Disables dragging by the user of specific grid element. If you want all items, and have it affect future items, use enableMove() instead. No-op for static grids.
      * IF you are looking to prevent an item from moving (due to being pushed around by another during collision) use locked property instead.

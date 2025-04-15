@@ -2,6 +2,7 @@
 const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
+var monitorInitComplete = false;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -537,6 +538,21 @@ function handleClick(evt) {
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
+    // Why are we scaling here instead of in monitorstream?
+    /* +++ If you delete this code, then Firefox will slow down terribly... you need to UNDERSTAND the problem!!!*/
+    const obj = document.getElementById('liveStream'+monitor.id);
+    if (obj) {
+      if (obj.src) {
+        const url = new URL(obj.src);
+        let scale = parseInt(obj.clientWidth / monitor.width * 100);
+        if (scale > 100) scale = 100;
+        url.searchParams.set('scale', scale);
+        obj.src = url;
+      }
+    } else {
+      console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
+    }
+    /* --- */
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       monitor.start();
@@ -758,16 +774,16 @@ function initPage() {
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = document.getElementById('liveStream'+item);
+        const img = getStream(item);
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
           setRatioForMonitor(img, item);
-          objGridStack.resizeToContent(document.getElementById('m'+item));
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
           changedMonitors.splice(object.length - 1 - index, 1);
         }
         monitorsSetScale(item);
       });
     }
-  }, 100);
+  }, 200);
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');
@@ -820,7 +836,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
-  if (!checkEndMonitorsPlaced()) return;
+  if (!monitorInitComplete) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
@@ -874,9 +890,9 @@ function watchFullscreen() {
 
 function initGridStack(grid=null) {
   const opts = {
-    margin: 0,
-    cellHeight: '1px',
-    //sizeToContent: true, // default to make them all fit
+    margin: '0 1px 0 1px',
+    cellHeight: '4px', //Required for correct use of objGridStack.resizeToContent
+    sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,
@@ -1101,6 +1117,7 @@ function waitingMonitorsPlaced(action = null) {
       //}
       if (action == 'startMonitors') {
         startMonitors();
+        monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
           return;

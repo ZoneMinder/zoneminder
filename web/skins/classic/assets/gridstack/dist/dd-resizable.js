@@ -1,6 +1,6 @@
 /**
- * dd-resizable.ts 10.1.2
- * Copyright (c) 2021-2022 Alain Dumesny - see GridStack root license
+ * dd-resizable.ts 11.1.2
+ * Copyright (c) 2021-2024  Alain Dumesny - see GridStack root license
  */
 import { DDResizableHandle } from './dd-resizable-handle';
 import { DDBaseImplement } from './dd-base-impl';
@@ -79,8 +79,8 @@ class DDResizable extends DDBaseImplement {
         super.destroy();
     }
     updateOption(opts) {
-        let updateHandles = (opts.handles && opts.handles !== this.option.handles);
-        let updateAutoHide = (opts.autoHide && opts.autoHide !== this.option.autoHide);
+        const updateHandles = (opts.handles && opts.handles !== this.option.handles);
+        const updateAutoHide = (opts.autoHide && opts.autoHide !== this.option.autoHide);
         Object.keys(opts).forEach(key => this.option[key] = opts[key]);
         if (updateHandles) {
             this._removeHandlers();
@@ -229,12 +229,15 @@ class DDResizable extends DDBaseImplement {
         };
         const offsetX = event.clientX - oEvent.clientX;
         const offsetY = this.sizeToContent ? 0 : event.clientY - oEvent.clientY; // prevent vert resize
+        let moveLeft;
+        let moveUp;
         if (dir.indexOf('e') > -1) {
             newRect.width += offsetX;
         }
         else if (dir.indexOf('w') > -1) {
             newRect.width -= offsetX;
             newRect.left += offsetX;
+            moveLeft = true;
         }
         if (dir.indexOf('s') > -1) {
             newRect.height += offsetY;
@@ -242,8 +245,9 @@ class DDResizable extends DDBaseImplement {
         else if (dir.indexOf('n') > -1) {
             newRect.height -= offsetY;
             newRect.top += offsetY;
+            moveUp = true;
         }
-        const constrain = this._constrainSize(newRect.width, newRect.height);
+        const constrain = this._constrainSize(newRect.width, newRect.height, moveLeft, moveUp);
         if (Math.round(newRect.width) !== Math.round(constrain.width)) { // round to ignore slight round-off errors
             if (dir.indexOf('w') > -1) {
                 newRect.left += newRect.width - constrain.width;
@@ -259,11 +263,12 @@ class DDResizable extends DDBaseImplement {
         return newRect;
     }
     /** @internal constrain the size to the set min/max values */
-    _constrainSize(oWidth, oHeight) {
-        const maxWidth = this.option.maxWidth || Number.MAX_SAFE_INTEGER;
-        const minWidth = this.option.minWidth / this.rectScale.x || oWidth;
-        const maxHeight = this.option.maxHeight || Number.MAX_SAFE_INTEGER;
-        const minHeight = this.option.minHeight / this.rectScale.y || oHeight;
+    _constrainSize(oWidth, oHeight, moveLeft, moveUp) {
+        const o = this.option;
+        const maxWidth = (moveLeft ? o.maxWidthMoveLeft : o.maxWidth) || Number.MAX_SAFE_INTEGER;
+        const minWidth = o.minWidth / this.rectScale.x || oWidth;
+        const maxHeight = (moveUp ? o.maxHeightMoveUp : o.maxHeight) || Number.MAX_SAFE_INTEGER;
+        const minHeight = o.minHeight / this.rectScale.y || oHeight;
         const width = Math.min(maxWidth, Math.max(minWidth, oWidth));
         const height = Math.min(maxHeight, Math.max(minHeight, oHeight));
         return { width, height };

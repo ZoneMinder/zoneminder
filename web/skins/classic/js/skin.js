@@ -41,6 +41,7 @@ var icons = {
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
 var shifted = ctrled = alted = false;
+var mainContent = document.getElementById('content');
 
 function checkSize() {
   if ( 0 ) {
@@ -1231,15 +1232,6 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-function loadFontFaceObserver() {
-  const font = new FontFaceObserver('Material Icons', {weight: 400});
-  font.load().then(function() {
-    $j('.material-icons').css('display', 'inline-block');
-  }, function() {
-    $j('.material-icons').css('display', 'inline-block');
-  });
-}
-
 function thisClickOnStreamObject(clickObj) {
   if (clickObj.id) {
     if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
@@ -1451,7 +1443,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video) {
+    if (video && !video.closest('#videoobj')) {
+      // We do not touch the video.js object, since it has its own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {
@@ -1535,6 +1528,13 @@ function initPageGeneral() {
     alted = e.altKey;
   });
 
+  if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe', 'timeline'].includes(currentView)) {
+    mainContent = document.getElementById('page');
+  } else if (currentView == 'options') {
+    mainContent = document.getElementById('optionsContainer');
+  }
+  var mainContentJ = $j(mainContent);
+
   /* Assigning global handlers!
   ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
   */
@@ -1564,32 +1564,37 @@ function initPageGeneral() {
     });
   }, 200);
 
-  window.addEventListener('beforeunload', function(event) {
+  // https://web.dev/articles/bfcache Firefox has a peculiar behavior of caching the previous page.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      // Do any checks and updates to the page
+      if (mainContentJ[0].clientHeight < 1) {
+        window.location.reload( true );
+      }
+    }
+  });
+
+  window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
     //event.preventDefault();
-    let target;
+    /*
     if (!useOldMenuView) {
       closeMbExtruder(updateCookie = true);
     }
-    if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe'].includes(currentView)) {
-      target = $j('#page');
-    } else if (currentView == 'options') {
-      target = $j('#optionsContainer');
-    } else {
-      target = $j('#content');
-    }
-    if (target.css('display') == 'flex') {
-      // If flex-grow is set to a value > 0 then "height" will be ignored!
-      target.css({flex: "0 1 auto"});
-    }
+    */
+    if (mainContentJ) {
+      if (mainContentJ.css('display') == 'flex') {
+        // If flex-grow is set to a value > 0 then "height" will be ignored!
+        mainContentJ.css({flex: "0 1 auto"});
+      }
 
-    target.animate({height: 0}, 300, function() {
-      $j('body').find('#btn-collapse').css({display: "none"});
-      target.css({display: "none"});
-    });
+      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+        const btnCollapse = $j('body').find('#btn-collapse');
+        if (btnCollapse) btnCollapse.css({display: "none"});
+        mainContentJ.css({display: "none"});
+      });
+    }
     //event.returnValue = '';
   });
 }
-
-loadFontFaceObserver();
 
 $j( window ).on("load", initPageGeneral);

@@ -122,7 +122,7 @@ if ( $css != 'base' )
   global $useOldMenuView;
   if (!$useOldMenuView) {
     echo output_link_if_exists(array(
-      '/assets/pro-sidebar-template/main.css',
+      '/assets/pro-sidebar-template/dist/main.css',
       '/css/base/sidebar.css',
     ));
   }
@@ -1499,7 +1499,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php 
   if (!$useOldMenuView) {
-    echo output_script_if_exists(array('assets/pro-sidebar-template/main.js'));
+    echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
     echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
   }

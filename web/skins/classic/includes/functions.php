@@ -282,7 +282,7 @@ function getSidebarTopHTML() {
   global $running;
 
   $blockExtruder = '
-<div id="extruderLeft" class="hidden-shift">
+<div id="extruderLeft">
   <div id="contextExtruderLeft" class="text">
     <! -- Pull-out panel FILLED VIA JS -->
   </div>

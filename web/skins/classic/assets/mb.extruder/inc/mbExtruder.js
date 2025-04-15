@@ -17,20 +17,6 @@
  *  last modified: 08/05/14 20.00
  *  *****************************************************************************
  */
- 
-/*Browser detection patch*/
-//var nAgt=navigator.userAgent;if(!jQuery.browser){jQuery.browser={},jQuery.browser.mozilla=!1,jQuery.browser.webkit=!1,jQuery.browser.opera=!1,jQuery.browser.safari=!1,jQuery.browser.chrome=!1,jQuery.browser.androidStock=!1,jQuery.browser.msie=!1,jQuery.browser.ua=nAgt,jQuery.browser.name=navigator.appName,jQuery.browser.fullVersion=""+parseFloat(navigator.appVersion),jQuery.browser.majorVersion=parseInt(navigator.appVersion,10);var nameOffset,verOffset,ix;if(-1!=(verOffset=nAgt.indexOf("Opera")))jQuery.browser.opera=!0,jQuery.browser.name="Opera",jQuery.browser.fullVersion=nAgt.substring(verOffset+6),-1!=(verOffset=nAgt.indexOf("Version"))&&(jQuery.browser.fullVersion=nAgt.substring(verOffset+8));else if(-1!=(verOffset=nAgt.indexOf("OPR")))jQuery.browser.opera=!0,jQuery.browser.name="Opera",jQuery.browser.fullVersion=nAgt.substring(verOffset+4);else if(-1!=(verOffset=nAgt.indexOf("MSIE")))jQuery.browser.msie=!0,jQuery.browser.name="Microsoft Internet Explorer",jQuery.browser.fullVersion=nAgt.substring(verOffset+5);else if(-1!=nAgt.indexOf("Trident")||-1!=nAgt.indexOf("Edge")){jQuery.browser.msie=!0,jQuery.browser.name="Microsoft Internet Explorer";var start=nAgt.indexOf("rv:")+3,end=start+4;jQuery.browser.fullVersion=nAgt.substring(start,end)}else-1!=(verOffset=nAgt.indexOf("Chrome"))?(jQuery.browser.webkit=!0,jQuery.browser.chrome=!0,jQuery.browser.name="Chrome",jQuery.browser.fullVersion=nAgt.substring(verOffset+7)):nAgt.indexOf("mozilla/5.0")>-1&&nAgt.indexOf("android ")>-1&&nAgt.indexOf("applewebkit")>-1&&!(nAgt.indexOf("chrome")>-1)?(verOffset=nAgt.indexOf("Chrome"),jQuery.browser.webkit=!0,jQuery.browser.androidStock=!0,jQuery.browser.name="androidStock",jQuery.browser.fullVersion=nAgt.substring(verOffset+7)):-1!=(verOffset=nAgt.indexOf("Safari"))?(jQuery.browser.webkit=!0,jQuery.browser.safari=!0,jQuery.browser.name="Safari",jQuery.browser.fullVersion=nAgt.substring(verOffset+7),-1!=(verOffset=nAgt.indexOf("Version"))&&(jQuery.browser.fullVersion=nAgt.substring(verOffset+8))):-1!=(verOffset=nAgt.indexOf("AppleWebkit"))?(jQuery.browser.webkit=!0,jQuery.browser.safari=!0,jQuery.browser.name="Safari",jQuery.browser.fullVersion=nAgt.substring(verOffset+7),-1!=(verOffset=nAgt.indexOf("Version"))&&(jQuery.browser.fullVersion=nAgt.substring(verOffset+8))):-1!=(verOffset=nAgt.indexOf("Firefox"))?(jQuery.browser.mozilla=!0,jQuery.browser.name="Firefox",jQuery.browser.fullVersion=nAgt.substring(verOffset+8)):(nameOffset=nAgt.lastIndexOf(" ")+1)<(verOffset=nAgt.lastIndexOf("/"))&&(jQuery.browser.name=nAgt.substring(nameOffset,verOffset),jQuery.browser.fullVersion=nAgt.substring(verOffset+1),jQuery.browser.name.toLowerCase()==jQuery.browser.name.toUpperCase()&&(jQuery.browser.name=navigator.appName));-1!=(ix=jQuery.browser.fullVersion.indexOf(";"))&&(jQuery.browser.fullVersion=jQuery.browser.fullVersion.substring(0,ix)),-1!=(ix=jQuery.browser.fullVersion.indexOf(" "))&&(jQuery.browser.fullVersion=jQuery.browser.fullVersion.substring(0,ix)),jQuery.browser.majorVersion=parseInt(""+jQuery.browser.fullVersion,10),isNaN(jQuery.browser.majorVersion)&&(jQuery.browser.fullVersion=""+parseFloat(navigator.appVersion),jQuery.browser.majorVersion=parseInt(navigator.appVersion,10)),jQuery.browser.version=jQuery.browser.majorVersion}jQuery.browser.android=/Android/i.test(nAgt),jQuery.browser.blackberry=/BlackBerry|BB|PlayBook/i.test(nAgt),jQuery.browser.ios=/iPhone|iPad|iPod|webOS/i.test(nAgt),jQuery.browser.operaMobile=/Opera Mini/i.test(nAgt),jQuery.browser.windowsMobile=/IEMobile|Windows Phone/i.test(nAgt),jQuery.browser.kindle=/Kindle|Silk/i.test(nAgt),jQuery.browser.mobile=jQuery.browser.android||jQuery.browser.blackberry||jQuery.browser.ios||jQuery.browser.windowsMobile||jQuery.browser.operaMobile||jQuery.browser.kindle,jQuery.isMobile=jQuery.browser.mobile,jQuery.isTablet=jQuery.browser.mobile&&jQuery(window).width()>765,jQuery.isAndroidDefault=jQuery.browser.android&&!/chrome/i.test(nAgt);
-/*
- * Metadata - jQuery plugin for parsing metadata from elements
- * Copyright (c) 2006 John Resig, Yehuda Katz, Jörn Zaefferer, Paul McLanahan
- * Dual licensed under the MIT and GPL licenses:
- *   http://www.opensource.org/licenses/mit-license.php
- *   http://www.gnu.org/licenses/gpl.html
- */
-
-//(function(c){c.extend({metadata:{defaults:{type:"class",name:"metadata",cre:/({.*})/,single:"metadata"},setType:function(b,c){this.defaults.type=b;this.defaults.name=c},get:function(b,f){var d=c.extend({},this.defaults,f);d.single.length||(d.single="metadata");var a=c.data(b,d.single);if(a)return a;a="{}";if("class"==d.type){var e=d.cre.exec(b.className);e&&(a=e[1])}else if("elem"==d.type){if(!b.getElementsByTagName)return;e=b.getElementsByTagName(d.name);e.length&&(a=c.trim(e[0].innerHTML))}else void 0!= b.getAttribute&&(e=b.getAttribute(d.name))&&(a=e);0>a.indexOf("{")&&(a="{"+a+"}");a=eval("("+a+")");c.data(b,d.single,a);return a}}});c.fn.metadata=function(b){return c.metadata.get(this[0],b)}})(jQuery);
-
-/***************************************************************************************/
 
 (function($) {
 	document.extruder=new Object();
@@ -54,9 +40,9 @@
 			sensibility:800,
 			position:"top",
 			accordionPanels:true,
-/*~*/		top:"auto", // =topFlap. Для совместимости с прежней версией
-/*~*/		topFlap:"auto",
-/*~*/		topBlock:0,
+/*~*/		top:"auto", // =topFlap. For compatibility with the previous version
+/*+*/		topFlap:"auto",
+/*+*/		topBlock:0,
 			extruderOpacity:1,
 			zIndex:'max',
 			flapMargin:35,
@@ -88,7 +74,8 @@
 				if (this.options.width > window.innerWidth) {
 					this.options.width = window.innerWidth;
 				}
-/*-*/				extruder.css("zIndex",100);
+/*-*/
+				extruder.css("zIndex",100);
 				var isVertical = this.options.position=="left" || this.options.position=="right";
 				var extW= isVertical?1: this.options.width;
 /*+*/			if (this.options.selectorResponsiveBlock) {
@@ -151,8 +138,6 @@
 				if(isVertical){
 					flapLabel.html(txt).css({whiteSpace:"noWrap"});
 					var orientation = this.options.textOrientation == "tb";
-/*~*/				//var labelH=extruder.find('.flapLabel').getFlipTextDim()[1];
-/*~*/				//extruder.find('.flapLabel').mbFlipText(orientation);
 /*+*/				flapLabel.css({transform: "rotate(180deg)", writingMode: "vertical-rl"});
 				}else{
 					flapLabel.html(txt).css({whiteSpace:"noWrap"});
@@ -179,7 +164,6 @@
 						extruder.openMbExtruder();
 					}else{
 						extruder.closeMbExtruder();
-						//extruder.removeAttr("isOpened");
 					}
 				}).on("mouseenter",function(){
 					if(extruder.get(0).options.autoOpenTime>0){
@@ -191,15 +175,13 @@
 				}).on("mouseleave",function(){
 					clearTimeout(openTimer);
 				});
-/*+*/
-//ПОКАЗАТЬ/СКРЫТЬ КНОПКОЙ. НАЗНАЧИТЬ НА КНОПКУ.
+/*+*/ // Show/hide button. Assign to button
 				if (this.options.bindToButtonByHeight) {
 					$(this.options.bindToButtonByHeight).on("click",function(){
 						if (!extruder.attr("isOpened")){
 							extruder.openMbExtruder();
 						}else{
 							extruder.closeMbExtruder();
-							//extruder.removeAttr("isOpened");
 						}
 					});
 				}
@@ -236,25 +218,24 @@
 
 				this.originalWidth = this.options.width;
 
-				$(window).on("resize",function(){ // Это теперь можно убрать ?
+				$(window).on("resize",function(){ // Perhaps this can be removed?
 					extruder.adjustSize();
 				})
 /*+*/
-				//ОТСЛЕЖИВАЕМ ПРОКРУТКУ МЕНЮ
+				// Tracking menu scrolling
 				if (this.options.bindToButtonByHeight) {
 					document.querySelectorAll('.sidebar-layout, .sidebar-content').forEach(function(el) {
 						el.addEventListener('scroll', function () {
 							extruder.adjustSize();
 						});
 					});
-					//ОТСЛЕЖИВАЕМ ИЗМЕНЕНЕИ РАЗМЕРА (СВОРАЧИВАНИЕ/РАЗВОРАЧИВАНИЕ) МЕНЮ
+					// Tracking the resizing (collapse/expand) of the menu
 					const observerLeftSidebar = new window.ResizeObserver(entries => {
 						extruder.adjustSize();
 					})
 					if (this.options.extruderParentElement) {
 						observerLeftSidebar.observe(this.options.extruderParentElement);
 					}
-					extruder.removeClass('hidden-shift'); //ВЕРОЯТНО ЭТО НЕ НУЖНО... НЕТ, НУЖНО !!!
 				}
 /*-*/
 			});
@@ -287,24 +268,23 @@
 					let topPointBlock = 0;
 
 					const anchorOffsetTop = anchorElement.offset().top;
-					const bottom = (anchorOffsetTop > 0 ? anchorOffsetTop : 0) + $(extWrapper)[0].clientHeight;//НИЖНЯЯ часть всплывающего блока
-					//const heightExtWrapper = $(extWrapper)[0].scrollHeight;
+					const bottom = (anchorOffsetTop > 0 ? anchorOffsetTop : 0) + $(extWrapper)[0].clientHeight; // BOTTOM of the extruder block
 
-					if (anchorOffsetTop > 0) { //ВСЕ НОРМАЛЬНО, ДВИГАЕМ ВВЕРХ НАШ БЛОК
+					if (anchorOffsetTop > 0) { // verything is fine, we move our extruder block up
 						topPointBlock = anchorOffsetTop;
 					}
-					if (bottom > window.innerHeight) { //УПЕРЛИСЬ ВНИЗ
+					if (bottom > window.innerHeight) { // We've hit bottom
 						topPointBlock = window.innerHeight - responsiveBlockHeight;
 					}
 					if (responsiveBlock) {
 						const deltaH = $(extWrapper)[0].clientHeight - responsiveBlockHeight;
-						if ($(responsiveBlock)[0].scrollHeight > window.innerHeight - deltaH) { //НЕ ВЛЕЗАЕТ В ОКНО ПО ВЕРТИКАЛИ
+						if ($(responsiveBlock)[0].scrollHeight > window.innerHeight - deltaH) { // Doesn't fit vertically into the window
 							topPointBlock = 0;
 							responsiveBlock.style.height = window.innerHeight - deltaH +'px';
 							responsiveBlock.style.overflow = 'auto';
 						} else {
 							responsiveBlock.style.height = 'auto';
-							responsiveBlock.style.overflow = 'visible'; // Иначе выпадающие элементы Select не будут выходить за пределы блока.
+							responsiveBlock.style.overflow = 'visible'; // Otherwise, the Select dropdown elements will not extend beyond the block.
 						}
 					}
 					extruder.options.topBlock = topPointBlock;
@@ -381,12 +361,10 @@
 				if(opt.onExtOpen) opt.onExtOpen();
 			}else{
 /*+*/			extruder.css("top",opt.topBlock);
-				//$(this).css("opacity",1);
 				extruder.find('.extruder-wrapper').css({width:""});
-				//extruder.find('.extruder-content').css({overflowX:"hidden", display:"block"});
 				extruder.find('.extruder-content').css({display:"block"});
-				//extruder.find('.extruder-content, .extruder-wrapper').animate({ width: opt.width}, opt.slideTimer,function(){ //Так было раньше, но при бейджике он не двигается
-				extruder.find('.extruder-content').animate({ width: opt.width}, opt.slideTimer,function(){ // Так сейчас, как повляет на ZM не известно....
+				extruder.find('.extruder-content').animate({ width: opt.width}, opt.slideTimer,function(){
+					// There may be a negative impact, but it hasn't shown up yet...
 					extruder.find(".extruder-container").css({width: opt.width});
 				});
 				if(opt.onExtOpen) opt.onExtOpen();
@@ -417,11 +395,9 @@
 				extruder.find('.extruder-content').slideUp(opt.slideTimer);
 				if(opt.onExtClose) opt.onExtClose();
 			}else if (opt.position=="left" || opt.position=="right"){
-//				extruder.find('.extruder-content').css({overflow:"hidden"});
-				//extruder.find('.extruder-content, .extruder-wrapper').animate({ width: 1 }, opt.slideTimer,function(){ //Так было раньше, но при бейджике он не двигается
-				extruder.find('.extruder-content').animate({ width: 1 }, opt.slideTimer,function(){ // Так сейчас, как повляет на ZM не известно....
+				extruder.find('.extruder-content').animate({ width: 1 }, opt.slideTimer,function(){
+					// There may be a negative impact, but it hasn't shown up yet...
 					extruder.find('.extruder-wrapper').css({width:1});
-//					extruder.find('.extruder-content').css({overflow:"hidden",display:"none"});
 					extruder.find('.extruder-content').css({display:"none"});
 					if(opt.onExtClose) opt.onExtClose();
 				});

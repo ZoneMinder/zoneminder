@@ -563,17 +563,17 @@ function submitThisForm(param = null) {
   var filter = null; // The filter that we previously moved to the left sidebar menu
   if (currentView == 'console' && !useOldMenuView) {
     // We get the form that we process
-    form = document.querySelector('form[name="monitorForm"]'); 
+    form = document.querySelector('form[name="monitorForm"]');
     // We get a filter
     filter = document.querySelector('#fbpanel');
-  } else   if (currentView == 'montage' && !useOldMenuView) {
-    form = document.querySelector('#filters_form'); 
+  } else if (currentView == 'montage' && !useOldMenuView) {
+    form = document.querySelector('#filters_form');
     // Filter is inside the form.
-  } else   if (currentView == 'montagereview' && !useOldMenuView) {
+  } else if (currentView == 'montagereview' && !useOldMenuView) {
     form = document.querySelector('#montagereview_form'); 
     filter = document.querySelector('#filterMontagereview');
   } else if (currentView == 'watch' && !useOldMenuView) {
-    form = document.querySelector('#wrapperFilter form'); 
+    form = document.querySelector('#wrapperFilter form');
   } else {
     form = this.form;
   }
@@ -1547,12 +1547,12 @@ function insertControlModuleMenu() {
     destroyChosen();
     filter = document.querySelector('#fieldsTable');
     // We change the layout to remove the resulting void.
-    const toolbar = document.querySelector('#toolbar'); 
+    const toolbar = document.querySelector('#toolbar');
     // The first div that is "col-sm-1"
     const divFirst = toolbar.querySelector('.col-sm-1');
     if (divFirst) {
-      divFirst.classList.remove('col-sm-1'); 
-      divFirst.classList.add('col-sm-6'); 
+      divFirst.classList.remove('col-sm-1');
+      divFirst.classList.add('col-sm-6');
     }
     // The second div, which is "col-sm-9"
     const divSecond = toolbar.querySelector('.col-sm-9');
@@ -1562,17 +1562,17 @@ function insertControlModuleMenu() {
     // The third div, which is "col-sm-2"
     const divThird = toolbar.querySelector('.col-sm-2');
     if (divThird) {
-      divThird.classList.remove('col-sm-2'); 
-      divThird.classList.add('col-sm-6'); 
+      divThird.classList.remove('col-sm-2');
+      divThird.classList.add('col-sm-6');
     }
   }
 
   if (!filter) return;
-  filter.classList.add('filter-block'); 
+  filter.classList.add('filter-block');
 
   // Restore visibility. If the block was hidden
-  filter.classList.remove('hidden-shift'); 
-  filter.style.display = ''; 
+  filter.classList.remove('hidden-shift');
+  filter.style.display = '';
 
   //Create a button to open/hide the filter settings control
   var el = document.createElement('div');
@@ -1609,18 +1609,18 @@ function insertControlModuleMenu() {
   $j(SIDEBAR_MAIN_EXTRUDER).buildMbExtruder({
     attachToParentSide: "right", // Bind to right side of parent
     bindToButtonByHeight: document.querySelector('#menuControlModule'), // Bind vertical position to button. Relevant when the button moves vertically, so that the extruder follows it.
-    position:"left",
+    position: "left",
     selectorResponsiveBlock: '.filter-block',
     extruderParentElement: document.getElementById('sidebarMain'),
     noFlap: true,
-    width:400,
-    topBlock:300,
-    topFlap:100,
-    extruderOpacity:.9,
+    width: 400,
+    topBlock: 300,
+    topFlap: 100,
+    extruderOpacity: .9,
     //zIndex: 100,
-    onExtOpen:function(){},
-    onExtContentLoad:function(){},
-    onExtClose:function(){}
+    onExtOpen: function(){},
+    onExtContentLoad: function(){},
+    onExtClose: function(){}
   });
 
   // NECESSARY BECAUSE DOM HAS BEEN REBUILDED!
@@ -1638,7 +1638,7 @@ function insertControlModuleMenu() {
     $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
   }
 
-  /* Need to change overflow for extruder sidebar 
+  /* Need to change overflow for extruder sidebar
   * If the "chosen" drop-down list fits vertically into the browser window, then overflow = 'visible' is for beauty.
   * That is, the list will be on top of the block, and the block will not increase in height. Otherwise, we will set overflow = 'auto' for the panel so that the "chosen" drop-down list is fully accessible.
   * We listen to ".chosen-container" for ".chosen-container-active" to be added or removed.
@@ -1646,7 +1646,7 @@ function insertControlModuleMenu() {
   document.querySelectorAll(".chosen-container").forEach(function(el) {
     const ob = new MutationObserver(function() {
       const parent = SIDEBAR_MAIN_EXTRUDER.querySelector('.filter-block');
-      if (!parent) return; // Page closing moment 
+      if (!parent) return; // Page closing moment
       if (el.classList.contains("chosen-container-active")) {
         const chosenDropBlock = el.querySelector('.chosen-drop');
         const [leftDropBlock, topDropBlock] = findPos(chosenDropBlock);

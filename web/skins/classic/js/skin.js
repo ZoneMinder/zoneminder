@@ -2049,11 +2049,10 @@ function initPageGeneral() {
 
   window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
     //event.preventDefault();
-    /*
     if (!useOldMenuView) {
       closeMbExtruder(updateCookie = true);
     }
-    */
+
     if (mainContentJ) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!

@@ -1,0 +1,420 @@
+.layout-main .sidebar-main a.text-success:focus,
+.layout-main .sidebar-main a.text-success:hover { /* FIX bootstrap на темном фоне*/
+  color: #007bff !important; /* ПРИДУМАТЬ ЦВЕТ !!!*/
+}
+
+.layout-main .sidebar-main.collapsed .hidden-for-collapsed {
+  display: none;
+}
+
+/* +++ Полоса прокрутки для меню в левом сайд баре ТРЕБУЕТСЯ БОЛЕЕ КОМПАКТНАЯ !!!*/
+#navbar-container,
+.layout-main .sidebar-main .sidebar-layout,
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar-track,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar-track ,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar-track ,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar-track {
+  background-color: var(--backgroundMediumDark); /* #485460 */
+}
+
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 0px solid var(--scrollbarBG);
+  width: 6px;
+  height: 6px;
+}
+
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.layout-main .sidebar-main .sidebar-layout:hover::-webkit-scrollbar-thumb { /* ЭТО ОПРЕДЕЛЕНО В ФАЙЛЕ _sidebar.scss, УБРАТЬ ОТТУДА ЧТО БЫ НЕ ДЕЛАТЬ ДАННОЕ ПЕРЕОПРЕДЕЛЕНИЕ....*/
+  /*background-color: rgb(26.1230769231, 65.3076923077, 115.3769230769);*/
+  background-color: var(--sliderBG);
+}
+/* --- Полоса прокрутки для меню в левом сайд баре */
+
+.layout-main .sidebar-main .sidebar-post-header {
+  padding: 5px 0 5px 0;
+}
+
+.layout-main .sidebar-main .sidebar-main-menu,
+.layout-main .sidebar-main .sidebar-post-header {
+  text-align: left;
+}
+
+.layout-main .sidebar-main .sidebar-layout .sidebar-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.layout-main .sidebar-main.has-bg-image:not(.collapsed) .sidebar-main-menu > ul > .sub-menu > .sub-menu-list {
+  background-color: #34495e;
+}
+
+.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-title,
+.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-title { /* FIX styles.scss и добавить в основной scss .sidebar-post-header*/
+  /*font-size: 0.9em;*/
+  font-size: 0.9rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/*.layout-main .sidebar-main .sidebar-main-menu .menu-item a {*/
+.layout-main .sidebar-main .sidebar-post-header .menu-item a {
+  display: flex;
+  align-items: center;
+  /*height: 50px;*/
+  padding: 0 20px;
+  /*color: #7d84ab;*/
+  /*white-space: nowrap;*/
+}
+
+/*.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-icon {*/
+.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-icon {
+  font-size: 1.2rem;
+  width: 35px;
+  min-width: 35px;
+  height: 35px;
+  line-height: 35px;
+  text-align: center;
+  display: inline-block;
+  margin-right: 10px;
+  border-radius: 2px;
+  transition: color 0.3s;
+}
+
+/* +++ Выравнивание фильтров MontageRewiev*/ 
+.layout-main .sidebar-main .chosen-container {
+  text-align: left;
+  min-width: 11em;
+  width: 100% !important;
+}
+/* --- Выравнивание фильтров MontageRewiev*/ 
+
+body.sticky .content-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-main {
+  width: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+/*Фильтр и прочее, что мы вырезам нам не нужно видеть.*/
+body.montagereview-page .content-main .controlHeader,
+body.montagereview-page .content-main #fieldsTable,
+body.console-page .content-main #fbpanel,
+body.console-page a[data-flip-control-object="#fbpanel"], /* Кнопка управления видимостью фильтра */
+body.montage-page .content-main #filters_form,
+body.watch-page .content-main .controlHeader,
+body.report_event_audit-page #content form,
+body.events-page .content-main #fieldsTable, /* ПЕРЕНЕСТИ СЮДА ИЗ JS код управления */
+body.events-page a[data-flip-control-object="#fieldsTable"], /* Кнопка управления видимостью фильтра */
+body.options-page .content-main #sidebar {
+    display: none !important;
+}
+
+#monitorList {
+  overflow-y: auto; /* ПРОВЕРИТЬ!!! ВЕРОЯТНО ЭТО НУЖНО ВСЕГДА ПРИМЕНЯТЬ, а НЕ ТОЛЬКО ДЛЯ СТИКИ РЕЖИМА !!!*/
+}
+
+.navbar-brand,
+#navbar-one {
+  display: none;
+}
+
+/* Весь бар выровнять по левой стороне */
+.navbars {
+  text-align: left;
+}
+
+#btn-collapse {
+  top: 11px;
+}
+
+#extruderLeft #wrapperFilter #wrapperBtnCloseExtruder{ /*Сама кнопки закрытия выдвижного блока*/
+  display: none;
+}
+#extruderLeft #wrapperFilter{
+  /*background-color: var(--backgroundMediumDark);*/
+}
+
+@media (max-width: 992px) {
+  /* +++ УПРАВЛНИЕ КНОПКОЙ СВЕРНУТЬ/РАЗВЕРНУТЬ МЕНЮ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+  #btn-collapse {
+      display: flex;
+  }
+  #sidebarMain.sidebar-main:not(.toggled) #btn-collapse {
+    /*display: none;*/   /* ПРОИСХОДИТ РЕЗКО, НЕ КРАСИВО*/
+    left: -30px; /*ЗДЕСЬ ТРЕБУЕТСЯ ВЫСТАВЛЯТЬ ЗНАЧЕНИЕ КАК И ДЛЯ ".layout-main .sidebar-main.break-point-lg" или -250 или -80*/
+  }
+  /* --- УПРАВЛНИЕ КНОПКОЙ СВЕРНУТЬ/РАЗВЕРНУТЬ МЕНЮ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+
+  /* Положение выдвижного блока */
+  #extruderLeft {
+    top: 0 !important;
+    /*top: 45px !important;*/
+    left: 0 !important;
+  }
+  #extruderLeft #wrapperFilter #wrapperBtnCloseExtruder{ /*Сама кнопки закрытия выдвижного блока*/
+    position: relative;
+    top: 0px;
+    right: 0px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  #extruderLeft #wrapperFilter #wrapperBtnCloseExtruder .material-icons { /*Иконка кнопки закрытия выдвижного блока*/
+    /*display: inline-block;*/
+  }
+  .extruder-content > .text:first-child {
+    width: 100% !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .layout-main .sidebar-main .sidebar-content,
+  .layout-main .sidebar-main .sidebar-footer,
+  .layout-main .sidebar-main .sidebar-header { /* Сайдбар не делить на Header, Futer и контент. Все едино и все пролистывается */
+    display: contents;
+  }
+}
+
+.sidebar-toggler { /* ТУТ КАК КОРРЕКТОР ЭТО ВООБЩЕ УБРАТЬ ИЗ styles.scss*/
+  position: relative;
+  right: 0;
+  top: 0;
+}
+
+#navbar-two { /* "ПАНЕЛЬ ДОЛЖНА БЫТЬ ВСЕГДА ВИДНА, В ПРОТИВНОМ СЛУЧАЕ ОНА МОГЛА БЫТЬ СКРЫТА КНОПКОЙ (id="flip") */
+  display: block !important;  /*ВРЕМЕННО ДЛЯ МОБИЛОК!!! ПРИДУМАТЬ КНОПКУ СКРЫТИЯ/ОТОБРАЖЕНИЯ*/
+}
+
+/*В баре выбор*/
+#panel .dropdown-menu.show.overflown {
+  display: contents;
+}
+
+#panel .dropdown-menu.show:not(.overflown) {
+  display: block;
+  top: 27px;
+}
+
+/* +++ ОСТАТОК ВЕРНЕЙ СТАТУСНОЙ СТРОКИ*/
+#reload {
+  /*left: 15px;*/
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  overflow-x: auto;
+  padding: 10px 5px 10px 15px
+}
+
+@media (max-width: 992px) { /* момент появления гамбургерной кнопки меню */
+  #reload {
+    left: 35px;
+  }
+}
+
+#reload > ul,
+#reload > ul > ul,
+#reload > ul > li { /* первую часть с дивами убрать....*/
+  display: inline-block;
+  white-space: nowrap;
+}
+
+#reload > ul:last-child{ /* последний элемент при скруле должен иметь отступ */
+  margin-right: 30px;
+}
+
+#reload::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+#reload::-webkit-scrollbar-thumb {
+  border: 0px solid;
+}
+
+.high-scroll-bar::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+/* --- ОСТАТОК ВЕРНЕЙ СТАТУСНОЙ СТРОКИ*/
+
+/*
+#sidebarMain.collapsed .sidebar-post-header .menu-title {
+  display: none;
+}
+*/
+
+#sidebarMain.collapsed .sub-menu-list {
+  height: 0; /* Иначе будет мельтишить в момент загрузки страницы */
+}
+
+/*Сабменю установить прокрутку по вертикали для узкого варианта, когда сабменю отображается сбоку*/
+body #sidebarMain .sub-menu-list {
+  max-height: 100%;
+  overflow: auto;
+}
+
+
+/* ****************************************************************** */
+
+        /*custom style for extruder*/
+
+        .extruder.left.a .flap {
+            font-size:18px;
+            color:white;
+            top:0;
+            padding:10px 0 10px 10px;
+            background:#772B14;
+            width:30px;
+            position:absolute;
+            right:0;
+            -moz-border-radius:0 10px 10px 0;
+            -webkit-border-top-right-radius:10px;
+            -webkit-border-bottom-right-radius:10px;
+            -moz-box-shadow:#666 2px 0px 3px;
+            -webkit-box-shadow:#666 2px 0px 3px;
+        }
+/*
+        .extruder.left.a .content{
+            border-right:3px solid #772B14;
+            background:rgba(255,255,255,.95);
+        }
+*/
+        .extruder.top .optionsPanel .panelVoice a:hover{
+            color:#fff;
+            background: url("elements/black_op_30.png");
+            border-bottom:1px solid #000;
+        }
+        .extruder.top .optionsPanel .panelVoice a{
+            border-bottom:1px solid #000;
+        }
+
+        .extruder.left.a .flap .flapLabel{
+            background:#772B14;
+        }
+            /*
+
+                    .extruder.top{
+                        margin-left:-200px!important;
+                    }
+            */
+/* ****************************************************************** */
+
+
+/* +++ ПЕРЕНЕСЕННЫЕ ФИЛЬТРЫ */
+.extruder-wrapper {
+  /*background-color: var(--backgroundMediumDark);*/
+  /*padding: 10px;*/
+}
+
+.extruder-wrapper .text #fieldsTable { /*FIX глобального*/
+  display: block;
+}
+
+/* ++++++++++ */
+.extruder-wrapper span.term .term-label-wrapper,
+.extruder-wrapper span.term label {
+  display: flex !important;
+  text-align: left !important;
+  width: auto !important;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.extruder-wrapper span.term .term-value-wrapper {
+  display: flex !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+}
+
+.extruder-wrapper span.term .term-value-wrapper input {
+  width: 100% !important;
+}
+/* --------- */
+
+.extruder-wrapper span.term,
+.extruder-wrapper span.term > span { /* Выравниваем поля ввода*/
+  width: 100%;
+}
+
+.extruder-wrapper span.term > span:first-child{
+  text-align: left;
+  /* width: 300px;*/
+}
+
+
+
+.extruder-content {
+  background-color: var(--backgroundMediumDark);
+  /*overflow-y: visible !important;*/
+}
+
+.extruder-content > .text {
+  overflow: visible !important; /*ПЕРЕСМОТРЕТЬ ЭТОТ МОМЕНТ, ПЕРЕПОЛНЕНИЯ БЫТЬ ВООБЩЕ НЕ ДОЛЖНО !!!*/
+}
+
+.extruder-content .filter-block {
+/* position: relative;*/
+  display: block;
+  /*opacity: 0.8;*/
+  overflow: visible;
+  /*background-color: aquamarine;*/
+  margin: 0;
+  padding: 10px;
+}
+
+.extruder-content > .text .term {
+  flex-direction: row;
+  margin-left: 0;
+  padding-bottom: 10px;
+}
+
+/* +++ Выравниваем все по высоте */
+.extruder .extruder-content .chosen-container .chosen-single,
+.extruder-wrapper span.term .term-value-wrapper input {
+  height: 27px !important;
+  /* margin: 1px 0;*/
+}
+
+.extruder .extruder-content .chosen-container .chosen-search-input {
+  /*height: 25px;*/
+}
+/* --- Выравниваем все по высоте */
+
+.extruder .extruder-content .chosen-container,
+.extruder .extruder-content .term-value-wrapper input {
+  max-width: 100%;
+}
+
+/* Кнопка очистить фильтр cелект множественный выбор */
+.extruder .extruder-content .btn-term-remove-all {
+  display: flex;
+  flex-direction: row-reverse;
+  width: auto;
+  padding-left: 10px;
+  max-height: 35px;
+  /*width: 20px;*/
+  /*padding: 0 0 0 5px;*/
+}
+/* --- ПЕРЕНЕСЕННЫЕ ФИЛЬТРЫ */
+/* 20 03 -25 13-24: 13:52*/
+
+/* !ХАК! Иначе высота родительского блока будет расчитана исходя из высоты выпадающего списка, даже если выбор не активен! */
+div:not(.chosen-container-active) > .chosen-drop {
+  display: none;
+}

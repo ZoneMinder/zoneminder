@@ -36,33 +36,36 @@ a {
 .layout-main {
   .sidebar-main {
     .pro-sidebar-logo {
+      color: #ffa801;
       display: flex;
       align-items: center;
 
       > div {
-        width: 35px;
-        min-width: 35px;
-        height: 35px;
-        min-height: 35px;
+        width: 45px;
+        min-width: 45px;
+        height: 25px;
+        min-height: 25px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 8px;
         color: white;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
-        background-color: #ff8100;
+        background-color: #ffa801;
         margin-right: 10px;
+        margin-left: -10px;
       }
 
       > h5 {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        font-size: 20px;
-        line-height: 30px;
+        font-size: 22px;
+        line-height: 25px;
         transition: opacity 0.3s;
         opacity: 1;
+        margin: 0 17px;
       }
     }
 
@@ -72,7 +75,7 @@ a {
       align-items: center;
       justify-content: center;
       text-align: center;
-      font-size: 0.8em;
+      /* font-size: 0.8em; */
       padding: 20px 0;
       border-radius: 8px;
       width: 180px;
@@ -116,7 +119,8 @@ a {
 
     &.has-bg-image {
       .footer-box {
-        background-color: rgba(#162d4a, 0.7);
+        /* background-color: rgba(#162d4a, 0.7); */
+        background-color: #34495e;
       }
     }
 

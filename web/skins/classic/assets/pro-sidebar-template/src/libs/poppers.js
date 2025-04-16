@@ -27,7 +27,7 @@ class Poppers {
 
   updatePoppers() {
     this.subMenuPoppers.forEach((element) => {
-      if (!element.classList.contains(open)) {
+      if (!element.instance.state.elements.popper.parentElement.classList.contains('open')) {
         element.instance.state.elements.popper.style.display = 'none';
       }
       element.instance.update();

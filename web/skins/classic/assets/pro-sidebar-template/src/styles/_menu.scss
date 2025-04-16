@@ -44,7 +44,7 @@
         a {
           display: flex;
           align-items: center;
-          height: 50px;
+          height: 38px;
           padding: 0 20px;
           color: $text-color;
 
@@ -60,7 +60,7 @@
             border-radius: 2px;
             transition: color 0.3s;
             i {
-              display: inline-block;
+              // display: inline-block;
             }
           }
 

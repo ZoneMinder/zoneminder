@@ -1789,7 +1789,7 @@ function handleMouseout(evt) {
 function manageVisibilitySidebarExtruderPanel(evt, action) {
   if (!showExtruderPanelOnMouseHover) return;
   if (evt.target.closest('#menuControlModule') &&
-       // Avoid false positives when moving mouse inside '#menuControlModule'
+  // Avoid false positives when moving mouse inside '#menuControlModule'
       (evt.relatedTarget && evt.relatedTarget.closest('#menuControlModule') != evt.target.closest('#menuControlModule'))) {
     if (action == 'show') {
       $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
@@ -1797,7 +1797,6 @@ function manageVisibilitySidebarExtruderPanel(evt, action) {
       // We don't do anything yet, because now the block closes either when you click on the button or anywhere on the page
     }
   }
-
 }
 
 function manageVisibilityVideoPlayerControlPanel(evt, action) {
@@ -1931,7 +1930,7 @@ function resetSelectElement(el) {
   console.log("clearSelectMultiply_el=>", el);
   const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
   if (!selectElement) return;
-  Array.from(selectElement.options).forEach (option => {
+  Array.from(selectElement.options).forEach ((option) => {
     option.selected = false;
   });
   applyChosen(selectElement);
@@ -1989,7 +1988,7 @@ function initPageGeneral() {
     });
   }
 
-  var observerNavbarReload = new window.ResizeObserver(entries => {
+  var observerNavbarReload = new window.ResizeObserver((entries) => {
     endOfResize();
   });
   if (NAVBAR_RELOAD) {

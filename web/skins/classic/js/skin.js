@@ -570,7 +570,7 @@ function submitThisForm(param = null) {
     form = document.querySelector('#filters_form');
     // Filter is inside the form.
   } else if (currentView == 'montagereview' && !useOldMenuView) {
-    form = document.querySelector('#montagereview_form'); 
+    form = document.querySelector('#montagereview_form');
     filter = document.querySelector('#filterMontagereview');
   } else if (currentView == 'watch' && !useOldMenuView) {
     form = document.querySelector('#wrapperFilter form');
@@ -1618,9 +1618,9 @@ function insertControlModuleMenu() {
     topFlap: 100,
     extruderOpacity: .9,
     //zIndex: 100,
-    onExtOpen: function(){},
-    onExtContentLoad: function(){},
-    onExtClose: function(){}
+    onExtOpen: function() {},
+    onExtContentLoad: function() {},
+    onExtClose: function() {}
   });
 
   // NECESSARY BECAUSE DOM HAS BEEN REBUILDED!
@@ -1649,7 +1649,8 @@ function insertControlModuleMenu() {
       if (!parent) return; // Page closing moment
       if (el.classList.contains("chosen-container-active")) {
         const chosenDropBlock = el.querySelector('.chosen-drop');
-        const [leftDropBlock, topDropBlock] = findPos(chosenDropBlock);
+        //const [leftDropBlock, topDropBlock] = findPos(chosenDropBlock); // Eslint complains about not using leftDropBlock
+        const topDropBlock = findPos(chosenDropBlock)[1];
 
         if (chosenDropBlock.clientHeight + topDropBlock > window.innerHeight ) { // There is not enough space at the bottom
           parent.style.overflow = 'auto';
@@ -1671,28 +1672,27 @@ function insertControlModuleMenu() {
 function findPos(obj, foundScrollLeft, foundScrollTop) {
   var curleft = 0;
   var curtop = 0;
-  if(obj.offsetLeft) curleft += parseInt(obj.offsetLeft);
-  if(obj.offsetTop) curtop += parseInt(obj.offsetTop);
-  if(obj.scrollTop && obj.scrollTop > 0) {
+  if (obj.offsetLeft) curleft += parseInt(obj.offsetLeft);
+  if (obj.offsetTop) curtop += parseInt(obj.offsetTop);
+  if (obj.scrollTop && obj.scrollTop > 0) {
     curtop -= parseInt(obj.scrollTop);
     foundScrollTop = true;
   }
-  if(obj.scrollLeft && obj.scrollLeft > 0) {
+  if (obj.scrollLeft && obj.scrollLeft > 0) {
     curleft -= parseInt(obj.scrollLeft);
     foundScrollLeft = true;
   }
-  if(obj.offsetParent) {
+  if (obj.offsetParent) {
     var pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
-      curleft += pos[0];
-      curtop += pos[1];
-  } else if(obj.ownerDocument) {
+    curleft += pos[0];
+    curtop += pos[1];
+  } else if (obj.ownerDocument) {
     var thewindow = obj.ownerDocument.defaultView;
-    if(!thewindow && obj.ownerDocument.parentWindow)
-      thewindow = obj.ownerDocument.parentWindow;
-    if(thewindow) {
+    if (!thewindow && obj.ownerDocument.parentWindow) thewindow = obj.ownerDocument.parentWindow;
+    if (thewindow) {
       if (!foundScrollTop && thewindow.scrollY && thewindow.scrollY > 0) curtop -= parseInt(thewindow.scrollY);
       if (!foundScrollLeft && thewindow.scrollX && thewindow.scrollX > 0) curleft -= parseInt(thewindow.scrollX);
-      if(thewindow.frameElement) {
+      if (thewindow.frameElement) {
         var pos = findPos(thewindow.frameElement);
         curleft += pos[0];
         curtop += pos[1];
@@ -1700,7 +1700,7 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
     }
   }
 
-  return [curleft,curtop];
+  return [curleft, curtop];
 }
 
 /* Handling <input> change */
@@ -1722,8 +1722,7 @@ function handleClickGeneral(evt) {
           !target.closest('.ui-datepicker') &&
           !target.closest('.ui-datepicker-prev') &&
           !target.closest('.ui-datepicker-next') &&
-          !target.matches('button[name="deleteBtn"]')) // Кнопка очистки multi select
-      {
+          !target.matches('button[name="deleteBtn"]')) { // Multi select clear button
         // Click outside the extruder panel Sidebar (except clicking on "datepicker"). Close the extruder panel
         closeMbExtruder();
       }
@@ -1916,7 +1915,7 @@ function managePanZoomButton(evt) {
 function closeMbExtruder(updateCookie = false) {
   if (!SIDEBAR_MAIN_EXTRUDER) return;
   if (updateCookie) {
-    // We will save the panel visibility in cookies so that we can restore the state after opening a new page. 
+    // We will save the panel visibility in cookies so that we can restore the state after opening a new page.
     // If the panel was open, it means that the filter was most likely adjusted.
     // It is probably worth analyzing whether a new page will be opened or the old one but with different parameters.
     setCookie('zmVisibleMbExtruder', !!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened'));
@@ -1924,7 +1923,7 @@ function closeMbExtruder(updateCookie = false) {
   $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
 }
 
-/* 
+/*
 * The call is configured in \www\skins\classic\views\_monitor_filters.php
 * If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
 */
@@ -1992,7 +1991,7 @@ function initPageGeneral() {
 
   var observerNavbarReload = new window.ResizeObserver(entries => {
     endOfResize();
-  })
+  });
   if (NAVBAR_RELOAD) {
     observerNavbarReload.observe(NAVBAR_RELOAD);
   }

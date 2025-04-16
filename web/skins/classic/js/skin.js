@@ -1930,7 +1930,7 @@ function resetSelectElement(el) {
   console.log("clearSelectMultiply_el=>", el);
   const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
   if (!selectElement) return;
-  Array.from(selectElement.options).forEach ((option) => {
+  Array.from(selectElement.options).forEach((option) => {
     option.selected = false;
   });
   applyChosen(selectElement);

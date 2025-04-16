@@ -185,8 +185,7 @@ body.options-page .content-main #sidebar {
 
 @media (max-height: 500px) {
   .layout-main .sidebar-main .sidebar-content,
-  .layout-main .sidebar-main .sidebar-footer,
-  .layout-main .sidebar-main .sidebar-header { /* Сайдбар не делить на Header, Futer и контент. Все едино и все пролистывается */
+  .layout-main .sidebar-main .sidebar-footer { /* Сайдбар не делить на Header, Futer и контент. Все едино и все пролистывается */
     display: contents;
   }
 }

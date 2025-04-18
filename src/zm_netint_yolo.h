@@ -32,7 +32,7 @@ class Quadra_Yolo {
       AVFilterContext *buffersink_ctx;
       AVFilterContext *buffersrc_ctx;
       AVFilterGraph *filter_graph;
-    }filter_worker;
+    } filter_worker;
 
   private:
     Monitor *monitor;
@@ -51,11 +51,15 @@ class Quadra_Yolo {
     //SWScale swscale;
     SwsContext *sw_scale_ctx;
 
+    filter_worker *hwdl_filter;
 
     bool draw_box;
     filter_worker *drawbox_filter;
-    filter_worker *hwdl_filter;
     AVFilterContext *drawbox_filter_ctx;
+
+    bool draw_text;
+    filter_worker *drawtext_filter;
+    AVFilterContext *drawtext_filter_ctx;
 
     AVStream *dec_stream;
     AVCodecContext *dec_ctx;
@@ -74,9 +78,11 @@ class Quadra_Yolo {
     Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);
     ~Quadra_Yolo();
     bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="", int deviceid=-1);
+    bool setup_drawbox();
+    bool setup_drawtext();
     int send_packet(std::shared_ptr<ZMPacket> in_packet);
-    int  receive_detection(std::shared_ptr<ZMPacket> out_packet);
-    int  detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
+    int receive_detection(std::shared_ptr<ZMPacket> out_packet);
+    int detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
     int init_filter(const char *filters_desc, filter_worker *f, bool hwmode, AVPixelFormat in_ipxfmt);
   private:

@@ -156,15 +156,16 @@ bool Quadra_Yolo::setup(
   }
 
   if (drawbox) {
-    if (scale_to_rgba_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba", true, dec_ctx->pix_fmt)) {
-      drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox", false, AV_PIX_FMT_RGBA);
-    } else {
-      drawbox = false;
-    }
-    scale_to_yuv420p_filter.setup(this, "ni_quadra_scale=iw:ih:format=format=yuv420p", true, drawbox ? AV_PIX_FMT_RGBA : dec_ctx->pix_fmt);
+    //drawbox = drawbox_filter.setup(this, "drawbox", false, dec_ctx->sw_pix_fmt);
+    drawbox = scale_to_rgba_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox,ni_quadra_scale=iw:ih:format=rgba", true, dec_ctx->pix_fmt);
+      //drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox", false, AV_PIX_FMT_RGBA);
+    //} else {
+      //drawbox = false;
+    //}
+    //scale_to_yuv420p_filter.setup(this, "ni_quadra_scale=iw:ih:format=format=yuv420p", true, drawbox ? AV_PIX_FMT_RGBA : dec_ctx->pix_fmt);
   }
 
-  if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_drawtext=text=init:fontsize=24:font=Sans", true, AV_PIX_FMT_RGBA);
+  if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", true, dec_ctx->pix_fmt);
 
   Debug(1, "Setting up hwdl");
   hwdl_filter.setup(this, "[in]hwdownload,format=yuv420p[out]", true, dec_ctx->pix_fmt);
@@ -496,11 +497,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     }
     zm_dump_video_frame(input, "Quadra: process_roi input");
   } else {
-    ret = scale_to_rgba_filter.execute(frame, &input);
-    Debug(1, "ret from rgba filter %d", ret);
-    if (0>ret) {
-      input = frame;
-    }
+    input = frame;
   }
 
   AVRegionOfInterest *roi = (AVRegionOfInterest *)sd->data;
@@ -561,15 +558,14 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         Error("cannot allocate output filter frame");
         continue;
       }
-      std::string drawtext_option = stringtf("text='%s prob:%f':x=%d:y=%d:fontcolor=%s",
-          roi_class[roi_extra[i].cls], 100*roi_extra[i].prob, roi[i].left, roi[i].top, color.c_str());
+      std::string drawtext_option = stringtf("text='%s prob:%f':x=%d:y=%d:fontcolor=%s", roi_class[cls], 100*roi_extra[i].prob, roi[i].left, roi[i].top, color.c_str());
       ret = avfilter_graph_send_command(drawtext_filter.filter_graph, "drawtext", "reinit", drawtext_option.c_str(), NULL, 0, 0);
       if (ret < 0) {
         Error("cannot send drawtext filter command %d", ret);
         continue;
       }
 
-      ret = av_buffersrc_add_frame_flags(drawtext_filter.buffersrc_ctx, drawbox_output, AV_BUFFERSRC_FLAG_KEEP_REF);
+      ret = av_buffersrc_add_frame_flags(drawtext_filter.buffersrc_ctx, drawtext_output, AV_BUFFERSRC_FLAG_KEEP_REF);
       if (ret < 0) {
         Error("cannot add frame to drawtext buffer src %d", ret);
         continue;
@@ -599,14 +595,11 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   AVFrame *output = nullptr;
   // Allocates the frame, gets the image from hw
   if (use_hwframe) {
-    AVFrame *hw_output = nullptr;
-    ret = scale_to_yuv420p_filter.execute(input, &hw_output);
-    ret = hwdl_filter.execute(hw_output, &output);
+    ret = hwdl_filter.execute(input, &output);
     if (ret < 0) {
       Error("cannot download hwframe");
       return ret;
     }
-    av_frame_free(&hw_output);
     zm_dump_video_frame(output, "Quadra: process_roi output");
   } else {
     output = input;
@@ -770,7 +763,7 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
     return -1;
   }
 
-  drawtext_filter.execute(input, output);
+  return drawtext_filter.execute(input, output);
 }
 
 #endif

@@ -48,27 +48,34 @@ class Quadra_Yolo {
         }
         filter_ctx = nullptr; // Something else will free it.
       };
-      bool setup(Quadra_Yolo *quadra, const std::string &filter_desc, bool hw, AVPixelFormat pix_fmt) {
+      bool setup(Quadra_Yolo *quadra, const std::string &filter_desc, const std::string filter_of_interest, bool hw, AVPixelFormat pix_fmt) {
         int ret;
         Debug(1, "Trying %s", filter_desc.c_str());
         if ((ret = quadra->init_filter(filter_desc.c_str(), this, hw, pix_fmt)) < 0) {
           Error("cannot initialize %s filter", filter_desc.c_str());
           return false;
         }
-        for (unsigned int i = 0; i < filter_graph->nb_filters; i++) {
-          if (strstr(filter_graph->filters[i]->name, filter_desc.c_str()) != nullptr) {
-            filter_ctx = filter_graph->filters[i];
-            break;
+
+        if (!filter_of_interest.empty()) {
+          for (unsigned int i = 0; i < filter_graph->nb_filters; i++) {
+            if (strstr(filter_graph->filters[i]->name, filter_of_interest.c_str()) != nullptr) {
+              filter_ctx = filter_graph->filters[i];
+              break;
+            } else {
+              Debug(1, "Didn't match %s != %s", filter_graph->filters[i]->name, filter_of_interest.c_str());
+            }
+          }
+
+          if (filter_ctx == nullptr) {
+            // Only filters that need later config need ctx
+            Debug(1, "cannot find valid ctx for filter %s of interest %s", filter_desc.c_str(), filter_of_interest.c_str());
           }
         }
+
         return true;
       }; // end setup
 
       int execute(AVFrame *in_frame, AVFrame **out_frame) {
-        if (!filter_ctx) {
-          Error("Filter isn't configured");
-          return -1;
-        }
         AVFrame *output = av_frame_alloc();
         if (!output) {
           Error("cannot allocate output filter frame");

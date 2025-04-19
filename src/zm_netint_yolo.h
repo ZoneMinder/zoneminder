@@ -48,10 +48,10 @@ class Quadra_Yolo {
         }
         filter_ctx = nullptr; // Something else will free it.
       };
-      bool setup(Quadra_Yolo *quadra, const std::string &filter_desc, const std::string filter_of_interest, bool hw, AVPixelFormat pix_fmt) {
+      bool setup(Quadra_Yolo *quadra, const std::string &filter_desc, const std::string filter_of_interest, AVBufferRef *hw_frames_ctx, AVPixelFormat pix_fmt) {
         int ret;
         Debug(1, "Trying %s", filter_desc.c_str());
-        if ((ret = quadra->init_filter(filter_desc.c_str(), this, hw, pix_fmt)) < 0) {
+        if ((ret = quadra->init_filter(filter_desc.c_str(), this, hw_frames_ctx, pix_fmt)) < 0) {
           Error("cannot initialize %s filter", filter_desc.c_str());
           return false;
         }
@@ -165,7 +165,7 @@ class Quadra_Yolo {
     int receive_detection(std::shared_ptr<ZMPacket> out_packet);
     int detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
-    int init_filter(const char *filters_desc, filter_worker *f, bool hwmode, AVPixelFormat in_ipxfmt);
+    int init_filter(const char *filters_desc, filter_worker *f, AVBufferRef * 	hw_frames_ctx, AVPixelFormat in_ipxfmt);
     int draw_text(AVFrame *input, AVFrame **output, const std::string &text, int x, int y, const std::string &colour);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);

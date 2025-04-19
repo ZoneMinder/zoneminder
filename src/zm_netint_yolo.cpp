@@ -504,48 +504,37 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       color = "Red";
     }
 
-    AVFrame *drawbox_output = nullptr;
     if (drawbox and drawbox_filter.filter_ctx) {
       Debug(1, "Drawing box");
+      AVFrame *drawbox_output = nullptr;
       ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i]);
       if (ret < 0) {
         Error("draw %d roi box failed", i);
-        drawbox_output = input;
-        //drawbox_output = av_frame_clone(input);
       } else {
-        zm_dump_video_frame(input, "Quadra: drawbox");
+        if (input != frame) av_frame_free(&input);
+        input = drawbox_output;
+        zm_dump_video_frame(drawbox_output, "Quadra: drawbox");
       }
 #if 0
       std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
       Image img(output);
       img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 #endif
-    } else {
-        drawbox_output = input;
-      //drawbox_output = av_frame_clone(input);
     }
 
-    AVFrame *drawtext_output = nullptr;
     if (drawtext and drawtext_filter.filter_ctx) {
       Debug(1, "Drawing text");
+      AVFrame *drawtext_output = nullptr;
 
       ret = draw_text(input, &drawtext_output, stringtf("%s prob:%f", roi_class[cls], 100*roi_extra[i].prob), roi[i].left, roi[i].top, color.c_str());
       if (ret < 0) {
         Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
-        //drawtext_output = av_frame_clone(drawbox_output);
-      drawtext_output = drawbox_output;
       } else {
+        if (input != frame) av_frame_free(&input);
+        input = drawtext_output;
         zm_dump_video_frame(input, "Quadra: drawtext");
       }
-    } else {
-      //drawtext_output = av_frame_clone(drawbox_output);
-      drawtext_output = drawbox_output;
     }
-
-    // First through frees the frame allocated by hwdl
-    if (input != frame) av_frame_free(&input);
-    av_frame_free(&drawbox_output);
-    input = drawtext_output;
   }  // end foreach roi
 
   AVFrame *output = nullptr;

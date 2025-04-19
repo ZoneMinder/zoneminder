@@ -513,14 +513,14 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       } else {
         if (input != frame) av_frame_free(&input);
         input = drawbox_output;
-        zm_dump_video_frame(drawbox_output, "Quadra: drawbox");
+        zm_dump_video_frame(input, "Quadra: drawbox");
       }
 #if 0
       std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
       Image img(output);
       img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 #endif
-    }
+    }  // end if drawbox
 
     if (drawtext and drawtext_filter.filter_ctx) {
       Debug(1, "Drawing text");
@@ -534,20 +534,20 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         input = drawtext_output;
         zm_dump_video_frame(input, "Quadra: drawtext");
       }
-    }
+    }  // end if drawtext
   }  // end foreach roi
 
   AVFrame *output = nullptr;
   // Allocates the frame, gets the image from hw
   if (use_hwframe) {
     if (!hwdl_filter.filter_ctx) {
-      hwdl_filter.setup(this, "hwdownload,format=yuv420p", "hwdownload", input->hw_frames_ctx, dec_ctx->pix_fmt);
-      Warning("No hwdl");
+      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "hwdownload", input->hw_frames_ctx, dec_ctx->pix_fmt))
+        Warning("No hwdl");
     }
     //input->colorspace = AVCOL_SPC_UNSPECIFIED;
-    input->color_range = AVCOL_RANGE_UNSPECIFIED;
+    //input->color_range = AVCOL_RANGE_UNSPECIFIED;
     //input->hw_frames_ctx = frame->hw_frames_ctx;
-    Debug(1, "hw_frames_ctx %p => %p", frame->hw_frames_ctx, input->hw_frames_ctx);
+    //Debug(1, "hw_frames_ctx %p => %p", frame->hw_frames_ctx, input->hw_frames_ctx);
     zm_dump_video_frame(input, "Quadra: process_roi hwframe");
     ret = hwdl_filter.execute(input, &output);
     if (ret < 0) {

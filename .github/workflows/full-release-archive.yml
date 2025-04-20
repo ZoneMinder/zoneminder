@@ -1,0 +1,27 @@
+name: Create Full Release Archive
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Create archive with submodules
+        run: |
+          mkdir build
+          git archive --format=tar --prefix=zoneminder-${{ github.ref_name }}/ HEAD | tar -x -C build
+          git submodule foreach --recursive 'git archive --format=tar --prefix=zoneminder-${{ github.ref_name }}/$path/ HEAD | tar -x -C build -f -'
+          tar -czf zoneminder-${{ github.ref_name }}-full.tar.gz -C build .
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: zoneminder-${{ github.ref_name }}-full.tar.gz

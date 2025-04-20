@@ -35,16 +35,19 @@ class Quadra_Yolo {
       AVFilterContext *buffersrc_ctx;
       AVFilterGraph *filter_graph;
       AVFilterContext *filter_ctx;
+      bool initialised;
 
       filter_worker() :
         buffersink_ctx(nullptr),
         buffersrc_ctx(nullptr),
         filter_graph(nullptr),
-        filter_ctx(nullptr) { 
-        };
+        filter_ctx(nullptr),
+        initialised(false)
+      { 
+      };
       ~filter_worker() {
         if (filter_graph) {
-           avfilter_graph_free(&filter_graph);
+          avfilter_graph_free(&filter_graph);
         }
         filter_ctx = nullptr; // Something else will free it.
       };
@@ -72,7 +75,7 @@ class Quadra_Yolo {
           }
         }
 
-        return true;
+        return initialised = true;
       }; // end setup
 
       int execute(AVFrame *in_frame, AVFrame **out_frame) {
@@ -154,7 +157,6 @@ class Quadra_Yolo {
     nlohmann::json detections;
 
     int filt_cnt;
-
   public:
     Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);
     ~Quadra_Yolo();
@@ -168,7 +170,7 @@ class Quadra_Yolo {
     int init_filter(const char *filters_desc, filter_worker *f, AVBufferRef * 	hw_frames_ctx, AVPixelFormat in_ipxfmt);
     int draw_text(AVFrame *input, AVFrame **output, const std::string &text, int x, int y, const std::string &colour);
   private:
-    int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra);
+    int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra, int line_width);
     int ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame);
     int generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avframe, bool hwframe);
     int process_roi(AVFrame *frame, AVFrame **filt_frame);

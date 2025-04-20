@@ -316,7 +316,8 @@ int Quadra_Yolo::draw_roi_box(
     AVFrame *inframe,
     AVFrame **outframe,
     AVRegionOfInterest roi,
-    AVRegionOfInterestNetintExtra roi_extra, int line_width=1) {
+    AVRegionOfInterestNetintExtra roi_extra,
+    int line_width=1) {
 
   int cls = roi_extra.cls;
   std::string color;
@@ -339,7 +340,7 @@ int Quadra_Yolo::draw_roi_box(
   drawbox_filter.opt_set(stringtf("y%d", line_width), y);
   drawbox_filter.opt_set(stringtf("w%d", line_width), w);
   drawbox_filter.opt_set(stringtf("h%d", line_width), h);
-  drawbox_filter.opt_set("color", color.c_str());
+  drawbox_filter.opt_set(stringtf("color%d", line_width), color.c_str());
 #else
   std::string option = stringtf("x=%d:y=%d:w=%d:h=%d:color=%s", x, y, w, h, color.c_str());
   int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "reinit", option.c_str(), NULL, 0, 0);
@@ -514,7 +515,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     if (drawbox and drawbox_filter.filter_ctx) {
       Debug(1, "Drawing box");
       AVFrame *drawbox_output = nullptr;
-      ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], 2);
+      ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
       if (ret < 0) {
         Error("draw %d roi box failed", i);
       } else {
@@ -533,7 +534,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       Debug(1, "Drawing text");
       AVFrame *drawtext_output = nullptr;
 
-      ret = draw_text(input, &drawtext_output, stringtf("%s prob:%f", roi_class[cls], 100*roi_extra[i].prob), roi[i].left, roi[i].top, color.c_str());
+      ret = draw_text(input, &drawtext_output, stringtf("%s: %.1f%%", roi_class[cls], 100*roi_extra[i].prob),
+          roi[i].left+1+monitor->LabelSize(), roi[i].top+1+monitor->LabelSize(), color.c_str());
       if (ret < 0) {
         Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
       } else {

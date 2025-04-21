@@ -167,6 +167,9 @@ bool Quadra_Yolo::setup(
 /* Ideally we could hangle intermixed hwframes and swframes. */
 int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   AVFrame *avframe = (use_hwframe and in_packet->hw_frame) ? in_packet->hw_frame.get() : in_packet->in_frame.get();
+  if (!in_packet->hw_frame) {
+    Error("No hw_frame in packet!");
+  }
 
   if (!use_hwframe && !sw_scale_ctx) {
     sw_scale_ctx = sws_getContext(

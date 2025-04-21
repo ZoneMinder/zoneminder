@@ -64,8 +64,8 @@ class Quadra_Yolo {
             if (strstr(filter_graph->filters[i]->name, filter_of_interest.c_str()) != nullptr) {
               filter_ctx = filter_graph->filters[i];
               break;
-            } else {
-              Debug(1, "Didn't match %s != %s", filter_graph->filters[i]->name, filter_of_interest.c_str());
+            //} else {
+              //Debug(1, "Didn't match %s != %s", filter_graph->filters[i]->name, filter_of_interest.c_str());
             }
           }
 

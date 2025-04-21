@@ -49,7 +49,6 @@ static const char * coco_classes[] = {
 };
 
 #define USE_THREAD 0
-#define USE_LOCK 0
 #define SPLIT 0
 
 #ifdef HAVE_UNTETHER_H
@@ -294,16 +293,6 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   }
 #else
   SystemTimePoint starttime = std::chrono::system_clock::now();
-#if USE_LOCK
-  std::unique_lock<std::mutex> lck(mutex_);
-  SystemTimePoint endtime = std::chrono::system_clock::now();
-  if (endtime - starttime > Milliseconds(30)) {
-    Warning("SpeedAI locking is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
-  } else {
-    Debug(3, "SpeedAI locking took: %.3f seconds", FPSeconds(endtime - starttime).count());
-  }
-  starttime = endtime;
-#endif
   // Enqueue event, inference will start asynchronously.
   UaiErr err = uai_module_enqueue(module_, &job->event);
   if (err != UAI_SUCCESS) {
@@ -313,8 +302,8 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
   SystemTimePoint endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(30)) {
     Warning("SpeedAI enqueue is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
-  } else {
-    Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
+  //} else {
+    //Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
 
 #if !SPLIT

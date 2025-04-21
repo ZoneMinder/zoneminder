@@ -29,6 +29,8 @@
 
 .imageHeight {
 <?php
+echo 'padding-top: ' . round(100/$max_aspect_ratio, 2) . '%;';
+/*
 switch ( $max_aspect_ratio ) {
   case 0.56: // 1080x1920, 1520x2688
   case 0.57:
@@ -53,6 +55,7 @@ switch ( $max_aspect_ratio ) {
     ZM\Error("Unknown aspect ratio $max_aspect_ratio");
     echo 'padding-top: 100%;';
 }
+*/
 ?>
 }
 

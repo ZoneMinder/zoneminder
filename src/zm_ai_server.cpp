@@ -282,7 +282,7 @@ void AIThread::Inference() {
       //Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
-        draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize());
+        draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
       } else {
         ai_image->Assign(*packet->image);
       }
@@ -427,7 +427,9 @@ int draw_boxes(
     Quadra::filter_worker *drawbox_filter,
     AVFilterContext *drawbox_filter_ctx,
     Image *in_image, Image *out_image,
-    const nlohmann::json &coco_object, int font_size) {
+    const nlohmann::json &coco_object, int font_size,
+    int line_width=2
+    ) {
 
   try {
     //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
@@ -435,7 +437,7 @@ int draw_boxes(
       AVFrame *in_frame = av_frame_alloc();
       in_image->PopulateFrame(in_frame);
 #if SOFT_DRAWBOX
-      out_image->Assign(in_image);
+      out_image->Assign(*in_image);
 #endif
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
@@ -443,7 +445,6 @@ int draw_boxes(
         nlohmann::json bbox = detection["bbox"];
 
         //Debug(1, "%s", bbox.dump().c_str());
-        std::vector<Vector2> coords;
         int x1 = bbox[0];
         int y1 = bbox[1];
         int x2 = bbox[2];
@@ -453,14 +454,30 @@ int draw_boxes(
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
 #if SOFT_DRAWBOX
+        {
+        std::vector<Vector2> coords;
         coords.push_back(Vector2(x1, y1));
         coords.push_back(Vector2(x2, y1));
         coords.push_back(Vector2(x2, y2));
         coords.push_back(Vector2(x1, y2));
 
         Polygon poly(coords);
-        out_image.Outline(kRGBWhite, poly);
-        out_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
+        out_image->Outline(kRGBGreen, poly);
+        }
+        {
+        std::vector<Vector2> coords;
+        coords.push_back(Vector2(x1+1, y1+1));
+        coords.push_back(Vector2(x2-1, y1+1));
+        coords.push_back(Vector2(x2-1, y2-1));
+        coords.push_back(Vector2(x1+1, y2-1));
+
+        Polygon poly(coords);
+        out_image->Outline(kRGBGreen, poly);
+        }
+
+
+        out_image->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
+            font_size, kRGBWhite, kRGBTransparent);
 #else
         AVFrame *out_frame = av_frame_alloc();
         if (!out_frame) {

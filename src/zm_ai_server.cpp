@@ -421,6 +421,8 @@ void AIThread::Run() {
 #endif
 } // end SpeedAIDetect   
 
+#define SOFT_DRAWBOX 1
+
 int draw_boxes(
     Quadra::filter_worker *drawbox_filter,
     AVFilterContext *drawbox_filter_ctx,
@@ -432,6 +434,9 @@ int draw_boxes(
     if (coco_object.size()) {
       AVFrame *in_frame = av_frame_alloc();
       in_image->PopulateFrame(in_frame);
+#if SOFT_DRAWBOX
+      out_image->Assign(in_image);
+#endif
 
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
@@ -443,6 +448,20 @@ int draw_boxes(
         int y1 = bbox[1];
         int x2 = bbox[2];
         int y2 = bbox[3];
+        std::string coco_class = detection["class_name"];
+        float score = detection["score"];
+        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
+
+#if SOFT_DRAWBOX
+        coords.push_back(Vector2(x1, y1));
+        coords.push_back(Vector2(x2, y1));
+        coords.push_back(Vector2(x2, y2));
+        coords.push_back(Vector2(x1, y2));
+
+        Polygon poly(coords);
+        out_image.Outline(kRGBWhite, poly);
+        out_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
+#else
         AVFrame *out_frame = av_frame_alloc();
         if (!out_frame) {
           Error("cannot allocate output filter frame");
@@ -454,22 +473,22 @@ int draw_boxes(
           Error("draw box failed");
           return ret;
         }
-        //zm_dump_video_frame(out_frame, "SpeedAI: boxes");
-
-        std::string coco_class = detection["class_name"];
-        float score = detection["score"];
-        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
         Image temp_image(out_frame);
         temp_image.Annotate(annotation.c_str(), Vector2(x1, y1), font_size, kRGBWhite, kRGBTransparent);
 
         av_frame_free(&in_frame);
         in_frame = out_frame;
+#endif
       }  // end foreach detection
+#if SOFT_DRAWBOX
+    } // end if coco
+#else
       out_image->Assign(in_frame);
       av_frame_free(&in_frame);
     } else {
       out_image->Assign(*in_image);
     }  // end if coco
+#endif
   } catch (std::exception const & ex) {
     Error("draw_box Exception: %s", ex.what());
   }

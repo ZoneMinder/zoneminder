@@ -2149,10 +2149,14 @@ int Monitor::Analyse() {
 
           if (objectdetection != OBJECT_DETECTION_NONE) {
             if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-              while (shared_data->analysis_image_count < packet->image_index and !zm_terminate) {
+              int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
+              while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
+
                 Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
                 std::this_thread::sleep_for(Microseconds(10000));
+                count--;
               }
+              // In order to make it available to event writing
               if (shared_data->analysis_image_count >= packet->image_index) {
                 Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
                 packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
@@ -3225,7 +3229,7 @@ int Monitor::Decode() {
       packet_lock = std::move( decoder_queue.front() );
       decoder_queue.pop_front();
       packet = delayed_packet;
-      //av_packet_unref(packet->packet.get());
+      if (!quadra) packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
@@ -3303,7 +3307,7 @@ int Monitor::Decode() {
           avcodec_free_context(&mVideoCodecContext);
           avcodec_free_context(&mAudioCodecContext);
           return -1;
-        } else {
+        //} else {
           //Debug(1, "Success");
         }
         packetqueue.increment_it(decoder_it);

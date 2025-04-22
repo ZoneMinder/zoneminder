@@ -29,7 +29,12 @@
 
 .imageHeight {
 <?php
+echo 'padding-top: ' . round(100/$max_aspect_ratio, 2) . '%;';
+/*
 switch ( $max_aspect_ratio ) {
+  case 0.56: // 1080x1920, 1520x2688
+  case 0.57:
+    echo 'padding-top: 176%;'; break;
   case null:
   case 1:
     echo 'padding-top: 100%;'; break;
@@ -43,12 +48,14 @@ switch ( $max_aspect_ratio ) {
     echo 'padding-top: 66.66%'; break;
   case 1.6: // 8:5
     echo 'padding-top: 62.5%'; break;
-  case 1.78: // 16:9
+  case 1.77: // 16:9
+  case 1.78:
    echo 'padding-top: 56.25%;'; break;
   default:
     ZM\Error("Unknown aspect ratio $max_aspect_ratio");
     echo 'padding-top: 100%;';
 }
+*/
 ?>
 }
 

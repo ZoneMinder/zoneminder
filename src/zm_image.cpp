@@ -2800,20 +2800,22 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-      if (colours == ZM_COLOUR_YUV420P) {
+      if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+        int32_t yuv_colour = brg_to_yuv(colour);
+
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*width)+int(round(x))] = colour;
+          buffer[(y*width)+int(round(x))] = Y_VAL(yuv_colour);
         }
-#if 0
-        buffer += width*height;
+#if 1
+        buffer += width*height; // Jump to U channel
         // Now U channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*int(round(width/2)))+int(round(x/2))] = colour;
+          buffer[(y*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
         }
-        buffer += width*height/2;
+        buffer += width*height/2; // Jump to V channel
         // Now V Channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*int(round(width/2)))+int(round(x/2))] = colour;
+          buffer[(y*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
         }
 #endif
       } else if ( colours == ZM_COLOUR_GRAY8 ) {

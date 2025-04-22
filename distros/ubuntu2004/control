@@ -83,7 +83,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
-        ,libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libgsoap-2.8.135|libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
         ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm

@@ -51,6 +51,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define BLUE_VAL_RGBA(v)  (((v)>>16)&0xff)
 #define GREEN_VAL_RGBA(v)  (((v)>>8)&0xff)
 #define RED_VAL_RGBA(v)   ((v)&0xff)
+
 #define ALPHA_VAL_RGBA(v)  ((v)>>24)&0xff)
 #define RED_PTR_RGBA(ptr)  (*((uint8_t*)ptr))
 #define GREEN_PTR_RGBA(ptr)  (*((uint8_t*)ptr+1))
@@ -167,5 +168,9 @@ inline YUV brg_to_yuv(Rgb colour) {
   float V = 0.615*R -0.51499*G - 0.10001*B;
   return (static_cast<uint8_t>(Y)<<16) + (static_cast<uint8_t>(U) << 8) + static_cast<uint8_t>(V);
 }
+
+#define Y_VAL(v)  (((v)>>16)&0xff)
+#define U_VAL(v)  (((v)>>8)&0xff)
+#define V_VAL(v)  ((v)&0xff)
 
 #endif // ZM_RGB_H

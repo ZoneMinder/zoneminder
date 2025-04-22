@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-AVRational qp_offset = { 0 , 0 };
+#define SOFTWARE_DRAWBOX 1
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -155,11 +155,13 @@ bool Quadra_Yolo::setup(
     }
   }
 
+#if SOFTWARE_DRAWBOX
+#else
   if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox=color=red,ni_quadra_scale=iw:ih:format=yuv420p", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
   if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
-
+#endif
 
   return true;
 }
@@ -330,9 +332,22 @@ int Quadra_Yolo::draw_roi_box(
     color = "red";
     //color = "#FF000000";
   }
+#if SOFTWARE_DRAWBOX
+  Image in_image(inframe);
+#endif
+
   for (int i=0; i<line_width; i++) {
-  //while(line_width > 0) {
-    //line_width--;
+#if SOFTWARE_DRAWBOX
+    std::vector<Vector2> coords;
+    coords.push_back(Vector2(roi.left + i, roi.top + i));
+    coords.push_back(Vector2(roi.right - i, roi.top + i));
+    coords.push_back(Vector2(roi.right - i, roi.bottom - i));
+    coords.push_back(Vector2(roi.left + i, roi.bottom - i));
+
+    Polygon poly(coords);
+    in_image.Outline(kRGBGreen, poly);
+  }  // end while
+#else
     int x = roi.left + i; // line
     int y = roi.top + i;
     int w = (roi.right - roi.left) - i;
@@ -365,9 +380,11 @@ int Quadra_Yolo::draw_roi_box(
     //return ret;
   }
 #endif
-  }
+  } // end while
 
   return drawbox_filter.execute(inframe, outframe);
+#endif
+  return 1;
 } // end draw_roi_box
 
 int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, AVBufferRef *hw_frames_ctx, AVPixelFormat input_fmt) {
@@ -600,7 +617,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       (cur_roi[i]).bottom    = roi[i].bottom;
       (cur_roi[i]).left      = roi[i].left;
       (cur_roi[i]).right     = roi[i].right;
-      (cur_roi[i]).qoffset   = qp_offset;
+      (cur_roi[i]).qoffset   = { 0 , 0 };
       cur_roi_extra[i].self_size = roi_extra[i].self_size;
       cur_roi_extra[i].cls       = roi_extra[i].cls;
       cur_roi_extra[i].prob      = roi_extra[i].prob;
@@ -720,7 +737,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
       roi[j].bottom    = roi_box[i].bottom;
       roi[j].left      = roi_box[i].left;
       roi[j].right     = roi_box[i].right;
-      roi[j].qoffset   = qp_offset;
+      roi[j].qoffset   = { 0 , 0 };
       roi_extra[j].self_size = sizeof(*roi_extra);
       roi_extra[j].cls       = roi_box[i].ai_class;
       roi_extra[j].prob      = roi_box[i].prob;

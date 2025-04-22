@@ -110,7 +110,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
 
-    if (video_stream_id==add_packet->packet->stream_index) {
+    if (video_stream_id == add_packet->packet->stream_index) {
       if (!add_packet->keyframe) {
         frames_since_last_keyframe_ ++;
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
@@ -169,13 +169,13 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       if (!warned_count) {
         warned_count++;
         Warning("You have set the max video packets in the queue to %u."
-                " The queue is full. Either Analysis is not keeping up or"
+                " The queue is full %u. Either Analysis is not keeping up or"
                 " your camera's keyframe interval %d is larger than this setting."
-                , max_video_packet_count, max_keyframe_interval_);
+                , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_);
       }
 
       for (
-        // Start at second packet because the first is always a keyframe
+        // Start at second packet because the first is always a keyframe unless we don't care about keyframes
         auto it = ++pktQueue.begin();
         //it != pktQueue.end() and  // can't hit end because we added our packet
         (*it != add_packet) && !(deleting or zm_terminate);
@@ -190,16 +190,19 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             // Can't delete a locked packet, but can delete one after it.
             Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
           }
-          ++it;
           break;
-        }
-
-        if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
-          for ( it = pktQueue.begin(); *it != zm_packet; ) {
-            it = this->deletePacket(it);
-          }
-          break;
-        } // end if erasing a whole gop
+        } else if (!keep_keyframes) {
+          it = this->deletePacket(it);
+          if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) break;
+          continue;
+        } else {
+          if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
+            for ( it = pktQueue.begin(); *it != zm_packet; ) {
+              it = this->deletePacket(it);
+            }
+            break;
+          } // end if erasing a whole gop
+        } // end if locked and keyframes
         ++it;
       }  // end foreach
     } else if (warned_count > 0) {
@@ -601,6 +604,7 @@ void PacketQueue::unlock(ZMPacketLock *lp) {
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
   if (((*it) == pktQueue.end()) or deleting) {
+    Warning("increment_it at end!");
     return false;
   }
   std::unique_lock<std::mutex> lck(mutex);

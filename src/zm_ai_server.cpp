@@ -70,6 +70,8 @@ and perform AI analysis on latest frames
 
 #include "zm_ai_server.h"
 
+#define SOFT_DRAWBOX 1
+
 void Usage() {
   fprintf(stderr, "zm_ai_server -m <monitor_id>\n");
 
@@ -239,6 +241,7 @@ int main(int argc, char *argv[]) {
 }
 
 void AIThread::Inference() {
+  Debug(1, "Starting Inference for monitor %d", monitor_->Id());
 #ifdef HAVE_UNTETHER_H
   while (!terminate_ and !( job = speedai->get_job() )) {
     Warning("Waiting for job");
@@ -248,14 +251,17 @@ void AIThread::Inference() {
 
   int ret;
   drawbox_filter = new Quadra::filter_worker();
-  if ((ret = quadra.init_filter("drawbox", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
+  if ((ret = quadra.init_filter("drawbox=color=red", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
     Error("cannot initialize drawbox filter");
-    return;
-  }
-  drawbox_filter_ctx = drawbox_filter->find_filter_ctx("drawbox");
-  if (drawbox_filter_ctx == nullptr) {
-    Error( "cannot find valid drawbox filter");
-    return;
+    delete drawbox_filter;
+    drawbox_filter = nullptr;
+    //return;
+  } else {
+    drawbox_filter_ctx = drawbox_filter->find_filter_ctx("drawbox");
+    if (drawbox_filter_ctx == nullptr) {
+      Error( "cannot find valid drawbox filter");
+      return;
+    }
   }
 
   while (!(terminate_ or zm_terminate)) {
@@ -264,8 +270,11 @@ void AIThread::Inference() {
     {
       //Debug(1, "locking, queue size %zu", send_queue.size());
       std::unique_lock<std::mutex> lck(mutex_);
-      while (!send_queue.size() and !terminate_) {
+      //Debug(1, "have locking, queue size %zu", send_queue.size());
+      while (!(send_queue.size() or terminate_)) {
+        //Debug(1, "Waiting");
         condition_.wait(lck);
+        Debug(1, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
       }
       if (terminate_) break;
       packet = send_queue.front();
@@ -273,7 +282,7 @@ void AIThread::Inference() {
 
     if (packet) {
       Monitor::SharedData *shared_data = monitor_->getSharedData();
-      Debug(1, "Sending image %d", packet->image_index);
+      Debug(4, "Sending image %d for monitor %d", packet->image_index, monitor_->Id());
 #ifdef HAVE_UNTETHER_H
       speedai->send_image(job, packet->image);
 
@@ -309,7 +318,6 @@ void AIThread::Run() {
     Error("No speedai");
     return;
   }
-
 
   while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
     if (monitor_->isConnected()) {
@@ -358,7 +366,8 @@ void AIThread::Run() {
     decoder_image_count = shared_data->decoder_image_count;
     while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
       Microseconds delay = Microseconds(30000);
-      Debug(1, "Sleeping for %ld microseconds waiting for decoder", delay.count());
+      Debug(1, "Sleeping for %ld microseconds waiting for decoder last_decoder_index %d count %d", delay.count(),
+          shared_data->last_decoder_index, shared_data->decoder_image_count);
       std::this_thread::sleep_for(delay);
     }
 
@@ -385,8 +394,11 @@ void AIThread::Run() {
       packet->image = in_image;
       packet->image_index = image_index;
 
-      std::unique_lock<std::mutex> lck(mutex_);
-      send_queue.push_back(packet);
+      {
+        std::unique_lock<std::mutex> lck(mutex_);
+        send_queue.push_back(packet);
+      }
+      Debug(4, "send queue size %zu", send_queue.size());
       condition_.notify_all();
       analysis_image_count++;
       shared_data->analysis_image_count = analysis_image_count;
@@ -421,7 +433,6 @@ void AIThread::Run() {
 #endif
 } // end SpeedAIDetect   
 
-#define SOFT_DRAWBOX 1
 
 int draw_boxes(
     Quadra::filter_worker *drawbox_filter,
@@ -454,31 +465,32 @@ int draw_boxes(
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
 #if SOFT_DRAWBOX
+        Debug(1, "Using software drawbox");
         {
-        std::vector<Vector2> coords;
-        coords.push_back(Vector2(x1, y1));
-        coords.push_back(Vector2(x2, y1));
-        coords.push_back(Vector2(x2, y2));
-        coords.push_back(Vector2(x1, y2));
+          std::vector<Vector2> coords;
+          coords.push_back(Vector2(x1, y1));
+          coords.push_back(Vector2(x2, y1));
+          coords.push_back(Vector2(x2, y2));
+          coords.push_back(Vector2(x1, y2));
 
-        Polygon poly(coords);
-        out_image->Outline(kRGBGreen, poly);
+          Polygon poly(coords);
+          out_image->Outline(kRGBGreen, poly);
         }
         {
-        std::vector<Vector2> coords;
-        coords.push_back(Vector2(x1+1, y1+1));
-        coords.push_back(Vector2(x2-1, y1+1));
-        coords.push_back(Vector2(x2-1, y2-1));
-        coords.push_back(Vector2(x1+1, y2-1));
+          std::vector<Vector2> coords;
+          coords.push_back(Vector2(x1+1, y1+1));
+          coords.push_back(Vector2(x2-1, y1+1));
+          coords.push_back(Vector2(x2-1, y2-1));
+          coords.push_back(Vector2(x1+1, y2-1));
 
-        Polygon poly(coords);
-        out_image->Outline(kRGBGreen, poly);
+          Polygon poly(coords);
+          out_image->Outline(kRGBGreen, poly);
         }
-
 
         out_image->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
             font_size, kRGBWhite, kRGBTransparent);
 #else
+        Debug(1, "Using hw drawbox");
         AVFrame *out_frame = av_frame_alloc();
         if (!out_frame) {
           Error("cannot allocate output filter frame");
@@ -525,30 +537,23 @@ int draw_box(
     return -1;
   }
 
-  char drawbox_option[32];
   std::string color = "green";
-  int n, ret;
 
+  av_opt_set(drawbox_filter_ctx->priv, "x", stringtf("%d", x).c_str(), 0);
+  av_opt_set(drawbox_filter_ctx->priv, "y", stringtf("%d", y).c_str(), 0);
+  av_opt_set(drawbox_filter_ctx->priv, "w", stringtf("%d", w).c_str(), 0);
+  av_opt_set(drawbox_filter_ctx->priv, "h", stringtf("%d", h).c_str(), 0);
+  av_opt_set(drawbox_filter_ctx->priv, "c", color.c_str(), 0);
 
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", x); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "x", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", y); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "y", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", w); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "w", drawbox_option, 0);
-
-  n = snprintf(drawbox_option, sizeof(drawbox_option), "%d", h); drawbox_option[n] = '\0';
-  av_opt_set(drawbox_filter_ctx->priv, "h", drawbox_option, 0);
-
-  ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
+#if 0
+  int ret = avfilter_graph_send_command(drawbox_filter->filter_graph, "drawbox", "color", color.c_str(), nullptr, 0, 0);
   if (ret < 0) {
     Error("cannot send drawbox filter command, ret %d.", ret);
     return ret;
   }
+#endif
 
-  ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
+  int ret = av_buffersrc_add_frame_flags(drawbox_filter->buffersrc_ctx, inframe, AV_BUFFERSRC_FLAG_KEEP_REF);
   if (ret < 0) {
     Error("cannot add frame to drawbox buffer src %d", ret);
     return ret;

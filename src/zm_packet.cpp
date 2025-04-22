@@ -114,7 +114,7 @@ ZMPacket::~ZMPacket() {
   if (y_image) delete y_image;
   if (ai_image) delete ai_image;
   if (hw_frame) {
-    Warning("Should not have hw_frame in destructor %d", image_index);
+    Debug(1, "Should not have hw_frame in destructor %d", image_index);
   }
 }
 
@@ -139,9 +139,9 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
   in_frame = std::move(receive_frame);
   //zm_dump_video_frame(in_frame.get(), "got frame");
 
-  get_hwframe(ctx);
+  //get_hwframe(ctx);
   return 1;
-}
+}  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
 
 int ZMPacket::send_packet(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN

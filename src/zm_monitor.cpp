@@ -2148,7 +2148,7 @@ int Monitor::Analyse() {
           }  // end if decoding enabled
 
           if (objectdetection != OBJECT_DETECTION_NONE) {
-            if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+            if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
               int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
               while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
 

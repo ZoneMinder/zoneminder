@@ -615,21 +615,20 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   AVFrame *in_frame = packet->in_frame.get();
-  if (!in_frame) { return 1; }
+  if (!in_frame) return 1;
 
   if (!last_roi_count) return 1;
 
   for (int i = 0; i < last_roi_count; i++) {
-    AVFrame *output = av_frame_alloc();
-    // TODO use RAII
+    AVFrame *output = nullptr;
     if (!output) {
+      // FIXME what about already allocated frames
       Error("cannot allocate output filter frame");
       return NIERROR(ENOMEM);
     }
     int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
     if (ret < 0) {
       Error("draw %d roi box failed", i);
-      av_frame_free(&output);
       return ret;
     }
     zm_dump_video_frame(output, "Quadra: boxes");

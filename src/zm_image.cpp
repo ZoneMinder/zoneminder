@@ -2767,7 +2767,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
 }
 
 /* RGB32 compatible: complete */
-void Image::Outline( Rgb colour, const Polygon &polygon ) {
+void Image::Outline( Rgb colour, const Polygon &polygon ) const {
   if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
     Panic("Attempt to outline image with unexpected colours %d", colours);
   }
@@ -2797,25 +2797,27 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       else
         grad = width;
 
+
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
       if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
         int32_t yuv_colour = brg_to_yuv(colour);
+        uint8_t *buffer_ptr = buffer;
 
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*width)+int(round(x))] = Y_VAL(yuv_colour);
+          buffer_ptr[(y*width)+int(round(x))] = Y_VAL(yuv_colour);
         }
 #if 1
-        buffer += width*height; // Jump to U channel
+        buffer_ptr += width*height; // Jump to U channel
         // Now U channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
+          buffer_ptr[(y*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
         }
-        buffer += width*height/2; // Jump to V channel
+        buffer_ptr += width*height/2; // Jump to V channel
         // Now V Channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer[(y*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
+          buffer_ptr[(y*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
         }
 #endif
       } else if ( colours == ZM_COLOUR_GRAY8 ) {

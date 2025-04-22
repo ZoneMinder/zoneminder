@@ -155,7 +155,7 @@ bool Quadra_Yolo::setup(
     }
   }
 
-  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox,ni_quadra_scale=iw:ih:format=yuv420p", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox=color=red,ni_quadra_scale=iw:ih:format=yuv420p", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
   if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
@@ -325,25 +325,36 @@ int Quadra_Yolo::draw_roi_box(
   int cls = roi_extra.cls;
   std::string color;
   if (cls == 0) {
-    color = "Blue";
+    color = "blue";
   } else {
-    color = "Red";
+    color = "red";
+    //color = "#FF000000";
   }
-  while(line_width > 0) {
-    line_width--;
-  int x = roi.left + line_width; // line
-  int y = roi.top + line_width;
-  int w = (roi.right - roi.left) - 2*line_width;
-  int h = (roi.bottom - roi.top) - 2*line_width;
+  for (int i=0; i<line_width; i++) {
+  //while(line_width > 0) {
+    //line_width--;
+    int x = roi.left + i; // line
+    int y = roi.top + i;
+    int w = (roi.right - roi.left) - i;
+    int h = (roi.bottom - roi.top) - i;
 
-  Debug(4, "x %d, y %d, w %d, h %d color %s", x, y, w, h, color.c_str());
+    Debug(1, "x %d, y %d, w %d, h %d color %s %d", x, y, w, h, color.c_str(), i);
 
 #if 1
-  drawbox_filter.opt_set(stringtf("x%d", line_width), x);
-  drawbox_filter.opt_set(stringtf("y%d", line_width), y);
-  drawbox_filter.opt_set(stringtf("w%d", line_width), w);
-  drawbox_filter.opt_set(stringtf("h%d", line_width), h);
-  drawbox_filter.opt_set(stringtf("color%d", line_width), color.c_str());
+    if (!i) {
+      drawbox_filter.opt_set("x", x);
+      drawbox_filter.opt_set("y", y);
+      drawbox_filter.opt_set("w", w);
+      drawbox_filter.opt_set("h", h);
+      drawbox_filter.opt_set("color", color.c_str());
+    } else {
+      drawbox_filter.opt_set(stringtf("x%d", i), x);
+      drawbox_filter.opt_set(stringtf("y%d", i), y);
+      drawbox_filter.opt_set(stringtf("w%d", i), w);
+      drawbox_filter.opt_set(stringtf("h%d", i), h);
+      drawbox_filter.opt_set(stringtf("c%d", i), color.c_str());
+      drawbox_filter.opt_set(stringtf("color%d", i), color.c_str());
+    }
 #else
   std::string option = stringtf("x=%d:y=%d:w=%d:h=%d:color=%s", x, y, w, h, color.c_str());
   int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "reinit", option.c_str(), NULL, 0, 0);
@@ -537,7 +548,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       Debug(1, "Drawing text");
       AVFrame *drawtext_output = nullptr;
 
-      ret = draw_text(input, &drawtext_output, stringtf("%s: %.1f%%", roi_class[cls], 100*roi_extra[i].prob),
+      ret = draw_text(input, &drawtext_output, stringtf("%s: %.1f%%%%", roi_class[cls], 100*roi_extra[i].prob),
           roi[i].left+1+monitor->LabelSize(), roi[i].top+1+monitor->LabelSize(), color.c_str());
       if (ret < 0) {
         Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
@@ -730,7 +741,7 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
     return -1;
   }
 
-#if 0
+#if 1
   drawtext_filter.opt_set("x", x);
   drawtext_filter.opt_set("y", y);
   drawtext_filter.opt_set("text", text.c_str());

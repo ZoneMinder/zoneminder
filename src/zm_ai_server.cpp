@@ -191,6 +191,7 @@ int main(int argc, char *argv[]) {
             );
         //threads[monitor->Id()]->Start();
       }
+      if (zm_terminate) break;
     }
 
     // Remove monitors that are no longer doing ai
@@ -465,7 +466,6 @@ int draw_boxes(
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
 #if SOFT_DRAWBOX
-        Debug(1, "Using software drawbox");
         {
           std::vector<Vector2> coords;
           coords.push_back(Vector2(x1, y1));

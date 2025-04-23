@@ -14,8 +14,12 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = monitorData.RTSP2WebType;
   this.RTSP2WebStream = monitorData.RTSP2WebStream;
+  this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
+  this.Go2RTCType = monitorData.Go2RTCType;
+  this.Go2RTCStream = monitorData.Go2RTCStream;
+  this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
-  this.RTSP2WebMSEBufferCleared = true;
+  this.MSEBufferCleared = true;
   this.webrtc = null;
   this.hls = null;
   this.mse = null;
@@ -317,6 +321,54 @@ function MonitorStream(monitorData) {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
       }
     }
+    if (this.Go2RTCEnabled) {
+      if (ZM_Go2RTC_PATH) {
+        const videoEl = document.getElementById("liveStream" + this.id);
+        const url = new URL(ZM_Go2RTC_PATH);
+        const useSSL = (url.protocol == 'https');
+
+        const Go2RTCModUrl = url;
+        Go2RTCModUrl.username = '';
+        Go2RTCModUrl.password = '';
+        //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.Go2RTCStream == 'Secondary') ? 1 : 0) : streamChannel;
+        if (this.Go2RTCType == 'HLS') {
+          const hlsUrl = Go2RTCModUrl;
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
+          /*
+          if (useSSL) {
+            hlsUrl = "https://" + Go2RTCModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          } else {
+            hlsUrl = "http://" + Go2RTCModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          }
+          */
+          if (Hls.isSupported()) {
+            this.hls = new Hls();
+            this.hls.loadSource(hlsUrl.href);
+            this.hls.attachMedia(videoEl);
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            videoEl.src = hlsUrl.href;
+          }
+        } else if (this.Go2RTCType == 'MSE') {
+          const mseUrl = Go2RTCModUrl;
+          mseUrl.protocol = useSSL ? 'wss' : 'ws';
+          mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
+          startMsePlay(this, videoEl, mseUrl.href);
+        } else if (this.Go2RTCType == 'WebRTC') {
+          const webrtcUrl = Go2RTCModUrl;
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
+          startGo2RTCPlay(videoEl, webrtcUrl.href, this);
+        }
+        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+        this.started = true;
+        this.streamListenerBind();
+        return;
+      } else {
+        console.log("ZM_Go2RTC_PATH is empty. Go to Options->System and set ZM_Go2RTC_PATH accordingly.");
+      }
+    }
 
     // zms stream
     const stream = this.getElement();
@@ -363,19 +415,19 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (this.RTSP2WebType == 'WebRTC' && this.webrtc) {
+    if ((this.RTSP2WebType == 'WebRTC' || this.Go2RTCType == 'WebRTC ') && this.webrtc) {
       this.webrtc.close();
       this.webrtc = null;
-    } else if (this.RTSP2WebType == 'HLS' && this.hls) {
+    } else if ((this.RTSP2WebType == 'HLS'|| this.Go2RTCType == 'HLS') && this.hls) {
       this.hls.destroy();
       this.hls = null;
-    } else if (this.RTSP2WebType == 'MSE') {
+    } else if (this.RTSP2WebType == 'MSE' || this.Go2RTCType == 'MSE') {
       this.stopMse();
     }
   };
 
   this.stopMse = function() {
-    this.RTSP2WebMSEBufferCleared = false;
+    this.MSEBufferCleared = false;
     this.streamStartTime = 0;
     return new Promise((resolve, reject) => {
       if (this.mseSourceBuffer && this.mseSourceBuffer.updating) {
@@ -418,7 +470,7 @@ function MonitorStream(monitorData) {
           this.mse = null;
           this.mseStreamingStarted = false;
           this.mseSourceBuffer = null;
-          this.RTSP2WebMSEBufferCleared = true;
+          this.MSEBufferCleared = true;
         });
   };
 
@@ -463,7 +515,7 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    if (this.RTSP2WebEnabled) {
+    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
@@ -478,7 +530,7 @@ function MonitorStream(monitorData) {
   };
 
   this.play = function() {
-    if (this.RTSP2WebEnabled) {
+    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play();
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -987,7 +1039,7 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
 
     this.streamCmdReq = function(streamCmdParms) {
-      if (!(streamCmdParms.command == CMD_STOP && this.RTSP2WebEnabled)) {
+      if (!(streamCmdParms.command == CMD_STOP && (this.RTSP2WebEnabled || this.Go2RTCEnabled))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
         this.ajaxQueue = jQuery.ajaxQueue({
           url: this.url + (auth_relay?'?'+auth_relay:''),
@@ -1290,7 +1342,7 @@ function mseListenerSourceopen(context, videoEl, url) {
 
 function startMsePlay(context, videoEl, url) {
   var startPermitted = true;
-  if (!context.RTSP2WebMSEBufferCleared) {
+  if (!context.MSEBufferCleared) {
     startPermitted = false;
   }
   if (context.wsMSE && context.wsMSE.readyState === WebSocket.OPEN) {

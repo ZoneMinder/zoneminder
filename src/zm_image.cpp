@@ -2801,6 +2801,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
+#if 0
       if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
         int32_t yuv_colour = brg_to_yuv(colour);
         uint8_t *buffer_ptr = buffer;
@@ -2808,19 +2809,19 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer_ptr[(y*width)+int(round(x))] = Y_VAL(yuv_colour);
         }
-#if 1
         buffer_ptr += width*height; // Jump to U channel
         // Now U channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer_ptr[(y*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
+          buffer_ptr[((y/2)*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
         }
         buffer_ptr += width*height/2; // Jump to V channel
         // Now V Channel
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer_ptr[(y*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
+          buffer_ptr[((y/2)*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
         }
+      } else 
 #endif
-      } else if ( colours == ZM_COLOUR_GRAY8 ) {
+        if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer[(y*width)+int(round(x))] = colour;
         }

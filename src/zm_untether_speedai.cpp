@@ -120,7 +120,7 @@ bool SpeedAI::setup(
   Debug(1, "SpeedAI: Loading model %s", model_file.c_str());
   UaiErr err = uai_module_load(model_file.c_str(), &module_);
   if (err != UAI_SUCCESS) {
-    Error("Failed loading model %s", uai_err_string(err));
+    Error("Failed loading model %s: %s", model_file.c_str(), uai_err_string(err));
     return false;
   }
   Debug(1, "SpeedAI: launching");

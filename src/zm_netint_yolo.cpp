@@ -9,6 +9,8 @@
 
 #include "zm_netint_yolo.h"
 
+#define SOFTWARE_DRAWBOX 1
+
 static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
   "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
   "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
@@ -159,7 +161,7 @@ bool Quadra_Yolo::setup(
 #else
   if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox=color=red,ni_quadra_scale=iw:ih:format=yuv420p", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
-  if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+  if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:expansion=none:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
 #endif
 
@@ -354,7 +356,6 @@ int Quadra_Yolo::draw_roi_box(
     int h = (roi.bottom - roi.top) - i;
 
     Debug(1, "x %d, y %d, w %d, h %d color %s %d", x, y, w, h, color.c_str(), i);
-
 #if 1
     if (!i) {
       drawbox_filter.opt_set("x", x);
@@ -502,7 +503,16 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   }
 
   AVFrame *input = nullptr;
+#if SOFTWARE_DRAWBOX
+  if (1) {
+#else
   if (!use_hwframe) {
+#endif
+    if (!hwdl_filter.initialised) {
+      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", frame->hw_frames_ctx, dec_ctx->pix_fmt))
+        Warning("No hwdl");
+    }
+
     // Allocates the frame, gets the image from hw
     ret = hwdl_filter.execute(frame, &input);
     if (ret < 0) {
@@ -543,29 +553,33 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       color = "Red";
     }
 
-    if (drawbox and drawbox_filter.filter_ctx) {
+    if (drawbox) {
+     // and drawbox_filter.filter_ctx) {
       Debug(1, "Drawing box");
       AVFrame *drawbox_output = nullptr;
       ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
       if (ret < 0) {
         Error("draw %d roi box failed", i);
       } else {
-        if (input != frame) av_frame_free(&input);
-        input = drawbox_output;
+        if ((input != frame) && drawbox_output && (input != drawbox_output)) {
+          av_frame_free(&input);
+          input = drawbox_output;
+        }
         zm_dump_video_frame(input, "Quadra: drawbox");
       }
-#if 0
-      std::string annotation = stringtf("%s %d%%", roi_class[roi_extra[i].cls], static_cast<int>(100*roi_extra[i].prob));
-      Image img(output);
-      img.Annotate(annotation.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
-#endif
     }  // end if drawbox
 
-    if (drawtext and drawtext_filter.filter_ctx) {
-      Debug(1, "Drawing text");
+    if (drawtext) {
+     // and drawtext_filter.filter_ctx) {
+      std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra[i].prob);
+#if 1
+      Image img(input);
+      img.Annotate(text.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+#else
+      Debug(1, "Drawing text %s", text.c_str());
       AVFrame *drawtext_output = nullptr;
 
-      ret = draw_text(input, &drawtext_output, stringtf("%s: %.1f%%%%", roi_class[cls], 100*roi_extra[i].prob),
+      ret = draw_text(input, &drawtext_output, text,
           roi[i].left+1+monitor->LabelSize(), roi[i].top+1+monitor->LabelSize(), color.c_str());
       if (ret < 0) {
         Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
@@ -574,12 +588,17 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
         input = drawtext_output;
         zm_dump_video_frame(input, "Quadra: drawtext");
       }
+#endif
     }  // end if drawtext
   }  // end foreach roi
 
   AVFrame *output = nullptr;
   // Allocates the frame, gets the image from hw
+#if SOFTWARE_DRAWBOX
+  if (0) {
+#else
   if (use_hwframe) {
+#endif
     if (!hwdl_filter.initialised) {
       if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", input->hw_frames_ctx, dec_ctx->pix_fmt))
         Warning("No hwdl");
@@ -757,6 +776,7 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
     return -1;
   }
 
+  Debug(1, "Drawtext: %s %dx%d %s", text.c_str(), x, y, colour.c_str());
 #if 1
   drawtext_filter.opt_set("x", x);
   drawtext_filter.opt_set("y", y);

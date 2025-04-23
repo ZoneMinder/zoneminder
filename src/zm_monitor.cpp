@@ -2246,7 +2246,7 @@ int Monitor::Analyse() {
 
                   } // end if failed to send
                 } else {
-                  //quadra_yolo->draw_last_roi(packet);
+                  quadra_yolo->draw_last_roi(packet);
                 } // end if skip_frame
               } // end if has input_frame/hw_frame
               } // end yolo

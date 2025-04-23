@@ -77,7 +77,9 @@ $presetLayoutsNames = array( //Order matters!
   '6 Wide',
   '8 Wide',
   '12 Wide',
-  '16 Wide'
+  '16 Wide',
+  '24 Wide',
+  '48 Wide'
 );
 
 /* Create an array "Name"=>layouts to make it easier to find IDs by name */

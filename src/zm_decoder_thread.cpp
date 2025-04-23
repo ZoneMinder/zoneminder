@@ -41,4 +41,6 @@ void DecoderThread::Run() {
       }
     }
   }
+  std::list<ZMPacketLock> *decoder_queue = monitor_->GetDecoderQueue();
+  while (decoder_queue->size()) decoder_queue->pop_front();
 }

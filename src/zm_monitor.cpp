@@ -3942,7 +3942,7 @@ int Monitor::Pause() {
   if (decoder) {
     Debug(1, "Joining decode");
     decoder->Join();
-    while (decoder_queue.size()) decoder_queue.pop_front();
+    //while (decoder_queue.size()) decoder_queue.pop_front();
 
     if (convert_context) {
       sws_freeContext(convert_context);

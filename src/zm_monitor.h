@@ -871,6 +871,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
 
+  std::list<ZMPacketLock> *GetDecoderQueue() { return &decoder_queue; };
+
   int GetAudioFrequency() const { return shared_data ? shared_data->audio_frequency : -1; }
   int GetAudioChannels() const { return shared_data ? shared_data->audio_channels : -1; }
 

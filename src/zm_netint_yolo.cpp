@@ -659,7 +659,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
     AVFrame *output = nullptr;
     if (!output) {
       // FIXME what about already allocated frames
-      Error("cannot allocate output filter frame");
+      Error("draw_last_roi cannot allocate output filter frame");
       return NIERROR(ENOMEM);
     }
     int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);

@@ -1748,8 +1748,8 @@ function handleClickGeneral(evt) {
   }
 
   // Click on <input> to open the "datepicker" window
-	// For ui-datepicker we track the change of style "display" and to front
-	// This is necessary because some blocks, such as "extruder" always push themselves to the foreground. At the same time, "datepicker" should ALWAYS be displayed on top of all blocks. "z-index: XXX !important will not help in this case!
+  // For ui-datepicker we track the change of style "display" and to front
+  // This is necessary because some blocks, such as "extruder" always push themselves to the foreground. At the same time, "datepicker" should ALWAYS be displayed on top of all blocks. "z-index: XXX !important will not help in this case!
   if (target.classList.contains('hasDatepicker')) {
     const datepicker = document.getElementById('ui-datepicker-div');
     if (datepicker) {

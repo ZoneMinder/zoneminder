@@ -438,8 +438,7 @@ void PacketQueue::clear() {
   while (!pktQueue.empty()) {
     std::shared_ptr<ZMPacket> packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
-    ZMPacketLock packet_lock(packet);
-    packet_lock.lock();
+    // Deleting this packet, doesn't require a lock.  We only need a lock if we are modifying the packet.  
     Debug(1,
           "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
           packet->packet->stream_index,

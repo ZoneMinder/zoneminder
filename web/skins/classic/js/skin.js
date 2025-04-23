@@ -1746,6 +1746,17 @@ function handleClickGeneral(evt) {
     setCookie('zmUseOldMenuView', target.checked);
     refreshWindow();
   }
+
+  // Click on <input> to open the "datepicker" window
+	// For ui-datepicker we track the change of style "display" and to front
+	// This is necessary because some blocks, such as "extruder" always push themselves to the foreground. At the same time, "datepicker" should ALWAYS be displayed on top of all blocks. "z-index: XXX !important will not help in this case!
+  if (target.classList.contains('hasDatepicker')) {
+    const datepicker = document.getElementById('ui-datepicker-div');
+    if (datepicker) {
+      datepicker.style.removeProperty('z-index'); // Without this, problems are possible.
+      datepicker.style.setProperty('z-index', '1000000', 'important'); //Now "datepicker" will always be displayed on top of other blocks.
+    }
+  }
 }
 
 /* Handle any action on the touch screen */
@@ -1828,23 +1839,13 @@ function initDatepicker() {
     initDatepickerReportEventAuditPage();
   }
 
-  // For ui-datepicker we track the change of style "display" and to front
-  // This is necessary because some blocks, such as "extruder" always push themselves to the foreground. At the same time, "datepicker" should ALWAYS be displayed on top of all blocks. "z-index: XXX !important will not help in this case!
+  // When hiding the "datepicker" you need to clear the 'z-index' property so that it does not affect other elements
   document.querySelectorAll(".ui-datepicker").forEach(function(el) {
-    var trigger = false;
-    const zIndex = '1000000'; // Now "datepicker" will always be displayed on top of other blocks.
     const ob = new MutationObserver(function(mutations) {
       mutations.forEach(function(mutation) {
-        if (mutation.attributeName === 'style' && mutation.target.style.display !== 'none' && trigger === false && mutation.target.style.zIndex !== zIndex) {
-          trigger = true;
-          setTimeout(function() {
-          // Avoid multiple changes, because the style change is triggered many times. However, if you switch between several datepicker objects, "display" will not switch to "none"
-            //console.log(">>display>", mutation.target.style.display);
-            //console.log(">>zIndex>", mutation.target.style.zIndex);
-            mutation.target.style.removeProperty('z-index'); // Without this, problems are possible.
-            mutation.target.style.setProperty('z-index', zIndex, 'important');
-            trigger = false;
-          }, 100);
+        if (mutation.attributeName === 'style' && mutation.target.style.display === 'none' && mutation.target.style.zIndex) {
+          console.log(">>zIndex>", mutation.target.style.zIndex);
+          mutation.target.style.removeProperty('z-index');
         }
       });
     });

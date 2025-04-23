@@ -1200,6 +1200,6 @@ window.onbeforeunload = function(e) {
     monitors[i].kill();
   }
   return;
-// Returning any value here, including undefined causes an undesired popup.
+  // Returning any value here, including undefined causes an undesired popup.
   var e = e || window.event;
 };

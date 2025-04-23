@@ -1093,7 +1093,7 @@ function initPage() {
   // If you click on the navigation links, shut down streaming so the browser can process it
   document.querySelectorAll('#main-header-nav a').forEach(function(el) {
     el.onclick = function() {
-        if (currentMonitor) currentMonitor.kill();
+      if (currentMonitor) currentMonitor.kill();
     };
   });
 

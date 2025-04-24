@@ -95,8 +95,7 @@ RETSIGTYPE zm_die_handler(int signal)
   // Print backtrace if enabled and available
 #if ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
   void *trace[TRACE_SIZE];
-  int trace_size = 0;
-  trace_size = backtrace(trace, TRACE_SIZE);
+  int trace_size = backtrace(trace, TRACE_SIZE);
 
   char cmd[1024] = "addr2line -Cfip -e ";
   char *cmd_ptr = cmd + strlen(cmd);

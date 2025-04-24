@@ -43,4 +43,15 @@ void DecoderThread::Run() {
   }
   std::list<ZMPacketLock> *decoder_queue = monitor_->GetDecoderQueue();
   while (decoder_queue->size()) decoder_queue->pop_front();
+
+  AVCodecContext *mVideoCodecContext = monitor_->GetVideoCodecContext();
+  if (mVideoCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    monitor_->SetVideoCodecContext(nullptr);
+  }
+  AVCodecContext *mAudioCodecContext = monitor_->GetAudioCodecContext();
+  if (mAudioCodecContext) {
+    avcodec_free_context(&mAudioCodecContext);
+    monitor_->SetAudioCodecContext(nullptr);
+  }
 }

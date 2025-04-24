@@ -3927,15 +3927,15 @@ int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
 
-  // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) decoder->Stop();
-  // FIXME delete codec?
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
   }
 
-  //Debug(1, "Stopping packetqueue");
+  // Because the stream indexes may change we have to clear out the packetqueue
+  if (decoder) decoder->Stop();
+
+  Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
 
@@ -3976,14 +3976,6 @@ int Monitor::Pause() {
   }
 
   packetqueue.clear();
-  if (mVideoCodecContext) {
-    avcodec_free_context(&mVideoCodecContext);
-    mVideoCodecContext = nullptr;
-  }
-  if (mAudioCodecContext) {
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;
-  }
   return 1;
 } // end int Monitor::Pause()
 

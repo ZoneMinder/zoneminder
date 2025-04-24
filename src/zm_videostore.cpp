@@ -377,7 +377,7 @@ bool VideoStore::open() {
     video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
     Monitor::Orientation orientation = monitor->getOrientation();
-    if (orientation) {
+    if (orientation > 1) { // 1 is ROTATE_0
 #if LIBAVCODEC_VERSION_CHECK(59, 37, 100, 37, 100)
       int32_t* displaymatrix = static_cast<int32_t*>(av_malloc(sizeof(int32_t)*9));
       Debug(3, "Have orientation %d", orientation);
@@ -419,7 +419,7 @@ bool VideoStore::open() {
       } else {
         Warning("Unsupported Orientation(%d)", orientation);
       }
-    } // end if orientation
+    } // end if orientation > ROTATE_0
   } else {
     // encode
     video_out_stream->time_base = AV_TIME_BASE_Q;

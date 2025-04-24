@@ -419,7 +419,10 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
 
 void PacketQueue::stop() {
-  deleting = true;
+  {
+    std::unique_lock<std::mutex> lck(mutex);
+    deleting = true;
+  }
   condition.notify_all();
   for (const auto &p : pktQueue) {
     p->notify_all();
@@ -544,7 +547,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
       
       Debug(2, "waiting on packet %d.  Queue size %zu it == end? %d", p->image_index, pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
-    }  // end while !lp
+    }  // end while ! deleting or zm_terminate
   }  // end scope for lock
 
   Debug(1, "terminated, leaving");

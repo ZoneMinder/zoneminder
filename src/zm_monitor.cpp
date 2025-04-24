@@ -982,7 +982,7 @@ bool Monitor::connect() {
         "timestamps=%zu "
         "images=%dx%zd = %zd "
         "analysis images=%dx%" PRIi64 " = %" PRId64 " "
-        "image_format = %dx%" PRIi64 " = %" PRId64 " "
+        "image_format = %dx%zd= %zd "
         "total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
@@ -3182,7 +3182,8 @@ Event * Monitor::openEvent(
       Logger *log = Logger::fetch();
       log->databaseLevel(Logger::NOLOG);
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
-      std::quick_exit(0);
+      std::abort();
+      return event;
     }
   }
 
@@ -3234,7 +3235,7 @@ void Monitor::closeEvent() {
         Logger *log = Logger::fetch();
         log->databaseLevel(Logger::NOLOG);
         Error("Error execing %s: %s", command.c_str(), strerror(errno));
-        std::quick_exit(0);
+        std::abort();
       }
     }
   }, event, event_end_command);

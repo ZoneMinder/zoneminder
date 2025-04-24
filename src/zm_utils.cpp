@@ -36,11 +36,17 @@
 
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
+unsigned int our_cpu = 0;
+
+
+unsigned int getcpu() {
+  our_cpu = sched_getcpu();
+  Debug(1, "Our CPU is %u", our_cpu);
+  return our_cpu;
+}
 
 bool set_cpu_affinity(std::thread &thread) {
-  unsigned int our_cpu = sched_getcpu();
-  // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
-  // only CPU i as set.
+  // Create a cpu_set_t object representing a set of CPUs. Clear it and mark only our CPU.
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(our_cpu, &cpuset);

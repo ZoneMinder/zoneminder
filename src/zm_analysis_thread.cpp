@@ -7,6 +7,7 @@
 AnalysisThread::AnalysisThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&AnalysisThread::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 AnalysisThread::~AnalysisThread() {
@@ -19,7 +20,7 @@ void AnalysisThread::Start() {
   terminate_ = false;
   Debug(3, "Starting analysis thread");
   thread_ = std::thread(&AnalysisThread::Run, this);
-   set_cpu_affinity(thread_);
+  set_cpu_affinity(thread_);
 }
 
 void AnalysisThread::Stop() {

@@ -6,6 +6,7 @@
 DecoderThread::DecoderThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&DecoderThread::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 DecoderThread::~DecoderThread() {

@@ -3291,7 +3291,7 @@ int Monitor::Decode() {
         int fps = int(get_capture_fps());
         if (fps > 0) {
           if (endtime - starttime > Milliseconds(1000/fps)) {
-            Warning("send_packet is too slow: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
+            Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
           } else {
             Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
           }
@@ -3926,42 +3926,34 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-
-  if (analysis_thread) {
-    analysis_thread->Stop();
-    Debug(1, "Analysis stopped");
-  }
-
+  if (analysis_thread) analysis_thread->Stop();
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
 
-  Debug(1, "Stopping packetqueue");
+  //Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
 
   if (decoder) {
-    Debug(1, "Joining decode");
+    Debug(4, "Joining decode");
     decoder->Join();
-    //while (decoder_queue.size()) decoder_queue.pop_front();
 
     if (convert_context) {
       sws_freeContext(convert_context);
       convert_context = nullptr;
     }
     if (shared_data) shared_data->decoder_image_count = 0;
-    Debug(1, "Clearing decoder_queue %zu", decoder_queue.size());
-    decoder_queue.clear();
   }
   if (analysis_thread) {
-    Debug(1, "Joining analysis");
+    Debug(4, "Joining analysis");
     analysis_thread->Join();
   }
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {
-    Debug(1, "Joining event thread");
+    Debug(4, "Joining event thread");
     close_event_thread.join();
-    Debug(1, "Joined event thread");
+    Debug(4, "Joined event thread");
   }
   {
     std::lock_guard<std::mutex> lck(event_mutex);

@@ -160,7 +160,7 @@ bool Monitor::MonitorLink::connect() {
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-    Debug(1, "link.mem.size=%jd", mem_size);
+    Debug(1, "link.mem.size=%jd", static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
     if (map_fd < 0) {
@@ -187,14 +187,14 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if (map_stat.st_size < mem_size) {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %ld, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if (mem_ptr == MAP_FAILED) {
-      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
+      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), static_cast<intmax_t>(mem_size), strerror(errno));
       disconnect();
       return false;
     }

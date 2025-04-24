@@ -156,7 +156,6 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
 
   quadra.setup(-1);
 
@@ -169,6 +168,7 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
+  std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
   std::unordered_map<unsigned int, AIThread *> threads;
 
   while (!zm_terminate) {
@@ -189,17 +189,18 @@ int main(int argc, char *argv[]) {
             , speedai
 #endif
             );
-        //threads[monitor->Id()]->Start();
       }
       if (zm_terminate) break;
-    }
+    }  // end foreach monitor
 
     // Remove monitors that are no longer doing ai
     for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
       auto mid = it->first;
-      auto &monitor = it->second;
-      threads[monitor->Id()]->Stop();
-      threads[monitor->Id()]->Join();
+      const auto &monitor = it->second;
+      threads[mid]->Stop();
+      threads[mid]->Join();
+      delete threads[mid];
+      threads.erase(mid);
       Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
       monitors.erase(mid);
     }
@@ -220,6 +221,7 @@ int main(int argc, char *argv[]) {
     unsigned int i = mon_pair.first;
     threads[i]->Stop();
     threads[i]->Join();
+    delete threads[i];
 
     auto monitor = mon_pair.second;
     monitor->disconnect();
@@ -268,18 +270,15 @@ void AIThread::Inference() {
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
 
-    {
-      //Debug(1, "locking, queue size %zu", send_queue.size());
-      std::unique_lock<std::mutex> lck(mutex_);
-      //Debug(1, "have locking, queue size %zu", send_queue.size());
-      while (!(send_queue.size() or terminate_)) {
-        //Debug(1, "Waiting");
-        condition_.wait(lck);
-        Debug(1, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
-      }
-      if (terminate_) break;
-      packet = send_queue.front();
+    // Need to hold the lock because it guards shared_mem as well.
+    std::unique_lock<std::mutex> lck(mutex_);
+    while (!(send_queue.size() or terminate_)) {
+      //Debug(1, "Waiting");
+      condition_.wait(lck);
+      Debug(1, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
     }
+    if (terminate_) break;
+    packet = send_queue.front();
 
     if (packet) {
       Monitor::SharedData *shared_data = monitor_->getSharedData();
@@ -320,18 +319,22 @@ void AIThread::Run() {
     return;
   }
 
-  while (!monitor_->ShmValid() and !zm_terminate and !terminate_) {
-    if (monitor_->isConnected()) {
-      Debug(1, "!ShmValid");
-      monitor_->disconnect();
-    }
-    if (!monitor_->connect()) {
-      Warning("Couldn't connect to monitor %d", monitor_->Id());
-      monitor_->Reload();  // This is to pickup change of colours, width, height, etc
-      sleep(1);
-      continue;
-    }  // end if failed to connect
-  }  // end if !ShmValid
+  {
+    std::unique_lock<std::mutex> lck(mutex_);
+    while (!monitor_->ShmValid() and !(zm_terminate or terminate_)) {
+      if (monitor_->isConnected()) {
+        Debug(1, "!ShmValid");
+        monitor_->disconnect();
+      }
+      if (!monitor_->connect()) {
+        Warning("Couldn't connect to monitor %d", monitor_->Id());
+        monitor_->Reload();  // This is to pickup change of colours, width, height, etc
+        sleep(1);
+        continue;
+      }  // end if failed to connect
+    }  // end if !ShmValid
+  }
+  if (!(zm_terminate or terminate_)) return;
 
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
@@ -351,6 +354,7 @@ void AIThread::Run() {
 
   while (!zm_terminate and !terminate_) {
     if (!monitor_->ShmValid()) {
+      std::unique_lock<std::mutex> lck(mutex_);
       Debug(1, "!ShmValid");
       monitor_->disconnect();
       if (!monitor_->connect()) {
@@ -423,7 +427,7 @@ void AIThread::Run() {
       if (!zm_terminate and !terminate_) {
         float capture_fps = monitor_->GetFPS();
         Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / 2*capture_fps));
-        if (delay < Microseconds(30000)) delay = Microseconds(30000);
+        if (delay < Microseconds(20000)) delay = Microseconds(20000);
         if (delay > Microseconds(300000)) delay = Microseconds(300000);
         Debug(4, "Sleeping for %ld microseconds waiting for image", delay.count());
         std::this_thread::sleep_for(delay);

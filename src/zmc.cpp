@@ -195,6 +195,7 @@ int main(int argc, char *argv[], char **envp) {
     Debug(1, "env: %s", thisEnv);
   }
 
+  getcpu();
   HwCapsDetect();
   curl_global_init(CURL_GLOBAL_DEFAULT);
 

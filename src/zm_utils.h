@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>
+#include <thread>
 #include <vector>
 
 
@@ -43,6 +44,7 @@
 
 typedef std::vector<std::string> StringVector;
 
+bool set_cpu_affinity(std::thread &thread);
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);

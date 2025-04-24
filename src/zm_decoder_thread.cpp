@@ -17,6 +17,7 @@ void DecoderThread::Start() {
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 void DecoderThread::Stop() {

@@ -25,6 +25,7 @@
 #include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 #include "zm_videostore.h"
 
 #include <cstring>
@@ -151,6 +152,7 @@ Event::Event(
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
   thread_ = std::thread(&Event::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 int Event::OpenJpegCodec(const Image *image) {

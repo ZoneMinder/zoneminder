@@ -28,6 +28,7 @@
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
 #include <sys/stat.h>
+#include <sched.h>
 
 #if defined(__arm__)
 #include <sys/auxv.h>
@@ -35,6 +36,22 @@
 
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
+
+bool set_cpu_affinity(std::thread &thread) {
+  unsigned int our_cpu = sched_getcpu();
+  // Create a cpu_set_t object representing a set of CPUs. Clear it and mark
+  // only CPU i as set.
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(our_cpu, &cpuset);
+  Debug(1, "Setting pthread cpu affinity to %u", our_cpu);
+  int rc = pthread_setaffinity_np(thread.native_handle(), sizeof(cpu_set_t), &cpuset);
+  if (rc != 0) {
+    Error("Error calling pthread_setaffinity_np: %d", rc);
+    return false;
+  }
+  return true;
+}
 
 // Trim Both leading and trailing sets
 std::string Trim(const std::string &str, const std::string &char_set) {

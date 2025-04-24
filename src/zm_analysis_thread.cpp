@@ -19,6 +19,7 @@ void AnalysisThread::Start() {
   terminate_ = false;
   Debug(3, "Starting analysis thread");
   thread_ = std::thread(&AnalysisThread::Run, this);
+   set_cpu_affinity(thread_);
 }
 
 void AnalysisThread::Stop() {

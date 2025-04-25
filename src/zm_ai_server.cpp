@@ -62,7 +62,9 @@ and perform AI analysis on latest frames
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#if HAVE_QUADRA
 #include "zm_quadra.h"
+#endif
 #ifdef HAVE_UNTETHER_H
 // Untether runtime API header
 #include "zm_untether_speedai.h"
@@ -86,7 +88,9 @@ void Usage() {
   SpeedAI *speedai;
 #endif
 
+#if HAVE_QUADRA
 Quadra quadra;
+#endif
 
 int main(int argc, char *argv[]) {
   self = argv[0];
@@ -156,8 +160,9 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-
+#if HAVE_QUADRA
   quadra.setup(-1);
+#endif
 
 #ifdef HAVE_UNTETHER_H
   speedai = new SpeedAI();
@@ -253,6 +258,7 @@ void AIThread::Inference() {
 #endif
 
   int ret;
+#if HAVE_QUADRA
   drawbox_filter = new Quadra::filter_worker();
   if ((ret = quadra.init_filter("drawbox=color=red", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
     Error("cannot initialize drawbox filter");
@@ -266,6 +272,7 @@ void AIThread::Inference() {
       return;
     }
   }
+#endif
 
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
@@ -305,11 +312,13 @@ void AIThread::Inference() {
     }  // end if packet
   }  // end while forever
   
+#if HAVE_QUADRA
   if (drawbox_filter) {
     delete drawbox_filter;
     drawbox_filter = nullptr;
     drawbox_filter_ctx = nullptr;
   }
+#endif
 }  // end AIThread::Inference
 
 void AIThread::Run() {
@@ -439,6 +448,7 @@ void AIThread::Run() {
 } // end SpeedAIDetect   
 
 
+#if HAVE_QUADRA
 int draw_boxes(
     Quadra::filter_worker *drawbox_filter,
     AVFilterContext *drawbox_filter_ctx,
@@ -576,6 +586,7 @@ int draw_box(
   } while (!zm_terminate);
   return 0;
 }
+#endif
 
 AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H

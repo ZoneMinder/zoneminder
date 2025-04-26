@@ -341,8 +341,7 @@
 			$(document).off("click.extruder"+extruder.get(0).idx);
 			var opt= extruder.get(0).options;
 			extruder.addClass("isOpened");
-			var position = opt.position; //СТРАННО, НО БЫВАЕТ ОШИБКА "Uncaught TypeError: Cannot read properties of undefined (reading 'position')"
-			/* А вот тут не всегда полезно делать максимальный zIndex */
+			var position = opt.position;
 			extruder.mb_bringToFront(opt.zIndex);
 			if (position=="top" || position=="bottom"){
 /*+*/			extruder.css("left",opt.left);

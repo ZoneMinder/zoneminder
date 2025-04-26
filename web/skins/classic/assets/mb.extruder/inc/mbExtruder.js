@@ -284,8 +284,8 @@
 					$extruder.css({left:extruder.options.left});
 				}
 /*-*/
-				if( ($(window).width()-80) < extruder.originalWidth){
-					extruder.options.width = $(window).width()-80;
+				if(window.innerWidth-20 < extruder.originalWidth){
+					extruder.options.width = window.innerWidth-20;
 				}else{
 					extruder.options.width = extruder.originalWidth;
 				}
@@ -336,7 +336,7 @@
 
 		openMbExtruder:function(c){
 			var extruder= $(this);
-/*~*/		//extruder.adjustSize();
+			extruder.adjustSize();
 			extruder.attr("isOpened",true);
 			$(document).off("click.extruder"+extruder.get(0).idx);
 			var opt= extruder.get(0).options;

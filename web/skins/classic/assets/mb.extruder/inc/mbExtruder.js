@@ -175,17 +175,6 @@
 				}).on("mouseleave",function(){
 					clearTimeout(openTimer);
 				});
-/*+*/ // Show/hide button. Assign to button
-				if (this.options.bindToButtonByHeight) {
-					$(this.options.bindToButtonByHeight).on("click",function(){
-						if (!extruder.attr("isOpened")){
-							extruder.openMbExtruder();
-						}else{
-							extruder.closeMbExtruder();
-						}
-					});
-				}
-/*-*/
 				c.on("mouseleave", function(e){
 					if(extruder.get(0).options.closeOnExternalClick){
 

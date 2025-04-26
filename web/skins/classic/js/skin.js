@@ -1623,10 +1623,10 @@ function insertControlModuleMenu() {
   });
 
   // Assign to Show/hide button
-  menuControlModule.on("click",function(){
-    if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')){
+  menuControlModule.on("click", function() {
+    if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')) {
       $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
-    }else{
+    } else {
       $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
     }
   });

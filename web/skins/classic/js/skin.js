@@ -1576,7 +1576,6 @@ function insertControlModuleMenu() {
 
   //Create a button to open/hide the filter settings control
   var el = document.createElement('div');
-  //el.setAttribute("id", "menuControlModule");
   el.setAttribute("class", "menu-item");
   el.innerHTML = `
     <a href="#" class="text-success" title="Filter settings">
@@ -1585,9 +1584,9 @@ function insertControlModuleMenu() {
     </a>
   `;
 
-  var container = $j(document.querySelector('#menuControlModule'));
-  var containerExtruderLeft = $j(document.querySelector('#contextExtruderLeft'));
-  container.prepend(el); // Строка меню
+  const menuControlModule = $j(document.querySelector('#menuControlModule'));
+  const containerExtruderLeft = $j(document.querySelector('#contextExtruderLeft'));
+  menuControlModule.prepend(el); // Menu line
 
   // Let's create a wrapper for the filter, since the filter can start with a <span> tag or something similar.
   var wrapper = document.createElement('div');
@@ -1621,6 +1620,15 @@ function insertControlModuleMenu() {
     onExtOpen: function() {},
     onExtContentLoad: function() {},
     onExtClose: function() {}
+  });
+
+  // Assign to Show/hide button
+  menuControlModule.on("click",function(){
+    if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')){
+      $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
+    }else{
+      $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+    }
   });
 
   // NECESSARY BECAUSE DOM HAS BEEN REBUILDED!

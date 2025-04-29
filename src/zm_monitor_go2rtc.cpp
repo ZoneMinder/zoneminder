@@ -18,15 +18,13 @@
 //
 
 #include <algorithm>
-#include <regex>
 
 #include "zm_crypt.h"
 #include "zm_monitor.h"
 #include "zm_server.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 
-std::string remove_newlines(std::string input);
-std::string escape_json_string(std::string input);
 
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
@@ -205,23 +203,3 @@ size_t Monitor::Go2RTCManager::WriteCallback(void *contents, size_t size,
   ((std::string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
-
-std::string remove_newlines(std::string str) {
-  while (!str.empty() && str.find("\n") != std::string::npos)
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
-  return str;
-}
-
-/*
-std::string escape_json_string( std::string input ) {
-  std::string tmp;
-  tmp = regex_replace(input, std::regex("\n"), "\\n");
-  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
-  return tmp;
-}
-*/

@@ -398,6 +398,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   decoding = (DecodingOption)atoi(dbrow[col]);
   col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
+  Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
+  col++;
+  Go2RTC_type = (Go2RTCOption)atoi(dbrow[col]);
+  col++;
   RTSP2Web_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]);

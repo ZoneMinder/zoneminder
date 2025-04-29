@@ -18,7 +18,7 @@ SET @s = (SELECT IF(
     `LastAssignedDate` dateTime,
     PRIMARY KEY (`Id`),
     UNIQUE(`Name`)
-  ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
 ));
 
 PREPARE stmt FROM @s;

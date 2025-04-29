@@ -74,10 +74,6 @@ if (!$filter->Id()) {
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
 }
 
-if (!isset($_COOKIE['zmEventsTable_bs_table_pageList'])) {
-  zm_setcookie('zmEventsTable_bs_table_pageList', ZM_WEB_EVENTS_PER_PAGE);
-}
-
 parseSort();
 
 $filterQuery = $filter->querystring();
@@ -130,6 +126,7 @@ echo getNavBarHTML();
           id="eventTable"
           data-locale="<?php echo i18n() ?>"
           data-side-pagination="server"
+          data-page-size="<?php echo ZM_WEB_EVENTS_PER_PAGE ?>"
           data-ajax="ajaxRequest"
           data-pagination="true"
           data-show-pagination-switch="true"
@@ -192,6 +189,6 @@ echo getNavBarHTML();
         </table>
       </div> <!--events-->
     </div><!--content-->
-  </div><!--#page-->
+  </div><!-- #page -->
   <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

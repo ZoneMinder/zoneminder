@@ -1,6 +1,6 @@
 /**
- * touch.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * touch.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 import { DDManager } from './dd-manager';
 /**

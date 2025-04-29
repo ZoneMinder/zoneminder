@@ -1,6 +1,6 @@
 /**
- * types.ts 10.1.2
- * Copyright (c) 2021 Alain Dumesny - see GridStack root license
+ * types.ts 11.1.2
+ * Copyright (c) 2021-2024 Alain Dumesny - see GridStack root license
  */
 // default values for grid options - used during init and when saving out
 export const gridDefaults = {
@@ -32,12 +32,5 @@ export const gridDefaults = {
     // staticGrid: false,
     // styleInHead: false,
     //removable
-};
-/** default dragIn options */
-export const dragInDefaultOptions = {
-    handle: '.grid-stack-item-content',
-    appendTo: 'body',
-    // revert: 'invalid',
-    // scroll: false,
 };
 //# sourceMappingURL=types.js.map

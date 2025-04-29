@@ -5,6 +5,7 @@ var arrRatioMonitors = [];
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorInitComplete = false;
+
 const VIEWING = 0;
 const EDITING = 1;
 
@@ -661,7 +662,7 @@ function startMonitors() {
     const monitor = monitors[i];
     if (monitor.capturing == 'None') continue;
     // Why are we scaling here instead of in monitorstream?
-    /* +++ Если удалить данный код, то в Firefox появляются ужасные тормоза... РАЗОБРАТЬСЯ !!!*/
+    /* +++ If you delete this code, then Firefox will slow down terribly... you need to UNDERSTAND the problem!!!*/
     const obj = document.getElementById('liveStream'+monitor.id);
     if (obj) {
       if (obj.src) {

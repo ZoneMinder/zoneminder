@@ -605,9 +605,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   if (section_length < min_section_length) {
     section_length = min_section_length;
-    Warning("Section length %jd < Min Section Length %jd. This is invalid.",
-            Seconds(section_length).count(),
-            Seconds(min_section_length).count()
+    Warning("Section length %" PRId64 " < Min Section Length %" PRId64 ". This is invalid.",
+            static_cast<int64>(Seconds(section_length).count()),
+            static_cast<int64>(Seconds(min_section_length).count())
            );
   }
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0);

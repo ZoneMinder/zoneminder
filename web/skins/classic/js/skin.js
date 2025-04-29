@@ -41,6 +41,7 @@ var icons = {
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
 var shifted = ctrled = alted = false;
+var mainContent = document.getElementById('content');
 
 function checkSize() {
   if ( 0 ) {
@@ -675,8 +676,20 @@ var resizeTimer;
 
 function endOfResize(e) {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
+  resizeTimer = setTimeout(function() {
+    setCookie('zmBrowserSizes', JSON.stringify({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+    }));
+    if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
+      //Only for scaleToFit
+      changeScale();
+    }
+  }, 250);
 }
+window.onresize = endOfResize;
 
 /* scaleToFit
  *
@@ -687,7 +700,7 @@ function endOfResize(e) {
  * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
-  $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
+  //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
@@ -1219,15 +1232,6 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-function loadFontFaceObserver() {
-  const font = new FontFaceObserver('Material Icons', {weight: 400});
-  font.load().then(function() {
-    $j('.material-icons').css('display', 'inline-block');
-  }, function() {
-    $j('.material-icons').css('display', 'inline-block');
-  });
-}
-
 function thisClickOnStreamObject(clickObj) {
   if (clickObj.id) {
     if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
@@ -1451,12 +1455,80 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video) {
+    if (video && !video.closest('#videoobj')) {
+      // We do not touch the video.js object, since it has its own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {
         video.setAttribute('controls', '');
       }
+    }
+  }
+}
+
+/* Handle any action on the touch screen */
+function handleTouchActionGeneral(action, evt) {
+  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
+  if (action == 'touchstart') {
+    managePanZoomButton(evt);
+  } else if (action == 'touchend') {
+  } else if (action == 'touchcancel') {
+  } else if (action == 'touchmove') {
+    //evt.preventDefault();
+  }
+}
+
+function managePanZoomButton(evt) {
+  var url = null;
+  if (panZoomEnabled) {
+    const targetId = evt.target.id;
+    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
+    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
+      // Click was outside '.imageFeed'
+      $j('[id^="button_zoom"]').addClass('hidden');
+      return;
+    } else {
+      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
+    }
+    //evt.preventDefault();
+    // We are looking for an object with an ID, because there may be another element in the button.
+    const obj = targetId ? evt.target : evt.target.parentElement;
+    if (!obj) {
+      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+      return;
+    }
+
+    if (currentView == 'watch') {
+      monitorId_ = monitorId;
+    } else if (currentView == 'montage') {
+      // On Montage page with mode==EDITING it is forbidden to use PanZoom
+      if (mode == EDITING) return;
+      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
+    } else if (currentView == 'event') {
+      monitorId_ = eventData.MonitorId;
+    }
+
+    if (obj.className.includes('btn-view-watch')) {
+      url = '?view=watch&mid='+monitorId_;
+    } else if (obj.className.includes('btn-edit-monitor')) {
+      url = '?view=monitor&mid='+monitorId_;
+    } else if (obj.className.includes('btn-fullscreen')) {
+      if (document.fullscreenElement) {
+        closeFullscreen();
+      } else {
+        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+      }
+    }
+    if (url) {
+      if (evt.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        window.location.assign(url);
+      }
+    }
+    // Zoom by mouse click
+    if (thisClickOnStreamObject(obj)) {
+      zmPanZoom.click(monitorId_);
     }
   }
 }
@@ -1468,17 +1540,32 @@ function initPageGeneral() {
     alted = e.altKey;
   });
 
+  if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe', 'timeline'].includes(currentView)) {
+    mainContent = document.getElementById('page');
+  } else if (currentView == 'options') {
+    mainContent = document.getElementById('optionsContainer');
+  }
+  var mainContentJ = $j(mainContent);
+
   /* Assigning global handlers!
   ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
   */
   document.body.addEventListener('input', function(event) {
     handleChangeInputTag(event);
   });
+
   document.body.addEventListener('mouseover', function(event) {
     handleMouseover(event);
   });
   document.body.addEventListener('mouseout', function(event) {
     handleMouseout(event);
+  });
+
+  // Support for touch devices.
+  ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
+    document.addEventListener(action, function(event) {
+      handleTouchActionGeneral(action, event);
+    }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."
   });
 
   // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'
@@ -1488,8 +1575,38 @@ function initPageGeneral() {
       el.removeAttribute('controls');
     });
   }, 200);
-}
 
-loadFontFaceObserver();
+  // https://web.dev/articles/bfcache Firefox has a peculiar behavior of caching the previous page.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      // Do any checks and updates to the page
+      if (mainContentJ[0].clientHeight < 1) {
+        window.location.reload( true );
+      }
+    }
+  });
+
+  window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
+    //event.preventDefault();
+    /*
+    if (!useOldMenuView) {
+      closeMbExtruder(updateCookie = true);
+    }
+    */
+    if (mainContentJ) {
+      if (mainContentJ.css('display') == 'flex') {
+        // If flex-grow is set to a value > 0 then "height" will be ignored!
+        mainContentJ.css({flex: "0 1 auto"});
+      }
+
+      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+        const btnCollapse = $j('body').find('#btn-collapse');
+        if (btnCollapse) btnCollapse.css({display: "none"});
+        mainContentJ.css({display: "none"});
+      });
+    }
+    //event.returnValue = '';
+  });
+}
 
 $j( window ).on("load", initPageGeneral);

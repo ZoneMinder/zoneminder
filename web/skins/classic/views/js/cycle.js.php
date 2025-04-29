@@ -16,12 +16,14 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'name': '<?php echo $monitor->Name() ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'url': '<?php echo $monitor->UrlToIndex() ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',
+  'capturing': '<?php echo $monitor->Capturing() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>',
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',

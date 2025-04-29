@@ -497,7 +497,7 @@ our @options = (
     type        =>   {
       db_type     => 'string',
       hint        => 'http|https',
-      pattern     => qr|^(http|https)$|,
+      pattern     => qr|^https?$|,
       format      => q( $1 )
     },
     category    => 'system',

@@ -110,7 +110,7 @@ echo getNavBarHTML();
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
              </a>'.PHP_EOL;
     $html .= '<a id="block-timelineflip" class="flip" href="#" 
-             data-flip-сontrol-object="#timelinediv" 
+             data-flip-control-object="#timelinediv" 
              data-flip-сontrol-run-after-complet-func="changeScale">
                <i id="timelineflip" class="material-icons md-18" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
              </a>'.PHP_EOL;
@@ -141,7 +141,7 @@ if (canView('System')) {
 
 
 
-        <div id="fieldsTable" class="hidden-shift"><?php echo $fieldsTable->simple_widget() ?></div>
+        <!--<div id="fieldsTable" class="hidden-shift">--><?php echo $fieldsTable->simple_widget() ?><!--</div>-->
         <div id="ButtonsDiv"><!-- Заполняется через Ajax для Montage review (пока нет...)--></div>
         <div id="SpeedDiv0"><!-- Заполняется через Ajax для Montage review пока нет...)--></div>
       </form>

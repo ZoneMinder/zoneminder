@@ -4,7 +4,7 @@ var monitorsId = new Array();
 var arrRatioMonitors = [];
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
-
+var monitorInitComplete = false;
 const VIEWING = 0;
 const EDITING = 1;
 
@@ -14,7 +14,7 @@ var objGridStack;
 
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
-var onvisibilitychangeTriggered = false;
+//var onvisibilitychangeTriggered = false;
 
 var scrollBbarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
@@ -120,9 +120,10 @@ function setSpeed(newSpeed) {
       this.started = true;
     }
   } else { //inRecording
-    ////console.log("+++newSpeed", newSpeed);
+    console.log("+++setSpeed_inRecording_newSpeed=speedIndex", newSpeed);
     speedIndex = newSpeed;
     currentSpeed = parseFloat(speeds[speedIndex]);
+    console.log("+++setSpeed_inRecording_currentSpeed", currentSpeed);
     setCookie('speed', String(currentSpeed), 3600);
     //playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
     showSpeed(speedIndex);
@@ -245,7 +246,8 @@ function selectLayout(new_layout_id) {
 
   const nameLayout = layout.Name;
   const widthFrame = layoutColumns / stringToNumber(nameLayout);
-
+console.log("+++++layout=>", layout);
+console.log("+++++ddm=>", nameLayout, getCurrentNameLayout());
   if (objGridStack) {
     objGridStack.destroy(false);
   }
@@ -316,7 +318,7 @@ function selectLayout(new_layout_id) {
   changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
-  on_scroll();
+  setTimeout(on_scroll, 100);
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 
@@ -651,58 +653,7 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
-  var monitorId;
-
-  // We are looking for an object with an ID, because there may be another element in the button.
-  const obj = evt.target.id ? evt.target : evt.target.parentElement;
-
-  if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-  if (obj.className.includes('btn-view-watch')) {
-    const el = evt.currentTarget;
-    monitorId = el.getAttribute("data-monitor-id");
-    const url = '?view=watch&mid='+monitorId;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-view-event')) {
-    const el = evt.currentTarget;
-    monitorId = el.getAttribute("data-monitor-id");
-    const eventInfo = getEventInfoFromEventsTable({what: 'current', mid: monitorId});
-    const fid = frameCalculationByTime(
-      timeline.getCurrentTime(),
-      eventInfo.start,
-      eventInfo.end,
-      eventInfo.frames,
-    );
-    const url = '?view=event&eid='+eventInfo.eventId+'&fid='+fid;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-edit-monitor')) {
-    const el = evt.currentTarget;
-    monitorId = el.getAttribute("data-monitor-id");
-    const url = '?view=monitor&mid='+monitorId;
-    if (evt.ctrlKey) {
-      window.open(url, '_blank');
-    } else {
-      window.location.assign(url);
-    }
-  } else if (obj.className.includes('btn-fullscreen')) {
-    if (document.fullscreenElement) {
-      closeFullscreen();
-    } else {
-      openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
-    }
-  }
-
-  if (thisClickOnStreamObject(obj)) {
-    monitorId = stringToNumber(obj.getAttribute('id'));
-    zmPanZoom.click(monitorId);
-  }
+  managePanZoomButton(evt);
 }
 
 function startMonitors() {
@@ -710,6 +661,7 @@ function startMonitors() {
     const monitor = monitors[i];
     if (monitor.capturing == 'None') continue;
     // Why are we scaling here instead of in monitorstream?
+    /* +++ Если удалить данный код, то в Firefox появляются ужасные тормоза... РАЗОБРАТЬСЯ !!!*/
     const obj = document.getElementById('liveStream'+monitor.id);
     if (obj) {
       if (obj.src) {
@@ -722,8 +674,10 @@ function startMonitors() {
     } else {
       console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
     }
-
+    /* --- */
     const isOut = isOutOfViewport(monitor.getElement());
+//console.log("****startMonitors_OBJ===>", obj, isOut);
+console.log("****startMonitors_MONITOR===>", monitor, isOut);
     if (!isOut.all) {
       monitor.start();
     }
@@ -836,6 +790,20 @@ function calculateAverageMonitorsRatio(arrRatioMonitors) {
 }
 
 function initPage() {
+/*
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    if (monitor.capturing == 'None') continue;
+    const videoStream = getStream(monitor.id);
+    if (videoStream && videoStream.tagName == 'VIDEO') {
+      video.addEventListener('loadeddata', function() {
+        // Video is loaded and can be played
+console.log("**********MONITOR ЗАГРУЖЕНО ВИДЕО ID=" + monitor.id);
+        movableMonitorData[monitor.id].stop = true;
+      }, false);
+    }
+*/
+
   if (getCookie('zmMontageMode') == 'inRecording') {
     setInRecordingMode();
   } else {
@@ -895,6 +863,7 @@ function initPage() {
       scrollBbarExists = currentScrollBbarExists;
       return;
     }
+//console.log(`${dateTimeToISOLocal(new Date())} ВЫЗОВ InitPage objResizes`, objGridStack);
     objResizes.forEach((obj) => {
       //const id = stringToNumber(obj.target.id);
       //if (mode != EDITING && !changedMonitors.includes(id)) {
@@ -910,7 +879,7 @@ function initPage() {
     ctrled = e.ctrlKey;
     alted = e.altKey;
   });
-
+/**/
   document.onvisibilitychange = () => {
     if (document.visibilityState === "hidden") {
       TimerHideShow = clearTimeout(TimerHideShow);
@@ -939,7 +908,7 @@ function initPage() {
       //onvisibilitychangeTriggered = false;
       //Start monitors when show page
       if (montageMode == 'Live') {
-        if ((!ZM_WEB_VIEWING_TIMEOUT) || (idle < ZM_WEB_VIEWING_TIMEOUT)) {
+        if (!idleTimeoutTriggered) {
           for (let i = 0, length = monitors.length; i < length; i++) {
             const monitor = monitors[i];
             const isOut = isOutOfViewport(monitor.getElement());
@@ -957,6 +926,7 @@ console.log("*********startAllEvents in RECORDING mode");
       }
     }
   };
+/**/
   document.getElementById('timelinediv').onclick = function (event) {
     var props = timeline.getEventProperties(event)
     console.log("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", props);
@@ -975,13 +945,18 @@ console.log("*********startAllEvents in RECORDING mode");
           changedMonitors.splice(object.length - 1 - index, 1);
           return;
         }
-//console.log("changedMonitors.item", item, "<img.offsetHeight=>", img.offsetHeight);
-        //if (1 == 1) { //А может надо типа так, т.е. безусловно....
+console.log("<setInterval>changedMonitors.item", item, "<img.offsetHeight=>", img.offsetHeight);
+        //if (1) { //А может надо типа так, т.е. безусловно....
+        //if (objGridStack) { //А может надо типа так, т.е. безусловно....
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
         //if (img.complete) { //Required for initial page loading ВАЖНО! Попробуем так... Не работает для тега <video>
         //https://scottiestech.info/2022/11/08/javascript-how-to-detect-when-an-image-is-loaded/
           setRatioForMonitor(img, item); // ВАЖНО!!! Изменяет высоту блока <img id="liveStream5" 
-          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item));
+//const curDate = new Date();
+//console.log(`${dateTimeToISOLocal(new Date())} ВЫЗОВ setInterval`);
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true); //ВАЖНО !!! САМОЕ ДЛИТЕЛЬНОЕ, если в версии выше 11.1.2 установить cellHeight: '1px' !!!
+//console.log(`ВРЕМЯ ВЫПОЛНЕНИЯ=>${new Date() - curDate}`);
+
           changedMonitors.splice(object.length - 1 - index, 1);
           if (montageMode == 'Live') {
             monitorsSetScale(item);  //IgorA100 Перенесем сюда, т.к. при переключении режимов бывает что currentMonitor не определен (возможно monitors еще не собран.) !!!
@@ -999,6 +974,7 @@ console.log("*********startAllEvents in RECORDING mode");
     document.addEventListener('scrollend', on_scroll); // for non-sticky
     document.getElementById('content').addEventListener('scrollend', on_scroll);
   } else {
+    console.log('Browser does not support onscrollend');
     document.onscroll = () => {
       clearTimeout(window.scrollEndTimer);
       window.scrollEndTimer = setTimeout(on_scroll, 100);
@@ -1086,7 +1062,7 @@ function initPageLive() {
           const monitor = monitors[i];
           const objStream = getStream(monitor.id);
           if (!objStream) continue;
-          if (objStream.src) {
+          if (objStream.src) { //НЕ УВЕРЕН, ЧТО ЭТО НУЖНО... 27-02-25 в мастер ветке этого не было... Толи это убрали, толи я зачем-то добавлял....... РАЗОБРАТЬСЯ !!!
             monitor.kill();
           } else {
             console.log("It is not possible to pause a monitor with ID='"+monitor.id+"'"+" because it does not have the SRC attribute.");
@@ -1116,9 +1092,10 @@ function initPageLive() {
     };
     inactivityTime();
   }
+
   selectLayout();
-  $j('#monitors').removeClass('hidden-shift');
-  changeMonitorStatusPosition();
+  //$j('#monitors').removeClass('hidden-shift');
+  changeMonitorStatusPosition(); //ВАЖНО 03-03-25 Пробуем убрать, т.к. добавляет лишние запросы....ЕСЛИ УБРАТЬ ВНАЧАЛЕ НЕ БУДЕТ ПРАВИЛЬНОЙ ИНИЦИАЛИЗАЦИИ и сортировка может нарушиться !
   zmPanZoom.init();
 
   // Registering an observer on an element
@@ -1126,7 +1103,7 @@ function initPageLive() {
     observer.observe(this);
   });
 
-  $j('#monitors').removeClass('hidden-shift');
+/*~*/  $j('#monitors').removeClass('hidden-shift');
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
   waitingMonitorsPlaced('startMonitors'); //???Не уверен что требуется, если это используем в "changeRatioForAll"...
@@ -1249,6 +1226,24 @@ function buildMonitors(arrRatioMonitors) {
     //Или (для Live) если монитор отключен, то его не будет на странице
     if (!getStream(monitorData[i].id)) continue;
     const monitor = monitors[im] = new MonitorStream(monitorData[i]);
+/*+*/ //Пробуем анализировать окончание расположения мониторов через прослушивание. Срабатывать будет при каждом изменении SRC.
+/*    const videoStream = getStream(monitor.id);
+    if (videoStream && videoStream.tagName == 'VIDEO') {
+      // НЕ ПОЛУЧИТСЯ, т.к. будет срабатывать только после того как загрузится видео, а оно не загузится пока это прослушивание не сработает. Замкнутый цикл
+      videoStream.addEventListener('loadeddata', function() {
+        // Video is loaded and can be played
+console.log("**********MONITOR ЗАГРУЖЕНО ВИДЕО ID=" + monitor.id);
+//        movableMonitorData[monitor.id].stop = true;
+      }, false);
+    } else if (videoStream && videoStream.tagName == 'IMG') {
+      videoStream.addEventListener('load', function() {
+        // Video is loaded and can be played
+console.log("**********MONITOR ЗАГРУЖЕНО IMG ID=" + monitor.id);
+//        movableMonitorData[monitor.id].stop = true;
+      }, false);
+    }
+*/
+/*-*/
     monitor.setGridStack(objGridStack); // ВАЖНО! Разобраться для чего нужно.... From https://github.com/ZoneMinder/zoneminder/commit/19ea7339f496d5e1c7ecc40bdc57e44b8546256f 02-10-24
     const monitorId = monitor.id;
     monitorsId.push(monitorId);
@@ -1349,14 +1344,19 @@ function panZoomEventPanzoomzoom(event) {
 
 function on_scroll() {
   //For now, use only for live viewing.
+console.log("!!!on_scroll_checkEndMonitorsPlaced", checkEndMonitorsPlaced());
   if (montageMode == 'inRecording') return;
+  if (!monitorInitComplete) return;
+  //if (!checkEndMonitorsPlaced()) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
+//console.log("!!!on_scroll_monitor", monitor.id, isOut.all, monitor.status.state);
+//    if (monitor.status.state == 'new') continue; // Монитор только был создан и еще не был запущен.
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      //monitor.stop(); //НЕ РАБОТАЕТ...
+      //monitor.stop(); // does not work without replacing SRC to stop ZMS
       monitor.kill();
     }
   } // end foreach monitor
@@ -1413,9 +1413,9 @@ function clickinitGridStack() {
 
 function initGridStack(grid=null) {
   const opts = {
-    margin: 0,
-    cellHeight: '1px', //Required for correct use of objGridStack.resizeToContent
-    //sizeToContent: true, // default to make them all fit //Самое медленное !!!!!!!!!
+    margin: '0 1px 0 1px',
+    cellHeight: '4px', //Required for correct use of objGridStack.resizeToContent
+    sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,
@@ -1444,6 +1444,11 @@ function addEventsGridStack(grid, id) {
     //  //monitorsSetScale(currentMonitorId);
     //  setTriggerChangedMonitors(currentMonitorId);
     //});
+    //setTimeout(function() {
+/*~*/    $j('#monitors').removeClass('hidden-shift'); //ВАЖНО! Именно в этом месте получается красивее всего !
+    //ХОТЬ И КРАСИВО. НО НЕ ВСЕГДА СРАБАТЫВАЕТ !!!!!
+    //}, 2000);
+
 
     elementResize();
   })
@@ -1515,6 +1520,7 @@ function addEventsGridStack(grid, id) {
           return parseInt(o["id"]) === currentMonitorId;
         });
         //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+
         setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
         currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
       });
@@ -1634,6 +1640,11 @@ function monitorsSetScale(id=null) {
     const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
     ////console.log(`++monitorsSetScale id=>${id}, el.clientWidth=>${el.clientWidth}, el.clientHeight=>${el.clientHeight}, panZoomScale=>${panZoomScale}`);
     ////console.log("el", el);
+/*В*///console.log("monitors==>", monitors);
+/*В*///console.log("monitorsSetScale_id==>", id);
+/*В*///console.log("typeof_id==>", typeof id);
+
+/*В*///console.log("currentMonitor==>", currentMonitor);
     currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -1742,6 +1753,7 @@ function setRateForMonitors(fps, id=null) {
 }
 
 function setSpeedForMonitors(speed, id=null) {
+console.log("setSpeedForMonitors_speed==>", speed);
   if (montageMode == 'Live') {
 
   } else { //inRecording
@@ -1792,6 +1804,7 @@ function setSpeedForMonitors(speed, id=null) {
 * Sets the monitor image change flag for positioning recalculation
 */
 function setTriggerChangedMonitors(id=null) {
+//console.log(`${dateTimeToISOLocal(new Date())} ВЫЗОВ setTriggerChangedMonitors`, id, objGridStack);
   if (id) {
     if (monitorDisplayedOnPage(id)) {
       if (!changedMonitors.includes(id)) {
@@ -1812,7 +1825,35 @@ function setTriggerChangedMonitors(id=null) {
 * Используется при первоначальной инициализации страницы
 */
 function checkEndMonitorsPlaced() {
+//console.log(`${dateTimeToISOLocal(new Date())}`, movableMonitorData);
   //return true; //ВАЖНО ВРЕМЕННО !!!
+
+/*+*/ // Новый вариант через прослушивание. Будет срабатывать ТОЛЬКО после того как все мониторы удачно стартанули....
+/*
+  let monitorsEndMoving = true; //Все мониторы в зоне видимости отображаются.
+
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const id = monitor.id;
+    console.log("+++CHECK ID=" + id, movableMonitorData[id].stop, isOutOfViewport(monitor.getElement()).all);
+    if (!movableMonitorData[id].stop && !isOutOfViewport(monitor.getElement()).all) { // Монитор еще не отображается, но находится в видимой области
+      monitorsEndMoving = false;
+      console.log(`monitorsEndMoving++--= FALSE ${id}`);
+      return false;
+    }
+  }
+  if (monitorsEndMoving) {
+    for (let i = 0, length = monitors.length; i < length; i++) {
+      //Clean for later use
+      movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
+    }
+  }
+  ////console.log(`monitorsEndMoving++--= ${monitorsEndMoving}`);
+  return monitorsEndMoving;
+*/
+/*-*/ /* Новый вариант через прослушивание */
+
+
   for (let i = 0, length = monitors.length; i < length; i++) {
     const id = monitors[i].id;
     //if (!monitorDisplayedOnPage(id)) continue;
@@ -1820,16 +1861,20 @@ function checkEndMonitorsPlaced() {
     if (!movableMonitorData[id].stop) {
       //Monitor is still moving
       const obj = getStream(id);
+      var objWidth = 0;
       if (obj) {
-        var objWidth = obj.clientWidth;
+        objWidth = obj.clientWidth;
+//console.log(`${dateTimeToISOLocal(new Date())} objWidth===========>`, $j(obj)[0].width);
         //var objWidth = obj.naturalWidth;
       } else {
         console.log(`checkEndMonitorsPlaced NOT FOUND ${'liveStream'+id}, ${'evtStream'+id}`);
         movableMonitorData[id].stop = true; //Данный монитор не отображается на экране
         continue;
       }
-      if (obj.tagName == 'img') {
-        if (obj.complete) { //ВАЖНО! Попробуем так... Не работает для тега <video>
+//console.log("-----------obj.tagName=>", obj.tagName, id, movableMonitorData[id].stop, objWidth);
+      if (obj.tagName == 'IMG') {
+        if (obj.complete) { //ВАЖНО! Попробуем так... Но это НЕ работает для тега <video>
+        //if (obj.onload) { //ВАЖНО! Попробуем так... Не работает для тега <video>
           movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
         }
       } else {
@@ -1865,6 +1910,7 @@ function checkEndMonitorsPlaced() {
 }
 
 function waitingMonitorsPlaced(action = null) {
+  //monitorInitComplete = false;
   const intervalWait = setInterval(() => {
     if (checkEndMonitorsPlaced()) {
       // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
@@ -1873,6 +1919,7 @@ function waitingMonitorsPlaced(action = null) {
       //}
       if (action == 'startMonitors') {
         startMonitors();
+        monitorInitComplete = true;
       } else if (action == 'changeRatio') {
         if (!isPresetLayout(getCurrentNameLayout())) {
           return;
@@ -1897,6 +1944,8 @@ function waitingMonitorsPlaced(action = null) {
         // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
       }
       clearInterval(intervalWait);
+console.log(`${dateTimeToISOLocal(new Date())} ВСЕ МОНИТОРЫ РАСПОЛОЖИЛИСЬ!!!`);
+  //$j('#monitors').removeClass('hidden-shift');
     }
   }, 100);
 }
@@ -1917,6 +1966,7 @@ function changeMonitorStatusPosition() {
     } else if (monitorStatusPosition == 'hidden') {
       $j(this).addClass('hidden');
     }
+//console.log(`${dateTimeToISOLocal(new Date())} ВЫЗОВ changeMonitorStatusPosition`, objGridStack);
     setTriggerChangedMonitors(stringToNumber(this.id));
   });
   setCookie('zmMonitorStatusPositionSelected', monitorStatusPosition);
@@ -2033,7 +2083,7 @@ function changeDateTime(e) {
 function getGridMonitors() {
   console.log("getGridMonitors_START=>", montageMode);
   const blockMonitors = $j('#monitors');
-  blockMonitors.addClass('hidden-shift'); //IgorA100 Особой пользы нет....
+//  blockMonitors.addClass('hidden-shift'); //IgorA100 Особой пользы нет....
   const currentTime = new Date();
 
   $j.ajaxSetup({
@@ -2055,15 +2105,14 @@ function getGridMonitors() {
       movableMonitorData = [];
       //buildMonitors(arrRatioMonitors);
       //calculateAverageMonitorsRatio(arrRatioMonitors);
-      loadFontFaceObserver();
-      //console.log("++++++getGridMonitors_LastEvents=>", data.lastEvents);
+      //loadFontFaceObserver();
+      //console.log("++++++getGridMonitors_LastEvents=>", data.lastEvents); //ОТЛАДКА ВАЖНО
       blockMonitors.html(data.monitors);
       if (montageMode == 'Live') {
         initPageLive();
       } else {
         initPageReview();
       }
-
       applyChosen(); //ToDo Is it necessary???
       dataOnChangeThis();
       dataOnChange();
@@ -2112,7 +2161,7 @@ function getEventsAndExecAction(params={}) {
         alert(translate["TooManyEventsForTimeline"]);
       } else {
         if (params.montage_action == 'queryEventsForTimeline') {
-          console.log("getEventsForTimeline===>", data);
+          console.log("getEventsForTimeline===>", data); //ОТЛАДКА ВАЖНО
           //Let's fill the Timeline with events
           fillTimelineEvents({events: data.events, allEventCount: data.allEventCount});
         } else if (params.montage_action = 'queryEventsForMonitor') {
@@ -2139,9 +2188,14 @@ function frameCalculationByTime(dateTime, startDateTime, endDateTime, frameCount
   const current = new Date(dateTime);
   const start = new Date(startDateTime);
   const end = new Date(endDateTime);
+  //const end = (endDateTime) ? new Date(endDateTime) : new Date();
   const durationSec = (end.getTime() - start.getTime()) / 1000;
   const FPS = frameCount / durationSec;
   const offsetSec = (current.getTime() - start.getTime()) / 1000;
+//console.log("+++start===>",start);
+//console.log("+++end===>",end);
+//console.log("+++durationSec===>",durationSec);
+//console.log("+++FPS===>",FPS);
   return parseInt(offsetSec * FPS);
 }
 
@@ -2184,6 +2238,7 @@ function streamQuery() {
   for (var monitorId in eventsTable) {
     const eventInfo = getEventInfoFromEventsTable({what: 'current', mid: monitorId});
     //if (eventsTable[monitorId].current.status != 'started' ||
+    /*В*///console.log("***streamQuery*** zmsBroke=>", monitorId, eventInfo.zmsBroke);
     if (eventInfo.status != 'started' || eventInfo.zmsBroke) continue;
 
     //const url = new URL(eventInfo.src);
@@ -2194,6 +2249,7 @@ function streamQuery() {
       return parseInt(o["id"]) === parseInt(monitorId);
     });
     //console.log(dateTimeToISOLocal(new Date()), " streamQuery для connkey=>", connkey);
+    /*В*///console.log("***streamQuery*** MonId=>", monitorId);
     streamReq({
       monitorId: monitorId,
       command: CMD_QUERY,
@@ -2208,6 +2264,7 @@ function streamQuery() {
 * Only for inRecording mode
 */
 function streamReq(settings) {
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ВЫЗВАЛИ streamReq (settings)=>`, settings);
   if (auth_hash) settings.auth = auth_hash;
   if (!settings.connkey) {
     console.log("In streamReq() for command: '" + settings.command + "' there is no connkey");
@@ -2215,6 +2272,7 @@ function streamReq(settings) {
   }
 
   if (settings.monitorId) {
+  //if (0) {
     //Еще нет картинки......
     if (!getStream(settings.monitorId).complete) return;
 
@@ -2253,6 +2311,10 @@ function streamReq(settings) {
        getStream(settings.monitorId).src.indexOf(eventsTable[settings.monitorId].current.src) == -1
       ) {
         console.log("***SEEK не отправлен для монитора ="+settings.monitorId);
+        //console.log("***getStream(settings.monitorId).complete =", getStream(settings.monitorId).complete);
+        console.log("***eventsTable[settings.monitorId].current.status =", eventsTable[settings.monitorId].current.status);
+        //console.log("***eventsTable[settings.monitorId].current.src =", eventsTable[settings.monitorId].current.src);
+        //console.log("***getStream(settings.monitorId).src ===========", getStream(settings.monitorId).src);
         return; //Событие еще не воспроизводится.
       }
       //???Это необходимо, т.к. небольшая погрешность приводит к генерации ошибки.
@@ -2273,11 +2335,38 @@ function streamReq(settings) {
       */
     }
   }
+/*
+  if (auth_hash) data.auth = auth_hash;
+  data.connkey = connKey;
+  data.view = 'request';
+  data.request = 'stream';
 
+  $j.getJSON(monitorUrl+'?'+auth_relay, data)
+      .done(getCmdResponse)
+      .fail(logAjaxFail);
+*/
+
+
+/*
+  var data = settings;
+//  if (auth_hash) data.auth = auth_hash;
+//  data.connkey = connKey;
+  data.view = 'request';
+  data.request = 'stream';
+
+  $j.getJSON(settings.monitorUrl+'?'+auth_relay, data)
+      .done(getCmdResponse)
+      .fail(logAjaxFail);
+/**/
+
+
+/**/
   settings.view = 'request';
   settings.request = 'stream';
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ВЫЗВАЛИ AJAX запрос (settings)=>`, settings);
   $j.ajax({
-    timeout: AJAX_TIMEOUT,
+    //timeout: AJAX_TIMEOUT,
+    timeout: AJAX_TIMEOUT*200, //ВАЖНО!!! Стандартного времени AJAX_TIMEOUT НЕ ХВАТАЕТ !!! Ошибки в консоле появляются, когда просматривать много камер!
     url: settings.monitorUrl+'?'+auth_relay,
     data: settings,
     dataType: "json",
@@ -2291,12 +2380,15 @@ function streamReq(settings) {
     complete: getCmdResponse,
     error: logAjaxFail
   });
+/**/
 }
 
 /*
 * Only for inRecording mode
 */
 function getCmdResponse(respObj, respText, xhr) {
+  console.log("respObj=>", respObj);
+  console.log("respObj.settings=>", respObj.settings);
   if ( checkStreamForErrors('getCmdResponse', respObj) ) {
     console.log('Got an error from getCmdResponse');
     console.log(respObj);
@@ -2575,6 +2667,7 @@ function click_last_1H() {
 }
 
 function startAllEvents(properties) {
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ВЫЗВАЛИ startAllEvents (properties)=>`, properties);
   prevDateTimeTimelineInMilliSec = null;
   eventsPlay = true;
   var newCurrentTime = null;
@@ -2687,6 +2780,7 @@ function startAllEvents(properties) {
     }
   }, 2 * 1000);
   intervalRefreshCheckNextEvent  = setInterval(function() {
+    // ВАЖНО! Это запускает воспроизведение события !!!
     checkNextEvent();
   }, 0.5*1000);
   intervalRefreshUpdateCurrentTime = setInterval(function() {
@@ -2877,7 +2971,7 @@ function initTimeline () {
   //console.log("*****getSelectedMultiple=>", getSelectedMultiple(selectNotes));
 
   const groups = [];
-  console.log("initTimeline_monitors=>", monitors);
+  //console.log("initTimeline_monitors=>", monitors);  // ОТЛАДКА ВАЖНО
   for (let i=0, length = monitors.length; i < length; i++) {
     groups.push({
       content: "(" + monitors[i].id + ") "+ monitors[i].name, 
@@ -3139,6 +3233,9 @@ function startEvent(monitorId) {
   //const classArchived = (events[index].Archived) ? " event-archived" : "";
   const stream = getStream(monitorId);
   //console.log('monitorId=>', monitorId, 'StartDateTime=>' , events[index].StartDateTime);
+  console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} startEvent monitorId=>`, monitorId);
+  console.log('Старый SRC=>', stream.src);
+  console.log('Новый SRC=>', getEventInfoFromEventsTable({what: 'current', mid: monitorId}).src);
   if (stream) { //ВАЖНО !!!Почему-то появлялась ошибка, не находило stream, разобраться. Понял. В ответе запроса (если в нем не было фильтра по мониторам) могут быть мониторы, которых нет на странице
     /*
       start: events[0].StartDateTime, 
@@ -3243,16 +3340,18 @@ function processingEventsForMonitor(data, params) {
     if (im !== -1) {
       monitorsWOEvents.splice(im, 1);
     }
-    //!!!ЗДЕСЬ ВСЕ ПРАВИЛЬНОЕ ДОЛЖНО БЫТЬ !!!
+    ////!!!ЗДЕСЬ ВСЕ ПРАВИЛЬНОЕ ДОЛЖНО БЫТЬ !!!
     const stream = getStream(monitorId);
     /*В*///console.log("+++monitorId=>>>>>", monitorId);
-    /*В*///console.log("+++stream=>>>>>>>>", stream);
+    /*В*/console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} +++stream=>>>>>>>>`, stream);
     if (!stream) continue; //ВАЖНО !!!Почему-то появлялась ошибка, не находило stream, разобраться. Понял. В ответе запроса (если в нем не было фильтра по мониторам) могут быть мониторы, которых нет на странице
     //ПОПЫТКА РАБОТАТЬ С КОМАНДАМИ.
     var url = new URL(stream.src);
     var connkey = url.searchParams.get('connkey');
     //const eventId = url.searchParams.get('event') ? url.searchParams.get('event') : url.searchParams.get('eid');
     const eventId = events[index].Id;
+    /*В*/console.log("^url^^^^^^^^^^^^^^^^^^", url);
+    /*В*/console.log("^connkey^^^^^^^^^^^^^^^^^^", connkey);
     /*В*///console.log("^stream.src^^^^^^^^^^^^^^^^^^", stream.src);
     /*В*///console.log("^eventId^^^^^^^^^^^^^^^^^^", eventId);
     /*В*///console.log("^events[index].Id^^^^^^^^^^^^^^^^^^", events[index].Id);
@@ -3273,7 +3372,7 @@ function processingEventsForMonitor(data, params) {
     /*В*///console.log("++++-----eventsTable==>>", eventsTable);
     const eventInfo = getEventInfoFromEventsTable({what: 'current', eid: eventId});
     /*В*///console.log("++++-----eventId==>>", eventId);
-    /*В*///console.log("++++-----eventInfo==>>", eventInfo);
+    /*В*/console.log("++++-----eventInfo==>>", eventInfo);
     if (eventInfo) {
       if (eventInfo.status != 'started') {
         eventPlayed = false;
@@ -3284,16 +3383,30 @@ function processingEventsForMonitor(data, params) {
 
     //if (eventId == events[index].Id && eventPlayed) {
     //if (eventPlayed && !getEventInfoFromEventsTable({what: 'current', mid: monitorId}).zmsBroke) {
+try {
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ПРОВЕРКА ВОЗМОЖНОСТИ ЗАПУСКА=>`, monitorId);
+console.log(`eventPlayed=>`, eventPlayed);
+console.log(`getEventInfoFromEventsTable({what: 'current', eid: eventId}).zmsBroke=>`, getEventInfoFromEventsTable({what: 'current', eid: eventId}).zmsBroke);
+console.log(`String(eventId)=>`, String(eventId));
+console.log(`String(eventInfo.eventId)=>`, String(eventInfo.eventId));
+} catch (e) {
+          console.warn(`${dateTimeToISOLocal(new Date())} An error ПРИ СТАРТЕ`, e);
+}
+
+// ВАЖНО! При первом старте "zmsBroke" и "eventInfo.eventId" вероятно будут отсутсвовать !!! РАЗОБРАТЬСЯ !!! А МОЖЕТ ЭТО НОРМАЛЬНО...
     if (eventPlayed && !getEventInfoFromEventsTable({what: 'current', eid: eventId}).zmsBroke) {
       if (String(eventId) == String(eventInfo.eventId)) {
-        //Текущее событие, которое воспроизводилось.
+        //ТЕКУЩЕЕ СОБЫТИЕ, которое воспроизводилось.
+        //И ПО КОТОРОМУ КЛИКНУЛИ ЕЩЕ РАЗ ИЛИ ПОСЛЕ ПАУЗЫ.
         ////console.log("*currentDateTime===>", currentDateTime);
         ////console.log("*startDateTime===>", startDateTime);
         //ВАЖНО!!! А тут требуется проверять ответ на выполнение команды, 
         //т.к. сокет может уже закрыться из за длительной паузы и нужно будет повторно запускать...
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ВЫЗВАЛИ CMD_PLAY из processingEventsForMonitor(monitorId)=>`, monitorId);
 
         streamReq({command: CMD_PLAY, monitorId: monitorId, connkey: connkey, eventId: eventId, monitorUrl: monitor.url});
         //А еще если запустить событие и недожидаясь пока событие начнет воспроизводится еще раз щелкнуть по нем, то будет ошибка "getCmdResponse stream error:"
+    //setTimeout(function() {// During the downtime, the monitor may have already started to work.
         streamReq({
           command: CMD_SEEK,
           monitorId: monitorId,
@@ -3302,8 +3415,13 @@ function processingEventsForMonitor(data, params) {
           eventId: eventId,
           monitorUrl: monitor.url
         });
+/**/
+    //}, 500);
+
       }
     } else {
+      // СЮДА МЫ ПОПАДАЕМ ПРИ ПЕРВОМ ЗАПУСКЕ ПРОИГРЫВАНИЯ
+console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ПОЛУЧИЛИ ELSE из processingEventsForMonitor(monitorId)=>`, monitorId);
       //const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : undefined;
       //url = new URL(streamSrc[events[index].Id], baseURL);
       url = newURL(streamSrc[events[index].Id]);
@@ -3311,6 +3429,8 @@ function processingEventsForMonitor(data, params) {
       url.searchParams.set('rate', parseFloat(speeds[speedIndex]) * 100);
       /* ПОПЫТКА работать через команды, пока не работает... */
       //connkey = url.searchParams.get('connkey');
+      //streamReq({command: CMD_PLAY, monitorId: monitorId, connkey: connkey, eventId: eventId, monitorUrl: monitor.url});
+
       /*setTimeout(function() {
         // ВРЕМЕННО ТАК НЕ РАБОТАЕТ, НУЖНА ЗАДЕРЖКА !!!
         streamReq({
@@ -3324,16 +3444,20 @@ function processingEventsForMonitor(data, params) {
 
       ////console.log("+++++++speedIndex+++++=>", speedIndex);
 
-      //stream.src = '';
+////!!! ВАЖНО 2025 В ДАННОМ МЕСТЕ НЕТ НЕОБХОДИМОСТИ ЗАПУСКАТЬ СОБЫТИЕ, Т.К. ОНО ЗАПУСКАЕТСЯ в checkNextEvent() !!!
+
+//      stream.src = '';
       //stream.src = streamSrc[events[index].Id];
-      //stream.src = url;
+//      stream.src = url;
       /*В*///console.log("+++++++stream.src+++++=>", stream.src);
+      /*В*/console.log("+++++++stream.src-connkey+++++=>", connkey);
       /*В*///console.log("+++++++NEW URL+++++=>", url.href);
       //fillTableEvents('current', monitorId, events[index], data.streamSrc[events[index].Id]);
       if (monitorId != prevMonitorId) {
+        // ВАЖНО Уже и не помню, ПОЧЕМУ МОНИТОРЫ МОГУТ БЫТЬ РАЗНЫЕ....
         //Необходимо остановить событие, если оно воспроизводиолось.
         //if (getEventInfoFromEventsTable({what: 'current', mid: monitorId}).status == 'started') {
-        //console.log("*+*+*+*+*+*stopEvent!!!!!=>", monitorId);
+        console.log("*+*+*+*+*+*stopEvent!!!!!=>", monitorId);
         //  stopEvent(monitorId);
         //}
         fillTableEvents('current', monitorId, events[index], url.href);
@@ -3349,6 +3473,7 @@ function processingEventsForMonitor(data, params) {
         //Если будет пересекаться ТРИ события - совсем плохо, но вероятность такого стремится к нулю.
         fillTableEvents('next', monitorId, events[index], url.href);
       }
+//return;
       eventsTable[monitorId].current.zmsBroke = false;
       setTriggerChangedMonitors(monitorId);
     }
@@ -3373,6 +3498,9 @@ function processingEventsForMonitor(data, params) {
 }
 
 function checkEventEnded(currentDateTime, monitorId) {
+  // ВАЖНО 2025 ВЫЗЫВАЕТСЯ ПОСТОЯННО ЧЕРЕЗ 0.5сек, ВЕРОЯТНО ТРЕБУЕТСЯ ОПТИМИЗИРОВАТЬ...
+  // ТАК-ЖЕ ЗАПУСКАЕТСЯ КОД ВОСПРОИЗВЕДЕНИЯ СОБЫТИЯ.....
+//console.warn(`${dateTimeToISOLocal(new Date(), {}, true)} ВЫЗВАЛИ checkEventEnded (monitorId)=>`, monitorId);
   //Ничего возвращать не должно, только перезаполнить eventsTable!
   //Пока так.....
   //return false;
@@ -3480,20 +3608,28 @@ function fillTableEvents(what, monitorId, event, streamSrc) {
 }
 
 function checkNextEvent() {
+//console.log("+++++START checkNextEvent");
   const currentDateTime = dateTimeToISOLocal(timeline.getCurrentTime());
   for (let i=0, length = monitors.length; i < length; i++) {
     const monitorId = monitors[i].id;
+    checkEventEnded(currentDateTime, monitorId); // ВАЖНО 2025! Это запускает воспроизведение события !!!
     //Здесь еще требуется проверка окончания проигрывания checkEventEnded()
     const currentEventInfo = getEventInfoFromEventsTable({what: 'current', mid: monitorId});
     const nextEventInfo = getEventInfoFromEventsTable({what: 'next', mid: monitorId});
 
-    checkEventEnded(currentDateTime, monitorId);
+    //ВАЖНО 2025 Почему-то мы вначале читаем инфу из "nextEventInfo", а только потом обновляем данные в таблице при помощи "checkEventEnded"
+//    checkEventEnded(currentDateTime, monitorId); // ВАЖНО 2025! Это запускает воспроизведение события !!!
     if (nextEventInfo.status == 'notAvailable') {
       continue;
     }
 
     const currentEventId = currentEventInfo.eventId;
     const nextEventId = nextEventInfo.eventId;
+//console.log("======================================");
+//console.log("+++++++++currentEventId=>", currentEventId);
+//console.log("++++++++++++nextEventId=>", nextEventId);
+//console.log("currentEventInfo.status=>", currentEventInfo.status);
+//console.log("+++nextEventInfo.status=>", nextEventInfo.status);
     //if ((currentEventId == nextEventId && currentEventInfo.status != 'waiting' && nextEventInfo.status != 'notAvailable') || 
       //(!nextEventId && nextEventInfo.status != 'notAvailable'))
     //if ((currentEventId == nextEventId && nextEventInfo.status != 'waiting') || 
@@ -3537,7 +3673,9 @@ function fillTimelineEvents (params={}) {
   for (index = 0; index < events.length; ++index) {
     const eventId = events[index].Id;
     const start = new Date(events[index].StartDateTime);
+    //const end = (events[index].EndDateTime) ? new Date(events[index].EndDateTime) : new Date(); //НЕЗАВЕРШЕННОЕ событие не имеет даты окончания!
     const end = new Date(events[index].EndDateTime);
+//console.log("++EndDateTime===>", events[index].EndDateTime);
     const classArchived = (events[index].Archived) ? "event-archived" : "";
     const classEvent = (parseInt(events[index].Length) > 20*60) ? "bad_event_timeline" : "event_timeline";
     eventsOnTimeline.push(eventId);
@@ -3587,3 +3725,46 @@ window.onbeforeunload = function(e) {
   return undefined;
 };
 */
+/**
+define('MSG_CMD', 1);
+define('MSG_DATA_WATCH', 2);
+define('MSG_DATA_EVENT', 3);
+
+define('CMD_NONE', 0);
+define('CMD_PAUSE', 1);
+define('CMD_PLAY', 2);
+define('CMD_STOP', 3);
+define('CMD_FASTFWD', 4);
+define('CMD_SLOWFWD', 5);
+define('CMD_SLOWREV', 6);
+define('CMD_FASTREV', 7);
+define('CMD_ZOOMIN', 8);
+define('CMD_ZOOMOUT', 9);
+define('CMD_PAN', 10);
+define('CMD_SCALE', 11);
+define('CMD_PREV', 12);
+define('CMD_NEXT', 13);
+define('CMD_SEEK', 14 );
+define('CMD_VARPLAY', 15);
+define('CMD_GET_IMAGE', 16);
+define('CMD_QUIT', 17);
+define('CMD_MAXFPS', 18);
+define('CMD_ANALYZE_ON', 19);
+define('CMD_ANALYZE_OFF', 20);
+define('CMD_ZOOMSTOP', 21);
+define('CMD_QUERY', 99);
+
+
+initPage()
+  setInRecordingMode() || setLiveMode()
+    montageMode = 'inRecording' || 'Live';
+    getGridMonitors()  формируем сетку.
+      initPageLive() || initPageReview() - все основное
+        buildRatioSelect(...)
+        buildMonitors(arrRatioMonitors);  - формируем массив "monitors"
+        selectLayout()
+        changeMonitorStatusPosition()
+        zmPanZoom.init()
+        // Registering an observer
+        initTimeline()
+**/

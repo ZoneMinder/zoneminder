@@ -143,12 +143,6 @@ public:
 
   typedef enum
   {
-    PRIMARY = 1,
-    SECONDARY
-  } Go2RTCStreamOption;
-
-  typedef enum
-  {
     LOCAL = 1,
     REMOTE,
     FILE,
@@ -542,7 +536,6 @@ protected:
   RTSP2WebStreamOption RTSP2Web_stream; // Whether we use the primary or secondary URL for the stream
   bool Go2RTC_enabled;                  // Whether we set the h264/h265 stream up on Go2RTC
   int Go2RTC_type;                      // Whether we set the h264/h265 stream up on Go2RTC
-  Go2RTCStreamOption Go2RTC_stream;     // Whether we use the primary or secondary URL for the stream
   bool janus_enabled;                   // Whether we set the h264/h265 stream up on janus
   bool janus_audio_enabled;             // Whether we tell Janus to try to include audio.
   std::string janus_profile_override;   // The Profile-ID to force the stream to use.

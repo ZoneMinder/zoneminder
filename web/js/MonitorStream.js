@@ -16,7 +16,6 @@ function MonitorStream(monitorData) {
   this.RTSP2WebStream = monitorData.RTSP2WebStream;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCType = monitorData.Go2RTCType;
-  this.Go2RTCStream = monitorData.Go2RTCStream;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
   this.MSEBufferCleared = true;
@@ -322,16 +321,15 @@ function MonitorStream(monitorData) {
       }
     }
     if (this.Go2RTCEnabled) {
-      if (ZM_Go2RTC_PATH) {
+      if (ZM_GO2RTC_PATH) {
         const videoEl = document.getElementById("liveStream" + this.id);
-        const url = new URL(ZM_Go2RTC_PATH);
+        const url = new URL(ZM_GO2RTC_PATH);
         const useSSL = (url.protocol == 'https');
 
         const Go2RTCModUrl = url;
         Go2RTCModUrl.username = '';
         Go2RTCModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (streamChannel == 'default') ? ((this.Go2RTCStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.Go2RTCType == 'HLS') {
           const hlsUrl = Go2RTCModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
@@ -366,7 +364,7 @@ function MonitorStream(monitorData) {
         this.streamListenerBind();
         return;
       } else {
-        console.log("ZM_Go2RTC_PATH is empty. Go to Options->System and set ZM_Go2RTC_PATH accordingly.");
+        console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
       }
     }
 

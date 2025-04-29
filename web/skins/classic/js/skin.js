@@ -301,12 +301,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
-      if ( flip.html() == 'keyboard_arrow_up' ) {
-        flip.html('keyboard_arrow_down');
-        setCookie('zmHeaderFlip', 'down');
+      if ( flip.html() == 'keyboard_arrow_down' ) {
+        flip.html('keyboard_arrow_right');
+        setCookie('zmHeaderFlip', 'hidden');
       } else {
-        flip.html('keyboard_arrow_up');
-        setCookie('zmHeaderFlip', 'up');
+        flip.html('keyboard_arrow_down');
+        setCookie('zmHeaderFlip', 'shown');
       }
     }
 

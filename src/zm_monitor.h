@@ -109,7 +109,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { PRIMARY = 1, SECONDARY } RTSP2WebStreamOption;
 
-  typedef enum { WEBRTC, MSE, RTSP, HLS, MJPEG } Go2RTCOption;
+  typedef enum {
+    GO2RTC_WEBRTC = 1,
+    GO2RTC_MSE,
+    GO2RTC_RTSP,
+    GO2RTC_HLS,
+    GO2RTC_MJPEG
+  } Go2RTCOption;
 
   typedef enum {
     LOCAL = 1,

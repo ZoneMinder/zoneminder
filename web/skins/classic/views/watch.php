@@ -109,7 +109,7 @@ foreach ($monitors as $m) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if ( $m->RTSP2WebEnabled() and $m->RTSP2WebType == "HLS") {
+  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS') or ($m->Go2RTCEnabled() and $m->Go2RTCType == 'HLS')) {
     $hasHLS = true;
   }
   if ($hasPtzControls && $hasHLS) {
@@ -218,6 +218,8 @@ function getStreamModeMonitor($monitor) {
     $streamMode = 'janus';
   } else if ($monitor->RTSP2WebEnabled()) {
     $streamMode = $monitor->RTSP2WebType();
+  } else if ($monitor->Go2RTCEnabled()) {
+    $streamMode = $monitor->Go2RTCType();
   } else {
     $streamMode = getStreamMode();
   }

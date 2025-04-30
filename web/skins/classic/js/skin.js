@@ -1552,7 +1552,7 @@ function insertControlModuleMenu() {
     const divFirst = toolbar.querySelector('.col-sm-1');
     if (divFirst) {
       divFirst.classList.remove('col-sm-1');
-      divFirst.classList.add('col-sm-6');
+      divFirst.classList.add('col-sm-4');
     }
     // The second div, which is "col-sm-9"
     const divSecond = toolbar.querySelector('.col-sm-9');
@@ -1563,7 +1563,7 @@ function insertControlModuleMenu() {
     const divThird = toolbar.querySelector('.col-sm-2');
     if (divThird) {
       divThird.classList.remove('col-sm-2');
-      divThird.classList.add('col-sm-6');
+      divThird.classList.add('col-sm-8');
     }
   }
 

@@ -85,6 +85,10 @@ $presetLayoutsNames = array( //Order matters!
 /* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
+  /* IMPORTANT! 
+  * Before GridStack integration, instead of the layer name "Auto", we used "Freeform" in the DB.
+  * Before deleting this check, you need to replace "Freeform" with "Auto" in the DB of already installed ZM !!!
+  */
   if ($l->Name() == 'Freeform') $l->Name('Auto');
   $layoutsByName[$l->Name()] = $l;
 }

@@ -1,6 +1,8 @@
 #ifndef ZM_QUADRA_H
 #define ZM_QUADRA_H
 
+#if HAVE_QUADRA
+
 #include "nierrno.h"
 #include "ni_device_api.h"
 #include "ni_util.h"
@@ -64,4 +66,5 @@ class Quadra {
     int dlhw_frame(AVFrame *hwframe, AVFrame **filt_frame);
 };
 
+#endif
 #endif

@@ -6,6 +6,9 @@
 #include <thread>
 #include <condition_variable>
 
+extern "C" {
+#include <libavfilter/avfilter.h>
+}
 
 #include "zm_packet.h"
 
@@ -43,7 +46,9 @@ class AIThread {
   SpeedAI *speedai;
   SpeedAI::Job *job;
 #endif
+#if HAVE_QUADRA
   Quadra::filter_worker *drawbox_filter;
+#endif
   AVFilterContext *drawbox_filter_ctx;
   int32_t analysis_image_count;
 
@@ -52,7 +57,9 @@ class AIThread {
   std::condition_variable condition_;
 };
 
+#if HAVE_QUADRA
 int draw_boxes( Quadra::filter_worker *drawbox_filter, AVFilterContext *drawbox_filter_ctx, Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size, int line_width);
 int draw_box( Quadra::filter_worker * drawbox_filter, AVFilterContext *drawbox_filter_ctx, AVFrame *inframe, AVFrame **outframe, int x, int y, int w, int h);
+#endif
 
 #endif

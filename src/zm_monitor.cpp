@@ -2211,7 +2211,6 @@ int Monitor::Analyse() {
                       Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
                     }
 #endif
-
                     int count = 10;
                     // packet got to the card
                     // According to docs, we should be able to now get detections without sending another frame
@@ -2249,9 +2248,9 @@ int Monitor::Analyse() {
                   quadra_yolo->draw_last_roi(packet);
                 } // end if skip_frame
               } // end if has input_frame/hw_frame
-              } // end yolo
-            }
+            } // end yolo
 #endif
+          }
           packet->hw_frame = nullptr; // Free it?
 
           // Ready means that we have captured the warmup # of frames
@@ -3229,7 +3228,10 @@ int Monitor::Decode() {
       packet_lock = std::move( decoder_queue.front() );
       decoder_queue.pop_front();
       packet = delayed_packet;
-      if (!quadra) packet->get_hwframe(mVideoCodecContext);
+#if HAVE_QUADRA
+      if (!quadra)
+#endif
+        packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {

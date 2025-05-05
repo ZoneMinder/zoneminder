@@ -91,26 +91,27 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     std::unique_lock<std::mutex> lck(mutex);
     if (deleting or zm_terminate) return false;
 
-    if (!has_out_of_order_packets_ and (add_packet->packet->dts != AV_NOPTS_VALUE)) {
+    AVPacket *add_avpacket = add_packet->packet.get();  // because std::shared_ptr accesses are way more expensive
+    if (!has_out_of_order_packets_ and (add_avpacket->dts != AV_NOPTS_VALUE)) {
       auto rit = pktQueue.rbegin();
       // Find the previous packet for the stream, and check dts
       while (rit != pktQueue.rend()) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
 
-        if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          if (prev_packet->packet->dts > add_packet->packet->dts) {
+        if (prev_packet->packet->stream_index == add_avpacket->stream_index) {
+          if (prev_packet->packet->dts > add_avpacket->dts) {
             Debug(1, "Have out of order packets");
             ZM_DUMP_PACKET(prev_packet->packet, "queued_packet");
-            ZM_DUMP_PACKET(add_packet->packet, "add_packet");
+            ZM_DUMP_PACKET(add_avpacket, "add_packet");
             has_out_of_order_packets_ = true;
           }
           break;
         }
         rit++;
       }  // end while
-    }
+    }  // end if doing out_of_order checking
 
-    if (video_stream_id == add_packet->packet->stream_index) {
+    if (video_stream_id == add_avpacket->stream_index) {
       if (!add_packet->keyframe) {
         frames_since_last_keyframe_ ++;
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
@@ -155,13 +156,11 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }
     }  // end foreach iterator
 
-    packet_counts[add_packet->packet->stream_index] += 1;
-    Debug(2, "packet counts for %d is %d",
-          add_packet->packet->stream_index,
-          packet_counts[add_packet->packet->stream_index]);
+    packet_counts[add_avpacket->stream_index] += 1;
+    Debug(2, "packet counts for %d is %d", add_avpacket->stream_index, packet_counts[add_avpacket->stream_index]);
 
     if (
-      (add_packet->packet->stream_index == video_stream_id)
+      (add_avpacket->stream_index == video_stream_id)
       and
       (max_video_packet_count > 0)
       and
@@ -175,13 +174,10 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
                 , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_);
       }
 
-      for (
-        // Start at second packet because the first is always a keyframe unless we don't care about keyframes
-        auto it = ++pktQueue.begin();
-        //it != pktQueue.end() and  // can't hit end because we added our packet
-        (*it != add_packet) && !(deleting or zm_terminate);
-        // iterator is incremented by erase
-      ) {
+      auto it = pktQueue.begin();
+      // Start at second packet because the first is always a keyframe unless we don't care about keyframes
+      if (keep_keyframes) it ++;
+      while ( (*it != add_packet) && !(deleting or zm_terminate)) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
         ZMPacketLock packet_lock(zm_packet);
 
@@ -190,6 +186,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
             Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
+            // Really shouldn't though. I think we can delete a locked packet, but we REALLY should delete a GOP's worth.
           }
           break;
         } else if (!keep_keyframes) {

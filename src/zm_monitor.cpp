@@ -2164,95 +2164,11 @@ int Monitor::Analyse() {
             }
 #if HAVE_QUADRA
             else {
-              //OBJECT_DETECTION_QUADRA) {
-              if (!quadra_yolo) {
-                quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
-                int deviceid = -1;
-                if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
-                  deviceid = ni_get_cardno(packet->hw_frame.get());
-                }
-                Debug(1, "Quadra setting up on %d", deviceid);
-                if (!quadra_yolo->setup(camera->getVideoStream(), 
-                      mVideoCodecContext,
-                      "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
-                      deviceid)) {
-                  Warning("Failed Quadra");
-                  delete quadra_yolo;
-                  quadra_yolo = nullptr;
-                }
-                // give up... 
-              }
+              std::pair<int, std::string> results = Analyse_Quadra(packet);
             }
-
-            if (quadra_yolo and (objectdetection == OBJECT_DETECTION_QUADRA)) {
-              if (analysis_fps_limit) {
-                double capture_fps = get_capture_fps();
-                motion_frame_skip = capture_fps / analysis_fps_limit;
-                Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                    motion_frame_skip, capture_fps, analysis_fps_limit);
-                if (motion_frame_skip < 0) motion_frame_skip = 0;
-              }
-              if (packet->hw_frame) {
-                //TODO if (packet->hw_frame or packet->in_frame) {
-                if (!(analysis_image_count % (motion_frame_skip+1))) {
-#if 1
-                  SystemTimePoint starttime = std::chrono::system_clock::now();
-                  Debug(1, "Send_packet %d to quadra", packet->image_index);
 #endif
-                  int ret = quadra_yolo->send_packet(packet);
-                  if (ret <= 0) {
-                    Debug(1, "Can't send_packet %d", packet->image_index);
-                    //return ret;
-                  } else {
-#if 1
-                    SystemTimePoint endtime = std::chrono::system_clock::now();
-                    if (endtime - starttime > Seconds(1)) {
-                      Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                    } else {
-                      Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                    }
-#endif
-                    int count = 10;
-                    // packet got to the card
-                    // According to docs, we should be able to now get detections without sending another frame
-                    starttime = std::chrono::system_clock::now();
-                    do {
-                      ret = quadra_yolo->receive_detection(packet);
-                      if (0 < ret) {
-                        endtime = std::chrono::system_clock::now();
-                        if (endtime - starttime > Seconds(1)) {
-                          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-                        } else {
-                          Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
-                        }
-                        if (packet->ai_frame) {
-                          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-                          if (config.timestamp_on_capture) {
-                            Image *ai_image = packet->get_ai_image();
-                            TimestampImage(ai_image, packet->timestamp);
-                          }
-                          packet->in_frame = nullptr; // Don't need it anymore
-                        }
-                      } else if (0 > ret) {
-                        Debug(1, "Failed yolo");
-                        delete quadra_yolo;
-                        quadra_yolo = nullptr;
-                      } else {
-                        // EAGAIN
-                        Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
-                        std::this_thread::sleep_for(Microseconds(10000));
-                      }
-                    } while (ret == 0 and count > 0);
-
-                  } // end if failed to send
-                } else {
-                  quadra_yolo->draw_last_roi(packet);
-                } // end if skip_frame
-              } // end if has input_frame/hw_frame
-            } // end yolo
-#endif
-          }
-          packet->hw_frame = nullptr; // Free it?
+          }  // end if objectdetection
+          packet->hw_frame = nullptr; // Free it
 
           // Ready means that we have captured the warmup # of frames
           if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
@@ -2264,127 +2180,18 @@ int Monitor::Analyse() {
               Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                     motion_frame_skip, capture_fps, analysis_fps_limit);
             }
-
-            Event::StringSet zoneSet;
-
-            if (packet->image) {
-              // decoder may not have been able to provide an image
-              if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Detecting");
-                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-
-                  if (!packet->y_image and (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P)) {
-                    Debug(1, "Creating y-image");
-                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-                    zm_dump_video_frame(packet->in_frame.get(), "y-image");
-
-                    if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-                      packet->y_image->Scale(camera_width, camera_height);
-                  } else {
-                    Debug(1, "Not creating y-image");
-                  }
-                  if (packet->y_image) {
-                    ref_image.Assign(*(packet->y_image));
-                    Debug(1, "Assigning instead of Detecting");
-                  }
-                } else if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-                  if (!packet->y_image) {
-                    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-                    if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-                      packet->y_image->Scale(camera_width, camera_height);
-                  }
-                  ref_image.Assign(*(packet->y_image));
-                } else {
-                  ref_image.Assign(*(packet->image));
-                }
-              } else {
-                // didn't assign, do motion detection maybe and blending definitely
-                if (!(analysis_image_count % (motion_frame_skip+1))) {
-                  motion_score = 0;
-                  Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
-                  // Get new score.
-                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-                    motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                    if (!packet->analysis_image) packet->analysis_image = new Image(*(packet->y_image));
-                  } else {
-                    if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-                      if (!packet->y_image) {
-                        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-                        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-                          packet->y_image->Scale(camera_width, camera_height);
-                      }
-                      motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                    } else {
-                      motion_score += DetectMotion(*(packet->image), zoneSet);
-                    }
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->image));
-                  }
-
-                  // lets construct alarm cause. It will contain cause + names of zones alarmed
-                  packet->zone_stats.reserve(zones.size());
-                  int zone_index = 0;
-                  for (const Zone &zone : zones) {
-                    const ZoneStats &stats = zone.GetStats();
-                    stats.DumpToLog("After detect motion");
-                    packet->zone_stats.push_back(stats);
-                    if (zone.Alarmed()) {
-                      if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
-                      packet->alarm_cause += std::string(zone.Label());
-                      if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage()));
-                    }
-                    Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
-                    zone_scores[zone_index] = zone.Score();
-                    zone_index ++;
-                  }
-                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)", score, last_motion_score, motion_score);
-                  motion_frame_count += 1;
-                  last_motion_score = motion_score;
-
-                  if (motion_score) {
-                    if (!cause.empty()) cause += ", ";
-                    cause += MOTION_CAUSE + std::string(":") + packet->alarm_cause;
-                    noteSetMap[MOTION_CAUSE] = zoneSet;
-                    score += motion_score;
-                  } // end if motion_score
-                } else {
-                  Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                  //score += last_motion_score;
-                }
-
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-                  Debug(1, "Blending from y-channel");
-                  ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                } else if (packet->image) {
-                  if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-                    if (!packet->y_image) {
-                      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-                      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-                        packet->y_image->Scale(camera_width, camera_height);
-                    }
-                    Debug(1, "Blending from y-channel");
-                    ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                  } else {
-                    Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
-                        analysis_image, packet->in_frame.get(),
-                        (packet->in_frame ? packet->in_frame->format : -1),
-                        AV_PIX_FMT_YUV420P,
-                        AV_PIX_FMT_YUVJ420P
-                        );
-                    ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                  }
-                  Debug(1, "Done Blending");
-                } else {
-                  Debug(1, "Not able to blend");
-                }
-              } // end if had ref_image_buffer or not
-            } else {
-              Debug(1, "no image so skipping motion detection");
-            }  // end if has image
+            std::pair<int, const std::string &> results = Analyse_MotionDetection(packet);
+            int motion_score = results.first;
+            std::string motion_cause = results.second;
+            if (motion_score) {
+              if (!cause.empty()) cause += ", ";
+              cause += MOTION_CAUSE + std::string(":") + motion_cause;
+              //noteSetMap[MOTION_CAUSE] = zoneSet;
+              score += motion_score;
+            } // end if motion_score
           } else {
             Debug(1, "Not analysing %d", shared_data->analysing);
           } // end if active and doing motion detection
-
         } // end if videostream
 
         if (score > 255) score = 255;
@@ -2719,6 +2526,214 @@ int Monitor::Analyse() {
 
   return 1;
 } // end Monitor::Analyse
+
+std::pair<int, const std::string &> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {
+  int score = 0;
+  std::string cause;
+
+  //OBJECT_DETECTION_QUADRA) {
+  if (!quadra_yolo) {
+    quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
+    int deviceid = -1;
+    if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
+      deviceid = ni_get_cardno(packet->hw_frame.get());
+    }
+    Debug(1, "Quadra setting up on %d", deviceid);
+    if (!quadra_yolo->setup(camera->getVideoStream(), 
+          mVideoCodecContext,
+          "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
+          deviceid)) {
+      Warning("Failed Quadra");
+      delete quadra_yolo;
+      quadra_yolo = nullptr;
+    }
+    // give up... 
+  }
+
+  if (quadra_yolo) {
+    if (analysis_fps_limit) {
+      double capture_fps = get_capture_fps();
+      motion_frame_skip = capture_fps / analysis_fps_limit;
+      Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+          motion_frame_skip, capture_fps, analysis_fps_limit);
+      if (motion_frame_skip < 0) motion_frame_skip = 0;
+    }
+    if (packet->hw_frame) {
+      //TODO if (packet->hw_frame or packet->in_frame) {
+      if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+#if 1
+        SystemTimePoint starttime = std::chrono::system_clock::now();
+        Debug(1, "Send_packet %d to quadra", packet->image_index);
+#endif
+        int ret = quadra_yolo->send_packet(packet);
+        if (ret <= 0) {
+          Debug(1, "Can't send_packet %d", packet->image_index);
+          //return ret;
+        } else {
+#if 1
+          SystemTimePoint endtime = std::chrono::system_clock::now();
+          if (endtime - starttime > Seconds(1)) {
+            Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+          } else {
+            Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+          }
+#endif
+          int count = 10;
+          // packet got to the card
+          // According to docs, we should be able to now get detections without sending another frame
+          starttime = std::chrono::system_clock::now();
+          do {
+            ret = quadra_yolo->receive_detection(packet);
+            if (0 < ret) {
+              endtime = std::chrono::system_clock::now();
+              if (endtime - starttime > Seconds(1)) {
+                Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+              } else {
+                Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+              }
+              if (packet->ai_frame) {
+                zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+                if (config.timestamp_on_capture) {
+                  Image *ai_image = packet->get_ai_image();
+                  TimestampImage(ai_image, packet->timestamp);
+                }
+                packet->in_frame = nullptr; // Don't need it anymore
+              }
+            } else if (0 > ret) {
+              Debug(1, "Failed yolo");
+              delete quadra_yolo;
+              quadra_yolo = nullptr;
+            } else {
+              // EAGAIN
+              Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
+              std::this_thread::sleep_for(Microseconds(10000));
+            }
+          } while (ret == 0 and count > 0);
+        } // end if failed to send
+      } else {
+        quadra_yolo->draw_last_roi(packet);
+      } // end if skip_frame
+    } // end if has input_frame/hw_frame
+  } // end yolo
+  return std::make_pair(score, cause);
+} // end Monitor::Analyse_Quadra(Packet)
+
+std::pair<int, const std::string &> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet) {
+  Event::StringSet zoneSet;
+  int motion_score = 0;
+  std::string cause = "";
+
+  if (!packet->image) {
+    Debug(1, "no image so skipping motion detection");
+    return std::make_pair(motion_score, cause);
+  }  // end if has image
+     
+  // decoder may not have been able to provide an image
+  if (!ref_image.Buffer()) {
+    Debug(1, "Assigning instead of Detecting");
+    if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+
+      if (!packet->y_image and (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P)) {
+        Debug(1, "Creating y-image");
+        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+        zm_dump_video_frame(packet->in_frame.get(), "y-image");
+
+        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+          packet->y_image->Scale(camera_width, camera_height);
+      } else {
+        Debug(1, "Not creating y-image");
+      }
+      if (packet->y_image) {
+        ref_image.Assign(*(packet->y_image));
+        Debug(1, "Assigning instead of Detecting");
+      }
+    } else if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
+      if (!packet->y_image) {
+        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+          packet->y_image->Scale(camera_width, camera_height);
+      }
+      ref_image.Assign(*(packet->y_image));
+    } else {
+      ref_image.Assign(*(packet->image));
+    }
+  } else {
+    // didn't assign, do motion detection maybe and blending definitely
+    if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+      motion_score = 0;
+      Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
+      // Get new score.
+      if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
+        motion_score += DetectMotion(*(packet->y_image), zoneSet);
+        if (!packet->analysis_image) packet->analysis_image = new Image(*(packet->y_image));
+      } else {
+        if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
+          if (!packet->y_image) {
+            packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+            if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+              packet->y_image->Scale(camera_width, camera_height);
+          }
+          motion_score += DetectMotion(*(packet->y_image), zoneSet);
+        } else {
+          motion_score += DetectMotion(*(packet->image), zoneSet);
+        }
+        if (!packet->analysis_image)
+          packet->analysis_image = new Image(*(packet->image));
+      }
+
+      // lets construct alarm cause. It will contain cause + names of zones alarmed
+      packet->zone_stats.reserve(zones.size());
+      int zone_index = 0;
+      for (const Zone &zone : zones) {
+        const ZoneStats &stats = zone.GetStats();
+        stats.DumpToLog("After detect motion");
+        packet->zone_stats.push_back(stats);
+        if (zone.Alarmed()) {
+          if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
+          packet->alarm_cause += std::string(zone.Label());
+          if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage()));
+        }
+        Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
+        zone_scores[zone_index] = zone.Score();
+        zone_index ++;
+      }
+      Debug(3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score);
+      motion_frame_count += 1;
+      last_motion_score = motion_score;
+
+    } else {
+      Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
+      //score += last_motion_score;
+    }
+
+    if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
+      Debug(1, "Blending from y-channel");
+      ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+    } else if (packet->image) {
+      if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
+        if (!packet->y_image) {
+          packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+          if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+            packet->y_image->Scale(camera_width, camera_height);
+        }
+        Debug(1, "Blending from y-channel");
+        ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+      } else {
+        Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
+            analysis_image, packet->in_frame.get(),
+            (packet->in_frame ? packet->in_frame->format : -1),
+            AV_PIX_FMT_YUV420P,
+            AV_PIX_FMT_YUVJ420P
+            );
+        ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+      }
+      Debug(1, "Done Blending");
+    } else {
+      Debug(1, "Not able to blend");
+    }
+  } // end if had ref_image_buffer or not
+  return std::make_pair(motion_score, std::move(cause));
+}  // end void Monitor::Analyse_MotionDetect(packet)
 
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name.c_str());

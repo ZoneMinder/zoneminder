@@ -983,6 +983,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   int Analyse();
+  std::pair<int, const std::string &> Analyse_Quadra(std::shared_ptr<ZMPacket> packet);
+  std::pair<int, const std::string &> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);
+
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   int Decode();
   bool Poll();

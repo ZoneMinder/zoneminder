@@ -319,6 +319,74 @@ int Quadra_Yolo::generate_ai_frame(ni_session_data_io_t *ai_frame, AVFrame *avfr
   return ret;
 }
 
+int Quadra_Yolo::draw_roi_box_in_place(
+    AVFrame *inframe,
+    AVRegionOfInterest roi,
+    AVRegionOfInterestNetintExtra roi_extra,
+    int line_width=1) {
+
+  int cls = roi_extra.cls;
+  std::string color;
+  if (cls == 0) {
+    color = "blue";
+  } else {
+    color = "red";
+    //color = "#FF000000";
+  }
+#if SOFTWARE_DRAWBOX
+  Image in_image(inframe);
+#endif
+
+  for (int i=0; i<line_width; i++) {
+#if SOFTWARE_DRAWBOX
+    std::vector<Vector2> coords;
+    coords.push_back(Vector2(roi.left + i, roi.top + i));
+    coords.push_back(Vector2(roi.right - i, roi.top + i));
+    coords.push_back(Vector2(roi.right - i, roi.bottom - i));
+    coords.push_back(Vector2(roi.left + i, roi.bottom - i));
+
+    Polygon poly(coords);
+    in_image.Outline(kRGBGreen, poly);
+  }  // end while
+#else
+    int x = roi.left + i; // line
+    int y = roi.top + i;
+    int w = (roi.right - roi.left) - i;
+    int h = (roi.bottom - roi.top) - i;
+
+    Debug(1, "x %d, y %d, w %d, h %d color %s %d", x, y, w, h, color.c_str(), i);
+#if 1
+    if (!i) {
+      drawbox_filter.opt_set("x", x);
+      drawbox_filter.opt_set("y", y);
+      drawbox_filter.opt_set("w", w);
+      drawbox_filter.opt_set("h", h);
+      drawbox_filter.opt_set("color", color.c_str());
+    } else {
+      drawbox_filter.opt_set(stringtf("x%d", i), x);
+      drawbox_filter.opt_set(stringtf("y%d", i), y);
+      drawbox_filter.opt_set(stringtf("w%d", i), w);
+      drawbox_filter.opt_set(stringtf("h%d", i), h);
+      drawbox_filter.opt_set(stringtf("c%d", i), color.c_str());
+      drawbox_filter.opt_set(stringtf("color%d", i), color.c_str());
+    }
+#else
+  std::string option = stringtf("x=%d:y=%d:w=%d:h=%d:color=%s", x, y, w, h, color.c_str());
+  int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "reinit", option.c_str(), NULL, 0, 0);
+
+  //int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "color", color.c_str(), nullptr, 0, 0);
+  if (ret < 0) {
+    Error("cannot send drawbox filter command, ret %d.", ret);
+    //return ret;
+  }
+#endif
+  } // end while
+
+  return drawbox_filter.execute(inframe, outframe);
+#endif
+  return 1;
+} // end draw_roi_box_in_place
+ 
 int Quadra_Yolo::draw_roi_box(
     AVFrame *inframe,
     AVFrame **outframe,
@@ -650,33 +718,47 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 }
 
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
+  if (!last_roi_count) return 1;
+
+  if (packet->needs_hw_transfer(dec_ctx)) packet->get_hwframe(dec_ctx); // Just in case it hasn't been done yet
   AVFrame *in_frame = packet->in_frame.get();
   if (!in_frame) return 1;
 
-  if (!last_roi_count) return 1;
+#if SOFTWARE_DRAWBOX
+    Image img(in_frame, in_frame->width, in_frame->height); // specifying size causes a copy
+    in_frame = av_frame_alloc();
+    img.PopulateFrame(in_frame);
+#endif
 
   for (int i = 0; i < last_roi_count; i++) {
+    std::string annotation = stringtf("%s %d%%", roi_class[last_roi_extra[i].cls], static_cast<int>(100*last_roi_extra[i].prob));
+#if SOFTWARE_DRAWBOX
+    int ret = draw_roi_box_in_place(in_frame, last_roi[i], last_roi_extra[i]);
+    if (ret < 0) {
+      Error("draw %d roi box failed", i);
+      return ret;
+    }
+#else
     AVFrame *output = nullptr;
     int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
     if (ret < 0) {
       Error("draw %d roi box failed", i);
       return ret;
     }
-    std::string annotation = stringtf("%s %d%%", roi_class[last_roi_extra[i].cls], static_cast<int>(100*last_roi_extra[i].prob));
-#if SOFTWARE_DRAWBOX
-    Image img(in_frame);
-#else 
     zm_dump_video_frame(output, "Quadra: boxes");
     Image img(output);
 #endif
     img.Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 
+#if !SOFTWARE_DRAWBOX
     if (in_frame != packet->in_frame.get()) {
       Debug(1, "Freeing input");
       av_frame_free(&in_frame);
     }
     if (output) in_frame = output;
+#endif
   } // end foreach detection
+
   packet->ai_frame = av_frame_ptr(in_frame);
   return 1;
 } // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)

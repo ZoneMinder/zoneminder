@@ -1,13 +1,13 @@
 .layout-main .sidebar-main a.text-success:focus,
-.layout-main .sidebar-main a.text-success:hover { /* FIX bootstrap на темном фоне*/
-  color: #007bff !important; /* ПРИДУМАТЬ ЦВЕТ !!!*/
+.layout-main .sidebar-main a.text-success:hover { /* FIX bootstrap on a dark background*/
+  color: #007bff !important;
 }
 
 .layout-main .sidebar-main.collapsed .hidden-for-collapsed {
   display: none;
 }
 
-/* +++ Полоса прокрутки для меню в левом сайд баре ТРЕБУЕТСЯ БОЛЕЕ КОМПАКТНАЯ !!!*/
+/* +++ Scrollbar for menu in left sidebar NEEDS MORE COMPACT */
 #navbar-container,
 .layout-main .sidebar-main .sidebar-layout,
 .layout-main .sidebar-main .sidebar-content::-webkit-scrollbar-track,
@@ -36,11 +36,10 @@
   height: 6px;
 }
 
-.layout-main .sidebar-main .sidebar-layout:hover::-webkit-scrollbar-thumb { /* ЭТО ОПРЕДЕЛЕНО В ФАЙЛЕ _sidebar.scss, УБРАТЬ ОТТУДА ЧТО БЫ НЕ ДЕЛАТЬ ДАННОЕ ПЕРЕОПРЕДЕЛЕНИЕ....*/
-  /*background-color: rgb(26.1230769231, 65.3076923077, 115.3769230769);*/
+.layout-main .sidebar-main .sidebar-layout:hover::-webkit-scrollbar-thumb { /* this is also defined in the _sidebar.scss file */
   background-color: var(--sliderBG);
 }
-/* --- Полоса прокрутки для меню в левом сайд баре */
+/* --- Scrollbar for menu in left sidebar */
 
 .layout-main .sidebar-main .sidebar-post-header {
   padding: 5px 0 5px 0;
@@ -60,25 +59,19 @@
   background-color: #34495e;
 }
 
-.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-title,
-.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-title { /* FIX styles.scss и добавить в основной scss .sidebar-post-header*/
-  /*font-size: 0.9em;*/
+.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-title, /* FIX _menu.scss */
+.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-title {
   font-size: 0.9rem;
   overflow: hidden;
   white-space: nowrap;
 }
 
-/*.layout-main .sidebar-main .sidebar-main-menu .menu-item a {*/
 .layout-main .sidebar-main .sidebar-post-header .menu-item a {
   display: flex;
   align-items: center;
-  /*height: 50px;*/
   padding: 0 20px;
-  /*color: #7d84ab;*/
-  /*white-space: nowrap;*/
 }
 
-/*.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-icon {*/
 .layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-icon {
   font-size: 1.2rem;
   width: 35px;
@@ -92,13 +85,13 @@
   transition: color 0.3s;
 }
 
-/* +++ Выравнивание фильтров MontageRewiev*/ 
+/* +++ MontageRewiev Filter Alignment */ 
 .layout-main .sidebar-main .chosen-container {
   text-align: left;
   min-width: 11em;
   width: 100% !important;
 }
-/* --- Выравнивание фильтров MontageRewiev*/ 
+/* --- */ 
 
 body.sticky .content-main {
   display: flex;
@@ -112,30 +105,27 @@ body.sticky .content-main {
   position: relative;
 }
 
-/*Фильтр и прочее, что мы вырезам нам не нужно видеть.*/
-body.montagereview-page .content-main .controlHeader,
-body.montagereview-page .content-main #fieldsTable,
-body.console-page .content-main #fbpanel,
-body.console-page a[data-flip-control-object="#fbpanel"], /* Кнопка управления видимостью фильтра */
-body.montage-page .content-main #filters_form,
-body.watch-page .content-main .controlHeader,
-body.report_event_audit-page #content form,
-body.events-page .content-main #fieldsTable, /* ПЕРЕНЕСТИ СЮДА ИЗ JS код управления */
-body.events-page a[data-flip-control-object="#fieldsTable"], /* Кнопка управления видимостью фильтра */
-body.options-page .content-main #sidebar {
+/* We don't need to see the filter and other things (that we cut out). */
+.montagereview-page .content-main .controlHeader,
+.montagereview-page .content-main #fieldsTable,
+.console-page .content-main #fbpanel,
+.console-page a[data-flip-control-object="#fbpanel"], /* Filter visibility control button */
+.montage-page .content-main #filters_form,
+.watch-page .content-main .controlHeader,
+.report_event_audit-page #content form,
+.events-page .content-main #fieldsTable,
+.events-page a[data-flip-control-object="#fieldsTable"], /* Filter visibility control button */
+.options-page .content-main #sidebar,
+.navbar-brand,
+#navbar-one {
     display: none !important;
 }
 
 #monitorList {
-  overflow-y: auto; /* ПРОВЕРИТЬ!!! ВЕРОЯТНО ЭТО НУЖНО ВСЕГДА ПРИМЕНЯТЬ, а НЕ ТОЛЬКО ДЛЯ СТИКИ РЕЖИМА !!!*/
+  overflow-y: auto; /* CHECK!!! PROBABLY THIS SHOULD ALWAYS BE USED, AND NOT JUST FOR STICK MODE!!! */
 }
 
-.navbar-brand,
-#navbar-one {
-  display: none;
-}
-
-/* Весь бар выровнять по левой стороне */
+/* Align the entire bar to the left side */
 .navbars {
   text-align: left;
 }
@@ -144,40 +134,34 @@ body.options-page .content-main #sidebar {
   top: 11px;
 }
 
-#extruderLeft #wrapperFilter #wrapperBtnCloseExtruder{ /*Сама кнопки закрытия выдвижного блока*/
+#wrapperBtnCloseExtruder{ /* Extruder block close button on mobile devices */
   display: none;
-}
-#extruderLeft #wrapperFilter{
-  /*background-color: var(--backgroundMediumDark);*/
 }
 
 @media (max-width: 992px) {
-  /* +++ УПРАВЛНИЕ КНОПКОЙ СВЕРНУТЬ/РАЗВЕРНУТЬ МЕНЮ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+  /* +++ Manage the collapse/expand menu button for mobile devices with hidden menu */
   #btn-collapse {
-      display: flex;
+    display: flex;
   }
-  #sidebarMain.sidebar-main:not(.toggled) #btn-collapse {
-    /*display: none;*/   /* ПРОИСХОДИТ РЕЗКО, НЕ КРАСИВО*/
-    left: -30px; /*ЗДЕСЬ ТРЕБУЕТСЯ ВЫСТАВЛЯТЬ ЗНАЧЕНИЕ КАК И ДЛЯ ".layout-main .sidebar-main.break-point-lg" или -250 или -80*/
-  }
-  /* --- УПРАВЛНИЕ КНОПКОЙ СВЕРНУТЬ/РАЗВЕРНУТЬ МЕНЮ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
 
-  /* Положение выдвижного блока */
+  #sidebarMain.sidebar-main:not(.toggled) #btn-collapse {
+    left: -50px; /* Ideally, you need to set the value here as for ".layout-main .sidebar-main.break-point-lg" or -250 or -80. But even now the icon motion looks very good */
+  }
+  /* --- */
+
   #extruderLeft {
     top: 0 !important;
-    /*top: 45px !important;*/
     left: 0 !important;
   }
-  #extruderLeft #wrapperFilter #wrapperBtnCloseExtruder{ /*Сама кнопки закрытия выдвижного блока*/
+
+  #wrapperBtnCloseExtruder{
     position: relative;
     top: 0px;
     right: 0px;
     display: flex;
     justify-content: flex-end;
   }
-  #extruderLeft #wrapperFilter #wrapperBtnCloseExtruder .material-icons { /*Иконка кнопки закрытия выдвижного блока*/
-    /*display: inline-block;*/
-  }
+
   .extruder-content > .text:first-child {
     width: 100% !important;
   }
@@ -185,22 +169,22 @@ body.options-page .content-main #sidebar {
 
 @media (max-height: 500px) {
   .layout-main .sidebar-main .sidebar-content,
-  .layout-main .sidebar-main .sidebar-footer { /* Сайдбар не делить на Header, Futer и контент. Все едино и все пролистывается */
+  .layout-main .sidebar-main .sidebar-footer { /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
     display: contents;
   }
 }
 
-.sidebar-toggler { /* ТУТ КАК КОРРЕКТОР ЭТО ВООБЩЕ УБРАТЬ ИЗ styles.scss*/
+.sidebar-toggler { /* also set in pro-sidebar-template/src/styles/styles.scss */
   position: relative;
   right: 0;
   top: 0;
 }
 
-#navbar-two { /* "ПАНЕЛЬ ДОЛЖНА БЫТЬ ВСЕГДА ВИДНА, В ПРОТИВНОМ СЛУЧАЕ ОНА МОГЛА БЫТЬ СКРЫТА КНОПКОЙ (id="flip") */
-  display: block !important;  /*ВРЕМЕННО ДЛЯ МОБИЛОК!!! ПРИДУМАТЬ КНОПКУ СКРЫТИЯ/ОТОБРАЖЕНИЯ*/
+#navbar-two { /* THE PANEL MUST ALWAYS BE VISIBLE, OTHERWISE IT COULD BE HIDDEN BY A BUTTON (id="flip") */
+  display: block !important;
 }
 
-/*В баре выбор*/
+/* Choice at the bar */
 #panel .dropdown-menu.show.overflown {
   display: contents;
 }
@@ -210,9 +194,8 @@ body.options-page .content-main #sidebar {
   top: 27px;
 }
 
-/* +++ ОСТАТОК ВЕРНЕЙ СТАТУСНОЙ СТРОКИ*/
+/* +++ THIS IS REMAINING FROM THE TOP STATUS LINE */
 #reload {
-  /*left: 15px;*/
   position: relative;
   display: inline-block;
   white-space: nowrap;
@@ -220,7 +203,7 @@ body.options-page .content-main #sidebar {
   padding: 10px 5px 10px 15px
 }
 
-@media (max-width: 992px) { /* момент появления гамбургерной кнопки меню */
+@media (max-width: 992px) { /* moment hamburger menu button appears */
   #reload {
     left: 35px;
   }
@@ -228,12 +211,12 @@ body.options-page .content-main #sidebar {
 
 #reload > ul,
 #reload > ul > ul,
-#reload > ul > li { /* первую часть с дивами убрать....*/
+#reload > ul > li { /* remove the first part with the divas */
   display: inline-block;
   white-space: nowrap;
 }
 
-#reload > ul:last-child{ /* последний элемент при скруле должен иметь отступ */
+#reload > ul:last-child{ /* the last element when scrolling should have an indent */
   margin-right: 30px;
 }
 
@@ -250,82 +233,20 @@ body.options-page .content-main #sidebar {
   width: 7px !important;
   height: 7px !important;
 }
-/* --- ОСТАТОК ВЕРНЕЙ СТАТУСНОЙ СТРОКИ*/
+/* --- THIS IS REMAINING FROM THE TOP STATUS LINE */
 
-/*
-#sidebarMain.collapsed .sidebar-post-header .menu-title {
-  display: none;
-}
-*/
 
 #sidebarMain.collapsed .sub-menu-list {
-  height: 0; /* Иначе будет мельтишить в момент загрузки страницы */
+  height: 0; /* Otherwise it will flicker when the page loads. */
 }
 
-/*Сабменю установить прокрутку по вертикали для узкого варианта, когда сабменю отображается сбоку*/
+/* Set submenu to scroll vertically (for narrow option) when submenu is displayed on the side */
 body #sidebarMain .sub-menu-list {
   max-height: 100%;
   overflow: auto;
 }
 
-
-/* ****************************************************************** */
-
-        /*custom style for extruder*/
-
-        .extruder.left.a .flap {
-            font-size:18px;
-            color:white;
-            top:0;
-            padding:10px 0 10px 10px;
-            background:#772B14;
-            width:30px;
-            position:absolute;
-            right:0;
-            -moz-border-radius:0 10px 10px 0;
-            -webkit-border-top-right-radius:10px;
-            -webkit-border-bottom-right-radius:10px;
-            -moz-box-shadow:#666 2px 0px 3px;
-            -webkit-box-shadow:#666 2px 0px 3px;
-        }
-/*
-        .extruder.left.a .content{
-            border-right:3px solid #772B14;
-            background:rgba(255,255,255,.95);
-        }
-*/
-        .extruder.top .optionsPanel .panelVoice a:hover{
-            color:#fff;
-            background: url("elements/black_op_30.png");
-            border-bottom:1px solid #000;
-        }
-        .extruder.top .optionsPanel .panelVoice a{
-            border-bottom:1px solid #000;
-        }
-
-        .extruder.left.a .flap .flapLabel{
-            background:#772B14;
-        }
-            /*
-
-                    .extruder.top{
-                        margin-left:-200px!important;
-                    }
-            */
-/* ****************************************************************** */
-
-
-/* +++ ПЕРЕНЕСЕННЫЕ ФИЛЬТРЫ */
-.extruder-wrapper {
-  /*background-color: var(--backgroundMediumDark);*/
-  /*padding: 10px;*/
-}
-
-.extruder-wrapper .text #fieldsTable { /*FIX глобального*/
-  display: block;
-}
-
-/* ++++++++++ */
+/* +++ TRANSFERRED FILTERS */
 .extruder-wrapper span.term .term-label-wrapper,
 .extruder-wrapper span.term label {
   display: flex !important;
@@ -341,38 +262,25 @@ body #sidebarMain .sub-menu-list {
   width: 100% !important;
 }
 
-.extruder-wrapper span.term .term-value-wrapper input {
-  width: 100% !important;
-}
-/* --------- */
-
 .extruder-wrapper span.term,
-.extruder-wrapper span.term > span { /* Выравниваем поля ввода*/
+.extruder-wrapper span.term .term-value-wrapper input,
+.extruder-wrapper span.term > span { /* Aligning input fields */
   width: 100%;
 }
 
 .extruder-wrapper span.term > span:first-child{
   text-align: left;
-  /* width: 300px;*/
 }
-
-
 
 .extruder-content {
   background-color: var(--backgroundMediumDark);
-  /*overflow-y: visible !important;*/
 }
 
 .extruder-content > .text {
-  overflow: visible !important; /*ПЕРЕСМОТРЕТЬ ЭТОТ МОМЕНТ, ПЕРЕПОЛНЕНИЯ БЫТЬ ВООБЩЕ НЕ ДОЛЖНО !!!*/
+  overflow: visible !important; /* Allows dropdowns to extend beyond the block if there is space on the screen */
 }
 
 .extruder-content .filter-block {
-/* position: relative;*/
-  display: block;
-  /*opacity: 0.8;*/
-  overflow: visible;
-  /*background-color: aquamarine;*/
   margin: 0;
   padding: 10px;
 }
@@ -383,37 +291,32 @@ body #sidebarMain .sub-menu-list {
   padding-bottom: 10px;
 }
 
-/* +++ Выравниваем все по высоте */
+@media (max-width: 564px) {
+  .extruder-content span.term {
+    margin: 0;
+  }
+
+  .extruder-content button .material-icons {
+    font-size: 18px;
+  }
+}
+
 .extruder .extruder-content .chosen-container .chosen-single,
 .extruder-wrapper span.term .term-value-wrapper input {
   height: 27px !important;
-  /* margin: 1px 0;*/
 }
 
-.extruder .extruder-content .chosen-container .chosen-search-input {
-  /*height: 25px;*/
-}
-/* --- Выравниваем все по высоте */
-
-.extruder .extruder-content .chosen-container,
-.extruder .extruder-content .term-value-wrapper input {
-  max-width: 100%;
-}
-
-/* Кнопка очистить фильтр cелект множественный выбор */
+/* Clear Filter Button Select Multiple Selection */
 .extruder .extruder-content .btn-term-remove-all {
   display: flex;
   flex-direction: row-reverse;
   width: auto;
   padding-left: 10px;
   max-height: 35px;
-  /*width: 20px;*/
-  /*padding: 0 0 0 5px;*/
 }
-/* --- ПЕРЕНЕСЕННЫЕ ФИЛЬТРЫ */
-/* 20 03 -25 13-24: 13:52*/
+/* --- TRANSFERRED FILTERS */
 
-/* !ХАК! Иначе высота родительского блока будет расчитана исходя из высоты выпадающего списка, даже если выбор не активен! */
+/* !HACK! Otherwise the height of the parent block will be calculated based on the height of the drop-down list, even if the selection is not active! */
 div:not(.chosen-container-active) > .chosen-drop {
   display: none;
 }

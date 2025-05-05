@@ -2190,6 +2190,7 @@ int Monitor::Analyse() {
                 motion_frame_skip = capture_fps / analysis_fps_limit;
                 Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                     motion_frame_skip, capture_fps, analysis_fps_limit);
+                if (motion_frame_skip < 0) motion_frame_skip = 0;
               }
               if (packet->hw_frame) {
                 //TODO if (packet->hw_frame or packet->in_frame) {
@@ -2304,8 +2305,7 @@ int Monitor::Analyse() {
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
                     motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->y_image));
+                    if (!packet->analysis_image) packet->analysis_image = new Image(*(packet->y_image));
                   } else {
                     if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
                       if (!packet->y_image) {
@@ -2331,15 +2331,13 @@ int Monitor::Analyse() {
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
                       packet->alarm_cause += std::string(zone.Label());
-                      if (zone.AlarmImage())
-                        packet->analysis_image->Overlay(*(zone.AlarmImage()));
+                      if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
                     Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
                     zone_scores[zone_index] = zone.Score();
                     zone_index ++;
                   }
-                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                        score, last_motion_score, motion_score);
+                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)", score, last_motion_score, motion_score);
                   motion_frame_count += 1;
                   last_motion_score = motion_score;
 
@@ -3477,7 +3475,7 @@ int Monitor::Decode() {
   }
   packet->decoded = true;
   // The idea is that capture is firing often enough
-  //packetqueue.notify_all();
+  packetqueue.notify_all();
   return 1;
 }  // end int Monitor::Decode()
 

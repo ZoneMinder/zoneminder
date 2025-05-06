@@ -989,7 +989,7 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
-      if (!videoStore->get_reorder_queue_size()) {
+      if (!videoStore or !videoStore->get_reorder_queue_size()) {
         // Don't do this because videostore might buffer for reordering
         packet->in_frame = nullptr;
         packet->ai_frame = nullptr;

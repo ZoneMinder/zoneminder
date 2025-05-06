@@ -769,7 +769,7 @@ void MonitorStream::runStream() {
     //} else {
       int index;
       if (new_count <= 0 || analysis_image_count <= 0) {
-      Debug(1, "Using LIVE");
+      Debug(1, "Using LIVE new_count %d analysis_count %d", new_count, analysis_image_count);
         // Use ccapture
         new_count = monitor->shared_data->decoder_image_count;
         index = monitor->shared_data->last_decoder_index;

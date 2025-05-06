@@ -84,3 +84,5 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+ALTER TABLE `Monitors` MODIFY `ObjectDetection` enum('none','quadra', 'speedai','uvicorn') NOT NULL DEFAULT 'none';

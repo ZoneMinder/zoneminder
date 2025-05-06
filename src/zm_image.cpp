@@ -740,7 +740,7 @@ void Image::AssignDirect(const AVFrame *frame) {
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
   allocation = size;
-  Debug(4, "Size %u, allocation %lu", size, allocation);
+  Debug(3, "Size %u, allocation %lu", size, allocation);
   zm_dump_video_frame(frame, "AssignDirect");
   //size = allocation;
 
@@ -806,7 +806,7 @@ void Image::AssignDirect(
 
   if ( holdbuffer && buffer ) {
     if ( new_buffer_size > allocation ) {
-      Error("Held buffer is undersized for assigned buffer");
+      Error("Held buffer is undersized for assigned buffer new_buffer_size %ld > allocation %ld ", new_buffer_size, allocation);
       return;
     } else {
       /* Copy into the held buffer */
@@ -892,7 +892,7 @@ void Image::Assign(const Image &image) {
   unsigned int new_size = av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 32); // hardcoded hack
     //av_image_get_buffer_size(image.AVPixFormat(), image.Width(), image.Height(), 8); // hardcoded hack
   //Debug(1, "Assign %dx%dx%d %s=%u", image.Width(), image.Height(), image.AVPixFormat(), av_get_pix_fmt_name(image.AVPixFormat()), new_size);
-  Debug(4, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
+  Debug(1, "Assign %dx%d %d %s=%u old size %u", image.Width(), image.Height(), image.AVPixFormat(),
       av_get_pix_fmt_name(image.AVPixFormat()), new_size, size);
   //unsigned int new_size = image.height * image.linesize;
 

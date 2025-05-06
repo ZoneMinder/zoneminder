@@ -920,7 +920,7 @@ void Image::Assign(const Image &image) {
 
     if ( holdbuffer && buffer ) {
       if ( new_size > allocation ) {
-        Error("Held buffer is undersized %ld for assigned buffer %d", allocation, new_size);
+        Error("Held buffer is undersized allocation: %ld for assigned buffer %d", allocation, new_size);
         return;
       }
     } else {
@@ -953,9 +953,9 @@ Image *Image::HighlightEdges(
   unsigned int p_subpixelorder,
   const Box *limits
 ) {
-  if ( colours != ZM_COLOUR_GRAY8 ) {
-    Panic("Attempt to highlight image edges when colours = %d", colours);
-  }
+  //if ( colours != ZM_COLOUR_GRAY8 ) {
+    //Panic("Attempt to highlight image edges when colours = %d", colours);
+  //}
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, p_subpixelorder);
@@ -1941,6 +1941,7 @@ int local_size = width * height;
 
     /* RGB24 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
+    Warning("COnvert to rgb24");
     Colourise(image.colours, image.subpixelorder);
 
     const uint8_t* const max_ptr = buffer+size;
@@ -1959,6 +1960,7 @@ int local_size = width * height;
 
     /* RGB32 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
+    Warning("COnvert to rgb24");
     Colourise(image.colours, image.subpixelorder);
 
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
@@ -2544,7 +2546,7 @@ void Image::Timestamp(const char *label, SystemTimePoint when, const Vector2 &co
 
 /* RGB32 compatible: complete */
 void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder) {
-  Debug(9, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
+  Debug(1, "Colourise: Req colours: %u Req subpixel order: %u Current colours: %u Current subpixel order: %u",p_reqcolours,p_reqsubpixelorder,colours,subpixelorder);
 
   if ( colours != ZM_COLOUR_GRAY8) {
     Warning("Target image is already colourised, colours: %u",colours);

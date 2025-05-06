@@ -2463,35 +2463,27 @@ int Monitor::Analyse() {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
-        if (0 and packet->image) {
-          analysis_image_buffer[index]->Assign(*packet->image);
-          analysis_image_pixelformats[index] = packet->image->AVPixFormat();
-          Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
+        if (0 and packet->analysis_image) {
+          analysis_image_buffer[index]->Assign(*packet->analysis_image);
+          analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
+          Debug(1, "image format %d, for index %d", analysis_image_pixelformats[index], index);
         } else if (packet->in_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
           Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->in_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->out_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->out_frame->format));
           Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->out_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->out_frame->format);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else {
-          Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
+          Error( "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count = analysis_image_count;
       }
     } else {
       Debug(3, "Not video, not clearing packets");
@@ -2624,62 +2616,44 @@ std::pair<int, const std::string &> Monitor::Analyse_MotionDetection(std::shared
   std::string cause = "";
 
   if (!packet->image) {
-    Debug(1, "no image so skipping motion detection");
+    Error("no image so skipping motion detection");
     return std::make_pair(motion_score, cause);
   }  // end if has image
+     
+  if (analysis_image == ANALYSISIMAGE_YCHANNEL and !packet->y_image) {
+    if (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P) {
+      Debug(1, "Creating y-image");
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+      zm_dump_video_frame(packet->in_frame.get(), "y-image");
+    } else {
+      Error("Unable creating y-image");
+    }
+    if (packet->y_image and (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)) {
+      Debug(1, "Scaling y-image to %dx%d", camera_width, camera_height);
+      packet->y_image->Scale(camera_width, camera_height);
+    }
+  } // end if need y_image
      
   // decoder may not have been able to provide an image
   if (!ref_image.Buffer()) {
     Debug(1, "Assigning instead of Detecting");
-    if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-
-      if (!packet->y_image and (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P)) {
-        Debug(1, "Creating y-image");
-        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-        zm_dump_video_frame(packet->in_frame.get(), "y-image");
-
-        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-          packet->y_image->Scale(camera_width, camera_height);
-      } else {
-        Debug(1, "Not creating y-image");
-      }
-      if (packet->y_image) {
-        ref_image.Assign(*(packet->y_image));
-        Debug(1, "Assigning instead of Detecting");
-      }
-    } else if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-      if (!packet->y_image) {
-        packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-          packet->y_image->Scale(camera_width, camera_height);
-      }
+    if (packet->y_image) {
       ref_image.Assign(*(packet->y_image));
     } else {
+      // image should always be scaled
       ref_image.Assign(*(packet->image));
     }
   } else {
     // didn't assign, do motion detection maybe and blending definitely
     if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
-      motion_score = 0;
       Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
       // Get new score.
       if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
         motion_score += DetectMotion(*(packet->y_image), zoneSet);
-        if (!packet->analysis_image) packet->analysis_image = new Image(*(packet->y_image));
       } else {
-        if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-          if (!packet->y_image) {
-            packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-            if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-              packet->y_image->Scale(camera_width, camera_height);
-          }
-          motion_score += DetectMotion(*(packet->y_image), zoneSet);
-        } else {
-          motion_score += DetectMotion(*(packet->image), zoneSet);
-        }
-        if (!packet->analysis_image)
-          packet->analysis_image = new Image(*(packet->image));
+        motion_score += DetectMotion(*(packet->image), zoneSet);
       }
+      if (!packet->analysis_image) packet->analysis_image = new Image(packet->in_frame.get()); // TODO SHOULD COPY
 
       // lets construct alarm cause. It will contain cause + names of zones alarmed
       packet->zone_stats.reserve(zones.size());
@@ -2691,7 +2665,7 @@ std::pair<int, const std::string &> Monitor::Analyse_MotionDetection(std::shared
         if (zone.Alarmed()) {
           if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
           packet->alarm_cause += std::string(zone.Label());
-          if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage()));
+          if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage())); // should be a 1bit image
         }
         Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
         zone_scores[zone_index] = zone.Score();
@@ -2700,10 +2674,8 @@ std::pair<int, const std::string &> Monitor::Analyse_MotionDetection(std::shared
       Debug(3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score);
       motion_frame_count += 1;
       last_motion_score = motion_score;
-
     } else {
       Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-      //score += last_motion_score;
     }
 
     if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
@@ -3316,7 +3288,7 @@ int Monitor::Decode() {
 #endif
 
         if (0 == ret) {
-          return 0; //make it sleep?
+          return 0; //make it sleep? No
         } else if (ret < 0) {
           // No need to push because it didn't get into the decoder.
           avcodec_free_context(&mVideoCodecContext);
@@ -3466,8 +3438,7 @@ int Monitor::Decode() {
   //unsigned int index = (shared_data->last_decoder_index + 1) % image_buffer_count;
   if (0 and packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
-    Debug(1, "Assigning %s for index %d to %s",
-        packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
+    Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
     //Debug(1, "Assigning for index %d", index);

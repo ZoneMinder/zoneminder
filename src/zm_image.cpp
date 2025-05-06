@@ -415,6 +415,7 @@ Image::Image(const Image &p_image) :
   colours = p_image.colours;
   subpixelorder = p_image.subpixelorder;
   size = p_image.size; // allocation is set in AllocImgBuffer
+  Debug(1, "Copying image, size is %d", size);
   buffer = nullptr;
   holdbuffer = 0;
   AllocImgBuffer(size);
@@ -735,12 +736,13 @@ void Image::AssignDirect(const AVFrame *frame) {
   width = frame->width;
   height = frame->height;
   buffer = frame->buf[0]->data;
-  allocation = frame->buf[0]->size;
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
-  //Debug(4, "Size %u, allocation %lu", size, allocation);
-  size = allocation;
+  allocation = size;
+  Debug(4, "Size %u, allocation %lu", size, allocation);
+  zm_dump_video_frame(frame, "AssignDirect");
+  //size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {
     case AV_PIX_FMT_RGBA:
@@ -5776,3 +5778,56 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
   return imagePixFormat = new_pixelformat;
 }
+
+int Image::draw_boxes(
+    const nlohmann::json &coco_object,
+    int font_size,
+    int line_width
+    ) {
+
+  try {
+    //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
+    if (coco_object.size()) {
+      for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
+        nlohmann::json detection = *it;
+        nlohmann::json bbox = detection["bbox"];
+
+        //Debug(1, "%s", bbox.dump().c_str());
+        int x1 = bbox[0];
+        int y1 = bbox[1];
+        int x2 = bbox[2];
+        int y2 = bbox[3];
+        std::string coco_class = detection["class_name"];
+        float score = detection["score"];
+        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
+
+        {
+          std::vector<Vector2> coords;
+          coords.push_back(Vector2(x1, y1));
+          coords.push_back(Vector2(x2, y1));
+          coords.push_back(Vector2(x2, y2));
+          coords.push_back(Vector2(x1, y2));
+
+          Polygon poly(coords);
+          this->Outline(kRGBGreen, poly);
+        }
+        {
+          std::vector<Vector2> coords;
+          coords.push_back(Vector2(x1+1, y1+1));
+          coords.push_back(Vector2(x2-1, y1+1));
+          coords.push_back(Vector2(x2-1, y2-1));
+          coords.push_back(Vector2(x1+1, y2-1));
+
+          Polygon poly(coords);
+          this->Outline(kRGBGreen, poly);
+        }
+        this->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
+            font_size, kRGBWhite, kRGBTransparent);
+      }  // end foreach detection
+    }  // if detectoins
+  } catch (std::exception const & ex) {
+    Error("draw_box Exception: %s", ex.what());
+  }
+
+  return 1;
+}  // end draw_boxes

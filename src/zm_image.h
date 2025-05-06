@@ -31,6 +31,7 @@
 #if HAVE_ZLIB_H
 #include <zlib.h>
 #endif // HAVE_ZLIB_H
+#include <nlohmann/json.hpp>
 
 class Box;
 class Polygon;
@@ -303,6 +304,8 @@ SwsContext *sws_convert_context;
   void Deinterlace_Blend_CustomRatio(int divider);
   void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
   const std::string toString();
+
+  int draw_boxes(const nlohmann::json &coco_object, int font_size, int line_width=2);
 };
 
 // Scan-line polygon fill algorithm

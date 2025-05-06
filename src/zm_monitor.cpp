@@ -200,6 +200,7 @@ Monitor::Monitor() :
   janus_use_rtsp_restream(false),
   janus_rtsp_user(0),
   janus_rtsp_session_timeout(0),
+  curl(nullptr),
   //protocol
   //method
   //options
@@ -2167,6 +2168,14 @@ int Monitor::Analyse() {
               std::pair<int, std::string> results = Analyse_Quadra(packet);
             }
 #endif
+            if (objectdetection == OBJECT_DETECTION_UVICORN) {
+              std::pair<int, std::string> results = Analyse_UVICORN(packet);
+              int motion_score = results.first;
+              std::string motion_cause = results.second;
+              if (motion_score) {
+                score += motion_score;
+              } 
+            }
           }  // end if objectdetection
           packet->hw_frame = nullptr; // Free it
 
@@ -2180,7 +2189,7 @@ int Monitor::Analyse() {
               Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
                     motion_frame_skip, capture_fps, analysis_fps_limit);
             }
-            std::pair<int, const std::string &> results = Analyse_MotionDetection(packet);
+            std::pair<int, std::string> results = Analyse_MotionDetection(packet);
             int motion_score = results.first;
             std::string motion_cause = results.second;
             if (motion_score) {
@@ -2414,7 +2423,7 @@ int Monitor::Analyse() {
       packetqueue.clearPackets(packet);
 
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
-      if (objectdetection == OBJECT_DETECTION_QUADRA) {
+      if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
         if (packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
@@ -2519,6 +2528,7 @@ int Monitor::Analyse() {
   return 1;
 } // end Monitor::Analyse
 
+#if HAVE_QUADRA
 std::pair<int, const std::string &> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {
   int score = 0;
   std::string cause;
@@ -2609,8 +2619,120 @@ std::pair<int, const std::string &> Monitor::Analyse_Quadra(std::shared_ptr<ZMPa
   } // end yolo
   return std::make_pair(score, cause);
 } // end Monitor::Analyse_Quadra(Packet)
+#endif
 
-std::pair<int, const std::string &> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet) {
+size_t Monitor::ReadCallback(char *ptr, size_t size, size_t nmemb, void *data) {
+    struct transfer * tr = static_cast<struct transfer *>(data);
+    size_t left = tr->total - tr->uploaded;
+    size_t max_chunk = size * nmemb;
+    size_t retcode = left < max_chunk ? left : max_chunk;
+
+    memcpy(ptr, tr->buf + tr->uploaded, retcode); // <-- voodoo-mumbo-jumbo :-)
+
+    tr->uploaded += retcode;  // <-- save progress
+  Debug(1, "CURL readcallback %zu, %zu", tr->uploaded, retcode);
+    return retcode;
+}
+
+size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+  Debug(1, "CURL writecallback %zu, %zu", size, nmemb);
+  ((std::string*)userp)->append((char*)contents, size * nmemb);
+  return size * nmemb;
+}
+
+std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> packet) {
+  Debug(1, "CURL");
+  int motion_score = 0;
+  std::string cause = "";
+  if (!curl) {
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+    if (!curl) {
+      Error("Failed to init curl");
+      return std::make_pair(motion_score, cause);
+    }
+  }
+
+  int img_buffer_size = 0;
+  Image img(*(packet->image));
+  img.Scale(640, 640);
+
+  uint8_t *img_buffer = new uint8_t[img.Size()];
+  img.EncodeJpeg(static_cast<JOCTET *>(img_buffer), &img_buffer_size);
+  Debug(1, "CURL: Encoded JPEG is %d", img_buffer_size);
+  //
+  std::string response;
+  response.reserve(4096);
+  std::string endpoint = "http://127.0.0.1:8000/predict/";
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+
+  curl_mime *mime = nullptr;
+  curl_mimepart *part = nullptr;
+  mime = curl_mime_init(curl);
+  part = curl_mime_addpart(mime);
+
+  struct transfer tr = {img_buffer, img_buffer_size, 0};
+  curl_mime_data_cb(part, (size_t)img_buffer_size, ReadCallback, NULL, NULL, &tr);
+  //curl_mime_data(part, (const char *)img_buffer, img_buffer_size);
+  curl_mime_name(part, "file");
+  curl_mime_filename(part, "file.jpg");
+  //curl_mime_type(part, "image/jpeg");
+  
+  //Assemble our actual request
+#if 0
+  static const char buf[] = "Expect:";
+  struct curl_slist *headerlist = NULL;
+  headerlist = curl_slist_append(headerlist, buf);
+  //headerlist = curl_slist_append(headerlist, );
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+#endif
+
+
+  //curl_easy_setopt(curl, CURLOPT_READDATA, &tr);
+  //curl_easy_setopt(curl, CURLOPT_READFUNCTION, ReadCallback);
+
+  //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)img_buffer_size);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+  curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+  //curl_easy_setopt(curl, CURLOPT_POST, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  //curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10); //timeout in seconds
+  CURLcode res = curl_easy_perform(curl);
+  //curl_easy_cleanup(curl);
+  //curl = nullptr;
+
+  if (res != CURLE_OK) {
+    Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+      return std::make_pair(motion_score, cause);
+  }
+    Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
+  curl_mime_free(mime);
+  delete[] img_buffer;
+
+  Image *ai_image = new Image(*(packet->image));
+  nlohmann::json detections = nlohmann::json::parse(response);
+  Debug(1, "CURL detections %s", detections.dump().c_str());
+  if (detections.size()) {
+    Debug(1, "CURL Doing draw_boxes");
+    //ai_image->draw_boxes(detections["predictions"], LabelSize(), LabelSize());
+  } else {
+    Debug(1, "CURL NOT DOING DRAW BOXES");
+  }
+  packet->ai_image = ai_image;
+  packet->ai_frame = av_frame_ptr(av_frame_alloc());
+  ai_image->PopulateFrame(packet->ai_frame.get());
+  packet->detections = detections["predictions"];
+
+  return std::make_pair(motion_score, std::move(cause));
+}
+
+std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet) {
   Event::StringSet zoneSet;
   int motion_score = 0;
   std::string cause = "";

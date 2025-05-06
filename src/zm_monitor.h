@@ -106,6 +106,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     OBJECT_DETECTION_NONE=1,
     OBJECT_DETECTION_QUADRA,
     OBJECT_DETECTION_SPEEDAI,
+    OBJECT_DETECTION_UVICORN,
   } ObjectDetectionOption;
 
   typedef enum {
@@ -496,7 +497,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
-  ObjectDetectionOption objectdetection;    // none, quadra, speedai
+  ObjectDetectionOption objectdetection;    // none, quadra, speedai, uvicorn
   std::string objectdetection_model;
   float   objectdetection_object_threshold;
   float   objectdetection_nms_threshold;
@@ -515,6 +516,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
   int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
+  CURL *curl;
   std::string protocol;
   std::string method;
   std::string options;
@@ -983,8 +985,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   int Analyse();
-  std::pair<int, const std::string &> Analyse_Quadra(std::shared_ptr<ZMPacket> packet);
-  std::pair<int, const std::string &> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);
+  std::pair<int, std::string> Analyse_Quadra(std::shared_ptr<ZMPacket> packet);
+  struct transfer
+{
+    uint8_t *buf;
+    size_t total;
+    size_t uploaded;
+};
+
+  static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+  static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+  std::pair<int, std::string> Analyse_UVICORN(std::shared_ptr<ZMPacket> packet);
+  std::pair<int, std::string> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);
 
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   int Decode();

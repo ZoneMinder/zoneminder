@@ -2137,8 +2137,10 @@ void Image::Blend( const Image &image, int transparency ) {
           width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
   }
 
-  if ( transparency <= 0 )
+  if ( transparency <= 0 ) {
+    Debug(1, "No blending");
     return;
+  }
 
   uint8_t* new_buffer = AllocBuffer(size);
 
@@ -2147,6 +2149,7 @@ void Image::Blend( const Image &image, int transparency ) {
 #endif
 
   /* Do the blending */
+  Debug(1, "Blending size %d", size);
   (*blend)(buffer, image.buffer, new_buffer, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING

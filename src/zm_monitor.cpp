@@ -1721,7 +1721,8 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   }
 
   if ( zone_image->Colours() == ZM_COLOUR_GRAY8 ) {
-    zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    // TODO isn't there a setting for this?
+    //zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
   extra_zone.Clip(Box(
@@ -2472,7 +2473,7 @@ int Monitor::Analyse() {
           Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
-        if (0 and packet->analysis_image) {
+        if (1 and packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
           Debug(1, "image format %d, for index %d", analysis_image_pixelformats[index], index);
@@ -2776,8 +2777,8 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
         motion_score += DetectMotion(*(packet->image), zoneSet);
       }
       if (!packet->analysis_image) {
-        Debug(1, "Populate analysis_image");
         packet->analysis_image = new Image(packet->in_frame.get(), Width(), Height()); // TODO SHOULD COPY
+        Debug(1, "Populate analysis_image %s", packet->analysis_image->toString().c_str());
       }
 
       // lets construct alarm cause. It will contain cause + names of zones alarmed

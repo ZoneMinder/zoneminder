@@ -257,8 +257,8 @@ void AIThread::Inference() {
   }
 #endif
 
-  int ret;
 #if HAVE_QUADRA
+  int ret;
   drawbox_filter = new Quadra::filter_worker();
   if ((ret = quadra.init_filter("drawbox=color=red", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
     Error("cannot initialize drawbox filter");

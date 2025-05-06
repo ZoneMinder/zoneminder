@@ -204,7 +204,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   if (image)
     delete image;
-  // Get the difference image
+  // Get the difference image, using AssignDirect
   Image *diff_image = image = new Image(*delta_image);
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = diff_image->Buffer();
@@ -736,10 +736,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       }  // end for y
 
       if (monitor->Colours() == ZM_COLOUR_GRAY8) {
-        image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
-      } else {
-        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
+        Warning("Highlight RGB when GRAY8");
+        //image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
+      //} else {
+        //Warning("Highlight colours %d, %d", monitor->Colours(), monitor->SubpixelOrder());
       }
+        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
 
       // Only need to delete this when 'image' becomes detached and points somewhere else
       delete diff_image;

@@ -2529,7 +2529,7 @@ int Monitor::Analyse() {
 } // end Monitor::Analyse
 
 #if HAVE_QUADRA
-std::pair<int, const std::string &> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {
+std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {
   int score = 0;
   std::string cause;
 
@@ -2775,7 +2775,10 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
       } else {
         motion_score += DetectMotion(*(packet->image), zoneSet);
       }
-      if (!packet->analysis_image) packet->analysis_image = new Image(packet->in_frame.get()); // TODO SHOULD COPY
+      if (!packet->analysis_image) {
+        Debug(1, "Populate analysis_image");
+        packet->analysis_image = new Image(packet->in_frame.get(), Width(), Height()); // TODO SHOULD COPY
+      }
 
       // lets construct alarm cause. It will contain cause + names of zones alarmed
       packet->zone_stats.reserve(zones.size());

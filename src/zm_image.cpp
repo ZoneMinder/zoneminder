@@ -924,7 +924,7 @@ void Image::Assign(const Image &image) {
     } else {
       if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
-        Debug(1, "New size %d > %ld", new_size, allocation);
+        Debug(1, "New size %d > allocation %ld", new_size, allocation);
         AllocImgBuffer(new_size);
       }
     }
@@ -1911,6 +1911,9 @@ void Image::Overlay( const Image &image ) {
   if ((colours != ZM_COLOUR_GRAY8) and (colours == image.colours && subpixelorder != image.subpixelorder)) {
     Warning("Attempt to overlay images of same format %d but with different subpixel order ours, %d != overlay %d.",
             colours, subpixelorder, image.subpixelorder);
+  } else {
+    Debug(1,"Attempt to overlay images of same format %d and same subpixel order ours, %d != overlay %d.",
+            colours, subpixelorder, image.subpixelorder);
   }
 
   if (!image.buffer) {
@@ -1920,7 +1923,9 @@ void Image::Overlay( const Image &image ) {
 
   /* Grayscale on top of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
-    const uint8_t* const max_ptr = buffer+size;
+int local_size = width * height;
+    const uint8_t* const max_ptr = buffer+local_size;
+    Debug(1, "Doing gray %dx%d buffer %p, size %d", width, height, buffer, local_size);
     const uint8_t* psrc = image.buffer;
     uint8_t* pdest = buffer;
 

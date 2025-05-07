@@ -2426,7 +2426,7 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (packet->ai_frame) {
+        if (0 and packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
@@ -2631,18 +2631,15 @@ size_t Monitor::ReadCallback(char *ptr, size_t size, size_t nmemb, void *data) {
     memcpy(ptr, tr->buf + tr->uploaded, retcode); // <-- voodoo-mumbo-jumbo :-)
 
     tr->uploaded += retcode;  // <-- save progress
-  Debug(1, "CURL readcallback %zu, %zu", tr->uploaded, retcode);
     return retcode;
 }
 
 size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-  Debug(1, "CURL writecallback %zu, %zu", size, nmemb);
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
 
 std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> packet) {
-  Debug(1, "CURL");
   int motion_score = 0;
   std::string cause = "";
   if (!curl) {
@@ -2679,49 +2676,31 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   //curl_mime_data(part, (const char *)img_buffer, img_buffer_size);
   curl_mime_name(part, "file");
   curl_mime_filename(part, "file.jpg");
-  //curl_mime_type(part, "image/jpeg");
   
-  //Assemble our actual request
-#if 0
-  static const char buf[] = "Expect:";
-  struct curl_slist *headerlist = NULL;
-  headerlist = curl_slist_append(headerlist, buf);
-  //headerlist = curl_slist_append(headerlist, );
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-#endif
-
-
-  //curl_easy_setopt(curl, CURLOPT_READDATA, &tr);
-  //curl_easy_setopt(curl, CURLOPT_READFUNCTION, ReadCallback);
-
-  //curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)img_buffer_size);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
   curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
-  //curl_easy_setopt(curl, CURLOPT_POST, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-  //curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10); //timeout in seconds
   CURLcode res = curl_easy_perform(curl);
-  //curl_easy_cleanup(curl);
-  //curl = nullptr;
 
   if (res != CURLE_OK) {
     Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
       return std::make_pair(motion_score, cause);
   }
-    Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
+  Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
   curl_mime_free(mime);
   delete[] img_buffer;
 
-  Image *ai_image = new Image(*(packet->image));
+  Image *ai_image = new Image(*(packet->image)); //copies
   nlohmann::json detections = nlohmann::json::parse(response);
   Debug(1, "CURL detections %s", detections.dump().c_str());
-  if (detections.size()) {
+  if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
     Debug(1, "CURL Doing draw_boxes");
-    //ai_image->draw_boxes(detections["predictions"], LabelSize(), LabelSize());
+    nlohmann::json predictions = detections["predictions"];
+    predictions = scale_coordinates(predictions, camera_width/640, camera_height/640);
+    ai_image->draw_boxes(predictions, LabelSize(), LabelSize());
   } else {
     Debug(1, "CURL NOT DOING DRAW BOXES");
   }

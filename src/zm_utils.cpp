@@ -568,10 +568,10 @@ nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor,
           bbox = bbox[0];
         }
 
-        int x1 = bbox[0];
-        int y1 = bbox[1];
-        int x2 = bbox[2];
-        int y2 = bbox[3];
+        float x1 = bbox[0];
+        float y1 = bbox[1];
+        float x2 = bbox[2];
+        float y2 = bbox[3];
 
         std::array<float, 4> new_bbox = {x1 * width_factor, y1*height_factor, x2*width_factor, y2*height_factor};
         results.push_back({{"class", detection["class"]}, {"box", new_bbox}, {"confidence", detection["confidence"]}});

@@ -2148,60 +2148,65 @@ int Monitor::Analyse() {
               return -1;
             }
           }  // end if decoding enabled
-
-          if (objectdetection != OBJECT_DETECTION_NONE) {
-            if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
-              int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
-              while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
-
-                Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
-                std::this_thread::sleep_for(Microseconds(10000));
-                count--;
-              }
-              // In order to make it available to event writing
-              if (shared_data->analysis_image_count >= packet->image_index) {
-                Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
-                packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
-              }
-            }
-#if HAVE_QUADRA
-            else {
-              std::pair<int, std::string> results = Analyse_Quadra(packet);
-            }
-#endif
-            if (objectdetection == OBJECT_DETECTION_UVICORN) {
-              std::pair<int, std::string> results = Analyse_UVICORN(packet);
-              int motion_score = results.first;
-              std::string motion_cause = results.second;
-              if (motion_score) {
-                score += motion_score;
-              } 
-            }
-          }  // end if objectdetection
-          packet->hw_frame = nullptr; // Free it
-
-          // Ready means that we have captured the warmup # of frames
-          if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
-            Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
-
+ 
+          if (Ready()) {
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
               motion_frame_skip = capture_fps / analysis_fps_limit;
               Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                    motion_frame_skip, capture_fps, analysis_fps_limit);
+                  motion_frame_skip, capture_fps, analysis_fps_limit);
+              if (motion_frame_skip < 0) motion_frame_skip = 0;
             }
-            std::pair<int, std::string> results = Analyse_MotionDetection(packet);
-            int motion_score = results.first;
-            std::string motion_cause = results.second;
-            if (motion_score) {
-              if (!cause.empty()) cause += ", ";
-              cause += MOTION_CAUSE + std::string(":") + motion_cause;
-              //noteSetMap[MOTION_CAUSE] = zoneSet;
-              score += motion_score;
-            } // end if motion_score
-          } else {
-            Debug(1, "Not analysing %d", shared_data->analysing);
-          } // end if active and doing motion detection
+
+            if (objectdetection != OBJECT_DETECTION_NONE) {
+              if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
+                int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
+                while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
+
+                  Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
+                  std::this_thread::sleep_for(Microseconds(10000));
+                  count--;
+                }
+                // In order to make it available to event writing
+                if (shared_data->analysis_image_count >= packet->image_index) {
+                  Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
+                  packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
+                }
+              }
+#if HAVE_QUADRA
+              else {
+                std::pair<int, std::string> results = Analyse_Quadra(packet);
+              }
+#endif
+              if (objectdetection == OBJECT_DETECTION_UVICORN) {
+                std::pair<int, std::string> results = Analyse_UVICORN(packet);
+                int motion_score = results.first;
+                std::string motion_cause = results.second;
+                if (motion_score) {
+                  score += motion_score;
+                } 
+              }
+            }  // end if objectdetection
+
+            packet->hw_frame = nullptr; // Free it
+
+            // Ready means that we have captured the warmup # of frames
+            if (shared_data->analysing > ANALYSING_NONE) {
+              Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
+
+              std::pair<int, std::string> results = Analyse_MotionDetection(packet);
+              int motion_score = results.first;
+              std::string motion_cause = results.second;
+              if (motion_score) {
+                if (!cause.empty()) cause += ", ";
+                cause += MOTION_CAUSE + std::string(":") + motion_cause;
+                //noteSetMap[MOTION_CAUSE] = zoneSet;
+                score += motion_score;
+              } // end if motion_score
+            } else {
+              Debug(1, "Not analysing %d", shared_data->analysing);
+            } // end if doing motion detection
+          } // end if Ready
         } // end if videostream
 
         if (score > 255) score = 255;
@@ -2538,16 +2543,9 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   }
 
   if (quadra_yolo) {
-    if (analysis_fps_limit) {
-      double capture_fps = get_capture_fps();
-      motion_frame_skip = capture_fps / analysis_fps_limit;
-      Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-          motion_frame_skip, capture_fps, analysis_fps_limit);
-      if (motion_frame_skip < 0) motion_frame_skip = 0;
-    }
     if (packet->hw_frame) {
+            if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
       //TODO if (packet->hw_frame or packet->in_frame) {
-      if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
 #if 1
         SystemTimePoint starttime = std::chrono::system_clock::now();
         Debug(1, "Send_packet %d to quadra", packet->image_index);
@@ -2626,6 +2624,21 @@ size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *u
 std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> packet) {
   int motion_score = 0;
   std::string cause = "";
+
+  if (shared_data->analysis_image_count % (motion_frame_skip+1)) {
+    Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
+    if (last_detections.size()) {
+      ai_image->draw_boxes(last_detections, LabelSize(), LabelSize());
+      last_detections = nlohmann::json({});
+    }
+    packet->ai_image = ai_image;
+    // Populate ai_frame as well
+    packet->ai_frame = av_frame_ptr(av_frame_alloc());
+    ai_image->PopulateFrame(packet->ai_frame.get());
+
+    return std::make_pair(motion_score, cause);
+  }
+
   if (!curl) {
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
@@ -2676,21 +2689,25 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   curl_mime_free(mime);
   delete[] img_buffer;
 
-  Image *ai_image = new Image(packet->in_frame.get()); //copies
   nlohmann::json detections = nlohmann::json::parse(response);
   Debug(1, "CURL detections %s", detections.dump().c_str());
   if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
     Debug(1, "CURL Doing draw_boxes camera dims %dx%d", camera_width, camera_height);
     nlohmann::json predictions = detections["predictions"];
     predictions = scale_coordinates(predictions, camera_width/640.0, camera_height/640.0);
+    last_detections = predictions;
+
+    Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
     ai_image->draw_boxes(predictions, LabelSize(), LabelSize());
+    packet->ai_image = ai_image;
+    // Populate ai_frame as well
+    packet->ai_frame = av_frame_ptr(av_frame_alloc());
+    ai_image->PopulateFrame(packet->ai_frame.get());
+
+    packet->detections = detections["predictions"];
   } else {
     Debug(1, "CURL NOT DOING DRAW BOXES");
   }
-  packet->ai_image = ai_image;
-  packet->ai_frame = av_frame_ptr(av_frame_alloc());
-  ai_image->PopulateFrame(packet->ai_frame.get());
-  packet->detections = detections["predictions"];
 
   return std::make_pair(motion_score, std::move(cause));
 }

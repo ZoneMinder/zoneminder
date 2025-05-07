@@ -995,6 +995,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+  nlohmann::json last_detections;
 
   std::pair<int, std::string> Analyse_UVICORN(std::shared_ptr<ZMPacket> packet);
   std::pair<int, std::string> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);

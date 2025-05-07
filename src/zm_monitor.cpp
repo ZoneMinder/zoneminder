@@ -2426,52 +2426,36 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (0 and packet->ai_frame) {
+        if (1 and packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
           Debug(1, "analysis %d, for index %d, packet %d", analysis_image_pixelformats[index], index, packet->image_index);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else if (0 and packet->image) {
           analysis_image_buffer[index]->Assign(*packet->image);
           analysis_image_pixelformats[index] = packet->image->AVPixFormat();
           Debug(1, "image %d, for index %d", analysis_image_pixelformats[index], index);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->in_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->in_frame->format));
           Debug(1, "in_frame pixformat %d, for index %d, packet %d", packet->in_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->in_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format);
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
         } else if (packet->out_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->out_frame->format));
           Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->out_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->out_frame->format);
+        } else {
+          Error("Unable to find an image to assign for index %d packet %d", index, packet->image_index);
+        }
           shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
           shared_data->last_analysis_index = index;
           shared_data->last_read_index = index;
           shared_data->analysis_image_count = analysis_image_count;
-        } else {
-          Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
-        }
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
         if (1 and packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
@@ -2652,8 +2636,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   }
 
   int img_buffer_size = 0;
-  Image img(*(packet->image));
-  img.Scale(640, 640);
+  Image img(packet->in_frame.get(), 640, 640); // copy, since we are scaling, maybe better to take from in_frame
 
   uint8_t *img_buffer = new uint8_t[img.Size()];
   img.EncodeJpeg(static_cast<JOCTET *>(img_buffer), &img_buffer_size);
@@ -2687,19 +2670,19 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
 
   if (res != CURLE_OK) {
     Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
-      return std::make_pair(motion_score, cause);
+    return std::make_pair(motion_score, cause);
   }
   Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
   curl_mime_free(mime);
   delete[] img_buffer;
 
-  Image *ai_image = new Image(*(packet->image)); //copies
+  Image *ai_image = new Image(packet->in_frame.get()); //copies
   nlohmann::json detections = nlohmann::json::parse(response);
   Debug(1, "CURL detections %s", detections.dump().c_str());
   if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
-    Debug(1, "CURL Doing draw_boxes");
+    Debug(1, "CURL Doing draw_boxes camera dims %dx%d", camera_width, camera_height);
     nlohmann::json predictions = detections["predictions"];
-    predictions = scale_coordinates(predictions, camera_width/640, camera_height/640);
+    predictions = scale_coordinates(predictions, camera_width/640.0, camera_height/640.0);
     ai_image->draw_boxes(predictions, LabelSize(), LabelSize());
   } else {
     Debug(1, "CURL NOT DOING DRAW BOXES");

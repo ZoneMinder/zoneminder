@@ -34,6 +34,7 @@
 #include <thread>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 
 #ifdef NDEBUG
 #define ASSERT(x) do { (void) sizeof(x); } while (0)
@@ -198,4 +199,6 @@ template< typename InputIt, typename UnaryPredicate >
   return last;
 }
 };
+
+nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor);
 #endif // ZM_UTILS_H

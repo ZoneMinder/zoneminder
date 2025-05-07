@@ -2833,7 +2833,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
         }
       } else 
 #endif
-        if ( colours == ZM_COLOUR_GRAY8 ) {
+      if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer[(y*width)+int(round(x))] = colour;
         }
@@ -5792,15 +5792,25 @@ int Image::draw_boxes(
     if (coco_object.size()) {
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
-        nlohmann::json bbox = detection["bbox"];
+        Debug(1, "CURL detections detection %s", detection.dump().c_str());
+        nlohmann::json bbox = detection["box"];
+        if ( bbox == nullptr) {
+          Debug(1, "Null box");
+          continue;
+        }
+        Debug(1, "CURL detections box %s", bbox.dump().c_str());
+        if ( bbox == nullptr) {
+          Debug(1, "Null box");
+          continue;
+        }
 
         //Debug(1, "%s", bbox.dump().c_str());
         int x1 = bbox[0];
         int y1 = bbox[1];
         int x2 = bbox[2];
         int y2 = bbox[3];
-        std::string coco_class = detection["class_name"];
-        float score = detection["score"];
+        std::string coco_class = detection["class"];
+        float score = detection["confidence"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
         {

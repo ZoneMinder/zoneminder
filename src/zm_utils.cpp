@@ -543,3 +543,44 @@ std::string remove_authentication(const std::string &url) {
   }
   return result;
 }
+
+nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor) {
+  nlohmann::json results = nlohmann::json::array();
+  try {
+    Debug(1, "CURL detections %s scaling by %f %f", coco_object.dump().c_str(), width_factor, height_factor);
+    if (coco_object.size() > 0) {
+      Debug(1, "size: %zu", coco_object.size());
+      for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
+        nlohmann::json detection = *it;
+        Debug(1, "CURL detections detection %s", detection.dump().c_str());
+        if (detection == nullptr) {
+          Debug(1, "No detection!");
+          continue;
+        }
+        nlohmann::json bbox = detection["box"];
+        if (bbox == nullptr) {
+          Debug(1, "No box!");
+          continue;
+        } else {
+          Debug(1, "CURL detections bbox %s", bbox.dump().c_str());
+        }
+        if (bbox.size() > 0) {
+          bbox = bbox[0];
+        }
+
+        int x1 = bbox[0];
+        int y1 = bbox[1];
+        int x2 = bbox[2];
+        int y2 = bbox[3];
+
+        std::array<float, 4> new_bbox = {x1 * width_factor, y1*height_factor, x2*width_factor, y2*height_factor};
+        results.push_back({{"class", detection["class"]}, {"box", new_bbox}, {"confidence", detection["confidence"]}});
+      }
+    }
+  } catch (std::exception const & ex) {
+    Error("scale_coordinates Exception: %s", ex.what());
+  }
+  Debug(1, "CURL detections %s", results.dump().c_str());
+  return results;
+}
+

@@ -202,8 +202,6 @@ int main(int argc, char *argv[]) {
     for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
       auto mid = it->first;
       const auto &monitor = it->second;
-      threads[mid]->Stop();
-      threads[mid]->Join();
       delete threads[mid];
       threads.erase(mid);
       Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
@@ -217,21 +215,22 @@ int main(int argc, char *argv[]) {
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload
-    sleep(10);
+    if (!zm_terminate) sleep(10);
   } // end while !zm_terminate
 
   Info("AI Server shutting down");
 
   for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {
     unsigned int i = mon_pair.first;
-    threads[i]->Stop();
-    threads[i]->Join();
+    Debug(1, "Deleting thread %u", i);
     delete threads[i];
+    Debug(1, "Deleted thread %u", i);
 
     auto monitor = mon_pair.second;
     monitor->disconnect();
   }  // end foreach monitor
   
+  Debug(1, "Clearing");
   monitors.clear();
   threads.clear();
 
@@ -240,6 +239,7 @@ int main(int argc, char *argv[]) {
   speedai = nullptr;
 #endif
 
+  Debug(1, "Deinit");
   Image::Deinitialise();
   dbQueue.stop();
   zmDbClose();
@@ -306,7 +306,6 @@ void AIThread::Inference() {
 
       shared_data->last_analysis_index = packet->image_index;
 
-      std::unique_lock<std::mutex> lck(mutex_);
       send_queue.pop_front();
       packet = nullptr;
     }  // end if packet
@@ -343,7 +342,7 @@ void AIThread::Run() {
       }  // end if failed to connect
     }  // end if !ShmValid
   }
-  if (!(zm_terminate or terminate_)) return;
+  if (zm_terminate or terminate_) return;
 
   Monitor::SharedData *shared_data = monitor_->getSharedData();
   int image_buffer_count = monitor_->GetImageBufferCount();
@@ -617,8 +616,10 @@ void AIThread::Start() {
 
 void AIThread::Stop() {
   terminate_ = true;
+  condition_.notify_all();
 }
 void AIThread::Join() {
+  Debug(1, "Joining");
   if (thread_.joinable()) thread_.join();
   if (inference_thread_.joinable()) inference_thread_.join();
 }

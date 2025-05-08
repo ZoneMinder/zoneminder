@@ -200,5 +200,5 @@ template< typename InputIt, typename UnaryPredicate >
 }
 };
 
-nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor);
+nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor, int width, int height);
 #endif // ZM_UTILS_H

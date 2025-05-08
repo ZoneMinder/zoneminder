@@ -544,7 +544,7 @@ std::string remove_authentication(const std::string &url) {
   return result;
 }
 
-nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor) {
+nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor, int width, int height) {
   nlohmann::json results = nlohmann::json::array();
   try {
     Debug(1, "CURL detections %s scaling by %f %f", coco_object.dump().c_str(), width_factor, height_factor);
@@ -572,8 +572,21 @@ nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor,
         float y1 = bbox[1];
         float x2 = bbox[2];
         float y2 = bbox[3];
+        x1 *= width_factor;
+        y1 *= height_factor;
+        x2 *= width_factor;
+        y2 *= height_factor;
+        if (x1 > width) x1 = width;
+        if (y1 > height) y1 = height;
+        if (x2 > width) x2 = width;
+        if (y2 > height) y2 = height;
+        
 
-        std::array<float, 4> new_bbox = {x1 * width_factor, y1*height_factor, x2*width_factor, y2*height_factor};
+        std::array<int, 4> new_bbox = {static_cast<int>(x1),
+         static_cast<int>(y1),
+         static_cast<int>(x2),
+         static_cast<int>(y2)
+        };
         results.push_back({{"class", detection["class"]}, {"box", new_bbox}, {"confidence", detection["confidence"]}});
       }
     }

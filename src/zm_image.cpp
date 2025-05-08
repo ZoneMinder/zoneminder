@@ -2778,6 +2778,77 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   }
 }
 
+void Image::DrawBox(unsigned int x, unsigned int y, unsigned int box_width, unsigned int box_height, Rgb colour) {
+  /* Convert the colour's RGBA subpixel order into the image's subpixel order */
+  colour = rgb_convert(colour, ZM_SUBPIX_ORDER_RGBA);
+  Debug(1, "R %d G %d B %d ", RED_VAL_RGBA(colour), GREEN_VAL_RGBA(colour), BLUE_VAL_RGBA(colour));
+  if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    uint8_t *buffer_end = buffer+size;
+    int32_t yuv_colour = brg_to_yuv(colour);
+    int8_t y_colour = Y_VAL(yuv_colour);
+    int8_t u_colour = U_VAL(yuv_colour);
+    int8_t v_colour = V_VAL(yuv_colour);
+    int uv_width = width/2;
+    Debug(1, "Y %d U %d V %d ",y_colour, y_colour, v_colour);
+
+    uint8_t *y_buffer = buffer;
+    uint8_t *u_buffer = buffer + width*height;
+    uint8_t *v_buffer = u_buffer + width*height/4;
+
+    unsigned int row = y;
+    unsigned int uv_row = row/2;
+    //top
+    for (unsigned int col = x; col < x + box_width; ++col) {
+      y_buffer[row * width + col] = y_colour;
+      u_buffer[uv_row * uv_width + col/2] = u_colour;
+      v_buffer[uv_row * uv_width + col/2] = v_colour;
+    }
+    //row /= 2;
+    //for (unsigned int col = x / 2; col < (x + box_width) / 2; ++col) {
+      //u_buffer[row * uv_width + col/2] = u_colour;
+      //v_buffer[row * uv_width + col/2] = v_colour;
+    //}
+
+    // Sides
+    // Draw the box on the Y plane
+    for (row = y; row < y + box_height; ++row) {
+      y_buffer[row * width + x] = y_colour;
+      y_buffer[row * width + x + box_width] = y_colour;
+
+      uv_row = row/2;
+      u_buffer[uv_row * uv_width + x/2] = u_colour;
+      u_buffer[uv_row * uv_width + (x+box_width)/2] = u_colour;
+      v_buffer[uv_row * uv_width + x/2] = v_colour;
+      v_buffer[uv_row * uv_width + (x+box_width)/2] = v_colour;
+    }
+    //for (row = y/2; row < (y + box_height) / 2; ++row) {
+      //u_buffer[row/2 * uv_width + x/2] = u_colour;
+      //u_buffer[row/2 * uv_width + (x+box_width)/2] = u_colour;
+      //v_buffer[row/2 * uv_width + x/2] = v_colour;
+      //v_buffer[row/2 * uv_width + (x+box_width)/2] = v_colour;
+    //}
+
+    // Bottom
+    row = y + box_height-1; // zero-based?
+    uv_row = row/2;
+    // Draw the box on the Y plane
+    for (unsigned int col = x; col < x + box_width; ++col) {
+      y_buffer[row * width + col] = y_colour;
+      unsigned int index = uv_row * uv_width + col/2;
+      u_buffer[index] = u_colour;
+      if (v_buffer+index < buffer_end)
+        v_buffer[index] = v_colour;
+      else
+        Error("Address index %d = %d %d * %d + %d/2> size %d", index, row, uv_row, uv_width, col, size);
+    }
+    //row /= 2;
+    //for (unsigned int col = x / 2; col < (x + box_width) / 2; ++col) {
+    //}
+  } else {
+    Error("Drawbox for other formats not finished.");
+  }
+}
+
 /* RGB32 compatible: complete */
 void Image::Outline( Rgb colour, const Polygon &polygon ) const {
   if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
@@ -2800,7 +2871,6 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
 
     double dx = x2 - x1;
     double dy = y2 - y1;
-
     double grad;
 
     if ( fabs(dx) <= fabs(dy) ) {
@@ -2813,23 +2883,30 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-#if 0
+#if 1
       if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
         int32_t yuv_colour = brg_to_yuv(colour);
-        uint8_t *buffer_ptr = buffer;
+        int8_t y_colour = Y_VAL(yuv_colour);
+        int8_t u_colour = U_VAL(yuv_colour);
+        int8_t v_colour = V_VAL(yuv_colour);
+        uint8_t *y_buffer = buffer;
+        uint8_t *u_buffer = buffer + width*height;
+        uint8_t *v_buffer = u_buffer + width*height/4;
+        Debug(1, "buffer_ptr %p, size %u total %p ",buffer, size, buffer+size);
+        uint8_t *buffer_end = buffer+size;
+        int uv_width = int(round(width/2));
 
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer_ptr[(y*width)+int(round(x))] = Y_VAL(yuv_colour);
-        }
-        buffer_ptr += width*height; // Jump to U channel
-        // Now U channel
-        for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer_ptr[((y/2)*int(round(width/2)))+int(round(x/2))] = U_VAL(yuv_colour);
-        }
-        buffer_ptr += width*height/2; // Jump to V channel
-        // Now V Channel
-        for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          buffer_ptr[((y/2)*int(round(width/2)))+int(round(x/2))] = V_VAL(yuv_colour);
+          Debug(1, "Y %d = %d", (y*width)+int(round(x)), y_colour);
+          y_buffer[(y*width)+int(round(x))] = y_colour;
+          int index = ((y/2)*uv_width)+int(round(x/2));
+          Debug(1, "U %d = %d", index, u_colour);
+          u_buffer[index] = u_colour;
+          Debug(1, "V %d = %d", index, v_colour);
+          if (v_buffer+index < buffer_end)
+            v_buffer[index] = v_colour;
+          else
+            Fatal("Address index %d > size %d", index, size);
         }
       } else 
 #endif
@@ -5781,6 +5858,7 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
   return imagePixFormat = new_pixelformat;
 }
 
+
 int Image::draw_boxes(
     const nlohmann::json &coco_object,
     int font_size,
@@ -5813,6 +5891,7 @@ int Image::draw_boxes(
         float score = detection["confidence"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
+#if 0
         {
           std::vector<Vector2> coords;
           coords.push_back(Vector2(x1, y1));
@@ -5821,7 +5900,7 @@ int Image::draw_boxes(
           coords.push_back(Vector2(x1, y2));
 
           Polygon poly(coords);
-          this->Outline(kRGBGreen, poly);
+          this->Outline(kRGBRed, poly);
         }
         {
           std::vector<Vector2> coords;
@@ -5833,10 +5912,15 @@ int Image::draw_boxes(
           Polygon poly(coords);
           this->Outline(kRGBGreen, poly);
         }
+#else
+        this->DrawBox(x1, y1, x2-x1, y2-y1, kRGBRed);
+        this->DrawBox(x1+1, y1+1, x2-x1-2, y2-y1-2, kRGBRed);
+        this->DrawBox(x1+2, y1+2, x2-x1-3, y2-y1-3, kRGBRed);
+#endif
         this->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
             font_size, kRGBWhite, kRGBTransparent);
       }  // end foreach detection
-    }  // if detectoins
+    }  // if detections
   } catch (std::exception const & ex) {
     Error("draw_box Exception: %s", ex.what());
   }

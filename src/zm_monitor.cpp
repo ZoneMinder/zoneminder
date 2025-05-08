@@ -2627,9 +2627,10 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
 
   if (shared_data->analysis_image_count % (motion_frame_skip+1)) {
     Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
-    if (last_detections.size()) {
+    if (last_detection_count >0 and last_detections.size()) {
       ai_image->draw_boxes(last_detections, LabelSize(), LabelSize());
       last_detections = nlohmann::json({});
+      last_detection_count --;
     }
     packet->ai_image = ai_image;
     // Populate ai_frame as well
@@ -2638,6 +2639,9 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
 
     return std::make_pair(motion_score, cause);
   }
+   SystemTimePoint starttime = std::chrono::system_clock::now();
+   SystemTimePoint partial_starttime = starttime;
+
 
   if (!curl) {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -2649,15 +2653,24 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   }
 
   int img_buffer_size = 0;
+  //Image img(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); // copy, since we are scaling, maybe better to take from in_frame
   Image img(packet->in_frame.get(), 640, 640); // copy, since we are scaling, maybe better to take from in_frame
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  Debug(1, "UVICORN took: %.3f seconds to scale.", FPSeconds(endtime - starttime).count());
+  partial_starttime = endtime;
+  
+  //Image img(packet->in_frame.get(), 640, 640); // copy, since we are scaling, maybe better to take from in_frame
 
   uint8_t *img_buffer = new uint8_t[img.Size()];
   img.EncodeJpeg(static_cast<JOCTET *>(img_buffer), &img_buffer_size);
-  Debug(1, "CURL: Encoded JPEG is %d", img_buffer_size);
+
+  endtime = std::chrono::system_clock::now();
+  Debug(1, "UVICORN took: %.3f seconds to scale file size is %d.", FPSeconds(endtime - partial_starttime).count(), img_buffer_size);
+  partial_starttime = endtime;
   //
   std::string response;
   response.reserve(4096);
-  std::string endpoint = "http://127.0.0.1:8000/predict/";
+  std::string endpoint = stringtf("http://127.0.0.1:8000/predict/?camera_id=%d", id);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
   curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
@@ -2671,7 +2684,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   curl_mime_data_cb(part, (size_t)img_buffer_size, ReadCallback, NULL, NULL, &tr);
   //curl_mime_data(part, (const char *)img_buffer, img_buffer_size);
   curl_mime_name(part, "file");
-  curl_mime_filename(part, "file.jpg");
+  curl_mime_filename(part, stringtf("camera%d.jpg", id).c_str());
   
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -2685,7 +2698,10 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
     return std::make_pair(motion_score, cause);
   }
-  Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
+  endtime = std::chrono::system_clock::now();
+  Debug(1, "UVICORN took: %.3f seconds to send.", FPSeconds(endtime - partial_starttime).count());
+  partial_starttime = endtime;
+  //Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
   curl_mime_free(mime);
   delete[] img_buffer;
 
@@ -2705,9 +2721,15 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     ai_image->PopulateFrame(packet->ai_frame.get());
 
     packet->detections = detections["predictions"];
+    last_detection_count  = 5;
+    endtime = std::chrono::system_clock::now();
+    Debug(1, "UVICORN took: %.3f seconds to drawboxes.", FPSeconds(endtime - partial_starttime).count());
+    partial_starttime = endtime;
   } else {
     Debug(1, "CURL NOT DOING DRAW BOXES");
   }
+  endtime = std::chrono::system_clock::now();
+  Debug(1, "UVICORN took: %.3f seconds.", FPSeconds(endtime - starttime).count());
 
   return std::make_pair(motion_score, std::move(cause));
 }

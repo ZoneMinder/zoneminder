@@ -2710,7 +2710,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
     Debug(1, "CURL Doing draw_boxes camera dims %dx%d", camera_width, camera_height);
     nlohmann::json predictions = detections["predictions"];
-    predictions = scale_coordinates(predictions, camera_width/640.0, camera_height/640.0);
+    predictions = scale_coordinates(predictions, camera_width/640.0, camera_height/640.0, camera_width, camera_height);
     last_detections = predictions;
 
     Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies

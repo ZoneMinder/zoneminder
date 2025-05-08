@@ -549,7 +549,7 @@ class Monitor extends ZM_Object {
   public function getStreamSrc($args, $querySep='&amp;') {
     $streamSrc = $this->Server()->UrlToZMS(
       ZM_MIN_STREAMING_PORT ?
-      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
+      ZM_MIN_STREAMING_PORT+(int)($this->{'Id'}/5) :
       null);
 
     $args['monitor'] = $this->{'Id'};

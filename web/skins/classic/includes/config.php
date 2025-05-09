@@ -18,6 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+$Go2RTCTypes = array(
+  'WebRTC' => 'WebRTC',
+  'MSE' => 'MSE',
+  #'RTSP' => 'RTSP',
+  'HLS' => 'HLS',
+  'MJPEG' => 'MJPEG'
+);
 $RTSP2WebTypes = array(
   'HLS' => 'HLS',
   'MSE' => 'MSE',

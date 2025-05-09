@@ -26,6 +26,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
+#include <regex>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -519,4 +520,22 @@ std::string remove_authentication(const std::string &url) {
     }
   }
   return result;
+}
+
+std::string remove_newlines( std::string str ) {
+  while (!str.empty() && str.find("\n") != std::string::npos)
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
+  return str;
+}
+
+std::string escape_json_string( std::string input ) {
+  std::string tmp;
+  tmp = regex_replace(input, std::regex("\n"), "\\n");
+  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
+  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
+  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
+  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
+  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
+  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
+  return tmp;
 }

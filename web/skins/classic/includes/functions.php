@@ -266,6 +266,14 @@ function buildSidebarMenu() {
                 <span class="menu-title">' . translate("Forums") . '</span>
               </a>
             </li>
+            <li class="menu-item">
+              <a href="https://zoneminder-chat.slack.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">chat</i>
+                </span>
+                <span class="menu-title">' . translate("Slack") . '</span>
+              </a>
+            </li>
             <li class="menu-header hidden-for-collapsed" style="padding-top: 20px">
               <label for="useOldMenuView" class="control-label text-md-right">' . translate("USE OLD MENU VIEW") . '</label>
               <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>

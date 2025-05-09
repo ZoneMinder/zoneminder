@@ -368,7 +368,6 @@ bool Image::Assign(const AVFrame *frame) {
                           frame->width, frame->height, (AVPixelFormat)frame->format,
                           width, height, format,
                           SWS_BICUBIC,
-                          //SWS_POINT | SWS_BITEXACT,
                           nullptr, nullptr, nullptr);
   if (sws_convert_context == nullptr) {
     Error("Unable to create conversion context");
@@ -381,8 +380,8 @@ bool Image::Assign(const AVFrame *frame) {
 
 bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame) {
   PopulateFrame(temp_frame);
-  //zm_dump_video_frame(frame, "source frame before convert");
-  //zm_dump_video_frame(temp_frame, "dest frame before convert");
+  zm_dump_video_frame(frame, "source frame before convert");
+  zm_dump_video_frame(temp_frame, "dest frame before convert");
   temp_frame->pts = frame->pts;
 
   //Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);
@@ -2778,72 +2777,72 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   }
 }
 
-void Image::DrawBox(unsigned int x, unsigned int y, unsigned int box_width, unsigned int box_height, Rgb colour) {
+void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom, Rgb colour) {
+  if (left >width) left = width;
+  if (right>width) right = width;
+  if (top > height) top = height;
+  if (bottom > height) bottom = height;
+
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
-  colour = rgb_convert(colour, ZM_SUBPIX_ORDER_RGBA);
-  Debug(1, "R %d G %d B %d ", RED_VAL_RGBA(colour), GREEN_VAL_RGBA(colour), BLUE_VAL_RGBA(colour));
   if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
     uint8_t *buffer_end = buffer+size;
-    int32_t yuv_colour = brg_to_yuv(colour);
-    int8_t y_colour = Y_VAL(yuv_colour);
-    int8_t u_colour = U_VAL(yuv_colour);
-    int8_t v_colour = V_VAL(yuv_colour);
-    int uv_width = width/2;
-    Debug(1, "Y %d U %d V %d ",y_colour, y_colour, v_colour);
+    YUV yuv_colour = brg_to_yuv(colour);
+    uint8_t y_colour = Y_VAL(yuv_colour);
+    uint8_t u_colour = U_VAL(yuv_colour);
+    uint8_t v_colour = V_VAL(yuv_colour);
+    int uv_width = width >> 1;
+    Debug(1, "R %u G %u B %u YUV %u U %u V %u %u,%u => %u,%u",
+        RED_VAL_RGBA(colour), GREEN_VAL_RGBA(colour), BLUE_VAL_RGBA(colour),
+        y_colour, u_colour, v_colour, left, top, right, bottom);
+    int vsub = 1;
+    int hsub = 1;
 
     uint8_t *y_buffer = buffer;
     uint8_t *u_buffer = buffer + width*height;
-    uint8_t *v_buffer = u_buffer + width*height/4;
-
-    unsigned int row = y;
-    unsigned int uv_row = row/2;
+    uint8_t *v_buffer = u_buffer + (width*height>>2);
+    Debug(1, "buffer_ptr %p, size %u total %p ",buffer, size, buffer+size);
+ 
+    unsigned int row = top;
+    unsigned int uv_row = row >> 1;
     //top
-    for (unsigned int col = x; col < x + box_width; ++col) {
-      y_buffer[row * width + col] = y_colour;
-      u_buffer[uv_row * uv_width + col/2] = u_colour;
-      v_buffer[uv_row * uv_width + col/2] = v_colour;
+    for (unsigned int col = left; col < right; ++col) {
+      int index = row * width + col;
+      y_buffer[index] = y_colour;
+      index = (uv_row * uv_width + (col>>1));
+      //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d", col, row, col>>1, uv_row, row * width + col, index);
+      u_buffer[index] = u_colour;
+      v_buffer[index] = v_colour;
     }
-    //row /= 2;
-    //for (unsigned int col = x / 2; col < (x + box_width) / 2; ++col) {
-      //u_buffer[row * uv_width + col/2] = u_colour;
-      //v_buffer[row * uv_width + col/2] = v_colour;
-    //}
-
     // Sides
-    // Draw the box on the Y plane
-    for (row = y; row < y + box_height; ++row) {
-      y_buffer[row * width + x] = y_colour;
-      y_buffer[row * width + x + box_width] = y_colour;
+    for (row = top; row < bottom; ++row) {
+      // Draw the box on the Y plane
+      y_buffer[row * width + left] = y_colour;
+      y_buffer[row * width + right] = y_colour;
 
-      uv_row = row/2;
-      u_buffer[uv_row * uv_width + x/2] = u_colour;
-      u_buffer[uv_row * uv_width + (x+box_width)/2] = u_colour;
-      v_buffer[uv_row * uv_width + x/2] = v_colour;
-      v_buffer[uv_row * uv_width + (x+box_width)/2] = v_colour;
+      uv_row = row >> vsub;
+      unsigned int index = uv_row * uv_width + (left>>hsub);
+      Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
+      u_buffer[index] = u_colour;
+      v_buffer[index] = v_colour;
+      index += ((right-left)>>hsub);
+      Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
+      u_buffer[index] = u_colour;
+      v_buffer[index] = v_colour;
     }
-    //for (row = y/2; row < (y + box_height) / 2; ++row) {
-      //u_buffer[row/2 * uv_width + x/2] = u_colour;
-      //u_buffer[row/2 * uv_width + (x+box_width)/2] = u_colour;
-      //v_buffer[row/2 * uv_width + x/2] = v_colour;
-      //v_buffer[row/2 * uv_width + (x+box_width)/2] = v_colour;
-    //}
 
     // Bottom
-    row = y + box_height-1; // zero-based?
-    uv_row = row/2;
-    // Draw the box on the Y plane
-    for (unsigned int col = x; col < x + box_width; ++col) {
+    row = bottom;
+    uv_row = row >> vsub;
+    for (unsigned int col = left; col < right; ++col) {
+      // Draw the box on the Y plane
       y_buffer[row * width + col] = y_colour;
-      unsigned int index = uv_row * uv_width + col/2;
+      unsigned int index = uv_row * uv_width + (col>>hsub);
       u_buffer[index] = u_colour;
       if (v_buffer+index < buffer_end)
         v_buffer[index] = v_colour;
       else
-        Error("Address index %d = %d %d * %d + %d/2> size %d", index, row, uv_row, uv_width, col, size);
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, col, size);
     }
-    //row /= 2;
-    //for (unsigned int col = x / 2; col < (x + box_width) / 2; ++col) {
-    //}
   } else {
     Error("Drawbox for other formats not finished.");
   }
@@ -2883,7 +2882,6 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
       double x;
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
-#if 1
       if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
         int32_t yuv_colour = brg_to_yuv(colour);
         int8_t y_colour = Y_VAL(yuv_colour);
@@ -2894,23 +2892,21 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
         uint8_t *v_buffer = u_buffer + width*height/4;
         Debug(1, "buffer_ptr %p, size %u total %p ",buffer, size, buffer+size);
         uint8_t *buffer_end = buffer+size;
-        int uv_width = int(round(width/2));
+        int uv_width = width >> 1;
 
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          Debug(1, "Y %d = %d", (y*width)+int(round(x)), y_colour);
+          //Debug(1, "Y %d = %d", (y*width)+int(round(x)), y_colour);
           y_buffer[(y*width)+int(round(x))] = y_colour;
           int index = ((y/2)*uv_width)+int(round(x/2));
-          Debug(1, "U %d = %d", index, u_colour);
+          //Debug(1, "U %d = %d", index, u_colour);
           u_buffer[index] = u_colour;
-          Debug(1, "V %d = %d", index, v_colour);
+          //Debug(1, "V %d = %d", index, v_colour);
           if (v_buffer+index < buffer_end)
             v_buffer[index] = v_colour;
           else
-            Fatal("Address index %d > size %d", index, size);
+            Error("Address index %d > size %d", index, size);
         }
-      } else 
-#endif
-      if ( colours == ZM_COLOUR_GRAY8 ) {
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           buffer[(y*width)+int(round(x))] = colour;
         }

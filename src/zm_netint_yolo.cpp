@@ -339,6 +339,7 @@ int Quadra_Yolo::draw_roi_box_in_place(
 
   for (int i=0; i<line_width; i++) {
 #if SOFTWARE_DRAWBOX
+#if 0
     std::vector<Vector2> coords;
     coords.push_back(Vector2(roi.left + i, roi.top + i));
     coords.push_back(Vector2(roi.right - i, roi.top + i));
@@ -347,6 +348,9 @@ int Quadra_Yolo::draw_roi_box_in_place(
 
     Polygon poly(coords);
     in_image.Outline(kRGBGreen, poly);
+#else
+    in_image.DrawBox(roi.left+i, roi.top+i, roi.right-2*i, roi.bottom-2*i, kRGBGreen);
+#endif
   }  // end while
 #else
     int x = roi.left + i; // line
@@ -408,6 +412,7 @@ int Quadra_Yolo::draw_roi_box(
 
   for (int i=0; i<line_width; i++) {
 #if SOFTWARE_DRAWBOX
+#if 0
     std::vector<Vector2> coords;
     coords.push_back(Vector2(roi.left + i, roi.top + i));
     coords.push_back(Vector2(roi.right - i, roi.top + i));
@@ -416,6 +421,9 @@ int Quadra_Yolo::draw_roi_box(
 
     Polygon poly(coords);
     in_image.Outline(kRGBGreen, poly);
+#else
+    in_image.DrawBox(roi.left+i, roi.top+i, roi.right-2*i, roi.bottom-2*i, kRGBGreen);
+#endif
   }  // end while
 #else
     int x = roi.left + i; // line
@@ -483,7 +491,7 @@ int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, AVBuffe
       "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d:frame_rate=%d/%d",
       dec_ctx->width, dec_ctx->height, input_fmt, time_base.num, time_base.den,
       dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den,
-      dec_ctx->framerate.num,dec_ctx->framerate.den);
+      dec_ctx->framerate.num, dec_ctx->framerate.den);
   Debug(1, "Setting filter %s to %s", name, args);
 
   ret = avfilter_graph_create_filter(&f->buffersrc_ctx, avfilter_get_by_name("buffer"), name, args, nullptr, f->filter_graph);
@@ -572,13 +580,15 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
   AVFrame *input = nullptr;
 #if SOFTWARE_DRAWBOX
-  if (1) {
+  if (frame->hw_frames_ctx) {
 #else
   if (!use_hwframe) {
 #endif
     if (!hwdl_filter.initialised) {
-      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", frame->hw_frames_ctx, dec_ctx->pix_fmt))
+      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", frame->hw_frames_ctx, dec_ctx->pix_fmt)) {
         Warning("No hwdl");
+        return -1;
+      }
     }
 
     // Allocates the frame, gets the image from hw

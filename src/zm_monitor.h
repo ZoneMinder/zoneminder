@@ -720,9 +720,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
 #if HAVE_QUADRA
-  Quadra_Yolo *quadra;
+  //Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
+  std::mutex   quadra_mutex;
 #endif
+  nlohmann::json last_detections;
+  int last_detection_count;
 
   // Used in check signal
   uint8_t red_val;
@@ -731,6 +734,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint8_t grayscale_val; /* 8bit grayscale color */
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
+
 
  public:
   explicit Monitor();
@@ -798,7 +802,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return shared_data->janus_pin;
   }
 #if HAVE_QUADRA
-  Quadra_Yolo *getQuadra() const { return quadra; };
+  //Quadra_Yolo *getQuadra() const { return quadra; };
 #endif
 
   inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
@@ -995,8 +999,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
-  nlohmann::json last_detections;
-  int last_detection_count;
 
   std::pair<int, std::string> Analyse_UVICORN(std::shared_ptr<ZMPacket> packet);
   std::pair<int, std::string> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);

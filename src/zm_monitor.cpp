@@ -338,9 +338,11 @@ Monitor::Monitor() :
   Amcrest_Manager(nullptr),
   onvif(nullptr),
 #if HAVE_QUADRA
-  quadra(nullptr),
+  //quadra(nullptr),
   quadra_yolo(nullptr),
 #endif
+  //nlohmann::json last_detections;
+  last_detection_count(0),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1357,10 +1359,6 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
-#if HAVE_QUADRA
-  if (quadra) delete quadra;
-  if (quadra_yolo) delete quadra_yolo;
-#endif
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -2431,7 +2429,7 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (1 and packet->ai_frame) {
+        if (0 and packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
@@ -2523,6 +2521,8 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   int score = 0;
   std::string cause;
 
+  // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
+  std::lock_guard<std::mutex> lck(quadra_mutex);
   //OBJECT_DETECTION_QUADRA) {
   if (!quadra_yolo) {
     quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
@@ -2570,6 +2570,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
           do {
             ret = quadra_yolo->receive_detection(packet);
             if (0 < ret) {
+              last_detection_count = 5;
               endtime = std::chrono::system_clock::now();
               if (endtime - starttime > Seconds(1)) {
                 Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
@@ -2596,7 +2597,10 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
           } while (ret == 0 and count > 0);
         } // end if failed to send
       } else {
-        quadra_yolo->draw_last_roi(packet);
+        if (last_detection_count>0) {
+          last_detection_count --;
+          quadra_yolo->draw_last_roi(packet);
+        }
       } // end if skip_frame
     } // end if has input_frame/hw_frame
   } // end yolo
@@ -3341,13 +3345,21 @@ int Monitor::Decode() {
       decoder_queue.pop_front();
       packet = delayed_packet;
 #if HAVE_QUADRA
-      if (!quadra)
+      //if (!quadra_yolo)
 #endif
         packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
-        // Need to close and re-open codec.
+        {
+          std::lock_guard<std::mutex> lck(quadra_mutex);
+          if (quadra_yolo) {
+            delete quadra_yolo;
+            quadra_yolo = nullptr;
+          }
+        }
+
+          // Need to close and re-open codec.
         avcodec_free_context(&mVideoCodecContext);
         if (mAudioCodecContext)
           avcodec_free_context(&mVideoCodecContext);
@@ -4061,6 +4073,23 @@ int Monitor::Pause() {
     Debug(4, "Joining analysis");
     analysis_thread->Join();
   }
+
+#if HAVE_QUADRA
+  {
+    std::lock_guard<std::mutex> lck(quadra_mutex);
+#if 0
+    if (quadra) {
+      delete quadra;
+      quadra = nullptr;
+    }
+#endif
+
+    if (quadra_yolo) {
+      delete quadra_yolo;
+      quadra_yolo = nullptr;
+    }
+  }
+#endif
 
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {

@@ -417,8 +417,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *parent;
     CURL *curl = nullptr;
     // helper class for CURL
-    static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
-                                void *userp);
+    struct transfer {
+      const char *buf;
+      size_t total;
+      size_t uploaded;
+    };
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
     bool Go2RTC_Healthy;
     bool Use_RTSP_Restream;
     std::string Go2RTC_endpoint;

@@ -109,7 +109,7 @@ foreach ($monitors as $m) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if ( $m->RTSP2WebEnabled() and $m->RTSP2WebType == "HLS") {
+  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS') or ($m->Go2RTCEnabled() and $m->Go2RTCType == 'HLS')) {
     $hasHLS = true;
   }
   if ($hasPtzControls && $hasHLS) {
@@ -213,18 +213,8 @@ if (
   $options['scale'] = 0;
 }
 
-function getStreamModeMonitor($monitor) {
-  if ($monitor->JanusEnabled()) {
-    $streamMode = 'janus';
-  } else if ($monitor->RTSP2WebEnabled()) {
-    $streamMode = $monitor->RTSP2WebType();
-  } else {
-    $streamMode = getStreamMode();
-  }
-  return $streamMode;
-}
 
-$streamMode = getStreamModeMonitor($monitor);
+$streamMode = $monitor->getStreamMode();
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 getBodyTopHTML();
@@ -379,12 +369,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
     }
     echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.$m->Name().'</a></li>';
   }
-  if ($monitorJanusUsed) {
-?>
-    <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
-    <script src="/javascript/janus/janus.js"></script>
-<?php
-  }
  ?>
           </ul>
         </nav>
@@ -503,13 +487,13 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
   </div>
 </div>
 <?php
-if ($hasHLS) {
-?>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
-<?php
-}
-?>
-<?php
+    if ($hasHLS) {
+      echo '<script src="'.cache_bust('js/hls-1.5.20/hls.min.js').'"></script>';
+    }
+    if ($monitorJanusUsed) {
+      echo '<script src="'.cache_bust('js/adapter.min.js').'"></script>';
+      echo '<script src="/javascript/janus/janus.js"></script>';
+    }
   } else {
     echo "There are no monitors to display\n";
   }

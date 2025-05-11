@@ -51,6 +51,8 @@ monitorData[monitorData.length] = {
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
   'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
+  'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
+  'Go2RTCType': '<?php echo $m->Go2RTCType() ?>',
   'SecondPath':'<?php echo $m->SecondPath() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

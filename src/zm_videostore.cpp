@@ -486,6 +486,15 @@ bool VideoStore::open() {
         } // end if audio_out_ctx
       } // end if audio_out_stream
     } // end if is AAC
+
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
+
+    // We will assume that subsequent stream allocations will increase the index
+    max_stream_index = audio_out_stream->index;
+    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+    reorder_queues[audio_out_stream->index] = {};
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -1052,6 +1061,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
     Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
     return -1;
   }
+  Debug(1, "Queue for %d", stream_index);
   auto &queue = reorder_queues[stream_index];
   Debug(1, "Queue size for %d is %zu", stream_index, queue.size());
 

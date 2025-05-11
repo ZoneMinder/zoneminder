@@ -2429,7 +2429,7 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (0 and packet->ai_frame) {
+        if (1 and packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
@@ -2524,7 +2524,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
   std::lock_guard<std::mutex> lck(quadra_mutex);
   //OBJECT_DETECTION_QUADRA) {
-  if (!quadra_yolo) {
+  if (!quadra_yolo and mVideoCodecContext) {
     quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
     int deviceid = -1;
     if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
@@ -3359,10 +3359,13 @@ int Monitor::Decode() {
           }
         }
 
-          // Need to close and re-open codec.
+        // Need to close and re-open codec.
         avcodec_free_context(&mVideoCodecContext);
-        if (mAudioCodecContext)
+        mVideoCodecContext = nullptr;
+        if (mAudioCodecContext) {
           avcodec_free_context(&mVideoCodecContext);
+          mAudioCodecContext = nullptr;
+        }
       }
       return ret;
     } else {
@@ -3429,9 +3432,15 @@ int Monitor::Decode() {
         if (0 == ret) {
           return 0; //make it sleep? No
         } else if (ret < 0) {
+          std::lock_guard<std::mutex> lck(quadra_mutex);
           // No need to push because it didn't get into the decoder.
           avcodec_free_context(&mVideoCodecContext);
-          avcodec_free_context(&mAudioCodecContext);
+          mVideoCodecContext = nullptr;
+          if (mAudioCodecContext) {
+            avcodec_free_context(&mAudioCodecContext);
+            mAudioCodecContext = nullptr;
+          }
+
           return -1;
         //} else {
           //Debug(1, "Success");

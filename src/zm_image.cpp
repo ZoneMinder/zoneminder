@@ -310,6 +310,7 @@ Image::Image(const AVFrame *frame) :
   holdbuffer(0)
 {
   AssignDirect(frame);
+
 }
 
 static void dont_free(void *opaque, uint8_t *data) {
@@ -320,8 +321,11 @@ int Image::PopulateFrame(AVFrame *frame) const {
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)
        );
-  if (frame->buf[0]) {
-    Warning("Frame is not empty!");
+  if (!frame) {
+    Error("Frame is null!");
+    return -1;
+  } else if (frame->buf[0]) {
+    Error("Frame is not empty!");
   }
 #if 1
   AVBufferRef *ref = av_buffer_create(buffer, size,
@@ -383,6 +387,8 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   zm_dump_video_frame(frame, "source frame before convert");
   zm_dump_video_frame(temp_frame, "dest frame before convert");
   temp_frame->pts = frame->pts;
+  u_buffer = temp_frame->data[1];
+  v_buffer = temp_frame->data[2];
 
   //Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);
   int ret = sws_scale(convert_context,
@@ -734,7 +740,10 @@ uint8_t* Image::WriteBuffer(
 void Image::AssignDirect(const AVFrame *frame) {
   width = frame->width;
   height = frame->height;
-  buffer = frame->buf[0]->data;
+  buffer = frame->data[0];
+  u_buffer = frame->data[1];
+  v_buffer = frame->data[2];
+
   linesize = frame->linesize[0];
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
@@ -2778,14 +2787,13 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
 }
 
 void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom, Rgb colour) {
-  if (left >width) left = width;
-  if (right>width) right = width;
-  if (top > height) top = height;
-  if (bottom > height) bottom = height;
+  if (left >= width) left = width-1;
+  if (right>=width) right = width-1;
+  if (top >= height) top = height-1;
+  if (bottom >= height) bottom = height-1;
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   if (colours == ZM_COLOUR_YUV420P && subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-    uint8_t *buffer_end = buffer+size;
     YUV yuv_colour = brg_to_yuv(colour);
     uint8_t y_colour = Y_VAL(yuv_colour);
     uint8_t u_colour = U_VAL(yuv_colour);
@@ -2798,20 +2806,27 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
     int hsub = 1;
 
     uint8_t *y_buffer = buffer;
-    uint8_t *u_buffer = buffer + width*height;
-    uint8_t *v_buffer = u_buffer + (width*height>>2);
-    Debug(1, "buffer_ptr %p, size %u total %p ",buffer, size, buffer+size);
+    Debug(1, "y_buffer_ptr %p u_buffer %p, v_buffer %p, size %u total %p ",buffer, u_buffer, v_buffer, size, buffer+size);
  
     unsigned int row = top;
     unsigned int uv_row = row >> 1;
+    unsigned int uv_size = size >> 1;
     //top
     for (unsigned int col = left; col < right; ++col) {
-      int index = row * width + col;
+      unsigned int index = row * width + col;
       y_buffer[index] = y_colour;
       index = (uv_row * uv_width + (col>>1));
-      //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d", col, row, col>>1, uv_row, row * width + col, index);
-      u_buffer[index] = u_colour;
-      v_buffer[index] = v_colour;
+      //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
+          //u_buffer+index, v_buffer+index
+          //);
+      if (index < uv_size)
+        u_buffer[index] = u_colour;
+      else
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
+      if (index < uv_size)
+        v_buffer[index] = v_colour;
+      else
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
     }
     // Sides
     for (row = top; row < bottom; ++row) {
@@ -2821,13 +2836,23 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
 
       uv_row = row >> vsub;
       unsigned int index = uv_row * uv_width + (left>>hsub);
-      Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
-      u_buffer[index] = u_colour;
-      v_buffer[index] = v_colour;
+      //Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
+      if (index < uv_size)
+        u_buffer[index] = u_colour;
+      else
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
+
+      if (index < uv_size)
+        v_buffer[index] = v_colour;
+      else
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
       index += ((right-left)>>hsub);
-      Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
+      //Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
       u_buffer[index] = u_colour;
-      v_buffer[index] = v_colour;
+      if (index < uv_size)
+        v_buffer[index] = v_colour;
+      else
+        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, right, size);
     }
 
     // Bottom
@@ -2838,10 +2863,10 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
       y_buffer[row * width + col] = y_colour;
       unsigned int index = uv_row * uv_width + (col>>hsub);
       u_buffer[index] = u_colour;
-      if (v_buffer+index < buffer_end)
+      if (index < uv_size)
         v_buffer[index] = v_colour;
       else
-        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, col, size);
+        Error("Address index %d = row:%d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, col, size);
     }
   } else {
     Error("Drawbox for other formats not finished.");

@@ -134,6 +134,8 @@ SwsContext *sws_convert_context;
   unsigned long allocation;
   _AVPIXELFORMAT      imagePixFormat;
   uint8_t *buffer;
+  uint8_t *u_buffer;
+  uint8_t *v_buffer;
   int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
   int holdbuffer; /* Hold the buffer instead of replacing it with new one */
   std::string annotation_;

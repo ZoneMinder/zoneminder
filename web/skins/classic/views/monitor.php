@@ -1263,6 +1263,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
             </li>
+            <li id="FunctionGo2RTCEnabled">
+              <label><?php echo translate('Go2RTC Live Stream') ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
+  }
+?>
+            <li id="Go2RTCType">
+              <label><?php echo translate('Go2RTC Type') ?> <?php echo $monitor->Go2RTCType() ?> </label>
+              <?php echo htmlSelect('newMonitor[Go2RTCType]', $Go2RTCTypes, $monitor->Go2RTCType()); ?>
+            </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?>/>

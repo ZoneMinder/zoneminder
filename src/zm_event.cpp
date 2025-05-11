@@ -213,7 +213,7 @@ int Event::OpenJpegCodec(AVFrame *frame) {
 
     if (0 && setup_hwaccel(mJpegCodecContext,
           chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
-      avcodec_free_context(&mJpegCodecContext);
+        avcodec_free_context(&mJpegCodecContext);
       continue;
     }
 
@@ -258,13 +258,15 @@ int Event::OpenJpegCodec(AVFrame *frame) {
       return -1;
     }
   }
-  output_frame = av_frame_ptr{zm_av_frame_alloc()};
+#if 1
+  output_frame = av_frame_ptr{zm_av_frame_alloc()}; // The assignment here will destruct any previous allocation
   output_frame->width  = mJpegCodecContext->width;
   output_frame->height = mJpegCodecContext->height;
   output_frame->format = AV_PIX_FMT_YUVJ420P;
   //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
   av_frame_get_buffer(output_frame.get(), 0);
   zm_dump_video_frame(output_frame, "OpenCodec(output_frame)");
+#endif
 
   return 0;
 }
@@ -407,17 +409,33 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
     Error("Couldn't get lock on %s, continuing", filename.c_str());
   }
 
-  //if ( p_jpegswscontext ) {
-    Debug(1, "Have sws context, converting from %dx%d %s to %dx%d %s",
-        in_frame->width, in_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format)),
-        mJpegCodecContext->width, mJpegCodecContext->width, av_get_pix_fmt_name(AV_PIX_FMT_YUVJ420P)
-        );
-    sws_scale(mJpegSwsContext, in_frame->data, in_frame->linesize, 0, in_frame->height, output_frame->data, output_frame->linesize);
-  //}
+  Debug(1, "Have sws context, converting from %dx%d %s to %dx%d %s",
+      in_frame->width, in_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format)),
+      mJpegCodecContext->width, mJpegCodecContext->width, av_get_pix_fmt_name(AV_PIX_FMT_YUVJ420P)
+      );
+
+#if 0
+  av_frame_ptr out_frame = av_frame_ptr{zm_av_frame_alloc()};
+  out_frame->width  = mJpegCodecContext->width;
+  out_frame->height = mJpegCodecContext->height;
+  out_frame->format = AV_PIX_FMT_YUVJ420P;
+  //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+  av_frame_get_buffer(out_frame.get(), 0);
+  zm_dump_video_frame(out_frame, "OpenCodec(output_frame)");
+  zm_dump_video_frame(in_frame, "OpenCodec(in_frame)");
+#endif
+
+  int ret = sws_scale(mJpegSwsContext, in_frame->data, in_frame->linesize, 0, in_frame->height, output_frame->data, output_frame->linesize);
+  if (ret < 0) {
+    Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
+        (unsigned long)in_frame->data, in_frame->linesize[0], in_frame->linesize[1],
+        in_frame->linesize[2], in_frame->linesize[3], in_frame->height, output_frame->linesize[0]);
+    return ret;
+  }
 
   zm_dump_video_frame(in_frame, "Image.WriteJpeg(frame)");
 
-  int ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
+  ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
   while (ret == AVERROR(EAGAIN) and !zm_terminate)
     ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
   Debug(1, "Retcode from avcodec_send_frame, %d", ret);
@@ -428,6 +446,7 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
       Debug(1, "Getting packet");
       ret = avcodec_receive_packet(mJpegCodecContext, pkt);
       if (ret == 0) {
+       // or ret == AVERROR(EOF)) {  // EOF is ok because it is jpeg:
         Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
         fwrite(pkt->data, 1, pkt->size, outfile);
         break;
@@ -435,9 +454,15 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
         Debug(1, "EAGAIN");
       } else if (ret < 0) {
         Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());
+        if (pkt->size) {
+          Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
+          fwrite(pkt->data, 1, pkt->size, outfile);
+        }
+        avcodec_free_context(&mJpegCodecContext);
+        mJpegCodecContext = nullptr;
         break;
       }
-    }
+    }  // end while
     av_packet_free(&pkt);
   } else {
     Error("Ret from send_frame %d", ret);
@@ -974,6 +999,7 @@ void Event::Run() {
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
 
+#if 0
       if (packet->image) {
         if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
           if (!save_jpegs) {
@@ -991,9 +1017,10 @@ void Event::Run() {
       } // end if packet->image
       if (!videoStore or !videoStore->get_reorder_queue_size()) {
         // Don't do this because videostore might buffer for reordering
-        packet->in_frame = nullptr;
-        packet->ai_frame = nullptr;
+        //packet->in_frame = nullptr;
+        //packet->ai_frame = nullptr;
       }
+#endif
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

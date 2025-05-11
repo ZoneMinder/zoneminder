@@ -1404,5 +1404,18 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     return $this->shared_read('SharedData', 'last_event');
   }
+
+public function getStreamMode() {
+  if ($this->JanusEnabled()) {
+    $streamMode = 'janus';
+  } else if ($this->RTSP2WebEnabled()) {
+    $streamMode = $this->RTSP2WebType();
+  } else if ($this->Go2RTCEnabled()) {
+    $streamMode = $this->Go2RTCType();
+  } else {
+    $streamMode = getStreamMode();
+  }
+  return $streamMode;
+}
 } // end class Monitor
 ?>

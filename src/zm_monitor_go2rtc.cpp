@@ -1,5 +1,5 @@
 //
-// ZoneMinder Monitor::Go2RTCManager Class Implementation, $Date$, $Revision$
+// ZoneMinder Monitor::Go2RTCManager Class Implementation
 // Copyright (C) 2025 Ben Dailey
 //
 // This program is free software; you can redistribute it and/or
@@ -29,12 +29,12 @@
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
   Use_RTSP_Restream = false;
-  if ((config.rtsp2web_path != nullptr) && (config.rtsp2web_path[0] != '\0')) {
-    Go2RTC_endpoint = config.rtsp2web_path;
+  if ((config.go2rtc_api_path != nullptr) && (config.go2rtc_api_path[0] != '\0')) {
+    Go2RTC_endpoint = config.go2rtc_api_path;
     // remove the trailing slash if present
     if (Go2RTC_endpoint.back() == '/') Go2RTC_endpoint.pop_back();
   } else {
-    Go2RTC_endpoint = "demo:demo@127.0.0.1:8083";
+    Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
   }
 
   rtsp_path = parent->path;
@@ -72,20 +72,18 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
   // Assemble our actual request
   std::string response;
-  std::string endpoint =
-      Go2RTC_endpoint + "/stream/" + std::to_string(parent->id) + "/info";
+  std::string endpoint = Go2RTC_endpoint + "/stream/" + std::to_string(parent->id) + "/info";
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-  // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
   CURLcode res = curl_easy_perform(curl);
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("Attempted to send to %s and got %s", endpoint.c_str(),
-            curl_easy_strerror(res));
+    Warning("Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -112,33 +110,40 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     return -1;
   }
 
-  std::string endpoint =
-      Go2RTC_endpoint + "/stream/" + std::to_string(parent->id) + "/add";
+  std::string endpoint = Go2RTC_endpoint + "/api/streams";
+  endpoint += "?name="+std::to_string(parent->Id())+"&src="+UriEncode(rtsp_path);
 
   // Assemble our actual request
   std::string postData =
-      "{\"name\" : \"" + std::string(parent->Name()) +
-      "\", \"channels\" : {"
-      " \"0\" : {"
-      "  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" +
-      rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
-  if (!rtsp_second_path.empty()) {
-    postData +=
-        ", \"1\" : {"
-        "  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" +
-        rtsp_second_path +
-        "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
-  }
-  postData +=
-      "}"
+      "{\"name\" : \"" + std::string(parent->Name()) + "\", " +
+      "\"src\": \""+rtsp_path+"\" " +
       "}";
+      //"\", \"channels\" : {"
+      //" \"0\" : {"
+      //"  \"name\" : \"ch1\", \"audio\" : true, \"url\" : \"" +
+      //rtsp_path + "\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+  //if (!rtsp_second_path.empty()) {
+    //postData +=
+        //", \"1\" : {"
+        //"  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" +
+        //rtsp_second_path +
+        //"\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
+  //}
+  //postData +=
+      //"}"
+      //"}";
 
-  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
+  Debug(1, "Go2RTC Sending %s to %s", postData.c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;
+  //struct transfer tr = {postData.c_str(), postData.size(), 0};
 
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
+  //curl_easy_setopt(curl, CURLOPT_READFUNCTION, ReadCallback);
+  //curl_easy_setopt(curl, CURLOPT_READDATA, &tr);
+  //curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
@@ -198,6 +203,18 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   return 0;
 }
 
+size_t Monitor::Go2RTCManager::ReadCallback(char *ptr, size_t size, size_t nmemb, void *data) {
+  struct transfer * tr = static_cast<struct transfer *>(data);
+  size_t left = tr->total - tr->uploaded;
+  size_t max_chunk = size * nmemb;
+  size_t retcode = left < max_chunk ? left : max_chunk;
+
+  memcpy(ptr, tr->buf + tr->uploaded, retcode); // <-- voodoo-mumbo-jumbo :-)
+  Debug(1, "Read: %zu", retcode);
+
+  tr->uploaded += retcode;  // <-- save progress
+  return retcode;
+}
 size_t Monitor::Go2RTCManager::WriteCallback(void *contents, size_t size,
                                              size_t nmemb, void *userp) {
   ((std::string *)userp)->append((char *)contents, size * nmemb);

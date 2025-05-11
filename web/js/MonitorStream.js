@@ -321,6 +321,8 @@ function MonitorStream(monitorData) {
       }
     }
     if (this.Go2RTCEnabled) {
+      console.log("GO" + ZM_GO2RTC_API_PATH);
+      //const ZM_GO2RTC_PATH = ZM_GO2RTC_API_PATH;
       if (ZM_GO2RTC_PATH) {
         const videoEl = document.getElementById("liveStream" + this.id);
         const url = new URL(ZM_GO2RTC_PATH);
@@ -330,9 +332,15 @@ function MonitorStream(monitorData) {
         Go2RTCModUrl.username = '';
         Go2RTCModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        if (this.Go2RTCType == 'HLS') {
+          console.log(this.Go2RTCType);
+        if (this.Go2RTCType == 'WebRTC') {
+          const webrtcUrl = Go2RTCModUrl;
+          webrtcUrl.search = "?src=" + this.id;
+          console.log(webrtcUrl);
+          startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
+        } else if (this.Go2RTCType == 'HLS') {
           const hlsUrl = Go2RTCModUrl;
-          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
+          hlsUrl.pathname = "/stream.m3u8?src=" + this.id;
           /*
           if (useSSL) {
             hlsUrl = "https://" + Go2RTCModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
@@ -357,6 +365,8 @@ function MonitorStream(monitorData) {
           const webrtcUrl = Go2RTCModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startGo2RTCPlay(videoEl, webrtcUrl.href, this);
+        } else {
+          console.log("Unknown type");
         }
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -366,6 +376,8 @@ function MonitorStream(monitorData) {
       } else {
         console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
       }
+    } else {
+      console.log("Not GO");
     }
 
     // zms stream

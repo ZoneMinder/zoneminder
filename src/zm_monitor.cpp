@@ -3351,6 +3351,7 @@ int Monitor::Decode() {
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
+#if HAVE_QUADRA
         {
           std::lock_guard<std::mutex> lck(quadra_mutex);
           if (quadra_yolo) {
@@ -3358,6 +3359,7 @@ int Monitor::Decode() {
             quadra_yolo = nullptr;
           }
         }
+#endif
 
         // Need to close and re-open codec.
         avcodec_free_context(&mVideoCodecContext);

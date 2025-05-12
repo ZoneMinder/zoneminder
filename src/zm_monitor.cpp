@@ -3434,7 +3434,9 @@ int Monitor::Decode() {
         if (0 == ret) {
           return 0; //make it sleep? No
         } else if (ret < 0) {
+#if HAVE_QUADRA
           std::lock_guard<std::mutex> lck(quadra_mutex);
+#endif
           // No need to push because it didn't get into the decoder.
           avcodec_free_context(&mVideoCodecContext);
           mVideoCodecContext = nullptr;

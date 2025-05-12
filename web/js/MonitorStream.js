@@ -83,6 +83,11 @@ function MonitorStream(monitorData) {
     }
   };
 
+  this.player = '';
+  this.setPlayer = function(p) {
+    return this.player = p;
+  };
+
   this.element = null;
   this.getElement = function() {
     if (this.element) return this.element;
@@ -245,10 +250,10 @@ function MonitorStream(monitorData) {
   }; // setStreamScale
 
   this.start = function(streamChannel = 'default') {
-    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`);
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`, this.player);
     this.streamListenerBind = streamListener.bind(null, this);
 
-    if (this.janusEnabled) {
+    if ((false !== this.player.indexOf('janus')) && this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -272,7 +277,7 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
-    if (this.RTSP2WebEnabled) {
+    if (this.RTSP2WebEnabled && (false !== this.player.indexOf('rtsp2web'))) {
       if (ZM_RTSP2WEB_PATH) {
         const videoEl = document.getElementById("liveStream" + this.id);
         const url = new URL(ZM_RTSP2WEB_PATH);
@@ -320,10 +325,8 @@ function MonitorStream(monitorData) {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
       }
     }
-
-    if (this.Go2RTCEnabled) {
+    if (this.Go2RTCEnabled && (false !== this.player.indexOf('go2rtc'))) {
       console.log("GO", ZM_GO2RTC_API_PATH, ZM_GO2RTC_PATH);
-      //const ZM_GO2RTC_PATH = ZM_GO2RTC_API_PATH;
       if (ZM_GO2RTC_PATH) {
 
         const url = new URL(ZM_GO2RTC_API_PATH);
@@ -336,14 +339,13 @@ function MonitorStream(monitorData) {
         Go2RTCModUrl.username = '';
         Go2RTCModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-          console.log(this.Go2RTCType);
-        if (this.Go2RTCType == 'WebRTC') {
+        if (false !== player.indexOf('webrtc')) {
           const webrtcUrl = Go2RTCModUrl;
           webrtcUrl.pathname += "/ws";
           webrtcUrl.search = 'src='+this.id+'&media=video+audio'
           console.log(webrtcUrl);
           startGo2RTC(videoEl, webrtcUrl.href, this);
-        } else if (this.Go2RTCType == 'HLS') {
+        } else if (false !== player.indexOf('hls')) {
           const hlsUrl = Go2RTCModUrl;
           hlsUrl.pathname = "/stream.m3u8?src=" + this.id;
           /*
@@ -360,7 +362,7 @@ function MonitorStream(monitorData) {
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             videoEl.src = hlsUrl.href;
           }
-        } else if (this.Go2RTCType == 'MSE') {
+        } else if (false !== this.player.indexOf('mse')) {
           const mseUrl = Go2RTCModUrl;
           mseUrl.port = ZM_GO2RTC_API_PORT;
           mseUrl.protocol = useSSL ? 'wss:' : 'ws';

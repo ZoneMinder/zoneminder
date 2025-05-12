@@ -135,6 +135,8 @@ Image::Image() :
   subpixelorder(0),
   allocation(0),
   buffer(nullptr),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
   buffertype(ZM_BUFTYPE_DONTFREE),
   holdbuffer(0) {
   if (!initialised)
@@ -422,6 +424,8 @@ Image::Image(const Image &p_image) :
   size = p_image.size; // allocation is set in AllocImgBuffer
   Debug(1, "Copying image, size is %d", size);
   buffer = nullptr;
+  u_buffer = nullptr;
+  v_buffer = nullptr;
   holdbuffer = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
@@ -2806,6 +2810,10 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
     int hsub = 1;
 
     uint8_t *y_buffer = buffer;
+    if (!u_buffer || !v_buffer) {
+      u_buffer = buffer + width*height;
+      v_buffer = u_buffer + width*height/4;
+    }
     Debug(1, "y_buffer_ptr %p u_buffer %p, v_buffer %p, size %u total %p ",buffer, u_buffer, v_buffer, size, buffer+size);
  
     unsigned int row = top;
@@ -2819,14 +2827,12 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
       //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
           //u_buffer+index, v_buffer+index
           //);
-      if (index < uv_size)
+      if (index < uv_size) {
         u_buffer[index] = u_colour;
-      else
-        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
-      if (index < uv_size)
         v_buffer[index] = v_colour;
-      else
+      } else {
         Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
+      }
     }
     // Sides
     for (row = top; row < bottom; ++row) {
@@ -2874,7 +2880,7 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
 }
 
 /* RGB32 compatible: complete */
-void Image::Outline( Rgb colour, const Polygon &polygon ) const {
+void Image::Outline( Rgb colour, const Polygon &polygon ) {
   if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
     Panic("Attempt to outline image with unexpected colours %d", colours);
   }
@@ -2913,23 +2919,26 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) const {
         int8_t u_colour = U_VAL(yuv_colour);
         int8_t v_colour = V_VAL(yuv_colour);
         uint8_t *y_buffer = buffer;
-        uint8_t *u_buffer = buffer + width*height;
-        uint8_t *v_buffer = u_buffer + width*height/4;
+        if (!u_buffer || !v_buffer) {
+          u_buffer = buffer + width*height;
+          v_buffer = u_buffer + width*height/4;
+        }
+
         Debug(1, "buffer_ptr %p, size %u total %p ",buffer, size, buffer+size);
-        uint8_t *buffer_end = buffer+size;
         int uv_width = width >> 1;
+        unsigned int uv_size = size >> 1;
 
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
           //Debug(1, "Y %d = %d", (y*width)+int(round(x)), y_colour);
           y_buffer[(y*width)+int(round(x))] = y_colour;
-          int index = ((y/2)*uv_width)+int(round(x/2));
+          unsigned int index = ((y/2)*uv_width)+int(round(x/2));
           //Debug(1, "U %d = %d", index, u_colour);
-          u_buffer[index] = u_colour;
-          //Debug(1, "V %d = %d", index, v_colour);
-          if (v_buffer+index < buffer_end)
+          if (index>uv_size) {
+            u_buffer[index] = u_colour;
             v_buffer[index] = v_colour;
-          else
-            Error("Address index %d > size %d", index, size);
+          } else {
+            Error("Address index %d > size %d", index, uv_size);
+          }
         }
       } else if ( colours == ZM_COLOUR_GRAY8 ) {
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {

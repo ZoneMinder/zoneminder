@@ -291,7 +291,7 @@ SwsContext *sws_convert_context;
   void Clear() { memset( buffer, 0, size ); }
   void Fill( Rgb colour, const Box *limits=0 );
   void Fill( Rgb colour, int density, const Box *limits=0 );
-  void Outline( Rgb colour, const Polygon &polygon ) const;
+  void Outline( Rgb colour, const Polygon &polygon );
   void Fill(Rgb colour, const Polygon &polygon) { Fill(colour, 1, polygon); };
   void Fill(Rgb colour, int density, const Polygon &polygon);
 

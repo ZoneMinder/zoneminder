@@ -1415,9 +1415,9 @@ public function getStreamMode() {
   if ($this->JanusEnabled()) {
     $streamMode = 'janus';
   } else if ($this->RTSP2WebEnabled()) {
-    $streamMode = $this->RTSP2WebType();
+    $streamMode = 'rtsp2web_'.strToLower($this->RTSP2WebType());
   } else if ($this->Go2RTCEnabled()) {
-    $streamMode = $this->Go2RTCType();
+    $streamMode = 'go2rtc_'.strToLower($this->Go2RTCType());
   } else {
     $streamMode = getStreamMode();
   }

@@ -10,6 +10,7 @@
   global $scale;
   global $labels;
   global $cycle;
+  global $player;
 ?>
 //
 // Import constants
@@ -22,6 +23,7 @@ var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 var streamMode = "<?php echo $streamMode ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
+var player = '<?php echo $player ?>';
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo $monitor->Id() ?>');

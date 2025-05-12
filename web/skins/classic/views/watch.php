@@ -315,6 +315,28 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
           ?>
         </span>
+        <div id="playerControl">
+          <label for="player"><?php echo translate('Player') ?></label>
+<?php 
+              $players = ['zms'=>'ZMS MJPEG',
+                'go2rtc_webrtc' => 'Go2RTC WEBRTC',
+                'go2rtc_mse' => 'Go2RTC MSE',
+                'go2rtc_hls' => 'Go2RTC HLS',
+                'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
+                'rtsp2web_mse' => 'RTSP2Web MSE',
+                'rtsp2web_hls' => 'RTSP2Web HLS',
+              ];
+              $player = $monitor->getStreamMode();
+
+              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+                $player = validHtmlStr($_REQUEST['player']);
+              } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_REQUEST['player']])) {
+                $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
+              }
+              echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player'));
+?>
+        </div>
+
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->

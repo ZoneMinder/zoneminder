@@ -258,6 +258,7 @@ void AIThread::Inference() {
 #endif
 
 #if HAVE_QUADRA
+#if !SOFT_DRAWBOX
   int ret;
   drawbox_filter = new Quadra::filter_worker();
   if ((ret = quadra.init_filter("drawbox=color=red", drawbox_filter, false, monitor_->Width(), monitor_->Height(), AV_PIX_FMT_YUV420P)) < 0) {
@@ -272,6 +273,7 @@ void AIThread::Inference() {
       return;
     }
   }
+#endif
 #endif
 
   while (!(terminate_ or zm_terminate)) {
@@ -298,7 +300,8 @@ void AIThread::Inference() {
       //Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
-        draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
+        draw_boxes(packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
+        //draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
       } else {
         ai_image->Assign(*packet->image);
       }
@@ -447,28 +450,14 @@ void AIThread::Run() {
 } // end SpeedAIDetect   
 
 
-#if HAVE_QUADRA
-int draw_boxes(
-    Quadra::filter_worker *drawbox_filter,
-    AVFilterContext *drawbox_filter_ctx,
-    Image *in_image, Image *out_image,
-    const nlohmann::json &coco_object, int font_size,
-    int line_width=2
-    ) {
-
+int draw_boxes(Image *in_image, Image *out_image,const nlohmann::json &coco_object, int font_size, int line_width=2) {
+  out_image->Assign(*in_image);
   try {
     //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
     if (coco_object.size()) {
-      AVFrame *in_frame = av_frame_alloc();
-      in_image->PopulateFrame(in_frame);
-#if SOFT_DRAWBOX
-      out_image->Assign(*in_image);
-#endif
-
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
         nlohmann::json bbox = detection["bbox"];
-
         //Debug(1, "%s", bbox.dump().c_str());
         int x1 = bbox[0];
         int y1 = bbox[1];
@@ -477,8 +466,7 @@ int draw_boxes(
         std::string coco_class = detection["class_name"];
         float score = detection["score"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
-
-#if SOFT_DRAWBOX
+#if 0
         {
           std::vector<Vector2> coords;
           coords.push_back(Vector2(x1, y1));
@@ -499,10 +487,48 @@ int draw_boxes(
           Polygon poly(coords);
           out_image->Outline(kRGBGreen, poly);
         }
-
+#else
+        out_image->DrawBox(x1, y1, x2, y2, kRGBGreen);
+#endif
         out_image->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
             font_size, kRGBWhite, kRGBTransparent);
-#else
+      }  // end foreach detection
+    }  // end if coco
+  } catch (std::exception const & ex) {
+    Error("draw_box Exception: %s", ex.what());
+  }
+  return 1;
+}  // end draw_box
+
+#if HAVE_QUADRA
+int draw_boxes(
+    Quadra::filter_worker *drawbox_filter,
+    AVFilterContext *drawbox_filter_ctx,
+    Image *in_image, Image *out_image,
+    const nlohmann::json &coco_object, int font_size,
+    int line_width=2
+    ) {
+
+  try {
+    //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
+    if (coco_object.size()) {
+      AVFrame *in_frame = av_frame_alloc();
+      in_image->PopulateFrame(in_frame);
+      out_image->Assign(*in_image);
+
+      for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
+        nlohmann::json detection = *it;
+        nlohmann::json bbox = detection["bbox"];
+
+        //Debug(1, "%s", bbox.dump().c_str());
+        int x1 = bbox[0];
+        int y1 = bbox[1];
+        int x2 = bbox[2];
+        int y2 = bbox[3];
+        std::string coco_class = detection["class_name"];
+        float score = detection["score"];
+        std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
+
         Debug(1, "Using hw drawbox");
         AVFrame *out_frame = av_frame_alloc();
         if (!out_frame) {
@@ -520,17 +546,12 @@ int draw_boxes(
 
         av_frame_free(&in_frame);
         in_frame = out_frame;
-#endif
       }  // end foreach detection
-#if SOFT_DRAWBOX
-    } // end if coco
-#else
       out_image->Assign(in_frame);
       av_frame_free(&in_frame);
     } else {
       out_image->Assign(*in_image);
     }  // end if coco
-#endif
   } catch (std::exception const & ex) {
     Error("draw_box Exception: %s", ex.what());
   }

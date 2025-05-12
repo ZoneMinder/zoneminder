@@ -2,7 +2,7 @@ name: Create packages
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, ai_server ]
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -68,4 +68,4 @@ jobs:
           SOURCE: build/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/ampere/mini-dinstall/incoming/

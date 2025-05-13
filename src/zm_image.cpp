@@ -146,7 +146,11 @@ Image::Image() :
 }
 
 Image::Image(const std::string &filename) :
-  sws_convert_context(nullptr)
+  sws_convert_context(nullptr),
+  buffer(nullptr),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
+  holdbuffer(0)
 {
   if ( !initialised )
     Initialise();
@@ -160,9 +164,7 @@ Image::Image(const std::string &filename) :
   subpixelorder = 0;
   size = 0;
   allocation = 0;
-  buffer = 0;
   buffertype = ZM_BUFTYPE_DONTFREE;
-  holdbuffer = 0;
   ReadJpeg(filename, ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P);
   update_function_pointers();
 }
@@ -177,6 +179,8 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   subpixelorder(p_subpixelorder),
   allocation(p_allocation),
   buffer(p_buffer),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
   holdbuffer(0) {
 
   if (!initialised)
@@ -218,6 +222,8 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   padding(p_padding),
   subpixelorder(p_subpixelorder),
   buffer(p_buffer),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
   holdbuffer(0) {
 
   if (!initialised)
@@ -259,7 +265,9 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   colours(p_colours),
   padding(p_padding),
   subpixelorder(p_subpixelorder),
-  buffer(p_buffer) {
+  buffer(p_buffer),
+  u_buffer(nullptr),
+  v_buffer(nullptr) {
   if ( !initialised )
     Initialise();
   pixels = width*height;
@@ -289,6 +297,8 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   subpixelorder(ZM_SUBPIX_ORDER_YUV420P),
   imagePixFormat(AV_PIX_FMT_YUV420P),
   buffer(0),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
   holdbuffer(0) {
   width = (p_width == -1 ? frame->width : p_width);
   height = (p_height == -1 ? frame->height : p_height);
@@ -309,6 +319,8 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
 Image::Image(const AVFrame *frame) :
   sws_convert_context(nullptr),
   buffer(0),
+  u_buffer(nullptr),
+  v_buffer(nullptr),
   holdbuffer(0)
 {
   AssignDirect(frame);
@@ -2824,9 +2836,9 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
       unsigned int index = row * width + col;
       y_buffer[index] = y_colour;
       index = (uv_row * uv_width + (col>>1));
-      //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
-          //u_buffer+index, v_buffer+index
-          //);
+      Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
+          u_buffer+index, v_buffer+index
+          );
       if (index < uv_size) {
         u_buffer[index] = u_colour;
         v_buffer[index] = v_colour;

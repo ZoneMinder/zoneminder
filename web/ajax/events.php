@@ -175,6 +175,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $sort = '';
     } else if ( $sort == 'Monitor' or $sort == 'MonitorName' ) {
       $sort = 'M.Name';
+    } else if ( $sort == 'Storage' ) {
     } else if ($sort == 'EndDateTime') {
       if ($order == 'ASC') {
         $sort = 'EndDateTime IS NULL, EndDateTime';
@@ -194,7 +195,11 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
   CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
     M.Name AS Monitor';
-  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
+  if ($sort == 'Storage') {
+    $col_str .= ', (SELECT Name FROM Storage WHERE Storage.Id=E.StorageId) AS Storage';
+  }
+  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id';
+  $sql .= $where.($sort?' ORDER BY '.$sort.' '.$order:'');
   if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }

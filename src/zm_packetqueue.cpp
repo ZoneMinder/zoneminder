@@ -504,6 +504,7 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
     Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
     return packet_lock;
   }
+  Warning("Failed to lock packet, returning... something?");
   return ZMPacketLock();
 }
 
@@ -601,12 +602,12 @@ void PacketQueue::unlock(ZMPacketLock *lp) {
 }
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
+  std::unique_lock<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
   if (((*it) == pktQueue.end()) or deleting) {
     Warning("increment_it at end!");
     return false;
   }
-  std::unique_lock<std::mutex> lck(mutex);
   ++(*it);
   if (*it != pktQueue.end()) {
     Debug(2, "Incrementing %p, %p still not at end, so returning true", it, std::addressof(*it));
@@ -619,11 +620,12 @@ bool PacketQueue::increment_it(packetqueue_iterator *it) {
 // Increment it only considering packets for a given stream
 bool PacketQueue::increment_it(packetqueue_iterator *it, int stream_id) {
   Debug(2, "Incrementing %p, queue size %zu, end? %d", it, pktQueue.size(), (*it == pktQueue.end()));
+
+  std::unique_lock<std::mutex> lck(mutex);
   if (*it == pktQueue.end()) {
     return false;
   }
 
-  std::unique_lock<std::mutex> lck(mutex);
   do {
     ++(*it);
   } while ( (*it != pktQueue.end()) and ( (*(*it))->packet->stream_index != stream_id) );

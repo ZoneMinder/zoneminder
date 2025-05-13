@@ -297,7 +297,7 @@ void AIThread::Inference() {
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
       nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
-      //Debug(1, "detections %s", detections.dump().c_str());
+      Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
         draw_boxes(packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
@@ -450,7 +450,7 @@ void AIThread::Run() {
 } // end SpeedAIDetect   
 
 
-int draw_boxes(Image *in_image, Image *out_image,const nlohmann::json &coco_object, int font_size, int line_width=2) {
+int draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size, int line_width=2) {
   out_image->Assign(*in_image);
   try {
     //Debug(1, "SpeedAI coco: %s", coco_object.dump().c_str());
@@ -489,9 +489,9 @@ int draw_boxes(Image *in_image, Image *out_image,const nlohmann::json &coco_obje
         }
 #else
         out_image->DrawBox(x1, y1, x2, y2, kRGBGreen);
+        out_image->DrawBox(x1+1, y1+1, x2-1, y2-1, kRGBGreen);
 #endif
-        out_image->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
-            font_size, kRGBWhite, kRGBTransparent);
+        out_image->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width), font_size, kRGBWhite, kRGBTransparent);
       }  // end foreach detection
     }  // end if coco
   } catch (std::exception const & ex) {
@@ -617,6 +617,7 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H
   , speedai(p_speedai)
 #endif
+  ,drawbox_filter(nullptr)
 {
   thread_ = std::thread(&AIThread::Run, this);
   inference_thread_ = std::thread(&AIThread::Inference, this);

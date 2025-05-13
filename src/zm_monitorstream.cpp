@@ -463,7 +463,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
       // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
-      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), (zm_terminate ? 1 : 0));
       return false;
     }
     bytes_sent += img_buffer_size;

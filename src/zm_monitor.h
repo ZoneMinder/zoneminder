@@ -53,6 +53,7 @@ extern "C" {
 #include <ni_av_codec.h>
 #include <ni_util.h>
 }
+#include "zm_netint_yolo.h"
 #endif
 
 class Group;
@@ -62,9 +63,6 @@ class MonitorLinkExpression;
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
 
-#if HAVE_QUADRA
-#include "zm_netint_yolo.h"
-#endif
 
 //
 // This is the main class for monitors. Each monitor is associated

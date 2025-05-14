@@ -3384,8 +3384,22 @@ int Monitor::Decode() {
   }
 
   // At this point we know that the packet is on the queue somewhere
+  if (!packet) {
+    packet_lock = packetqueue.get_packet(decoder_it);
+    packet = packet_lock.packet_;
+    if (!packet) {
+      Debug(1, "No packet from get_packet");
+      return -1;
+    } 
+    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+      packet->decoded = true;
+      Debug(3, "Not video,probably audio packet %d", packet->image_index);
+      packetqueue.increment_it(decoder_it);
+      return 1; // Don't need decode
+    }
+  }
 
-  if ((!packet) || ((!packet->image) and packet->packet and packet->packet->size and !packet->in_frame)) {
+  if ((!packet->image) and packet->packet and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
         ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_decoder_index == image_buffer_count)))
@@ -3395,71 +3409,52 @@ int Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
 
-      if (!packet) {
-        packet_lock = packetqueue.get_packet(decoder_it);
-        packet = packet_lock.packet_;
-        if (!packet) {
-          Debug(1, "No packet from get_packet");
-          return -1;
-        } 
-        if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-          packet->decoded = true;
-          Debug(3, "Not video,probably audio packet %d", packet->image_index);
-          packetqueue.increment_it(decoder_it);
-          return 1; // Don't need decode
-        }
-        if (!mVideoCodecContext) {
-          Debug(1, "No decoder");
-          packet->decoded = true;
-          packetqueue.increment_it(decoder_it);
-          return 1;
-        }
-        Debug(1, "send_packet %d", packet->image_index);
-#if 1
-        SystemTimePoint starttime = std::chrono::system_clock::now();
-        int ret = packet->send_packet(mVideoCodecContext);
-        SystemTimePoint endtime = std::chrono::system_clock::now();
-        int fps = int(get_capture_fps());
-        if (fps > 0) {
-          if (endtime - starttime > Milliseconds(1000/fps)) {
-            Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
-          } else {
-            Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
-          }
-        }
-#else
-        int ret = packet->send_packet(mVideoCodecContext);
-#endif
-
-        if (0 == ret) {
-          return 0; //make it sleep? No
-        } else if (ret < 0) {
-#if HAVE_QUADRA
-          std::lock_guard<std::mutex> lck(quadra_mutex);
-#endif
-          // No need to push because it didn't get into the decoder.
-          avcodec_free_context(&mVideoCodecContext);
-          mVideoCodecContext = nullptr;
-          if (mAudioCodecContext) {
-            avcodec_free_context(&mAudioCodecContext);
-            mAudioCodecContext = nullptr;
-          }
-
-          return -1;
-        //} else {
-          //Debug(1, "Success");
-        }
+      if (!mVideoCodecContext) {
+        Debug(1, "No decoder");
+        packet->decoded = true;
         packetqueue.increment_it(decoder_it);
-        decoder_queue.push_back(std::move(packet_lock));
-        return 0;
+        return 1;
       }
+      Debug(1, "send_packet %d", packet->image_index);
+#if 1
+      SystemTimePoint starttime = std::chrono::system_clock::now();
+      int ret = packet->send_packet(mVideoCodecContext);
+      SystemTimePoint endtime = std::chrono::system_clock::now();
+      int fps = int(get_capture_fps());
+      if (fps > 0) {
+        if (endtime - starttime > Milliseconds(1000/fps)) {
+          Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
+        } else {
+          Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
+        }
+      }
+#else
+      int ret = packet->send_packet(mVideoCodecContext);
+#endif
+
+      if (0 == ret) {
+        return 0; //make it sleep? No
+      } else if (ret < 0) {
+#if HAVE_QUADRA
+        std::lock_guard<std::mutex> lck(quadra_mutex);
+#endif
+        // No need to push because it didn't get into the decoder.
+        avcodec_free_context(&mVideoCodecContext);
+        mVideoCodecContext = nullptr;
+        if (mAudioCodecContext) {
+          avcodec_free_context(&mAudioCodecContext);
+          mAudioCodecContext = nullptr;
+        }
+
+        return -1;
+      }  // end if ret from send_packet
+      packetqueue.increment_it(decoder_it);
+      decoder_queue.push_back(std::move(packet_lock));
+      return 0;
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
-    } // end if doing decoding
-  //} else {
-    //Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
+    }  // end if doing decoding
   }  // end if need_decoding
-  // Pretty much assured to have a packet
 
   if (packet->in_frame and !packet->image) {
 #if 0
@@ -3600,16 +3595,16 @@ int Monitor::Decode() {
       // Won't be using hwframe
       packet->hw_frame = nullptr;
     }
+    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+    shared_data->last_decoder_index = index;
+    shared_data->decoder_image_count++;
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
+      Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
+          FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
+    }
   } else {
     Warning("Unable to assign an image to shm for %d", index);
-  }
-  shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-  shared_data->last_decoder_index = index;
-  shared_data->decoder_image_count++;
-  shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-  if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
-    Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
-        FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
   }
   packet->decoded = true;
   // The idea is that capture is firing often enough

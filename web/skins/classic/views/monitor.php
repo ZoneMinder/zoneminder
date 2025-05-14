@@ -1070,11 +1070,16 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             <li class="ObjectDetection">
               <label><?php echo translate('Object Detection')?></label>
 <?php
-        echo htmlSelect('newMonitor[ObjectDetection]', ['none'=>'None', 'quadra'=>'NetInt Quadra', 'speedai'=>'Untether SpeedAI',
-          'uvicorn'=>'Uvicorn Yolo'],
-            $monitor->ObjectDetection());
+        $od_options = ['none'=>'None', 'uvicorn'=>'Yolo 11 on Ampere CPU'];
+        if (defined('HAVE_UNTETHER'))
+          $od_options['speedai'] = 'Untether SpeedAI';
+        if (defined('HAVE_QUADRA'))
+          $od_options['quadra'] = 'NetInt Quadra';
+
+        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
 ?>
             </li>
+<?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
             <li class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
               <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
@@ -1087,6 +1092,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('Object Detection NMS Threshold')?></label>
               <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" step="any" max="100"/>
             </li>
+<?php } ?>
 <?php
     }
     break;

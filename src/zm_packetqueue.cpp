@@ -176,12 +176,13 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
       auto it = pktQueue.begin();
       // Start at second packet because the first is always a keyframe unless we don't care about keyframes
-      if (keep_keyframes) it ++;
-      while ( (*it != add_packet) && !(deleting or zm_terminate)) {
+      // I hate that this breaks the keyframe at beginning promise...
+      //if (keep_keyframes) it ++;
+      while ((*it != add_packet) && !(deleting or zm_terminate)) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
-        ZMPacketLock packet_lock(zm_packet);
+        //ZMPacketLock packet_lock(zm_packet);
 
-        if (!packet_lock.trylock()) {
+        //if (!packet_lock.trylock()) {
           if (warned_count < 2) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
@@ -189,18 +190,18 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             // Really shouldn't though. I think we can delete a locked packet, but we REALLY should delete a GOP's worth.
           }
           break;
-        } else if (!keep_keyframes) {
-          it = this->deletePacket(it);
-          if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) break;
-          continue;
-        } else {
+        //} else if (0 and !keep_keyframes) {
+          //it = this->deletePacket(it);
+          //if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) break;
+          //continue;
+        //} else {
           if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
             for ( it = pktQueue.begin(); *it != zm_packet; ) {
               it = this->deletePacket(it);
             }
             break;
           } // end if erasing a whole gop
-        } // end if locked and keyframes
+        //} // end if locked and keyframes
         ++it;
       }  // end foreach
     } else if (warned_count > 0) {

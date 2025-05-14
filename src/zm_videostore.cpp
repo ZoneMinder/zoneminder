@@ -602,16 +602,15 @@ void VideoStore::flush_codecs() {
 #endif
         )) {
     // Put encoder into flushing mode
-    while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, *pkt)) > 0) {
+    if (0 > avcodec_send_frame(video_out_ctx, nullptr)) {
+      Error("Failure sending null to flush codec");
+    } else {
+      while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
+
       av_packet_guard pkt_guard{pkt};
-      av_packet_rescale_ts(pkt.get(),
-          video_out_ctx->time_base,
-          video_out_stream->time_base);
-      if (video_out_ctx->codec_id == AV_CODEC_ID_AV1) {
-        if (pkt->duration <= 0)
-        {
-          if (video_last_pts != AV_NOPTS_VALUE)
-          {
+      av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
+        if (pkt->duration <= 0) {
+          if (video_last_pts != AV_NOPTS_VALUE) {
             pkt->duration = pkt->pts - video_last_pts;
             Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
                 pkt->pts,

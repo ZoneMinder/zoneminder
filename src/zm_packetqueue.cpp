@@ -505,7 +505,7 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
     Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
     return packet_lock;
   }
-  Warning("Failed to lock packet, returning... something?");
+  Debug(1, "Failed to lock packet %d, returning... something?", p->image_index);
   return ZMPacketLock();
 }
 

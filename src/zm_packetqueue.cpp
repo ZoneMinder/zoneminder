@@ -206,10 +206,10 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     } else if (warned_count > 0) {
       warned_count--;
     }  // end if not able catch up
+    // We signal on every packet because someday we may analyze sound
+    Debug(4, "packetqueue queuepacket, unlocked signalling");
+    condition.notify_all();
   }  // end lock scope
-  // We signal on every packet because someday we may analyze sound
-  Debug(4, "packetqueue queuepacket, unlocked signalling");
-  condition.notify_all();
 
   return true;
 }  // end bool PacketQueue::queuePacket(ZMPacket* zm_packet)
@@ -419,8 +419,8 @@ void PacketQueue::stop() {
   {
     std::unique_lock<std::mutex> lck(mutex);
     deleting = true;
+    condition.notify_all();
   }
-  condition.notify_all();
   for (const auto &p : pktQueue) {
     p->notify_all();
   }
@@ -546,10 +546,10 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
       Debug(2, "waiting on packet %d.  Queue size %zu it == end? %d", p->image_index, pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
     }  // end while ! deleting or zm_terminate
+    condition.notify_all();
   }  // end scope for lock
 
   Debug(1, "terminated, leaving");
-  condition.notify_all();
   return ZMPacketLock();
 }  // end ZMPacketLock *PacketQueue::get_packet(it)
 

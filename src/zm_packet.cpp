@@ -220,14 +220,11 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
 
     av_frame_ptr new_frame{av_frame_alloc()};
     /* retrieve data from GPU to CPU */
-    int ret;
-    //do {
-      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
-      if (ret < 0) {
-        Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
-        return ret;
-      }
-    //} while (ret < 0);
+    int ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
+    if (ret < 0) {
+      Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
+      return ret;
+    }
     
     ret = av_frame_copy_props(new_frame.get(), in_frame.get());
     if (ret < 0) {
@@ -270,6 +267,7 @@ Image *ZMPacket::get_image(Image *i) {
       image = i;
       image->Assign(in_frame.get());
     } else {
+      // What if it's the hwframe?
       image = new Image(in_frame.get());
     }
   }

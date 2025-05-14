@@ -1053,6 +1053,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int StartupDelay() const { return startup_delay; }
  private:
   int OpenDecoder();
+  int CloseDecoder();
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

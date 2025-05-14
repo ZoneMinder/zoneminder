@@ -1347,14 +1347,7 @@ Monitor::~Monitor() {
     sws_freeContext(convert_context);
     convert_context = nullptr;
   }
-  if (mVideoCodecContext) {
-    avcodec_free_context(&mVideoCodecContext);
-    mVideoCodecContext = nullptr;
-  }
-  if (mAudioCodecContext) {
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;
-  }
+  CloseDecoder();
   if (Amcrest_Manager != nullptr) {
     delete Amcrest_Manager;
   }
@@ -2148,45 +2141,47 @@ int Monitor::Analyse() {
           }  // end if decoding enabled
  
           if (Ready()) {
-            if (analysis_fps_limit) {
-              double capture_fps = get_capture_fps();
-              motion_frame_skip = capture_fps / analysis_fps_limit;
-              Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                  motion_frame_skip, capture_fps, analysis_fps_limit);
-              if (motion_frame_skip < 0) motion_frame_skip = 0;
-            }
-
-            if (objectdetection != OBJECT_DETECTION_NONE) {
-              if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
-                int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
-                while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
-
-                  Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
-                  std::this_thread::sleep_for(Microseconds(10000));
-                  count--;
-                }
-                // In order to make it available to event writing
-                if (shared_data->analysis_image_count >= packet->image_index) {
-                  Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
-                  packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
-                }
+            if (packet->in_frame) {
+              if (analysis_fps_limit) {
+                double capture_fps = get_capture_fps();
+                motion_frame_skip = capture_fps / analysis_fps_limit;
+                Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                    motion_frame_skip, capture_fps, analysis_fps_limit);
+                if (motion_frame_skip < 0) motion_frame_skip = 0;
               }
+
+              if (objectdetection != OBJECT_DETECTION_NONE) {
+                if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
+                  int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
+                  while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
+
+                    Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
+                    std::this_thread::sleep_for(Microseconds(10000));
+                    count--;
+                  }
+                  // In order to make it available to event writing
+                  if (shared_data->analysis_image_count >= packet->image_index) {
+                    Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
+                    packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
+                  }
+                }
 #if HAVE_QUADRA
-              else {
-                std::pair<int, std::string> results = Analyse_Quadra(packet);
-              }
+                else {
+                  std::pair<int, std::string> results = Analyse_Quadra(packet);
+                }
 #endif
-              if (objectdetection == OBJECT_DETECTION_UVICORN) {
-                std::pair<int, std::string> results = Analyse_UVICORN(packet);
-                int motion_score = results.first;
-                std::string motion_cause = results.second;
-                if (motion_score) {
-                  score += motion_score;
-                } 
-              }
-            }  // end if objectdetection
+                if (objectdetection == OBJECT_DETECTION_UVICORN) {
+                  std::pair<int, std::string> results = Analyse_UVICORN(packet);
+                  int motion_score = results.first;
+                  std::string motion_cause = results.second;
+                  if (motion_score) {
+                    score += motion_score;
+                  } 
+                }
+              }  // end if objectdetection
 
-            packet->hw_frame = nullptr; // Free it
+              packet->hw_frame = nullptr; // Free it
+            }  // end if has in_frame
 
             // Ready means that we have captured the warmup # of frames
             if (shared_data->analysing > ANALYSING_NONE) {
@@ -3160,6 +3155,26 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   return (convert_context != nullptr);
 }
 
+int Monitor::CloseDecoder() {
+#if HAVE_QUADRA
+  std::lock_guard<std::mutex> lck(quadra_mutex);
+  if (quadra_yolo) {
+    delete quadra_yolo;
+    quadra_yolo = nullptr;
+  }
+#endif
+
+  if (mVideoCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    mVideoCodecContext = nullptr;
+  }
+  if (mAudioCodecContext) {
+    avcodec_free_context(&mVideoCodecContext);
+    mAudioCodecContext = nullptr;
+  }
+  return 1;
+}
+
 int Monitor::OpenDecoder() {
   AVStream *mVideoStream = camera->getVideoStream();
   AVStream *mAudioStream = camera->getAudioStream();
@@ -3350,25 +3365,7 @@ int Monitor::Decode() {
         packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
-      if (ret == AVERROR_EOF) {
-#if HAVE_QUADRA
-        {
-          std::lock_guard<std::mutex> lck(quadra_mutex);
-          if (quadra_yolo) {
-            delete quadra_yolo;
-            quadra_yolo = nullptr;
-          }
-        }
-#endif
-
-        // Need to close and re-open codec.
-        avcodec_free_context(&mVideoCodecContext);
-        mVideoCodecContext = nullptr;
-        if (mAudioCodecContext) {
-          avcodec_free_context(&mVideoCodecContext);
-          mAudioCodecContext = nullptr;
-        }
-      }
+      if (ret == AVERROR_EOF) CloseDecoder();
       return ret;
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
@@ -3432,7 +3429,7 @@ int Monitor::Decode() {
       int ret = packet->send_packet(mVideoCodecContext);
 #endif
 
-      if (0 == ret) {
+      if (0 == ret) { // EAGAIN
         return 0; //make it sleep? No
       } else if (ret < 0) {
 #if HAVE_QUADRA
@@ -3449,7 +3446,7 @@ int Monitor::Decode() {
         return -1;
       }  // end if ret from send_packet
       packetqueue.increment_it(decoder_it);
-      decoder_queue.push_back(std::move(packet_lock));
+      decoder_queue.push_back(std::move(packet_lock)); // packet_lock is no longer valid, but packet should be ok
       return 0;
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
@@ -3480,7 +3477,7 @@ int Monitor::Decode() {
       packet->image = nullptr;
     }  // end if have convert_context
 #else
-    packet->get_image();
+    //packet->get_image();
 #endif
   }  // end if need transfer to image
 
@@ -3588,23 +3585,26 @@ int Monitor::Decode() {
     Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
-    //Debug(1, "Assigning for index %d", index);
-    image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
-    image_buffer[index]->Assign(packet->in_frame.get());
-    if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-      // Won't be using hwframe
-      packet->hw_frame = nullptr;
+    if (!quadra_yolo) {
+      packet->get_hwframe(mVideoCodecContext);
+      //Debug(1, "Assigning for index %d", index);
+      image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
+      image_buffer[index]->Assign(packet->in_frame.get());
+      if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+        // Won't be using hwframe
+        packet->hw_frame = nullptr;
+      }
+      shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+      shared_data->last_decoder_index = index;
+      shared_data->decoder_image_count++;
+      shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     }
-    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-    shared_data->last_decoder_index = index;
-    shared_data->decoder_image_count++;
-    shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
       Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
           FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
     }
   } else {
-    Warning("Unable to assign an image to shm for %d", index);
+//    Warning("Unable to assign an image to shm for %d", index);
   }
   packet->decoded = true;
   // The idea is that capture is firing often enough

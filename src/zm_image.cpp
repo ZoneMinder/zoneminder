@@ -2815,7 +2815,7 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
     uint8_t u_colour = U_VAL(yuv_colour);
     uint8_t v_colour = V_VAL(yuv_colour);
     int uv_width = width >> 1;
-    Debug(1, "R %u G %u B %u YUV %u U %u V %u %u,%u => %u,%u",
+    Debug(4, "R %u G %u B %u YUV %u U %u V %u (%u,%u => %u,%u)",
         RED_VAL_RGBA(colour), GREEN_VAL_RGBA(colour), BLUE_VAL_RGBA(colour),
         y_colour, u_colour, v_colour, left, top, right, bottom);
     int vsub = 1;
@@ -2823,11 +2823,11 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
 
     uint8_t *y_buffer = buffer;
     if (!u_buffer || !v_buffer) {
-      Debug(1, "Setting u+v");
+      Debug(4, "Setting u+v");
       u_buffer = buffer + width*height;
       v_buffer = u_buffer + width*height/4;
     }
-    Debug(1, "y_buffer_ptr %p u_buffer %p, v_buffer %p, size %u total %p ",buffer, u_buffer, v_buffer, size, buffer+size);
+    Debug(4, "y_buffer_ptr %p u_buffer %p, v_buffer %p, size %u total %p ",buffer, u_buffer, v_buffer, size, buffer+size);
  
     unsigned int row = top;
     unsigned int uv_row = row >> 1;
@@ -2837,9 +2837,9 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
       unsigned int index = row * width + col;
       y_buffer[index] = y_colour;
       index = (uv_row * uv_width + (col>>1));
-      Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
-          u_buffer+index, v_buffer+index
-          );
+      //Debug(1, "%dx%d, %dx%d, y-index: %d, uv-index: %d u_ptr %p v_ptr %p", col, row, col>>1, uv_row, row * width + col, index,
+          //u_buffer+index, v_buffer+index
+          //);
       if (index < uv_size) {
         u_buffer[index] = u_colour;
         v_buffer[index] = v_colour;
@@ -2856,22 +2856,20 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
       uv_row = row >> vsub;
       unsigned int index = uv_row * uv_width + (left>>hsub);
       //Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
-      if (index < uv_size)
+      if (index < uv_size) {
         u_buffer[index] = u_colour;
-      else
-        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
-
-      if (index < uv_size)
         v_buffer[index] = v_colour;
-      else
-        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, left, size);
+      } else {
+        Error("Address index %u = %d*%d * %d + %d/2> size %u", index, row, uv_row, uv_width, left, size);
+      }
       index += ((right-left)>>hsub);
       //Debug(1, "%dx%d , %dx%d, %dx%d, y-index: %d, uv-index: %d", left, row, left>>hsub, uv_row, right, row, row * width + left, index);
-      u_buffer[index] = u_colour;
-      if (index < uv_size)
+      if (index < uv_size) {
+        u_buffer[index] = u_colour;
         v_buffer[index] = v_colour;
-      else
-        Error("Address index %d = %d*%d * %d + %d/2> size %d", index, row, uv_row, uv_width, right, size);
+      } else {
+        Error("Address index %u = %d*%d * %d + %d/2> size %u", index, row, uv_row, uv_width, right, size);
+      }
     }
 
     // Bottom
@@ -5956,9 +5954,9 @@ int Image::draw_boxes(
           this->Outline(kRGBGreen, poly);
         }
 #else
-        this->DrawBox(x1, y1, x2-x1, y2-y1, kRGBRed);
-        this->DrawBox(x1+1, y1+1, x2-x1-2, y2-y1-2, kRGBRed);
-        this->DrawBox(x1+2, y1+2, x2-x1-3, y2-y1-3, kRGBRed);
+        this->DrawBox(x1, y1, x2, y2, kRGBRed);
+        this->DrawBox(x1+1, y1+1, x2-1, y2-1, kRGBRed);
+        this->DrawBox(x1+2, y1+2, x2-2, y2-2, kRGBRed);
 #endif
         this->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
             font_size, kRGBWhite, kRGBTransparent);

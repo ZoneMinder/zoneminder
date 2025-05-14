@@ -324,7 +324,6 @@ Image::Image(const AVFrame *frame) :
   holdbuffer(0)
 {
   AssignDirect(frame);
-
 }
 
 static void dont_free(void *opaque, uint8_t *data) {
@@ -766,7 +765,6 @@ void Image::AssignDirect(const AVFrame *frame) {
   allocation = size;
   Debug(3, "Size %u, allocation %lu", size, allocation);
   zm_dump_video_frame(frame, "AssignDirect");
-  //size = allocation;
 
   switch(static_cast<AVPixelFormat>(frame->format)) {
     case AV_PIX_FMT_RGBA:
@@ -786,7 +784,6 @@ Warning("Unknown pixel format %d", frame->format);
   buffertype = ZM_BUFTYPE_DONTFREE;
   pixels = width * height;
 }
-
 
 /* Assign an existing buffer to the image instead of copying from a source buffer.
    The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.

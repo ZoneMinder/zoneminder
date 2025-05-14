@@ -2823,6 +2823,7 @@ void Image::DrawBox(unsigned int left, unsigned int top, unsigned int right, uns
 
     uint8_t *y_buffer = buffer;
     if (!u_buffer || !v_buffer) {
+      Debug(1, "Setting u+v");
       u_buffer = buffer + width*height;
       v_buffer = u_buffer + width*height/4;
     }

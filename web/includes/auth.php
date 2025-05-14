@@ -323,7 +323,7 @@ function editableMonitor($mid) {
   if (isset($monitor_permissions[$mid]) and 
     ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View')
   ) {
-    ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
+    //ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
     return false;
   }
 
@@ -334,7 +334,7 @@ function editableMonitor($mid) {
   # If denied view in any group, then can't view it.
   foreach ($group_permissions as $permission) {
     $perm_value = $permission->MonitorPermission($mid);
-    ZM\Debug("Have group permission $perm_value");
+    //ZM\Debug("Have group permission $perm_value");
     if ($perm_value == 'Edit') {
       return true;
     }

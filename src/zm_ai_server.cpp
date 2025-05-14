@@ -617,7 +617,9 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H
   , speedai(p_speedai)
 #endif
+#if HAVE_QUADRA
   ,drawbox_filter(nullptr)
+#endif
 {
   thread_ = std::thread(&AIThread::Run, this);
   inference_thread_ = std::thread(&AIThread::Inference, this);

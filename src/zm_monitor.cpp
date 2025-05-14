@@ -2676,7 +2676,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   response.reserve(4096);
   std::string endpoint = stringtf("http://127.0.0.1:8000/predict/?camera_id=%d", id);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
-  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
 
   curl_mime *mime = nullptr;

@@ -2565,7 +2565,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
           do {
             ret = quadra_yolo->receive_detection(packet);
             if (0 < ret) {
-              last_detection_count = 5;
+              last_detection_count = 2;
               endtime = std::chrono::system_clock::now();
               if (endtime - starttime > Seconds(1)) {
                 Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
@@ -3585,7 +3585,10 @@ int Monitor::Decode() {
     Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
-    if (!quadra_yolo) {
+#if HAVE_QUADRA
+    if (!quadra_yolo)
+#endif
+    {
       packet->get_hwframe(mVideoCodecContext);
       //Debug(1, "Assigning for index %d", index);
       image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));

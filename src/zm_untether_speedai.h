@@ -29,6 +29,8 @@ extern "C" {
 #ifdef HAVE_UNTETHER_H
 #define MODEL_WIDTH 640
 #define MODEL_HEIGHT 640
+// * 6; // 256 boxes, each with 6 elements [l, t, r, b, class, score]
+#define NUM_NMS_PREDICTIONS 256
 
 class SpeedAI {
   private:
@@ -36,7 +38,6 @@ class SpeedAI {
     std::mutex  mutex_;
     std::atomic<bool> terminate_;
     std::thread thread_;
-
 
 //    unsigned MODEL_WIDTH = 640, MODEL_HEIGHT = 640;
     size_t batchSize;
@@ -56,9 +57,6 @@ class SpeedAI {
 
     // Fast map via indexing, for integer values in range [0, 255]
     std::array<uint8_t, 256> m_fast_map;
-    const int NUM_NMS_PREDICTIONS = 256;// * 6; // 256 boxes, each with 6 elements [l, t, r, b, class, score]
-    std::vector<float> m_out_buf;
-    float* outputBuffer;
     // m_quant_bounds[i].second is uppper limit of bin in floating point domain
     // that gets mapped to m_quant_bounds[i].first.
     std::array<std::pair<uint8_t, float>, 256> m_quant_bounds;
@@ -80,6 +78,7 @@ class SpeedAI {
         float m_width_rescale;
         float m_height_rescale;
         SwsContext *sw_scale_ctx;
+        std::vector<float> predictions_buffer;
 
         Job(UaiModule *p_module) :
           m_module(p_module),
@@ -99,6 +98,7 @@ class SpeedAI {
             scaled_frame->format = AV_PIX_FMT_RGB24;
             //m_width_rescale = ((float)MODEL_WIDTH / (float)input->width);
             //m_height_rescale = ((float)MODEL_HEIGHT / (float)input->height);
+            predictions_buffer.resize(NUM_NMS_PREDICTIONS*6);
           };
         ~Job() {
           Debug(1, "In Job destructor");

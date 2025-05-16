@@ -2738,7 +2738,7 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
   int motion_score = 0;
   std::string cause = "";
 
-  if (!packet->image) {
+  if (!(packet->in_frame or packet->image)) {
     Error("no image so skipping motion detection");
     return std::make_pair(motion_score, cause);
   }  // end if has image
@@ -3359,9 +3359,11 @@ int Monitor::Decode() {
       packet_lock = std::move( decoder_queue.front() );
       decoder_queue.pop_front();
       packet = delayed_packet;
+      if (
 #if HAVE_QUADRA
-      //if (!quadra_yolo)
+      //!quadra_yolo &&
 #endif
+          packet->needs_hw_transfer(mVideoCodecContext))
         packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
@@ -3589,7 +3591,8 @@ int Monitor::Decode() {
     if (!quadra_yolo)
 #endif
     {
-      packet->get_hwframe(mVideoCodecContext);
+      if (packet->needs_hw_transfer(mVideoCodecContext))
+        packet->get_hwframe(mVideoCodecContext);
       //Debug(1, "Assigning for index %d", index);
       image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
       image_buffer[index]->Assign(packet->in_frame.get());

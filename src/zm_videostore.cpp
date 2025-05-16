@@ -1373,27 +1373,34 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
 int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   AVPacket *ipkt = zm_packet->packet.get();
-  ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
+  //ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
+
+  // This does copy props, etc... so dts, pts etc all get copied.
+  av_packet_ref(opkt.get(), ipkt);
+
+  // Altering the input packet is kinda sketchy
 
   if (monitor->WallClockTimestamps()) {
     int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
-    ipkt->pts = ipkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
+    opkt->pts = opkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
 
     Debug(2, "dts %" PRId64 " from timestamp %" PRId64 " secs(%.2f)",
-        ipkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
+        opkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
   }
 
   if (audio_first_dts == AV_NOPTS_VALUE) {
-    audio_first_dts = ipkt->dts;
+    audio_first_dts = opkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   }
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
 
+  // FIXME Really need to split out in_pkt, decoded_pkt, encoded_pkt, out_pkt
   if (audio_out_codec) {
     // I wonder if we can get multiple frames per packet? Probably
-    int ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame.get(), *ipkt);
+    // FIXME: As we know, we can't do this zm_send_packet_receive_frame stuff
+    int ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame.get(), *opkt);
     if (ret < 0) {
       Debug(3, "failed to receive frame code: %d", ret);
       return 0;
@@ -1401,6 +1408,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     zm_dump_frame(in_frame, "In frame from decode");
 
     AVFrame *input_frame = in_frame.get();
+    //FIXME should re-init opkt
 
     while (zm_resample_audio(resample_ctx, input_frame, out_frame.get())) {
       //out_frame->pkt_duration = in_frame->pkt_duration; // resampling doesn't alter duration
@@ -1435,27 +1443,20 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       input_frame = nullptr;
     }  // end while there is data in the resampler
   } else {
-    opkt->data = ipkt->data;
-    opkt->size = ipkt->size;
-    opkt->flags = ipkt->flags;
-    opkt->duration = ipkt->duration;
     if (audio_first_dts != AV_NOPTS_VALUE) {
       opkt->pts = ipkt->pts - audio_first_dts;
       opkt->dts = ipkt->dts - audio_first_dts;
-    } else {
-      opkt->pts = ipkt->pts;
-      opkt->dts = ipkt->dts;
     }
 
-    ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
+    //ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
     av_packet_rescale_ts(opkt.get(), audio_in_stream->time_base, audio_out_stream->time_base);
-    ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
+//ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(opkt.get(), audio_out_stream);
 
     zm_av_packet_unref(opkt.get());
-    zm_av_packet_unref(zm_packet->packet.get());
+    //zm_av_packet_unref(zm_packet->packet.get());
   }  // end if encoding or copying
-
+  //ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
 
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)

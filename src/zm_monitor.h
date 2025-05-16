@@ -548,18 +548,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool videoRecording;
   bool rtsp_describe;
 
-  int savejpegs;
-  int colours;
-  VideoWriter videowriter;
-  std::string encoderparams;
-  int output_codec;
-  std::string encoder;
-  std::string output_container;
-  _AVPIXELFORMAT imagePixFormat;
-  bool record_audio;          // Whether to store the audio that we receive
-  bool wallclock_timestamps;  // Whether to use wallclock pts/dts instead of
-                              // values from ffmpeg
-  int output_source_stream;
+  int             savejpegs;
+  int             colours;
+  VideoWriter     videowriter;
+  std::string     encoderparams;
+  int             output_codec;
+  std::string     encoder;
+  std::string     encoder_hwaccel_name;
+  std::string     encoder_hwaccel_device;
+  std::string     output_container;
+  _AVPIXELFORMAT  imagePixFormat;
+  bool            record_audio;      // Whether to store the audio that we receive
+  bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
+  int             output_source_stream;
 
   int brightness;  // The statically saved brightness of the camera
   int contrast;    // The statically saved contrast of the camera
@@ -793,6 +794,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline bool Enabled() const { return shared_data->capturing; }
   DecodingOption Decoding() const { return decoding; }
   const std::string &DecoderName() const { return decoder_name; }
+  const std::string &DecoderHWAccelName() const { return decoder_hwaccel_name; }
+  const std::string &DecoderHWAccelDevice() const { return decoder_hwaccel_device; }
   bool JanusEnabled() { return janus_enabled; }
   bool JanusAudioEnabled() { return janus_audio_enabled; }
   inline const char *get_stream_key() { return shared_data->janus_pin; }
@@ -889,6 +892,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
+  const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
+  const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
   int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }

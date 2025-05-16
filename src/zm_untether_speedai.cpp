@@ -49,7 +49,6 @@ static const char * coco_classes[] = {
 };
 
 #define USE_THREAD 0
-#define SPLIT 0
 
 #ifdef HAVE_UNTETHER_H
 SpeedAI::SpeedAI() :
@@ -84,8 +83,6 @@ SpeedAI::SpeedAI() :
 	  m_fast_map[imgPixelVal] = quantize(static_cast<float>(imgPixelVal));
   }
 
-  m_out_buf.resize(NUM_NMS_PREDICTIONS*6);
-  outputBuffer = m_out_buf.data();
 }
 
 SpeedAI::~SpeedAI() {
@@ -340,6 +337,8 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
 
   uint8_t l_low, l_top, t_low, t_top, r_low, r_top, b_low, b_top, score;
 
+  float * outputBuffer = job->predictions_buffer.data();
+
   for (int row = 0; row < 256; row++) {
     // l_low = *(DMAoutput + m_index_map[row][0]);
     // l_top = *(DMAoutput + m_index_map[row][1]);
@@ -386,7 +385,7 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     outputBuffer[outputIndex] = object_class; outputIndex++;
     outputBuffer[outputIndex] = score_float; outputIndex++;
   }
-  coco_object = convert_predictions_to_coco_format(m_out_buf, job->m_width_rescale, job->m_height_rescale, object_threshold);
+  coco_object = convert_predictions_to_coco_format(job->predictions_buffer, job->m_width_rescale, job->m_height_rescale, object_threshold);
   return coco_object;
 }
 

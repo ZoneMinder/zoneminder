@@ -329,8 +329,6 @@ const nlohmann::json SpeedAI::receive_detections(Job *job, float object_threshol
     Error("No DMAOutput");
     return coco_object;
   }
-  // Output buffer for one batch of images
-
   int m_uint16_bias = dequantization_uint16_bias = 4;
   int m_fp8p_bias = dequantization_fp8p_bias = -12;
   //std::vector<std::vector<int>> m_index_map;
@@ -416,7 +414,12 @@ float SpeedAI::dequantize(uint8_t val, int bias) {
   return sgn * float(mnt) * pow(2, (int)exp + bias);
 }
 
-nlohmann::json SpeedAI::convert_predictions_to_coco_format(const std::vector<float>& predictions, float m_width_rescale, float m_height_rescale, float object_threshold) {
+nlohmann::json SpeedAI::convert_predictions_to_coco_format(
+    const std::vector<float>& predictions,
+    float m_width_rescale,
+    float m_height_rescale,
+    float object_threshold
+    ) {
   const int num_predictions = predictions.size() / 6;
   nlohmann::json coco_predictions = nlohmann::json::array();
 

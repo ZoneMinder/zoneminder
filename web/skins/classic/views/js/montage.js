@@ -836,7 +836,7 @@ function initPage() {
 } // end initPage
 
 function on_scroll() {
-  if (!monitorInitComplete) return;
+  if (!monitorInitComplete || idleTimeoutTriggered) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 

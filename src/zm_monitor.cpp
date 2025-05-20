@@ -1889,17 +1889,13 @@ bool Monitor::Poll() {
   }  // end if Amcrest or not
 
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
-    Debug(1, "Trying to check RTSP2Web in Poller");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
-      Debug(1, "Trying to add stream to RTSP2Web");
       RTSP2Web_Manager->add_to_RTSP2Web();
     }
   }
 
   if (Go2RTC_enabled and Go2RTC_Manager) {
-    Debug(1, "Trying to check Go2RTC in Poller");
     if (Go2RTC_Manager->check_Go2RTC() == 0) {
-      Debug(1, "Trying to add stream to Go2RTC");
       Go2RTC_Manager->add_to_Go2RTC();
     }
   }

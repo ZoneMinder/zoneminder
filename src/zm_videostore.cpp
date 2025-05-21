@@ -306,7 +306,7 @@ bool VideoStore::open() {
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->sw_pix_fmt;
+        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
         video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
@@ -339,10 +339,18 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-        if (0 and setup_hwaccel(video_out_ctx,
+        if (setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
           continue;
+        } 
+        
+#ifdef HAVE_QUADRA
+        if (hw_device_ctx) {
+          int devid = ni_get_cardno(video_in_ctx);
+          Debug(1, "Try to open card %d", devid);
+          av_opt_set(video_out_ctx->priv_data, "enc", std::to_string(devid).c_str(), 0);
         }
+#endif
 
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -605,6 +613,7 @@ void VideoStore::flush_codecs() {
           av_packet_rescale_ts(pkt.get(),
                                audio_out_ctx->time_base,
                                audio_out_stream->time_base);
+          ZM_DUMP_STREAM_PACKET(audio_out_stream, pkt, "writing flushed packet");
           write_packet(pkt.get(), audio_out_stream);
         }
       }  // end if data returned from fifo
@@ -1105,9 +1114,6 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
 
 int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   av_packet_guard pkt_guard;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  av_frame_ptr hw_frame;
-#endif
 
   frame_count += 1;
 
@@ -1115,9 +1121,11 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
-    AVFrame *frame = nullptr;
+    av_frame_ptr frame(av_frame_alloc());
 
-    if (!zm_packet->out_frame) {
+    if (zm_packet->hw_frame) {
+      av_frame_ref(frame.get(), zm_packet->hw_frame.get());
+    } else if (!zm_packet->out_frame) {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
             chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
@@ -1155,42 +1163,38 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           and
           static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
           ) {
-            frame = zm_packet->ai_frame.get();
+            av_frame_ref(frame.get(), zm_packet->ai_frame.get());
           } else {
-            frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+            frame = av_frame_ptr(zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
             if (!frame) {
               Error("Unable to allocate a frame");
               return 0;
             }
             // Have in_frame.... may need to convert it to out_frame
-            swscale.Convert(zm_packet->ai_frame.get(), frame);
+            swscale.Convert(zm_packet->ai_frame.get(), frame.get());
           }
       } else if (zm_packet->in_frame) {
         Debug(1, "Using in_frame");
         if (zm_packet->in_frame->width == video_out_ctx->width
-          and
-          zm_packet->in_frame->height == video_out_ctx->height
-          and
-          static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
-          ) {
-            frame = zm_packet->in_frame.get();
-          } else {
-            frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-            if (!frame) {
-              Error("Unable to allocate a frame");
-              return 0;
-            }
-            // Have in_frame.... may need to convert it to out_frame
-            swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
-          }
+            and
+            zm_packet->in_frame->height == video_out_ctx->height
+            and
+            static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
+           ) {
+          av_frame_ref(frame.get(), zm_packet->in_frame.get());
+        } else {
+          av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
+          // Have in_frame.... may need to convert it to out_frame
+          swscale.Convert(zm_packet->in_frame.get(), frame.get());
+        }
       } // end if no in_frame
     } // end if no out_frame
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-    if (video_out_ctx->hw_frames_ctx) {
+    if (video_out_ctx->hw_frames_ctx and (static_cast<AVPixelFormat>(frame->format) != video_out_ctx->pix_fmt)) {
       Debug(1, "Using hwframe");
       int ret;
-      hw_frame = av_frame_ptr{zm_av_frame_alloc()};
+      av_frame_ptr hw_frame = av_frame_ptr{zm_av_frame_alloc()};
       if (!hw_frame) {
         return AVERROR(ENOMEM);
       }
@@ -1199,19 +1203,19 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         return ret;
       }
       if (!hw_frame->hw_frames_ctx) {
-        Error("Outof ram!");
+        Error("Out of ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame.get(), 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
-      ret = av_frame_copy_props(frame, hw_frame.get());
+      ret = av_frame_copy_props(frame.get(), hw_frame.get());
       if (ret < 0) {
         Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
       }
 
-      frame = hw_frame.get();
+      frame = std::move(hw_frame);
     }  // end if hwaccel
 #endif
     if (!frame) {
@@ -1285,7 +1289,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
     do {
-      int ret = avcodec_send_frame(video_out_ctx, frame);
+      int ret = avcodec_send_frame(video_out_ctx, frame.get());
       if (ret == AVERROR(EAGAIN) and !zm_terminate) {
         Debug(1, "Got EAGAIN sending frame");
         continue;
@@ -1373,15 +1377,17 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
 int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   AVPacket *ipkt = zm_packet->packet.get();
-  //ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
+  ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
 
   // This does copy props, etc... so dts, pts etc all get copied.
   av_packet_ref(opkt.get(), ipkt);
+  ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after ref");
 
   // Altering the input packet is kinda sketchy
 
   if (monitor->WallClockTimestamps()) {
     int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+    // Convert to in_stream tb
     opkt->pts = opkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
 
     Debug(2, "dts %" PRId64 " from timestamp %" PRId64 " secs(%.2f)",
@@ -1444,13 +1450,15 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end while there is data in the resampler
   } else {
     if (audio_first_dts != AV_NOPTS_VALUE) {
-      opkt->pts = ipkt->pts - audio_first_dts;
-      opkt->dts = ipkt->dts - audio_first_dts;
+      ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "before pts adjustment");
+      Debug(1, "Adjusting pts/dts by %" PRId64, audio_first_dts);
+      opkt->pts = opkt->pts - audio_first_dts;
+      opkt->dts = opkt->dts - audio_first_dts;
     }
 
-    //ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
+    ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
     av_packet_rescale_ts(opkt.get(), audio_in_stream->time_base, audio_out_stream->time_base);
-//ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
+    ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(opkt.get(), audio_out_stream);
 
     zm_av_packet_unref(opkt.get());

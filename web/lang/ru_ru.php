@@ -386,6 +386,7 @@ $SLANG = array(
     'Func'                 => 'Функ.',
     'Function'             => 'Функция',
     'Gain'                 => 'Усиление',
+    'Gateway'              => 'Шлюз',
     'General'              => 'Основные',
     'GenerateDownload'     => 'Сгенерировать загрузку',      // Edited - 2019-03-25
     'GenerateVideo'        => 'Генерировать видео',

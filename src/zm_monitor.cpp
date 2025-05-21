@@ -2447,13 +2447,13 @@ int Monitor::Analyse() {
           Debug(1, "out_frame pixformat %d, for index %d, packet %d", packet->out_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->out_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->out_frame->format);
-        } else {
+        } else if (decoding == DECODING_ALWAYS) {
           Error("Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
-          shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-          shared_data->last_analysis_index = index;
-          shared_data->last_read_index = index;
-          shared_data->analysis_image_count = analysis_image_count;
+        shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+        shared_data->last_analysis_index = index;
+        shared_data->last_read_index = index;
+        shared_data->analysis_image_count = analysis_image_count;
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
         if (1 and packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
@@ -3434,24 +3434,16 @@ int Monitor::Decode() {
       if (0 == ret) { // EAGAIN
         return 0; //make it sleep? No
       } else if (ret < 0) {
-#if HAVE_QUADRA
-        std::lock_guard<std::mutex> lck(quadra_mutex);
-#endif
-        // No need to push because it didn't get into the decoder.
-        avcodec_free_context(&mVideoCodecContext);
-        mVideoCodecContext = nullptr;
-        if (mAudioCodecContext) {
-          avcodec_free_context(&mAudioCodecContext);
-          mAudioCodecContext = nullptr;
-        }
-
+        CloseDecoder();
         return -1;
       }  // end if ret from send_packet
       packetqueue.increment_it(decoder_it);
       decoder_queue.push_back(std::move(packet_lock)); // packet_lock is no longer valid, but packet should be ok
       return 0;
     } else {
-      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding packet %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
+      packetqueue.increment_it(decoder_it);
+      ZM_DUMP_PACKET(packet->packet.get(), "Not decoding");
     }  // end if doing decoding
   }  // end if need_decoding
 
@@ -3690,6 +3682,10 @@ Event * Monitor::openEvent(
       *analysis_it,
       (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
       );
+  auto packet = *(*start_it);
+  auto av_packet = packet->av_packet();
+
+  ZM_DUMP_PACKET(av_packet, "start packet");
 
   auto starting_packet = *start_it;
   event = new Event(this, start_it, (*starting_packet)->timestamp, cause, noteSetMap);

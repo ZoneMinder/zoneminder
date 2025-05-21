@@ -753,7 +753,12 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
+                  for (let i=0, length = monitors.length; i < length; i++) {
+                    const monitor = monitors[i];
+                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
+                      monitor.start();
+                    }
+                  }
                 });
                 ayswModal.modal('show');
               })

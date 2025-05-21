@@ -187,7 +187,13 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
-int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height) {
+int setup_hwaccel(
+    AVCodecContext *codec_ctx,
+    const CodecData *codec_data,
+    AVBufferRef * &hw_device_ctx,
+    const std::string &device,
+    int width,
+    int height) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
     return 0;
@@ -202,7 +208,6 @@ int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data, AVBuff
   }
   codec_ctx->get_format = get_hw_format;
   codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-
 
 if (1) {
   AVBufferRef *hw_frames_ref;

@@ -25,6 +25,7 @@
 
 extern "C" {
 #include <libavutil/pixdesc.h>
+#include <libavutil/hwcontext_ni_quad.h>
 }
 
 /*
@@ -86,6 +87,18 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 };
+
+#ifdef HAVE_QUADRA
+int ni_get_cardno(const AVCodecContext *ctx) {
+  if (ctx->hw_frames_ctx) {
+    AVNIFramesContext* ni_hwf_ctx = (AVNIFramesContext*)((AVHWFramesContext*)ctx->hw_frames_ctx->data)->hwctx;
+    if (ni_hwf_ctx) {
+      return ni_hwf_ctx->hw_id;
+    }
+  }
+  return -1;
+}
+#endif
 
 std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_encoder) {
   std::list<const CodecData*> results;

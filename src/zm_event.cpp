@@ -990,7 +990,7 @@ void Event::Run() {
         Debug(1, "Not analyzed");
         packet_lock.unlock();
         // Stay behind ai
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE/10);
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
         Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
         continue;
@@ -999,28 +999,6 @@ void Event::Run() {
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
 
-#if 0
-      if (packet->image) {
-        if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
-          if (!save_jpegs) {
-            Debug(4, "Deleting image data for %d", packet->image_index);
-            // Don't need raw images anymore
-            delete packet->image;
-            packet->image = nullptr;
-          }
-        }
-        if (packet->analysis_image and !(save_jpegs & 2)) {
-          Debug(4, "Deleting analysis image data for %d", packet->image_index);
-          delete packet->analysis_image;
-          packet->analysis_image = nullptr;
-        }
-      } // end if packet->image
-      if (!videoStore or !videoStore->get_reorder_queue_size()) {
-        // Don't do this because videostore might buffer for reordering
-        //packet->in_frame = nullptr;
-        //packet->ai_frame = nullptr;
-      }
-#endif
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {

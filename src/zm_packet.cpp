@@ -23,6 +23,10 @@
 #include "zm_logger.h"
 #include "zm_signal.h"
 
+#if HAVE_QUADRA
+#include "libavutil/hwcontext_ni_quad.h"
+#endif
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
@@ -298,6 +302,14 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
 
 void ZMPacket::set_ai_frame(AVFrame *frame) {
   ai_frame = av_frame_ptr{frame};
+}
+
+int ZMPacket::get_hw_device_id() const {
+  int deviceid = -1;
+  if (hw_frame && hw_frame->format == AV_PIX_FMT_NI_QUAD) {
+    deviceid = ni_get_cardno(hw_frame.get());
+  }
+  return deviceid;
 }
 
 AVFrame *ZMPacket::get_ai_frame() {

@@ -89,6 +89,7 @@ class ZMPacket {
   ZMPacket();
   ~ZMPacket();
 
+  int get_hw_device_id() const;
   //AVFrame *get_out_frame(const AVCodecContext *ctx);
   AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
   AVFrame *get_ai_frame();
@@ -151,6 +152,10 @@ class ZMPacketLock {
       if (locked) {
         Debug(4, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
         packet_->unlock(lck_);
+      } else if (packet_) {
+        Debug(4, "Not locked in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+      } else {
+        Debug(4, "Not locked in destructor, no packet %p", this);
       }
     };
 

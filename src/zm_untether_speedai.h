@@ -6,6 +6,7 @@
 #endif
 #include <nlohmann/json.hpp>
 
+#include <condition_variable>
 #include <list>
 #include <mutex>
 #include <atomic>
@@ -36,6 +37,8 @@ class SpeedAI {
   private:
     UaiModule* module_;
     std::mutex  mutex_;
+    std::condition_variable condition_;
+
     std::atomic<bool> terminate_;
     std::thread thread_;
 
@@ -79,6 +82,9 @@ class SpeedAI {
         float m_height_rescale;
         SwsContext *sw_scale_ctx;
         std::vector<float> predictions_buffer;
+        std::mutex  mutex_;
+        std::unique_lock<std::mutex> lck_;
+        std::condition_variable condition_;
 
         Job(UaiModule *p_module) :
           m_module(p_module),
@@ -88,7 +94,8 @@ class SpeedAI {
           event({}),
           m_width_rescale(1.0),
           m_height_rescale(1.0),
-          sw_scale_ctx(nullptr)
+          sw_scale_ctx(nullptr),
+          lck_(mutex_, std::defer_lock)
           {
             inputBuf = new UaiDataBuffer();
             outputBuf = new UaiDataBuffer();
@@ -156,7 +163,17 @@ class SpeedAI {
           m_height_rescale = in.m_height_rescale;
           return *this;
         };
+        void lock() {
+          lck_.lock();
+        }
+        void unlock() { lck_.unlock(); };
 
+        void wait() {
+          condition_.wait(lck_);
+        }
+        void notify() {
+          condition_.notify_all();
+        }
     };
     std::list<Job *> jobs;
     std::list<Job *> send_queue;

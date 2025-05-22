@@ -369,7 +369,7 @@ Monitor::Monitor() :
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0,"
    " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`ObjectDetection`+0, "
+   "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
@@ -2528,7 +2528,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
     Debug(1, "Quadra setting up on %d", deviceid);
     if (!quadra_yolo->setup(camera->getVideoStream(), 
           mVideoCodecContext,
-          "yolov5", "/var/cache/zoneminder/models/network_binary_yolov5s_improved.nb",
+          "", (staticConfig.DIR_MODELS+"/"+objectdetection_model),
           deviceid)) {
       Warning("Failed Quadra");
       delete quadra_yolo;

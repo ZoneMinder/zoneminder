@@ -90,6 +90,7 @@ bool Quadra_Yolo::setup(
     const std::string &nbg_file,
     int deviceid)
 {
+  std::string model_name = modelname;
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
   model_ctx = new YoloModelCtx;
@@ -98,41 +99,44 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
+  if (std::string::npos != nbg_file.find("yolov4")) {
+    model = &yolov4;
+    model_name = std::string("yolov4");
+  } else if (std::string::npos != nbg_file.find("yolov5")) {
+    model = &yolov5;
+    model_width = model_height = 640;
+    model_name = std::string("yolov5");
+  } else if (std::string::npos != nbg_file.find("yolov8")) {
+    model = &yolov8;
+    model_width = 640;
+    model_height = 352;
+    model_name = std::string("yolov8");
+  } else {
+    if (model_name == "yolov4") {
+      model = &yolov4;
+    } else if (model_name == "yolov5") {
+      model = &yolov5;
+      model_width = model_height = 640;
+    } else if (model_name == "yolov8") {
+      model = &yolov8;
+      model_width = 640;
+      model_height = 352;
+    } else {
+      Error("Unsupported yolo model");
+      return false;
+    }
+  }
+
   //std::string device = monitor->DecoderHWAccelDevice();
   //int devid = device.empty() ? -1 : std::stoi(device);
   int devid = deviceid;
 
-  Debug(1, "Setup NETint %s on %d, use hwframe %d", modelname.c_str(), devid, use_hwframe);
+  Debug(1, "Setup NETint %s using %s on %d, use hwframe %d %dx%d", model_name.c_str(), nbg_file.c_str(), devid, use_hwframe, model_width, model_height);
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
       devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
     Error("failed to allocate network context on card %d", devid);
     return false;
-  }
-
-  if (nbg_file.find("yolov4")) {
-    model = &yolov4;
-  } else if (nbg_file.find("yolov5")) {
-    model = &yolov5;
-    model_width = model_height = 640;
-  } else if (nbg_file.find("yolov8")) {
-    model = &yolov8;
-    model_width = 352;
-    model_height = 640;
-  } else {
-    if (modelname == "yolov4") {
-      model = &yolov4;
-    } else if (modelname == "yolov5") {
-      model = &yolov5;
-      model_width = model_height = 640;
-    } else if (modelname == "yolov8") {
-      model = &yolov8;
-      model_width = 352;
-      model_height = 640;
-    } else {
-      Error("Unsupported yolo model");
-      return false;
-    }
   }
 
   ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);

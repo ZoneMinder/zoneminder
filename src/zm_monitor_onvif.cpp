@@ -114,7 +114,7 @@ void Monitor::ONVIF::start() {
         std::ostream *old_stream = soap->os;
         soap->os = &ss; // assign a stringstream to write output to
         proxyEvent.CreatePullPointSubscription(&request, response);
-        soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+        //soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
         soap->os = old_stream; // no longer writing to the stream
         Error("Response was %s", ss.str().c_str());
 

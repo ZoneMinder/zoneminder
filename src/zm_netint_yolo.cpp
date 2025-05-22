@@ -110,17 +110,29 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
-  if (modelname == "yolov4") {
+  if (nbg_file.find("yolov4")) {
+    model = &yolov4;
+  } else if (nbg_file.find("yolov5")) {
+    model = &yolov5;
+    model_width = model_height = 640;
+  } else if (nbg_file.find("yolov8")) {
+    model = &yolov8;
+    model_width = 352;
+    model_height = 640;
+  } else {
+    if (modelname == "yolov4") {
       model = &yolov4;
-  } else if (modelname == "yolov5") {
+    } else if (modelname == "yolov5") {
       model = &yolov5;
       model_width = model_height = 640;
-  } else if (modelname == "yolov8") {
+    } else if (modelname == "yolov8") {
       model = &yolov8;
-      model_width = model_height = 640;
-  } else {
+      model_width = 352;
+      model_height = 640;
+    } else {
       Error("Unsupported yolo model");
       return false;
+    }
   }
 
   ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);

@@ -173,8 +173,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
                                          &network_ctx->network_data,
                                          nbg_file);
     if (retval != NI_RETCODE_SUCCESS) {
-        Error("failed to configure npu session. retval %d",
-               retval);
+        Error("failed to configure npu session. retval %d", retval);
         ret = NIERROR(EIO);
         goto failed_out;
     }
@@ -182,7 +181,7 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     if (scale_width != 0 && scale_height != 0) {
         if (scale_width != network_ctx->network_data.linfo.in_param[0].sizes[0] ||
                 scale_height != network_ctx->network_data.linfo.in_param[0].sizes[1]) {
-            Error("input dimensions not match: expect %dx%d, actual %dx%d",
+            Error("input dimensions not match: passed %dx%d, actual %dx%d",
                     scale_width, scale_height,
                     network_ctx->network_data.linfo.in_param[0].sizes[0],
                     network_ctx->network_data.linfo.in_param[0].sizes[1]);

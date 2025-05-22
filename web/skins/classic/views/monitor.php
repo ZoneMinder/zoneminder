@@ -1082,7 +1082,28 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 <?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
             <li class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
+<?php
+        $models = [];
+        foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
+          $model = basename($model);
+          $extension = pathinfo($model, PATHINFO_EXTENSION);
+          if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
+            if (!isset($models['speedai'])) $models['speedai'] = [];
+            $models['speedai'][$model] = $model;
+          } else if ($extension == 'nb' and defined('HAVE_QUADRA')) {
+            if (!isset($models['quadra'])) $models['quadra'] = [];
+            $models['quadra'][$model] = $model;
+          } else {
+            ZM\Debug("Unkown extension in model $model");
+          }
+        }
+        if ($monitor->ObjectDetection() and isset($models[$monitor->ObjectDetection()])) {
+          echo htmlSelect('newMonitor[ObjectDetectionModel]', $models[$monitor->ObjectDetection()], $monitor->ObjectDetectionModel());
+        } else {
+?>
+
               <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
+<?php } ?>
             </li>
             <li class="ObjectDetectionObjectThreshold">
               <label><?php echo translate('Object Detection Object Threshold')?></label>

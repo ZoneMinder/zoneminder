@@ -10,36 +10,20 @@
 #include "ni_yolo_utils.h"
 #include "zm_logger.h"
 
-#define BIASES_NUM  18
-// #define OLD_YOLOV5
-
-#ifdef OLD_YOLOV5
-static int g_masks[3][3] = {{3, 4, 5}, {6, 7, 8}, {0, 1, 2}};
-static int sequence[3] = {2, 0, 1};
-#else
-static int g_masks[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
-static int sequence[3] = {0, 1, 2};
-#endif
-static float g_biases[] = {10, 13, 16, 30, 33, 23, 30, 61, 62, 45, 59, 119, 116, 90, 156, 198, 373, 326};
-
 static int ni_yolov8_get_boxes(YoloModelCtx *ctx, uint32_t img_width,
         uint32_t img_height, struct roi_box **roi_box, int *roi_num)
 {
     int ret;
     int dets_num = 0;
     int real_num = 0;
-#ifdef OLD_YOLOV5
-    int normalize_box = 1;
-#else
-    int normalize_box = 0;
-#endif
+
     detection *dets;
     struct roi_box *rbox;
 
     *roi_box = NULL;
     *roi_num = 0;
 
-    ret = ni_get_yolov8_detections(ctx, sequence, normalize_box);
+    ret = ni_get_yolov8_detections(ctx);
     if (ret < 0) {
         Error("cannot get detection");
         return ret;
@@ -99,6 +83,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
         unsigned int model_width, unsigned int model_height)
 {
     int ret = 0;
+    int reg_max = 16;
 
     ctx->obj_thresh = obj_thresh;
     ctx->nms_thresh = nms_thresh;
@@ -138,23 +123,12 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
         ctx->layers[i].width     = network_data->linfo.out_param[i].sizes[0];
         ctx->layers[i].height    = network_data->linfo.out_param[i].sizes[1];
         ctx->layers[i].channel   = network_data->linfo.out_param[i].sizes[2];
-        ctx->layers[i].component = 3;
-        ctx->layers[i].classes = (ctx->layers[i].channel - (4 + 1));
+        ctx->layers[i].component = 1;
+        ctx->layers[i].classes = (ctx->layers[i].channel - (4 * reg_max));
         ctx->layers[i].output_number =
             ni_ai_network_layer_dims(&network_data->linfo.out_param[i]);
         ctx->layers[i].padding   = 0;
         ctx->layers[i].output = (float *)ctx->out_tensor[i];
-
-        ///TODO rm [0]
-        memcpy(ctx->layers[i].mask, &g_masks[i][0], sizeof(ctx->layers[i].mask));
-
-        ctx->layers[i].biases = (float *)malloc(BIASES_NUM * sizeof(float));
-        if (! ctx->layers[i].biases) {
-            Error("cannot allocate network layer memory");
-            ret = NIERROR(ENOMEM);
-            goto out;
-        }
-        memcpy(ctx->layers[i].biases, &g_biases[0], BIASES_NUM * sizeof(float));
 
         Debug(1, "network layer %d: w %d, h %d, ch %d, co %d, cl %d\n", i,
                 ctx->layers[i].width, ctx->layers[i].height,
@@ -162,8 +136,8 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
                 ctx->layers[i].classes);
     }
 
-    ctx->entry_set.obj_entry = 4;
-    ctx->entry_set.class_entry = 5;
+    ctx->entry_set.obj_entry = -1;
+    ctx->entry_set.class_entry = 4 * reg_max;
     ctx->entry_set.coods_entry = 0;
 
     ctx->det_cache.dets_num = 0;

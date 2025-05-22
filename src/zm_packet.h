@@ -116,14 +116,22 @@ class ZMPacketLock {
       lck_(std::move(in.lck_)),
       locked(in.locked)
     {
-      in.locked = false;
+      if (this != &in) {
+        in.packet_ = nullptr;
+        in.locked = false;
+      }
     };
-    ZMPacketLock& operator=(ZMPacketLock &&in) {
-      packet_ = in.packet_;
-      lck_    = std::move(in.lck_);
-      //lck_    = in.lck_;
-      locked  = in.locked;
-      in.locked = false;
+
+    // Move operator
+    ZMPacketLock& operator=(ZMPacketLock &&in) noexcept {
+      if (this != &in) {
+        packet_ = in.packet_;
+        lck_    = std::move(in.lck_);
+        //lck_    = in.lck_;
+        locked  = in.locked;
+        in.locked = false;
+        in.packet_ = nullptr;
+      }
       return *this;
     };
 

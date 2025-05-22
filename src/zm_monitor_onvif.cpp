@@ -106,7 +106,9 @@ void Monitor::ONVIF::start() {
 
       if (rc != SOAP_OK) {
         const char *detail = soap_fault_detail(soap);
-        Error("ONVIF Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(), rc, soap_fault_string(soap), detail ? detail : "null");
+        Error("ONVIF Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+            rc, SOAP_STRINGS[rc].c_str(),
+            soap_fault_string(soap), detail ? detail : "null");
 
         std::stringstream ss;
         std::ostream *old_stream = soap->os;
@@ -114,7 +116,7 @@ void Monitor::ONVIF::start() {
         proxyEvent.CreatePullPointSubscription(&request, response);
         soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
         soap->os = old_stream; // no longer writing to the stream
-        Debug(1, "Response was %s", ss.str().c_str());
+        Error("Response was %s", ss.str().c_str());
 
         _wsnt__Unsubscribe wsnt__Unsubscribe;
         _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;

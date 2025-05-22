@@ -3056,7 +3056,7 @@ int Monitor::Capture() {
 
       // Only queue if we have some video packets in there. Should push this logic into packetqueue
       if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
-        packet->image_index=-1;
+        packet->image_index = -1;
         Debug(2, "Queueing audio packet");
         packet->packet->stream_index = audio_stream_id; // Convert to packetQueue's index
         packetqueue.queuePacket(packet);
@@ -3595,11 +3595,12 @@ int Monitor::Decode() {
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;
       shared_data->decoder_image_count++;
-      shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     }
-    if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
+    SystemTimePoint now = std::chrono::system_clock::now();
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(now);
+    if (now - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
       Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
-          FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
+          FPSeconds(now - packet->timestamp).count());
     }
   } else {
 //    Warning("Unable to assign an image to shm for %d", index);

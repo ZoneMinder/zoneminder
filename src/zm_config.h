@@ -57,6 +57,7 @@ struct StaticConfig {
   std::string SERVER_NAME;
   unsigned int SERVER_ID;
   std::string DIR_EVENTS;
+  std::string DIR_MODELS;
   std::string DIR_SOUNDS;
   std::string DIR_EXPORTS;
   std::string PATH_ZMS;

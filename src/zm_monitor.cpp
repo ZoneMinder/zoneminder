@@ -3320,24 +3320,29 @@ int Monitor::Decode() {
     if (!mVideoCodecContext and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
       } // end if success opening codec
-        //
-     // THe proper thing to do might be to remove packets until we hit a keyframe, then start inserting. 
-     // If we don't enconter a keyframe, then.... keep popping off until we get one.
+
+        // THe proper thing to do might be to remove packets until we hit a keyframe, then start inserting. 
+        // If we don't enconter a keyframe, then.... keep popping off until we get one.
          // If we have queued packets, need to stuff them into the decoder.
+        bool sending = false;
+        std::list<ZMPacketLock> new_decoder_queue;
         while (decoder_queue.size() and !zm_terminate) {
           Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());
           // Inject current queue into the decoder.
-          ZMPacketLock *delayed_packet_lock  = &decoder_queue.front();
-          auto delayed_packet = delayed_packet_lock->packet_;
-          delayed_packet->decoded = true;
+          ZMPacketLock delayed_packet_lock = std::move(decoder_queue.front());
+          decoder_queue.pop_front();
+          auto delayed_packet = delayed_packet_lock.packet_;
 
-          ////if (0 > delayed_packet->send_packet(mVideoCodecContext)) {
-            //Error("Failed sending packet %d", delayed_packet->image_index);
-            //break;
-         //} else {
-            decoder_queue.pop_front();
-          //}
+          if (delayed_packet->keyframe or sending) {
+            int ret = delayed_packet->send_packet(mVideoCodecContext);
+            if (ret<0) Error("Failed sending packet %d", delayed_packet->image_index);
+            sending = true;
+            new_decoder_queue.push_back(std::move(delayed_packet_lock));
+          } else {
+            delayed_packet->decoded = true;
+          }
         } // end while packets in queue
+        if (new_decoder_queue.size()) decoder_queue = std::move(new_decoder_queue);
     } // end if ! mCodec
   } // end != DECODING_NONE
 
@@ -3354,7 +3359,7 @@ int Monitor::Decode() {
     if (ret > 0) {
       //Debug(1, "Success");
       // Success, pop and assign
-      packet_lock = std::move( decoder_queue.front() );
+      packet_lock = std::move(decoder_queue.front());
       decoder_queue.pop_front();
       packet = delayed_packet;
       if (
@@ -3365,7 +3370,11 @@ int Monitor::Decode() {
         packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
-      if (ret == AVERROR_EOF) CloseDecoder();
+      if (ret == AVERROR_EOF) {
+        Error("Closing decoder");
+        CloseDecoder();
+      }
+      return 0; // re-openping will take long enoguh
       return ret;
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);

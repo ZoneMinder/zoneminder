@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 0
+#define SOFTWARE_DRAWBOX 1
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -618,7 +618,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       if (ret < 0) {
         Error("draw %d roi box failed", i);
       } else {
-#if !SOFTARE_DRAWBOX 
+#if !SOFTWARE_DRAWBOX 
         if ((input != frame) && drawbox_output && (input != drawbox_output)) {
           av_frame_free(&input);
           input = drawbox_output;

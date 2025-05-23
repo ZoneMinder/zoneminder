@@ -9,8 +9,6 @@
 
 #include "zm_netint_yolo.h"
 
-#define SOFTWARE_DRAWBOX 1
-
 static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
   "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
   "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
@@ -22,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 1
+#define SOFTWARE_DRAWBOX 0
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -173,9 +171,8 @@ bool Quadra_Yolo::setup(
     }
   }
 
-#if SOFTWARE_DRAWBOX
-#else
-  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawbox=color=red,ni_quadra_scale=iw:ih:format=yuv420p", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+#if !SOFTWARE_DRAWBOX
+  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox=color=red", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
   if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:expansion=none:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
@@ -184,7 +181,7 @@ bool Quadra_Yolo::setup(
   return true;
 }
 
-/* Ideally we could hangle intermixed hwframes and swframes. */
+/* Ideally we could handle intermixed hwframes and swframes. */
 int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   AVFrame *avframe = (use_hwframe and in_packet->hw_frame) ? in_packet->hw_frame.get() : in_packet->in_frame.get();
   if (!in_packet->hw_frame) {
@@ -611,13 +608,16 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     if (drawbox) {
      // and drawbox_filter.filter_ctx) {
       Debug(1, "Drawing box");
-      AVFrame *drawbox_output = nullptr;
-      //ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
+#if SOFTWARE_DRAWBOX
       ret = draw_roi_box_in_place(input, roi[i], roi_extra[i], monitor->LabelSize());
+#else
+      AVFrame *drawbox_output = nullptr;
+      ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
+#endif
       if (ret < 0) {
         Error("draw %d roi box failed", i);
       } else {
-#if 0
+#if !SOFTARE_DRAWBOX 
         if ((input != frame) && drawbox_output && (input != drawbox_output)) {
           av_frame_free(&input);
           input = drawbox_output;
@@ -719,7 +719,6 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   if (!in_frame) return 1;
 
 #if SOFTWARE_DRAWBOX
-
   av_frame_ptr ai_frame = av_frame_ptr{zm_av_frame_alloc()};
   Image *img = new Image(in_frame, in_frame->width, in_frame->height); // specifying size causes a copy
   img->PopulateFrame(ai_frame.get());
@@ -733,6 +732,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
       Error("draw %d roi box failed", i);
       return ret;
     }
+    img->Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 #else
     AVFrame *output = nullptr;
     int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
@@ -741,9 +741,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
       return ret;
     }
     zm_dump_video_frame(output, "Quadra: boxes");
-    Image img(output);
 #endif
-    img->Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 
 #if !SOFTWARE_DRAWBOX
     if (in_frame != packet->in_frame.get()) {
@@ -751,11 +749,15 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
       av_frame_free(&in_frame);
     }
     if (output) in_frame = output;
+    Image img(output);
+    img.Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 #endif
   } // end foreach detection
 
   packet->ai_frame = std::move(ai_frame);
+#if SOFTWARE_DRAWBOX
   packet->analysis_image = img;
+#endif
   return 1;
 } // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)
 

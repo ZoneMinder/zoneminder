@@ -92,8 +92,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
     ctx->input_height = network_data->linfo.in_param[0].sizes[1];
 
     ctx->output_number = network_data->output_num;
-    ctx->out_tensor = (uint8_t **)calloc(network_data->output_num,
-            sizeof(uint8_t **));
+    ctx->out_tensor = (uint8_t **)calloc(network_data->output_num, sizeof(uint8_t **));
     if (ctx->out_tensor == NULL) {
         Error("failed to allocate output tensor bufptr");
         ret = NIERROR(ENOMEM);
@@ -157,8 +156,8 @@ static void destroy_yolov8_model(YoloModelCtx *ctx)
         int i;
         for (i = 0; i < ctx->output_number; i++) {
             free(ctx->out_tensor[i]);
-            free(ctx->layers[i].biases);
-            ctx->layers[i].biases = NULL;
+            //free(ctx->layers[i].biases);
+            //ctx->layers[i].biases = NULL;
         }
         free(ctx->out_tensor);
         ctx->out_tensor = NULL;

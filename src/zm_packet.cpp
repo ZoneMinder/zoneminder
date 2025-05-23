@@ -132,11 +132,16 @@ ssize_t ZMPacket::ram() {
 
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
   av_frame_ptr receive_frame{av_frame_alloc()};
+  if (!receive_frame) {
+    Error("Error allocating frame");
+    return 0;
+  }
   int ret = avcodec_receive_frame(ctx, receive_frame.get());
   Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   if (ret == AVERROR(EAGAIN)) {
     return 0;
   } else if (ret < 0) {
+    Error( "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     return ret;
   }
 

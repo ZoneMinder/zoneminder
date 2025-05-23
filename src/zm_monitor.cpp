@@ -2179,8 +2179,6 @@ int Monitor::Analyse() {
                   } 
                 }
               }  // end if objectdetection
-
-              packet->hw_frame = nullptr; // Free it
             }  // end if has in_frame
 
             // Ready means that we have captured the warmup # of frames

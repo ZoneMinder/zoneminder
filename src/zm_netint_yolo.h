@@ -88,17 +88,21 @@ class Quadra_Yolo {
         int ret = av_buffersrc_add_frame_flags(this->buffersrc_ctx, in_frame, AV_BUFFERSRC_FLAG_KEEP_REF);
         if (ret < 0) {
           av_frame_free(&output);
-          Error("cannot add frame to hwdl buffer src");
+          Error("cannot add frame to %s buffer src %d %s",
+              filter_ctx->name, ret, av_make_error_string(ret).c_str());
           return ret;
         }
 
+        int count = 10;
         do {
           ret = av_buffersink_get_frame(this->buffersink_ctx, output);
           if (ret == AVERROR(EAGAIN)) {
-            Debug(1, "EAGAIN");
-            continue;
+            count --;
+            Debug(1, "EAGAIN %s", filter_ctx->name);
+            if (!count) return ret;
           } else if (ret < 0) {
-            Error("cannot get frame from hwdl buffer sink");
+            Error("cannot get frame from %s buffer sink %d %s",
+                filter_ctx->name, ret, av_make_error_string(ret).c_str());
             av_frame_free(&output);
             return ret;
           } else {
@@ -113,7 +117,18 @@ class Quadra_Yolo {
         return av_opt_set(filter_ctx->priv, opt.c_str(), value.c_str(), 0);
       }
       int opt_set(const std::string &opt, int value) {
-        return av_opt_set(filter_ctx->priv, opt.c_str(), stringtf("%d", value).c_str(), 0);
+        return av_opt_set(filter_ctx->priv, opt.c_str(), std::to_string(value).c_str(), 0);
+      }
+
+      int send_command(const char *filter_name, const char *command, const char *option) {
+        int ret = avfilter_graph_send_command(filter_graph, filter_name, command, option, NULL, 0, 0);
+        if (ret < 0) {
+          Error("cannot send drawbox filter command %s option %s, ret %d %s.",
+              command, option, ret, av_make_error_string(ret).c_str());
+        } else {
+          Debug(1, "sent drawbox filter command %s option %s, ret %d.", command, option, ret);
+        }
+        return ret;
       }
     };
 

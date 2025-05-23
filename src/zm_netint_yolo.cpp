@@ -172,7 +172,7 @@ bool Quadra_Yolo::setup(
   }
 
 #if !SOFTWARE_DRAWBOX
-  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox=color=red", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox=inplace=1", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
   if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:expansion=none:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
@@ -384,8 +384,8 @@ int Quadra_Yolo::draw_roi_box(
   Image in_image(inframe);
 #endif
 
-  for (int i=0; i<line_width; i++) {
 #if SOFTWARE_DRAWBOX
+  for (int i=0; i<line_width; i++) {
 #if 0
     std::vector<Vector2> coords;
     coords.push_back(Vector2(roi.left + i, roi.top + i));
@@ -398,29 +398,31 @@ int Quadra_Yolo::draw_roi_box(
 #else
     in_image.DrawBox(roi.left+i, roi.top+i, roi.right-2*i, roi.bottom-2*i, kRGBGreen);
 #endif
-  }  // end while
+  }  // end foreach line
 #else
+  for (int i=0; i<line_width; i++) {
     int x = roi.left + i; // line
     int y = roi.top + i;
-    int w = (roi.right - roi.left) - i;
-    int h = (roi.bottom - roi.top) - i;
+    int w = (roi.right - roi.left) - 2*i;
+    int h = (roi.bottom - roi.top) - 2*i;
 
-    Debug(1, "x %d, y %d, w %d, h %d color %s %d", x, y, w, h, color.c_str(), i);
+    Debug(1, "draw_roi_box: x %d, y %d, w %d, h %d color %s %d line width %d", x, y, w, h, color.c_str(), i, line_width);
 #if 1
-    if (!i) {
-      drawbox_filter.opt_set("x", x);
+  drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("x%d", i).c_str() : "x"), std::to_string(x).c_str());
+  drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("y%d", i).c_str() : "y"), std::to_string(y).c_str());
+  drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("w%d", i).c_str() : "w"), std::to_string(w).c_str());
+  drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("h%d", i).c_str() : "h"), std::to_string(h).c_str());
+  
+  /*
+drawbox_filter.opt_set("x", x);
       drawbox_filter.opt_set("y", y);
       drawbox_filter.opt_set("w", w);
       drawbox_filter.opt_set("h", h);
-      drawbox_filter.opt_set("color", color.c_str());
-    } else {
-      drawbox_filter.opt_set(stringtf("x%d", i), x);
-      drawbox_filter.opt_set(stringtf("y%d", i), y);
-      drawbox_filter.opt_set(stringtf("w%d", i), w);
-      drawbox_filter.opt_set(stringtf("h%d", i), h);
-      drawbox_filter.opt_set(stringtf("c%d", i), color.c_str());
-      drawbox_filter.opt_set(stringtf("color%d", i), color.c_str());
-    }
+      */
+      //drawbox_filter.opt_set("color", color.c_str());
+  } // end foreach line
+  drawbox_filter.send_command("ni_quadra_drawbox", "color", color.c_str());
+
 #else
   std::string option = stringtf("x=%d:y=%d:w=%d:h=%d:color=%s", x, y, w, h, color.c_str());
   int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "reinit", option.c_str(), NULL, 0, 0);
@@ -431,7 +433,6 @@ int Quadra_Yolo::draw_roi_box(
     //return ret;
   }
 #endif
-  } // end while
 
   return drawbox_filter.execute(inframe, outframe);
 #endif
@@ -630,7 +631,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
     if (drawtext) {
      // and drawtext_filter.filter_ctx) {
       std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra[i].prob);
-#if 1
+#if SOFTWARE_DRAWBOX
       Image img(input);
       img.Annotate(text.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
 #else
@@ -710,18 +711,23 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   if (!last_roi_count) return 1;
 
+#if SOFTWARE_DRAWBOX
   if (packet->needs_hw_transfer(dec_ctx)) {
     if (!packet->get_hwframe(dec_ctx)) {
       return -1;
     }
   }; // Just in case it hasn't been done yet
+#endif
+
   AVFrame *in_frame = packet->in_frame.get();
   if (!in_frame) return 1;
 
-#if SOFTWARE_DRAWBOX
   av_frame_ptr ai_frame = av_frame_ptr{zm_av_frame_alloc()};
+#if SOFTWARE_DRAWBOX
   Image *img = new Image(in_frame, in_frame->width, in_frame->height); // specifying size causes a copy
   img->PopulateFrame(ai_frame.get());
+#else
+  av_frame_ref(ai_frame.get(), in_frame);
 #endif
 
   for (int i = 0; i < last_roi_count; i++) {
@@ -741,9 +747,7 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
       return ret;
     }
     zm_dump_video_frame(output, "Quadra: boxes");
-#endif
 
-#if !SOFTWARE_DRAWBOX
     if (in_frame != packet->in_frame.get()) {
       Debug(1, "Freeing input");
       av_frame_free(&in_frame);

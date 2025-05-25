@@ -7,6 +7,7 @@ configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 set(ZM_BIN_SRC_FILES
   zm_ai_server.cpp
   zm_analysis_thread.cpp
+  zm_avfilter_worker.cpp
   zm_poll_thread.cpp
   zm_buffer.cpp
   zm_camera.cpp

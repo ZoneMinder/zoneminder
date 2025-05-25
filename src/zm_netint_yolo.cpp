@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 1
+#define SOFTWARE_DRAWBOX 0
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -172,10 +172,11 @@ bool Quadra_Yolo::setup(
   }
 
 #if !SOFTWARE_DRAWBOX
-  if (drawbox) drawbox = drawbox_filter.setup(this, "ni_quadra_drawbox=inplace=1", "ni_quadra_drawbox", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+  if (drawbox) drawbox = drawbox_filter.setup("ni_quadra_drawbox=inplace=1", "ni_quadra_drawbox", dec_ctx, dec_stream->time_base, dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
   //monitor->LabelSize() // 1234
-  if (drawtext) drawtext = drawtext_filter.setup(this, stringtf("ni_quadra_drawtext=text=init:expansion=none:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext", dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
-  //if (drawtext) drawtext = drawtext_filter.setup(this, "ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
+  if (drawtext) drawtext = drawtext_filter.setup(stringtf("ni_quadra_drawtext=text=init:expansion=none:fontsize=%d:font=Sans",10+monitor->LabelSize() * 4), "ni_quadra_drawtext",
+      dec_ctx, dec_stream->time_base, dec_ctx->hw_frames_ctx, dec_ctx->pix_fmt);
+  //if (drawtext) drawtext = drawtext_filter.setup("ni_quadra_scale=iw:ih:format=rgba,ni_quadra_drawtext=text=init:fontsize=24:font=Sans", "ni_quadra_drawtext", true, dec_ctx->pix_fmt);
 #endif
 
   return true;
@@ -439,99 +440,6 @@ drawbox_filter.opt_set("x", x);
   return 1;
 } // end draw_roi_box
 
-int Quadra_Yolo::init_filter(const char *filters_desc, filter_worker *f, AVBufferRef *hw_frames_ctx, AVPixelFormat input_fmt) {
-  char args[512] = { 0 };
-  char name[32] = { 0 };
-  int i, ret = 0;
-  AVFilterInOut *inputs, *outputs, *cur;
-
-  f->filter_graph = avfilter_graph_alloc();
-  if (!f->filter_graph) {
-    Error("failed to allocate filter graph");
-    return AVERROR(ENOMEM);
-  }
-
-  ret = avfilter_graph_parse2(f->filter_graph, filters_desc, &inputs, &outputs);
-  if (ret < 0) {
-    Error("failed to parse graph for %s", filters_desc);
-    return ret;
-  }
-
-  // link input
-  cur = inputs, i = 0;
-  AVRational time_base = dec_stream->time_base;
-
-  snprintf(name, sizeof(name), "in_%d", i);
-  snprintf(args, sizeof(args),
-      "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d:frame_rate=%d/%d",
-      dec_ctx->width, dec_ctx->height, input_fmt, time_base.num, time_base.den,
-      dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den,
-      dec_ctx->framerate.num, dec_ctx->framerate.den);
-  Debug(1, "Setting filter %s to %s", name, args);
-
-  ret = avfilter_graph_create_filter(&f->buffersrc_ctx, avfilter_get_by_name("buffer"), name, args, nullptr, f->filter_graph);
-  if (ret < 0) {
-    Error("Cannot create buffer source");
-    return ret;
-  }
-
-  // decoder out=hw
-  if (hw_frames_ctx) {
-    Debug(1, "hw mode filter");
-    // Allocate a new AVBufferSrcParameters instance when decoder out=hw
-    AVBufferSrcParameters *par = av_buffersrc_parameters_alloc();
-    if (!par) {
-      Error("cannot allocate hwdl buffersrc parameters");
-      return ret = AVERROR(ENOMEM);
-    }
-    memset(par, 0, sizeof(*par));
-    // set format and hw_frames_ctx to AVBufferSrcParameters when out=hw
-    par->format = AV_PIX_FMT_NONE;
-    par->hw_frames_ctx = hw_frames_ctx;
-    // Initialize the buffersrc filter with the provided parameters
-    ret = av_buffersrc_parameters_set(f->buffersrc_ctx, par);
-    av_freep(&par);
-    if (ret < 0)
-      return ret;
-  } else { // decoder out=sw
-    Debug(1, "sw mode filter %p", hw_frames_ctx);
-  }
-
-  ret = avfilter_link(f->buffersrc_ctx, 0, cur->filter_ctx, cur->pad_idx);
-  if (ret < 0) {
-    Error("failed to link input filter");
-    return ret;
-  }
-
-  cur = outputs, i = 0;
-  snprintf(name, sizeof(name), "out_%d", i);
-  ret = avfilter_graph_create_filter(&f->buffersink_ctx, avfilter_get_by_name("buffersink"), name, nullptr, nullptr, f->filter_graph);
-  if (ret < 0) {
-    Error("failed to create output filter: %d", i);
-    return ret;
-  } else {
-    Debug(1, "Success creating output filter");
-  }
-
-  ret = avfilter_link(cur->filter_ctx, cur->pad_idx, f->buffersink_ctx, 0);
-  if (ret < 0) {
-    Error("failed to link output filter: %d", i);
-    return ret;
-  }
-
-  // configure and validate the filter graph
-  ret = avfilter_graph_config(f->filter_graph, nullptr);
-  if (ret < 0) {
-    Error("%s failed to config graph filter", __func__);
-    return ret;
-  } else {
-    Debug(1, "%s success config graph filter %s", __func__, filters_desc);
-  }
-
-  avfilter_inout_free(&inputs);
-  avfilter_inout_free(&outputs);
-  return ret;
-}
 
 /* frame is the output from the model, not an image. Just raw info in the side data
  * file_frame is where we will stick the image with the bounding boxes.
@@ -560,7 +468,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   if (!use_hwframe) {
 #endif
     if (!hwdl_filter.initialised) {
-      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", frame->hw_frames_ctx, dec_ctx->pix_fmt)) {
+      if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, frame->hw_frames_ctx, dec_ctx->pix_fmt)) {
         Warning("No hwdl");
         return -1;
       }
@@ -614,6 +522,8 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 #else
       AVFrame *drawbox_output = nullptr;
       ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
+      zm_dump_video_frame(input, "Quadra: drawbox input");
+      zm_dump_video_frame(drawbox_output, "Quadra: drawbox_output");
 #endif
       if (ret < 0) {
         Error("draw %d roi box failed", i);
@@ -659,7 +569,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   if (use_hwframe) {
 #endif
     if (!hwdl_filter.initialised) {
-      if (!hwdl_filter.setup(this, "hwdownload,format=yuv420p", "", input->hw_frames_ctx, dec_ctx->pix_fmt))
+      if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, input->hw_frames_ctx, dec_ctx->pix_fmt))
         Warning("No hwdl");
     }
     //input->colorspace = AVCOL_SPC_UNSPECIFIED;

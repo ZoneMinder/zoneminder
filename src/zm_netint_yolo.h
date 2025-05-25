@@ -2,22 +2,17 @@
 #define ZM_QUADRA_YOLO_H
 
 #include "zm_signal.h"
+#include "zm_ffmpeg.h"
+#include "zm_avfilter_worker.h"
+
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-
-#include <libavfilter/buffersink.h>
-#include <libavfilter/buffersrc.h>
-
 #include <libavutil/frame.h>
-#include <libavutil/opt.h>
-
 #include <libswscale/swscale.h>
 }
 
 #include "yolo_model.h"
 #include "netint_network.h"
-
 
 #include <nlohmann/json.hpp>
 
@@ -28,110 +23,6 @@ extern "C" {
 class Monitor;
 
 class Quadra_Yolo {
-  public:
-    class filter_worker {
-      public:
-      AVFilterContext *buffersink_ctx;
-      AVFilterContext *buffersrc_ctx;
-      AVFilterGraph *filter_graph;
-      AVFilterContext *filter_ctx;
-      bool initialised;
-
-      filter_worker() :
-        buffersink_ctx(nullptr),
-        buffersrc_ctx(nullptr),
-        filter_graph(nullptr),
-        filter_ctx(nullptr),
-        initialised(false)
-      { 
-      };
-      ~filter_worker() {
-        if (filter_graph) {
-          avfilter_graph_free(&filter_graph);
-        }
-        filter_ctx = nullptr; // Something else will free it.
-      };
-      bool setup(Quadra_Yolo *quadra, const std::string &filter_desc, const std::string filter_of_interest, AVBufferRef *hw_frames_ctx, AVPixelFormat pix_fmt) {
-        int ret;
-        Debug(1, "Trying %s", filter_desc.c_str());
-        if ((ret = quadra->init_filter(filter_desc.c_str(), this, hw_frames_ctx, pix_fmt)) < 0) {
-          Error("cannot initialize %s filter", filter_desc.c_str());
-          return false;
-        }
-
-        if (!filter_of_interest.empty()) {
-          for (unsigned int i = 0; i < filter_graph->nb_filters; i++) {
-            if (strstr(filter_graph->filters[i]->name, filter_of_interest.c_str()) != nullptr) {
-              filter_ctx = filter_graph->filters[i];
-              break;
-            //} else {
-              //Debug(1, "Didn't match %s != %s", filter_graph->filters[i]->name, filter_of_interest.c_str());
-            }
-          }
-
-          if (filter_ctx == nullptr) {
-            // Only filters that need later config need ctx
-            Debug(1, "cannot find valid ctx for filter %s of interest %s", filter_desc.c_str(), filter_of_interest.c_str());
-          }
-        }
-
-        return initialised = true;
-      }; // end setup
-
-      int execute(AVFrame *in_frame, AVFrame **out_frame) {
-        AVFrame *output = av_frame_alloc();
-        if (!output) {
-          Error("cannot allocate output filter frame");
-          return NIERROR(ENOMEM);
-        }
-
-        int ret = av_buffersrc_add_frame_flags(this->buffersrc_ctx, in_frame, AV_BUFFERSRC_FLAG_KEEP_REF);
-        if (ret < 0) {
-          av_frame_free(&output);
-          Error("cannot add frame to %s buffer src %d %s",
-              filter_ctx->name, ret, av_make_error_string(ret).c_str());
-          return ret;
-        }
-
-        int count = 10;
-        do {
-          ret = av_buffersink_get_frame(this->buffersink_ctx, output);
-          if (ret == AVERROR(EAGAIN)) {
-            count --;
-            Debug(1, "EAGAIN %s", filter_ctx->name);
-            if (!count) return ret;
-          } else if (ret < 0) {
-            Error("cannot get frame from %s buffer sink %d %s",
-                filter_ctx->name, ret, av_make_error_string(ret).c_str());
-            av_frame_free(&output);
-            return ret;
-          } else {
-            break;
-          }
-        } while (!zm_terminate);
-
-        *out_frame = output;
-        return 0;
-      };
-      int opt_set(const std::string &opt, const std::string &value) {
-        return av_opt_set(filter_ctx->priv, opt.c_str(), value.c_str(), 0);
-      }
-      int opt_set(const std::string &opt, int value) {
-        return av_opt_set(filter_ctx->priv, opt.c_str(), std::to_string(value).c_str(), 0);
-      }
-
-      int send_command(const char *filter_name, const char *command, const char *option) {
-        int ret = avfilter_graph_send_command(filter_graph, filter_name, command, option, NULL, 0, 0);
-        if (ret < 0) {
-          Error("cannot send drawbox filter command %s option %s, ret %d %s.",
-              command, option, ret, av_make_error_string(ret).c_str());
-        } else {
-          Debug(1, "sent drawbox filter command %s option %s, ret %d.", command, option, ret);
-        }
-        return ret;
-      }
-    };
-
   private:
     Monitor *monitor;
     int model_width = 640;
@@ -175,14 +66,13 @@ class Quadra_Yolo {
   public:
     Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe);
     ~Quadra_Yolo();
-    bool  setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="", int deviceid=-1);
+    bool setup(AVStream *p_dec_stream, AVCodecContext *decoder_ctx, const std::string &model_name="", const std::string &nbg_file="", int deviceid=-1);
     bool setup_drawbox();
     bool setup_drawtext();
     int send_packet(std::shared_ptr<ZMPacket> in_packet);
     int receive_detection(std::shared_ptr<ZMPacket> out_packet);
     int detect(std::shared_ptr<ZMPacket>in_packet, std::shared_ptr<ZMPacket> out_packet);
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
-    int init_filter(const char *filters_desc, filter_worker *f, AVBufferRef * 	hw_frames_ctx, AVPixelFormat in_ipxfmt);
     int draw_text(AVFrame *input, AVFrame **output, const std::string &text, int x, int y, const std::string &colour);
   private:
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra, int line_width);

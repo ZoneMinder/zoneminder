@@ -1369,7 +1369,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
-    zm_av_packet_unref(zm_packet->packet.get());
   }  // end if codec matches
 
   return 1;

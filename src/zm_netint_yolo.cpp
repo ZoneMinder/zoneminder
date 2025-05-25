@@ -414,26 +414,15 @@ int Quadra_Yolo::draw_roi_box(
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("w%d", i).c_str() : "w"), std::to_string(w).c_str());
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("h%d", i).c_str() : "h"), std::to_string(h).c_str());
   
-  /*
+#else
 drawbox_filter.opt_set("x", x);
       drawbox_filter.opt_set("y", y);
       drawbox_filter.opt_set("w", w);
       drawbox_filter.opt_set("h", h);
-      */
+#endif
       //drawbox_filter.opt_set("color", color.c_str());
   } // end foreach line
   drawbox_filter.send_command("ni_quadra_drawbox", "color", color.c_str());
-
-#else
-  std::string option = stringtf("x=%d:y=%d:w=%d:h=%d:color=%s", x, y, w, h, color.c_str());
-  int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "reinit", option.c_str(), NULL, 0, 0);
-
-  //int ret = avfilter_graph_send_command(drawbox_filter.filter_graph, "ni_quadra_drawbox", "color", color.c_str(), nullptr, 0, 0);
-  if (ret < 0) {
-    Error("cannot send drawbox filter command, ret %d.", ret);
-    //return ret;
-  }
-#endif
 
   return drawbox_filter.execute(inframe, outframe);
 #endif
@@ -523,7 +512,6 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       AVFrame *drawbox_output = nullptr;
       ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
       zm_dump_video_frame(input, "Quadra: drawbox input");
-      zm_dump_video_frame(drawbox_output, "Quadra: drawbox_output");
 #endif
       if (ret < 0) {
         Error("draw %d roi box failed", i);

@@ -141,14 +141,13 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
   if (ret == AVERROR(EAGAIN)) {
     return 0;
   } else if (ret < 0) {
-    Error( "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     return ret;
   }
 
   in_frame = std::move(receive_frame);
   //zm_dump_video_frame(in_frame.get(), "got frame");
 
-  //get_hwframe(ctx);
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
 

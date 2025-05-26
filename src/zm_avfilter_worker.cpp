@@ -33,6 +33,7 @@ filter_worker::~filter_worker() {
     avfilter_graph_free(&filter_graph);
   }
   filter_ctx = nullptr; // Something else will free it.
+  dec_ctx = nullptr;
 };
 
 bool filter_worker::setup(const std::string &filter_desc, const std::string &filter_of_interest, AVCodecContext *p_dec_ctx, AVRational p_time_base, AVBufferRef *hw_frames_ctx, AVPixelFormat pix_fmt) {
@@ -83,10 +84,9 @@ int filter_worker::execute(AVFrame *in_frame, AVFrame **out_frame) {
   int count = 10;
   do {
     ret = av_buffersink_get_frame(this->buffersink_ctx, output);
-    if (ret == AVERROR(EAGAIN)) {
+    if (ret == AVERROR(EAGAIN) and count) {
       count --;
       Debug(1, "EAGAIN %s", filter_ctx->name);
-      if (!count) return ret;
     } else if (ret < 0) {
       Error("cannot get frame from %s buffer sink %d %s",
           filter_ctx->name, ret, av_make_error_string(ret).c_str());
@@ -100,9 +100,11 @@ int filter_worker::execute(AVFrame *in_frame, AVFrame **out_frame) {
   *out_frame = output;
   return 0;
 };
+
 int filter_worker::opt_set(const std::string &opt, const std::string &value) {
   return av_opt_set(filter_ctx->priv, opt.c_str(), value.c_str(), 0);
 }
+
 int filter_worker::opt_set(const std::string &opt, int value) {
   return av_opt_set(filter_ctx->priv, opt.c_str(), std::to_string(value).c_str(), 0);
 }

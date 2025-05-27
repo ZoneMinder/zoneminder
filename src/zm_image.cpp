@@ -361,12 +361,14 @@ int Image::PopulateFrame(AVFrame *frame) const {
   if (rc_size < 0) {
     Error("Problem setting up data pointers into image %s", av_make_error_string(rc_size).c_str());
     return rc_size;
+  } else {
+    Debug(1, "rc sie %d", rc_size);
   }
 
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  //zm_dump_video_frame(frame, "Image.Populate(frame)");
+  zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
 
@@ -375,11 +377,13 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  av_frame_ptr dest_frame{av_frame_alloc()};
   if (!dest_frame) {
     Error("Unable to allocate destination frame");
     return false;
   }
+  Debug(1, "Getting convert ctx for %dx%d %d to %dx%d %d %p", frame->width, frame->height, frame->format,
+      width, height, format, sws_convert_context);
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
                           frame->width, frame->height, (AVPixelFormat)frame->format,
@@ -391,7 +395,6 @@ bool Image::Assign(const AVFrame *frame) {
     return false;
   }
   bool result = Assign(frame, sws_convert_context, dest_frame.get());
-  update_function_pointers();
   return result;
 }  // end Image::Assign(const AVFrame *frame)
 
@@ -5889,9 +5892,11 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
   }
-  Debug(4, "Old size: %d, old pixelformat %d", size, imagePixFormat);
-  size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
-  Debug(4, "New size: %d new pixelformat %d", size, new_pixelformat);
+  int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  if (size !=new_size) {
+    Debug(4, "Old size: %d, New size: %d new pixelformat %d", size, new_size, new_pixelformat);
+    size = new_size;
+  }
   linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
   return imagePixFormat = new_pixelformat;
 }

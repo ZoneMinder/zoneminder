@@ -229,7 +229,7 @@ static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p
             return NI_RETCODE_INVALID_PARAM;
     }
 
-    Debug(1, "HwDwl Scaler: device %d, blk_io_handle %d", scale_ctx->hw_id, scale_ctx->blk_io_handle);
+    Debug(4, "HwDwl Scaler: device %d, blk_io_handle %d", scale_ctx->hw_id, scale_ctx->blk_io_handle);
     ret = ni_frame_buffer_alloc_dl(&(p_session_data->data.frame), src_surf->ui16width, src_surf->ui16height, pixel_format);
     if (ret != NI_RETCODE_SUCCESS) {
         return NI_RETCODE_ERROR_MEM_ALOC;
@@ -344,7 +344,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
     ni_session_context_t *scale_api_ctx = &network_ctx->scale_api_ctx;
     ni_retcode_t retcode;
 
-    Debug(1, "Scale Scaler: device %d, blk_io_handle %d", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
+    Debug(4, "Scale Scaler: device %d, blk_io_handle %d", scale_api_ctx->hw_id, scale_api_ctx->blk_io_handle);
     /*
      * Allocate device input frame. This call won't actually allocate a frame,
      * but sends the incoming hardware frame index to the scaler manager
@@ -365,7 +365,7 @@ static int ni_hwframe_scale(NiNetworkContext *network_ctx,
                retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
         return NIERROR(ENOMEM);
     }
-        Debug(1, "Can allocate device input frame %d %dx%d index %d",
+        Debug(4, "Can allocate device input frame %d %dx%d index %d",
                retcode, NIALIGN(pic_width, 2), NIALIGN(pic_height, 2), in_frame->ui16FrameIdx);
 
     /* Allocate hardware device destination frame. This acquires a frame from
@@ -481,7 +481,7 @@ redo:
             goto out;
         }
     } else {
-      Debug(1, "ret from ni_device_session_read, %d", ret);
+      Debug(4, "ret from ni_device_session_read, %d", ret);
     }
 
     if (hwframe) {
@@ -496,10 +496,8 @@ redo:
                     ni_ai_network_layer_dims(&network_ctx->network_data.linfo.out_param[i]) * sizeof(float),
                     &out_frame->api_packet.data.packet, &network_ctx->network_data,
                     i);
-          Debug(1, "ouput %d %d", i, retval);
             if (retval != NI_RETCODE_SUCCESS) {
-                Error("failed to read layer %d output. retval %d",
-                        i, retval);
+                Error("failed to read layer %d output. retval %d", i, retval);
                 ret = NIERROR(EIO);
                 goto out;
             }

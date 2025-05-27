@@ -2179,8 +2179,9 @@ int Monitor::Analyse() {
                   } 
                 }
               }  // end if objectdetection
-
-              packet->hw_frame = nullptr; // Free it
+ 
+              //if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE)
+                packet->hw_frame = nullptr; // Free it
             }  // end if has in_frame
 
             // Ready means that we have captured the warmup # of frames
@@ -3169,7 +3170,7 @@ int Monitor::CloseDecoder() {
     mVideoCodecContext = nullptr;
   }
   if (mAudioCodecContext) {
-    avcodec_free_context(&mVideoCodecContext);
+    avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = nullptr;
   }
   return 1;
@@ -3334,6 +3335,7 @@ int Monitor::Decode() {
           ZMPacketLock delayed_packet_lock = std::move(decoder_queue.front());
           decoder_queue.pop_front();
           auto delayed_packet = delayed_packet_lock.packet_;
+#if 1
 
           if (delayed_packet->keyframe or sending) {
             int ret = delayed_packet->send_packet(mVideoCodecContext);
@@ -3343,7 +3345,11 @@ int Monitor::Decode() {
           } else {
             delayed_packet->decoded = true;
           }
+#else
+            delayed_packet->decoded = true;
+#endif
         } // end while packets in queue
+        decoder_queue.clear();
         if (new_decoder_queue.size()) decoder_queue = std::move(new_decoder_queue);
     } // end if ! mCodec
   } // end != DECODING_NONE
@@ -4082,6 +4088,7 @@ int Monitor::Pause() {
   if (decoder) {
     Debug(4, "Joining decode");
     decoder->Join();
+    decoder_queue.clear();
 
     if (convert_context) {
       sws_freeContext(convert_context);

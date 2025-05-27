@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 0
+#define SOFTWARE_DRAWBOX 1
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -373,6 +373,8 @@ int Quadra_Yolo::draw_roi_box(
     AVRegionOfInterestNetintExtra roi_extra,
     int line_width=1) {
 
+ SystemTimePoint starttime = std::chrono::system_clock::now();
+
   int cls = roi_extra.cls;
   std::string color;
   if (cls == 0) {
@@ -408,40 +410,42 @@ int Quadra_Yolo::draw_roi_box(
     int h = (roi.bottom - roi.top) - 2*i;
 
     Debug(1, "draw_roi_box: x %d, y %d, w %d, h %d color %s %d line width %d", x, y, w, h, color.c_str(), i, line_width);
-#if 1
+#if 0
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("x%d", i).c_str() : "x"), std::to_string(x).c_str());
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("y%d", i).c_str() : "y"), std::to_string(y).c_str());
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("w%d", i).c_str() : "w"), std::to_string(w).c_str());
   drawbox_filter.send_command("ni_quadra_drawbox", (i ? stringtf("h%d", i).c_str() : "h"), std::to_string(h).c_str());
   
 #else
-drawbox_filter.opt_set("x", x);
-      drawbox_filter.opt_set("y", y);
-      drawbox_filter.opt_set("w", w);
-      drawbox_filter.opt_set("h", h);
+  drawbox_filter.opt_set("x", x);
+  drawbox_filter.opt_set("y", y);
+  drawbox_filter.opt_set("w", w);
+  drawbox_filter.opt_set("h", h);
 #endif
       //drawbox_filter.opt_set("color", color.c_str());
   } // end foreach line
   drawbox_filter.send_command("ni_quadra_drawbox", "color", color.c_str());
 
-  return drawbox_filter.execute(inframe, outframe);
+  int ret = drawbox_filter.execute(inframe, outframe);
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  Debug(4, "draw_roi_box took: %.2f seconds %d", FPSeconds(endtime - starttime).count(), ret);
+  return ret;
 #endif
   return 1;
 } // end draw_roi_box
 
-
 /* frame is the output from the model, not an image. Just raw info in the side data
  * file_frame is where we will stick the image with the bounding boxes.
  */
-int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
-  int i, num, ret;
-  AVFrameSideData *sd = frame->side_data ? av_frame_get_side_data(frame, AV_FRAME_DATA_REGIONS_OF_INTEREST) : nullptr;
-  AVFrameSideData *sd_roi_extra = frame->side_data ? av_frame_get_side_data( frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
+int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
 
-  Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, frame->pts);
-	zm_dump_video_frame(frame, "Quadra: process_roi frame");
+  AVFrameSideData *sd = in_frame->side_data ? av_frame_get_side_data(in_frame, AV_FRAME_DATA_REGIONS_OF_INTEREST) : nullptr;
+  AVFrameSideData *sd_roi_extra = in_frame->side_data ? av_frame_get_side_data( in_frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
+
+  Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, in_frame->pts);
+	zm_dump_video_frame(in_frame, "Quadra: process_roi frame");
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
-    *filt_frame = frame;
+    *filt_frame = in_frame;
     if (*filt_frame == nullptr) {
       Error("cannot clone frame");
       return NIERROR(ENOMEM);
@@ -452,27 +456,27 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 
   AVFrame *input = nullptr;
 #if SOFTWARE_DRAWBOX
-  if (frame->hw_frames_ctx) {
+  if (in_frame->hw_frames_ctx) {
 #else
   if (!use_hwframe) {
 #endif
     if (!hwdl_filter.initialised) {
-      if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, frame->hw_frames_ctx, dec_ctx->pix_fmt)) {
+      if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, in_frame->hw_frames_ctx, dec_ctx->pix_fmt)) {
         Warning("No hwdl");
         return -1;
       }
     }
 
     // Allocates the frame, gets the image from hw
-    ret = hwdl_filter.execute(frame, &input);
+    int ret = hwdl_filter.execute(in_frame, &input);
     if (ret < 0) {
       Error("cannot download hwframe");
       return ret;
     }
-    zm_dump_video_frame(input, "Quadra: process_roi input");
   } else {
-    input = frame;
+    input = in_frame;
   }
+  zm_dump_video_frame(input, "Quadra: process_roi input");
 
   AVRegionOfInterest *roi = (AVRegionOfInterest *)sd->data;
   AVRegionOfInterestNetintExtra *roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
@@ -481,74 +485,24 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
       (sd->size / roi->self_size !=
        sd_roi_extra->size / roi_extra->self_size)) {
     Error( "invalid roi side data");
-    return ret = NIERROR(EINVAL);
+    return NIERROR(EINVAL);
   }
-  num = sd->size / roi->self_size;
+  int num = sd->size / roi->self_size;
 
   nlohmann::json detections = nlohmann::json::array();
 
-  for (i = 0; i < num; i++) {
-    //if (check_movement(roi[i], roi_extra[i])) {
-      //continue;
-    //}
-    int cls = roi_extra[i].cls;
-
+  for (int i = 0; i < num; i++) {
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
-    detections.push_back({{"class_name", roi_class[cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
+    detections.push_back({{"class_name", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
 
-    std::string color;
-    if (cls == 0) {
-      color = "Blue";
-    } else {
-      color = "Red";
+    AVFrame *output = nullptr;
+    annotate(input, &output, roi[i], roi_extra[i]);
+    if (output) {
+      if (input != in_frame and input != output) av_frame_free(&input);
+      input = output;
     }
-
-    if (drawbox) {
-     // and drawbox_filter.filter_ctx) {
-      Debug(1, "Drawing box");
-#if SOFTWARE_DRAWBOX
-      ret = draw_roi_box_in_place(input, roi[i], roi_extra[i], monitor->LabelSize());
-#else
-      AVFrame *drawbox_output = nullptr;
-      ret = draw_roi_box(input, &drawbox_output, roi[i], roi_extra[i], monitor->LabelSize());
-      zm_dump_video_frame(input, "Quadra: drawbox input");
-#endif
-      if (ret < 0) {
-        Error("draw %d roi box failed", i);
-      } else {
-#if !SOFTWARE_DRAWBOX 
-        if ((input != frame) && drawbox_output && (input != drawbox_output)) {
-          av_frame_free(&input);
-          input = drawbox_output;
-        }
-#endif
-        zm_dump_video_frame(input, "Quadra: drawbox");
-      }
-    }  // end if drawbox
-
-    if (drawtext) {
-     // and drawtext_filter.filter_ctx) {
-      std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra[i].prob);
-#if SOFTWARE_DRAWBOX
-      Image img(input);
-      img.Annotate(text.c_str(), Vector2(roi[i].left, roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
-#else
-      Debug(1, "Drawing text %s", text.c_str());
-      AVFrame *drawtext_output = nullptr;
-
-      ret = draw_text(input, &drawtext_output, text,
-          roi[i].left+1+monitor->LabelSize(), roi[i].top+1+monitor->LabelSize(), color.c_str());
-      if (ret < 0) {
-        Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
-      } else {
-        if (input != frame) av_frame_free(&input);
-        input = drawtext_output;
-        zm_dump_video_frame(input, "Quadra: drawtext");
-      }
-#endif
-    }  // end if drawtext
-  }  // end foreach roi
-
+  } // end foreach roi
+  
   AVFrame *output = nullptr;
   // Allocates the frame, gets the image from hw
 #if SOFTWARE_DRAWBOX
@@ -556,29 +510,26 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
 #else
   if (use_hwframe) {
 #endif
-    if (!hwdl_filter.initialised) {
-      if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, input->hw_frames_ctx, dec_ctx->pix_fmt))
-        Warning("No hwdl");
-    }
-    //input->colorspace = AVCOL_SPC_UNSPECIFIED;
-    //input->color_range = AVCOL_RANGE_UNSPECIFIED;
-    //input->hw_frames_ctx = frame->hw_frames_ctx;
-    //Debug(1, "hw_frames_ctx %p => %p", frame->hw_frames_ctx, input->hw_frames_ctx);
-    zm_dump_video_frame(input, "Quadra: process_roi hwframe");
-    ret = hwdl_filter.execute(input, &output);
-    if (ret < 0) {
-      Error("cannot download hwframe");
-      output = input;
+    if (hwdl_filter.initialised or hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, input->hw_frames_ctx, dec_ctx->pix_fmt)) {
+      zm_dump_video_frame(input, "Quadra: process_roi hwframe");
+      int ret = hwdl_filter.execute(input, &output);
+      if (ret < 0) {
+        Error("cannot download hwframe");
+        output = input;
+      } else {
+        zm_dump_video_frame(output, "Quadra: process_roi output");
+      }
     } else {
-      zm_dump_video_frame(output, "Quadra: process_roi output");
+      output = input;
     }
   } else {
     output = input;
   }
 
   *filt_frame = output;
-  if (input != frame and input != output) av_frame_free(&input);
+  if (input != in_frame and input != output) av_frame_free(&input);
   
+  // Technicall we should have a lock around this, but since we only access from the Analysis thread, we won't worry about it.
   free(last_roi);
   free(last_roi_extra);
   AVRegionOfInterest* cur_roi = nullptr;
@@ -587,7 +538,7 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   if (num > 0) {
     cur_roi = (AVRegionOfInterest *)av_malloc((int)(num * sizeof(AVRegionOfInterest)));
     cur_roi_extra = (AVRegionOfInterestNetintExtra *)av_malloc((int)(num * sizeof(AVRegionOfInterestNetintExtra)));
-    for (i = 0; i < num; i++) {
+    for (int i = 0; i < num; i++) {
       (cur_roi[i]).self_size = roi[i].self_size;
       (cur_roi[i]).top       = roi[i].top;
       (cur_roi[i]).bottom    = roi[i].bottom;
@@ -606,6 +557,69 @@ int Quadra_Yolo::process_roi(AVFrame *frame, AVFrame **filt_frame) {
   return detections.size();
 }
 
+int Quadra_Yolo::annotate(
+    AVFrame *in_frame, AVFrame **output,
+    const AVRegionOfInterest &roi,
+    const AVRegionOfInterestNetintExtra &roi_extra) {
+  AVFrame *input = in_frame;
+  int cls = roi_extra.cls;
+  std::string color;
+  if (cls == 0) {
+    color = "Blue";
+  } else {
+    color = "Red";
+  }
+  if (drawbox) {
+#if SOFTWARE_DRAWBOX
+    int ret = draw_roi_box_in_place(input, roi, roi_extra, monitor->LabelSize());
+    if (ret < 0) Error("draw roi box failed");
+#else
+    AVFrame *drawbox_output = nullptr;
+    zm_dump_video_frame(input, "Quadra: drawbox input");
+    int ret = draw_roi_box(input, &drawbox_output, roi, roi_extra, monitor->LabelSize());
+    if (ret < 0) {
+      Error("draw roi box failed %d %s", ret, av_make_error_string(ret).c_str());
+    } else {
+      if ((input != in_frame) && drawbox_output && (input != drawbox_output)) {
+        av_frame_free(&input);
+        input = drawbox_output;
+      }
+      zm_dump_video_frame(input, "Quadra: drawbox output");
+    }
+#endif
+  }  // end if drawbox
+
+  if (drawtext) {
+    SystemTimePoint starttime = std::chrono::system_clock::now();
+    std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra.prob);
+#if SOFTWARE_DRAWBOX
+    Image img(input);
+    img.Annotate(text.c_str(), Vector2(roi.left, roi.top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+#else
+    Debug(1, "Drawing text %s", text.c_str());
+    AVFrame *drawtext_output = nullptr;
+
+    zm_dump_video_frame(input, "Quadra: drawtext input");
+    int ret = draw_text(input, &drawtext_output, text,
+        roi.left+1+monitor->LabelSize(), roi.top+1+monitor->LabelSize(), color.c_str());
+    if (ret < 0) {
+      Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
+      zm_dump_video_frame(input, "Quadra: drawtext input");
+    } else {
+      if (drawtext_output) {
+        if (input != in_frame) av_frame_free(&input);
+        input = drawtext_output;
+      }
+      zm_dump_video_frame(input, "Quadra: drawtext");
+    }
+#endif
+    SystemTimePoint endtime = std::chrono::system_clock::now();
+    Debug(4, "draw_roi_text took: %.2f seconds", FPSeconds(endtime - starttime).count());
+  }  // end if drawtext
+  *output = input;
+  return 1;
+} // end annotate
+
 int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   if (!last_roi_count) return 1;
 
@@ -615,51 +629,47 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
       return -1;
     }
   }; // Just in case it hasn't been done yet
-#endif
-
-  AVFrame *in_frame = packet->in_frame.get();
-  if (!in_frame) return 1;
-
-  av_frame_ptr ai_frame = av_frame_ptr{zm_av_frame_alloc()};
-#if SOFTWARE_DRAWBOX
-  Image *img = new Image(in_frame, in_frame->width, in_frame->height); // specifying size causes a copy
-  img->PopulateFrame(ai_frame.get());
+  AVFrame *in_frame = av_frame_alloc();
+  av_frame_ref(in_frame, packet->in_frame.get());
 #else
-  av_frame_ref(ai_frame.get(), in_frame);
+  AVFrame *in_frame = packet->hw_frame.get();
 #endif
+  AVFrame *input = in_frame;
+
+  if (!input) return 1;
 
   for (int i = 0; i < last_roi_count; i++) {
-    std::string annotation = stringtf("%s %d%%", roi_class[last_roi_extra[i].cls], static_cast<int>(100*last_roi_extra[i].prob));
-#if SOFTWARE_DRAWBOX
-    int ret = draw_roi_box_in_place(in_frame, last_roi[i], last_roi_extra[i]);
-    if (ret < 0) {
-      Error("draw %d roi box failed", i);
-      return ret;
-    }
-    img->Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
-#else
     AVFrame *output = nullptr;
-    int ret = draw_roi_box(in_frame, &output, last_roi[i], last_roi_extra[i]);
-    if (ret < 0) {
-      Error("draw %d roi box failed", i);
-      return ret;
+    annotate(input, &output, last_roi[i], last_roi_extra[i]);
+    if (output) {
+      if (input != in_frame) av_frame_free(&input);
+      input = output;
     }
-    zm_dump_video_frame(output, "Quadra: boxes");
-
-    if (in_frame != packet->in_frame.get()) {
-      Debug(1, "Freeing input");
-      av_frame_free(&in_frame);
-    }
-    if (output) in_frame = output;
-    Image img(output);
-    img.Annotate(annotation.c_str(), Vector2(last_roi[i].left, last_roi[i].top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
-#endif
   } // end foreach detection
 
-  packet->ai_frame = std::move(ai_frame);
-#if SOFTWARE_DRAWBOX
-  packet->analysis_image = img;
+#if !SOFTWARE_DRAWBOX
+  if (!hwdl_filter.initialised) {
+    if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, input->hw_frames_ctx, dec_ctx->pix_fmt)) {
+      Warning("No hwdl");
+      return -1;
+    }
+  }
+
+  AVFrame *output = nullptr;
+  // Allocates the frame, gets the image from hw
+  int ret = hwdl_filter.execute(input, &output);
+  if (ret < 0) {
+    Error("cannot download hwframe");
+  }
+  if (input != in_frame) av_frame_free(&input);
+  input = output;
 #endif
+  if (input) {
+    zm_dump_video_frame(input, "Quadra:draw_last_roi input");
+    packet->ai_frame = std::move(av_frame_ptr{input}); // Should really be ai_frame
+  } else {
+    Error("No output from get_gwdl");
+  }
   return 1;
 } // end int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet)
 

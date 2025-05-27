@@ -75,6 +75,7 @@ class Quadra_Yolo {
     int draw_last_roi(std::shared_ptr<ZMPacket> packet);
     int draw_text(AVFrame *input, AVFrame **output, const std::string &text, int x, int y, const std::string &colour);
   private:
+    int annotate(AVFrame *input, AVFrame **output, const AVRegionOfInterest &roi, const AVRegionOfInterestNetintExtra &roi_extra);
     int draw_roi_box(AVFrame *inframe, AVFrame **outframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra, int line_width);
     int draw_roi_box_in_place(AVFrame *inframe, AVRegionOfInterest roi, AVRegionOfInterestNetintExtra roi_extra, int line_width);
     int ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *frame);

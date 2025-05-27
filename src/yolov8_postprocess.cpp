@@ -101,8 +101,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
 
     for (unsigned int i = 0; i < network_data->output_num; i++) {
         ni_network_layer_params_t *p_param = &network_data->linfo.out_param[i];
-        ctx->out_tensor[i] =
-                (uint8_t *)malloc(ni_ai_network_layer_dims(p_param) * sizeof(float));
+        ctx->out_tensor[i] = (uint8_t *)malloc(ni_ai_network_layer_dims(p_param) * sizeof(float));
         if (ctx->out_tensor[i] == NULL) {
             Error("failed to allocate output tensor buffer");
             ret = NIERROR(ENOMEM);
@@ -124,8 +123,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
         ctx->layers[i].channel   = network_data->linfo.out_param[i].sizes[2];
         ctx->layers[i].component = 1;
         ctx->layers[i].classes = (ctx->layers[i].channel - (4 * reg_max));
-        ctx->layers[i].output_number =
-            ni_ai_network_layer_dims(&network_data->linfo.out_param[i]);
+        ctx->layers[i].output_number = ni_ai_network_layer_dims(&network_data->linfo.out_param[i]);
         ctx->layers[i].padding   = 0;
         ctx->layers[i].output = (float *)ctx->out_tensor[i];
 

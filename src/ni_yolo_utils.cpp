@@ -85,8 +85,7 @@ static int get_yolo_detections(ni_roi_network_layer_t *l, int netw,
 
     *dets_num = 0;
 
-    Debug(4, "pic %dx%d, comp=%d, class=%d, net %dx%d, thresh=%f", l->width,
-           l->height, l->component, l->classes, netw, neth, thresh);
+    //Debug(4, "pic %dx%d, comp=%d, class=%d, net %dx%d, thresh=%f", l->width, l->height, l->component, l->classes, netw, neth, thresh);
     for (n = 0; n < l->component; ++n) {
         for (i = 0; i < l->width * l->height; ++i) {
             int row = i / l->width;
@@ -131,7 +130,7 @@ static int get_yolo_detections(ni_roi_network_layer_t *l, int netw,
                     }
                 }
 
-                Debug(4, "max_prob %f, class %d", max_prob, prob_class);
+                //Debug(4, "max_prob %f, class %d", max_prob, prob_class);
                 bbox = get_yolo_box(predictions, l->biases, l->index, l->mask[n],
                         box_index, col, row, l->width, l->height,
                         netw, neth, l->width * l->height, normalize_box);
@@ -145,11 +144,13 @@ static int get_yolo_detections(ni_roi_network_layer_t *l, int netw,
                 dets[det_cache->dets_num].sub_idx    = i;
                 dets[det_cache->dets_num].layer_idx  = l->index;
 
-                Debug(4, "%d, x %f, y %f, w %f, h %f",
+#if 0
+                //Debug(4, "%d, x %f, y %f, w %f, h %f",
                         det_cache->dets_num, dets[det_cache->dets_num].bbox.x,
                         dets[det_cache->dets_num].bbox.y,
                         dets[det_cache->dets_num].bbox.w,
                         dets[det_cache->dets_num].bbox.h);
+#endif
                 det_cache->dets_num++;
                 count++;
             }
@@ -276,7 +277,7 @@ int ni_get_yolov5_detections(YoloModelCtx *ctx, int sequence[3], int normalize_b
             ni_err("failed to get yolo detection at layer %d\n", i);
             return ret;
         }
-        Debug(1, "layer %d, yolo detections: %d", i, dets_num);
+        //Debug(1, "layer %d, yolo detections: %d", i, dets_num);
     }
 
     if (det_cache->dets_num == 0) {
@@ -285,19 +286,23 @@ int ni_get_yolov5_detections(YoloModelCtx *ctx, int sequence[3], int normalize_b
 
     dets     = det_cache->dets;
     dets_num = det_cache->dets_num;
+#if 0
     for (i = 0; i < dets_num; i++) {
         Debug(4,"orig dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
                dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
                dets[i].prob_class, dets[i].max_prob);
     }
+#endif
 
     qsort(dets, dets_num, sizeof(detection), nms_comparator);
 
+#if 0
     for (i = 0; i < dets_num; i++) {
         Debug(4, "sorted dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
                dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
                dets[i].prob_class, dets[i].max_prob);
     }
+#endif
 
     nms_sort(dets, dets_num, ctx->nms_thresh, 0);
 
@@ -334,8 +339,7 @@ static int get_yolo8_detections(ni_roi_network_layer_t *l, int netw,
 
   *dets_num = 0;
 
-  Debug(1, "pic %dx%d, comp=%d, class=%d, index=%d net %dx%d, thresh=%f", l->width,
-      l->height, l->component, l->classes, l->index, netw, neth, thresh);
+  //Debug(1, "pic %dx%d, comp=%d, class=%d, index=%d net %dx%d, thresh=%f", l->width, l->height, l->component, l->classes, l->index, netw, neth, thresh);
   for (n = 0; n < l->component; ++n) {
     for (i = 0; i < l->width * l->height; ++i) {
       prob_class = -1;
@@ -368,7 +372,7 @@ static int get_yolo8_detections(ni_roi_network_layer_t *l, int netw,
           }
         }
 
-        Debug(1, "max_prob %f, class %d", max_prob, prob_class);
+        //Debug(1, "max_prob %f, class %d", max_prob, prob_class);
         bbox = get_yolo8_box(l, i);
 
         dets[det_cache->dets_num].max_prob   = max_prob;
@@ -379,13 +383,14 @@ static int get_yolo8_detections(ni_roi_network_layer_t *l, int netw,
         dets[det_cache->dets_num].color      = n;
         dets[det_cache->dets_num].sub_idx    = i;
         dets[det_cache->dets_num].layer_idx  = l->index;
-
+#if 0
         Debug(1, "%d, x %f, y %f, w %f, h %f",
             det_cache->dets_num,
             dets[det_cache->dets_num].bbox.x,
             dets[det_cache->dets_num].bbox.y,
             dets[det_cache->dets_num].bbox.w,
             dets[det_cache->dets_num].bbox.h);
+#endif
         det_cache->dets_num++;
         count++;
       }
@@ -411,7 +416,7 @@ int ni_get_yolov8_detections(YoloModelCtx *ctx) {
       Error("failed to get yolo detection at layer %d", i);
       return ret;
     }
-    Debug(1, "layer %d, yolo detections: %d", i, dets_num);
+    //Debug(1, "layer %d, yolo detections: %d", i, dets_num);
   }
 
   if (det_cache->dets_num == 0) {
@@ -420,19 +425,23 @@ int ni_get_yolov8_detections(YoloModelCtx *ctx) {
 
   dets     = det_cache->dets;
   dets_num = det_cache->dets_num;
+#if 0
   for (i = 0; i < dets_num; i++) {
     Debug(1, "orig dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
         dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
         dets[i].prob_class, dets[i].max_prob);
   }
+#endif
 
   qsort(dets, dets_num, sizeof(detection), nms_comparator);
 
+#if 0
   for (i = 0; i < dets_num; i++) {
     Debug(1, "sorted dets %d: x %f,y %f,w %f,h %f,c %d,p %f", i,
         dets[i].bbox.x, dets[i].bbox.y, dets[i].bbox.w, dets[i].bbox.h,
         dets[i].prob_class, dets[i].max_prob);
   }
+#endif
 
   nms_sort(dets, dets_num, ctx->nms_thresh, 1);
 

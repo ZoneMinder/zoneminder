@@ -84,7 +84,7 @@ int filter_worker::execute(AVFrame *in_frame, AVFrame **out_frame) {
   int count = 10;
   do {
     ret = av_buffersink_get_frame(this->buffersink_ctx, output);
-    if (ret == AVERROR(EAGAIN) and count) {
+    if ((ret == AVERROR(EAGAIN)) and count) {
       count --;
       Debug(1, "EAGAIN %s", filter_ctx->name);
     } else if (ret < 0) {

@@ -2179,9 +2179,6 @@ int Monitor::Analyse() {
                   } 
                 }
               }  // end if objectdetection
- 
-              //if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE)
-                packet->hw_frame = nullptr; // Free it
             }  // end if has in_frame
 
             // Ready means that we have captured the warmup # of frames
@@ -2201,6 +2198,7 @@ int Monitor::Analyse() {
               Debug(1, "Not analysing %d", shared_data->analysing);
             } // end if doing motion detection
           } // end if Ready
+          packet->hw_frame = nullptr; // Free it
         } // end if videostream
 
         if (score > 255) score = 255;
@@ -2721,7 +2719,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     ai_image->PopulateFrame(packet->ai_frame.get());
 
     packet->detections = detections["predictions"];
-    last_detection_count  = 5;
+    last_detection_count  = 10;
     endtime = std::chrono::system_clock::now();
     Debug(1, "UVICORN took: %.3f seconds to drawboxes.", FPSeconds(endtime - partial_starttime).count());
     partial_starttime = endtime;
@@ -3595,7 +3593,7 @@ int Monitor::Decode() {
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
 #if HAVE_QUADRA
-    if (!quadra_yolo)
+    //if (!quadra_yolo)
 #endif
     {
       if (packet->needs_hw_transfer(mVideoCodecContext))

@@ -123,24 +123,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }
     }
 
-#if 0
-    // FIXME: This is pointless if we are encoding. Need to do something in ffmpeg_camera to more efficiently count keyframe
-    if (!max_keyframe_interval_ and add_packet->keyframe and (video_stream_id==add_packet->packet->stream_index)) {
-      auto rit = pktQueue.rbegin();
-      int packet_count = 0;
-      while (rit != pktQueue.rend()) {
-        std::shared_ptr<ZMPacket> prev_packet = *rit;
-        if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          packet_count ++;
-          if (prev_packet->keyframe) break;
-        }
-        ++rit;
-      }
-      Debug(1, "Have keyframe interval: %d", packet_count);
-      max_keyframe_interval_ = packet_count;
-    }
-#endif
-
     pktQueue.push_back(add_packet);
 
     /* Any iterators that are pointing to the end will now point to the newly pushed packet */
@@ -188,7 +170,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
             // Really shouldn't though. I think we can delete a locked packet, but we REALLY should delete a GOP's worth.
           }
-          break;
+          //break;
         //} else if (0 and !keep_keyframes) {
           //it = this->deletePacket(it);
           //if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) break;

@@ -554,13 +554,17 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   last_roi_extra = cur_roi_extra;
   last_roi_count = num;
 
+  // We don't need the size data any more.  So free it.  Probably not worth it.
+  av_frame_side_data_free(&in_frame->side_data, &in_frame->nb_side_data);
+
   return detections.size();
 }
 
 int Quadra_Yolo::annotate(
     AVFrame *in_frame, AVFrame **output,
     const AVRegionOfInterest &roi,
-    const AVRegionOfInterestNetintExtra &roi_extra) {
+    const AVRegionOfInterestNetintExtra &roi_extra
+    ) {
   AVFrame *input = in_frame;
   int cls = roi_extra.cls;
   std::string color;

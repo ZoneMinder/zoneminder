@@ -119,9 +119,11 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
         }
       } else {
-        if ( !max_keyframe_interval_) max_keyframe_interval_ = 1;
-        frames_since_last_keyframe_ = 0;
+        frames_since_last_keyframe_ = 1;
+        if (!max_keyframe_interval_) max_keyframe_interval_ = 1;
       }
+    } else {
+      Debug(1, "Not video stream %d", add_avpacket->stream_index);
     }
 
     pktQueue.push_back(add_packet);

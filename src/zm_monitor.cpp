@@ -2743,12 +2743,12 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
   }  // end if has image
      
   if (analysis_image == ANALYSISIMAGE_YCHANNEL and !packet->y_image) {
-    if (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P) {
+    if (static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUV420P or static_cast<AVPixelFormat>(packet->in_frame->format) == AV_PIX_FMT_YUVJ420P) {
       Debug(1, "Creating y-image");
       packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
       zm_dump_video_frame(packet->in_frame.get(), "y-image");
     } else {
-      Error("Unable creating y-image");
+      Error("Unable to create y-image in_frame format is %d %s", packet->in_frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(packet->in_frame->format)));
     }
     if (packet->y_image and (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)) {
       Debug(1, "Scaling y-image to %dx%d", camera_width, camera_height);
@@ -2761,7 +2761,7 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
     Debug(1, "Assigning instead of Detecting");
     if (packet->y_image) {
       ref_image.Assign(*(packet->y_image));
-    } else {
+    } else if (packet->image) {
       // image should always be scaled
       ref_image.Assign(*(packet->image));
     }

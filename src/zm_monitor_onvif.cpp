@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor.h"
+#include "zm_signal.h"
 
 #include <cstring>
 #include <sstream>
@@ -105,15 +106,17 @@ void Monitor::ONVIF::start() {
 
       if (rc != SOAP_OK) {
         const char *detail = soap_fault_detail(soap);
-        Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
+        Error("ONVIF Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+            rc, SOAP_STRINGS[rc].c_str(),
+            soap_fault_string(soap), detail ? detail : "null");
 
         std::stringstream ss;
         std::ostream *old_stream = soap->os;
         soap->os = &ss; // assign a stringstream to write output to
         proxyEvent.CreatePullPointSubscription(&request, response);
-        soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+        //soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
         soap->os = old_stream; // no longer writing to the stream
-        Debug(1, "Response was %s", ss.str().c_str());
+        Error("Response was %s", ss.str().c_str());
 
         _wsnt__Unsubscribe wsnt__Unsubscribe;
         _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
@@ -286,6 +289,8 @@ void Monitor::ONVIF::WaitForMessage() {
           }
         }  // end foreach msg
       } // end scope for lock
+
+      if (zm_terminate) return;
 
       // we renew the current subscription .........
       if (parent->soap_wsa_compl) {

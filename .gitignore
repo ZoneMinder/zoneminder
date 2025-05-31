@@ -176,6 +176,7 @@ src/zmc.8
 src/zmc.8.gz
 src/zmu.8
 src/zmu.8.gz
+src/zm_ai_server
 src/zm_rtsp_server
 src/zoneminder-zmc.8
 src/zoneminder-zmc.8.gz

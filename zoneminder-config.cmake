@@ -8,6 +8,8 @@
 #cmakedefine SOLARIS 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_EXECINFO_H 1
+#cmakedefine HAVE_UNTETHER_H 1
+#cmakedefine HAVE_QUADRA 1
 #cmakedefine HAVE_UCONTEXT_H 1
 #cmakedefine HAVE_SYS_SENDFILE_H 1
 #cmakedefine HAVE_SYS_SYSCALL_H 1
@@ -41,6 +43,7 @@
 #cmakedefine HAVE_RFB_RFB_H 1
 #cmakedefine HAVE_LIBJWT 1
 #cmakedefine HAVE_RTSP_SERVER 1
+#cmakedefine HAVE_AI_SERVER 1
 #cmakedefine MOSQUITTO_FOUND 1
 #cmakedefine MOSQUITTOPP_FOUND 1
 

@@ -38,6 +38,9 @@
 #include <set>
 #include <thread>
 
+extern "C" {
+  #include <libswscale/swscale.h>
+}
 
 class EventStream;
 class Frame;
@@ -72,6 +75,7 @@ class Event {
     Image *alarm_frame;
   };
   std::queue<Frame*> frame_data;
+  av_frame_ptr output_frame;
 
   static int pre_alarm_count;
   static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
@@ -94,6 +98,12 @@ class Event {
   bool snapshot_file_written;
   std::string alarm_file;
   VideoStore *videoStore;
+
+  AVCodecContext      *mJpegCodecContext;
+  SwsContext          *mJpegSwsContext;
+  AVBufferRef *hw_device_ctx;
+  int OpenJpegCodec(const Image *);
+  int OpenJpegCodec(AVFrame *frame);
 
   std::string container;
   std::string codec;
@@ -138,7 +148,7 @@ class Event {
   void AddPacket_(const std::shared_ptr<ZMPacket> p);
   bool WritePacket(const std::shared_ptr<ZMPacket> p);
   bool SendFrameImage(const Image *image, bool alarm_frame=false);
-  bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
+  bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false);
 
   void updateNotes(const StringSetMap &stringSetMap);
 
@@ -188,5 +198,6 @@ class Event {
     EmptyPreAlarmFrames();
   }
   int MonitorId() const;
+  bool WriteJpeg(AVFrame *temp_frame, const std::string &filename);
 };
 #endif // ZM_EVENT_H

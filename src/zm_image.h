@@ -31,6 +31,7 @@
 #if HAVE_ZLIB_H
 #include <zlib.h>
 #endif // HAVE_ZLIB_H
+#include <nlohmann/json.hpp>
 
 class Box;
 class Polygon;
@@ -94,6 +95,7 @@ class Image {
   blend_fptr_t blend;
 
   void update_function_pointers();
+SwsContext *sws_convert_context;
 
  protected:
   inline void AllocImgBuffer(size_t p_bufsize) {
@@ -132,6 +134,8 @@ class Image {
   unsigned long allocation;
   _AVPIXELFORMAT      imagePixFormat;
   uint8_t *buffer;
+  uint8_t *u_buffer;
+  uint8_t *v_buffer;
   int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
   int holdbuffer; /* Hold the buffer instead of replacing it with new one */
   std::string annotation_;
@@ -140,10 +144,13 @@ class Image {
  public:
   Image();
   explicit Image(const std::string &filename);
+  Image(int p_width, int p_height, int p_colours, int p_subpixelorder,
+      uint8_t *p_buffer, unsigned long p_allocation, unsigned int padding=0);
   Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   explicit Image(const Image &p_image);
-  explicit Image(const AVFrame *frame, int p_width=-1, int p_height=-1);
+  explicit Image(const AVFrame *frame, int p_width, int p_height);
+  explicit Image(const AVFrame *frame);
 
   ~Image();
 
@@ -162,11 +169,18 @@ class Image {
   inline unsigned int Height() const { return height; }
   inline unsigned int Pixels() const { return pixels; }
   inline unsigned int Colours() const { return colours; }
+  inline unsigned int Colours(unsigned int p_colours ) {
+    colours = p_colours;
+    return colours;
+  }
   inline unsigned int SubpixelOrder() const { return subpixelorder; }
+  inline unsigned int SubpixelOrder(unsigned int p_subpixelorder) { return subpixelorder=p_subpixelorder; }
   inline unsigned int Size() const { return size; }
   std::string Filename() const { return filename_; }
 
   AVPixelFormat AVPixFormat() const;
+  AVPixelFormat AVPixFormat(unsigned int p_colours, unsigned int p_subpixelorder) const;
+  AVPixelFormat AVPixFormat(AVPixelFormat);
 
   inline uint8_t* Buffer() { return buffer; }
   inline const uint8_t* Buffer() const { return buffer; }
@@ -206,6 +220,7 @@ class Image {
     uint8_t *new_buffer,
     const size_t buffer_size,
     const int p_buffertype);
+  void AssignDirect(const AVFrame *frame);
 
   int PopulateFrame(AVFrame *frame) const;
 
@@ -235,9 +250,13 @@ class Image {
                  const int &quality_override,
                  SystemTimePoint timestamp,
                  bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename,
+                 AVCodecContext *p_jpegcodeccontext,
+                 SwsContext *p_jpegswscontext) const;
 
   bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
   bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
+  bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const;
 
 #if HAVE_ZLIB_H
   bool Unzip(const Bytef *inbuffer, unsigned long inbuffer_size);
@@ -286,6 +305,10 @@ class Image {
   void Deinterlace_Blend();
   void Deinterlace_Blend_CustomRatio(int divider);
   void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
+  const std::string toString();
+
+  void DrawBox(unsigned int x, unsigned int y, unsigned int box_width, unsigned int box_height, Rgb colour);
+  int draw_boxes(const nlohmann::json &coco_object, int font_size, int line_width=2);
 };
 
 // Scan-line polygon fill algorithm

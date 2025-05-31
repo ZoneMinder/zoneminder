@@ -322,8 +322,8 @@ void zmDbQueue::push(std::string &&sql) {
     std::unique_lock<std::mutex> lock(mMutex);
     if (mTerminate) return;
     mQueue.push(std::move(sql));
+    mCondition.notify_all();
   }
-  mCondition.notify_all();
 }
 
 std::string zmDbEscapeString(const std::string& to_escape) {

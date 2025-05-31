@@ -31,8 +31,10 @@
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>
+#include <thread>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 
 #ifdef NDEBUG
 #define ASSERT(x) do { (void) sizeof(x); } while (0)
@@ -43,6 +45,8 @@
 
 typedef std::vector<std::string> StringVector;
 
+unsigned int getcpu();
+bool set_cpu_affinity(std::thread &thread);
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
@@ -76,6 +80,8 @@ std::string TimevalToString(timeval tv);
 
 extern unsigned int sse_version;
 extern unsigned int neonversion;
+extern unsigned int our_cpu;
+
 void HwCapsDetect();
 void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
@@ -193,4 +199,6 @@ template< typename InputIt, typename UnaryPredicate >
   return last;
 }
 };
+
+nlohmann::json scale_coordinates(nlohmann::json coco_object, float width_factor, float height_factor, int width, int height);
 #endif // ZM_UTILS_H

@@ -2,7 +2,7 @@ name: Create packages
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, ai_server ]
 
 permissions:
   contents: read # to fetch code (actions/checkout)
@@ -12,32 +12,17 @@ jobs:
     strategy:
       matrix:
         os_dist:
-          - os: debian
-            dist: bullseye
-            arch: x86_64
-          - os: ubuntu
-            dist: focal
-            arch: x86_64
           - os: ubuntu
             dist: jammy
             arch: x86_64
           - os: ubuntu
             dist: noble
             arch: x86_64
-          - os: debian
-            dist: bookworm
-            arch: x86_64
-          - os: debian
-            dist: bullseye
-            arch: aarch64
           - os: ubuntu
-            dist: focal
+            dist: noble
             arch: aarch64
           - os: ubuntu
             dist: jammy
-            arch: aarch64
-          - os: debian
-            dist: bookworm
             arch: aarch64
     runs-on: ubuntu-latest
 
@@ -68,4 +53,4 @@ jobs:
           SOURCE: build/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/ampere/mini-dinstall/incoming/

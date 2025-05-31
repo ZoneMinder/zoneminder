@@ -23,6 +23,7 @@
 #include "zm_define.h"
 
 typedef uint32 Rgb;  // RGB colour type
+typedef uint32 YUV;  // YUV colour type
 
 constexpr uint8 kWhite = 0xff;
 constexpr uint8 kWhiteR = 0xff;
@@ -49,6 +50,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define BLUE_VAL_RGBA(v)  (((v)>>16)&0xff)
 #define GREEN_VAL_RGBA(v)  (((v)>>8)&0xff)
 #define RED_VAL_RGBA(v)   ((v)&0xff)
+
 #define ALPHA_VAL_RGBA(v)  ((v)>>24)&0xff)
 #define RED_PTR_RGBA(ptr)  (*((uint8_t*)ptr))
 #define GREEN_PTR_RGBA(ptr)  (*((uint8_t*)ptr+1))
@@ -101,6 +103,8 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_COLOUR_RGB32 4
 #define ZM_COLOUR_RGB24 3
 #define ZM_COLOUR_GRAY8 1
+#define ZM_COLOUR_YUV420P 1
+#define ZM_COLOUR_YUVJ420P 1
 
 /* Subpixel ordering */
 /* Based on byte order naming. For example, for ARGB (on both little endian or big endian) byte+0 should be alpha, byte+1 should be red, and so on. */
@@ -112,6 +116,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_ABGR 9
 #define ZM_SUBPIX_ORDER_ARGB 10
 #define ZM_SUBPIX_ORDER_YUV420P 11
+#define ZM_SUBPIX_ORDER_YUVJ420P 12
 
 /* A macro to use default subpixel order for a specified colour. */
 /* for grayscale it will use NONE, for 3 colours it will use R,G,B, for 4 colours it will use R,G,B,A */
@@ -149,5 +154,20 @@ inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
 
   return result;
 }
+
+inline YUV brg_to_yuv(Rgb colour) {
+  float R = RED_VAL_RGBA(colour);
+  float G = GREEN_VAL_RGBA(colour);
+  float B = BLUE_VAL_RGBA(colour);
+
+  float Y = 0.257*R + 0.504*G + 0.098*B + 16;
+  float U = -0.148*R - 0.291*G + 0.439*B + 128;
+  float V = 0.439*R -0.368*G - 0.071*B + 128;
+  return (static_cast<uint8_t>(Y)<<16) + (static_cast<uint8_t>(U) << 8) + static_cast<uint8_t>(V);
+}
+
+#define Y_VAL(v)  (((v)>>16)&0xff)
+#define U_VAL(v)  (((v)>>8)&0xff)
+#define V_VAL(v)  ((v)&0xff)
 
 #endif // ZM_RGB_H

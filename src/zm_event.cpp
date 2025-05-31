@@ -25,6 +25,7 @@
 #include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 #include "zm_videostore.h"
 
 #include <cstring>
@@ -33,6 +34,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+extern "C" {
+#include <libswscale/swscale.h>
+}
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
 
@@ -64,13 +68,18 @@ Event::Event(
   snapshot_file_written(false),
   //alarm_file(""),
   videoStore(nullptr),
+  mJpegCodecContext(nullptr),
+  mJpegSwsContext(nullptr),
+  hw_device_ctx(nullptr),
   //video_file(""),
   //video_path(""),
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
   save_jpegs(0),
-  terminate_(false) {
+  terminate_(false)
+
+{
   std::string notes;
   createNotes(notes);
 
@@ -142,8 +151,124 @@ Event::Event(
   do {
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
-
   thread_ = std::thread(&Event::Run, this);
+  set_cpu_affinity(thread_);
+}
+
+int Event::OpenJpegCodec(const Image *image) {
+  av_frame_ptr frame(zm_av_frame_alloc());
+  image->PopulateFrame(frame.get());
+  return OpenJpegCodec(frame.get());
+}
+
+int Event::OpenJpegCodec(AVFrame *frame) {
+  if (!frame) return -1;
+  if (mJpegCodecContext) {
+    avcodec_free_context(&mJpegCodecContext);
+    mJpegCodecContext = nullptr;
+  }
+
+  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  if (!codec_data.size()) {
+    Error("No codecs for mjpeg found");
+    return -1;
+  }
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    auto chosen_codec_data = *it;
+    Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+
+    const AVCodec *mJpegCodec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+    if (!mJpegCodec) {
+      Error("MJPEG codec not found");
+      continue;
+    }
+    // We allocate and copy in newer ffmpeg, so need to free it
+    mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+    if (!mJpegCodecContext) {
+      Error("Could not allocate jpeg codec context");
+      continue;
+    }
+
+    mJpegCodecContext->bit_rate = 2000000;
+    mJpegCodecContext->width = monitor->Width();
+    mJpegCodecContext->height = monitor->Height();
+    mJpegCodecContext->time_base= (AVRational) {1, 25};
+    //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
+    mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
+    mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+
+    // Should be able to just set quality with the q setting.  Need to convert the old quality to 2-31
+    int quality = config.jpeg_file_quality;
+
+      //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+      //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+    mJpegCodecContext->qcompress = quality/100.0; // 0-1
+    mJpegCodecContext->qmax = 1;
+    mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+
+    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s", 
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt));
+
+    if (0 && setup_hwaccel(mJpegCodecContext,
+          chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+        avcodec_free_context(&mJpegCodecContext);
+      continue;
+    }
+
+    if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+      Error("Could not open mjpeg codec");
+      avcodec_free_context(&mJpegCodecContext);
+      av_buffer_unref(&hw_device_ctx);
+      continue;
+    }
+    break;
+  }
+  if (!mJpegCodecContext) {
+    return -1;
+  }
+
+  Debug(1, "Done opening codec");
+  if (mJpegSwsContext) {
+        //mJpegSwsContext->src_format != image->AVPixFormat())) {
+    Debug(1, "Need to re-open swsContext. %d %s != %d %s",
+        mJpegCodecContext->sw_pix_fmt,
+        //mJpegSwsContext->src_format, 
+        //av_get_pix_fmt_name(mJpegSwsContext->src_format), 
+        av_get_pix_fmt_name(mJpegCodecContext->sw_pix_fmt),
+        frame->format,
+        av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format))
+        );
+    sws_freeContext(mJpegSwsContext);
+    mJpegSwsContext = nullptr;
+  }
+
+  if (!mJpegSwsContext) {
+    Debug(1, "Getting swsContext for %dx%d %s to %dx%d %s", 
+        frame->width, frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)),
+        mJpegCodecContext->width, mJpegCodecContext->height, av_get_pix_fmt_name(AV_PIX_FMT_YUVJ420P)
+        );
+    mJpegSwsContext = sws_getContext(
+        frame->width, frame->height, static_cast<AVPixelFormat>(frame->format),
+        mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUVJ420P,
+        SWS_BICUBIC, nullptr, nullptr, nullptr);
+    if (!mJpegSwsContext) {
+      Error("Failure to get swscontext");
+      return -1;
+    }
+  }
+#if 1
+  output_frame = av_frame_ptr{zm_av_frame_alloc()}; // The assignment here will destruct any previous allocation
+  output_frame->width  = mJpegCodecContext->width;
+  output_frame->height = mJpegCodecContext->height;
+  output_frame->format = AV_PIX_FMT_YUVJ420P;
+  //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+  av_frame_get_buffer(output_frame.get(), 0);
+  zm_dump_video_frame(output_frame, "OpenCodec(output_frame)");
+#endif
+
+  return 0;
 }
 
 Event::~Event() {
@@ -196,8 +321,11 @@ Event::~Event() {
     closedir(video_dir);
   }
 
+  std::string notes;
+  createNotes(notes);
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Notes='%s', Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      zmDbEscapeString(notes).c_str(),
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
@@ -209,7 +337,8 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        "UPDATE Events SET Notes='%s', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        zmDbEscapeString(notes).c_str(),
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
@@ -219,11 +348,23 @@ Event::~Event() {
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
+
+  if (mJpegCodecContext) {
+    avcodec_free_context(&mJpegCodecContext);
+    mJpegCodecContext = nullptr;
+  }
+
+  if (mJpegSwsContext) {
+    sws_freeContext(mJpegSwsContext);
+  }
+  av_buffer_unref(&hw_device_ctx);
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
   notes.clear();
   for (StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter) {
+    if (mapIter != noteSetMap.begin())
+      notes += ", ";
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
@@ -239,21 +380,126 @@ void Event::addNote(const char *cause, const std::string &note) {
   noteSetMap[cause].insert(note);
 }
 
-bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
+/* written jpeg will be thewidthxheight in the codec context, not ours. */
+bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
+
+  if (!mJpegCodecContext || !mJpegSwsContext
+     // ||
+      //(mJpegSwsContext->src_format != in_frame->format)
+      // Apparently swsScale ignores src wxh anyways
+      ) {
+    Debug(1, "Need to open codec.  ctx %p", mJpegCodecContext);
+    //OpenJpegCodec(image);
+    OpenJpegCodec(in_frame);
+  }
+
+  if (!mJpegCodecContext) return false;
+
+  int raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  if (raw_fd < 0)
+    return false;
+  FILE *outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    close(raw_fd);
+    return false;
+  }
+
+  struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+  if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
+    Error("Couldn't get lock on %s, continuing", filename.c_str());
+  }
+
+  Debug(1, "Have sws context, converting from %dx%d %s to %dx%d %s",
+      in_frame->width, in_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format)),
+      mJpegCodecContext->width, mJpegCodecContext->width, av_get_pix_fmt_name(AV_PIX_FMT_YUVJ420P)
+      );
+
+#if 0
+  av_frame_ptr out_frame = av_frame_ptr{zm_av_frame_alloc()};
+  out_frame->width  = mJpegCodecContext->width;
+  out_frame->height = mJpegCodecContext->height;
+  out_frame->format = AV_PIX_FMT_YUVJ420P;
+  //av_image_fill_linesizes(frame->linesize, AV_PIX_FMT_YUVJ420P, p_jpegcodeccontext->width);
+  av_frame_get_buffer(out_frame.get(), 0);
+  zm_dump_video_frame(out_frame, "OpenCodec(output_frame)");
+  zm_dump_video_frame(in_frame, "OpenCodec(in_frame)");
+#endif
+
+  int ret = sws_scale(mJpegSwsContext, in_frame->data, in_frame->linesize, 0, in_frame->height, output_frame->data, output_frame->linesize);
+  if (ret < 0) {
+    Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
+        (unsigned long)in_frame->data, in_frame->linesize[0], in_frame->linesize[1],
+        in_frame->linesize[2], in_frame->linesize[3], in_frame->height, output_frame->linesize[0]);
+    return ret;
+  }
+
+  zm_dump_video_frame(in_frame, "Image.WriteJpeg(frame)");
+
+  ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
+  while (ret == AVERROR(EAGAIN) and !zm_terminate)
+    ret = avcodec_send_frame(mJpegCodecContext, output_frame.get());
+  Debug(1, "Retcode from avcodec_send_frame, %d", ret);
+  if (ret == 0) {
+    Debug(1, "After send frame");
+    AVPacket *pkt = av_packet_alloc();
+    while (!zm_terminate) {
+      Debug(1, "Getting packet");
+      ret = avcodec_receive_packet(mJpegCodecContext, pkt);
+      if (ret == 0) {
+       // or ret == AVERROR(EOF)) {  // EOF is ok because it is jpeg:
+        Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
+        fwrite(pkt->data, 1, pkt->size, outfile);
+        break;
+      } else if (ret == AVERROR(EAGAIN)) {
+        Debug(1, "EAGAIN");
+      } else if (ret < 0) {
+        Warning("Error getting packet %d %s", ret, av_make_error_string(ret).c_str());
+        if (pkt->size) {
+          Debug(1, "Got good packet, writing %d bytes to %s", pkt->size, filename.c_str());
+          fwrite(pkt->data, 1, pkt->size, outfile);
+        }
+        avcodec_free_context(&mJpegCodecContext);
+        mJpegCodecContext = nullptr;
+        break;
+      }
+    }  // end while
+    av_packet_free(&pkt);
+  } else {
+    Error("Ret from send_frame %d", ret);
+  }
+
+  fl.l_type = F_UNLCK;  /* set to unlock same region */
+  if (fcntl(raw_fd, F_SETLK, &fl) == -1) {
+    Error("Failed to unlock %s", filename.c_str());
+  }
+
+  fclose(outfile);
+
+  return true;
+} // end bool Event::WriteJpeg(const std::string &filename, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext)
+
+bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) {
+  /*
   int thisquality =
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
 
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
+  */
+  if (!mJpegCodecContext || (mJpegSwsContext && (mJpegCodecContext->sw_pix_fmt != image->AVPixFormat()))) {
+    Debug(1, "Need to open codec.  ctx %p", mJpegCodecContext);
+    OpenJpegCodec(image);
+  }
+  if (!mJpegCodecContext) return false;
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image ts_image(*image);
     monitor->TimestampImage(&ts_image, timestamp);
-    return ts_image.WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    return ts_image.WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
   }
-  return image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+  return image->WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
 }
 
 bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {
@@ -302,7 +548,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     } // end if have old notes
   } // end if have new notes
 
-  if (update) {
+  if (0 and update) {
     std::string notes;
     createNotes(notes);
 
@@ -334,7 +580,12 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet);
   }
-  end_time = packet->timestamp;
+  if (!packet->detections.empty()) {
+    std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
+    dbQueue.push(std::move(sql));
+  }
+
+    end_time = packet->timestamp;
 }
 
 void Event::WriteDbFrames() {
@@ -419,7 +670,16 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-      if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
+      if (
+          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), event_file.c_str()))
+          or
+          (packet->in_frame and WriteJpeg(packet->in_frame.get(), event_file.c_str()))
+          or
+          (packet->image and WriteFrameImage(packet->image, packet->timestamp, event_file.c_str()))
+      ) {
+      Debug(1, "Wrote capture frame %d to %s", frames, event_file.c_str());
+        // Success
+      } else {
         Error("Failed to write frame image");
       }
     }  // end if save_jpegs
@@ -429,8 +689,17 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
-      WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
-      snapshot_file_written = true;
+      if (
+          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+          or
+          (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
+          or
+          (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+         ) {
+        snapshot_file_written = true;
+      } else {
+        Warning("Fail to write snapshot");
+      }
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }
@@ -442,9 +711,18 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
         Debug(1, "Writing alarm image to %s", alarm_file.c_str());
+        if (packet->ai_frame) {
+          WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
+        } else if (packet->in_frame) {
+          WriteJpeg(packet->in_frame.get(), alarm_file.c_str());
+        } else if (packet->image) {
+          WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
+        }
+#if 0
         if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
           Error("Failed to write alarm frame image to %s", alarm_file.c_str());
         }
+#endif
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
       }
@@ -501,8 +779,11 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       WriteDbFrames();
       last_db_frame = frames;
 
+      std::string notes;
+      createNotes(notes);
       std::string sql = stringtf(
-                          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          "UPDATE Events SET Notes='%s', Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          zmDbEscapeString(notes).c_str(),
                           FPSeconds(delta_time).count(),
                           frames,
                           alarm_frames,
@@ -653,12 +934,14 @@ void Event::Run() {
   video_incomplete_path = path + "/" + video_incomplete_file;
 
   if (monitor->GetOptVideoWriter() != 0) {
+    AVCodecContext *video_ctx = monitor->GetVideoCodecContext();
+
     /* Save as video */
     videoStore = new VideoStore(
       video_incomplete_path.c_str(),
       container.c_str(),
       monitor->GetVideoStream(),
-      monitor->GetVideoCodecContext(),
+      video_ctx,
       ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
       ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
       monitor );
@@ -669,9 +952,14 @@ void Event::Run() {
       videoStore = nullptr;
       if (!(save_jpegs & 1)) {
         save_jpegs |= 1; // Turn on jpeg storage
-        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id));
+        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d, DefaultVideo=NULL WHERE Id=%" PRIu64, save_jpegs, id));
       }
     } else {
+      const AVCodec *encoder = videoStore->get_video_encoder();
+      if (encoder) {
+        noteSetMap["encoder"].insert(encoder->name);
+      }
+
       std::string codec = videoStore->get_codec();
       video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
       video_path = path + "/" + video_file;
@@ -685,14 +973,25 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (!terminate_ and !zm_terminate) {
-    ZMLockedPacket *packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
-    if (packet_lock) {
-      std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+    // I don't exactly remember why the no_wait
+    ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
+    std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+    if (packet) {
       if (!packet->decoded) {
-        delete packet_lock;
+        Debug(1, "Not decoded");
+        packet_lock.unlock();
         // Stay behind decoder
         Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
         Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
+      if (!packet->analyzed) {
+        Debug(1, "Not analyzed");
+        packet_lock.unlock();
+        // Stay behind ai
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
@@ -700,28 +999,11 @@ void Event::Run() {
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
 
-      if (packet->image) {
-        if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
-          if (!save_jpegs) {
-            Debug(1, "Deleting image data for %d", packet->image_index);
-            // Don't need raw images anymore
-            delete packet->image;
-            packet->image = nullptr;
-          }
-        }
-        if (packet->analysis_image and !(save_jpegs & 2)) {
-          Debug(1, "Deleting analysis image data for %d", packet->image_index);
-          delete packet->analysis_image;
-          packet->analysis_image = nullptr;
-        }
-      } // end if packet->image
-      Debug(1, "Deleting packet lock");
-      delete packet_lock;
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
       packetqueue->increment_it(packetqueue_it);
     } else {
       if (terminate_ or zm_terminate) return;
-      usleep(10000);
+      usleep(30000);
     } // end if packet_lock
   }  // end while
 }  // end Run()

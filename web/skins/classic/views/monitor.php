@@ -839,16 +839,20 @@ include('_monitor_source_nvsocket.php');
 <?php
 $decoders = array(
   'auto' => translate('Auto'),
+  'mjpeg' => 'mjpeg',
+  'jpeg_ni_quadra_dec' => 'jpeg_ni_quadra_dec',
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_cuvid' => 'h264_cuvid',
   'h264_nvmpi' => 'h264_nvmpi',
   'h264_mmal'   => 'h264_mmal',
+  'h264_ni_quadra_dec' => 'h264_ni_quadra',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'h265_ni_quadra_dec' => 'h265_ni_quadra',
   'hevc_cuvid' => 'hevc_cuvid',
   'hevc_nvmpi' => 'hevc_nvmpi',
   'hevc_qsv' => 'hevc_qsv',
@@ -857,6 +861,7 @@ $decoders = array(
   'vp9_qsv' => 'vp9-qsv',
   'vp9_cuvid' => 'vp9_cuvid',
   'vp9_nvmpi' => 'vp9_nvmpi',
+  'vp9_ni_quadra_dec' => 'vp9_ni_quadra',
   'vp9_v4l2m2m' => 'vp9_v4l2m2m',
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
@@ -864,6 +869,8 @@ $decoders = array(
   'av1' => 'av1',
   'av1_qsv' => 'av1_qsv',
   'av1_cuvid' => 'av1_cuvid',
+  'av1_vaapi' => 'av1_vaapi'
+  #'av1_ni_quadra_dec' => 'av1_ni_quadra',
 );
 echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
 ?>
@@ -1060,6 +1067,53 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
+            <li class="ObjectDetection">
+              <label><?php echo translate('Object Detection')?></label>
+<?php
+        $od_options = ['none'=>'None', 'uvicorn'=>'Yolo 11 on Ampere CPU'];
+        if (defined('HAVE_UNTETHER'))
+          $od_options['speedai'] = 'Untether SpeedAI';
+        if (defined('HAVE_QUADRA'))
+          $od_options['quadra'] = 'NetInt Quadra';
+
+        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
+?>
+            </li>
+<?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
+            <li class="ObjectDetectionModel">
+              <label><?php echo translate('Object Detection Model')?></label>
+<?php
+        $models = [];
+        foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
+          $model = basename($model);
+          $extension = pathinfo($model, PATHINFO_EXTENSION);
+          if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
+            if (!isset($models['speedai'])) $models['speedai'] = [];
+            $models['speedai'][$model] = $model;
+          } else if ($extension == 'nb' and defined('HAVE_QUADRA')) {
+            if (!isset($models['quadra'])) $models['quadra'] = [];
+            $models['quadra'][$model] = $model;
+          } else {
+            ZM\Debug("Unkown extension in model $model");
+          }
+        }
+        if ($monitor->ObjectDetection() and isset($models[$monitor->ObjectDetection()])) {
+          echo htmlSelect('newMonitor[ObjectDetectionModel]', $models[$monitor->ObjectDetection()], $monitor->ObjectDetectionModel());
+        } else {
+?>
+
+              <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
+<?php } ?>
+            </li>
+            <li class="ObjectDetectionObjectThreshold">
+              <label><?php echo translate('Object Detection Object Threshold')?></label>
+              <input type="number" name="newMonitor[ObjectDetectionObjectThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionObjectThreshold()) ?>" min="0" step="any" max="100"/>
+            </li>
+            <li class="ObjectDetectionNMSThreshold">
+              <label><?php echo translate('Object Detection NMS Threshold')?></label>
+              <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" step="any" max="100"/>
+            </li>
+<?php } ?>
 <?php
     }
     break;
@@ -1138,7 +1192,7 @@ $videowriter_codecs = array(
   '27' => 'h264',
   '173' => 'h265/hevc',
   '167' => 'vp9',
-  '226' => 'av1',
+  '225' => 'av1',
 );
 echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
 ?>
@@ -1152,11 +1206,13 @@ $videowriter_encoders = array(
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_nvenc' => 'h264_nvenc',
+  'h264_ni_quadra_enc' => 'h264_ni_quadra',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'h265_ni_quadra_enc' => 'h265_ni_quadra',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_qsv' => 'hevc_qsv',
   'hevc_vaapi' => 'hevc_vaapi',
@@ -1165,6 +1221,7 @@ $videowriter_encoders = array(
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
   'av1_qsv' => 'av1_qsv',
+  'av1_ni_quadra_enc' => 'av1_ni_quadra',
   'av1_vaapi' => 'av1_vaapi'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
@@ -1232,6 +1289,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             <li>
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
+            </li>
+            <li id="FunctionGo2RTCEnabled">
+              <label><?php echo translate('Go2RTC Live Stream') ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
+  }
+?>
+            <li id="Go2RTCType">
+              <label><?php echo translate('Go2RTC Type') ?> <?php echo $monitor->Go2RTCType() ?> </label>
+              <?php echo htmlSelect('newMonitor[Go2RTCType]', $Go2RTCTypes, $monitor->Go2RTCType()); ?>
             </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
@@ -1361,7 +1430,7 @@ $codecs = array(
 ?>
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
-              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="<?php echo translate('Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text.') ?>"/>
+              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="<?php echo translate('Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text. A good default is %N - %d/%m/%y %H:%M:%S') ?>"/>
             </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>

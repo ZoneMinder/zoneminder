@@ -7,6 +7,7 @@
 AnalysisThread::AnalysisThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&AnalysisThread::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 AnalysisThread::~AnalysisThread() {
@@ -19,6 +20,7 @@ void AnalysisThread::Start() {
   terminate_ = false;
   Debug(3, "Starting analysis thread");
   thread_ = std::thread(&AnalysisThread::Run, this);
+  set_cpu_affinity(thread_);
 }
 
 void AnalysisThread::Stop() {
@@ -31,7 +33,8 @@ void AnalysisThread::Join() {
 void AnalysisThread::Run() {
   while (!(terminate_ or zm_terminate)) {
     // Some periodic updates are required for variable capturing framerate
-    if (!monitor_->Analyse()) {
+    int ret = monitor_->Analyse();
+    if (ret < 0) {
       if (!(terminate_ or zm_terminate)) {
         // We only sleep when Analyse returns false because it is an error condition and we will spin like mad if it persists.
         Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);

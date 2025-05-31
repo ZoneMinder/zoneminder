@@ -71,18 +71,22 @@ void Zone::Setup(
   overload_count = 0;
   extend_alarm_count = 0;
 
-  pg_image = new Image(monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
+  // Doing this to reduce shared_ptr accesses which apparently Setup does 16million times because we were using it in forloop
+  unsigned int width = monitor->Width();
+  unsigned int height = monitor->Height();
+
+  pg_image = new Image(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
   pg_image->Clear();
   pg_image->Fill(0xff, polygon);
-  pg_image->Outline(0xff, polygon);
+  pg_image->Outline(0xff, polygon); // If we just filled it, do we need to outline it?
 
-  ranges = new Range[monitor->Height()];
-  for ( unsigned int y = 0; y < monitor->Height(); y++ ) {
+  ranges = new Range[height];
+  for ( unsigned int y = 0; y < height; y++ ) {
     ranges[y].lo_x = -1;
     ranges[y].hi_x = 0;
     ranges[y].off_x = 0;
     const uint8_t *ppoly = pg_image->Buffer( 0, y );
-    for ( unsigned int x = 0; x < monitor->Width(); x++, ppoly++ ) {
+    for ( unsigned int x = 0; x < width; x++, ppoly++ ) {
       if ( *ppoly ) {
         if ( ranges[y].lo_x == -1 ) {
           ranges[y].lo_x = x;
@@ -96,13 +100,10 @@ void Zone::Setup(
 
   if (config.record_diag_images) {
     if (config.record_diag_images_fifo) {
-      diag_path = stringtf("%s/diagpipe-%d-poly.jpg",
-                           staticConfig.PATH_SOCKS.c_str(), id);
-
+      diag_path = stringtf("%s/diagpipe-%d-poly.jpg", staticConfig.PATH_SOCKS.c_str(), id);
       Fifo::fifo_create_if_missing(diag_path);
     } else {
-      diag_path = stringtf("%s/diag-%d-poly.jpg",
-                           monitor->getStorage()->Path(), id);
+      diag_path = stringtf("%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
     }
 
     pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -203,7 +204,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   if (image)
     delete image;
-  // Get the difference image
+  // Get the difference image, using AssignDirect
   Image *diff_image = image = new Image(*delta_image);
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = diff_image->Buffer();
@@ -735,10 +736,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       }  // end for y
 
       if (monitor->Colours() == ZM_COLOUR_GRAY8) {
-        image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
-      } else {
-        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
+        Warning("Highlight RGB when GRAY8");
+        //image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
+      //} else {
+        //Warning("Highlight colours %d, %d", monitor->Colours(), monitor->SubpixelOrder());
       }
+        image = diff_image->HighlightEdges(alarm_rgb, monitor->Colours(), monitor->SubpixelOrder(), &polygon.Extent());
 
       // Only need to delete this when 'image' becomes detached and points somewhere else
       delete diff_image;

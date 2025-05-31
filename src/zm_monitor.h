@@ -47,6 +47,15 @@
 #include <openssl/err.h>
 #endif
 
+#if HAVE_QUADRA
+extern "C" {
+#include <ni_device_api.h>
+#include <ni_av_codec.h>
+#include <ni_util.h>
+}
+#include "zm_netint_yolo.h"
+#endif
+
 class Group;
 class MonitorLinkExpression;
 
@@ -90,6 +99,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ANALYSISIMAGE_FULLCOLOUR=1,
     ANALYSISIMAGE_YCHANNEL
   } AnalysisImageOption;
+
+  typedef enum {
+    OBJECT_DETECTION_NONE=1,
+    OBJECT_DETECTION_QUADRA,
+    OBJECT_DETECTION_SPEEDAI,
+    OBJECT_DETECTION_UVICORN,
+  } ObjectDetectionOption;
 
   typedef enum {
     RECORDING_NONE=1,
@@ -179,12 +195,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
+ public:
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    int32_t  last_write_index;  /* +4    */
+    int32_t  last_capture_index;  /* +4    */
+    int32_t  last_decoder_index;  /* +4    */
     int32_t  last_read_index;   /* +8    */
-    int32_t  image_count;       /* +12   */
+    int32_t  last_analysis_index;   /* +8    */
+    int32_t  capture_image_count;       /* +12   */
+    int32_t  decoder_image_count;       /* +12   */
+    int32_t  analysis_image_count;       /* +12  */
     uint32_t state;             /* +16   */
     double      capture_fps;    /* +20   Current capturing fps */
     double      analysis_fps;   /* +28   Current analysis fps */
@@ -201,11 +222,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint8_t valid;              /* +88   */
     uint8_t capturing;          /* +89   */
     uint8_t analysing;          /* +90   */
+    //uint8_t objectdetection;    /* +90   */
     uint8_t recording;          /* +91   */
     uint8_t signal;             /* +92   */
     uint8_t format;             /* +93   */
     uint8_t reserved1;          /* +94   */
     uint8_t reserved2;          /* +95   */
+    uint32_t camera_width;
+    uint32_t camera_height;
     uint32_t imagesize;         /* +96   */
     uint32_t last_frame_score;  /* +100   */
     uint32_t audio_frequency;   /* +104   */
@@ -308,9 +332,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ~MonitorLink();
 
     inline unsigned int Id() const { return monitor->Id(); }
-    inline const char *Name() const { return name.c_str(); }
+    inline const std::string &Name() const { return name; }
+    //inline const std::string &Name() const { return monitor ? monitor->Name() : ""; }
 
-    inline bool isConnected() const { return connected && shared_data->valid; }
+    inline bool isConnected() const { return connected && shared_data && shared_data->valid; }
     inline time_t getLastConnectTime() const { return last_connect_time; }
 
     inline uint32_t lastFrameScore() {
@@ -326,6 +351,28 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int score();
   };
  protected:
+
+
+#if HAVE_QUADRA
+  class Quadra {
+   public:
+    explicit Quadra(Monitor *p_monitor);
+    ~Quadra();
+    Quadra(Quadra &rhs) = delete;
+    Quadra(Quadra &&rhs) = delete;
+
+    bool setup();
+    bool detect(AVFrame *);
+
+   private:
+    ni_session_context_t api_ctx;
+    ni_network_data_t network;
+    //ni_session_data_io_t api_src_frame;
+    //ni_session_data_io_t api_dst_packet;
+
+    Monitor *monitor;
+  };
+#endif
 
   class ONVIF {
    protected:
@@ -448,6 +495,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
+  ObjectDetectionOption objectdetection;    // none, quadra, speedai, uvicorn
+  std::string objectdetection_model;
+  float   objectdetection_object_threshold;
+  float   objectdetection_nms_threshold;
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
@@ -463,6 +514,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
   int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
+  CURL *curl;
   std::string protocol;
   std::string method;
   std::string options;
@@ -569,10 +621,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
-  int        analysis_image_count;    // How many frames have been processed by analysis thread.
-  int        decoding_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
-  int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
+  int        last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
@@ -602,9 +652,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             *zone_scores;
 
   struct timeval *shared_timestamps;
+  struct timeval *shared_analysis_timestamps;
   unsigned char *shared_images;
+  unsigned char *shared_analysis_images;
   std::vector<Image *> image_buffer;
+  std::vector<Image *> analysis_image_buffer;
   AVPixelFormat *image_pixelformats;
+  AVPixelFormat *analysis_image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -619,11 +673,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   std::unique_ptr<PollThread> Poller;
+  std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
   av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
+  AVCodecContext *mVideoCodecContext;
+  AVCodecContext *mAudioCodecContext;
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -649,7 +706,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   Image        delta_image;
   Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
@@ -661,6 +717,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
+#if HAVE_QUADRA
+  //Quadra_Yolo *quadra;
+  Quadra_Yolo *quadra_yolo;
+  std::mutex   quadra_mutex;
+#endif
+  nlohmann::json last_detections;
+  int last_detection_count;
 
   // Used in check signal
   uint8_t red_val;
@@ -670,11 +733,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 
+
  public:
   explicit Monitor();
 
   ~Monitor();
 
+  SharedData *getSharedData() { return shared_data; };
   void AddPrivacyBitmask();
 
   void LoadCamera();
@@ -687,7 +752,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     if (shared_data && shared_data->valid) {
       timeval now = {};
       gettimeofday(&now, nullptr);
-      Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
+      Debug(4, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
             static_cast<int64>(shared_data->heartbeat_time),
             static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),
@@ -700,6 +765,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
+  //inline const std::string &Name() const { return name; }
   inline bool Deleted() const { return deleted; }
   inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
@@ -733,6 +799,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline const char* get_stream_key() {
     return shared_data->janus_pin;
   }
+#if HAVE_QUADRA
+  //Quadra_Yolo *getQuadra() const { return quadra; };
+#endif
 
   inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
   int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
@@ -755,11 +824,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       Debug(4, "Not ready because no keyframe interval.");
       return false;
     }
-    if (decoding_image_count > ready_count) {
-      Debug(4, "Ready because decoding_image_count(%d) > ready_count(%d)", decoding_image_count, ready_count);
+    if (shared_data->decoder_image_count > ready_count) {
+      Debug(4, "Ready because shared_data->decoder_image_count(%d) > ready_count(%d)", shared_data->decoder_image_count, ready_count);
       return true;
     }
-    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
+    Debug(4, "Not ready because shared_data->decoder_image_count(%d) <= ready_count(%d)", shared_data->decoder_image_count, ready_count);
     return false;
   }
   inline bool Active() const {
@@ -806,6 +875,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
 
+  std::list<ZMPacketLock> *GetDecoderQueue() { return &decoder_queue; };
+
   int GetAudioFrequency() const { return shared_data ? shared_data->audio_frequency : -1; }
   int GetAudioChannels() const { return shared_data ? shared_data->audio_channels : -1; }
 
@@ -833,9 +904,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   State GetState() const { return (State)shared_data->state; }
 
   AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
-  AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
+  AVCodecContext *GetAudioCodecContext() const { return mAudioCodecContext; };
+  AVCodecContext *SetAudioCodecContext(AVCodecContext *pAudioCodecContext) {
+    return mAudioCodecContext = pAudioCodecContext; };
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
-  AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
+  AVCodecContext *SetVideoCodecContext(AVCodecContext *pVideoCodecContext) {
+    return mVideoCodecContext = pVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
   std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
@@ -848,6 +923,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &getONVIF_Options() const { return onvif_options; };
 
   Image *GetAlarmImage();
+  Image *GetDecodedImage(int32_t index) {
+    return image_buffer[index];
+  };
+  Image *GetAnalysisImage(int32_t index) {
+    return analysis_image_buffer[index];
+  };
+
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;
@@ -904,18 +986,37 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
-  bool Analyse();
+  int Analyse();
+  std::pair<int, std::string> Analyse_Quadra(std::shared_ptr<ZMPacket> packet);
+  struct transfer
+{
+    uint8_t *buf;
+    size_t total;
+    size_t uploaded;
+};
+
+  static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+  static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+  std::pair<int, std::string> Analyse_UVICORN(std::shared_ptr<ZMPacket> packet);
+  std::pair<int, std::string> Analyse_MotionDetection(std::shared_ptr<ZMPacket> packet);
+
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
-  bool Decode();
+  int Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-    const std::shared_ptr<ZMPacket> &snap,
+    ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();
+
+  ObjectDetectionOption ObjectDetection() const { return objectdetection; };
+  const std::string &ObjectDetection_Model() const { return objectdetection_model; };
+  float ObjectDetection_Object_Threshold() const { return objectdetection_object_threshold; };
+  float ObjectDetection_NMS_Threshold() const { return objectdetection_nms_threshold; };
 
   void Reload();
   void ReloadZones();
@@ -948,6 +1049,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   }
   int Importance() const { return importance; }
   int StartupDelay() const { return startup_delay; }
+ private:
+  int OpenDecoder();
+  int CloseDecoder();
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

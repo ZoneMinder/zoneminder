@@ -109,7 +109,7 @@ foreach ($monitors as $m) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if ( $m->RTSP2WebEnabled() and $m->RTSP2WebType == "HLS") {
+  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS') or ($m->Go2RTCEnabled() and $m->Go2RTCType == 'HLS')) {
     $hasHLS = true;
   }
   if ($hasPtzControls && $hasHLS) {
@@ -213,18 +213,8 @@ if (
   $options['scale'] = 0;
 }
 
-function getStreamModeMonitor($monitor) {
-  if ($monitor->JanusEnabled()) {
-    $streamMode = 'janus';
-  } else if ($monitor->RTSP2WebEnabled()) {
-    $streamMode = $monitor->RTSP2WebType();
-  } else {
-    $streamMode = getStreamMode();
-  }
-  return $streamMode;
-}
 
-$streamMode = getStreamModeMonitor($monitor);
+$streamMode = $monitor->getStreamMode();
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 getBodyTopHTML();
@@ -313,6 +303,28 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
           ?>
         </span>
+        <div id="playerControl">
+          <label for="player"><?php echo translate('Player') ?></label>
+<?php 
+              $players = ['zms'=>'ZMS MJPEG',
+                'go2rtc_webrtc' => 'Go2RTC WEBRTC',
+                'go2rtc_mse' => 'Go2RTC MSE',
+                'go2rtc_hls' => 'Go2RTC HLS',
+                'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
+                'rtsp2web_mse' => 'RTSP2Web MSE',
+                'rtsp2web_hls' => 'RTSP2Web HLS',
+              ];
+              $player = $monitor->getStreamMode();
+
+              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+                $player = validHtmlStr($_REQUEST['player']);
+              } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_REQUEST['player']])) {
+                $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
+              }
+              echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player'));
+?>
+        </div>
+
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -378,12 +390,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
       $monitorsExtraData[$m->Id()]['ptzControls'] = $ptzControls;
     }
     echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.$m->Name().'</a></li>';
-  }
-  if ($monitorJanusUsed) {
-?>
-    <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
-    <script src="/javascript/janus/janus.js"></script>
-<?php
   }
  ?>
           </ul>
@@ -503,13 +509,13 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
   </div>
 </div>
 <?php
-if ($hasHLS) {
-?>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
-<?php
-}
-?>
-<?php
+    if ($hasHLS) {
+      echo '<script src="'.cache_bust('js/hls-1.5.20/hls.min.js').'"></script>';
+    }
+    if ($monitorJanusUsed) {
+      echo '<script src="'.cache_bust('js/adapter.min.js').'"></script>';
+      echo '<script src="/javascript/janus/janus.js"></script>';
+    }
   } else {
     echo "There are no monitors to display\n";
   }

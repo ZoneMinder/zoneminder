@@ -36,6 +36,109 @@ StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
   closeComms();
+
+  if (mJpegCodecContext) {
+    avcodec_free_context(&mJpegCodecContext);
+  }
+
+  if (mJpegSwsContext) {
+    sws_freeContext(mJpegSwsContext);
+  }
+}
+
+bool StreamBase::initContexts(int in_width, int in_height, AVPixelFormat format,
+    int out_width, int out_height, unsigned int quality) {
+
+  if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
+
+  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  if (!codec_data.size()) {
+    Error("No codecs for mjpeg found");
+    return false;
+  }
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    auto chosen_codec_data = *it;
+    Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+
+    const AVCodec *mJpegCodec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
+    if (!mJpegCodec) {
+      Error("MJPEG codec not found");
+      continue;
+    }
+    // We allocate and copy in newer ffmpeg, so need to free it
+    mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+    if (!mJpegCodecContext) {
+      Error("Could not allocate jpeg codec context");
+      continue;
+    }
+
+    //mJpegCodecContext->bit_rate = 2000000;
+    mJpegCodecContext->width = out_width;
+    mJpegCodecContext->height = out_height;
+    mJpegCodecContext->time_base= (AVRational) {1, 25};
+    //mJpegCodecContext->time_base= (AVRational) {1, static_cast<int>(monitor->GetFPS())};
+    mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
+    mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+
+    int quality = config.jpeg_file_quality;
+
+    //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
+    //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
+    mJpegCodecContext->qcompress = quality/100.0; // 0-1
+    //mJpegCodecContext->qmax = 1;
+    //mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+
+    Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s %dx%d",
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
+        chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
+        mJpegCodecContext->width, mJpegCodecContext->height
+        );
+
+#if 0
+    if (0 && setup_hwaccel(mJpegCodecContext,
+          chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+      avcodec_free_context(&mJpegCodecContext);
+      continue;
+    }
+#endif
+
+    if (avcodec_open2(mJpegCodecContext, mJpegCodec, nullptr) < 0) {
+      Error("Could not open mjpeg codec");
+      avcodec_free_context(&mJpegCodecContext);
+      mJpegCodecContext = nullptr;
+      //av_buffer_unref(&hw_device_ctx);
+      continue;
+    }
+    break;
+  }
+  if (!mJpegCodecContext) {
+    return false;
+  }
+
+  mJpegPixelFormat = format;
+  if (mJpegSwsContext) {
+    //&& (mJpegCodecContext->sw_pix_fmt != format)) {
+    sws_freeContext(mJpegSwsContext);
+  }
+
+  mJpegSwsContext = sws_getContext(
+      //monitor->Width(), monitor->Height(), 
+      // theoretically, the stream can be any size not necessarily monitor size. I think. This is here more for format conversion than scaling.
+      // No we are doing scaling here too. It got removed from prepareImage
+      in_width, in_height, format,
+      out_width, out_height, mJpegCodecContext->pix_fmt,
+      SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+  if (!mJpegSwsContext) {
+    Warning("Failed to alloc swscontext");
+    return false;
+  } else {
+    Debug(1, "Configured swsContext to %dx%d %d %s to %dx%d %d %s",
+        in_width, in_height, format, av_get_pix_fmt_name(format),
+        out_width, out_height, mJpegCodecContext->pix_fmt, av_get_pix_fmt_name(mJpegCodecContext->pix_fmt));
+  }
+  return true;
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
@@ -47,8 +150,7 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
   }
 
   if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
-    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
-    return false;
+    Info("Monitor %d has capturing == NONE. Will likely not be able to connect to it.", monitor_id);
   }
 
   if (monitor->isConnected()) {
@@ -64,6 +166,9 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  mJpegCodecContext = nullptr;
+  mJpegSwsContext = nullptr;
+  //return initContexts(monitor->Width(), monitor->Height(), AV_PIX_FMT_YUV420P, config.jpeg_stream_quality);
   return true;
 }
 
@@ -73,11 +178,10 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
-    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
-    return false;
+    Info("Monitor %d has capturing == NONE. Will likely not be able to connect to it.", monitor_id);
   }
   if (!monitor->ShmValid()) {
-    Debug(1, "Monitor shm is not connected");
+    Debug(1, "Monitor shm is not valid");
     return false;
   }
   if ((monitor->GetType() == Monitor::FFMPEG) and (monitor->Decoding() == Monitor::DECODING_NONE) ) {
@@ -147,12 +251,11 @@ Image *StreamBase::prepareImage(Image *image) {
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
   bool image_copied = false;
+  Debug(1, "prepareImage image in %s", image->toString().c_str());
 
   if (zoom != 100) {
     int base_image_width = image->Width(),
-        base_image_height = image->Height(),
-        disp_image_width = image->Width() * scale/ZM_SCALE_BASE,
-        disp_image_height = image->Height() * scale / ZM_SCALE_BASE;
+        base_image_height = image->Height();
     /* x and y are scaled by web UI to base dimensions units.
      * When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
      * However if we have zoomed before, then we are zooming into the previous cutout
@@ -229,21 +332,12 @@ Image *StreamBase::prepareImage(Image *image) {
       image_copied = true;
     }
     image->Crop(last_crop);
-    image->Scale(disp_image_width, disp_image_height);
-  } else if (scale != ZM_SCALE_BASE) {
-    Debug(3, "scaling by %d from %dx%d", scale, image->Width(), image->Height());
-    static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(scale);
   }
-  Debug(3, "Sending %dx%d", image->Width(), image->Height());
-
   last_scale = scale;
   last_zoom = zoom;
   last_x = x;
   last_y = y;
+  Debug(3, "prepareImage image in %s", image->toString().c_str());
 
   return image;
 }  // end Image *StreamBase::prepareImage(Image *image)
@@ -251,18 +345,18 @@ Image *StreamBase::prepareImage(Image *image) {
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;
   int height = 480;
-  int colours = ZM_COLOUR_RGB32;
-  int subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  int colours = ZM_COLOUR_YUV420P;
+  int subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
   int labelsize = 2;
 
   if (monitor) {
     width = monitor->Width();
     height = monitor->Height();
-    colours = monitor->Colours();
-    subpixelorder = monitor->SubpixelOrder();
+    //colours = monitor->Colours();
+    //subpixelorder = monitor->SubpixelOrder();
     labelsize = monitor->LabelSize();
   }
-  Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
+  Debug(2, "Sending %dx%d colours:%d subpixel:%d * %d scale text frame '%s'",
         width, height, colours, subpixelorder, scale, frame_text);
 
   Image image(width, height, colours, subpixelorder);
@@ -271,7 +365,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
   if (scale != 100) {
     image.Scale(scale);
-    Debug(2, "Scaled to %dx%d", image.Width(), image.Height());
+    Debug(2, "Scaled by %d to %dx%d size %d", scale, image.Width(), image.Height(), image.Size());
   }
   if (type == STREAM_MPEG) {
     if (!vid_stream) {
@@ -284,6 +378,14 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     int n_bytes = 0;
 
+    AVPixelFormat pixformat = image.AVPixFormat();
+    if ((!mJpegCodecContext) ||
+          mJpegCodecContext->width != width 
+        || mJpegCodecContext->height != height 
+        || mJpegPixelFormat != pixformat) {
+      Debug(1, "Need to reinit contexts");
+      initContexts(width, height, pixformat, width, height, config.jpeg_stream_quality);
+    }
     image.EncodeJpeg(buffer, &n_bytes);
 
     if (type == STREAM_JPEG) {

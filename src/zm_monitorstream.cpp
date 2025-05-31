@@ -317,11 +317,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
 bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint timestamp) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
-  if (
-    (type != STREAM_JPEG)
-    ||
-    (!config.timestamp_on_capture)
-  )
+  if ( (type != STREAM_JPEG) || (!config.timestamp_on_capture))
     send_raw = false;
 
   if (!send_raw) {
@@ -398,46 +394,79 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
-    reserveTempImgBuffer(send_image->Size());
+    int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
+    int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+
+    if (l_width < 144) {
+      float factor = 144.0/l_width;
+      l_width = 144;
+      l_height = floor(l_height * factor);
+      Debug(1, "Adjust width to 144 using factor %.2f", factor);
+    }
+    l_width += (2-l_width)%2;
+    if (l_height < 128) {
+      float factor = 128.0/l_height;
+      l_height = 128;
+      l_width = floor(l_width * factor);
+      Debug(1, "Adjust height to 128 using factor %.2f", factor);
+    }
+    l_width += (2-l_width)%2;
+
+    reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
 
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
     switch (type) {
-    case STREAM_JPEG :
-      send_image->EncodeJpeg(img_buffer, &img_buffer_size);
-      fputs("Content-Type: image/jpeg\r\n", stdout);
-      break;
-    case STREAM_RAW :
-      fputs("Content-Type: image/x-rgb\r\n", stdout);
-      img_buffer = send_image->Buffer();
-      img_buffer_size = send_image->Size();
-      break;
-    case STREAM_ZIP :
+      case STREAM_JPEG :
+        if ((!mJpegCodecContext) || (mJpegCodecContext->width != l_width
+              || (mJpegCodecContext->height != l_height)
+              || (mJpegPixelFormat != send_image->AVPixFormat())
+              )) {
+          if (mJpegCodecContext) {
+            Debug(1, "Need to initContexts because %dx%d %d quality %d != %dx%d %d quality %d",
+                mJpegCodecContext->width, mJpegCodecContext->height, mJpegPixelFormat, config.jpeg_stream_quality,
+                l_width, l_height, send_image->AVPixFormat(), config.jpeg_stream_quality);
+          }
+          initContexts(send_image->Width(), send_image->Height(), send_image->AVPixFormat(),
+              l_width, l_height, config.jpeg_stream_quality);
+        }
+        if (!send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
+          fputs("Content-Type: image/jpeg\r\n", stdout);
+          return false;
+        }
+        break;
+      case STREAM_RAW :
+        fputs("Content-Type: image/x-rgb\r\n", stdout);
+        img_buffer = send_image->Buffer();
+        img_buffer_size = send_image->Size();
+        break;
+      case STREAM_ZIP :
 #if HAVE_ZLIB_H
-      fputs("Content-Type: image/x-rgbz\r\n", stdout);
-      unsigned long zip_buffer_size;
-      send_image->Zip(img_buffer, &zip_buffer_size);
-      img_buffer_size = zip_buffer_size;
+        fputs("Content-Type: image/x-rgbz\r\n", stdout);
+        unsigned long zip_buffer_size;
+        send_image->Zip(img_buffer, &zip_buffer_size);
+        img_buffer_size = zip_buffer_size;
 #else
-      Error("zlib is required for zipped images. Falling back to raw image");
-      type = STREAM_RAW;
+        Error("zlib is required for zipped images. Falling back to raw image");
+        type = STREAM_RAW;
 #endif // HAVE_ZLIB_H
-      break;
-    default :
-      Error("Unexpected frame type %d", type);
-      return false;
+        break;
+      default :
+        Error("Unexpected frame type %d", type);
+        return false;
     }
     if (
-      (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
-                   img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
-      ||
-      (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
-    ) {
+        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+                     img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
+        ||
+        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+       ) {
       // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
-      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), (zm_terminate ? 1 : 0));
       return false;
     }
+    bytes_sent += img_buffer_size;
     fputs("\r\n", stdout);
     fflush(stdout);
 
@@ -451,9 +480,9 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     if (frame_send_time > maxfps_milliseconds) {
       //maxfps /= 1.5;
       Debug(1, "Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", %.3f",
-            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
-            maxfps);
+          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
+          maxfps);
     }
   }
   return true;
@@ -472,7 +501,7 @@ void MonitorStream::runStream() {
         monitor->setLastViewed();
         sendTextFrame("Waiting for capture");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
-        sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
+        sendTextFrame("Monitor has Decoding==None. We may not be able to provide live stream.");
       } else {
         sendTextFrame("Unable to stream");
       }
@@ -493,11 +522,37 @@ void MonitorStream::runStream() {
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
+  while (!checkInitialised() and !zm_terminate) {
+    int rc = -1;
+    if (!loadMonitor(monitor_id)) {
+      rc = sendTextFrame("Not connected");
+    } else if (monitor->Deleted()) {
+      rc = sendTextFrame("Monitor has been deleted");
+      zm_terminate = true;
+    } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+      monitor->setLastViewed();
+      rc= sendTextFrame("Waiting for capture of ondemand camera");
+    } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
+      rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
+    } else {
+      rc = sendTextFrame("Unable to stream");
+    }
+    if (!rc) {
+      Debug(1, "Failed Send unable to stream");
+      zm_terminate = true;
+      continue;
+    }
+    std::this_thread::sleep_for(MAX_SLEEP);
+  }
+  if (zm_terminate) {
+    return;
+  }
   updateFrameRate(monitor->GetFPS());
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
-  int32_t last_read_index = monitor->image_buffer_count;
-  int32_t last_image_count = 0;
+  // used to start at image_buffer_count, so next one would actually be 1.  Instead, lets start wherever zmc is at.
+  int32_t last_read_index = monitor->shared_data->last_read_index;
+  int32_t image_count = monitor->shared_data->analysis_image_count;
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
@@ -578,7 +633,7 @@ void MonitorStream::runStream() {
         zm_terminate = true;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        rc= sendTextFrame("Waiting for capture");
+        rc= sendTextFrame("Waiting for capture of ondemand camera");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
         rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
@@ -596,9 +651,9 @@ void MonitorStream::runStream() {
 
     if (paused) {
       if (!was_paused) {
-        int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+        int index = monitor->shared_data->last_decoder_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->image_buffer[index]);
+        paused_image = new Image(*monitor->analysis_image_buffer[index]);
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
     } else if (paused_image) {
@@ -644,10 +699,7 @@ void MonitorStream::runStream() {
           }
         } else if (step != 0) {
           temp_read_index = MOD_ADD(temp_read_index, (step>0?1:-1), temp_image_buffer_count);
-
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
-
-          // Send the next frame
           if (!sendFrame(
                 temp_image_buffer[temp_read_index].file_name,
                 temp_image_buffer[temp_read_index].timestamp)
@@ -687,56 +739,113 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
+    int32_t analysis_image_count = monitor->shared_data->analysis_image_count;
+
+    // Perhaps it restarted?
+    if (image_count - monitor->image_buffer_count > analysis_image_count) {
+      Warning( "Image_count > analysis?  DId it restart? %d > %d", image_count, analysis_image_count);
+      image_count = analysis_image_count;
+      // could be -1
+    }
+
+    int new_count = image_count; //(image_count+frame_mod) ; // % monitor->image_buffer_count;
+    std::vector<Image *> *image_buffer;
+    AVPixelFormat *pixelformats;
+    //if (monitor->ObjectDetection() != Monitor::OBJECT_DETECTION_NONE) {
+      //Debug(4, "Using OBJDETECT");
+      //if (last_read_index !=  image_count < last_count) {
+      //if (monitor->shared_data->last_analysis_index != last_read_index+1) {
+      //}
+      //last_analysis_index = monitor->shared_data->last_analysis_index;
+      //last_count = monitor->shared_data->analysis_image_count;
+      //image_buffer = &monitor->analysis_image_buffer;
+      //pixelformats = monitor->analysis_image_pixelformats;
+    //} else if ( monitor->Analysing() != Monitor::ANALYSING_NONE) {
+      //Debug(1, "Using ANALYSIS");
+      //last_analysis_index = monitor->shared_data->last_analysis_index;
+      //last_count = monitor->shared_data->analysis_image_count;
+      //image_buffer = &monitor->analysis_image_buffer;
+      //pixelformats = monitor->analysis_image_pixelformats;
+    //} else {
+      int index;
+      if (new_count <= 0 || analysis_image_count <= 0) {
+      Debug(1, "Using LIVE new_count %d analysis_count %d", new_count, analysis_image_count);
+        // Use ccapture
+        new_count = monitor->shared_data->decoder_image_count;
+        index = monitor->shared_data->last_decoder_index;
+        image_buffer = &monitor->image_buffer;
+        pixelformats = monitor->image_pixelformats;
+      } else {
+        index = monitor->shared_data->last_analysis_index;
+        image_buffer = &monitor->analysis_image_buffer;
+        pixelformats = monitor->analysis_image_pixelformats;
+      }
+      AVPixelFormat pixformat = pixelformats[index];
+
+    Debug(1, "our next count %d, our image_count %d analysis_image_count %d",
+        new_count, image_count, analysis_image_count);
+    //if ( index <= last_analysis_index && image_count && (image_count+frame_mod <= last_count)) {
+    if ((index != monitor->image_buffer_count) and (new_count <= analysis_image_count or analysis_image_count == 0)) {
+      if (analysis_image_count - new_count > monitor->image_buffer_count ) {
+        Warning("Fell behind, maybe increase Image Buffers analysis_image_count %d - index %d > %d",
+            analysis_image_count, new_count, monitor->image_buffer_count);
+        new_count = image_count = analysis_image_count;
+
+      }
+      //if (last_read_index != monitor->shared_data->last_decoder_index || image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int last_write_index = monitor->shared_data->last_write_index;
-      int index = last_write_index % monitor->image_buffer_count;
-      //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
-      if ( now >= when_to_send_next_frame ) {
+      int last_display_index = index;
+      //int last_decoder_index = monitor->shared_data->last_decoder_index;
+      //int index = last_decoder_index % monitor->image_buffer_count; // This shouldn't be necessary
+                                                                  //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
+      Debug(4, "Pixelformat for index %d count %d is %d %s", index, analysis_image_count, pixformat, av_get_pix_fmt_name(pixformat));
+      
+      if (now >= when_to_send_next_frame) {
         if (!paused && !delayed) {
-          Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused, delayed);
-          last_read_index = last_write_index;
-          last_image_count = monitor->shared_data->image_count;
-          // Send the next frame
-          //
-          // Perhaps we should use NOW instead.
-          last_frame_timestamp =
-            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-
-          Image *send_image = nullptr;
-          /*
-          if ((frame_type == FRAME_ANALYSIS) &&
-              (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
-              Debug(1, "Sending analysis image");
-            send_image = monitor->GetAlarmImage();
-            if (!send_image) {
-              Debug(1, "Falling back");
-              send_image = monitor->image_buffer[index];
+          if (pixformat <= AV_PIX_FMT_NONE) {
+            if (!sendTextFrame("Image not yet available.")) {
+              Debug(2, "sendFrame failed, quitting.");
+              zm_terminate = true;
+              break;
             }
-          } else*/ {
-            //AVPixelFormat pixformat = monitor->image_pixelformats[index];
-            //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-            send_image = monitor->image_buffer[index];
-          }
+          } else {
+            Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
+                new_count, index, monitor->image_buffer_count, frame_mod, frame_count, image_count, analysis_image_count, paused, delayed);
+            last_read_index = last_display_index;
+            image_count += frame_mod; //last_count;
+            // Send the next frame
+            //
+            // Perhaps we should use NOW instead.
+            last_frame_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
-          if (!sendFrame(send_image, last_frame_timestamp)) {
-            Debug(2, "sendFrame failed, quitting.");
-            zm_terminate = true;
-            break;
-          }
-          frame_count++;
-          if (frame_count == 0) {
-            // Chrome will not display the first frame until it receives another.
-            // Firefox is fine.  So just send the first frame twice.
+            // Analysis Image can be gray scale
+            Image *send_image = (*image_buffer)[index];
+            Debug(1, "Sending regular image index %d, pix format is %d %s size %d",
+                index, pixformat, av_get_pix_fmt_name(pixformat), send_image->Size());
+
+            std::string annotation = stringtf("image %.2d %d %s", index, new_count, (image_buffer == &monitor->image_buffer ? "Waiting for analysis engine" : ""));
+            send_image->Annotate(annotation.c_str(), Vector2(0, 20), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
+
+            send_image->AVPixFormat(pixformat);
+
             if (!sendFrame(send_image, last_frame_timestamp)) {
               Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
               break;
             }
-          }
+            frame_count++;
+            if (frame_count == 0) {
+              // Chrome will not display the first frame until it receives another.
+              // Firefox is fine.  So just send the first frame twice.
+              if (!sendFrame(send_image, last_frame_timestamp)) {
+                Debug(2, "sendFrame failed, quitting.");
+                zm_terminate = true;
+                break;
+              }
+            }
 
-          temp_read_index = temp_write_index;
+            temp_read_index = temp_write_index;
+          } // end if pixformat
         } else {
           if (delayed && !buffered_playback) {
             Debug(2, "Can't delay when not buffering.");
@@ -756,7 +865,7 @@ void MonitorStream::runStream() {
               if (paused_image) {
                 // Send keepalive
                 Debug(2, "Sending keepalive frame because delta time %.2f s > 5 s",
-                      FPSeconds(actual_delta_time).count());
+                    FPSeconds(actual_delta_time).count());
                 // Send the next frame
                 if (!sendFrame(paused_image, paused_timestamp))
                   zm_terminate = true;
@@ -767,8 +876,6 @@ void MonitorStream::runStream() {
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
-        //} else {
-        //frame_count++;
       } else {
         Debug(2, "Not time to send next frame.");
       }  // end if should send frame now > when_to_send_next_frame
@@ -801,19 +908,26 @@ void MonitorStream::runStream() {
           Warning("Unable to store frame as shared memory invalid");
         }
       } // end if buffered playback
-    } else {
-      Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-            monitor->shared_data->last_write_index,
-            last_read_index);
+    } else { // ahead of writer
+      Debug(1, "Waiting for capture last_analysis_index=%u, count %d == last_read_index=%u",
+          //last_decoder_index,
+            monitor->shared_data->last_analysis_index,
+            monitor->shared_data->analysis_image_count,
+            new_count);
 
       if (now - last_frame_sent > Seconds(5)) {
-        if (last_read_index == monitor->GetImageBufferCount()) {
+        if (monitor->shared_data->decoder_image_count <= 0) {
           sendTextFrame("Waiting for initial capture");
         } else {
-          sendTextFrame("Waiting for capture");
+          sendTextFrame(stringtf("Waiting for capture/analysis index %d, count %d our last read index %d, current %d",
+                monitor->shared_data->last_analysis_index,
+                monitor->shared_data->analysis_image_count,
+                last_read_index, new_count).c_str());
         }
       }
-    } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
+      std::this_thread::sleep_for( MonitorStream::MAX_SLEEP / 10);
+      continue;
+    } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_decoder_index )
 
     FPSeconds sleep_time;
     if (now >= when_to_send_next_frame) {
@@ -826,27 +940,35 @@ void MonitorStream::runStream() {
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);
-      if (when_to_send_next_frame > now) {
-        sleep_time -= (when_to_send_next_frame - now);
-        Debug(2, "Adjusting sleep time for when_to_send_next_frame - now = %f", FPSeconds(when_to_send_next_frame - now).count());
+      // Don't actually need this if
+      if (now > when_to_send_next_frame) {
+        sleep_time -= now-when_to_send_next_frame;
+        Debug(2, "Adjusting sleep time for when_to_send_next_frame - now = %f", FPSeconds(now-when_to_send_next_frame).count());
       }
 
-
+      // now is before send_frame, so... last_frame_sent should always be > now...
       if (last_frame_sent > now) {
         FPSeconds elapsed = last_frame_sent - now;
-        if (sleep_time > elapsed) {
+        //if (sleep_time > elapsed) {
           Debug(2, "Adjusting sleep time by %f elapsed", elapsed.count());
           sleep_time -= elapsed;
-        }
+        //}
+      } else {
+        Debug(2, "last_frame_send %" PRIi64 " >? now %" PRIi64,
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(last_frame_sent.time_since_epoch()).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+            );
       }
       when_to_send_next_frame = now + std::chrono::duration_cast<Microseconds>(sleep_time);
     } else {
       sleep_time = when_to_send_next_frame - now;
     }
 
-    if (sleep_time > MonitorStream::MAX_SLEEP) {
-      Debug(3, "Sleeping for MAX_SLEEP_USEC instead of %" PRIi64 " us",
-            static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
+    if ( 0 and (sleep_time > MonitorStream::MAX_SLEEP)) {
+      Debug(3, "Sleeping for MAX_SLEEP_USEC %" PRIi64 " instead of %" PRIi64 " us",
+          static_cast<int64>(std::chrono::duration_cast<Microseconds>(MonitorStream::MAX_SLEEP).count()),
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count())
+            );
       // Shouldn't sleep for long because we need to check command queue, etc.
       sleep_time = MonitorStream::MAX_SLEEP;
     } else {
@@ -909,8 +1031,8 @@ void MonitorStream::runStream() {
     } else {
       Debug(1, "command_processor is not joinable");
     }
+    Debug(1, "command_processor has joined");
   }
-  Debug(1, "command_processor has joined");
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {
@@ -919,9 +1041,9 @@ void MonitorStream::SingleImage(int scale) {
   Image scaled_image;
 
   int count = 10; // Give it 1 second to connect or else send text frame.
-  while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
-    Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
-          monitor->shared_data->last_write_index, monitor->image_buffer_count);
+  while (count and (monitor->shared_data->last_decoder_index >= monitor->image_buffer_count) and !zm_terminate) {
+    Debug(1, "Waiting for capture to begin. last decoder index %d >=? %d",
+          monitor->shared_data->last_decoder_index, monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }
@@ -930,27 +1052,58 @@ void MonitorStream::SingleImage(int scale) {
     return;
   }
 
-  int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+  int index = monitor->shared_data->last_analysis_index % monitor->image_buffer_count;
+  count = 10; // Give it 1 second to connect or else send text frame.
+  while (count and (monitor->image_pixelformats[index]<=AV_PIX_FMT_NONE) and !zm_terminate) {
+    Debug(1, "Waiting for analysis to begin. last write index %d >=? %d",
+          monitor->shared_data->last_analysis_index, monitor->image_buffer_count);
+    std::this_thread::sleep_for(Milliseconds(1));
+    count--;
+  }
+
+  if (!count and monitor->image_pixelformats[index]<=AV_PIX_FMT_NONE) {
+    sendTextFrame("No image available.");
+    return;
+  }
+
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
-  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
-  Image *snap_image = monitor->image_buffer[index];
+
+  Image *snap_image = monitor->analysis_image_buffer[index];
+  snap_image->AVPixFormat(pixformat);
+  Debug(1, "Sending regular image index %d, pix format is %d %s %d", index, pixformat, av_get_pix_fmt_name(pixformat), snap_image->Size());
   if (!config.timestamp_on_capture) {
-    monitor->TimestampImage(snap_image,
-                            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
+    monitor->TimestampImage(snap_image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
   }
 
-  if ( scale != ZM_SCALE_BASE ) {
-    scaled_image.Assign(*snap_image);
-    scaled_image.Scale(scale);
-    snap_image = &scaled_image;
+  int l_width  = floor(snap_image->Width()  * scale / ZM_SCALE_BASE);
+  int l_height = floor(snap_image->Height() * scale / ZM_SCALE_BASE);
+  if (l_width < 144) {
+    float factor = 144.0/l_width;
+    l_width = 144;
+    l_height = floor(l_height * factor);
+    Debug(1, "Adjust width to 144 using factor %.2f", factor);
   }
-  snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
+  if (l_height < 128) {
+    float factor = 128.0/l_height;
+    l_height = 128;
+    l_width = floor(l_width * factor);
+    Debug(1, "Adjust height to 128 using factor %.2f", factor);
+  }
 
-  fprintf(stdout,
-          "Content-Length: %d\r\n"
-          "Content-Type: image/jpeg\r\n\r\n",
-          img_buffer_size);
-  fwrite(img_buffer, img_buffer_size, 1, stdout);
+  if ((!mJpegCodecContext) 
+      || mJpegCodecContext->width != l_width 
+      || mJpegCodecContext->height != l_height 
+      || mJpegPixelFormat != pixformat) {
+    initContexts(snap_image->Width(), snap_image->Height(), pixformat,
+        l_width, l_height, config.jpeg_stream_quality);
+  }
+  if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
+    fprintf(stdout,
+        "Content-Length: %d\r\n"
+        "Content-Type: image/jpeg\r\n\r\n",
+        img_buffer_size);
+    fwrite(img_buffer, img_buffer_size, 1, stdout);
+  }
 }  // end void MonitorStream::SingleImage(int scale)
 
 void MonitorStream::SingleImageRaw(int scale) {

@@ -135,6 +135,7 @@ class Camera {
   virtual int Capture(std::shared_ptr<ZMPacket> &p) = 0;
   virtual int PostCapture() = 0;
   virtual int Close() = 0;
+  virtual bool NeedsDecode() {return false;};
 };
 
 #endif // ZM_CAMERA_H

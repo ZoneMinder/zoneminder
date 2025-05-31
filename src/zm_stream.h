@@ -45,7 +45,7 @@ class StreamBase {
 
  protected:
   static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
-  static constexpr Milliseconds MAX_SLEEP = Milliseconds(500);
+  static constexpr Milliseconds MAX_SLEEP = Milliseconds(100);
 
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
@@ -153,6 +153,11 @@ class StreamBase {
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
 
+  AVPixelFormat  mJpegPixelFormat; // Not what the codec context is configured to use, but what the mjpegswscontext is configured as input
+  AVCodecContext *mJpegCodecContext;
+  SwsContext     *mJpegSwsContext;
+  int bytes_sent;
+
  protected:
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
@@ -161,6 +166,7 @@ class StreamBase {
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
+  bool initContexts(int in_width, int in_height, AVPixelFormat p_format, int out_width, int out_height, unsigned int quality);
 
  public:
   StreamBase():
@@ -196,7 +202,11 @@ class StreamBase {
     frames_to_send(-1),
     got_command(false),
     temp_img_buffer(nullptr),
-    temp_img_buffer_size(0) {
+    temp_img_buffer_size(0),
+    mJpegCodecContext(nullptr),
+    mJpegSwsContext(nullptr),
+    bytes_sent(0)
+  {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));

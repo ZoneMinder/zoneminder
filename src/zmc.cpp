@@ -83,7 +83,7 @@ void Usage() {
   exit(0);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[], char **envp) {
   self = argv[0];
 
   srand(getpid() * time(nullptr));
@@ -189,6 +189,13 @@ int main(int argc, char *argv[]) {
   zmLoadDBConfig();
   logInit(log_id_string);
 
+
+  for (char **env = envp; *env != 0; env++) {
+    char *thisEnv = *env;
+    Debug(1, "env: %s", thisEnv);
+  }
+
+  getcpu();
   HwCapsDetect();
   curl_global_init(CURL_GLOBAL_DEFAULT);
 

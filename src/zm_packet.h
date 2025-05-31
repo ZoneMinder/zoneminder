@@ -29,6 +29,8 @@
 #include <mutex>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 extern "C" {
 #include <libavformat/avformat.h>
 }
@@ -39,96 +41,143 @@ class ZMPacket {
  public:
 
   std::mutex  mutex_;
+  std::unique_lock<std::mutex> our_lck_;
   // The condition has to be in the packet because it is shared between locks
   std::condition_variable condition_;
+  bool locked;
 
   int keyframe;
   AVStream  *stream;            // Input stream
   av_packet_ptr packet;         // Input packet, undecoded
   av_frame_ptr in_frame;        // Input image, decoded Theoretically only filled if needed.
   av_frame_ptr out_frame;       // output image, Only filled if needed.
+  av_frame_ptr ai_frame;
+  av_frame_ptr hw_frame;
   SystemTimePoint timestamp;
   Image     *image;
   Image     *y_image;
   Image     *analysis_image;
+  Image     *ai_image;
   int       score;
   AVMediaType codec_type;
   int image_index;
   int codec_imgsize;
   int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
   bool decoded;
+  bool analyzed;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
+  nlohmann::json detections;
 
  public:
   AVPacket *av_packet() { return packet.get(); }
   AVPacket *set_packet(AVPacket *p) ;
   AVFrame *av_frame() { return out_frame.get(); }
-  Image *get_image(Image *i=nullptr);
+  Image *get_image(Image *i = nullptr);
   Image *set_image(Image *);
+  Image *get_y_image();
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };
-  int decode(AVCodecContext *ctx);
+  int send_packet(AVCodecContext *ctx);
+  int receive_frame(AVCodecContext *ctx);
+  int decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket>delayed_packet);
+  bool needs_hw_transfer(AVCodecContext *ctx);
+  int get_hwframe(AVCodecContext *ctx);
   explicit ZMPacket(Image *image, SystemTimePoint tv);
   explicit ZMPacket(ZMPacket &packet);
   ZMPacket();
   ~ZMPacket();
 
+  int get_hw_device_id() const;
   //AVFrame *get_out_frame(const AVCodecContext *ctx);
   AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
+  AVFrame *get_ai_frame();
+  Image *get_ai_image();
+  void set_ai_frame(AVFrame *);
   int get_codec_imgsize() { return codec_imgsize; };
   void notify_all() {
     this->condition_.notify_all();
   }
+
+  std::unique_lock<std::mutex> lock();
+  void lock(std::unique_lock<std::mutex> &);
+
+  bool trylock(std::unique_lock<std::mutex>  &lck_);
+  void unlock(std::unique_lock<std::mutex>  &lck_);
+  void unlock();
 };
 
-class ZMLockedPacket {
- public:
-  std::shared_ptr<ZMPacket> packet_;
-  std::unique_lock<std::mutex> lck_;
-  bool locked;
+class ZMPacketLock {
+  public:
+    std::shared_ptr<ZMPacket> packet_;
+  private:
+    std::unique_lock<std::mutex> lck_;
+    bool locked;
 
-  explicit ZMLockedPacket(std::shared_ptr<ZMPacket> p) :
-    packet_(p),
-    lck_(packet_->mutex_, std::defer_lock),
-    locked(false) {
-  }
+  public:
+    //ZMPacketLock(ZMPacketLock &&in) : packet_(in.packet_), lck_(in.lck_), locked(in.locked) { in.lck_ = nullptr; };
+    bool operator!() { return packet_ ? false : true; };
 
-  ~ZMLockedPacket() {
-    if (locked) unlock();
-  }
+    ZMPacketLock(ZMPacketLock&& in) :
+      packet_(in.packet_),
+      lck_(std::move(in.lck_)),
+      locked(in.locked)
+    {
+      if (this != &in) {
+        in.packet_ = nullptr;
+        in.locked = false;
+      }
+    };
 
-  void lock() {
-    Debug(4, "locking packet %d %p %d owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    lck_.lock();
-    locked = true;
-    Debug(4, "packet %d locked", packet_->image_index);
-  };
+    // Move operator
+    ZMPacketLock& operator=(ZMPacketLock &&in) noexcept {
+      if (this != &in) {
+        packet_ = in.packet_;
+        lck_    = std::move(in.lck_);
+        //lck_    = in.lck_;
+        locked  = in.locked;
+        in.locked = false;
+        in.packet_ = nullptr;
+      }
+      return *this;
+    };
 
-  bool trylock() {
-    Debug(4, "TryLocking packet %d %p locked: %d owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    locked = lck_.try_lock();
-    Debug(4, "TryLocking packet %d %p %d, owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    return locked;
-  };
+    ZMPacketLock() :
+      packet_(nullptr),
+      locked(false) {
+       // Debug(1, "New empty");
+       };
 
-  void unlock() {
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    locked = false;
-    lck_.unlock();
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
-    packet_->condition_.notify_all();
-  };
+    explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
+      packet_(p),
+      lck_(p->mutex_, std::defer_lock),
+      locked(false)
+    {
+    };
 
-  void wait() {
-    Debug(4, "packet %d waiting", packet_->image_index);
-    packet_->condition_.wait(lck_);
-  }
-  void notify_all() {
-    packet_->notify_all();
-  }
+    ~ZMPacketLock() {
+      if (locked) {
+        Debug(4, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+        packet_->unlock(lck_);
+      } else if (packet_) {
+        Debug(4, "Not locked in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+      } else {
+        Debug(4, "Not locked in destructor, no packet %p", this);
+      }
+    };
 
+    void wait() {
+      Debug(4, "packet %d waiting", packet_->image_index);
+      packet_->condition_.wait(lck_);
+    };
+    void notify_all() { packet_->notify_all(); };
+    void lock() { packet_->lock(lck_); locked = true; };
+    void unlock() { packet_->unlock(lck_); locked = false; };
+    bool trylock() { return locked = packet_->trylock(lck_); };
+    bool is_locked() { 
+      Debug(4, "is_locked packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
+      return locked;
+    };
 };
-
 #endif /* ZM_PACKET_H */

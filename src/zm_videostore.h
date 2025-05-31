@@ -26,20 +26,7 @@ class PacketQueue;
 class VideoStore {
  private:
 
-  struct CodecData {
-    const AVCodecID codec_id;
-    const char *codec_codec;
-    const char *codec_name;
-    const enum AVPixelFormat sw_pix_fmt;
-    const enum AVPixelFormat hw_pix_fmt;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-    const AVHWDeviceType hwdevice_type;
-#endif
-    const char *hwdevice_default;
-  };
-
-  static struct CodecData codec_data[];
-  CodecData *chosen_codec_data;
+  const CodecData *chosen_codec_data;
 
   Monitor *monitor;
   AVOutputFormat *out_format;
@@ -109,7 +96,7 @@ class VideoStore {
     AVCodecContext  *audio_in_ctx,
     Monitor * p_monitor);
   ~VideoStore();
-  bool  open();
+  bool open();
 
   void write_video_packet(AVPacket pkt);
   void write_audio_packet(AVPacket pkt);
@@ -125,6 +112,10 @@ class VideoStore {
       return avcodec_get_name(video_out_stream->codecpar->codec_id);
     return "";
   }
+  const AVCodec * get_video_encoder() {
+    return video_out_ctx ? video_out_ctx->codec : nullptr;
+  }
+  size_t get_reorder_queue_size() const { return reorder_queue_size; };
 };
 
 #endif // ZM_VIDEOSTORE_H

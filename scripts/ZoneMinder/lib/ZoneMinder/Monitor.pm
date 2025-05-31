@@ -61,6 +61,10 @@ $serial = $primary_key = 'Id';
   Analysing
   AnalysisSource
   AnalysisImage
+  ObjectDetection
+  ObjectDetectionModel
+  ObjectDetectionObjectThreshold
+  ObjectDetectionNMSThreshold
   Recording
   Decoding
   JanusEnabled
@@ -108,6 +112,9 @@ $serial = $primary_key = 'Id';
   VideoWriter
   OutputCodec
   OutputContainer
+  Encoder
+  EncoderHWAccelName
+  EncoderHWAccelDevice
   EncoderParameters
   RecordAudio
   RecordingSource
@@ -188,6 +195,10 @@ $fields{model} = undef;
     Analysing => q`'Always'`,
     AnalysisSource => q`'Primary'`,
     AnalysisImage => q`'FullColour'`,
+    ObjectDetection => q`'None'`,
+    ObjectDetectionModel => q`''`,
+    ObjectDetectionObjectThreshold => 0.4,
+    ObjectDetectionNMSThreshold => 0.25,
     Recording => q`'Always'`,
     Decoding => q`'Always'`,
     JanusEnabled => 0,
@@ -236,6 +247,8 @@ $fields{model} = undef;
     OutputCodec =>  0,
     OutputContainer => undef,
     EncoderParameters => '',
+    EncoderHWAccelName  =>  undef,
+    EncoderHWAccelDevice  =>  undef,
     RecordAudio=>0,
     RecordingSource  => q`'Primary'`,
     RTSPDescribe=>0,

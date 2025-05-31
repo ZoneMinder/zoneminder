@@ -40,7 +40,7 @@ set(CMAKE_C_FLAGS_OPTIMISED "-O3")
 set(CMAKE_CXX_FLAGS_OPTIMISED "-O3")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -146,6 +146,8 @@ set(ZM_WEB_GROUP "" CACHE STRING
     Leave empty to be the same as the web user")
 set(ZM_DIR_EVENTS "${ZM_CONTENTDIR}/events" CACHE PATH
   "Location where events are recorded to, default: ZM_CONTENTDIR/events")
+set(ZM_DIR_MODELS "${ZM_CONTENTDIR}/models" CACHE PATH
+  "Location of AI models default: ${ZM_CONTENTDIR}/models")
 set(ZM_DIR_SOUNDS "sounds" CACHE PATH
   "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
@@ -343,6 +345,22 @@ if(NOT ZM_NO_CURL)
   endif()
 endif()
 
+find_file(HAVE_UNTETHER_H uai_untether.h /opt/untether/speedai/include)
+if(HAVE_UNTETHER_H)
+  include_directories(/opt/untether/speedai/include/)
+  list(APPEND ZM_BIN_LIBS untether)
+  link_directories(/opt/untether/speedai/lib)
+endif()
+
+find_library(XCODER_LIBRARIES xcoder)
+if(XCODER_LIBRARIES)
+  set(HAVE_QUADRA 1)
+  list(APPEND ZM_BIN_LIBS "${XCODER_LIBRARIES}")
+  set(optlibsfound "${optlibsfound} xcoder")
+else()
+  set(optlibsnotfound "${optlibsnotfound} xcoder")
+endif()
+
 # jpeg
 find_package(JPEG)
 if(JPEG_FOUND)
@@ -484,6 +502,7 @@ find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS
     avcodec
     avdevice
+    avfilter
     avformat
     avutil
     swresample
@@ -564,6 +583,12 @@ if(NOT ZM_NO_RTSPSERVER)
   set(HAVE_RTSP_SERVER 1)
 else()
   set(HAVE_RTSP_SERVER 0)
+endif()
+
+if(NOT ZM_NO_AI_SERVER)
+  set(HAVE_AI_SERVER 1)
+else()
+  set(HAVE_AI_SERVER 0)
 endif()
 
 #

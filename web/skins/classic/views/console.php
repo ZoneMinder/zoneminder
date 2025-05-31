@@ -360,7 +360,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $options['frames'] = 1;
 
     $stillSrc = $Monitor->getStreamSrc($options);
-    $streamSrc = $Monitor->getStreamSrc(array('scale'=>$options['scale']*5));
+    $streamSrc = $Monitor->getStreamSrc(array('scale'=>($options['scale'] > 20 ? 100 : $options['scale']*5)));
 
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
     $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
@@ -406,9 +406,15 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
     echo translate('Offline').'<br/>';
   } else {
-    echo translate('Status'.$monitor['Status']).'<br/>';
+    echo 'Status: '.translate('Status'.$monitor['Status']).'<br/>';
+      echo translate('Capturing') . ': '.translate($monitor['Capturing']).'<br/>';
     if ($monitor['Analysing'] != 'None') {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
+    }
+    if ($monitor['ObjectDetection'] != 'none') {
+      echo translate('Object Detection') . ': '.translate($monitor['ObjectDetection']);
+      if ($monitor['AnalysisFPSLimit']) echo ' '.$monitor['AnalysisFPSLimit'].'fps';
+      echo '<br/>';
     }
     if ($monitor['Recording'] != 'None') {
       echo translate('Recording') . ': '.translate($monitor['Recording']) . ($monitor['ONVIF_Event_Listener'] ? ' Use ONVIF' : "") . '<br/>';
@@ -421,7 +427,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       $fps_string .= $monitor['CaptureFPS'];
     }
 
-    if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
+    if ( isset($monitor['AnalysisFPS'])) {
+     // and ($monitor['Analysing'] != 'None')) {
       $fps_string .= '/' . $monitor['AnalysisFPS'];
     }
     if ($fps_string) $fps_string .= ' fps';

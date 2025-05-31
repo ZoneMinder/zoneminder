@@ -836,7 +836,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       Image *image = nullptr;
 
       if (!filepath.empty()) {
-        image = new Image(filepath.c_str());
+        image = new Image();
+        if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
+          return true;
+        }
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -883,7 +886,22 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      reserveTempImgBuffer(send_image->Size());
+      int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
+      int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+      if (l_width < 144) {
+        float factor = 144.0/l_width;
+        l_width = 144;
+        l_height = floor(l_height * factor);
+        Debug(1, "Adjust width to 144 using factor %.2f", factor);
+      }
+      if (l_height < 128) {
+        float factor = 128.0/l_height;
+        l_height = 128;
+        l_width = floor(l_width * factor);
+        Debug(1, "Adjust height to 128 using factor %.2f", factor);
+      }
+
+      reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, send_image->Width(), send_image->Height(), 32));
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
@@ -892,7 +910,17 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       switch ( type ) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
-        send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+        if ((!mJpegCodecContext) || (
+              mJpegCodecContext->width != l_width
+              ||
+              mJpegCodecContext->height != l_height
+              || mJpegPixelFormat != send_image->AVPixFormat()
+              )
+            ) {
+          initContexts(send_image->Width(), send_image->Height(), send_image->AVPixFormat(),
+              l_width, l_height, config.jpeg_stream_quality);
+        }
+        send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
         fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
       case STREAM_ZIP :
@@ -926,8 +954,6 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
 void EventStream::runStream() {
   openComms();
-
-  //checkInitialised();
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);

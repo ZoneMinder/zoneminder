@@ -422,11 +422,6 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   if (level < PANIC || level > DEBUG9)
     Panic("Invalid logger level %d", level);
 
-  log_mutex.lock();
-  // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
-  char            timeString[64];
-  char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
-  va_list         argPtr;
 
   const char *base = strrchr(filepath, '/');
   const char *file = base ? base+1 : filepath;
@@ -434,13 +429,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   SystemTimePoint now = std::chrono::system_clock::now();
   time_t now_sec = std::chrono::system_clock::to_time_t(now);
-  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-                            now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
+  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
 
-  char *timePtr = timeString;
-  tm now_tm = {};
-  timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&now_sec, &now_tm));
-  snprintf(timePtr, sizeof(timeString) - (timePtr - timeString), ".%06" PRIi64, static_cast<int64>(now_frac.count()));
 
   pid_t tid;
 #ifdef __FreeBSD__
@@ -464,6 +454,11 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 #endif
     tid = getpid(); // Process id
 
+  log_mutex.lock();
+  char *timePtr = timeString;
+  tm now_tm = {};
+  timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&now_sec, &now_tm));
+  snprintf(timePtr, sizeof(timeString) - (timePtr - timeString), ".%06" PRIi64, static_cast<int64>(now_frac.count()));
   char *logPtr = logString;
   logPtr += snprintf(logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [",
                      timeString,

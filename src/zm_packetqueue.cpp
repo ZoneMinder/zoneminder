@@ -160,32 +160,23 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
       auto it = pktQueue.begin();
       // Start at second packet because the first is always a keyframe unless we don't care about keyframes
-      // I hate that this breaks the keyframe at beginning promise...
-      //if (keep_keyframes) it ++;
+      it ++;
       while ((*it != add_packet) && !(deleting or zm_terminate)) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
-        //ZMPacketLock packet_lock(zm_packet);
+         ZMPacketLock packet_lock(zm_packet);
 
-        //if (!packet_lock.trylock()) {
+        if (!packet_lock.trylock()) {
           if (warned_count < 2) {
             warned_count++;
-            // Can't delete a locked packet, but can delete one after it.
-            Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
-            // Really shouldn't though. I think we can delete a locked packet, but we REALLY should delete a GOP's worth.
+            Warning("Found locked packet %d when trying to free up video packets. Our packet %d", zm_packet->image_index, add_packet->image_index);
           }
-          //break;
-        //} else if (0 and !keep_keyframes) {
-          //it = this->deletePacket(it);
-          //if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) break;
-          //continue;
-        //} else {
-          if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
-            for ( it = pktQueue.begin(); *it != zm_packet; ) {
-              it = this->deletePacket(it);
-            }
-            break;
-          } // end if erasing a whole gop
-        //} // end if locked and keyframes
+        }
+        if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
+          for ( it = pktQueue.begin(); *it != zm_packet; ) {
+            it = this->deletePacket(it);
+          }
+          break;
+        }
         ++it;
       }  // end foreach
     } else if (warned_count > 0) {
@@ -212,10 +203,10 @@ packetqueue_iterator PacketQueue::deletePacket(packetqueue_iterator it) {
       Debug(1, "Bumping IT because it is at the front that we are deleting");
       ++(*iterator_it);
     } else {
-      Debug(1, "Not Bumping IT because it is pointing at %d and we are %d", (*(*iterator_it))->image_index, zm_packet->image_index);
+      Debug(4, "Not Bumping IT because it is pointing at %d and we are %d", (*(*iterator_it))->image_index, zm_packet->image_index);
     }
   }  // end foreach iterator
-  zm_packet->decoded = true;
+  zm_packet->decoded = true; // analysis waits on decoding status so won't progress until we set this. Although we loop so maybe not.
   zm_packet->notify_all();
 
   packet_counts[zm_packet->packet->stream_index] -= 1;

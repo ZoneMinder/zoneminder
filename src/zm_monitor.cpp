@@ -2167,7 +2167,7 @@ int Monitor::Analyse() {
                 }
 #if HAVE_QUADRA
                 else {
-                  std::pair<int, std::string> results = Analyse_Quadra(packet);
+                  //std::pair<int, std::string> results = Analyse_Quadra(packet);
                 }
 #endif
                 if (objectdetection == OBJECT_DETECTION_UVICORN) {
@@ -2515,20 +2515,19 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   int score = 0;
   std::string cause;
 
+  AVFrame *frame = packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get();
+
   // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
   std::lock_guard<std::mutex> lck(quadra_mutex);
   //OBJECT_DETECTION_QUADRA) {
   if (!quadra_yolo and mVideoCodecContext) {
-    quadra_yolo = new Quadra_Yolo(this, packet->hw_frame ? true : false);
+    quadra_yolo = new Quadra_Yolo(this, frame->format == AV_PIX_FMT_NI_QUAD ? true : false);
     int deviceid = -1;
-    if (packet->hw_frame && packet->hw_frame->format == AV_PIX_FMT_NI_QUAD) {
-      deviceid = ni_get_cardno(packet->hw_frame.get());
+    if (frame && frame->format == AV_PIX_FMT_NI_QUAD) {
+      deviceid = ni_get_cardno(frame);
     }
     Debug(1, "Quadra setting up on %d", deviceid);
-    if (!quadra_yolo->setup(camera->getVideoStream(), 
-          mVideoCodecContext,
-          "", (staticConfig.DIR_MODELS+"/"+objectdetection_model),
-          deviceid)) {
+    if (!quadra_yolo->setup(camera->getVideoStream(), mVideoCodecContext, "", (staticConfig.DIR_MODELS+"/"+objectdetection_model), deviceid)) {
       Warning("Failed Quadra");
       delete quadra_yolo;
       quadra_yolo = nullptr;
@@ -2537,8 +2536,8 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   }
 
   if (quadra_yolo) {
-    if (packet->hw_frame) {
-            if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+    if (frame) {
+      if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
       //TODO if (packet->hw_frame or packet->in_frame) {
 #if 1
         SystemTimePoint starttime = std::chrono::system_clock::now();
@@ -2577,7 +2576,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
                   Image *ai_image = packet->get_ai_image();
                   TimestampImage(ai_image, packet->timestamp);
                 }
-                packet->in_frame = nullptr; // Don't need it anymore
+                //packet->in_frame = nullptr; // Don't need it anymore
               }
             } else if (0 > ret) {
               Debug(1, "Failed yolo");
@@ -3368,12 +3367,12 @@ int Monitor::Decode() {
       packet_lock = std::move(decoder_queue.front());
       decoder_queue.pop_front();
       packet = delayed_packet;
-      if (
+      //if (
 #if HAVE_QUADRA
       //!quadra_yolo &&
 #endif
-          packet->needs_hw_transfer(mVideoCodecContext))
-        packet->get_hwframe(mVideoCodecContext);
+          //packet->needs_hw_transfer(mVideoCodecContext))
+        //packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
@@ -3596,15 +3595,29 @@ int Monitor::Decode() {
     //if (!quadra_yolo)
 #endif
     {
-      if (packet->needs_hw_transfer(mVideoCodecContext))
-        packet->get_hwframe(mVideoCodecContext);
-      //Debug(1, "Assigning for index %d", index);
-      image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
-      image_buffer[index]->Assign(packet->in_frame.get());
+#if HAVE_QUADRA
+      if (objectdetection != OBJECT_DETECTION_NONE) {
+        std::pair<int, std::string> results = Analyse_Quadra(packet);
+      }
+#endif
+      if (packet->ai_frame) {
+        Debug(1, "Assigning ai_frame for index %d", index);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
+        image_buffer[index]->Assign(packet->ai_frame.get());
+      } else if (packet->ai_image) {
+        Debug(1, "Assigning ai_frame for index %d", index);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
+        image_buffer[index]->Assign(*(packet->ai_image));
+      } else {
+        if (packet->needs_hw_transfer(mVideoCodecContext))
+          packet->get_hwframe(mVideoCodecContext);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
+        image_buffer[index]->Assign(packet->in_frame.get());
+      }
       if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
         // Won't be using hwframe
-        packet->hw_frame = nullptr;
       }
+      packet->hw_frame = nullptr;
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;
       shared_data->decoder_image_count++;

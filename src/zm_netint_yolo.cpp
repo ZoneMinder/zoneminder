@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 1
+#define SOFTWARE_DRAWBOX 0
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -39,7 +39,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   drawbox(true),
   //drawbox_filter(nullptr),
   //drawbox_filter_ctx(nullptr),
-  drawtext(true),
+  drawtext(false),
   //drawtext_filter(nullptr),
   //drawtext_filter_ctx(nullptr),
 
@@ -185,8 +185,9 @@ bool Quadra_Yolo::setup(
 /* Ideally we could handle intermixed hwframes and swframes. */
 int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
   AVFrame *avframe = (use_hwframe and in_packet->hw_frame) ? in_packet->hw_frame.get() : in_packet->in_frame.get();
-  if (!in_packet->hw_frame) {
+  if (!avframe) {
     Error("No hw_frame in packet!");
+    return -1;
   }
 
   if (!use_hwframe && !sw_scale_ctx) {
@@ -235,9 +236,9 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
-    AVFrame *hw_frame = out_packet->hw_frame.get();
-    Debug(1, "hw_frame %p, data %p ai_frame_number %d", hw_frame, hw_frame->data, aiframe_number);
-    ret = ni_read_roi(hw_frame, aiframe_number);
+    AVFrame *avframe = (use_hwframe and out_packet->hw_frame) ? out_packet->hw_frame.get() : out_packet->in_frame.get();
+    Debug(1, "hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
+    ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
       return -1;
@@ -248,7 +249,7 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
     aiframe_number++;
     AVFrame *out_frame;
     // Allocates out_frame
-    ret = process_roi(hw_frame, &out_frame);
+    ret = process_roi(avframe, &out_frame);
     if (ret < 0) {
       Error("cannot draw roi");
       return -1;

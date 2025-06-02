@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
 #include "zm_time.h"
 
 extern "C" {
@@ -33,39 +34,40 @@ extern "C" {
 
 /*
       AVCodecID codec_id;
-      char *codec_codec;
-      char *codec_name;
+      const char *codec_codec;
+      const char *codec_name;
       enum AVPixelFormat sw_pix_fmt;
       enum AVPixelFormat hw_pix_fmt;
       AVHWDeviceType hwdevice_type;
+      const char *hwdevice_default
       */
 
 VideoStore::CodecData VideoStore::codec_data[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
-  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
-  { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
 
-  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
-  { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
-  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
-  { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
 #else
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
 
-  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
-  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P },
+  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, nullptr },
 #endif
 };
 
@@ -392,7 +394,8 @@ bool VideoStore::open() {
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
                                        codec_data[i].hwdevice_type,
-                                       nullptr, nullptr, 0);
+                                       monitor->EncoderHWAccelDevice().empty() ? codec_data[i].hwdevice_default : monitor->EncoderHWAccelDevice().c_str(),
+                                       nullptr, 0);
           if (0>ret) {
             Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
             continue;
@@ -830,12 +833,20 @@ bool VideoStore::setup_resampler() {
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-#else
   // Some formats (i.e. WAV) do not produce the proper channel layout
+  // Perhaps we should not be modifying the audio_in_ctx....
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  // channel_layout is deprecated need to use ch_layout
+  // based on changes to ffmpeg/doc/examples/transcoding.c
+  if (audio_in_ctx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
+    char buf[64];
+    av_channel_layout_default(&audio_in_ctx->ch_layout, audio_in_ctx->ch_layout.nb_channels);
+    ret = av_channel_layout_describe(&audio_in_ctx->ch_layout, buf, sizeof(buf));
+    Info("Setting input channel layout fron unspecified to default ret=%d describe=%s)", ret, buf);
+  }
+#else
   if (audio_in_ctx->channel_layout == 0) {
     Debug(2, "Setting input channel layout to mono");
-    // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
   }
 #endif
@@ -1222,7 +1233,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
       frame->pts = 0;
     } else {
-
       Microseconds useconds = std::chrono::duration_cast<Microseconds>(
                                 zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
       frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
@@ -1237,85 +1247,42 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             video_out_ctx->time_base.den);
     }
 
-    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
-    if (ret <= 0) {
+    // Some hwaccel codecs may get full if we only receive one pkt for one frame
+
+    do {
+      int ret = avcodec_send_frame(video_out_ctx, frame);
       if (ret < 0) {
-        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      }
-      return ret;
-    }
-    pkt_guard.acquire(opkt);
-    ZM_DUMP_PACKET(opkt, "packet returned by codec");
-
-    // Need to adjust pts/dts values from codec time to stream time
-    if (opkt->pts != AV_NOPTS_VALUE)
-      opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-    if (opkt->dts != AV_NOPTS_VALUE)
-      opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
-    Debug(1, "Timebase conversions using %d/%d -> %d/%d",
-          video_out_ctx->time_base.num,
-          video_out_ctx->time_base.den,
-          video_out_stream->time_base.num,
-          video_out_stream->time_base.den);
-
-    int64_t duration = 0;
-    if (zm_packet->in_frame) {
-
-      if (
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-        zm_packet->in_frame->duration
-#else
-        zm_packet->in_frame->pkt_duration
-#endif
-      ) {
-        duration = av_rescale_q(
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-                     zm_packet->in_frame->duration,
-#else
-                     zm_packet->in_frame->pkt_duration,
-#endif
-                     video_in_stream->time_base,
-                     video_out_stream->time_base);
-        Debug(1, "duration from ipkt: = duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-              zm_packet->in_frame->duration,
-#else
-              zm_packet->in_frame->pkt_duration,
-#endif
-              duration,
-              video_in_stream->time_base.num,
-              video_in_stream->time_base.den,
-              video_out_stream->time_base.num,
-              video_out_stream->time_base.den
-             );
-      } else if (video_last_pts != AV_NOPTS_VALUE) {
-        duration = av_rescale_q(
-                     zm_packet->in_frame->pts - video_last_pts,
-                     video_in_stream->time_base,
-                     video_out_stream->time_base);
-        Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-              zm_packet->in_frame->pts,
-              video_last_pts,
-              zm_packet->in_frame->pts - video_last_pts,
-              duration
-             );
-        if (duration <= 0) {
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-          duration = zm_packet->in_frame->duration ?
-                     zm_packet->in_frame->duration :
-                     av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
-#else
-          duration = zm_packet->in_frame->pkt_duration ?
-                     zm_packet->in_frame->pkt_duration :
-                     av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
-#endif
+        if (AVERROR(EAGAIN) != ret) {
+          Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+          return ret;
         }
-      }  // end if in_frmae->pkt_duration
+      } else {
+        break;
+      }
+    } while (!zm_terminate);
+
+    // EAGAIN can mean that we need to send another frame, so don't loop on it.
+    while (0 == avcodec_receive_packet(video_out_ctx, opkt.get())) {
+      pkt_guard.acquire(opkt);
+      ZM_DUMP_PACKET(opkt, "packet returned by codec");
+
+      // Need to adjust pts/dts values from codec time to stream time
+      if (opkt->pts != AV_NOPTS_VALUE)
+        opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
+      if (opkt->dts != AV_NOPTS_VALUE)
+        opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
+      Debug(1, "Timebase conversions using %d/%d -> %d/%d",
+            video_out_ctx->time_base.num,
+            video_out_ctx->time_base.den,
+            video_out_stream->time_base.num,
+            video_out_stream->time_base.den);
+
+      if (video_last_pts != AV_NOPTS_VALUE) {
+          opkt->duration = opkt->pts - video_last_pts;
+      }
       video_last_pts = zm_packet->in_frame->pts;
-    } else {
-      //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
-    }  // end if in_frmae
-    opkt->duration = duration;
+      write_packet(opkt.get(), video_out_stream);
+    } // end while receive_packet
   } else { // Passthrough
     AVPacket *ipkt = zm_packet->packet.get();
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");
@@ -1350,9 +1317,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
       }
     }  // end if wallclock or not
+    write_packet(opkt.get(), video_out_stream);
   }  // end if codec matches
 
-  write_packet(opkt.get(), video_out_stream);
 
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )

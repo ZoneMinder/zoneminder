@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
 #include "zm_time.h"
 
 extern "C" {
@@ -1248,14 +1249,19 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
-    //int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
-    int ret = avcodec_send_frame(video_out_ctx, frame);
-    if (ret <= 0) {
+    do {
+      int ret = avcodec_send_frame(video_out_ctx, frame);
       if (ret < 0) {
-        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+        if (AVERROR(EAGAIN) != ret) {
+          Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+          return ret;
+        }
+      } else {
+        break;
       }
-      return ret;
-    }
+    } while (!zm_terminate);
+
+    // EAGAIN can mean that we need to send another frame, so don't loop on it.
     while (0 == avcodec_receive_packet(video_out_ctx, opkt.get())) {
       pkt_guard.acquire(opkt);
       ZM_DUMP_PACKET(opkt, "packet returned by codec");

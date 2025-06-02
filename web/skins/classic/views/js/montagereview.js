@@ -1022,9 +1022,10 @@ function changeDateTime(e) {
   const form = $j('#montagereview_form');
   console.log(form.serialize());
 
-  var uri = "?" + form.serialize() + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
-  //var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
-  window.location = uri;
+  submitThisForm(param = zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value]);
+  //var uri = "?" + form.serialize() + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  ////var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  //window.location = uri;
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom
@@ -1116,6 +1117,15 @@ function initPage() {
   $j('#archive_status').bind('change', function() {
     this.form.submit();
   });
+
+  if (useOldMenuView) {
+    // If new menu is used, then Datepicker initialization occurs in main "skin.js"
+    // Reinitialization is not allowed because the 'Destroy' method is missing.
+    initDatepickerMontageReviewPage();
+  }
+}
+
+function initDatepickerMontageReviewPage() {
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     if (el.hasClass('datetimepicker')) {

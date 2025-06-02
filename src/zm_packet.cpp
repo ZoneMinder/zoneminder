@@ -194,6 +194,10 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
 }
 
 bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
+  if (!(ctx && in_frame.get())) {
+    Error("No ctx %p or in_frame %p", ctx, in_frame.get());
+    return false;
+  }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   if (

@@ -246,6 +246,9 @@ ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildr
 # Handle the polkit file differently for web server agnostic support (see post)
 rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
+%check
+# Nothing to do. No tests exist.
+
 %post common
 # Initial installation
 if [ $1 -eq 1 ] ; then

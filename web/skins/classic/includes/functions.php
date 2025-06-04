@@ -310,7 +310,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   </nav><!-- End First Navbar -->
 
   <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>
+<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'hidden' ) ? 'style="display:none;"' : '' ?>
 >
     <div class="container-fluid" id="panel">
 <?php
@@ -889,7 +889,7 @@ function getMapHTML($view) {
 function getHeaderFlipHTML() {
   $result = '';
   
-  $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
+  $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'shown') ? 'down' : 'right';
   $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18" style="display: inline-block;">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
   
   return $result;

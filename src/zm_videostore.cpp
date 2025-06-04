@@ -740,12 +740,20 @@ bool VideoStore::setup_resampler() {
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-#else
   // Some formats (i.e. WAV) do not produce the proper channel layout
+  // Perhaps we should not be modifying the audio_in_ctx....
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  // channel_layout is deprecated need to use ch_layout
+  // based on changes to ffmpeg/doc/examples/transcoding.c
+  if (audio_in_ctx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
+    char buf[64];
+    av_channel_layout_default(&audio_in_ctx->ch_layout, audio_in_ctx->ch_layout.nb_channels);
+    ret = av_channel_layout_describe(&audio_in_ctx->ch_layout, buf, sizeof(buf));
+    Info("Setting input channel layout fron unspecified to default ret=%d describe=%s)", ret, buf);
+  }
+#else
   if (audio_in_ctx->channel_layout == 0) {
     Debug(2, "Setting input channel layout to mono");
-    // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
   }
 #endif

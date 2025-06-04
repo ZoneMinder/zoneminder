@@ -46,7 +46,7 @@ BuildRequires: polkit-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
-BuildRequires: pcre-devel 
+BuildRequires: pcre2-devel 
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils

@@ -25,7 +25,9 @@
 
 extern "C" {
 #include <libavutil/pixdesc.h>
+#ifdef HAVE_QUADRA
 #include <libavutil/hwcontext_ni_quad.h>
+#endif
 }
 
 /*

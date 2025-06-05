@@ -314,9 +314,11 @@ void ZMPacket::set_ai_frame(AVFrame *frame) {
 
 int ZMPacket::get_hw_device_id() const {
   int deviceid = -1;
+#ifdef HAVE_QUADRA
   if (hw_frame && hw_frame->format == AV_PIX_FMT_NI_QUAD) {
     deviceid = ni_get_cardno(hw_frame.get());
   }
+#endif
   return deviceid;
 }
 

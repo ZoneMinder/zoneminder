@@ -535,12 +535,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   encoderparams = dbrow[col] ? dbrow[col] : "";
   col++;
 
-<<<<<<< HEAD
-=======
-  Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs,
-        videowriter);
-
->>>>>>> add_go2rtc
   /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
@@ -737,12 +731,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
       std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ',');
   col++;
-<<<<<<< HEAD
   Debug(4, "MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
-=======
-  Debug(1, "MQTT enabled ? %d, subs %s", mqtt_enabled,
-        mqtt_subscriptions_string.c_str());
->>>>>>> add_go2rtc
 #else
   Debug(1, "Not compiled with MQTT");
 #endif
@@ -752,11 +741,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
-<<<<<<< HEAD
   //shared_data->capture_image_count = 0;
-=======
-  // shared_data->image_count = 0;
->>>>>>> add_go2rtc
   last_alarm_count = 0;
   state = IDLE;
   last_signal = true;  // Defaulting to having signal so that we don't get a
@@ -913,7 +898,6 @@ bool Monitor::connect() {
   }
   if (!camera) LoadCamera();
   size_t image_size = camera->ImageSize();
-<<<<<<< HEAD
   mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
              + (zone_count * sizeof(int)) // Per zone scores
@@ -925,19 +909,6 @@ bool Monitor::connect() {
              + (image_buffer_count*sizeof(AVPixelFormat)) //
              + (image_buffer_count*sizeof(AVPixelFormat)) //
              + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
-=======
-  mem_size =
-      sizeof(SharedData) + sizeof(TriggerData) +
-      (zone_count * sizeof(int))  // Per zone scores
-      +
-      sizeof(VideoStoreData)  // Information to pass back to the capture process
-      + (image_buffer_count * sizeof(struct timeval)) +
-      (image_buffer_count * image_size) +
-      (image_buffer_count * image_size)               // alarm_images
-      + (image_buffer_count * sizeof(AVPixelFormat))  //
-      + 64; /* Padding used to permit aligning the images buffer to 64 byte
-               boundary */
->>>>>>> add_go2rtc
 
   Debug(1,
         "SharedData=%zu "
@@ -1061,20 +1032,10 @@ bool Monitor::connect() {
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
-<<<<<<< HEAD
   video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_analysis_timestamps = (struct timeval *)((char *)shared_timestamps + sizeof(struct timeval));
   shared_images = (unsigned char *)((char *)shared_analysis_timestamps + (image_buffer_count*sizeof(struct timeval)));
-=======
-  video_store_data = (VideoStoreData *)((unsigned long)zone_scores +
-                                        (zone_count * sizeof(int)));
-  shared_timestamps =
-      (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-  shared_images =
-      (unsigned char *)((char *)shared_timestamps +
-                        (image_buffer_count * sizeof(struct timeval)));
->>>>>>> add_go2rtc
 
   if (((unsigned long)shared_images % 64) != 0) {
     /* Align images buffer to nearest 64 byte boundary */
@@ -1096,7 +1057,6 @@ bool Monitor::connect() {
   analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
-<<<<<<< HEAD
     image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]), image_size, 0);
     //image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
@@ -1104,26 +1064,6 @@ bool Monitor::connect() {
     //analysis_image_pixelformats[i] = AV_PIX_FMT_NONE;
     analysis_image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-=======
-    image_buffer[i] =
-        new Image(width, height, camera->Colours(), camera->SubpixelOrder(),
-                  &(shared_images[i * image_size]));
-    image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or
-                                          replace it with another */
-  }
-  alarm_image.AssignDirect(width, height, camera->Colours(),
-                           camera->SubpixelOrder(),
-                           &(shared_images[image_buffer_count * image_size]),
-                           image_size, ZM_BUFTYPE_DONTFREE);
-  alarm_image.HoldBuffer(
-      true); /* Don't release the internal buffer or replace it with another */
-  if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
-    Warning("We will exceed memsize by %td bytes!",
-            (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
-  }
-  image_pixelformats =
-      (AVPixelFormat *)(shared_images + (image_buffer_count * image_size));
->>>>>>> add_go2rtc
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -1229,13 +1169,8 @@ bool Monitor::connect() {
     }
 #endif
   } else if (!shared_data->valid) {
-<<<<<<< HEAD
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     disconnect();
-=======
-    Error("Shared data not initialised by capture daemon for monitor %s",
-          name.c_str());
->>>>>>> add_go2rtc
     return false;
   //} else {
     //for (int32_t i = 0; i < image_buffer_count; i++) {
@@ -1366,7 +1301,6 @@ void Monitor::AddPrivacyBitmask() {
   if (privacy_image) privacy_bitmask = privacy_image->Buffer();
 }
 
-<<<<<<< HEAD
 Image *Monitor::GetAlarmImage() {
   return analysis_image_buffer[shared_data->last_analysis_index];
 }
@@ -1375,15 +1309,6 @@ int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_decoder_index;
-=======
-Image *Monitor::GetAlarmImage() { return &alarm_image; }
-
-int Monitor::GetImage(int32_t index, int scale) {
-  if (index < 0 || index > image_buffer_count) {
-    Debug(1, "Invalid index %d passed. image_buffer_count = %d", index,
-          image_buffer_count);
-    index = shared_data->last_write_index;
->>>>>>> add_go2rtc
   }
   if (!image_buffer.size() or
       static_cast<size_t>(index) >= image_buffer.size()) {
@@ -1450,13 +1375,7 @@ int Monitor::GetLastReadIndex() const {
 }
 
 int Monitor::GetLastWriteIndex() const {
-<<<<<<< HEAD
   return ( shared_data->last_decoder_index != image_buffer_count ? shared_data->last_decoder_index : -1 );
-=======
-  return (shared_data->last_write_index != image_buffer_count
-              ? shared_data->last_write_index
-              : -1);
->>>>>>> add_go2rtc
 }
 
 uint64_t Monitor::GetLastEventId() const { return shared_data->last_event_id; }
@@ -1728,14 +1647,9 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     }
   }
 
-<<<<<<< HEAD
   if ( zone_image->Colours() == ZM_COLOUR_GRAY8 ) {
     // TODO isn't there a setting for this?
     //zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-=======
-  if (zone_image->Colours() == ZM_COLOUR_GRAY8) {
-    zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
->>>>>>> add_go2rtc
   }
 
   extra_zone.Clip(Box({0, 0}, {static_cast<int32>(zone_image->Width()),
@@ -1779,12 +1693,8 @@ void Monitor::DumpZoneImage(const char *zone_string) {
 }  // end void Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
-<<<<<<< HEAD
   if (shared_data->capture_image_count && !(shared_data->capture_image_count % 10)) {
 
-=======
-  if (shared_data->image_count && !(shared_data->image_count % 10)) {
->>>>>>> add_go2rtc
     std::string filename = stringtf("Monitor%u.jpg", id);
     std::string new_filename = stringtf("Monitor%u-new.jpg", id);
 
@@ -1863,19 +1773,10 @@ void Monitor::CheckAction() {
     }
     if (shared_data->action & SUSPEND) {
       if (Active()) {
-<<<<<<< HEAD
         Info("Received suspend indication at count %d", shared_data->capture_image_count);
         shared_data->analysing = ANALYSING_NONE;
       } else {
         Info("Received suspend indication at count %d, but wasn't active", shared_data->capture_image_count);
-=======
-        Info("Received suspend indication at count %d",
-             shared_data->image_count);
-        shared_data->analysing = ANALYSING_NONE;
-      } else {
-        Info("Received suspend indication at count %d, but wasn't active",
-             shared_data->image_count);
->>>>>>> add_go2rtc
       }
       if (config.max_suspend_time) {
         SystemTimePoint now = std::chrono::system_clock::now();
@@ -1883,14 +1784,8 @@ void Monitor::CheckAction() {
       }
       shared_data->action &= ~SUSPEND;
     } else if (shared_data->action & RESUME) {
-<<<<<<< HEAD
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", shared_data->capture_image_count);
-=======
-      if (Enabled() && !Active()) {
-        Info("Received resume indication at count %d",
-             shared_data->image_count);
->>>>>>> add_go2rtc
         shared_data->analysing = analysing;
         ref_image.DumpImgBuffer();  // Will get re-assigned by analysis thread
         shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1918,7 +1813,6 @@ void Monitor::UpdateFPS() {
   // audio packets. Also only do the update at most 1/sec
   if (elapsed > Seconds(1)) {
     // # of images per interval / the amount of time it took
-<<<<<<< HEAD
     double new_capture_fps = (shared_data->capture_image_count - last_capture_image_count) / elapsed.count();
     uint32 new_camera_bytes = camera->Bytes();
     uint32 new_capture_bandwidth =
@@ -1944,34 +1838,6 @@ void Monitor::UpdateFPS() {
        ) {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           name.c_str(), shared_data->capture_image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
-=======
-    double new_capture_fps =
-        (shared_data->image_count - last_capture_image_count) / elapsed.count();
-    uint32 new_camera_bytes = camera->Bytes();
-    uint32 new_capture_bandwidth = static_cast<uint32>(
-        (new_camera_bytes - last_camera_bytes) / elapsed.count());
-    double new_analysis_fps =
-        (motion_frame_count - last_motion_frame_count) / elapsed.count();
-
-    Debug(4,
-          "FPS: capture count %d - last capture count %d = %d now:%lf, last "
-          "%lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-          shared_data->image_count, last_capture_image_count,
-          shared_data->image_count - last_capture_image_count,
-          FPSeconds(now.time_since_epoch()).count(),
-          FPSeconds(last_fps_time.time_since_epoch()).count(), elapsed.count(),
-          new_capture_fps, new_analysis_fps);
-
-    if (fps_report_interval and
-        (!(shared_data->image_count % fps_report_interval) or
-         ((shared_data->image_count < fps_report_interval) and
-          !(shared_data->image_count % 10)))) {
-      Info(
-          "%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec "
-          "Analysing at %.2lf fps",
-          name.c_str(), shared_data->image_count, new_capture_fps,
-          new_capture_bandwidth, new_analysis_fps);
->>>>>>> add_go2rtc
 
 #if MOSQUITTOPP_FOUND
       if (mqtt)
@@ -2058,7 +1924,6 @@ bool Monitor::Poll() {
 //
 // If there is an event, the we should do our best to empty the queue.
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
-<<<<<<< HEAD
 int Monitor::Analyse() {
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -2078,25 +1943,6 @@ int Monitor::Analyse() {
   // Is it possible for packet->score to be ! -1 ? Not if everything is working correctly
   if (packet->score != -1) {
     Error("Packet score was %d at index %d, should always be -1!", packet->score, packet->image_index);
-=======
-bool Monitor::Analyse() {
-  // if have event, send frames until we find a video packet, at which point do
-  // analysis. Adaptive skip should only affect which frames we do analysis on.
-
-  // get_analysis_packet will lock the packet and may wait if analysis_it is at
-  // the end
-  ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
-  if (!packet_lock) {
-    Debug(4, "No packet lock, returning false");
-    return false;
-  }
-  std::shared_ptr<ZMPacket> snap = packet_lock->packet_;
-
-  // Is it possible for snap->score to be ! -1 ? Not if everything is working
-  // correctly
-  if (snap->score != -1) {
-    Error("Packet score was %d at index %d, should always be -1!", snap->score,
-          snap->image_index);
   }
 
   // signal is set by capture
@@ -2107,27 +1953,23 @@ bool Monitor::Analyse() {
   Debug(3, "Motion detection is enabled?(%d) signal(%d) signal_change(%d) trigger state(%s) image index %d",
         shared_data->analysing, signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), packet->image_index);
 
-  {
-    // scope for event lock
+  { // scope for event lock
     // Need to guard around event creation/deletion from Reload()
     std::lock_guard<std::mutex> lck(event_mutex);
     int score = 0;
     // Track this separately as alarm_frame_count messes with the logic
     int motion_score = -1;
 
-    // if we have been told to be OFF, then we are off and don't do any
-    // processing.
+    // if we have been told to be OFF, then we are off and don't do any processing.
     if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
-      Debug(4, "Trigger not OFF state is (%d)",
-            int(trigger_data->trigger_state));
+      Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
 
       std::string cause;
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener) {
-        if ((onvif and onvif->isAlarmed()) or
-            (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
+        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
@@ -2135,20 +1977,17 @@ bool Monitor::Analyse() {
           onvif->setNotes(noteSet);
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
-          // If the camera isn't going to send an event close, we need to close
-          // it here, but only after it has actually triggered an alarm. if
-          // (!Event_Poller_Closes_Event && state == ALARM)
-          // onvif->setAlarmed(false);
+          // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+          //if (!Event_Poller_Closes_Event && state == ALARM)
+            //onvif->setAlarmed(false);
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif
 
-      // Specifically told to be on.  Setting the score here is not enough to
-      // trigger the alarm. Must jump directly to ALARM
+      // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
         score += trigger_data->trigger_score;
-        Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score,
-              score);
+        Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
         if (!cause.empty()) cause += ", ";
         cause += trigger_data->trigger_cause;
         Event::StringSet noteSet;
@@ -2156,12 +1995,8 @@ bool Monitor::Analyse() {
         noteSetMap[trigger_data->trigger_cause] = noteSet;
       }  // end if trigger_on
 
-<<<<<<< HEAD
+
       // FIXME this packet might not be the one that caused the signal change.  Need to store that in the packet.
-=======
-      // FIXME this snap might not be the one that caused the signal change.
-      // Need to store that in the packet.
->>>>>>> add_go2rtc
       if (signal_change) {
         Debug(2, "Signal change, new signal is %d", signal);
         if (!signal) {
@@ -2247,22 +2082,13 @@ bool Monitor::Analyse() {
         if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
           /* try to stay behind the decoder. */
           if (decoding != DECODING_NONE) {
-<<<<<<< HEAD
             if (!packet->decoded) {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
-=======
-            if (!snap->decoded) {
-              // We no longer wait because we need to be checking the triggers
-              // and other inputs. Also the logic is too hairy.  capture process
-              // can delete the packet that we have here.
-              delete packet_lock;
->>>>>>> add_go2rtc
               Debug(2, "Not decoded, waiting for decode");
               return -1;
             }
           }  // end if decoding enabled
-<<<<<<< HEAD
  
           if (Ready()) {
             if (packet->in_frame) {
@@ -2270,20 +2096,6 @@ bool Monitor::Analyse() {
                 double capture_fps = get_capture_fps();
                 motion_frame_skip = capture_fps / analysis_fps_limit;
                 Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-=======
-
-          // Ready means that we have captured the warmup # of frames
-          if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
-            Debug(3, "signal and capturing and doing motion detection %d",
-                  shared_data->analysing);
-
-            if (analysis_fps_limit) {
-              double capture_fps = get_capture_fps();
-              motion_frame_skip = capture_fps / analysis_fps_limit;
-              Debug(1,
-                    "Recalculating motion_frame_skip (%d) = capture_fps(%f) / "
-                    "analysis_fps(%f)",
->>>>>>> add_go2rtc
                     motion_frame_skip, capture_fps, analysis_fps_limit);
                 if (motion_frame_skip < 0) motion_frame_skip = 0;
               }
@@ -2293,7 +2105,6 @@ bool Monitor::Analyse() {
                   int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
                   while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
 
-<<<<<<< HEAD
                     Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
                     std::this_thread::sleep_for(Microseconds(10000));
                     count--;
@@ -2316,81 +2127,10 @@ bool Monitor::Analyse() {
                   if (motion_score) {
                     score += motion_score;
                   } 
-=======
-            if (snap->image) {
-              // decoder may not have been able to provide an image
-              if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Detecting");
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) &&
-                    snap->y_image) {
-                  ref_image.Assign(*(snap->y_image));
-                } else {
-                  ref_image.Assign(*(snap->image));
-                }
-                // alarm_image.Assign(*(snap->image));
-              } else {
-                // didn't assign, do motion detection maybe and blending
-                // definitely
-                if (!(analysis_image_count % (motion_frame_skip + 1))) {
-                  motion_score = 0;
-                  Debug(1, "Detecting motion on image %d, image %p",
-                        snap->image_index, snap->image);
-                  // Get new score.
-                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) &&
-                      snap->y_image) {
-                    motion_score += DetectMotion(*(snap->y_image), zoneSet);
-                    if (!snap->analysis_image)
-                      snap->analysis_image = new Image(*(snap->y_image));
-                  } else {
-                    motion_score += DetectMotion(*(snap->image), zoneSet);
-                    if (!snap->analysis_image)
-                      snap->analysis_image = new Image(*(snap->image));
-                  }
-
-                  // lets construct alarm cause. It will contain cause + names
-                  // of zones alarmed
-                  snap->zone_stats.reserve(zones.size());
-                  int zone_index = 0;
-                  for (const Zone &zone : zones) {
-                    const ZoneStats &stats = zone.GetStats();
-                    stats.DumpToLog("After detect motion");
-                    snap->zone_stats.push_back(stats);
-                    if (zone.Alarmed()) {
-                      if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
-                      snap->alarm_cause += std::string(zone.Label());
-                      if (zone.AlarmImage())
-                        snap->analysis_image->Overlay(*(zone.AlarmImage()));
-                    }
-                    Debug(4, "Setting score for zone %d to %d", zone_index,
-                          zone.Score());
-                    zone_scores[zone_index] = zone.Score();
-                    zone_index++;
-                  }
-                  // alarm_image.Assign(*(snap->analysis_image));
-                  Debug(3,
-                        "After motion detection, score:%d "
-                        "last_motion_score(%d), new motion score(%d)",
-                        score, last_motion_score, motion_score);
-                  motion_frame_count += 1;
-                  last_motion_score = motion_score;
-
-                  if (motion_score) {
-                    if (!cause.empty()) cause += ", ";
-                    cause +=
-                        MOTION_CAUSE + std::string(":") + snap->alarm_cause;
-                    noteSetMap[MOTION_CAUSE] = zoneSet;
-                    score += motion_score;
-                  }  // end if motion_score
-                } else {
-                  Debug(1, "Skipped motion detection last motion score was %d",
-                        last_motion_score);
-                  // score += last_motion_score;
->>>>>>> add_go2rtc
                 }
               }  // end if objectdetection
             }  // end if has in_frame
 
-<<<<<<< HEAD
             // Ready means that we have captured the warmup # of frames
             if (shared_data->analysing > ANALYSING_NONE) {
               Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
@@ -2410,37 +2150,6 @@ bool Monitor::Analyse() {
           } // end if Ready
           packet->hw_frame = nullptr; // Free it
         } // end if videostream
-=======
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) &&
-                    snap->y_image) {
-                  Debug(1, "Blending from y-channel");
-                  ref_image.Blend(
-                      *(snap->y_image),
-                      (state == ALARM ? alarm_ref_blend_perc : ref_blend_perc));
-                } else if (snap->image) {
-                  Debug(1,
-                        "Blending full colour image because analysis_image = "
-                        "%d, in_frame=%p and format %d != %d, %d",
-                        analysis_image, snap->in_frame.get(),
-                        (snap->in_frame ? snap->in_frame->format : -1),
-                        AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUVJ420P);
-                  ref_image.Blend(
-                      *(snap->image),
-                      (state == ALARM ? alarm_ref_blend_perc : ref_blend_perc));
-                  Debug(1, "Done Blending");
-                } else {
-                  Debug(1, "Not able to blend");
-                }
-              }  // end if had ref_image_buffer or not
-            } else {
-              Debug(1, "no image so skipping motion detection");
-            }  // end if has image
-          } else {
-            Debug(1, "Not analysing %d", shared_data->analysing);
-          }  // end if active and doing motion detection
-
-        }  // end if videostream
->>>>>>> add_go2rtc
 
         if (score > 255) score = 255;
         // Set this before any state changes so that it's value is picked up
@@ -2449,38 +2158,19 @@ bool Monitor::Analyse() {
 
         if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
-<<<<<<< HEAD
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                    name.c_str(), packet->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
-=======
-            if ((!pre_event_count) ||
-                (Event::PreAlarmCount() >= alarm_frame_count - 1)) {
-              Info(
-                  "%s: %03d - Gone into alarm state PreAlarmCount: %u > "
-                  "AlarmFrameCount:%u Cause:%s",
-                  name.c_str(), snap->image_index, Event::PreAlarmCount(),
-                  alarm_frame_count, cause.c_str());
->>>>>>> add_go2rtc
               shared_data->state = state = ALARM;
             } else if (state != PREALARM) {
               Info("%s: %03d - Gone into prealarm state", name.c_str(),
                    analysis_image_count);
               shared_data->state = state = PREALARM;
               // incremement pre alarm image count
-<<<<<<< HEAD
               Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
             } else { // PREALARM
               // incremement pre alarm image count
               Event::AddPreAlarmFrame(packet->image, packet->timestamp, score, nullptr);
-=======
-              Event::AddPreAlarmFrame(snap->image, snap->timestamp, score,
-                                      nullptr);
-            } else {  // PREALARM
-              // incremement pre alarm image count
-              Event::AddPreAlarmFrame(snap->image, snap->timestamp, score,
-                                      nullptr);
->>>>>>> add_go2rtc
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
@@ -2502,22 +2192,10 @@ bool Monitor::Analyse() {
           }  // This is needed so post_event_count counts after last alarmed
              // frames while in ALARM not single alarmed frames while ALERT
         } else {
-<<<<<<< HEAD
           Debug(1, "!score state=%s, packet->score %d", State_Strings[state].c_str(), packet->score);
           // We only go out of alarm if we actually did motion detection or aren't doing any.
           if ((motion_score >= 0) or (shared_data->analysing != ANALYSING_ALWAYS)) {
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
-=======
-          Debug(1, "!score state=%s, snap->score %d",
-                State_Strings[state].c_str(), snap->score);
-          // We only go out of alarm if we actually did motion detection or
-          // aren't doing any.
-          if ((motion_score >= 0) or
-              (shared_data->analysing != ANALYSING_ALWAYS)) {
-            alert_to_alarm_frame_count =
-                alarm_frame_count;  // load same value configured for
-                                    // alarm_frame_count
->>>>>>> add_go2rtc
 
             if (state == ALARM) {
               Info("%s: %03d - Gone into alert state", name.c_str(),
@@ -2543,7 +2221,6 @@ bool Monitor::Analyse() {
                   state, State_Strings[state].c_str(), analysis_image_count,
                   last_alarm_count, analysis_image_count - last_alarm_count,
                   post_event_count,
-<<<<<<< HEAD
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
                   static_cast<int64>(Seconds(min_section_length).count()));
@@ -2555,26 +2232,6 @@ bool Monitor::Analyse() {
 
         if (event) {
           Debug(1, "Deciding if we should close event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
-=======
-                  static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                         snap->timestamp.time_since_epoch())
-                                         .count()),
-                  static_cast<int64>(
-                      std::chrono::duration_cast<Seconds>(
-                          GetVideoWriterStartTime().time_since_epoch())
-                          .count()),
-                  static_cast<int64>(Seconds(min_section_length).count()));
-
-            if (Event::PreAlarmCount()) Event::EmptyPreAlarmFrames();
-          }  // end if snap->score meaning did motion detection
-        }  // end if score or not
-
-        if (event) {
-          Debug(1,
-                "Event %" PRIu64
-                ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64
-                "close mode %d",
->>>>>>> add_go2rtc
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
                 static_cast<int64>(
                     std::chrono::duration_cast<Seconds>(event->Duration())
@@ -2589,30 +2246,12 @@ bool Monitor::Analyse() {
               /* This is a detection for the case where huge keyframe
                * intervals cause a huge time gap between the first
                * frame and second frame */
-<<<<<<< HEAD
               Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                       name.c_str(), event->Id(),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
                       static_cast<int64>(Seconds(section_length).count()));
-=======
-              Warning(
-                  "%s: event %" PRIu64
-                  ", has exceeded desired section length. %" PRIi64
-                  " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                  name.c_str(), event->Id(),
-                  static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                         snap->timestamp.time_since_epoch())
-                                         .count()),
-                  static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                         event->StartTime().time_since_epoch())
-                                         .count()),
-                  static_cast<int64>(
-                      std::chrono::duration_cast<Seconds>(event->Duration())
-                          .count()),
-                  static_cast<int64>(Seconds(section_length).count()));
->>>>>>> add_go2rtc
             }
 
             if (shared_data->recording == RECORDING_ALWAYS) {
@@ -2622,22 +2261,13 @@ bool Monitor::Analyse() {
                   // If we should end the previous continuous event and start a
                   // new non-continuous event
                   if (event->AlarmFrames() < alarm_frame_count) {
-<<<<<<< HEAD
                     Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
                          name.c_str(), packet->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
-=======
-                    Info("%s: %03d - Closing event %" PRIu64
-                         ", continuous end, alarm begins. Event alarm frames "
-                         "%d < alarm_frame_count %d",
-                         name.c_str(), snap->image_index, event->Id(),
-                         event->AlarmFrames(), alarm_frame_count);
->>>>>>> add_go2rtc
                     closeEvent();
                     // If we should end the event and start a new event because
                     // the current event is longer than the request section
                     // length
                   } else if (event->Duration() > section_length) {
-<<<<<<< HEAD
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced still alarmed %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                          name.c_str(),
                          packet->image_index,
@@ -2645,24 +2275,6 @@ bool Monitor::Analyse() {
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
-=======
-                    Info("%s: %03d - Closing event %" PRIu64
-                         ", section end forced still alarmed %" PRIi64
-                         " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                         name.c_str(), snap->image_index, event->Id(),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp.time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 event->StartTime().time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp - event->StartTime())
-                                 .count()),
->>>>>>> add_go2rtc
                          static_cast<int64>(Seconds(section_length).count()));
                     closeEvent();
                   } else {
@@ -2679,7 +2291,6 @@ bool Monitor::Analyse() {
                          name.c_str(), analysis_image_count, event->Id());
                     closeEvent();
                   } else if (event->Duration() > section_length) {
-<<<<<<< HEAD
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                          name.c_str(),
                          packet->image_index,
@@ -2687,24 +2298,6 @@ bool Monitor::Analyse() {
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
-=======
-                    Info("%s: %03d - Closing event %" PRIu64
-                         ", section end forced %" PRIi64 " - %" PRIi64
-                         " = %" PRIi64 " >= %" PRIi64,
-                         name.c_str(), snap->image_index, event->Id(),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp.time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 event->StartTime().time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp - event->StartTime())
-                                 .count()),
->>>>>>> add_go2rtc
                          static_cast<int64>(Seconds(section_length).count()));
                     closeEvent();
                   }
@@ -2717,7 +2310,6 @@ bool Monitor::Analyse() {
                 }
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
-<<<<<<< HEAD
                 if (std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                        name.c_str(),
@@ -2727,36 +2319,12 @@ bool Monitor::Analyse() {
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
                        static_cast<int64>(Seconds(section_length).count()));
-=======
-                if (std::chrono::duration_cast<Seconds>(
-                        snap->timestamp.time_since_epoch()) %
-                        section_length ==
-                    Seconds(0)) {
-                  Info(
-                      "%s: %03d - Closing event %" PRIu64
-                      ", section end forced %" PRIi64 " - %" PRIi64
-                      " = %" PRIi64 " >= %" PRIi64,
-                      name.c_str(), snap->image_index, event->Id(),
-                      static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                             snap->timestamp.time_since_epoch())
-                                             .count()),
-                      static_cast<int64>(
-                          std::chrono::duration_cast<Seconds>(
-                              event->StartTime().time_since_epoch())
-                              .count()),
-                      static_cast<int64>(
-                          std::chrono::duration_cast<Seconds>(
-                              snap->timestamp - event->StartTime())
-                              .count()),
-                      static_cast<int64>(Seconds(section_length).count()));
->>>>>>> add_go2rtc
                   closeEvent();
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
                 Debug(1, "CLOSE_MODE Idle");
                 if (state == IDLE) {
                   if (event->Duration() >= section_length) {
-<<<<<<< HEAD
                     //std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                          name.c_str(),
@@ -2765,26 +2333,6 @@ bool Monitor::Analyse() {
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                          static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
-=======
-                    // std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch())
-                    // % section_length == Seconds(0)) {
-                    Info("%s: %03d - Closing event %" PRIu64
-                         ", section end forced %" PRIi64 " - %" PRIi64
-                         " = %" PRIi64 " >= %" PRIi64,
-                         name.c_str(), snap->image_index, event->Id(),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp.time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 event->StartTime().time_since_epoch())
-                                 .count()),
-                         static_cast<int64>(
-                             std::chrono::duration_cast<Seconds>(
-                                 snap->timestamp - event->StartTime())
-                                 .count()),
->>>>>>> add_go2rtc
                          static_cast<int64>(Seconds(section_length).count()));
                     closeEvent();
                   }
@@ -2793,7 +2341,6 @@ bool Monitor::Analyse() {
                 Warning("CLOSE_MODE Unknown");
               }  // end if event_close_mode
             } else if (shared_data->recording == RECORDING_ONMOTION) {
-<<<<<<< HEAD
               if (event->Duration() > section_length or (IDLE==state and (analysis_image_count - last_alarm_count > post_event_count))) {
                 Info("%s: %03d - Closing event %" PRIu64 " %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                      name.c_str(),
@@ -2803,26 +2350,6 @@ bool Monitor::Analyse() {
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
                      static_cast<int64>(Seconds(section_length).count()));
-=======
-              if (event->Duration() > section_length or
-                  (IDLE == state and (analysis_image_count - last_alarm_count >
-                                      post_event_count))) {
-                Info(
-                    "%s: %03d - Closing event %" PRIu64 " %" PRIi64
-                    " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                    name.c_str(), snap->image_index, event->Id(),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                           snap->timestamp.time_since_epoch())
-                                           .count()),
-                    static_cast<int64>(
-                        std::chrono::duration_cast<Seconds>(
-                            event->StartTime().time_since_epoch())
-                            .count()),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                           snap->timestamp - event->StartTime())
-                                           .count()),
-                    static_cast<int64>(Seconds(section_length).count()));
->>>>>>> add_go2rtc
                 closeEvent();
               } else {
                 Debug(1,
@@ -2842,7 +2369,6 @@ bool Monitor::Analyse() {
               ((shared_data->recording == RECORDING_ONMOTION) and
                (state == ALARM))) {
             Info("%s: %03d - Opening event timestamp %" PRIi64 " %% %" PRIi64,
-<<<<<<< HEAD
                  name.c_str(),
                  packet->image_index,
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
@@ -2850,20 +2376,6 @@ bool Monitor::Analyse() {
                 );
             if ((event = openEvent(&packet_lock, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
               Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());
-=======
-                 name.c_str(), snap->image_index,
-                 static_cast<int64>(std::chrono::duration_cast<Seconds>(
-                                        snap->timestamp.time_since_epoch())
-                                        .count()),
-                 static_cast<int64>(
-                     std::chrono::duration_cast<Seconds>(
-                         snap->timestamp.time_since_epoch() % section_length)
-                         .count()));
-            if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause,
-                                   noteSetMap)) != nullptr) {
-              Info("Opened new event %" PRIu64 " %s", event->Id(),
-                   cause.empty() ? "Continuous" : cause.c_str());
->>>>>>> add_go2rtc
             }
           }
         } else if (noteSetMap.size() > 0) {
@@ -2945,20 +2457,11 @@ bool Monitor::Analyse() {
       Debug(3, "Not video, not clearing packets");
     }
 
-<<<<<<< HEAD
     if (!event and 0) {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
       if (packet->image) {
         if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE) {
-=======
-    if (!event) {
-      // In the case where people have pre-alarm frames, the web ui will
-      // generate the frame images from the mp4. So no one will notice anyways.
-      if (snap->image) {
-        if ((videowriter == PASSTHROUGH) ||
-            shared_data->recording == RECORDING_NONE) {
->>>>>>> add_go2rtc
           if (!savejpegs) {
             Debug(1, "Deleting image data for %d", packet->image_index);
             // Don't need raw images anymore
@@ -2972,33 +2475,17 @@ bool Monitor::Analyse() {
           packet->analysis_image = nullptr;
         }
       }
-<<<<<<< HEAD
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       //packet->out_frame = nullptr;
     } // end if !event
-=======
-      // Free up the decoded frame as well, we won't be using it for anything at
-      // this time. snap->out_frame = nullptr;
-    }
->>>>>>> add_go2rtc
   }  // end scope for event_lock
   packet->analyzed = true;
 
-<<<<<<< HEAD
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it);
 
   return 1;
 } // end Monitor::Analyse
-=======
-  packetqueue.unlock(packet_lock);
-  packetqueue.increment_it(analysis_it);
-  shared_data->last_read_time =
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-  return true;
-}  // end Monitor::Analyse
->>>>>>> add_go2rtc
 
 #if HAVE_QUADRA
 std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {
@@ -3324,24 +2811,12 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name.c_str());
 
-<<<<<<< HEAD
   // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event.
   // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
       Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), shared_data->capture_image_count, event->Id());
-=======
-  // Access to the event needs to be protected.  Either thread could call
-  // Reload.  Either thread could close the event. Need a mutex on it I guess.
-  // FIXME Need to guard around event creation/deletion This will prevent event
-  // creation until new settings are loaded
-  {
-    std::lock_guard<std::mutex> lck(event_mutex);
-    if (event) {
-      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(),
-           shared_data->image_count, event->Id());
->>>>>>> add_go2rtc
       closeEvent();
     }
   }
@@ -3509,17 +2984,9 @@ int Monitor::Capture() {
   shared_data->heartbeat_time =
       std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
-<<<<<<< HEAD
   Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64, captureResult, shared_data->capture_image_count,
       static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet->timestamp.time_since_epoch()).count())
       );
-=======
-  Debug(4, "Back from capture result=%d image count %d timestamp %" PRId64,
-        captureResult, shared_data->image_count,
-        static_cast<int64>(std::chrono::duration_cast<Microseconds>(
-                               packet->timestamp.time_since_epoch())
-                               .count()));
->>>>>>> add_go2rtc
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -3530,7 +2997,6 @@ int Monitor::Capture() {
     //FIXME< just put the no signal on the queue
     /* HTML colour code is actually BGR in memory, we want RGB */
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
-<<<<<<< HEAD
     Image capture_image(width, height, camera->Colours(), camera->SubpixelOrder());
     capture_image.Fill(signalcolor);
     shared_data->signal = false;
@@ -3539,19 +3005,6 @@ int Monitor::Capture() {
     //image_buffer[index]->Assign(capture_image);
     //shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->capture_image_count++;
-=======
-    Image *capture_image =
-        new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-    capture_image->Fill(signalcolor);
-    shared_data->signal = false;
-    shared_data->last_write_index = index;
-    shared_data->last_write_time = shared_timestamps[index].tv_sec;
-    image_buffer[index]->Assign(*capture_image);
-    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(
-        packet->timestamp.time_since_epoch());
-    delete capture_image;
-    shared_data->image_count++;
->>>>>>> add_go2rtc
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
@@ -3561,26 +3014,12 @@ int Monitor::Capture() {
                // useful. CheckSignalPoints can correct this later.
     // If we captured, let's assume signal, Decode will detect further
     if (decoding == DECODING_NONE) {
-<<<<<<< HEAD
       shared_data->last_capture_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->capture_image_count);
-=======
-      shared_data->last_write_index = index;
-      shared_data->last_write_time =
-          std::chrono::system_clock::to_time_t(packet->timestamp);
-      packet->decoded = true;
-    }
-    Debug(2,
-          "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d "
-          "event? %d image_count %d",
-          packet->packet->stream_index, video_stream_id,
-          packetqueue.packet_count(video_stream_id), (event ? 1 : 0),
-          shared_data->image_count);
->>>>>>> add_go2rtc
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet->stream_index =
@@ -3599,15 +3038,8 @@ int Monitor::Capture() {
     } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
       if (audio_fifo) audio_fifo->writePacket(*packet);
 
-<<<<<<< HEAD
       // Only queue if we have some video packets in there. Should push this logic into packetqueue
       if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
-=======
-      // Only queue if we have some video packets in there. Should push this
-      // logic into packetqueue
-      if (record_audio and
-          (packetqueue.packet_count(video_stream_id) or event)) {
->>>>>>> add_go2rtc
         packet->image_index = -1;
         Debug(2, "Queueing audio packet");
         packet->packet->stream_index =
@@ -3627,13 +3059,8 @@ int Monitor::Capture() {
 
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
-<<<<<<< HEAD
   } else { // result == 0
     // Question is, do we update last_decoder_index etc?
-=======
-  } else {  // result == 0
-    // Question is, do we update last_write_index etc?
->>>>>>> add_go2rtc
     return 0;
   }  // end if result
 
@@ -3662,7 +3089,6 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame,
   AVPixelFormat inputPixFormat;
   bool changeColorspaceDetails = false;
   switch (input_frame->format) {
-<<<<<<< HEAD
   case AV_PIX_FMT_YUVJ420P:
     inputPixFormat = AV_PIX_FMT_YUVJ420P;
     changeColorspaceDetails = true;
@@ -3681,26 +3107,6 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame,
     break;
   default:
     inputPixFormat = (AVPixelFormat)input_frame->format;
-=======
-    case AV_PIX_FMT_YUVJ420P:
-      inputPixFormat = AV_PIX_FMT_YUV420P;
-      changeColorspaceDetails = true;
-      break;
-    case AV_PIX_FMT_YUVJ422P:
-      inputPixFormat = AV_PIX_FMT_YUV422P;
-      changeColorspaceDetails = true;
-      break;
-    case AV_PIX_FMT_YUVJ444P:
-      inputPixFormat = AV_PIX_FMT_YUV444P;
-      changeColorspaceDetails = true;
-      break;
-    case AV_PIX_FMT_YUVJ440P:
-      inputPixFormat = AV_PIX_FMT_YUV440P;
-      changeColorspaceDetails = true;
-      break;
-    default:
-      inputPixFormat = (AVPixelFormat)input_frame->format;
->>>>>>> add_go2rtc
   }
 
   convert_context = sws_getContext(
@@ -3733,7 +3139,6 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame,
   return (convert_context != nullptr);
 }
 
-<<<<<<< HEAD
 int Monitor::CloseDecoder() {
 #if HAVE_QUADRA
   std::lock_guard<std::mutex> lck(quadra_mutex);
@@ -4006,56 +3411,6 @@ int Monitor::Decode() {
         packet->decoded = true;
         packetqueue.increment_it(decoder_it);
         return 1;
-=======
-bool Monitor::Decode() {
-  ZMLockedPacket *packet_lock =
-      packetqueue.get_packet_and_increment_it(decoder_it);
-  if (!packet_lock) return false;
-
-  std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
-  if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-    packet->decoded = true;
-    Debug(4, "Not video");
-    delete packet_lock;
-    return true;  // Don't need decode
-  }
-
-  if ((!packet->image) and packet->packet->size and !packet->in_frame) {
-    if ((decoding == DECODING_ALWAYS) or
-        ((decoding == DECODING_ONDEMAND) and
-         (this->hasViewers() or
-          (shared_data->last_write_index == image_buffer_count))) or
-        ((decoding == DECODING_KEYFRAMES) and packet->keyframe) or
-        ((decoding == DECODING_KEYFRAMESONDEMAND) and
-         (this->hasViewers() or packet->keyframe))) {
-      // Allocate the image first so that it can be used by hwaccel
-      // We don't actually care about camera colours, pixel order etc.  We care
-      // about the desired settings
-      //
-      // capture_image = packet->image = new Image(width, height,
-      // camera->Colours(), camera->SubpixelOrder());
-      int ret = packet->decode(camera->getVideoCodecContext());
-      if (ret > 0 and !zm_terminate) {
-        if (packet->in_frame and !packet->image) {
-          packet->image = new Image(camera_width, camera_height,
-                                    camera->Colours(), camera->SubpixelOrder());
-
-          if (convert_context || this->setupConvertContext(
-                                     packet->in_frame.get(), packet->image)) {
-            if (!packet->image->Assign(packet->in_frame.get(), convert_context,
-                                       dest_frame.get())) {
-              delete packet->image;
-              packet->image = nullptr;
-            }
-            av_frame_unref(dest_frame.get());
-          } else {
-            delete packet->image;
-            packet->image = nullptr;
-          }  // end if have convert_context
-        }  // end if need transfer to image
-      } else {
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
->>>>>>> add_go2rtc
       }
       Debug(1, "send_packet %d", packet->image_index);
 #if 1
@@ -4084,7 +3439,6 @@ bool Monitor::Decode() {
       decoder_queue.push_back(std::move(packet_lock)); // packet_lock is no longer valid, but packet should be ok
       return 0;
     } else {
-<<<<<<< HEAD
       Debug(1, "Not Decoding packet %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
       packetqueue.increment_it(decoder_it);
       ZM_DUMP_PACKET(packet->packet.get(), "Not decoding");
@@ -4143,40 +3497,6 @@ bool Monitor::Decode() {
       case FLIP_VERT :
         y_image->Flip(orientation==FLIP_HORI);
         break;
-=======
-      Debug(1, "Not Decoding frame %d? %s", packet->image_index,
-            Decoding_Strings[decoding].c_str());
-    }  // end if doing decoding
-  } else {
-    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding",
-          packet->packet->size, packet->in_frame.get());
-  }  // end if need_decoding
-
-  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame &&
-      (((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P) ||
-       ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P))) {
-    packet->y_image =
-        new Image(packet->in_frame->width, packet->in_frame->height, 1,
-                  ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
-    if (packet->in_frame->width != camera_width ||
-        packet->in_frame->height != camera_height)
-      packet->y_image->Scale(camera_width, camera_height);
-
-    if (orientation != ROTATE_0) {
-      switch (orientation) {
-        case ROTATE_0:
-          // No action required
-          break;
-        case ROTATE_90:
-        case ROTATE_180:
-        case ROTATE_270:
-          packet->y_image->Rotate((orientation - 1) * 90);
-          break;
-        case FLIP_HORI:
-        case FLIP_VERT:
-          packet->y_image->Flip(orientation == FLIP_HORI);
-          break;
->>>>>>> add_go2rtc
       }
     }  // end if have rotation
   }
@@ -4197,7 +3517,6 @@ bool Monitor::Decode() {
       } else if (deinterlacing_value == 4) {
         while (!zm_terminate) {
           // ICON FIXME SHould we not clone decoder_it?
-<<<<<<< HEAD
           ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
           std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
           if (!deinterlace_packet) {
@@ -4212,31 +3531,6 @@ bool Monitor::Decode() {
             break;
           }
           //packetqueue.unlock(deinterlace_packet_lock);
-=======
-          ZMLockedPacket *deinterlace_packet_lock =
-              packetqueue.get_packet(decoder_it);
-          if (!deinterlace_packet_lock) {
-            delete packet_lock;
-            return false;
-          }
-          if (deinterlace_packet_lock->packet_->codec_type ==
-              packet->codec_type) {
-            if (!deinterlace_packet_lock->packet_->image) {
-              Error(
-                  "Can't de-interlace when we have to decode.  De-Interlacing "
-                  "should only be useful on old low res local cams");
-            } else {
-              capture_image->Deinterlace_4Field(
-                  deinterlace_packet_lock->packet_->image,
-                  (deinterlacing >> 8) & 0xff);
-            }
-            delete deinterlace_packet_lock;
-            // packetqueue.unlock(deinterlace_packet_lock);
-            break;
-          }
-          delete deinterlace_packet_lock;
-          // packetqueue.unlock(deinterlace_packet_lock);
->>>>>>> add_go2rtc
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) {
@@ -4274,30 +3568,7 @@ bool Monitor::Decode() {
       TimestampImage(capture_image, packet->timestamp);
     }
 
-<<<<<<< HEAD
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
-=======
-    unsigned int index = shared_data->last_write_index;
-    index++;
-    index = index % image_buffer_count;
-    decoding_image_count++;
-    image_buffer[index]->Assign(*(packet->image));
-    image_pixelformats[index] = packet->image->AVPixFormat();
-    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(
-        packet->timestamp.time_since_epoch());
-    shared_data->signal = (capture_image and signal_check_points)
-                              ? CheckSignal(capture_image)
-                              : true;
-    shared_data->last_write_index = index;
-    shared_data->last_write_time =
-        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    if (std::chrono::system_clock::now() - packet->timestamp >
-        Seconds(ZM_WATCH_MAX_DELAY)) {
-      Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
-              FPSeconds(std::chrono::system_clock::now() - packet->timestamp)
-                  .count());
-    }
->>>>>>> add_go2rtc
   }  // end if have image
  
   unsigned int index = packet->image_index % image_buffer_count;
@@ -4348,21 +3619,12 @@ bool Monitor::Decode() {
 //    Warning("Unable to assign an image to shm for %d", index);
   }
   packet->decoded = true;
-<<<<<<< HEAD
   // The idea is that capture is firing often enough
   packetqueue.notify_all();
   return 1;
 }  // end int Monitor::Decode()
 
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
-=======
-  packetqueue.unlock(packet_lock);
-  return true;
-}  // end bool Monitor::Decode()
-
-std::string Monitor::Substitute(const std::string &format,
-                                SystemTimePoint ts_time) const {
->>>>>>> add_go2rtc
   if (format.empty()) return "";
 
   std::string text;
@@ -4423,59 +3685,27 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
 
   ts_image->Annotate(label_text.c_str(), label_coord, label_size);
   Debug(2, "done annotating %s", label_text.c_str());
-<<<<<<< HEAD
 } // end void Monitor::TimestampImage
 
 Event * Monitor::openEvent(
   ZMPacketLock *packet_lock,
   const std::string &cause,
   const Event::StringSetMap &noteSetMap) {
-=======
-}  // end void Monitor::TimestampImage
->>>>>>> add_go2rtc
 
-Event *Monitor::openEvent(const std::shared_ptr<ZMPacket> &snap,
-                          const std::string &cause,
-                          const Event::StringSetMap &noteSetMap) {
   // FIXME this iterator is not protected from invalidation
   // We may already have a lock on this packet and not able to get another one. (AI_QUEUE)
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
       *analysis_it,
-<<<<<<< HEAD
       (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
       );
   auto packet = *(*start_it);
   auto av_packet = packet->av_packet();
-=======
-      (cause == "Continuous"
-           ? 0
-           : (pre_event_count > alarm_frame_count ? pre_event_count
-                                                  : alarm_frame_count)));
->>>>>>> add_go2rtc
 
   ZM_DUMP_PACKET(av_packet, "start packet");
 
-<<<<<<< HEAD
   auto starting_packet = *start_it;
   event = new Event(this, start_it, (*starting_packet)->timestamp, cause, noteSetMap);
   SetVideoWriterStartTime((*starting_packet)->timestamp);
-=======
-    if (!starting_packet_lock) {
-      Warning("Unable to get starting packet lock");
-      return nullptr;
-    }
-    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
-    delete starting_packet_lock;
-    ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
-    event = new Event(this, start_it, starting_packet->timestamp, cause,
-                      noteSetMap);
-    SetVideoWriterStartTime(starting_packet->timestamp);
-  } else {
-    ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
-    event = new Event(this, start_it, snap->timestamp, cause, noteSetMap);
-    SetVideoWriterStartTime(snap->timestamp);
-  }
->>>>>>> add_go2rtc
 
   shared_data->last_event_id = event->Id();
   strncpy(shared_data->alarm_cause, cause.c_str(),
@@ -4674,13 +3904,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image,
     shared_data->alarm_x = alarm_centre.x_;
     shared_data->alarm_y = alarm_centre.y_;
 
-<<<<<<< HEAD
     Info("Got alarm centre at %d,%d, at count %d",
          shared_data->alarm_x, shared_data->alarm_y, shared_data->analysis_image_count);
-=======
-    Info("Got alarm centre at %d,%d, at count %d", shared_data->alarm_x,
-         shared_data->alarm_y, analysis_image_count);
->>>>>>> add_go2rtc
   } else {
     shared_data->alarm_x = shared_data->alarm_y = -1;
   }
@@ -4879,10 +4104,7 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
-<<<<<<< HEAD
   if (analysis_thread) analysis_thread->Stop();
-=======
->>>>>>> add_go2rtc
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) decoder->Stop();
 
@@ -4932,12 +4154,7 @@ int Monitor::Pause() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-<<<<<<< HEAD
       Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->capture_image_count, event->Id());
-=======
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down",
-           name.c_str(), shared_data->image_count, event->Id());
->>>>>>> add_go2rtc
       closeEvent();
       close_event_thread.join();
     }
@@ -5036,7 +4253,6 @@ void Monitor::get_ref_image() {
 
   if (!analysis_it) analysis_it = packetqueue.get_video_it(true);
 
-<<<<<<< HEAD
   ZMPacketLock packet_lock;
   while (
     (
@@ -5052,26 +4268,12 @@ void Monitor::get_ref_image() {
           shared_data->last_decoder_index, static_cast<int64>(shared_data->last_write_time));
     if (packet_lock.packet_ and ! packet_lock.packet_->image) {
       packet_lock.unlock();
-=======
-  while ((!(snap_lock = packetqueue.get_packet(analysis_it)) or
-          (snap_lock->packet_->codec_type != AVMEDIA_TYPE_VIDEO) or
-          !snap_lock->packet_->image) and
-         !zm_terminate) {
-    Debug(1,
-          "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64
-          ")",
-          shared_data->last_write_index,
-          static_cast<int64>(shared_data->last_write_time));
-    if (snap_lock and !snap_lock->packet_->image) {
-      delete snap_lock;
->>>>>>> add_go2rtc
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
   }
   if (zm_terminate) return;
 
-<<<<<<< HEAD
   std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
 
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
@@ -5080,18 +4282,6 @@ void Monitor::get_ref_image() {
   if (packet->image) {
     ref_image.Assign(width, height, packet->image->Colours(),
                      packet->image->SubpixelOrder(), packet->image->Buffer(), camera->ImageSize());
-=======
-  std::shared_ptr<ZMPacket> snap = snap_lock->packet_;
-  Debug(1,
-        "get_ref_image: packet.stream %d ?= video_stream %d, packet image id "
-        "%d packet image %p",
-        snap->packet->stream_index, video_stream_id, snap->image_index,
-        snap->image);
-  // Might not have been decoded yet FIXME
-  if (snap->image) {
-    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-                     snap->image->Buffer(), camera->ImageSize());
->>>>>>> add_go2rtc
     Debug(2, "Have ref image about to unlock");
   } else {
     Debug(2, "Have no ref image about to unlock");

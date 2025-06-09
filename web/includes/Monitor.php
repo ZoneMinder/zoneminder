@@ -1412,12 +1412,12 @@ class Monitor extends ZM_Object {
   }
 
 public function getStreamMode() {
-  if ($this->JanusEnabled()) {
-    $streamMode = 'janus';
+  if ($this->Go2RTCEnabled()) {
+    $streamMode = 'go2rtc';
   } else if ($this->RTSP2WebEnabled()) {
-    $streamMode = 'rtsp2web_'.strToLower($this->RTSP2WebType());
-  } else if ($this->Go2RTCEnabled()) {
-    $streamMode = 'go2rtc_'.strToLower($this->Go2RTCType());
+    $streamMode = 'rtsp2web_'.$this->RTSP2WebType();
+  } else if ($this->JanusEnabled()) {
+    $streamMode = 'janus';
   } else {
     $streamMode = getStreamMode();
   }

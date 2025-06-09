@@ -109,7 +109,7 @@ foreach ($monitors as $m) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS') or ($m->Go2RTCEnabled() and $m->Go2RTCType == 'HLS')) {
+  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS')) {
     $hasHLS = true;
   }
   if ($hasPtzControls && $hasHLS) {
@@ -213,8 +213,6 @@ if (
   $options['scale'] = 0;
 }
 
-
-$streamMode = $monitor->getStreamMode();
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 getBodyTopHTML();
@@ -307,9 +305,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
               $players = ['zms'=>'ZMS MJPEG',
-                'go2rtc_webrtc' => 'Go2RTC WEBRTC',
-                'go2rtc_mse' => 'Go2RTC MSE',
-                'go2rtc_hls' => 'Go2RTC HLS',
+                'go2rtc' => 'Go2RTC',
                 'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
                 'rtsp2web_mse' => 'RTSP2Web MSE',
                 'rtsp2web_hls' => 'RTSP2Web HLS',
@@ -318,7 +314,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
 
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
-              } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_REQUEST['player']])) {
+              } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
                 $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
               }
               echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player'));
@@ -519,6 +515,8 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
   } else {
     echo "There are no monitors to display\n";
   }
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
   echo '<script src="'.cache_bust('js/MonitorStream.js') .'"></script>'.PHP_EOL;
+
   xhtmlFooter();
 ?>

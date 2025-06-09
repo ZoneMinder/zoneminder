@@ -1316,8 +1316,15 @@ function monitorChangeStreamChannel() {
 }
 
 function changePlayer() {
-  streamCmdStop(true);
+  const player = $j('#player').val();
+  setCookie('zmWatchPlayer', player);
+  //setCookie('zmWatchPlayer'+monitorId, player);
+  streamCmdStop(true); // takes care of button state and calls stream.kill()
+  console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
+  streamCmdPlay(true);
+  return;
+
   setTimeout(function() {
     monitorStream.start();
     onPlay();

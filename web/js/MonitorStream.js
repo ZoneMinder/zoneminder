@@ -331,48 +331,23 @@ function MonitorStream(monitorData) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_API_PATH);
         const useSSL = (url.protocol == 'https:');
-        console.log(useSSL, url.protocol);
 
         const videoEl = document.getElementById("liveStream" + this.id);
-
+        const video = document.createElement('video-stream');
+        video.id = videoEl.id;
+        video.style = videoEl.style;
         const Go2RTCModUrl = url;
-        Go2RTCModUrl.username = '';
-        Go2RTCModUrl.password = '';
-        //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        if (-1 != player.indexOf('webrtc')) {
-          const webrtcUrl = Go2RTCModUrl;
-          webrtcUrl.pathname += "/ws";
-          webrtcUrl.search = 'src='+this.id+'&media=video+audio'
-          console.log(webrtcUrl);
-          //startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
-          startGo2RTC(videoEl, webrtcUrl.href, this);
-        } else if (-1 != player.indexOf('hls')) {
-          const hlsUrl = Go2RTCModUrl;
-          hlsUrl.pathname = '/api/stream.m3u8';
-          hlsUrl.search = 'src=' + this.id;
-          /*
-          if (useSSL) {
-            hlsUrl = "https://" + Go2RTCModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
-          } else {
-            hlsUrl = "http://" + Go2RTCModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
-          }
-          */
-          if (Hls.isSupported()) {
-            this.hls = new Hls();
-            this.hls.loadSource(hlsUrl.href);
-            this.hls.attachMedia(videoEl);
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            videoEl.src = hlsUrl.href;
-          }
-        } else if (-1 != this.player.indexOf('mse')) {
-          const mseUrl = Go2RTCModUrl;
-          mseUrl.protocol = useSSL ? 'wss:' : 'ws';
-          mseUrl.pathname += "/ws";
-          mseUrl.search = "src=" + this.id;
-          startMsePlay(this, videoEl, mseUrl.href);
-        } else {
-          console.log("Unknown type", this.player);
-        }
+        const webrtcUrl = Go2RTCModUrl;
+        webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
+        webrtcUrl.pathname += "/ws";
+        webrtcUrl.search = 'src='+this.id;
+        video.src = webrtcUrl.href;
+        const video_container = videoEl.parentNode;
+
+        video_container.innerHTML = '';
+        video_container.appendChild(video);
+        this.webrtc = video;
+
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
@@ -431,16 +406,18 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
     console.log(this.Go2RTCType, this.webrtc);
-    if (this.webrtc) {
-      this.webrtc.close();
-      this.webrtc = null;
-    }
-    if (this.hls) {
-      this.hls.destroy();
-      this.hls = null;
-    }
-    if (this.RTSP2WebType == 'MSE' || this.Go2RTCType == 'MSE') {
-      this.stopMse();
+    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+      if (this.webrtc) {
+        this.webrtc.close();
+        this.webrtc = null;
+      }
+      if (this.hls) {
+        this.hls.destroy();
+        this.hls = null;
+      }
+      if (this.RTSP2WebType == 'MSE' || this.Go2RTCType == 'MSE') {
+        this.stopMse();
+      }
     }
   };
 
@@ -1131,14 +1108,14 @@ function MonitorStream(monitorData) {
   };
   this.mseCodecs = '';
 
-  this.onpcvideo = function() {
+  this.onpcvideo = function(video2) {
     console.log('onpcviedo');
     if (this.pc) {
       // Video+Audio > Video, H265 > H264, Video > Audio, WebRTC > MSE
       let rtcPriority = 0, msePriority = 0;
 
       /** @type {MediaStream} */
-      const stream = this.element.srcObject;
+      const stream = video2.srcObject;
       if (stream.getVideoTracks().length > 0) rtcPriority += 0x220;
       if (stream.getAudioTracks().length > 0) rtcPriority += 0x102;
 
@@ -1166,7 +1143,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    this.element.srcObject = null;
+    video2.srcObject = null;
   };
 } // end class MonitorStream
 
@@ -1375,10 +1352,12 @@ async function startGo2RTC(videoEl, url, stream) {
         .filter(tr => tr.currentDirection === 'recvonly') // skip inactive
         .map(tr => tr.receiver.track);
       /** @type {HTMLVideoElement} */
-
-      videoEl.addEventListener('loadeddata', () => stream.onpcvideo(), {once: true});
       console.log('tracks', tracks);
-      videoEl.srcObject = new MediaStream(tracks);
+
+      const video2 = document.createElement('video');
+      video2.addEventListener('loadeddata', () => this.onpcvideo(video2), {once: true});
+      video2.srcObject = new MediaStream(tracks);
+
     } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
       console.log(pc.connectionState);
       pc.close(); // stop next events

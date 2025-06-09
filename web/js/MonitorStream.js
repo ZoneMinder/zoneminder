@@ -9,6 +9,7 @@ function MonitorStream(monitorData) {
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
+  this.url_to_stream = monitorData.url_to_stream;
   this.width = monitorData.width;
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
@@ -347,6 +348,7 @@ function MonitorStream(monitorData) {
         video_container.innerHTML = '';
         video_container.appendChild(video);
         this.webrtc = video;
+        stream = this.element = video;
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -359,13 +361,27 @@ function MonitorStream(monitorData) {
     }
 
     // zms stream
-    const stream = this.getElement();
+    let stream = this.getElement();
     if (!stream) return;
     if (!stream.src) {
       // Website Monitors won't have an img tag, neither will video
       console.log('No src for #liveStream'+this.id);
       console.log(stream);
-      return;
+      const video = document.createElement('img');
+      video.id = stream.id;
+      video.style = stream.style;
+
+      const video_container = stream.parentNode;
+      if (video_container) {
+      video_container.innerHTML = '';
+      video_container.appendChild(video);
+      } else {
+        console.log("No conainer?!", stream);
+      }
+      stream = this.element = video;
+      stream.src = this.url_to_stream;
+      stream.src += '&'+auth_relay;
+      monitorsSetScale(this.id);
     }
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image

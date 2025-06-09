@@ -1407,7 +1407,7 @@ class Monitor extends ZM_Object {
 
 public function getStreamMode() {
   if ($this->Go2RTCEnabled()) {
-    $streamMode = 'go2rtc_'.strtolower($this->Go2RTCType());
+    $streamMode = 'go2rtc';
   } else if ($this->RTSP2WebEnabled()) {
     $streamMode = 'rtsp2web_'.$this->RTSP2WebType();
   } else if ($this->JanusEnabled()) {

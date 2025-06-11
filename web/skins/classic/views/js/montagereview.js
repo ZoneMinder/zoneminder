@@ -436,14 +436,10 @@ function timerFire() {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
-    console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
-    console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " + " + timerInterval);
     outputUpdate(playSecsPerInterval + currentTimeSecs);
-  } else {
-    console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);
   }
 
   if ((currentSpeed > 0 || liveMode != 0) && !timerObj) {

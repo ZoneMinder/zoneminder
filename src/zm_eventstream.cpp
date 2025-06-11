@@ -306,7 +306,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_timestamp = event_data->start_time;
       event_data->frame_count ++;
     } else {
-      Debug(1, "EIther no endtime or no duration, frame_count %d, last_id %d", event_data->frame_count, last_id);
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / %d - %d", 
               FPSeconds(event_data->end_time.time_since_epoch()).count(),

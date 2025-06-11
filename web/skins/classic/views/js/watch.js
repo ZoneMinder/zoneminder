@@ -1333,20 +1333,20 @@ function changePlayer() {
 
 function monitorsSetScale(id=null) {
   //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  // Could be moved to monitorStream.js
   if (id || typeof monitorStream !== 'undefined') {
     if (monitorStream !== false) {
       //monitorStream used on Watch page.
-      var curentMonitor = monitorStream;
+      var currentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var curentMonitor = monitors.find((o) => {
+      var currentMonitor = monitors.find((o) => {
         return parseInt(o["id"]) === id;
       });
     } else {
       //Stream is missing
       return;
     }
-    //const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled && zmPanZoom.panZoom[id]) {
       var panZoomScale = zmPanZoom.panZoom[id].getScale();
     } else {
@@ -1360,7 +1360,7 @@ function monitorsSetScale(id=null) {
     let height;
     let overrideHW = false;
     let defScale = 0;
-    const landscape = curentMonitor.width / curentMonitor.height > 1 ? true : false; //Image orientation.
+    const landscape = currentMonitor.width / currentMonitor.height > 1 ? true : false; //Image orientation.
 
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
@@ -1370,8 +1370,8 @@ function monitorsSetScale(id=null) {
     } else if (scale == '100') {
       //Actual, 100% of original size
       resize = false;
-      width = curentMonitor.width + 'px';
-      height = curentMonitor.height + 'px';
+      width = currentMonitor.width + 'px';
+      height = currentMonitor.height + 'px';
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
       resize = false;
@@ -1380,10 +1380,10 @@ function monitorsSetScale(id=null) {
     } else if (scale.indexOf("px") > -1) {
       if (landscape) {
         maxWidth = scale;
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
         height = 'auto';
       } else {
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / curentMonitor.height * panZoomScale * 100);
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
         height = scale;
       }
       resize = true;
@@ -1392,7 +1392,10 @@ function monitorsSetScale(id=null) {
     }
 
     const monitor_div = document.getElementById('monitor'+id);
-    if (!monitor_div) console.log("No monitor div for ", id);
+    if (!monitor_div) {
+      console.log("No monitor div for ", id);
+      return;
+    }
     if (resize) {
       if (scale == '0') {
         monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
@@ -1412,8 +1415,8 @@ function monitorsSetScale(id=null) {
         document.getElementById('liveStream'+id).style.width = width;
       }
     }
-    //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+    //currentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
       if (!landscape) { //PORTRAIT
         monitor_div.style.width = 'max-content';

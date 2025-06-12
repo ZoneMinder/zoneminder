@@ -44,9 +44,7 @@ getBodyTopHTML();
         <label><?php echo translate('Component') ?></label>
 <?php
 $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
-ZM\Debug(print_r($components, true));
 $options = [''=>translate('All')] + array_combine($components, $components);
-ZM\Debug(print_r($options, true));
 $selected_component = '';
 if (isset($_SESSION['zmLogComponent'])) {
   if (array_search($_SESSION['zmLogComponent'], $components)) {

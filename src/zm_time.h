@@ -123,5 +123,6 @@ class TimeSegmentAdder {
 
 std::string SystemTimePointToString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
+SystemTimePoint StringToSystemTimePoint(const std::string &stp);
 
 #endif // ZM_TIME_H

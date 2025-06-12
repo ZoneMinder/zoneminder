@@ -31,7 +31,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   nms_thresh(0.45),
   network_ctx(nullptr),
   model(nullptr),
-  model_ctx(nullptr),
+  //model_ctx(nullptr),
   net_frame(),
   sw_scale_ctx(nullptr),
 
@@ -68,8 +68,7 @@ Quadra_Yolo::~Quadra_Yolo() {
   if (network_ctx)
     ni_cleanup_network_context(network_ctx, use_hwframe);
   if (model) {
-    model->destroy_model(model_ctx);
-    delete model_ctx;
+    model->destroy_model(&model_ctx);
   }
 
   free(last_roi);
@@ -91,11 +90,6 @@ bool Quadra_Yolo::setup(
   std::string model_name = modelname;
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
-  model_ctx = new YoloModelCtx;
-  if (model_ctx == nullptr) {
-    Error("failed to allocate yolo model");
-    return false;
-  }
 
   if (std::string::npos != nbg_file.find("yolov4")) {
     model = &yolov4;
@@ -137,7 +131,7 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
-  ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
+  ret = model->create_model(&model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
   if (ret != 0) {
     Error("failed to initialize yolo model");
     return false;
@@ -231,13 +225,13 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
  */
 int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
   /* pull filtered frames from the filtergraph */
-  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
+  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx.out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
     AVFrame *avframe = (use_hwframe and out_packet->hw_frame) ? out_packet->hw_frame.get() : out_packet->in_frame.get();
-    Debug(1, "hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
+    Debug(1, "receive_detection hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
@@ -444,7 +438,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   AVFrameSideData *sd_roi_extra = in_frame->side_data ? av_frame_get_side_data( in_frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
 
   Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, in_frame->pts);
-	zm_dump_video_frame(in_frame, "Quadra: process_roi frame");
+	zm_dump_video_frame(in_frame, "Quadra: process_roi in_frame");
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
     *filt_frame = in_frame;
     if (*filt_frame == nullptr) {
@@ -474,10 +468,10 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
       Error("cannot download hwframe");
       return ret;
     }
+    zm_dump_video_frame(input, "Quadra: process_roi input");
   } else {
     input = in_frame;
   }
-  zm_dump_video_frame(input, "Quadra: process_roi input");
 
   AVRegionOfInterest *roi = (AVRegionOfInterest *)sd->data;
   AVRegionOfInterestNetintExtra *roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
@@ -499,7 +493,8 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
     AVFrame *output = nullptr;
     annotate(input, &output, roi[i], roi_extra[i]);
     if (output) {
-      if (input != in_frame and input != output) av_frame_free(&input);
+      if (input != output) av_frame_free(&input);
+      //if (input != in_frame and input != output) av_frame_free(&input);
       input = output;
     }
   } // end foreach roi
@@ -531,6 +526,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   if (input != in_frame and input != output) av_frame_free(&input);
   
   // Technicall we should have a lock around this, but since we only access from the Analysis thread, we won't worry about it.
+  // // Not sure why we free/allocate, would be more efficient to allocate the max and just overwrite.
   free(last_roi);
   free(last_roi_extra);
   AVRegionOfInterest* cur_roi = nullptr;
@@ -701,7 +697,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   struct roi_box *roi_box = nullptr;
   int roi_num = 0;
 
-  int ret = model->ni_get_boxes(model_ctx, out->width, out->height, &roi_box, &roi_num);
+  int ret = model->ni_get_boxes(&model_ctx, out->width, out->height, &roi_box, &roi_num);
   if (ret < 0) {
     Error( "failed to get roi.");
     if (roi_box) free(roi_box);

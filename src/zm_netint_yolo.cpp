@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 0
+#define SOFTWARE_DRAWBOX 1
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -39,7 +39,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   drawbox(true),
   //drawbox_filter(nullptr),
   //drawbox_filter_ctx(nullptr),
-  drawtext(false),
+  drawtext(true),
   //drawtext_filter(nullptr),
   //drawtext_filter_ctx(nullptr),
 
@@ -229,14 +229,14 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
 /* NetInt says if an image goes in, one will come out, so we can assume that 
  * out_packet corresponds to the image that the results are against.
  */
-int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
+int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
   /* pull filtered frames from the filtergraph */
   int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
-    AVFrame *avframe = (use_hwframe and out_packet->hw_frame) ? out_packet->hw_frame.get() : out_packet->in_frame.get();
+    AVFrame *avframe = (use_hwframe and packet->hw_frame) ? packet->hw_frame.get() : packet->in_frame.get();
     Debug(1, "hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
@@ -254,13 +254,13 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
       Error("cannot draw roi");
       return -1;
     }
-    out_packet->set_ai_frame(out_frame);
+    packet->set_ai_frame(out_frame);
     zm_dump_video_frame(out_frame, "ai");
   } else {
     return 0;
   }
 
-  out_packet->detections = std::move(detections);
+  packet->detections = detections;
   return 1;
 } // end receive_detection
 
@@ -490,11 +490,11 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   }
   int num = sd->size / roi->self_size;
 
-  nlohmann::json detections = nlohmann::json::array();
+  detections = nlohmann::json::array();
 
   for (int i = 0; i < num; i++) {
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
-    detections.push_back({{"class_name", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
+    detections.push_back({{"class", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
 
     AVFrame *output = nullptr;
     annotate(input, &output, roi[i], roi_extra[i]);

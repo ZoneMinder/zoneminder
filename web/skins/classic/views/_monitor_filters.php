@@ -31,7 +31,23 @@ function addFilterSelect($name, $options) {
       )
     );
   $html .= '</span>';
+  $html .= addButtonResetForFilterSelect($name.'[]');
   $html .= '</span>'.PHP_EOL;
+  return $html;
+}
+
+function addButtonResetForFilterSelect($nameSelect) {
+  if (isset($_COOKIE['zmUseOldMenuView']) and $_COOKIE["zmUseOldMenuView"] === 'true') {
+    $html = '';
+  } else {
+    $html = PHP_EOL . '
+      <span class="btn-term-remove-all">
+        <button type="button" name="deleteBtn" data-on-click-this="resetSelectElement" data-select-target="'.$nameSelect.'">
+          <i class="material-icons">clear</i>
+          <span class="text"></span>
+        </button>
+      </span>' . PHP_EOL;
+  }
   return $html;
 }
 
@@ -87,6 +103,7 @@ function buildMonitorsFilters() {
       $html .= ZM\Group::get_group_dropdown();
       $groupSql = ZM\Group::get_group_sql($group_id);
       $html .= '</span>';
+      $html .= addButtonResetForFilterSelect('GroupId[]');
       $html .= '</span>';
     }
   }
@@ -141,6 +158,7 @@ function buildMonitorsFilters() {
       )
     );
     $html .= '</span>';
+    $html .= addButtonResetForFilterSelect('ServerId[]');
     $html .= '</span>';
   } # end if have Servers
 
@@ -156,6 +174,7 @@ function buildMonitorsFilters() {
         'data-placeholder'=>'All',
       ) );
     $html .= '</span>';
+    $html .= addButtonResetForFilterSelect('StorageId[]');
     $html .= '</span>';
   } # end if have Storage Areas
 
@@ -176,6 +195,7 @@ function buildMonitorsFilters() {
       'data-placeholder'=>'All'
     ) );
   $html .= '</span>';
+  $html .= addButtonResetForFilterSelect('Status[]');
   $html .= '</span>';
 
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
@@ -284,6 +304,7 @@ function buildMonitorsFilters() {
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
   $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
   $html .= '</span>';
+  $html .= addButtonResetForFilterSelect('MonitorId[]');
   $html .= '</span>';
   $html .= '</div>';
 

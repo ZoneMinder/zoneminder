@@ -1,0 +1,165 @@
+@import './variables_css-pro-layout.scss';
+
+@mixin break-point {
+  position: fixed;
+  left: -$sidebar-width;
+  height: 100%;
+  top: 0;
+  z-index: 100;
+  &.collapsed {
+    left: -$sidebar-collapsed-width;
+  }
+  &.toggled {
+    left: 0;
+    ~ .overlay {
+      display: block;
+    }
+  }
+
+  ~ .layout-main {
+    .header {
+      width: 100% !important;
+      transition: none;
+    }
+  }
+}
+
+$breakpoints: (
+  'break-point-xs': $breakpoint-xs,
+  'break-point-sm': $breakpoint-sm,
+  'break-point-md': $breakpoint-md,
+  'break-point-lg': $breakpoint-lg,
+  'break-point-xl': $breakpoint-xl,
+  'break-point-xxl': $breakpoint-xxl,
+);
+
+@mixin break-point-rtl {
+  left: auto;
+  right: -$sidebar-width;
+  &.collapsed {
+    left: auto;
+    right: -$sidebar-collapsed-width;
+  }
+  &.toggled {
+    left: auto;
+    right: 0;
+  }
+}
+
+@mixin setBreakPoint($name, $value) {
+  &.#{$name} {
+    @media (max-width: $value) {
+      @include break-point;
+    }
+  }
+}
+
+.layout-main {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex-grow: 1;
+
+  &.has-sidebar {
+    flex-direction: row;
+  }
+  .header {
+    transition: width, 0.3s;
+    height: $header-height;
+    min-height: $header-height;
+    position: relative;
+  }
+  .sidebar-main {
+    width: $sidebar-width;
+    min-width: $sidebar-width;
+    transition: width, left, right, 0.3s;
+    &.collapsed {
+      width: $sidebar-collapsed-width;
+      min-width: $sidebar-collapsed-width;
+    }
+
+    @each $key, $value in $breakpoints {
+      @include setBreakPoint($key, $value);
+    }
+  }
+  .footer {
+    height: $footer-height;
+    min-height: $footer-height;
+  }
+  .content {
+    flex-grow: 1;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(#000, 0.3);
+    z-index: 99;
+    display: none;
+  }
+
+  .sidebar-toggler {
+    display: none;
+
+    @each $key, $value in $breakpoints {
+      &.#{$key} {
+        @media (max-width: $value) {
+          display: initial;
+        }
+      }
+    }
+  }
+
+  &.fixed-sidebar {
+    height: 100%;
+    .sidebar {
+      height: 100%;
+      overflow: auto;
+      ~ .layout-main {
+        height: 100%;
+        overflow: auto;
+      }
+    }
+  }
+
+  &.fixed-header {
+    .header {
+      position: fixed;
+      width: 100%;
+      z-index: 2;
+      ~ .layout-main,
+      ~ .content {
+        margin-top: $header-height;
+      }
+    }
+    &.fixed-sidebar {
+      .header {
+        width: calc(100% - #{$sidebar-width});
+      }
+      .sidebar.collapsed {
+        ~ .layout-main {
+          .header {
+            width: calc(100% - #{$sidebar-collapsed-width});
+          }
+        }
+      }
+    }
+  }
+
+  &.rtl {
+    direction: rtl;
+    .sidebar {
+      @each $key, $value in $breakpoints {
+        &.#{$key} {
+          @media (max-width: $value) {
+            @include break-point-rtl;
+          }
+        }
+      }
+    }
+  }
+}

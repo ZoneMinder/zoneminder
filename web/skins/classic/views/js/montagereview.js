@@ -503,12 +503,7 @@ function drawSliderOnGraph(val) {
   o.style.font = labfont;
   // try to get length and then when we get too close to the right switch to the left
   var len = o.offsetWidth;
-  var x;
-  if ( sliderX > cWidth/2 ) {
-    x = sliderX - len - 10;
-  } else {
-    x = sliderX + 10;
-  }
+  const x = (sliderX > cWidth/2) ? sliderX - len - 10 : sliderX + 10;
   o.style.left = x.toString() + "px";
 
   // This displays (or not) the left/right limits depending on how close the slider is.
@@ -579,7 +574,7 @@ function drawEventOnGraph(Event) {
   ctx.clearRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
   ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight-2);
   //outputUpdate(currentTimeSecs);
-  console.log("Drew event from ", x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
+  //console.log("Drew event from ", x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
 }
 
 function drawGraph() {
@@ -606,7 +601,6 @@ function drawGraph() {
 
   // first fill in the bars for the events (not alarms)
 
-  console.log(events);
   for (const event_id in events) {
     const Event = events[event_id];
     drawEventOnGraph(Event);
@@ -629,7 +623,6 @@ function drawGraph() {
   }
   underSlider = undefined; // flag we don't have a slider cached
   drawSliderOnGraph(currentTimeSecs);
-  return;
 } // end function drawGraph
 
 function redrawScreen() {

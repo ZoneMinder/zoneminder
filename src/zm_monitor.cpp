@@ -1828,7 +1828,7 @@ void Monitor::UpdateFPS() {
     uint32 new_camera_bytes = camera->Bytes();
     uint32 new_capture_bandwidth =
       static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-    double new_analysis_fps = (shared_data->analysis_image_count == -1) ? 0 : (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
+    double new_analysis_fps = (shared_data->analysis_image_count <= 0) ? 0 : (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
 
     Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
         shared_data->capture_image_count,

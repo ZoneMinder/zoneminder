@@ -3583,6 +3583,8 @@ int Monitor::Decode() {
       if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
         // Won't be using hwframe
       }
+      if (packet->needs_hw_transfer(mVideoCodecContext))
+          packet->get_hwframe(mVideoCodecContext);
       packet->hw_frame = nullptr;
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;

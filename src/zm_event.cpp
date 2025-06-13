@@ -600,24 +600,22 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->Name(cls);
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
-          tags.emplace(std::make_pair(cls, *tag));
-
-          if (tag->Id()) {
-            // Store 
-            Event_Tag event_tag(tag->Id(), id, packet->timestamp);
-            event_tag.save();
-          }
         } else {
           Debug(1, "Found tag for %s", cls.c_str());
         }
 
+        if (tag->Id()) {
+          tags.emplace(std::make_pair(cls, *tag));
+          Event_Tag event_tag(tag->Id(), id, packet->timestamp);
+          event_tag.save();
+        }
       } else {
         Debug(1, "Already have tag %s", cls.c_str());
         tag = &(tag_it->second);
       }
     }  // end foreach detection
   } else {
-    Debug(3, "Detections is empty.");
+    Debug(1, "detections %s", packet->detections.dump().c_str());
   } // end if detections
 
   end_time = packet->timestamp;

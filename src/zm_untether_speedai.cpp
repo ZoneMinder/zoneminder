@@ -180,7 +180,7 @@ void SpeedAI::Run() {
           Error("Failed enqueue %s", uai_err_string(err));
         } else {
           SystemTimePoint endtime = std::chrono::system_clock::now();
-          if (endtime - starttime > Milliseconds(30)) {
+          if (endtime - starttime > Milliseconds(40)) {
             Warning("SpeedAI enqueue is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
           } else {
             Debug(3, "SpeedAI enqueue took: %.3f seconds", FPSeconds(endtime - starttime).count());
@@ -323,7 +323,7 @@ SpeedAI::Job * SpeedAI::send_frame(Job *job, AVFrame *avframe) {
     //return nullptr;
   }
   SystemTimePoint endtime = std::chrono::system_clock::now();
-  if (endtime - starttime > Milliseconds(30)) {
+  if (endtime - starttime > Milliseconds(60)) {
     Warning("receive_detections is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
   } else {
     Debug(1, "receive_detections took: %.3f seconds", FPSeconds(endtime - starttime).count());

@@ -178,6 +178,17 @@ Monitor::Monitor() :
   palette(0),
   channel(0),
   format(0),
+  width(0),
+  height(0),
+  //v4l_multi_buffer
+  //v4l_captures_per_frame
+  orientation(ROTATE_0),
+  deinterlacing(0),
+  deinterlacing_value(0),
+  decoder_hwaccel_name(""),
+  decoder_hwaccel_device(""),
+  videoRecording(false),
+  rtsp_describe(false),
   savejpegs(0),
   colours(0),
   videowriter(DISABLED),
@@ -3352,20 +3363,12 @@ int Monitor::Decode() {
       packet_lock = std::move(decoder_queue.front());
       decoder_queue.pop_front();
       packet = delayed_packet;
-      //if (
-#if HAVE_QUADRA
-      //!quadra_yolo &&
-#endif
-          //packet->needs_hw_transfer(mVideoCodecContext))
-        //packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
-        Error("Closing decoder");
         CloseDecoder();
       }
-      return 0; // re-openping will take long enoguh
-      return ret;
+      return 0; // re-opening will take long enough
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
     } // else 0, EAGAIN, fall through and send a packet
@@ -3386,14 +3389,14 @@ int Monitor::Decode() {
     return -1;
   }
 
-  // At this point we know that the packet is on the queue somewhere
+  // Didn't receive a frame, get a packet from packetqueue and send it.
   if (!packet) {
     packet_lock = packetqueue.get_packet(decoder_it);
     packet = packet_lock.packet_;
     if (!packet) {
       Debug(1, "No packet from get_packet");
       return -1;
-    } 
+    }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
       Debug(3, "Not video,probably audio packet %d", packet->image_index);
@@ -3424,12 +3427,10 @@ int Monitor::Decode() {
       int ret = packet->send_packet(mVideoCodecContext);
       SystemTimePoint endtime = std::chrono::system_clock::now();
       int fps = int(get_capture_fps());
-      if (fps > 0) {
-        if (endtime - starttime > Milliseconds(1000/fps)) {
-          Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
-        } else {
-          Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
-        }
+      if ((fps > 0) and (endtime - starttime > Milliseconds(1000/fps))) {
+        Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
+      } else {
+        Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
 #else
       int ret = packet->send_packet(mVideoCodecContext);
@@ -3442,7 +3443,7 @@ int Monitor::Decode() {
         return -1;
       }  // end if ret from send_packet
       packetqueue.increment_it(decoder_it);
-      decoder_queue.push_back(std::move(packet_lock)); // packet_lock is no longer valid, but packet should be ok
+      decoder_queue.push_back(std::move(packet_lock));
       return 0;
     } else {
       Debug(1, "Not Decoding packet %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
@@ -3450,34 +3451,6 @@ int Monitor::Decode() {
       ZM_DUMP_PACKET(packet->packet.get(), "Not decoding");
     }  // end if doing decoding
   }  // end if need_decoding
-
-  if (packet->in_frame and !packet->image) {
-#if 0
-    const AVFrame *in_frame = packet->in_frame.get();
-
-    //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
-    unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
-    unsigned int colours = ZM_COLOUR_YUV420P;
-    //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
-    packet->image = new Image(camera_width, camera_height, colours, subpix);
-    //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-
-    if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
-      if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
-
-        delete packet->image;
-        packet->image = nullptr;
-      }
-      av_frame_unref(dest_frame.get());
-      //packet->hw_frame = nullptr;
-    } else {
-      delete packet->image;
-      packet->image = nullptr;
-    }  // end if have convert_context
-#else
-    //packet->get_image();
-#endif
-  }  // end if need transfer to image
 
 #if 0
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
@@ -3589,7 +3562,7 @@ int Monitor::Decode() {
 #endif
     {
 #if HAVE_QUADRA
-      if (objectdetection != OBJECT_DETECTION_NONE) {
+      if (objectdetection == OBJECT_DETECTION_QUADRA) {
         std::pair<int, std::string> results = Analyse_Quadra(packet);
       }
 #endif

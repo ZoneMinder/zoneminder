@@ -2613,9 +2613,8 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
 
     return std::make_pair(motion_score, cause);
   }
-   SystemTimePoint starttime = std::chrono::system_clock::now();
-   SystemTimePoint partial_starttime = starttime;
-
+  SystemTimePoint starttime = std::chrono::system_clock::now();
+  SystemTimePoint partial_starttime = starttime;
 
   if (!curl) {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -3372,6 +3371,13 @@ int Monitor::Decode() {
     } // else 0, EAGAIN, fall through and send a packet
   } else {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
+    av_frame_ptr receive_frame{av_frame_alloc()};
+    if (!receive_frame) {
+      Error("Error allocating frame");
+      return 0;
+    }
+    int ret = avcodec_receive_frame(mVideoCodecContext, receive_frame.get());
+    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
   } 
 
   // Might have to be keyframe interval

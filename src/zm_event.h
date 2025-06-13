@@ -46,6 +46,7 @@ class EventStream;
 class Frame;
 class Image;
 class Monitor;
+class Tag;
 class VideoStore;
 class ZMPacket;
 class Zone;
@@ -63,7 +64,7 @@ class Event {
 
  public:
   typedef std::set<std::string> StringSet;
-  typedef std::map<std::string,StringSet> StringSetMap;
+  typedef std::map<std::string, StringSet> StringSetMap;
 
  protected:
   static const char * frame_type_names[3];
@@ -124,6 +125,7 @@ class Event {
   std::atomic<bool> terminate_;
   std::thread thread_;
 
+  std::map<const std::string,Tag> tags;
  public:
   static bool OpenFrameSocket(int);
   static bool ValidateFrameSocket(int);

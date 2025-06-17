@@ -39,7 +39,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   drawbox(true),
   //drawbox_filter(nullptr),
   //drawbox_filter_ctx(nullptr),
-  drawtext(false),
+  drawtext(true),
   //drawtext_filter(nullptr),
   //drawtext_filter_ctx(nullptr),
 
@@ -573,7 +573,7 @@ int Quadra_Yolo::annotate(
 #endif
   }  // end if drawbox
 
-  if (drawtext) {// We have drawtext turned off for now.
+  if (drawtext) {
     SystemTimePoint starttime = std::chrono::system_clock::now();
     std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra.prob);
 #if SOFTWARE_DRAWBOX
@@ -583,16 +583,18 @@ int Quadra_Yolo::annotate(
     Debug(1, "Drawing text %s", text.c_str());
     AVFrame *drawtext_output = nullptr;
 
+    color = "white";
     zm_dump_video_frame(input, "Quadra: drawtext input");
     int ret = draw_text(input, &drawtext_output, text,
         roi.left+1+monitor->LabelSize(), roi.top+1+monitor->LabelSize(), color.c_str());
     if (ret < 0) {
       Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
-      zm_dump_video_frame(input, "Quadra: drawtext input");
     } else {
       if (drawtext_output) {
         if (input != in_frame) av_frame_free(&input);
         input = drawtext_output;
+      } else {
+        Error("drawtext_output is null");
       }
       zm_dump_video_frame(input, "Quadra: drawtext");
     }
@@ -755,7 +757,7 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
   }
 
   Debug(1, "Drawtext: %s %dx%d %s", text.c_str(), x, y, colour.c_str());
-#if 1
+#if 0
   drawtext_filter.opt_set("x", x);
   drawtext_filter.opt_set("y", y);
   drawtext_filter.opt_set("text", text.c_str());

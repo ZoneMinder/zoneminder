@@ -323,7 +323,7 @@ struct zm_free_av_frame {
 
         fs = (niFrameSurface1_t *) frame->data[3];
         if (fs) {
-            Debug(1, "*** Free buf id %d (%d) (%d) ***\n",
+            Debug(1, "*** Free buf id %d ref count(%d) is_writeable(%d) ***",
               fs->ui16FrameIdx, 
               av_buffer_get_ref_count(frame->buf[0]),
               av_frame_is_writable(frame));

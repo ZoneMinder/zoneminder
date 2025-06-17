@@ -20,7 +20,7 @@ static const char *roi_class[] = {"person", "bicycle", "car", "motorcycle", "air
   "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
   "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-#define SOFTWARE_DRAWBOX 1
+#define SOFTWARE_DRAWBOX 0
 
 Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   monitor(p_monitor),
@@ -39,7 +39,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   drawbox(true),
   //drawbox_filter(nullptr),
   //drawbox_filter_ctx(nullptr),
-  drawtext(true),
+  drawtext(false),
   //drawtext_filter(nullptr),
   //drawtext_filter_ctx(nullptr),
 
@@ -378,26 +378,7 @@ int Quadra_Yolo::draw_roi_box(
     color = "red";
     //color = "#FF000000";
   }
-#if SOFTWARE_DRAWBOX
-  Image in_image(inframe);
-#endif
 
-#if SOFTWARE_DRAWBOX
-  for (int i=0; i<line_width; i++) {
-#if 0
-    std::vector<Vector2> coords;
-    coords.push_back(Vector2(roi.left + i, roi.top + i));
-    coords.push_back(Vector2(roi.right - i, roi.top + i));
-    coords.push_back(Vector2(roi.right - i, roi.bottom - i));
-    coords.push_back(Vector2(roi.left + i, roi.bottom - i));
-
-    Polygon poly(coords);
-    in_image.Outline(kRGBGreen, poly);
-#else
-    in_image.DrawBox(roi.left+i, roi.top+i, roi.right-2*i, roi.bottom-2*i, kRGBGreen);
-#endif
-  }  // end foreach line
-#else
   for (int i=0; i<line_width; i++) {
     int x = roi.left + i; // line
     int y = roi.top + i;
@@ -417,16 +398,14 @@ int Quadra_Yolo::draw_roi_box(
   drawbox_filter.opt_set("w", w);
   drawbox_filter.opt_set("h", h);
 #endif
-      //drawbox_filter.opt_set("color", color.c_str());
+      //drawbox_filter.opt_set("color", color.c_str()); Doesn't work
   } // end foreach line
   drawbox_filter.send_command("ni_quadra_drawbox", "color", color.c_str());
 
   int ret = drawbox_filter.execute(inframe, outframe);
   SystemTimePoint endtime = std::chrono::system_clock::now();
-  Debug(4, "draw_roi_box took: %.2f seconds %d", FPSeconds(endtime - starttime).count(), ret);
+  Debug(1, "draw_roi_box took: %.2f seconds %d", FPSeconds(endtime - starttime).count(), ret);
   return ret;
-#endif
-  return 1;
 } // end draw_roi_box
 
 /* frame is the output from the model, not an image. Just raw info in the side data
@@ -485,6 +464,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   int num = sd->size / roi->self_size;
 
   detections = nlohmann::json::array();
+  Debug(1, "Num, detections %d from sd %ld size / roi size %d", num, sd->size, roi->self_size);
 
   for (int i = 0; i < num; i++) {
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
@@ -493,8 +473,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
     AVFrame *output = nullptr;
     annotate(input, &output, roi[i], roi_extra[i]);
     if (output) {
-      if (input != output) av_frame_free(&input);
-      //if (input != in_frame and input != output) av_frame_free(&input);
+      if (input != in_frame and input != output) av_frame_free(&input);
       input = output;
     }
   } // end foreach roi
@@ -581,8 +560,12 @@ int Quadra_Yolo::annotate(
     if (ret < 0) {
       Error("draw roi box failed %d %s", ret, av_make_error_string(ret).c_str());
     } else {
-      if ((input != in_frame) && drawbox_output && (input != drawbox_output)) {
+      // These are all pointers... we don't want to free in_frame (yet) theoretically, but we do want to free the intermediate outputs.
+      // So, this SHOULD leave in_frame alone..., free input, assign output to input
+      Debug(1, "input %p =? in_frame %p drawbox_output %p", input, in_frame, drawbox_output);
+      if ((input != in_frame) && (input != drawbox_output)) {
         av_frame_free(&input);
+      } else if (drawbox_output) {
         input = drawbox_output;
       }
       zm_dump_video_frame(input, "Quadra: drawbox output");
@@ -590,7 +573,7 @@ int Quadra_Yolo::annotate(
 #endif
   }  // end if drawbox
 
-  if (drawtext) {
+  if (drawtext) {// We have drawtext turned off for now.
     SystemTimePoint starttime = std::chrono::system_clock::now();
     std::string text = stringtf("%s %.1f%%", roi_class[cls], 100*roi_extra.prob);
 #if SOFTWARE_DRAWBOX
@@ -618,6 +601,7 @@ int Quadra_Yolo::annotate(
     Debug(4, "draw_roi_text took: %.2f seconds", FPSeconds(endtime - starttime).count());
   }  // end if drawtext
   *output = input;
+  // So in_frame should not be touched, and we should have an output frame, that references the same data as in_frame.
   return 1;
 } // end annotate
 
@@ -641,8 +625,10 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
 
   for (int i = 0; i < last_roi_count; i++) {
     AVFrame *output = nullptr;
+    // Annotate doesn't touch input, should return output, which is a frame pointing to the same data as input.
     annotate(input, &output, last_roi[i], last_roi_extra[i]);
     if (output) {
+      // This is incorrect, and is only here as a test.
       if (input != in_frame) av_frame_free(&input);
       input = output;
     }

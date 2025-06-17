@@ -251,6 +251,14 @@ function buildSidebarMenu() {
               </a>
             </li>
             <li class="menu-item">
+              <a href="https://zmninja.zoneminder.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">face_5</i>
+                </span>
+                <span class="menu-title">' . translate("zmNinja") . '</span>
+              </a>
+            </li>
+						<li class="menu-item">
               <a href="https://wiki.zoneminder.com/" target="_blank">
                 <span class="menu-icon">
                   <i class="material-icons">article</i>

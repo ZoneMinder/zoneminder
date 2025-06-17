@@ -2411,7 +2411,7 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (1 and packet->ai_frame) {
+        if (packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
@@ -2564,7 +2564,6 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
                   Image *ai_image = packet->get_ai_image();
                   TimestampImage(ai_image, packet->timestamp);
                 }
-                //packet->in_frame = nullptr; // Don't need it anymore
               }
             } else if (0 > ret) {
               Debug(1, "Failed yolo");
@@ -3584,12 +3583,14 @@ int Monitor::Decode() {
         image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
         image_buffer[index]->Assign(packet->in_frame.get());
       }
+      //if (packet->detections.size())
+        //zm_terminate = true;
       if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
         // Won't be using hwframe
       }
       if (packet->needs_hw_transfer(mVideoCodecContext))
           packet->get_hwframe(mVideoCodecContext);
-      packet->hw_frame = nullptr;
+  //    packet->hw_frame = nullptr;
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;
       shared_data->decoder_image_count++;

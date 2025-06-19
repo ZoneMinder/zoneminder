@@ -31,7 +31,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   nms_thresh(0.45),
   network_ctx(nullptr),
   model(nullptr),
-  model_ctx(nullptr),
+  //model_ctx(nullptr),
   net_frame(),
   sw_scale_ctx(nullptr),
 
@@ -39,7 +39,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   drawbox(true),
   //drawbox_filter(nullptr),
   //drawbox_filter_ctx(nullptr),
-  drawtext(false),
+  drawtext(true),
   //drawtext_filter(nullptr),
   //drawtext_filter_ctx(nullptr),
 
@@ -68,8 +68,7 @@ Quadra_Yolo::~Quadra_Yolo() {
   if (network_ctx)
     ni_cleanup_network_context(network_ctx, use_hwframe);
   if (model) {
-    model->destroy_model(model_ctx);
-    delete model_ctx;
+    model->destroy_model(&model_ctx);
   }
 
   free(last_roi);
@@ -91,11 +90,6 @@ bool Quadra_Yolo::setup(
   std::string model_name = modelname;
   dec_stream = p_dec_stream;
   dec_ctx = decoder_ctx;
-  model_ctx = new YoloModelCtx;
-  if (model_ctx == nullptr) {
-    Error("failed to allocate yolo model");
-    return false;
-  }
 
   if (std::string::npos != nbg_file.find("yolov4")) {
     model = &yolov4;
@@ -137,7 +131,7 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
-  ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
+  ret = model->create_model(&model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
   if (ret != 0) {
     Error("failed to initialize yolo model");
     return false;
@@ -229,15 +223,15 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
 /* NetInt says if an image goes in, one will come out, so we can assume that 
  * out_packet corresponds to the image that the results are against.
  */
-int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
+int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
   /* pull filtered frames from the filtergraph */
-  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
+  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx.out_tensor);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
-    AVFrame *avframe = (use_hwframe and out_packet->hw_frame) ? out_packet->hw_frame.get() : out_packet->in_frame.get();
-    Debug(1, "hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
+    AVFrame *avframe = (use_hwframe and packet->hw_frame) ? packet->hw_frame.get() : packet->in_frame.get();
+    Debug(1, "receive_detection hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
       Error("read roi failed");
@@ -254,13 +248,13 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> out_packet) {
       Error("cannot draw roi");
       return -1;
     }
-    out_packet->set_ai_frame(out_frame);
+    packet->set_ai_frame(out_frame);
     zm_dump_video_frame(out_frame, "ai");
   } else {
     return 0;
   }
 
-  out_packet->detections = std::move(detections);
+  packet->detections = detections;
   return 1;
 } // end receive_detection
 
@@ -384,26 +378,7 @@ int Quadra_Yolo::draw_roi_box(
     color = "red";
     //color = "#FF000000";
   }
-#if SOFTWARE_DRAWBOX
-  Image in_image(inframe);
-#endif
 
-#if SOFTWARE_DRAWBOX
-  for (int i=0; i<line_width; i++) {
-#if 0
-    std::vector<Vector2> coords;
-    coords.push_back(Vector2(roi.left + i, roi.top + i));
-    coords.push_back(Vector2(roi.right - i, roi.top + i));
-    coords.push_back(Vector2(roi.right - i, roi.bottom - i));
-    coords.push_back(Vector2(roi.left + i, roi.bottom - i));
-
-    Polygon poly(coords);
-    in_image.Outline(kRGBGreen, poly);
-#else
-    in_image.DrawBox(roi.left+i, roi.top+i, roi.right-2*i, roi.bottom-2*i, kRGBGreen);
-#endif
-  }  // end foreach line
-#else
   for (int i=0; i<line_width; i++) {
     int x = roi.left + i; // line
     int y = roi.top + i;
@@ -423,16 +398,14 @@ int Quadra_Yolo::draw_roi_box(
   drawbox_filter.opt_set("w", w);
   drawbox_filter.opt_set("h", h);
 #endif
-      //drawbox_filter.opt_set("color", color.c_str());
+      //drawbox_filter.opt_set("color", color.c_str()); Doesn't work
   } // end foreach line
   drawbox_filter.send_command("ni_quadra_drawbox", "color", color.c_str());
 
   int ret = drawbox_filter.execute(inframe, outframe);
   SystemTimePoint endtime = std::chrono::system_clock::now();
-  Debug(4, "draw_roi_box took: %.2f seconds %d", FPSeconds(endtime - starttime).count(), ret);
+  Debug(1, "draw_roi_box took: %.2f seconds %d", FPSeconds(endtime - starttime).count(), ret);
   return ret;
-#endif
-  return 1;
 } // end draw_roi_box
 
 /* frame is the output from the model, not an image. Just raw info in the side data
@@ -444,7 +417,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   AVFrameSideData *sd_roi_extra = in_frame->side_data ? av_frame_get_side_data( in_frame, AV_FRAME_DATA_NETINT_REGIONS_OF_INTEREST_EXTRA) : nullptr;
 
   Debug(4, "Filt %d frame pts %3" PRId64, ++filt_cnt, in_frame->pts);
-	zm_dump_video_frame(in_frame, "Quadra: process_roi frame");
+	zm_dump_video_frame(in_frame, "Quadra: process_roi in_frame");
   if (!sd || !sd_roi_extra || sd->size == 0 || sd_roi_extra->size == 0) {
     *filt_frame = in_frame;
     if (*filt_frame == nullptr) {
@@ -474,10 +447,10 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
       Error("cannot download hwframe");
       return ret;
     }
+    zm_dump_video_frame(input, "Quadra: process_roi input");
   } else {
     input = in_frame;
   }
-  zm_dump_video_frame(input, "Quadra: process_roi input");
 
   AVRegionOfInterest *roi = (AVRegionOfInterest *)sd->data;
   AVRegionOfInterestNetintExtra *roi_extra = (AVRegionOfInterestNetintExtra *)sd_roi_extra->data;
@@ -490,11 +463,12 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   }
   int num = sd->size / roi->self_size;
 
-  nlohmann::json detections = nlohmann::json::array();
+  detections = nlohmann::json::array();
+  Debug(1, "Num, detections %d from sd %ld size / roi size %d", num, sd->size, roi->self_size);
 
   for (int i = 0; i < num; i++) {
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
-    detections.push_back({{"class_name", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
+    detections.push_back({{"class", roi_class[roi_extra[i].cls]}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
 
     AVFrame *output = nullptr;
     annotate(input, &output, roi[i], roi_extra[i]);
@@ -531,6 +505,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   if (input != in_frame and input != output) av_frame_free(&input);
   
   // Technicall we should have a lock around this, but since we only access from the Analysis thread, we won't worry about it.
+  // // Not sure why we free/allocate, would be more efficient to allocate the max and just overwrite.
   free(last_roi);
   free(last_roi_extra);
   AVRegionOfInterest* cur_roi = nullptr;
@@ -585,8 +560,12 @@ int Quadra_Yolo::annotate(
     if (ret < 0) {
       Error("draw roi box failed %d %s", ret, av_make_error_string(ret).c_str());
     } else {
-      if ((input != in_frame) && drawbox_output && (input != drawbox_output)) {
+      // These are all pointers... we don't want to free in_frame (yet) theoretically, but we do want to free the intermediate outputs.
+      // So, this SHOULD leave in_frame alone..., free input, assign output to input
+      Debug(1, "input %p =? in_frame %p drawbox_output %p", input, in_frame, drawbox_output);
+      if ((input != in_frame) && (input != drawbox_output)) {
         av_frame_free(&input);
+      } else if (drawbox_output) {
         input = drawbox_output;
       }
       zm_dump_video_frame(input, "Quadra: drawbox output");
@@ -604,16 +583,18 @@ int Quadra_Yolo::annotate(
     Debug(1, "Drawing text %s", text.c_str());
     AVFrame *drawtext_output = nullptr;
 
+    color = "white";
     zm_dump_video_frame(input, "Quadra: drawtext input");
     int ret = draw_text(input, &drawtext_output, text,
         roi.left+1+monitor->LabelSize(), roi.top+1+monitor->LabelSize(), color.c_str());
     if (ret < 0) {
       Error("cannot drawtext %d %s", ret, av_make_error_string(ret).c_str());
-      zm_dump_video_frame(input, "Quadra: drawtext input");
     } else {
       if (drawtext_output) {
         if (input != in_frame) av_frame_free(&input);
         input = drawtext_output;
+      } else {
+        Error("drawtext_output is null");
       }
       zm_dump_video_frame(input, "Quadra: drawtext");
     }
@@ -622,6 +603,7 @@ int Quadra_Yolo::annotate(
     Debug(4, "draw_roi_text took: %.2f seconds", FPSeconds(endtime - starttime).count());
   }  // end if drawtext
   *output = input;
+  // So in_frame should not be touched, and we should have an output frame, that references the same data as in_frame.
   return 1;
 } // end annotate
 
@@ -645,8 +627,10 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
 
   for (int i = 0; i < last_roi_count; i++) {
     AVFrame *output = nullptr;
+    // Annotate doesn't touch input, should return output, which is a frame pointing to the same data as input.
     annotate(input, &output, last_roi[i], last_roi_extra[i]);
     if (output) {
+      // This is incorrect, and is only here as a test.
       if (input != in_frame) av_frame_free(&input);
       input = output;
     }
@@ -701,7 +685,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   struct roi_box *roi_box = nullptr;
   int roi_num = 0;
 
-  int ret = model->ni_get_boxes(model_ctx, out->width, out->height, &roi_box, &roi_num);
+  int ret = model->ni_get_boxes(&model_ctx, out->width, out->height, &roi_box, &roi_num);
   if (ret < 0) {
     Error( "failed to get roi.");
     if (roi_box) free(roi_box);
@@ -773,7 +757,7 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
   }
 
   Debug(1, "Drawtext: %s %dx%d %s", text.c_str(), x, y, colour.c_str());
-#if 1
+#if 0
   drawtext_filter.opt_set("x", x);
   drawtext_filter.opt_set("y", y);
   drawtext_filter.opt_set("text", text.c_str());

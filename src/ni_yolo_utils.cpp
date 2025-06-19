@@ -458,20 +458,12 @@ void ni_resize_coords_tiling_mode(detection *det, struct roi_box *roi_box,
     right  = (det->bbox.w / gain_x);
     bot    = (det->bbox.h / gain_y);
 
-    if (top < 0)
-        top = 0;
+    if (top < 0) top = 0;
+    if (left < 0) left = 0;
+    if (right > img_width) right = img_width;
+    if (bot > img_height) bot = img_height;
 
-    if (left < 0)
-        left = 0;
-
-    if (right > img_width)
-        right = img_width;
-
-    if (bot > img_height)
-        bot = img_height;
-
-    Debug(1, "top %d, left %d, right %d, bottom %d\n", top,
-            left, right, bot);
+    Debug(5, "top %d, left %d, right %d, bottom %d\n", top, left, right, bot);
 
     roi_box->left       = left;
     roi_box->right      = right;

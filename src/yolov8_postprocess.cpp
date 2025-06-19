@@ -20,7 +20,7 @@ static int ni_yolov8_get_boxes(YoloModelCtx *ctx, uint32_t img_width,
     detection *dets;
     struct roi_box *rbox;
 
-    *roi_box = NULL;
+    *roi_box = nullptr;
     *roi_num = 0;
 
     ret = ni_get_yolov8_detections(ctx);
@@ -93,7 +93,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
 
     ctx->output_number = network_data->output_num;
     ctx->out_tensor = (uint8_t **)calloc(network_data->output_num, sizeof(uint8_t **));
-    if (ctx->out_tensor == NULL) {
+    if (ctx->out_tensor == nullptr) {
         Error("failed to allocate output tensor bufptr");
         ret = NIERROR(ENOMEM);
         goto out;
@@ -102,7 +102,7 @@ static int create_yolov8_model(YoloModelCtx *ctx, ni_network_data_t *network_dat
     for (unsigned int i = 0; i < network_data->output_num; i++) {
         ni_network_layer_params_t *p_param = &network_data->linfo.out_param[i];
         ctx->out_tensor[i] = (uint8_t *)malloc(ni_ai_network_layer_dims(p_param) * sizeof(float));
-        if (ctx->out_tensor[i] == NULL) {
+        if (ctx->out_tensor[i] == nullptr) {
             Error("failed to allocate output tensor buffer");
             ret = NIERROR(ENOMEM);
             goto out;
@@ -148,21 +148,20 @@ out:
     return ret;
 }
 
-static void destroy_yolov8_model(YoloModelCtx *ctx)
-{
+static void destroy_yolov8_model(YoloModelCtx *ctx) {
     if (ctx->out_tensor) {
         int i;
         for (i = 0; i < ctx->output_number; i++) {
             free(ctx->out_tensor[i]);
             //free(ctx->layers[i].biases);
-            //ctx->layers[i].biases = NULL;
+            //ctx->layers[i].biases = nullptr;
         }
         free(ctx->out_tensor);
-        ctx->out_tensor = NULL;
+        ctx->out_tensor = nullptr;
     }
     free(ctx->det_cache.dets);
     free(ctx->layers);
-    ctx->layers = NULL;
+    ctx->layers = nullptr;
 }
 
 YoloModel yolov8 = {

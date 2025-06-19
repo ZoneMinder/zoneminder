@@ -1220,3 +1220,6 @@ button.btn.btn-view-watch:hover {
     visibility: hidden;
 }
 /* --- This block should always be located at the end! */
+video-stream {
+  display: block;
+}

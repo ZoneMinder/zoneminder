@@ -1172,7 +1172,7 @@ class Monitor extends ZM_Object {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
+    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';
@@ -1412,12 +1412,12 @@ class Monitor extends ZM_Object {
   }
 
 public function getStreamMode() {
-  if ($this->JanusEnabled()) {
-    $streamMode = 'janus';
+  if ($this->Go2RTCEnabled()) {
+    $streamMode = 'go2rtc';
   } else if ($this->RTSP2WebEnabled()) {
-    $streamMode = 'rtsp2web_'.strToLower($this->RTSP2WebType());
-  } else if ($this->Go2RTCEnabled()) {
-    $streamMode = 'go2rtc_'.strToLower($this->Go2RTCType());
+    $streamMode = 'rtsp2web_'.$this->RTSP2WebType();
+  } else if ($this->JanusEnabled()) {
+    $streamMode = 'janus';
   } else {
     $streamMode = getStreamMode();
   }

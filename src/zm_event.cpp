@@ -21,10 +21,12 @@
 
 #include "zm_camera.h"
 #include "zm_db.h"
+#include "zm_event_tag.h"
 #include "zm_frame.h"
 #include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_tag.h"
 #include "zm_utils.h"
 #include "zm_videostore.h"
 
@@ -580,13 +582,44 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet);
   }
-  if (!packet->detections.empty()) {
+  if (packet->detections.size()) {
     std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
     dbQueue.push(std::move(sql));
-  }
 
-    end_time = packet->timestamp;
-}
+    for (auto it = packet->detections.begin(); it != packet->detections.end(); ++it) {
+      auto detection = *it;
+      Debug(1, "detection %s", detection.dump().c_str());
+      std::string cls = detection["class"];
+      Tag *tag = nullptr;
+      auto tag_it = tags.find(cls);
+      if (tag_it == tags.end()) {
+        Debug(1, "Tag not foudn %s", cls.c_str());
+        tag = Tag::find(cls);
+        if (!tag) {
+          tag = new Tag();
+          tag->Name(cls);
+          tag->save();
+          Debug(1, "Created new Tag %s", cls.c_str());
+        } else {
+          Debug(1, "Found tag for %s", cls.c_str());
+        }
+
+        if (tag->Id()) {
+          tags.emplace(std::make_pair(cls, *tag));
+          Event_Tag event_tag(tag->Id(), id, packet->timestamp);
+          event_tag.save();
+        }
+      } else {
+        Debug(1, "Already have tag %s", cls.c_str());
+        tag = &(tag_it->second);
+      }
+    }  // end foreach detection
+  } else {
+    Debug(1, "detections %s", packet->detections.dump().c_str());
+  } // end if detections
+
+  end_time = packet->timestamp;
+} // end void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 
 void Event::WriteDbFrames() {
   std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";

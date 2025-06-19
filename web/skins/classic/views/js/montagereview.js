@@ -445,7 +445,7 @@ function timerFire() {
   if ((currentSpeed > 0 || liveMode != 0) && !timerObj) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   } else {
-    console.log("CurrentSpeed", currentSpeed, "liveMode", liveMode, timerObj);
+    console.log("timefire", "CurrentSpeed", currentSpeed, "liveMode", liveMode, timerObj);
   }
 } // end function timerFire()
 
@@ -566,26 +566,30 @@ function drawEventOnGraph(Event) {
 }
 
 function drawGraph() {
-  var divWidth = document.getElementById('timelinediv').clientWidth;
+  underSlider = undefined; // flag we don't have a slider cached
+  const divWidth = document.getElementById('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10); // 10%
   if (cHeight < numMonitors * 20) { //Minimum 20px per monitor maybe it should be 10px per monitor?
     cHeight = numMonitors * 20;
   }
   canvas.height = cHeight;
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "white";
 
   if (events && ( Object.keys(events).length == 0 ) ) {
-    ctx.globalAlpha = 1;
     ctx.font = "40px Georgia";
-    ctx.fillStyle = "white";
-    var t = "Loading events or none found.";
+    const t = LOADING ? "Loading events" : "No events found.";
     var l = ctx.measureText(t).width;
     ctx.fillText(t, (cWidth - l)/2, cHeight-10);
-    underSlider = undefined;
     return;
   }
 
   rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
+  // Note that this may be a sparse array
+  ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
+
+  // Should we clear the canvas?
 
   // first fill in the bars for the events (not alarms)
   // At first, no events loaded, that's ok, later, we will have some events, should only draw those in the time range.
@@ -602,15 +606,10 @@ function drawGraph() {
   } // end foreach Event
 
   for (let i=0; i < numMonitors; i++) {
-    // Note that this may be a sparse array
-    ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
-    ctx.fillStyle = "white";
-    ctx.globalAlpha = 1;
     // This should roughly center font in row
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
 
-  underSlider = undefined; // flag we don't have a slider cached
   drawSliderOnGraph(currentTimeSecs);
 } // end function drawGraph
 
@@ -997,39 +996,67 @@ function clickMonitor(event) {
 }
 
 function changeFilters(e) {
-  console.log(e);
+  console.log(e, this);
   // Need to update minTimeSecs and maxTimeSecs
 
   let minMoment, maxMoment;
 
-  const regexp = /filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
-  $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
-    const matches = this.name.match(regexp);
-    if (matches && matches.length) {
-      const val = document.getElementById('filter[Query][terms]['+matches[1]+'][val]');
-      if (val) {
-        const op = document.getElementById('filter[Query][terms]['+matches[1]+'][op]');
-        if (op == '>=') {
-          minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-          if (!minMoment.isValid()) {
-            alert("Date start is not valid." + val.value);
-            return;
-          }
-        } else if (op == '<=') {
-          maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-          if (!maxMoment.isValid()) maxMoment = moment();
-        }
-      } else {
-        console.log("no val ", matches);
-      }
-    } else { 
-      console.log("No matches for ", this.name);
-    }
-  });
+  const matches = this.name.match(/^filter\[Query\]\[terms\]\[(\d+)\]\[val\]$/);
+  console.log(matches);
+  if (matches && matches.length) {
+    const name = 'filter[Query][terms]['+matches[1]+'][attr]';
 
+    const attr = this.form.elements[name];
+    if (attr && (attr.value == 'StartDateTime')) {
+      const val = this;
+      const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+      if (op.value == '>=') {
+        minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+        if (!minMoment.isValid()) {
+          alert("Date start is not valid." + val.value);
+          return;
+        }
+      } else if (op == '<=') {
+        maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+        if (!maxMoment.isValid()) maxMoment = moment();
+      }
+    } else {
+      console.log("No attr", attr);
+    }
+  } else {
+    const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
+    $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+      const matches = this.name.match(regexp);
+      console.log('looking at', this, matches);
+      if (matches && matches.length) {
+        const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
+        if (val) {
+          const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+          if (op.value == '>=') {
+            minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+            if (!minMoment.isValid()) {
+              alert("Date start is not valid." + val.value);
+              return;
+            }
+          } else if (op == '<=') {
+            maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+            if (!maxMoment.isValid()) maxMoment = moment();
+          }
+        } else {
+          console.log("no val ", matches);
+        }
+      } else { 
+        console.log("No matches for ", this.name);
+      }
+    });
+  } // end if a datetime or something else
   if (minMoment) {
     minTimeSecs = minMoment.unix();
-    if (currentTimeSecs < minTimeSecs) currentTimeSecs = minTimeSecs;
+    console.log("Set minMoment to ", minTimeSecs);
+    if (currentTimeSecs < minTimeSecs) {
+      console.log("Adjusting currentTimeSecs", currentTimeSecs, minTimeSecs);
+      currentTimeSecs = minTimeSecs;
+    }
   } else { 
     console.log("No minMoment");
   }

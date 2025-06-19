@@ -574,11 +574,11 @@ function drawGraph() {
     cHeight = numMonitors * 20;
   }
   canvas.height = cHeight;
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "white";
 
   if (events && ( Object.keys(events).length == 0 ) ) {
     ctx.font = "40px Georgia";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "white";
     const t = LOADING ? "Loading events" : "No events found.";
     var l = ctx.measureText(t).width;
     ctx.fillText(t, (cWidth - l)/2, cHeight-10);
@@ -587,7 +587,6 @@ function drawGraph() {
 
   rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
   // Note that this may be a sparse array
-  ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
 
   // Should we clear the canvas?
 
@@ -606,6 +605,10 @@ function drawGraph() {
   } // end foreach Event
 
   for (let i=0; i < numMonitors; i++) {
+    // Apparently we have to set these each time before calling fillText
+    ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "white";
     // This should roughly center font in row
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }

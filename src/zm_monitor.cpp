@@ -1457,13 +1457,13 @@ void Monitor::actionReload() {
 }
 
 void Monitor::actionEnable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = true;
+  Info("actionEnable, capturing enabled.");
 }
 
 void Monitor::actionDisable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = false;
+  Info("actionDisable, capturing temporarily disabled.");
 }
 
 void Monitor::actionSuspend() {
@@ -2599,6 +2599,10 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
+  if (!shared_data->capturing) {
+    Debug(1, "Not capturing");
+    return 0;
+  }
   unsigned int index = shared_data->image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu", image_buffer.size());
@@ -3264,30 +3268,47 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
-#endif // ZM_HAS_V4L2
-  sprintf(output+strlen(output), "Colours : %u\n", camera->Colours() );
-  sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
-  sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
-  sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
-  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.x_, label_coord.y_ );
-  sprintf(output+strlen(output), "Label Size : %d\n", label_size );
-  sprintf(output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
-  sprintf(output+strlen(output), "Warmup Count : %d\n", warmup_count );
-  sprintf(output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
-  sprintf(output+strlen(output), "Post Event Count : %d\n", post_event_count );
-  sprintf(output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
-  sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
-  sprintf(output+strlen(output), "Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(section_length).count()));
-  sprintf(output+strlen(output), "Min Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
-  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay != Seconds(0) ? 1 / FPSeconds(alarm_capture_delay).count() : 0.0);
-  sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
-  sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
-  sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output+strlen(output), "Capturing %d - %s\n", capturing, Capturing_Strings[capturing].c_str());
-  sprintf(output+strlen(output), "Analysing %d - %s\n", analysing, Analysing_Strings[analysing].c_str());
-  sprintf(output+strlen(output), "Recording %d - %s\n", recording, Recording_Strings[recording].c_str());
-  sprintf(output+strlen(output), "Zones : %zu\n", zones.size());
+#endif  // ZM_HAS_V4L2
+  sprintf(output + strlen(output), "Colours : %u\n", camera->Colours());
+  sprintf(output + strlen(output), "Subpixel Order : %u\n",
+          camera->SubpixelOrder());
+  sprintf(output + strlen(output), "Event Prefix : %s\n", event_prefix.c_str());
+  sprintf(output + strlen(output), "Label Format : %s\n", label_format.c_str());
+  sprintf(output + strlen(output), "Label Coord : %d,%d\n", label_coord.x_,
+          label_coord.y_);
+  sprintf(output + strlen(output), "Label Size : %d\n", label_size);
+  sprintf(output + strlen(output), "Image Buffer Count : %d\n",
+          image_buffer_count);
+  sprintf(output + strlen(output), "Warmup Count : %d\n", warmup_count);
+  sprintf(output + strlen(output), "Pre Event Count : %d\n", pre_event_count);
+  sprintf(output + strlen(output), "Post Event Count : %d\n", post_event_count);
+  sprintf(output + strlen(output), "Stream Replay Buffer : %d\n",
+          stream_replay_buffer);
+  sprintf(output + strlen(output), "Alarm Frame Count : %d\n",
+          alarm_frame_count);
+  sprintf(output + strlen(output), "Section Length : %" PRIi64 "\n",
+          static_cast<int64>(Seconds(section_length).count()));
+  sprintf(output + strlen(output), "Min Section Length : %" PRIi64 "\n",
+          static_cast<int64>(Seconds(min_section_length).count()));
+  sprintf(
+      output + strlen(output), "Maximum FPS : %.2f\n",
+      capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
+  sprintf(output + strlen(output), "Alarm Maximum FPS : %.2f\n",
+          alarm_capture_delay != Seconds(0)
+              ? 1 / FPSeconds(alarm_capture_delay).count()
+              : 0.0);
+  sprintf(output + strlen(output), "Reference Blend %%ge : %d\n",
+          ref_blend_perc);
+  sprintf(output + strlen(output), "Alarm Reference Blend %%ge : %d\n",
+          alarm_ref_blend_perc);
+  sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
+  sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
+          Capturing_Strings[shared_data->capturing].c_str());
+  sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
+          Analysing_Strings[analysing].c_str());
+  sprintf(output + strlen(output), "Recording %d - %s\n", recording,
+          Recording_Strings[recording].c_str());
+  sprintf(output + strlen(output), "Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }

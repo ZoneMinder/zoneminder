@@ -3,6 +3,61 @@ Ubuntu
 
 .. contents::
 
+Ubuntu 24.04 (Noble)
+--------------------
+These instructions are for a brand new Ubuntu 24.04 LTS system which does not have ZM installed.
+
+**Step 1:** Update system
+
+::
+
+    sudo apt update
+    sudo apt full-upgrade
+
+**Step 2:** Install PPA
+
+The ZoneMinder project team maintains a `PPA <https://askubuntu.com/questions/4983/what-are-ppas-and-how-do-i-use-them>`_, which is updated immediately following a new release of ZoneMinder.
+To use this repository instead of the official Ubuntu repository, enter the following commands:
+
+::
+
+        sudo add-apt-repository ppa:iconnor/zoneminder-master
+        sudo apt update
+
+**Step 3:** Install MySQL
+
+::
+
+        sudo apt install mysql-server
+
+
+**Step 4:** Install ZoneMinder
+
+::
+
+        sudo apt install zoneminder
+
+
+**Step 5:** Configure Apache correctly:
+
+::
+        
+        sudo a2enmod rewrite headers cgi
+        sudo a2enconf zoneminder
+        sudo systemctl restart apache2
+
+
+**Step 6:** Enable and start zoneminder
+
+::
+
+        sudo systemctl enable zoneminder
+        sudo systemctl start zoneminder
+
+**Step 7:** Open Zoneminder
+
+Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder Console.
+
 Ubuntu 22.04 (Jammy)
 --------------------
 These instructions are for a brand new ubuntu 22.04 LTS system which does not have ZM installed.

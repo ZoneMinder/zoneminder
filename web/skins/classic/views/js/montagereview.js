@@ -1257,6 +1257,15 @@ function initPage() {
   $j('#archive_status').bind('change', function() {
     this.form.submit();
   });
+
+  if (useOldMenuView) {
+    // If new menu is used, then Datepicker initialization occurs in main "skin.js"
+    // Reinitialization is not allowed because the 'Destroy' method is missing.
+    initDatepickerMontageReviewPage();
+  }
+}
+
+function initDatepickerMontageReviewPage() {
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     if (el.hasClass('datetimepicker')) {

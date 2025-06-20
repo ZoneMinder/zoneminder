@@ -21,7 +21,7 @@ function datetime_change(newDate, oldData) {
   }
 }
 
-function initPage() {
+function initDatepickerReportEventAuditPage() {
   $j('#minTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
@@ -38,6 +38,14 @@ function initPage() {
     constrainInput: false,
     onClose: datetime_change
   });
+}
+
+function initPage() {
+  if (useOldMenuView) {
+    // If new menu is used, then Datepicker initialization occurs in main "skin.js"
+    // Reinitialization is not allowed because the 'Destroy' method is missing.
+    initDatepickerReportEventAuditPage();
+  }
 }
 
 // Kick everything off

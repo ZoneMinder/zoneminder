@@ -895,7 +895,7 @@ function getAdditionalLinksHTML($view) {
   if (defined('ZM_WEB_NAVBAR_LINKS')) {
     if (ZM_WEB_NAVBAR_LINKS) {
       foreach (explode(',', ZM_WEB_NAVBAR_LINKS) as $link) {
-        $result .= $link;
+        $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
       }
     }
   }

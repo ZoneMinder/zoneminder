@@ -296,6 +296,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getMapHTML($view);
+          echo getAdditionalLinksHTML($view);
           echo getHeaderFlipHTML();
           echo '</ul></div><div id="accountstatus">
 ';
@@ -426,6 +427,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
             echo getMapHTML($view);
+            echo getAdditionalLinksHTML($view);
           echo '</ul>';
       }
       ?>
@@ -884,6 +886,23 @@ function getMapHTML($view) {
 
   return $result;
 }
+
+// Returns the html representing the content of the ZM_WEB_NAVBAR_LINKS content
+
+function getAdditionalLinksHTML($view) {
+  $result = '';
+
+  if (defined('ZM_WEB_NAVBAR_LINKS')) {
+    if (ZM_WEB_NAVBAR_LINKS) {
+      foreach (explode(',', ZM_WEB_NAVBAR_LINKS) as $link) {
+        $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+      }
+    }
+  }
+
+  return $result;
+}
+
 
 // Returns the html representing the header collapse toggle menu item
 function getHeaderFlipHTML() {

@@ -88,7 +88,7 @@ foreach ($dnsmasq_config as $name=>$value) {
     # Handled below
   } else {
     echo '<div class="row"><label class="form-label">'.$name.'</label><span class="value">'.PHP_EOL;
-    echo '<input type="text" name="config['.validHtmlStr($name).']" value="'.validHtmlStr($value).'"/></span></div>'.PHP_EOL;
+    echo '<input type="text" name="dnsmasq_config['.validHtmlStr($name).']" value="'.validHtmlStr($value).'"/></span></div>'.PHP_EOL;
   }
 }
 ?>
@@ -97,24 +97,25 @@ foreach ($dnsmasq_config as $name=>$value) {
     <div class="leases"><h2>Leases</h2>
 <?php 
 function process_dnsmasq_configfile($configFile) {
-  $configvals = array();
+  $our_configvals = array();
   if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or ZM\Error('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
-      } else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
-        $configvals[$matches[1]] = isset($matches[3]) ? $matches[3] : 'yes';
-			} else {
-				ZM\Error("Malformed line in config $configFile\n$str");
-			}
+      } else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*option:[^=\s]+)?(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
+	      //ZM\Debug(print_r($matches, true));
+        $our_configvals[$matches[1].(isset($matches[2])?$matches[2]:'')] = isset($matches[4]) ? $matches[4] : 'yes';
+      } else {
+	      ZM\Error("Malformed line in config $configFile\n$str");
+      }
     }
     fclose($cfg);
   } else {
     ZM\Error('WARNING: dnsmasq configuration file found but is not readable. Check file permissions on '.$configFile);
   }
-  return $configvals;
+  return $our_configvals;
 }
 
 function read_leasefile($file) {

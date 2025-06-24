@@ -50,7 +50,7 @@ function evaluateLoadTimes() {
   // limit this from about 40fps to .1 fps
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
-  setSpeed(speedIndex);
+  //setSpeed(speedIndex);
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
@@ -425,18 +425,18 @@ function loadImage2Monitor(monId, url) {
 function timerFire() {
   // See if we need to reschedule
   if ( ( currentDisplayInterval != timerInterval ) || ( currentSpeed == 0 ) ) {
+    console.log("Turn off interrupts timerInterfave", timerInterval, currentDisplayInterval, currentSpeed);
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
-    setSpeed(0);
+    if (speedIndex) setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
     outputUpdate(playSecsPerInterval + currentTimeSecs);
@@ -445,9 +445,8 @@ function timerFire() {
   if ((currentSpeed > 0 || liveMode != 0) && !timerObj) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   } else {
-    console.log("CurrentSpeed", currentSpeed, "liveMode", liveMode, timerObj);
+    console.log("timefire", "CurrentSpeed", currentSpeed, "liveMode", liveMode, timerObj);
   }
-  return;
 } // end function timerFire()
 
 // val is seconds?
@@ -503,12 +502,7 @@ function drawSliderOnGraph(val) {
   o.style.font = labfont;
   // try to get length and then when we get too close to the right switch to the left
   var len = o.offsetWidth;
-  var x;
-  if ( sliderX > cWidth/2 ) {
-    x = sliderX - len - 10;
-  } else {
-    x = sliderX + 10;
-  }
+  const x = (sliderX > cWidth/2) ? sliderX - len - 10 : sliderX + 10;
   o.style.left = x.toString() + "px";
 
   // This displays (or not) the left/right limits depending on how close the slider is.
@@ -516,11 +510,6 @@ function drawSliderOnGraph(val) {
   // If this starts to collide increase some of the extra space
 
   o = document.getElementById('scrubleft');
-  o.innerHTML = secs2dbstr(minTimeSecs);
-  o.style.position = "absolute";
-  o.style.bottom = labbottom;
-  o.style.font = labfont;
-  o.style.left = "5px";
   if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
   }
@@ -534,12 +523,6 @@ function drawSliderOnGraph(val) {
   }
 
   o = document.getElementById('scrubright');
-  o.innerHTML = secs2dbstr(maxTimeSecs);
-  o.style.position = "absolute";
-  o.style.bottom = labbottom;
-  o.style.font = labfont;
-  // If the slider will overlay part of this suppress (this is the right side)
-  o.style.left=(cWidth - len - 15).toString() + "px";
   if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
     o.style.display = "none";
   } else {
@@ -551,8 +534,8 @@ function drawSliderOnGraph(val) {
 function drawFrameOnGraph(frame) {
   if (!frame.Score) return;
   // Now put in scored frames (if any)
-  var x1 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
-  var x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
+  let x1 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
+  let x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
   if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
   ctx.fillStyle=monitorColour[Event.MonitorId];
   //ctx.fillStyle = '#ff0000';
@@ -579,34 +562,36 @@ function drawEventOnGraph(Event) {
   ctx.clearRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
   ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight-2);
   //outputUpdate(currentTimeSecs);
-  console.log("Drew event from ", x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
+  //console.log("Drew event from ", x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
 }
 
 function drawGraph() {
-  var divWidth = document.getElementById('timelinediv').clientWidth;
+  underSlider = undefined; // flag we don't have a slider cached
+  const divWidth = document.getElementById('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
-  cHeight = parseInt(window.innerHeight * 0.10);
-  if ( cHeight < numMonitors * 20 ) {
+  cHeight = parseInt(window.innerHeight * 0.10); // 10%
+  if (cHeight < numMonitors * 20) { //Minimum 20px per monitor maybe it should be 10px per monitor?
     cHeight = numMonitors * 20;
   }
-
   canvas.height = cHeight;
 
-  if ( events && ( Object.keys(events).length == 0 ) ) {
-    ctx.globalAlpha = 1;
+  if (events && ( Object.keys(events).length == 0 ) ) {
     ctx.font = "40px Georgia";
+    ctx.globalAlpha = 1;
     ctx.fillStyle = "white";
-    var t = "No data found in range - choose differently";
+    const t = LOADING ? "Loading events" : "No events found.";
     var l = ctx.measureText(t).width;
     ctx.fillText(t, (cWidth - l)/2, cHeight-10);
-    underSlider = undefined;
     return;
   }
+
   rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
+  // Note that this may be a sparse array
+
+  // Should we clear the canvas?
 
   // first fill in the bars for the events (not alarms)
-
-  console.log(events);
+  // At first, no events loaded, that's ok, later, we will have some events, should only draw those in the time range.
   for (const event_id in events) {
     const Event = events[event_id];
     drawEventOnGraph(Event);
@@ -620,16 +605,15 @@ function drawGraph() {
   } // end foreach Event
 
   for (let i=0; i < numMonitors; i++) {
-    // Note that this may be a sparse array
+    // Apparently we have to set these each time before calling fillText
     ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
-    ctx.fillStyle = "white";
     ctx.globalAlpha = 1;
+    ctx.fillStyle = "white";
     // This should roughly center font in row
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
-  underSlider = undefined; // flag we don't have a slider cached
+
   drawSliderOnGraph(currentTimeSecs);
-  return;
 } // end function drawGraph
 
 function redrawScreen() {
@@ -1014,48 +998,87 @@ function clickMonitor(event) {
   return;
 }
 
-function changeDateTime(e) {
-/*
-  var minTime_element = $j('#minTime');
-  var maxTime_element = $j('#maxTime');
+function changeFilters(e) {
+  console.log(e, this);
+  // Need to update minTimeSecs and maxTimeSecs
 
-  var minTime = moment(minTime_element.val());
-  var maxTime = moment(maxTime_element.val());
-  if ( minTime.isAfter(maxTime) ) {
-    maxTime_element.parent().addClass('has-error');
-    return; // Don't reload because we have invalid datetime filter.
+  let minMoment, maxMoment;
+
+  const matches = this.name.match(/^filter\[Query\]\[terms\]\[(\d+)\]\[val\]$/);
+  console.log(matches);
+  if (matches && matches.length) {
+    const name = 'filter[Query][terms]['+matches[1]+'][attr]';
+
+    const attr = this.form.elements[name];
+    if (attr && (attr.value == 'StartDateTime')) {
+      const val = this;
+      const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+      if (op.value == '>=') {
+        minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+        if (!minMoment.isValid()) {
+          alert("Date start is not valid." + val.value);
+          return;
+        }
+      } else if (op == '<=') {
+        maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+        if (!maxMoment.isValid()) maxMoment = moment();
+      }
+    } else {
+      console.log("No attr", attr);
+    }
   } else {
-    maxTime_element.parent().removeClass('has-error');
+    const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
+    $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+      const matches = this.name.match(regexp);
+      console.log('looking at', this, matches);
+      if (matches && matches.length) {
+        const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
+        if (val) {
+          const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+          if (op.value == '>=') {
+            minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+            if (!minMoment.isValid()) {
+              alert("Date start is not valid." + val.value);
+              return;
+            }
+          } else if (op == '<=') {
+            maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
+            if (!maxMoment.isValid()) maxMoment = moment();
+          }
+        } else {
+          console.log("no val ", matches);
+        }
+      } else { 
+        console.log("No matches for ", this.name);
+      }
+    });
+  } // end if a datetime or something else
+  if (minMoment) {
+    minTimeSecs = minMoment.unix();
+    console.log("Set minMoment to ", minTimeSecs);
+    if (currentTimeSecs < minTimeSecs) {
+      console.log("Adjusting currentTimeSecs", currentTimeSecs, minTimeSecs);
+      currentTimeSecs = minTimeSecs;
+    }
+  } else { 
+    console.log("No minMoment");
   }
 
-  var minStr = "&minTime="+($j('#minTime')[0].value);
-  var maxStr = "&maxTime="+($j('#maxTime')[0].value);
-*/
-
-  var zoomStr="";
-  for ( var i=0; i < numMonitors; i++ ) {
-    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) { // allow for some up/down changes and just treat as 1 of almost 1
-      zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
-    }
+  if (maxMoment) {
+    maxTimeSecs = maxMoment.unix();
+    console.log(currentTimeSecs,  minTimeSecs, maxTimeSecs);
+    if (currentTimeSecs > maxTimeSecs) currentTimeSecs = maxTimeSecs;
+  } else { 
+    console.log("No maxMoment");
   }
 
   // Reloading can take a while, so stop interrupts to reduce load
   clearInterval(timerObj);
   timerObj = null;
 
-  drawGraph();
-
-  console.log("ChangeDateTime");
+  drawGraph(); // Will use new values
   loadEventData();
-  console.log("timerFire from changeDateTime");
   wait_for_events();
-
-  //const form = $j('#montagereview_form');
-  //console.log(form.serialize());
-
-  //var uri = "?" + form.serialize() + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
-  //var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
-  //window.location = uri;
 }
 
 function loadEventData(e) {
@@ -1209,6 +1232,7 @@ function initPage() {
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw
   loadEventData();
+  wait_for_events();
   redrawScreen();
 
   $j('#scaleslider').bind('change', function() {
@@ -1236,15 +1260,13 @@ function initPage() {
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeFilters});
     } else if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeFilters});
     } else {
-      el.on('change', changeDateTime);
+      el.on('change', changeFilters);
     }
   });
-
-  wait_for_events();
 }
 
 function wait_for_events() {
@@ -1287,7 +1309,6 @@ window.addEventListener('DOMContentLoaded', initPage);
 
 /* Expects and Object, not an array, of EventId=>Event mappings. */
 function loadFrames(zm_events) {
-  console.log("Loading frames", zm_events);
   return new Promise(function(resolve, reject) {
     const url = Servers[serverId].urlToApi()+'/frames/index';
 

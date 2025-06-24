@@ -82,9 +82,15 @@ class EventsController extends AppController {
       // TODO: Implement request based limits.
 
       # 'limit' => '100',
+      
+
       'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
+    if ($this->request->query('limit')) {
+      $settings['limit'] = $this->request->query('limit');
+    }
+
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
         array(

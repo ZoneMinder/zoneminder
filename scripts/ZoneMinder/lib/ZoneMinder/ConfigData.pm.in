@@ -1729,6 +1729,13 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_NAVBAR_LINKS',
+    default     => '',
+    description => 'Additional Links to put in navbar.  Should be a comma separated list of HTML a tags.',
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
     name          => 'ZM_WEB_NAVBAR_STICKY',
     default       => '1',
     description   => 'Are navbars and button bars sticky?',

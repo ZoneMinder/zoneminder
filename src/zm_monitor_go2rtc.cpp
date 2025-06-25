@@ -27,8 +27,8 @@
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
   Use_RTSP_Restream = false;
-  if ((config.go2rtc_api_path != nullptr) && (config.go2rtc_api_path[0] != '\0')) {
-    Go2RTC_endpoint = config.go2rtc_api_path;
+  if ((config.go2rtc_path != nullptr) && (config.go2rtc_path[0] != '\0')) {
+    Go2RTC_endpoint = config.go2rtc_path;
     // remove the trailing slash if present
     if (Go2RTC_endpoint.back() == '/') Go2RTC_endpoint.pop_back();
   } else {

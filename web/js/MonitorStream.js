@@ -328,9 +328,8 @@ function MonitorStream(monitorData) {
       }
     }
     if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
-      console.log("GO", ZM_GO2RTC_API_PATH, ZM_GO2RTC_PATH);
       if (ZM_GO2RTC_PATH) {
-        const url = new URL(ZM_GO2RTC_API_PATH);
+        const url = new URL(ZM_GO2RTC_PATH);
         const useSSL = (url.protocol == 'https:');
 
         const videoEl = document.getElementById("liveStream" + this.id);

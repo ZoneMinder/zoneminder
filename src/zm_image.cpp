@@ -362,7 +362,7 @@ int Image::PopulateFrame(AVFrame *frame) const {
     Error("Problem setting up data pointers into image %s", av_make_error_string(rc_size).c_str());
     return rc_size;
   } else {
-    Debug(1, "rc sie %d", rc_size);
+    Debug(1, "Image.Populate frame rc/size %d", rc_size);
   }
 
   frame->width = width;

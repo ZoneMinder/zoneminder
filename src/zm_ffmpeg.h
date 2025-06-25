@@ -43,6 +43,10 @@ extern "C" {
 #include <libavutil/hwcontext.h>
 #endif
 
+#ifdef HAVE_QUADRA
+#include <ni_device_api.h>
+#endif
+
   /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
    * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
    * a is the major version
@@ -308,10 +312,24 @@ struct av_packet_guard {
   AVPacket *packet;
 };
 
+
 struct zm_free_av_frame {
   void operator()(AVFrame *frame) const {
    //Debug(1, "Freeing frame at %p", frame);
     //Debug(1, "Freeing frame at %p", frame->data);
+#ifdef HAVE_QUADRA
+    if (frame->data[3]) {
+        niFrameSurface1_t *fs;
+
+        fs = (niFrameSurface1_t *) frame->data[3];
+        if (fs) {
+            Debug(1, "*** Free buf id %d ref count(%d) is_writeable(%d) ***",
+              fs->ui16FrameIdx, 
+              av_buffer_get_ref_count(frame->buf[0]),
+              av_frame_is_writable(frame));
+        }
+    }
+#endif
     if (frame) av_frame_free(&frame);
   }
 };

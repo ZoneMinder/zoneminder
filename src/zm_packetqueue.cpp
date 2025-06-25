@@ -169,6 +169,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           if (warned_count < 2) {
             warned_count++;
             Warning("Found locked packet %d when trying to free up video packets. Our packet %d", zm_packet->image_index, add_packet->image_index);
+            break;
           }
         }
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
@@ -480,7 +481,7 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
     Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
     return packet_lock;
   }
-  Debug(1, "Failed to lock packet %d, returning... something?", p->image_index);
+  //Debug(1, "Failed to lock packet %d, returning... something?", p->image_index);
   return ZMPacketLock();
 }
 
@@ -498,7 +499,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
     Debug(4, "Have Lock in get_packet");
     while (!(deleting or zm_terminate)) {
       while ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
-        Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+        Debug(4, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
         condition.wait(lck);
       }
       if (deleting or zm_terminate) break;
@@ -514,12 +515,12 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
         std::shared_ptr<ZMPacket> p = *(*it);
         ZMPacketLock packet_lock(p);
         if (packet_lock.trylock()) {
-          Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
+          Debug(4, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
           return packet_lock;
         }
       }
       
-      Debug(2, "waiting on packet %d.  Queue size %zu it == end? %d", p->image_index, pktQueue.size(), (*it == pktQueue.end()));
+      Debug(4, "waiting on packet %d.  Queue size %zu it == end? %d", p->image_index, pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
     }  // end while ! deleting or zm_terminate
     condition.notify_all();

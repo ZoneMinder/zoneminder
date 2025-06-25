@@ -263,7 +263,7 @@ echo getNavBarHTML() ?>
     }
 ?>
 >
-            <span class="material-icons md-18">open_with</span>
+          <span class="material-icons md-18">open_with</span>
         </button>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>

@@ -178,6 +178,17 @@ Monitor::Monitor() :
   palette(0),
   channel(0),
   format(0),
+  width(0),
+  height(0),
+  //v4l_multi_buffer
+  //v4l_captures_per_frame
+  orientation(ROTATE_0),
+  deinterlacing(0),
+  deinterlacing_value(0),
+  decoder_hwaccel_name(""),
+  decoder_hwaccel_device(""),
+  videoRecording(false),
+  rtsp_describe(false),
   savejpegs(0),
   colours(0),
   videowriter(DISABLED),
@@ -1443,13 +1454,13 @@ void Monitor::CancelForced() {
 void Monitor::actionReload() { shared_data->action |= RELOAD; }
 
 void Monitor::actionEnable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = true;
+  Info("actionEnable, capturing enabled.");
 }
 
 void Monitor::actionDisable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = false;
+  Info("actionDisable, capturing temporarily disabled.");
 }
 
 void Monitor::actionSuspend() { shared_data->action |= SUSPEND; }
@@ -1817,7 +1828,7 @@ void Monitor::UpdateFPS() {
     uint32 new_camera_bytes = camera->Bytes();
     uint32 new_capture_bandwidth =
       static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-    double new_analysis_fps = (shared_data->analysis_image_count == -1) ? 0 : (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
+    double new_analysis_fps = (shared_data->analysis_image_count <= 0) ? 0 : (shared_data->analysis_image_count - last_motion_frame_count) / elapsed.count();
 
     Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
         shared_data->capture_image_count,
@@ -2101,26 +2112,28 @@ int Monitor::Analyse() {
               }
 
               if (objectdetection != OBJECT_DETECTION_NONE) {
-                if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
-                  int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
-                  while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
+                if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+                  if (shared_data->last_analysis_index != image_buffer_count) {
+                    int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
+                    while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
 
-                    Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
-                    std::this_thread::sleep_for(Microseconds(10000));
-                    count--;
-                  }
-                  // In order to make it available to event writing
-                  if (shared_data->analysis_image_count >= packet->image_index) {
-                    Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
-                    packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
-                  }
-                }
+                      Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
+                      std::this_thread::sleep_for(Microseconds(10000));
+                      count--;
+                    }
+                    // In order to make it available to event writing
+                    if (shared_data->analysis_image_count >= packet->image_index) {
+                      Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
+                      packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
+                    }
+                  } // end if (shared_data->last_analysis_index != image_buffer_count)
+                } // end if SPEEDAI
 #if HAVE_QUADRA
-                else {
-                  //std::pair<int, std::string> results = Analyse_Quadra(packet);
+                else if (objectdetection == OBJECT_DETECTION_QUADRA) {
+                  std::pair<int, std::string> results = Analyse_Quadra(packet);
                 }
 #endif
-                if (objectdetection == OBJECT_DETECTION_UVICORN) {
+                else if (objectdetection == OBJECT_DETECTION_UVICORN) {
                   std::pair<int, std::string> results = Analyse_UVICORN(packet);
                   int motion_score = results.first;
                   std::string motion_cause = results.second;
@@ -2400,7 +2413,7 @@ int Monitor::Analyse() {
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
       if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
         // Only do these if it's a video packet.
-        if (1 and packet->ai_frame) {
+        if (packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
           Debug(1, "ai_frame pixformat %d, for index %d, packet %d", packet->ai_frame->format, index, packet->image_index);
           analysis_image_buffer[index]->Assign(packet->ai_frame.get());
@@ -2553,7 +2566,6 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
                   Image *ai_image = packet->get_ai_image();
                   TimestampImage(ai_image, packet->timestamp);
                 }
-                //packet->in_frame = nullptr; // Don't need it anymore
               }
             } else if (0 > ret) {
               Debug(1, "Failed yolo");
@@ -2613,9 +2625,8 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
 
     return std::make_pair(motion_score, cause);
   }
-   SystemTimePoint starttime = std::chrono::system_clock::now();
-   SystemTimePoint partial_starttime = starttime;
-
+  SystemTimePoint starttime = std::chrono::system_clock::now();
+  SystemTimePoint partial_starttime = starttime;
 
   if (!curl) {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -2971,6 +2982,10 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
+  if (!shared_data->capturing) {
+    Debug(1, "Not capturing");
+    return 0;
+  }
   unsigned int index = shared_data->capture_image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu",
@@ -3303,7 +3318,7 @@ int Monitor::OpenDecoder() {
 int Monitor::Decode() {
   if (decoding != DECODING_NONE) {
     // Not fatal... because we can still record
-    if (!mVideoCodecContext and camera->NeedsDecode()) {
+    if ((!mVideoCodecContext) and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
       } // end if success opening codec
 
@@ -3353,25 +3368,24 @@ int Monitor::Decode() {
       packet_lock = std::move(decoder_queue.front());
       decoder_queue.pop_front();
       packet = delayed_packet;
-      //if (
-#if HAVE_QUADRA
-      //!quadra_yolo &&
-#endif
-          //packet->needs_hw_transfer(mVideoCodecContext))
-        //packet->get_hwframe(mVideoCodecContext);
     } else if (ret < 0) {
       Debug(1, "decoder Failed to get frame %d", ret);
       if (ret == AVERROR_EOF) {
-        Error("Closing decoder");
         CloseDecoder();
       }
-      return 0; // re-openping will take long enoguh
-      return ret;
+      return 0; // re-opening will take long enough
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
     } // else 0, EAGAIN, fall through and send a packet
-  } else {
+  } else if (mVideoCodecContext) {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
+    av_frame_ptr receive_frame{av_frame_alloc()};
+    if (!receive_frame) {
+      Error("Error allocating frame");
+      return 0;
+    }
+    int ret = avcodec_receive_frame(mVideoCodecContext, receive_frame.get());
+    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
   } 
 
   // Might have to be keyframe interval
@@ -3380,17 +3394,17 @@ int Monitor::Decode() {
     return -1;
   }
 
-  // At this point we know that the packet is on the queue somewhere
+  // Didn't receive a frame, get a packet from packetqueue and send it.
   if (!packet) {
     packet_lock = packetqueue.get_packet(decoder_it);
     packet = packet_lock.packet_;
     if (!packet) {
       Debug(1, "No packet from get_packet");
       return -1;
-    } 
+    }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
-      Debug(3, "Not video,probably audio packet %d", packet->image_index);
+      Debug(3, "Not video, probably audio packet %d", packet->image_index);
       packetqueue.increment_it(decoder_it);
       return 1; // Don't need decode
     }
@@ -3418,12 +3432,10 @@ int Monitor::Decode() {
       int ret = packet->send_packet(mVideoCodecContext);
       SystemTimePoint endtime = std::chrono::system_clock::now();
       int fps = int(get_capture_fps());
-      if (fps > 0) {
-        if (endtime - starttime > Milliseconds(1000/fps)) {
-          Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
-        } else {
-          Debug(1, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
-        }
+      if ((fps > 0) and (endtime - starttime > Milliseconds(1000/fps))) {
+        Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
+      } else {
+        Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
 #else
       int ret = packet->send_packet(mVideoCodecContext);
@@ -3436,7 +3448,7 @@ int Monitor::Decode() {
         return -1;
       }  // end if ret from send_packet
       packetqueue.increment_it(decoder_it);
-      decoder_queue.push_back(std::move(packet_lock)); // packet_lock is no longer valid, but packet should be ok
+      decoder_queue.push_back(std::move(packet_lock));
       return 0;
     } else {
       Debug(1, "Not Decoding packet %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
@@ -3444,34 +3456,6 @@ int Monitor::Decode() {
       ZM_DUMP_PACKET(packet->packet.get(), "Not decoding");
     }  // end if doing decoding
   }  // end if need_decoding
-
-  if (packet->in_frame and !packet->image) {
-#if 0
-    const AVFrame *in_frame = packet->in_frame.get();
-
-    //unsigned int subpix  = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
-    unsigned int subpix  = ZM_SUBPIX_ORDER_YUV420P;
-    unsigned int colours = ZM_COLOUR_YUV420P;
-    //unsigned int colours = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_COLOUR_YUV420P : camera->Colours();
-    packet->image = new Image(camera_width, camera_height, colours, subpix);
-    //packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-
-    if (convert_context || this->setupConvertContext(in_frame, packet->image)) {
-      if (!packet->image->Assign(in_frame, convert_context, dest_frame.get())) {
-
-        delete packet->image;
-        packet->image = nullptr;
-      }
-      av_frame_unref(dest_frame.get());
-      //packet->hw_frame = nullptr;
-    } else {
-      delete packet->image;
-      packet->image = nullptr;
-    }  // end if have convert_context
-#else
-    //packet->get_image();
-#endif
-  }  // end if need transfer to image
 
 #if 0
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
@@ -3573,7 +3557,7 @@ int Monitor::Decode() {
  
   unsigned int index = packet->image_index % image_buffer_count;
   //unsigned int index = (shared_data->last_decoder_index + 1) % image_buffer_count;
-  if (0 and packet->image) {
+  if (packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
     Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
@@ -3582,29 +3566,10 @@ int Monitor::Decode() {
     //if (!quadra_yolo)
 #endif
     {
-#if HAVE_QUADRA
-      if (objectdetection != OBJECT_DETECTION_NONE) {
-        std::pair<int, std::string> results = Analyse_Quadra(packet);
-      }
-#endif
-      if (packet->ai_frame) {
-        Debug(1, "Assigning ai_frame for index %d", index);
-        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
-        image_buffer[index]->Assign(packet->ai_frame.get());
-      } else if (packet->ai_image) {
-        Debug(1, "Assigning ai_frame for index %d", index);
-        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
-        image_buffer[index]->Assign(*(packet->ai_image));
-      } else {
-        if (packet->needs_hw_transfer(mVideoCodecContext))
-          packet->get_hwframe(mVideoCodecContext);
-        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
-        image_buffer[index]->Assign(packet->in_frame.get());
-      }
-      if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-        // Won't be using hwframe
-      }
-      packet->hw_frame = nullptr;
+      if (packet->needs_hw_transfer(mVideoCodecContext))
+        packet->get_hwframe(mVideoCodecContext);
+      image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
+      image_buffer[index]->Assign(packet->in_frame.get());
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;
       shared_data->decoder_image_count++;
@@ -3989,7 +3954,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
           alarm_ref_blend_perc);
   sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
   sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
-          Capturing_Strings[capturing].c_str());
+          Capturing_Strings[shared_data->capturing].c_str());
   sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
           Analysing_Strings[analysing].c_str());
   sprintf(output + strlen(output), "Recording %d - %s\n", recording,

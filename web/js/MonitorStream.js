@@ -93,7 +93,7 @@ function MonitorStream(monitorData) {
     if (this.element) return this.element;
     this.element = document.getElementById('liveStream'+this.id);
     if (!this.element) {
-      console.error("No img for #liveStream"+this.id);
+      console.error("No element for #liveStream"+this.id);
     }
     return this.element;
   };
@@ -122,12 +122,14 @@ function MonitorStream(monitorData) {
    * param.streamQuality in %, numeric value from -50 to +50)
    * */
   this.setScale = function(newscale, width, height, param = {}) {
-    const img = this.getElement();
     const newscaleSelect = newscale;
-    if (!img) {
-      console.log('No img in setScale');
+
+    const stream = this.getElement();
+    if (!stream) {
+      console.log('No stream in setScale');
       return;
     }
+    console.log(stream);
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -147,7 +149,7 @@ function MonitorStream(monitorData) {
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
       } else {
-        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement), $j('#wrapperMonitor'));
+        const newSize = scaleToFit(this.width, this.height, $j(stream), $j(this.bottomElement), $j('#wrapperMonitor'));
         width = newSize.width+'px';
         height = newSize.height+'px';
         if (param.scaleImg) {
@@ -177,26 +179,26 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
+    if (width && (width != '0px') && (stream.style.width.search('%') == -1)) {
       if (param.resizeImg) {
         monitor_frame.css('width', parseInt(width));
       }
     }
     if (param.resizeImg) {
-      if (img.style.width) img.style.width = '100%';
-      if (height && height != '0px') img.style.height = height;
+      if (stream.style.width) stream.style.width = '100%';
+      if (height && height != '0px') stream.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
-        img.style.width = 'auto';
-        $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
+        stream.style.width = 'auto';
+        $j(stream).closest('.monitorStream')[0].style.overflow = 'auto';
       } else {
-        //const monitor_stream = $j(img).closest('.monitorStream');
+        //const monitor_stream = $j(stream).closest('.monitorStream');
         //const realWidth = monitor_stream.attr('data-width');
         //const realHeight = monitor_stream.attr('data-height');
         //const ratio = realWidth / realHeight;
-        //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
-        img.style.width = '100%';
-        $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
+        //const imgWidth = $j(stream)[0].offsetWidth + 4; // including border
+        stream.style.width = '100%';
+        $j(stream).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }
     let streamQuality = 0;
@@ -208,9 +210,9 @@ function MonitorStream(monitorData) {
   }; // setScale
 
   this.setStreamScale = function(newscale, streamQuality=0) {
-    const img = this.getElement();
-    if (!img) {
-      console.log("No img in setScale");
+    const stream = this.getElement();
+    if (!stream) {
+      console.log("No stream in setScale");
       return;
     }
     const stream_frame = $j('#monitor'+this.id);
@@ -224,10 +226,10 @@ function MonitorStream(monitorData) {
     if (this.connKey) {
       /* Can just tell it to scale, in fact will happen automatically on next query */
     } else {
-      if (img.nodeName == 'IMG') {
-        const oldSrc = img.src;
+      if (stream.nodeName == 'IMG') {
+        const oldSrc = stream.src;
         if (!oldSrc) {
-          console.log('No src on img?!', img);
+          console.log('No src on img?!', stream);
           return;
         }
         let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
@@ -237,12 +239,12 @@ function MonitorStream(monitorData) {
           // We know that only the first zms will get the command because the
           // second can't open the commandQueue until the first exits
           // This is necessary because safari will never close the first image
-          if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
+          if (-1 != stream.src.search('connkey') && -1 != stream.src.search('mode=single')) {
             this.streamCommand(CMD_QUIT);
           }
-          console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
-          img.src = '';
-          img.src = newSrc;
+          console.log("Changing src from " + stream.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
+          stream.src = '';
+          stream.src = newSrc;
           this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
         }
       }

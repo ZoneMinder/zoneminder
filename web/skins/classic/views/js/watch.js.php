@@ -72,7 +72,7 @@ monitorData[monitorData.length] = {
   'monitorRefresh': '<?php echo $m->Refresh() ?>',
   'monitorStreamReplayBuffer': parseInt('<?php echo $m->StreamReplayBuffer() ?>'),
   'monitorControllable': <?php echo $m->Controllable()?'true':'false' ?>,
-  'streamMode': '<?php echo getStreamModeMonitor($m) ?>'
+  'streamMode': '<?php echo $monitor->getStreamMode(); ?>'
 };
 <?php
 } // end foreach monitor

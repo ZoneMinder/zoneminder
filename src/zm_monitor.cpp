@@ -3318,7 +3318,7 @@ int Monitor::OpenDecoder() {
 int Monitor::Decode() {
   if (decoding != DECODING_NONE) {
     // Not fatal... because we can still record
-    if (!mVideoCodecContext and camera->NeedsDecode()) {
+    if ((!mVideoCodecContext) and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
       } // end if success opening codec
 
@@ -3377,7 +3377,7 @@ int Monitor::Decode() {
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
     } // else 0, EAGAIN, fall through and send a packet
-  } else {
+  } else if (mVideoCodecContext) {
     Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
     av_frame_ptr receive_frame{av_frame_alloc()};
     if (!receive_frame) {
@@ -3404,7 +3404,7 @@ int Monitor::Decode() {
     }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
-      Debug(3, "Not video,probably audio packet %d", packet->image_index);
+      Debug(3, "Not video, probably audio packet %d", packet->image_index);
       packetqueue.increment_it(decoder_it);
       return 1; // Don't need decode
     }
@@ -3557,7 +3557,7 @@ int Monitor::Decode() {
  
   unsigned int index = packet->image_index % image_buffer_count;
   //unsigned int index = (shared_data->last_decoder_index + 1) % image_buffer_count;
-  if (0 and packet->image) {
+  if (packet->image) {
     image_buffer[index]->AVPixFormat(image_pixelformats[index] = packet->image->AVPixFormat());
     Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));

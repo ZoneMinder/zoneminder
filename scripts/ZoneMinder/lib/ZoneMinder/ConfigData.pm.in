@@ -447,102 +447,13 @@ our @options = (
   },
   {
     name        => 'ZM_GO2RTC_PATH',
-    default     => '',
-    description => 'URL for Go2RTC API port.',
+    default     => 'http://127.0.0.1:1984',
+    description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
       install, including username and password. If left blank, this
-      will default to demo:demo@127.0.0.1:1984
-      `,
+      will default to 127.0.0.1:1984
+    `,
     type        => $types{string},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_HOST',
-    default     => '127.0.0.1',
-    description => 'Host for Go2RTC',
-    help        => q`This value points to the hostname or IP address of the Go2RTC
-      install. If left blank, this will default to 127.0.0.1.
-      `,
-    type        => $types{hostname},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_API_PORT',
-    default     => '1984',
-    description => 'Port for Go2RTC API',
-    help        => q`This value points to the port where the API of the Go2RTC
-      install is served. If left blank, this will default of 1984.
-      `,
-    type        => $types{integer},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_USERNAME',
-    default     => '',
-    description => 'Username for Go2RTC',
-    help        => q`This value is the username used to authenticate with the Go2RTC
-      install. It is blank and not used by default. To use it set the api: username:
-      key in the go2rtc yaml config.
-      `,
-    type        => $types{string},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_PASSWORD',
-    default     => '',
-    description => 'Password for Go2RTC',
-    help        => q`This value is the password used to authenticate with the Go2RTC
-      install. It is blank and not used by default. To use it set the api: password:
-      key in the go2rtc yaml config.
-      `,
-    type        => $types{string},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_API_PATH',
-    default     => 'http',
-    description => 'Path for Go2RTC API',
-    help        => 'This value points to the location of the Go2RTC
-      install, including username and password. If left blank, this
-      will default to demo:demo@127.0.0.1:8083
-      port 8083.
-      ',
-    type        => $types{string},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_API_PROTOCOL',
-    default     => 'http',
-    description => 'Port for Go2RTC API',
-    help        => q`This value points to the port where the API of the Go2RTC
-      install is served. If left blank, this will default of 1984.
-      `,
-    type        =>   {
-      db_type     => 'string',
-      hint        => 'http|https',
-      pattern     => qr|^https?$|,
-      format      => q( $1 )
-    },
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_WEBRTC_PORT',
-    default     => '8555',
-    description => 'Port for Go2RTC API',
-    help        => q`This value points to the port where the WebRTC of the Go2RTC
-      install is served. If left blank, this will default of 8555.
-      `,
-    type        => $types{integer},
-    category    => 'system',
-  },
-  {
-    name        => 'ZM_GO2RTC_RTSP_PORT',
-    default     => '8554',
-    description => 'Port for Go2RTC RTSP',
-    help        => q`This value points to the port where the RTSP of the Go2RTC
-      install is served. If left blank, this will default of 8554.
-      `,
-    type        => $types{integer},
     category    => 'system',
   },
   {

@@ -274,6 +274,7 @@ function MonitorStream(monitorData) {
         old_stream.remove();
         stream_container.appendChild(stream);
         this.webrtc = stream; // track separately do to api differences between video tag and video-stream
+        this.set_stream_volume(this.muted ? 0.0 : this.volume/100);
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -623,7 +624,7 @@ function MonitorStream(monitorData) {
   };
 
   this.volume_slider = null;
-  this.volume = 0.0;
+  this.volume = 0.0; // Half
 
   this.setup_volume = function(slider) {
     this.volume_slider = slider;
@@ -633,18 +634,15 @@ function MonitorStream(monitorData) {
       let clickedValue = parseInt(x * this.volume_slider.max / this.volume_slider.offsetWidth);
       this.volume_slider.value = clickedValue;
       this.set_volume(clickedValue);
-      this.mute_state = clickedValue ? true : false;
-      setCookie('zmWatchMute', this.mute_state);
-      this.mute_btn.firstElementChild.innerHTML = (this.mute_state ? 'volume_off' : 'volume_up');
-      
+      this.muted = clickedValue ? false : true;
+      setCookie('zmWatchMuted', this.muted);
+      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
     });
     this.volume = this.volume_slider.value;
-    setCookie('zmWatchVolume', this.volume);
   };
 
   /* Takes volume as 0->100 */
   this.set_volume = function(volume) {
-    console.log('set_volume', volume);
     this.volume = volume;
     this.set_stream_volume(volume/100);
     setCookie('zmWatchVolume', this.volume);
@@ -661,25 +659,30 @@ function MonitorStream(monitorData) {
   };
 
   this.mute_btn = null;
-  this.mute_state = false;
+  this.muted = false;
 
   this.setup_mute = function(mute_btn) {
     this.mute_btn = mute_btn;
     this.mute_btn.onclick = () => {
-      console.log(this.mute_state, this.volume);
 
-      this.mute_state = !this.mute_state;
-      setCookie('zmWatchMute', this.mute_state);
-      this.mute_btn.firstElementChild.innerHTML = (this.mute_state ? 'volume_off' : 'volume_up');
+      this.muted = !this.muted;
+      setCookie('zmWatchMuted', this.muted);
+      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
 
-      if (this.mute_state === false) {
+      if (this.muted === false) {
         this.set_stream_volume(this.volume/100); // lastvolume
-        this.volume_slider.value = this.volume;
+        if (this.volume_slider) this.volume_slider.value = this.volume;
       } else {
         this.set_stream_volume(0.0);
-        this.volume_slider.value = 0;
+        if (this.volume_slider) this.volume_slider.value = 0;
       }
     };
+    this.muted = (this.mute_btn.firstElementChild.innerHTML == 'volume_off');
+    if (this.muted) {
+      // muted, adjust volume bar
+      this.set_stream_volume(0.0);
+      if (this.volume_slider) this.volume_slider.value = 0;
+    }
   };
 
   this.setStateClass = function(jobj, stateClass) {

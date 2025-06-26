@@ -418,4 +418,6 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
-<?php xhtmlFooter() ?>
+<?php
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
+  xhtmlFooter() ?>

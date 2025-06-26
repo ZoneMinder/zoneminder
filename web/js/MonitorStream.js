@@ -94,7 +94,7 @@ function MonitorStream(monitorData) {
     if (this.element) return this.element;
     this.element = document.getElementById('liveStream'+this.id);
     if (!this.element) {
-      console.error("No img for #liveStream"+this.id);
+      console.error("No element for #liveStream"+this.id);
     }
     return this.element;
   };
@@ -123,12 +123,14 @@ function MonitorStream(monitorData) {
    * param.streamQuality in %, numeric value from -50 to +50)
    * */
   this.setScale = function(newscale, width, height, param = {}) {
-    const img = this.getElement();
     const newscaleSelect = newscale;
-    if (!img) {
-      console.log('No img in setScale');
+
+    const stream = this.getElement();
+    if (!stream) {
+      console.log('No stream in setScale');
       return;
     }
+    console.log("setScale", stream);
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -148,7 +150,7 @@ function MonitorStream(monitorData) {
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
       } else {
-        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement), $j('#wrapperMonitor'));
+        const newSize = scaleToFit(this.width, this.height, $j(stream), $j(this.bottomElement), $j('#wrapperMonitor'));
         width = newSize.width+'px';
         height = newSize.height+'px';
         if (param.scaleImg) {
@@ -178,26 +180,26 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
+    if (width && (width != '0px') && (stream.style.width.search('%') == -1)) {
       if (param.resizeImg) {
         monitor_frame.css('width', parseInt(width));
       }
     }
     if (param.resizeImg) {
-      if (img.style.width) img.style.width = '100%';
-      if (height && height != '0px') img.style.height = height;
+      if (stream.style.width) stream.style.width = '100%';
+      if (height && height != '0px') stream.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
-        img.style.width = 'auto';
-        $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
+        stream.style.width = 'auto';
+        $j(stream).closest('.monitorStream')[0].style.overflow = 'auto';
       } else {
-        //const monitor_stream = $j(img).closest('.monitorStream');
+        //const monitor_stream = $j(stream).closest('.monitorStream');
         //const realWidth = monitor_stream.attr('data-width');
         //const realHeight = monitor_stream.attr('data-height');
         //const ratio = realWidth / realHeight;
-        //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
-        img.style.width = '100%';
-        $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
+        //const imgWidth = $j(stream)[0].offsetWidth + 4; // including border
+        stream.style.width = '100%';
+        $j(stream).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }
     let streamQuality = 0;
@@ -209,9 +211,9 @@ function MonitorStream(monitorData) {
   }; // setScale
 
   this.setStreamScale = function(newscale, streamQuality=0) {
-    const img = this.getElement();
-    if (!img) {
-      console.log("No img in setScale");
+    const stream = this.getElement();
+    if (!stream) {
+      console.log("No stream in setScale");
       return;
     }
     const stream_frame = $j('#monitor'+this.id);
@@ -225,10 +227,10 @@ function MonitorStream(monitorData) {
     if (this.connKey) {
       /* Can just tell it to scale, in fact will happen automatically on next query */
     } else {
-      if (img.nodeName == 'IMG') {
-        const oldSrc = img.src;
+      if (stream.nodeName == 'IMG') {
+        const oldSrc = stream.src;
         if (!oldSrc) {
-          console.log('No src on img?!', img);
+          console.log('No src on img?!', stream);
           return;
         }
         let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
@@ -238,12 +240,12 @@ function MonitorStream(monitorData) {
           // We know that only the first zms will get the command because the
           // second can't open the commandQueue until the first exits
           // This is necessary because safari will never close the first image
-          if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
+          if (-1 != stream.src.search('connkey') && -1 != stream.src.search('mode=single')) {
             this.streamCommand(CMD_QUIT);
           }
-          console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
-          img.src = '';
-          img.src = newSrc;
+          console.log("Changing src from " + stream.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
+          stream.src = '';
+          stream.src = newSrc;
           this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
         }
       }
@@ -251,8 +253,39 @@ function MonitorStream(monitorData) {
   }; // setStreamScale
 
   this.start = function(streamChannel = 'default') {
-    console.log(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`, this.player);
     this.streamListenerBind = streamListener.bind(null, this);
+
+    if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
+      if (ZM_GO2RTC_PATH) {
+        const url = new URL(ZM_GO2RTC_PATH);
+        const useSSL = (url.protocol == 'https:');
+
+        const old_stream = this.getElement();
+        const stream = this.element = document.createElement('video-stream');
+        stream.id = old_stream.id; // should be liveStream+id
+        stream.style = old_stream.style; // Copy any applied styles
+        const Go2RTCModUrl = url;
+        const webrtcUrl = Go2RTCModUrl;
+        webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
+        webrtcUrl.pathname += "/ws";
+        webrtcUrl.search = 'src='+this.id;
+        stream.src = webrtcUrl.href;
+        const stream_container = old_stream.parentNode;
+
+        old_stream.remove();
+        stream_container.appendChild(stream);
+        this.webrtc = stream; // track separately do to api differences between video tag and video-stream
+        this.set_stream_volume(this.muted ? 0.0 : this.volume/100);
+
+        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+        this.started = true;
+        this.streamListenerBind();
+        return;
+      } else {
+        alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
+      }
+    }
 
     if ((false !== this.player.indexOf('janus')) && this.janusEnabled) {
       let server;
@@ -281,7 +314,17 @@ function MonitorStream(monitorData) {
     if (this.RTSP2WebEnabled && (-1 !== this.player.indexOf('rtsp2web'))) {
       console.log('rtsp2web', this.player, this.player.indexOf('rtsp2web'));
       if (ZM_RTSP2WEB_PATH) {
-        const videoEl = document.getElementById("liveStream" + this.id);
+        let stream = this.getElement();
+        if (stream.nodeName != 'VIDEO') {
+          // replace with new video tag.
+          const stream_container = stream.parentNode;
+          const new_stream = this.element = document.createElement('video');
+          new_stream.id = stream.id; // should be liveStream+id
+          new_stream.style = stream.style; // Copy any applied styles
+          stream.remove();
+          stream_container.appendChild(new_stream);
+          stream = new_stream;
+        }
         const url = new URL(ZM_RTSP2WEB_PATH);
         const useSSL = (url.protocol == 'https');
 
@@ -289,7 +332,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = (!streamChannel || streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
@@ -303,20 +346,20 @@ function MonitorStream(monitorData) {
           if (Hls.isSupported()) {
             this.hls = new Hls();
             this.hls.loadSource(hlsUrl.href);
-            this.hls.attachMedia(videoEl);
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            videoEl.src = hlsUrl.href;
+            this.hls.attachMedia(stream);
+          } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
+            stream.src = hlsUrl.href;
           }
         } else if (this.RTSP2WebType == 'MSE') {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
-          startMsePlay(this, videoEl, mseUrl.href);
+          startMsePlay(this, stream, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
-          startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
+          startRTSP2WebPlay(stream, webrtcUrl.href, this);
         }
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -327,68 +370,32 @@ function MonitorStream(monitorData) {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
       }
     }
-    if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
-      if (ZM_GO2RTC_PATH) {
-        const url = new URL(ZM_GO2RTC_PATH);
-        const useSSL = (url.protocol == 'https:');
-
-        const videoEl = document.getElementById("liveStream" + this.id);
-        const video = document.createElement('video-stream');
-        video.id = videoEl.id;
-        video.style = videoEl.style;
-        const Go2RTCModUrl = url;
-        const webrtcUrl = Go2RTCModUrl;
-        webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
-        webrtcUrl.pathname += "/ws";
-        webrtcUrl.search = 'src='+this.id;
-        video.src = webrtcUrl.href;
-        const video_container = videoEl.parentNode;
-
-        video_container.innerHTML = '';
-        video_container.appendChild(video);
-        this.webrtc = video;
-        stream = this.element = video;
-
-        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
-        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-        this.started = true;
-        this.streamListenerBind();
-        return;
-      } else {
-        console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
-      }
-    }
 
     // zms stream
     let stream = this.getElement();
     if (!stream) return;
-    if (!stream.src) {
-      // Website Monitors won't have an img tag, neither will video
-      console.log('No src for #liveStream'+this.id);
-      console.log(stream);
-      const video = document.createElement('img');
-      video.id = stream.id;
-      video.style = stream.style;
 
-      const video_container = stream.parentNode;
-      if (video_container) {
-      video_container.innerHTML = '';
-      video_container.appendChild(video);
-      } else {
-        console.log("No conainer?!", stream);
-      }
-      stream = this.element = video;
-      stream.src = this.url_to_stream;
-      stream.src += '&'+auth_relay;
-      monitorsSetScale(this.id);
+    if (stream.nodeName != 'IMG') {
+      // replace with new img tag.
+      const stream_container = stream.parentNode;
+      const new_stream = this.element = document.createElement('img');
+      new_stream.id = stream.id; // should be liveStream+id
+      new_stream.style = stream.style; // Copy any applied styles
+      stream.remove();
+      stream_container.appendChild(new_stream);
+      stream = new_stream;
     }
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-    src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
+    if (-1 == src.search('auth')) {
+      src += '&'+auth_relay;
+    } else {
+      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    }
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
@@ -404,7 +411,7 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
-    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPED`);
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
     if ( 0 ) {
       const stream = this.getElement();
       if (!stream) return;
@@ -538,7 +545,10 @@ function MonitorStream(monitorData) {
   };
 
   this.play = function() {
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+    if (this.Go2RTCEnabled) {
+      this.element.play(); // go2rtc player will handle mute
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    } else if (this.RTSP2WebEnabled) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play().catch(() => {
         if (!this.element.muted) {
@@ -611,6 +621,68 @@ function MonitorStream(monitorData) {
   this.onplay = null;
   this.setup_onplay = function(func) {
     this.onplay = func;
+  };
+
+  this.volume_slider = null;
+  this.volume = 0.0; // Half
+
+  this.setup_volume = function(slider) {
+    this.volume_slider = slider;
+    this.volume_slider.addEventListener('click', (e) => {
+      let x = e.pageX - this.volume_slider.getBoundingClientRect().left; // or e.offsetX (less support, though)
+      let y = e.pageY - this.volume_slider.getBoundingClientRect().top;  // or e.offsetY
+      let clickedValue = parseInt(x * this.volume_slider.max / this.volume_slider.offsetWidth);
+      this.volume_slider.value = clickedValue;
+      this.set_volume(clickedValue);
+      this.muted = clickedValue ? false : true;
+      setCookie('zmWatchMuted', this.muted);
+      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
+    });
+    this.volume = this.volume_slider.value;
+  };
+
+  /* Takes volume as 0->100 */
+  this.set_volume = function(volume) {
+    this.volume = volume;
+    this.set_stream_volume(volume/100);
+    setCookie('zmWatchVolume', this.volume);
+  };
+
+  /* Takes volume as percentage */
+  this.set_stream_volume = function(volume) {
+    if (this.webrtc) {
+      this.webrtc.volume(volume);
+    } else {
+      const stream = this.getElement();
+      stream.volume = volume;
+    }
+  };
+
+  this.mute_btn = null;
+  this.muted = false;
+
+  this.setup_mute = function(mute_btn) {
+    this.mute_btn = mute_btn;
+    this.mute_btn.onclick = () => {
+
+      this.muted = !this.muted;
+      setCookie('zmWatchMuted', this.muted);
+      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
+
+      if (this.muted === false) {
+        this.set_stream_volume(this.volume/100); // lastvolume
+        if (this.volume_slider) this.volume_slider.value = this.volume;
+      } else {
+        this.set_stream_volume(0.0);
+        if (this.volume_slider) this.volume_slider.value = 0;
+      }
+    };
+    this.muted = (this.mute_btn.firstElementChild.innerHTML == 'volume_off');
+    if (this.muted) {
+      // muted, adjust volume bar
+      this.set_stream_volume(0.0);
+      if (this.volume_slider) this.volume_slider.value = 0;
+    }
   };
 
   this.setStateClass = function(jobj, stateClass) {

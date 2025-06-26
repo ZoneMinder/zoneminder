@@ -113,18 +113,3 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-
-SELECT 'Checking for Go2RTCType in Monitors';
-SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE table_name = 'Monitors'
-  AND table_schema = DATABASE()
-  AND column_name = 'Go2RTCType'
-  ) > 0,
-"SELECT 'Column Go2RTCType already exists on Monitors'",
- "ALTER TABLE `Monitors` ADD COLUMN `Go2RTCType` enum('HLS','MSE','WebRTC') NOT NULL default 'WebRTC' AFTER `Go2RTCEnabled`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;

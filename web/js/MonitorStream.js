@@ -259,23 +259,21 @@ function MonitorStream(monitorData) {
         const url = new URL(ZM_GO2RTC_PATH);
         const useSSL = (url.protocol == 'https:');
 
-        const videoEl = document.getElementById("liveStream" + this.id);
-        const video = document.createElement('video-stream');
-        video.id = videoEl.id;
-        video.style = videoEl.style;
-        console.log(videoEl, video);
+        const old_stream = this.getElement();
+        const stream = this.element = document.createElement('video-stream');
+        stream.id = old_stream.id; // should be liveStream+id
+        stream.style = old_stream.style; // Copy any applied styles
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
         webrtcUrl.search = 'src='+this.id;
-        video.src = webrtcUrl.href;
-        const video_container = videoEl.parentNode;
+        stream.src = webrtcUrl.href;
+        const stream_container = old_stream.parentNode;
 
-        videoEl.remove();
-        //video_container.innerHTML = '';
-        video_container.appendChild(video);
-        this.webrtc = video;
+        old_stream.remove();
+        stream_container.appendChild(stream);
+        this.webrtc = stream; // track separately do to api differences between video tag and video-stream
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -283,11 +281,10 @@ function MonitorStream(monitorData) {
         this.streamListenerBind();
         return;
       } else {
-        console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
+        alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
       }
-    } else {
-      console.log("Not GO",this.Go2RTCEnabled, this.player);
     }
+
     if ((false !== this.player.indexOf('janus')) && this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -315,7 +312,17 @@ function MonitorStream(monitorData) {
     if (this.RTSP2WebEnabled && (-1 !== this.player.indexOf('rtsp2web'))) {
       console.log('rtsp2web', this.player, this.player.indexOf('rtsp2web'));
       if (ZM_RTSP2WEB_PATH) {
-        const videoEl = document.getElementById("liveStream" + this.id);
+        let stream = this.getElement();
+        if (stream.nodeName != 'VIDEO') {
+          // replace with new video tag.
+          const stream_container = stream.parentNode;
+          const new_stream = this.element = document.createElement('video');
+          new_stream.id = stream.id; // should be liveStream+id
+          new_stream.style = stream.style; // Copy any applied styles
+          stream.remove();
+          stream_container.appendChild(new_stream);
+          stream = new_stream;
+        }
         const url = new URL(ZM_RTSP2WEB_PATH);
         const useSSL = (url.protocol == 'https');
 
@@ -323,7 +330,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = (!streamChannel || streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
@@ -337,20 +344,20 @@ function MonitorStream(monitorData) {
           if (Hls.isSupported()) {
             this.hls = new Hls();
             this.hls.loadSource(hlsUrl.href);
-            this.hls.attachMedia(videoEl);
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            videoEl.src = hlsUrl.href;
+            this.hls.attachMedia(stream);
+          } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
+            stream.src = hlsUrl.href;
           }
         } else if (this.RTSP2WebType == 'MSE') {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
-          startMsePlay(this, videoEl, mseUrl.href);
+          startMsePlay(this, stream, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
-          startRTSP2WebPlay(videoEl, webrtcUrl.href, this);
+          startRTSP2WebPlay(stream, webrtcUrl.href, this);
         }
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -363,21 +370,30 @@ function MonitorStream(monitorData) {
     }
 
     // zms stream
-    const stream = this.getElement();
+    let stream = this.getElement();
     if (!stream) return;
-    if (!stream.src) {
-      // Website Monitors won't have an img tag, neither will video
-      console.log('No src for #liveStream'+this.id);
-      console.log(stream);
-      return;
+
+    if (stream.nodeName != 'IMG') {
+      // replace with new img tag.
+      const stream_container = stream.parentNode;
+      const new_stream = this.element = document.createElement('img');
+      new_stream.id = stream.id; // should be liveStream+id
+      new_stream.style = stream.style; // Copy any applied styles
+      stream.remove();
+      stream_container.appendChild(new_stream);
+      stream = new_stream;
     }
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-    src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
+    if (-1 == src.search('auth')) {
+      src += '&'+auth_relay;
+    } else {
+      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    }
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
@@ -393,7 +409,7 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
-    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPED`);
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
     if ( 0 ) {
       const stream = this.getElement();
       if (!stream) return;

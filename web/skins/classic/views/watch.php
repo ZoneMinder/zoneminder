@@ -301,7 +301,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
           ?>
         </span>
-        <div id="playerControl">
+        <span id="playerControl">
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
               $players = ['zms'=>'ZMS MJPEG',
@@ -319,7 +319,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
               }
               echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player'));
 ?>
-        </div>
+        </span>
 
       </div><!--sizeControl-->
     </div><!--control header-->

@@ -149,8 +149,8 @@ function changeStreamQuality() {
 }
 
 function onPause() {
-  setButtonState('pauseBtn', 'active');
-  setButtonState('playBtn', 'inactive');
+  setButtonStateWatch('pauseBtn', 'hidden');
+  setButtonStateWatch('playBtn', 'active');
   setButtonState('stopBtn', 'inactive');
   if (monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
@@ -168,12 +168,10 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
-  //monitorStream.setup_onplay(onPlay); //IgorA100 Added for testing, but probably not required
-  //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'inactive');
-  setButtonStateWatch('playBtn', 'unavail');
+  setButtonStateWatch('playBtn', 'hidden');
   if (monitorStream.status.delayed == true) {
     //setButtonState('stopBtn', 'inactive');
     if (monitorStreamReplayBuffer) {
@@ -225,7 +223,7 @@ function streamCmdStop(action) {
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('playBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'unavail');
-  setButtonStateWatch('pauseBtn', 'unavail');
+  setButtonStateWatch('pauseBtn', 'hidden');
 }
 
 function streamCmdFastFwd(action) {

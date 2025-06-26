@@ -212,7 +212,7 @@ function MonitorStream(monitorData) {
   this.setStreamScale = function(newscale, streamQuality=0) {
     const stream = this.getElement();
     if (!stream) {
-      console.log("No stream in setScale");
+      console.log("No stream in setStreamScale");
       return;
     }
     const stream_frame = $j('#monitor'+this.id);
@@ -254,7 +254,9 @@ function MonitorStream(monitorData) {
   this.start = function(streamChannel = 'default') {
     this.streamListenerBind = streamListener.bind(null, this);
 
-    if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
+    console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));
+
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
         const useSSL = (url.protocol == 'https:');
@@ -286,7 +288,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    if ((false !== this.player.indexOf('janus')) && this.janusEnabled) {
+    if (((!this.player) || (-1 !== this.player.indexOf('janus'))) && this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -310,8 +312,7 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
-    if (this.RTSP2WebEnabled && (-1 !== this.player.indexOf('rtsp2web'))) {
-      console.log('rtsp2web', this.player, this.player.indexOf('rtsp2web'));
+    if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
         if (stream.nodeName != 'VIDEO') {
@@ -425,9 +426,9 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
     console.log(this.Go2RTCType, this.webrtc);
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+    if (this.RTSP2WebEnabled) {
       if (this.webrtc) {
-        this.webrtc.close();
+        if (this.webrtc.close) this.webrtc.close();
         this.webrtc = null;
       }
       if (this.hls) {
@@ -650,7 +651,7 @@ function MonitorStream(monitorData) {
 
   /* Takes volume as percentage */
   this.set_stream_volume = function(volume) {
-    if (this.webrtc) {
+    if (this.webrtc && this.webrtc.volume ) {
       this.webrtc.volume(volume);
     } else {
       const stream = this.getElement();
@@ -1555,6 +1556,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
 
 function streamListener(stream) {
   window.addEventListener('beforeunload', function(event) {
+    console.log('streamListener');
     stream.kill();
   });
 }

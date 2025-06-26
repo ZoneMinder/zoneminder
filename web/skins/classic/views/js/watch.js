@@ -1045,7 +1045,7 @@ function initPage() {
       }
     };
     inactivityTime();
-  }
+  }  // end setup AYSW
 
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
@@ -1090,6 +1090,9 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
+
+  monitorStream.setup_mute(document.getElementById('mute'));
+  monitorStream.setup_volume(document.getElementById('volume'));
 
   manageRTSP2WebChannelStream();
 } // initPage

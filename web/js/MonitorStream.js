@@ -615,20 +615,27 @@ function MonitorStream(monitorData) {
     this.volume_slider.addEventListener('click', (e) => {
       let x = e.pageX - this.volume_slider.getBoundingClientRect().left; // or e.offsetX (less support, though)
       let y = e.pageY - this.volume_slider.getBoundingClientRect().top;  // or e.offsetY
-      let clickedValue = x * this.volume_slider.max / this.volume_slider.offsetWidth;
+      let clickedValue = parseInt(x * this.volume_slider.max / this.volume_slider.offsetWidth);
       this.volume_slider.value = clickedValue;
-      this.set_volume(clickedValue/100);
+      this.set_volume(clickedValue);
       this.mute_state = clickedValue ? true : false;
+      setCookie('zmWatchMute', this.mute_state);
+      this.mute_btn.firstElementChild.innerHTML = (this.mute_state ? 'volume_off' : 'volume_up');
+      
     });
     this.volume = this.volume_slider.value;
+    setCookie('zmWatchVolume', this.volume);
   };
 
+  /* Takes volume as 0->100 */
   this.set_volume = function(volume) {
     console.log('set_volume', volume);
     this.volume = volume;
-    this.set_stream_volume(volume);
+    this.set_stream_volume(volume/100);
+    setCookie('zmWatchVolume', this.volume);
   };
 
+  /* Takes volume as percentage */
   this.set_stream_volume = function(volume) {
     if (this.webrtc) {
       this.webrtc.volume(volume);
@@ -647,10 +654,12 @@ function MonitorStream(monitorData) {
       console.log(this.mute_state, this.volume);
 
       this.mute_state = !this.mute_state;
+      setCookie('zmWatchMute', this.mute_state);
+      this.mute_btn.firstElementChild.innerHTML = (this.mute_state ? 'volume_off' : 'volume_up');
 
       if (this.mute_state === false) {
-        this.set_stream_volume(this.volume); // lastvolume
-        this.volume_slider.value = this.volume*100;
+        this.set_stream_volume(this.volume/100); // lastvolume
+        this.volume_slider.value = this.volume;
       } else {
         this.set_stream_volume(0.0);
         this.volume_slider.value = 0;

@@ -413,13 +413,13 @@ echo $monitor->getStreamHTML($options);
               <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
               <i class="material-icons md-18">chevron_left</i>
               </button>
-              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
-              <i class="material-icons md-18">pause</i>
-              </button>
               <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop">
               <i class="material-icons md-18">stop</i>
               </button>
-              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
+              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="active" data-on-click-true="streamCmdPause">
+              <i class="material-icons md-18">pause</i>
+              </button>
+              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="hidden" disabled="disabled" data-on-click-true="streamCmdPlay">
               <i class="material-icons md-18">play_arrow</i>
               </button>
               <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
@@ -438,16 +438,18 @@ echo $monitor->getStreamHTML($options);
             </button>
             <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?> 
             </button>
+<?php 
+$volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
+  (isset($_COOKIE['zmWatchVolume']) ? validInt($_COOKIE['zmWatchVolume']) : 50);
+$muted = isset($_REQUEST['muted']) ? validInt($_REQUEST['muted']) :
+  (isset($_COOKIE['zmWatchMuted']) ? validInt($_COOKIE['zmWatchMuted']) : false);
+
+?>
     <span class="volume">
-      <span>
-        <a id="mute" class="muteBtn">
-          <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
-            <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
-            </path>
-          </svg>
-        </a>
-      </span>
-      <progress id="volume" value="50" max="100"></progress>
+      <button id="mute" class="muteBtn" <?php $muted ? 'class="avail"' : '' ?>>
+        <i class="material-icons md-18">volume_<?php echo $muted ? 'off' : 'up' ?></i>
+      </button>
+      <progress id="volume" value="<?php echo $volume; ?>" min="0" max="100"></progress>
     </span>
           </div>
         </div><!-- id="wrapperMonitor" -->

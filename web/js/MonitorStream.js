@@ -129,7 +129,7 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.log(stream);
+    console.log("setScale", stream);
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -337,6 +337,7 @@ function MonitorStream(monitorData) {
         const video = document.createElement('video-stream');
         video.id = videoEl.id;
         video.style = videoEl.style;
+        console.log(videoEl, video);
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
@@ -345,7 +346,8 @@ function MonitorStream(monitorData) {
         video.src = webrtcUrl.href;
         const video_container = videoEl.parentNode;
 
-        video_container.innerHTML = '';
+        videoEl.remove();
+        //video_container.innerHTML = '';
         video_container.appendChild(video);
         this.webrtc = video;
 
@@ -527,8 +529,10 @@ function MonitorStream(monitorData) {
 
   this.play = function() {
     console.log('play');
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
-    console.log('play');
+    if (this.Go2RTCEnabled) {
+      this.element.play(); // go2rtc player will handle mute
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    } else if (this.RTSP2WebEnabled) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play().catch(() => {
         if (!this.element.muted) {
@@ -601,6 +605,57 @@ function MonitorStream(monitorData) {
   this.onplay = null;
   this.setup_onplay = function(func) {
     this.onplay = func;
+  };
+
+  this.volume_slider = null;
+  this.volume = 0.0;
+
+  this.setup_volume = function(slider) {
+    this.volume_slider = slider;
+    this.volume_slider.addEventListener('click', (e) => {
+      let x = e.pageX - this.volume_slider.getBoundingClientRect().left; // or e.offsetX (less support, though)
+      let y = e.pageY - this.volume_slider.getBoundingClientRect().top;  // or e.offsetY
+      let clickedValue = x * this.volume_slider.max / this.volume_slider.offsetWidth;
+      this.volume_slider.value = clickedValue;
+      this.set_volume(clickedValue/100);
+      this.mute_state = clickedValue ? true : false;
+    });
+    this.volume = this.volume_slider.value;
+  };
+
+  this.set_volume = function(volume) {
+    console.log('set_volume', volume);
+    this.volume = volume;
+    this.set_stream_volume(volume);
+  };
+
+  this.set_stream_volume = function(volume) {
+    if (this.webrtc) {
+      this.webrtc.volume(volume);
+    } else {
+      const stream = this.getElement();
+      stream.volume = volume;
+    }
+  };
+
+  this.mute_btn = null;
+  this.mute_state = false;
+
+  this.setup_mute = function(mute_btn) {
+    this.mute_btn = mute_btn;
+    this.mute_btn.onclick = () => {
+      console.log(this.mute_state, this.volume);
+
+      this.mute_state = !this.mute_state;
+
+      if (this.mute_state === false) {
+        this.set_stream_volume(this.volume); // lastvolume
+        this.volume_slider.value = this.volume*100;
+      } else {
+        this.set_stream_volume(0.0);
+        this.volume_slider.value = 0;
+      }
+    };
   };
 
   this.setStateClass = function(jobj, stateClass) {

@@ -82,9 +82,15 @@ class EventsController extends AppController {
       // TODO: Implement request based limits.
 
       # 'limit' => '100',
+      
+
       'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
+    if ($this->request->query('limit')) {
+      $settings['limit'] = $this->request->query('limit');
+    }
+
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
         array(
@@ -99,17 +105,8 @@ class EventsController extends AppController {
     }
     $settings['conditions'] = array($conditions, $mon_options);
 
-    // How many events to return 
-    $this->loadModel('Config');
-    $limit = $this->Config->find('list', array(
-      'conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'),
-      'fields' => array('Name', 'Value')
-    ));
-    $this->Paginator->settings = $settings;
-    $events = $this->Paginator->paginate('Event');
-
-    // For each event, get the frameID which has the largest score
-    // also add FS path
+    $events = $this->Event->find('all', $settings);
+    // For each event, get the frameID which has the largest score also add FS path
 
     foreach ( $events as $key => $value ) {
       $EventObj = new ZM\Event($value['Event']);

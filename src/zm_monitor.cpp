@@ -1432,13 +1432,13 @@ void Monitor::CancelForced() {
 void Monitor::actionReload() { shared_data->action |= RELOAD; }
 
 void Monitor::actionEnable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = true;
+  Info("actionEnable, capturing enabled.");
 }
 
 void Monitor::actionDisable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = false;
+  Info("actionDisable, capturing temporarily disabled.");
 }
 
 void Monitor::actionSuspend() { shared_data->action |= SUSPEND; }
@@ -2745,6 +2745,10 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
+  if (!shared_data->capturing) {
+    Debug(1, "Not capturing");
+    return 0;
+  }
   unsigned int index = shared_data->image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu",
@@ -3487,7 +3491,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
           alarm_ref_blend_perc);
   sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
   sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
-          Capturing_Strings[capturing].c_str());
+          Capturing_Strings[shared_data->capturing].c_str());
   sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
           Analysing_Strings[analysing].c_str());
   sprintf(output + strlen(output), "Recording %d - %s\n", recording,

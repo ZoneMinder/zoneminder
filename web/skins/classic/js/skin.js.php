@@ -145,8 +145,8 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 global $user;
 if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
-  global $config;
-  foreach ($config as $name=>$c) {
+  global $zm_config;
+  foreach ($zm_config as $name=>$c) {
     if (!$c['Private']) {
       $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
       $value = preg_replace('/\'/', '\\\\\'', $value);

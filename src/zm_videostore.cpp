@@ -1171,20 +1171,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           video_out_ctx->height
         );
       } else if (!zm_packet->in_frame) {
-        Debug(4, "Have no in_frame");
-        if (zm_packet->packet->size and !zm_packet->decoded) {
-          Debug(4, "Decoding");
-          if (!zm_packet->decode(video_in_ctx)) {
-            Debug(2, "unable to decode yet.");
-            return 0;
-          }
-          // Go straight to out frame
-          swscale.Convert(zm_packet->in_frame.get(), out_frame);
-        } else {
-          Error("Have neither in_frame or image in packet %d!",
-                zm_packet->image_index);
-          return 0;
-        } // end if has packet or image
+        Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
+        return 0;
       } else {
         // Have in_frame.... may need to convert it to out_frame
         swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
@@ -1278,9 +1266,11 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             video_out_stream->time_base.den);
 
       if (video_last_pts != AV_NOPTS_VALUE) {
-          opkt->duration = opkt->pts - video_last_pts;
+         opkt->duration = opkt->pts - video_last_pts;
+         Debug(1, "Duration %" PRId64 " from pts %" PRId64 " - last %" PRId64, opkt->duration, opkt->pts, video_last_pts);
+         if (opkt->duration < 0) opkt->duration = 0;
       }
-      video_last_pts = zm_packet->in_frame->pts;
+      video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);
     } // end while receive_packet
   } else { // Passthrough

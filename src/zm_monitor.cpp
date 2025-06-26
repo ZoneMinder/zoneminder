@@ -19,11 +19,11 @@
 
 #include "zm_monitor.h"
 
-#include "zm_group.h"
 #include "zm_eventstream.h"
 #include "zm_ffmpeg_camera.h"
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
+#include "zm_group.h"
 #include "zm_monitorlink_expression.h"
 #include "zm_mqtt.h"
 #include "zm_remote_camera.h"
@@ -32,8 +32,8 @@
 #include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
 #include "zm_time.h"
-#include "zm_utils.h"
 #include "zm_uri.h"
+#include "zm_utils.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L2
@@ -49,16 +49,16 @@
 #endif  // HAVE_LIBVNC
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <chrono>
 #include <string>
 #include <utility>
 
 #if ZM_MEM_MAPPED
-#include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #else  // ZM_MEM_MAPPED
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -83,6 +83,7 @@ std::string load_monitor_sql =
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
+  "`Go2RTCEnabled`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
   "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
   "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
@@ -183,6 +184,7 @@ Monitor::Monitor() :
   decoding(DECODING_ALWAYS),
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
+  Go2RTC_enabled(false),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -348,7 +350,9 @@ Monitor::Monitor() :
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+   " RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   " GO2RTCEnabled, "
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
@@ -426,6 +430,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]) ;
   col++;
+
+  Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
+  col++;
+
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
@@ -1170,6 +1178,11 @@ bool Monitor::connect() {
       RTSP2Web_Manager->add_to_RTSP2Web();
     }
 
+    if (Go2RTC_enabled) {
+      Go2RTC_Manager = new Go2RTCManager(this);
+      Go2RTC_Manager->add_to_Go2RTC();
+    }
+
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
       Janus_Manager->add_to_janus();
@@ -1905,6 +1918,12 @@ bool Monitor::Poll() {
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
       Debug(1, "Trying to add stream to RTSP2Web");
       RTSP2Web_Manager->add_to_RTSP2Web();
+    }
+  }
+
+  if (Go2RTC_enabled and Go2RTC_Manager) {
+    if (Go2RTC_Manager->check_Go2RTC() == 0) {
+      Go2RTC_Manager->add_to_Go2RTC();
     }
   }
 
@@ -3505,6 +3524,12 @@ int Monitor::Close() {
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
+  }
+
+  // Go2RTC teardown
+  if (Go2RTC_enabled and (purpose == CAPTURE) and Go2RTC_Manager) {
+    delete Go2RTC_Manager;
+    Go2RTC_Manager = nullptr;
   }
 
   // Janus Teardown

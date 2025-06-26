@@ -405,6 +405,35 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int remove_from_RTSP2Web();
   };
 
+  class Go2RTCManager {
+    protected:
+      Monitor *parent;
+      CURL *curl = nullptr;
+      // helper class for CURL
+      struct transfer {
+        const char *buf;
+        size_t total;
+        size_t uploaded;
+      };
+      static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+      static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+      bool Go2RTC_Healthy;
+      bool Use_RTSP_Restream;
+      std::string Go2RTC_endpoint;
+      std::string rtsp_username;
+      std::string rtsp_password;
+      std::string rtsp_path;
+      std::string rtsp_second_path;
+
+    public:
+      explicit Go2RTCManager(Monitor *parent_);
+      ~Go2RTCManager();
+      void load_from_monitor();
+      int add_to_Go2RTC();
+      int check_Go2RTC();
+      int remove_from_Go2RTC();
+  };
+
   class JanusManager {
    protected:
     Monitor *parent;
@@ -455,6 +484,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   RTSP2WebStreamOption RTSP2Web_stream;      // Whether we use the primary or secondary URL for the stream
+  bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -658,6 +688,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool Event_Poller_Closes_Event;
 
   RTSP2WebManager *RTSP2Web_Manager;
+  Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;

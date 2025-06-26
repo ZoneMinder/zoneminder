@@ -446,6 +446,17 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_GO2RTC_PATH',
+    default     => 'http://127.0.0.1:1984',
+    description => 'URL for Go2RTC API.',
+    help        => q`This value points to the location of the Go2RTC API
+    install, including username and password. If left blank, this
+    will default to 127.0.0.1:1984
+    `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_JANUS_SECRET',
     default     => '',
     description => 'Password for Janus streaming administration.',

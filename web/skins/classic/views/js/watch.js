@@ -830,6 +830,9 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  monitorStream.setup_volume(document.getElementById('volume'));
+  monitorStream.setup_mute(document.getElementById('mute'));
+
   monitorStream.setPlayer(player);
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
   // Start the fps and status updates. give a random delay so that we don't assault the server
@@ -1089,8 +1092,6 @@ function initPage() {
     alert("No monitor found for id "+monitorId);
   }
 
-  monitorStream.setup_mute(document.getElementById('mute'));
-  monitorStream.setup_volume(document.getElementById('volume'));
 
   manageRTSP2WebChannelStream();
 } // initPage

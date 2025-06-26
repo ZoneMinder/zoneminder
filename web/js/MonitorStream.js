@@ -252,9 +252,42 @@ function MonitorStream(monitorData) {
   }; // setStreamScale
 
   this.start = function(streamChannel = 'default') {
-    console.log(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STARTED`, this.player);
     this.streamListenerBind = streamListener.bind(null, this);
 
+    if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
+      if (ZM_GO2RTC_PATH) {
+        const url = new URL(ZM_GO2RTC_PATH);
+        const useSSL = (url.protocol == 'https:');
+
+        const videoEl = document.getElementById("liveStream" + this.id);
+        const video = document.createElement('video-stream');
+        video.id = videoEl.id;
+        video.style = videoEl.style;
+        console.log(videoEl, video);
+        const Go2RTCModUrl = url;
+        const webrtcUrl = Go2RTCModUrl;
+        webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
+        webrtcUrl.pathname += "/ws";
+        webrtcUrl.search = 'src='+this.id;
+        video.src = webrtcUrl.href;
+        const video_container = videoEl.parentNode;
+
+        videoEl.remove();
+        //video_container.innerHTML = '';
+        video_container.appendChild(video);
+        this.webrtc = video;
+
+        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+        this.started = true;
+        this.streamListenerBind();
+        return;
+      } else {
+        console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
+      }
+    } else {
+      console.log("Not GO",this.Go2RTCEnabled, this.player);
+    }
     if ((false !== this.player.indexOf('janus')) && this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -327,40 +360,6 @@ function MonitorStream(monitorData) {
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
       }
-    }
-    if (this.Go2RTCEnabled && (-1 != this.player.indexOf('go2rtc'))) {
-      if (ZM_GO2RTC_PATH) {
-        const url = new URL(ZM_GO2RTC_PATH);
-        const useSSL = (url.protocol == 'https:');
-
-        const videoEl = document.getElementById("liveStream" + this.id);
-        const video = document.createElement('video-stream');
-        video.id = videoEl.id;
-        video.style = videoEl.style;
-        console.log(videoEl, video);
-        const Go2RTCModUrl = url;
-        const webrtcUrl = Go2RTCModUrl;
-        webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
-        webrtcUrl.pathname += "/ws";
-        webrtcUrl.search = 'src='+this.id;
-        video.src = webrtcUrl.href;
-        const video_container = videoEl.parentNode;
-
-        videoEl.remove();
-        //video_container.innerHTML = '';
-        video_container.appendChild(video);
-        this.webrtc = video;
-
-        clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
-        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-        this.started = true;
-        this.streamListenerBind();
-        return;
-      } else {
-        console.log("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
-      }
-    } else {
-      console.log("Not GO",this.Go2RTCEnabled, this.player);
     }
 
     // zms stream

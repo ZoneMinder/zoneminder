@@ -304,12 +304,15 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="playerControl">
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
-              $players = ['zms'=>'ZMS MJPEG',
-                'go2rtc' => 'Go2RTC',
-                'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
-                'rtsp2web_mse' => 'RTSP2Web MSE',
-                'rtsp2web_hls' => 'RTSP2Web HLS',
-              ];
+              $players = ['zms'=>'ZMS MJPEG'];
+              if ($monitor->Go2RTC_Enabled()) $players['go2rtc'] = 'Go2RTC';
+              if ($monitor->RTSP2Web_Enabled()) {
+                $players = array_merge($players,[
+                  'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
+                  'rtsp2web_mse' => 'RTSP2Web MSE',
+                  'rtsp2web_hls' => 'RTSP2Web HLS',
+                ]);
+              } #
               $player = $monitor->getStreamMode();
 
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {

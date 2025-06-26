@@ -650,6 +650,11 @@ export class VideoRTC extends HTMLElement {
         this.send({type: 'mp4', value: this.codecs(this.video.canPlayType)});
     }
 
+    volume(new_volume) {
+      console.log(this, "Setting volume to ", new_volume);
+      this.video.volume = new_volume;
+    }
+
     static btoa(buffer) {
         const bytes = new Uint8Array(buffer);
         const len = bytes.byteLength;

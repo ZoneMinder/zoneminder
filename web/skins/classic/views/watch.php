@@ -441,8 +441,10 @@ echo $monitor->getStreamHTML($options);
 <?php 
 $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
   (isset($_COOKIE['zmWatchVolume']) ? validInt($_COOKIE['zmWatchVolume']) : 50);
-$muted = isset($_REQUEST['muted']) ? validInt($_REQUEST['muted']) :
-  (isset($_COOKIE['zmWatchMuted']) ? validInt($_COOKIE['zmWatchMuted']) : false);
+# 'true' is the only true value for muted. Anything else is false.
+$muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
+  ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
+ZM\Debug("Muted $muted");
 
 ?>
     <span class="volume">

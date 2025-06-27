@@ -687,7 +687,7 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  $j(".grid-monitor").hover(
+  $j(".monitorStream").hover(
       //Displaying "Scale" and other buttons at the top of the monitor image
       function() {
         const id = stringToNumber(this.id);

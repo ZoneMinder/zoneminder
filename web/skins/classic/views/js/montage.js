@@ -687,26 +687,35 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  $j(".monitorStream").hover(
-      //Displaying "Scale" and other buttons at the top of the monitor image
+  $j(".grid-monitor").hover(
+      //Display monitor status information inside at the bottom
       function() {
         const id = stringToNumber(this.id);
         if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).removeClass('hidden');
         }
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
       },
       function() {
         const id = stringToNumber(this.id);
         if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).addClass('hidden');
         }
+      }
+  );
+
+  $j(".monitorStream").hover(
+      //Displaying "Scale" and other buttons at the top of the monitor image
+      function() {
+        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+        $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+        $j('#ratioControl' + id).css({ top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px' });
+      },
+      function() {
         $j('#button_zoom' + id).stop(true, true).slideUp('fast');
         $j('#ratioControl' + id).stop(true, true).slideUp('fast');
       }
   );
+
 
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {

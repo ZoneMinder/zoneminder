@@ -2109,28 +2109,26 @@ int Monitor::Analyse() {
               }
 
               if (objectdetection != OBJECT_DETECTION_NONE) {
-                if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
-                  if (shared_data->last_analysis_index != image_buffer_count) {
-                    int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
-                    while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
+                if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
+                  int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
+                  while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
 
-                      Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
-                      std::this_thread::sleep_for(Microseconds(10000));
-                      count--;
-                    }
-                    // In order to make it available to event writing
-                    if (shared_data->analysis_image_count >= packet->image_index) {
-                      Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
-                      packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
-                    }
-                  } // end if (shared_data->last_analysis_index != image_buffer_count)
-                } // end if SPEEDAI
+                    Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
+                    std::this_thread::sleep_for(Microseconds(10000));
+                    count--;
+                  }
+                  // In order to make it available to event writing
+                  if (shared_data->analysis_image_count >= packet->image_index) {
+                    Debug(1, "Assigning image at index %d for ai_image", packet->image_index % image_buffer_count);
+                    packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
+                  }
+                }
 #if HAVE_QUADRA
-                else if (objectdetection == OBJECT_DETECTION_QUADRA) {
-                  std::pair<int, std::string> results = Analyse_Quadra(packet);
+                else {
+                  //std::pair<int, std::string> results = Analyse_Quadra(packet);
                 }
 #endif
-                else if (objectdetection == OBJECT_DETECTION_UVICORN) {
+                if (objectdetection == OBJECT_DETECTION_UVICORN) {
                   std::pair<int, std::string> results = Analyse_UVICORN(packet);
                   int motion_score = results.first;
                   std::string motion_cause = results.second;
@@ -3563,10 +3561,33 @@ int Monitor::Decode() {
     //if (!quadra_yolo)
 #endif
     {
+#if HAVE_QUADRA
+      if (objectdetection == OBJECT_DETECTION_QUADRA) {
+        std::pair<int, std::string> results = Analyse_Quadra(packet);
+      }
+#endif
+      if (packet->ai_frame) {
+        Debug(1, "Assigning ai_frame for index %d", index);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
+        image_buffer[index]->Assign(packet->ai_frame.get());
+      } else if (packet->ai_image) {
+        Debug(1, "Assigning ai_frame for index %d", index);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
+        image_buffer[index]->Assign(*(packet->ai_image));
+      } else {
+        if (packet->needs_hw_transfer(mVideoCodecContext))
+          packet->get_hwframe(mVideoCodecContext);
+        image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
+        image_buffer[index]->Assign(packet->in_frame.get());
+      }
+      //if (packet->detections.size())
+        //zm_terminate = true;
+      if (objectdetection == OBJECT_DETECTION_SPEEDAI) {
+        // Won't be using hwframe
+      }
       if (packet->needs_hw_transfer(mVideoCodecContext))
-        packet->get_hwframe(mVideoCodecContext);
-      image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
-      image_buffer[index]->Assign(packet->in_frame.get());
+          packet->get_hwframe(mVideoCodecContext);
+  //    packet->hw_frame = nullptr;
       shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
       shared_data->last_decoder_index = index;
       shared_data->decoder_image_count++;

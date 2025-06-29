@@ -87,6 +87,7 @@ struct Namespace namespaces[] = {
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+   "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
   "`Go2RTCEnabled`, "
@@ -421,6 +422,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]);
   col++;
+
   Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
 

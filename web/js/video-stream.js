@@ -6,19 +6,15 @@ import {VideoRTC} from './video-rtc.js';
  */
 class VideoStream extends VideoRTC {
     set divMode(value) {
-      /*
         this.querySelector('.mode').innerText = value;
         this.querySelector('.status').innerText = '';
-        */
     }
 
     set divError(value) {
-      /*
         const state = this.querySelector('.mode').innerText;
         if (state !== 'loading') return;
         this.querySelector('.mode').innerText = 'error';
         this.querySelector('.status').innerText = value;
-        */
     }
 
     /**
@@ -28,9 +24,7 @@ class VideoStream extends VideoRTC {
         console.debug('stream.oninit');
         super.oninit();
 
-        this.innerHTML = '';
-/*
-        `
+        this.innerHTML = `
         <style>
         video-stream {
             position: relative;
@@ -55,8 +49,6 @@ class VideoStream extends VideoRTC {
 
         const info = this.querySelector('.info');
         this.insertBefore(this.video, info);
-        */
-        this.appendChild(this.video);
     }
 
     onconnect() {

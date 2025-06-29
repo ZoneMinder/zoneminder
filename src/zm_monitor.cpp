@@ -52,12 +52,11 @@
 #include "libavutil/hwcontext_ni_quad.h"
 #endif
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <string>
 #include <utility>
 
@@ -86,36 +85,35 @@ struct Namespace namespaces[] = {
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used wherever a Monitor dbrow is needed.
 std::string load_monitor_sql =
-    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
-    "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
-    "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`,"
-    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-    "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
-    "`Go2RTCEnabled`, `Go2RTCType`, "
-    "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
-    "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
-    "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, "
-    "`AnalysisFPSLimit`,`AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
-    "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, "
-    "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, "
-    "`SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, "
-    "`Deinterlacing`, "
-    "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
-    "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
-    "`OutputCodec`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
-    "`RecordAudio`, WallClockTimestamps,"
-    "`Brightness`, `Contrast`, `Hue`, `Colour`, "
-    "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
-    "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
-    "`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-    "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`+0, "
-    "`FrameSkip`, `MotionFrameSkip`, "
-    "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
-    "`Latitude`, `Longitude`, "
-    "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`,"
-    "`ONVIF_URL`, `ONVIF_EVENTS_PATH`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
-    "`ONVIF_Event_Listener`, `use_Amcrest_API`,"
-    "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
+  "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
+  "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+  "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
+  "`Go2RTCEnabled`, "
+  "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
+  "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
+  "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
+  "`AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+  "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, "
+  "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, "
+  "`SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, "
+  "`Deinterlacing`, "
+  "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+  "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
+  "`OutputCodec`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
+  "`RecordAudio`, WallClockTimestamps,"
+  "`Brightness`, `Contrast`, `Hue`, `Colour`, "
+  "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+  "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
+  "`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+  "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`+0, "
+  "`FrameSkip`, `MotionFrameSkip`, "
+  "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
+  "`Latitude`, `Longitude`, "
+  "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`,"
+  "`ONVIF_URL`, `ONVIF_EVENTS_PATH`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
+  "`ONVIF_Event_Listener`, `use_Amcrest_API`,"
+  "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
 #if MOSQUITTOPP_FOUND
     ", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
@@ -158,7 +156,6 @@ Monitor::Monitor() :
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
   Go2RTC_enabled(false),
-  Go2RTC_type(WEBRTC),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -336,6 +333,7 @@ std::string TriggerState_Strings[] = {"Cancel", "On", "Off"};
    " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
    "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   " GO2RTCEnabled, "
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
@@ -427,6 +425,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   Go2RTC_type = (Go2RTCOption)atoi(dbrow[col]);
   col++;
+
+  Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
+  col++;
+
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false;

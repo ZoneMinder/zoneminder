@@ -1298,9 +1298,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
   }
 ?>
-            <li id="Go2RTCType">
-              <label><?php echo translate('Go2RTC Type') ?> <?php echo $monitor->Go2RTCType() ?> </label>
-              <?php echo htmlSelect('newMonitor[Go2RTCType]', $Go2RTCTypes, $monitor->Go2RTCType()); ?>
             </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
@@ -1310,8 +1307,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_RTSP2WEB_ENABLED']['Help'].'</div>';
   }
 ?>
+            </li>
             <li id="RTSP2WebType">
-              <label><?php echo translate('RTSP2Web Type') ?> <?php echo $monitor->RTSP2WebType() ?> </label>
+              <label><?php echo translate('RTSP2Web Type') ?></label>
               <?php echo htmlSelect('newMonitor[RTSP2WebType]', $RTSP2WebTypes, $monitor->RTSP2WebType()); ?>
             </li>
             <li id="RTSP2WebStream">

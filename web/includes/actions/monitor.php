@@ -99,6 +99,7 @@ if ($action == 'save') {
       'Deleted' => 0,
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
+      'Go2RTCEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Janus_Use_RTSP_Restream' => 0,

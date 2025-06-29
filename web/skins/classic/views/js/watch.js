@@ -1370,8 +1370,7 @@ function monitorsSetScale(id=null) {
     } else if (scale.indexOf("px") > -1) {
       if (landscape) {
         maxWidth = scale;
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
-        height = 'auto';
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
       } else {
         defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
         height = scale;

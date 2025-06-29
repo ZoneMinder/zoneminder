@@ -43,6 +43,13 @@ var expiredTap; //Time between touch screen clicks. Used to analyze double click
 var shifted = ctrled = alted = false;
 var mainContent = document.getElementById('content');
 
+const useOldMenuView = !!getCookie('zmUseOldMenuView');
+const showExtruderPanelOnMouseHover = false;
+const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
+const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
+const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
+const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -550,12 +557,43 @@ function submitTab(evt) {
   evt.preventDefault();
 }
 
-function submitThisForm() {
-  if ( ! this.form ) {
+// Called by 'data-on-change=submitThisForm' for Select and in Montage page when date/time changes
+function submitThisForm(param = null) {
+  var form = null;
+  var filter = null; // The filter that we previously moved to the left sidebar menu
+  if (currentView == 'console' && !useOldMenuView) {
+    // We get the form that we process
+    form = document.querySelector('form[name="monitorForm"]');
+    // We get a filter
+    filter = document.querySelector('#fbpanel');
+  } else if (currentView == 'montage' && !useOldMenuView) {
+    form = document.querySelector('#filters_form');
+    // Filter is inside the form.
+  } else if (currentView == 'montagereview' && !useOldMenuView) {
+    form = document.querySelector('#montagereview_form');
+    filter = document.querySelector('#filterMontagereview');
+  } else if (currentView == 'watch' && !useOldMenuView) {
+    form = document.querySelector('#wrapperFilter form');
+  } else {
+    form = this.form;
+  }
+
+  if ( ! form ) {
     console.log("No this.form.  element with onchange is not in a form");
     return;
   }
-  this.form.submit();
+  if (filter && !useOldMenuView) {
+    // Let's hide the old filter so that it doesn't appear during the transfer...
+    filter.style.display = 'none';
+    // We return the filter to its place in the form, since in the left side menu the filter should always be inside the form.
+    form.prepend(filter);
+  }
+  if (param && typeof param === 'string') { //ON WATCH PAGE WHEN SELECTING A MONITOR, the object is transferred as PARAM!!!
+    var uri = "?" + $j(form).serialize() + param;
+    window.location = uri;
+  } else {
+    form.submit();
+  }
 }
 
 /**
@@ -687,6 +725,7 @@ function endOfResize(e) {
       //Only for scaleToFit
       changeScale();
     }
+    isNavbarOverflown();
   }, 250);
 }
 window.onresize = endOfResize;
@@ -1205,6 +1244,10 @@ function isMobile() {
   return result;
 }
 
+function isTouchDevice() {
+  return !!(('ontouchstart' in window) || window.DocumentTouch && document instanceof window.DocumentTouch);
+}
+
 function destroyChosen(selector = '') {
   if (typeof selector === 'string') {
     $j(selector + '.chosen').chosen('destroy');
@@ -1432,18 +1475,359 @@ function canPlayCodec(filename) {
   return false;
 }
 
+/*
+* Top bar with statistics
+* This function is necessary because
+* .dropdown-menu cannot extend beyond #reload container if #reload overflow == auto
+* overflow == auto for #reload is needed to scroll #reload on narrow screen.
+* Now on a wide screen we have a beautiful .dropdown-menu, on a narrow screen it is less beautiful.
+*/
+function isNavbarOverflown() {
+  if (!NAVBAR_RELOAD) return; // For example, when you log in, nothing will happen...
+  // If it doesn't fit, turn on overflow
+  if (NAVBAR_RELOAD.scrollWidth > NAVBAR_RELOAD.clientWidth) {
+    NAVBAR_RELOAD.style.overflowX = 'auto';
+    document.querySelectorAll("#panel .dropdown-menu").forEach(function(el) {
+      el.classList.add('overflown');
+    });
+  } else {
+    NAVBAR_RELOAD.style.overflowX = 'visible';
+    document.querySelectorAll("#panel .dropdown-menu").forEach(function(el) {
+      el.classList.remove('overflown');
+    });
+  }
+
+  if (useOldMenuView) {
+    if (window.innerWidth < 600) { // To support the old top menu
+      document.getElementById('main-header-nav').appendChild(document.getElementById('blockUseOldMenuView'));
+    } else {
+      document.querySelector('#navbar-container .navbar-brand').appendChild(document.getElementById('blockUseOldMenuView'));
+    }
+  }
+}
+
+function changeAttrTitle(collapsed = null) {
+  if (!SIDEBAR_MAIN) return;
+  if (collapsed === null) collapsed = SIDEBAR_MAIN.classList.contains('collapsed');
+  // First level menu
+  // Let's create (for collapsed, to make it clearer or if the title doesn't fit) or remove (for expanded, so as not to irritate) the "Title" attribute
+  SIDEBAR_MAIN.querySelectorAll("nav>ul>li.menu-item>a").forEach(function(el) {
+    const titleEl = el.querySelector("span.menu-title");
+    if (collapsed || titleEl.scrollWidth > titleEl.clientWidth) {
+      el.setAttribute('title', el.querySelector("span.menu-title").textContent);
+    } else {
+      el.setAttribute('title', '');
+    }
+  });
+
+  // For submenu we will add only if the title does not fit in the visible area in width...
+  SIDEBAR_MAIN.querySelectorAll("nav>ul>li.menu-item.sub-menu .sub-menu-list>ul>li.menu-item a").forEach(function(el) {
+    const titleEl = el.querySelector("span");
+    if (titleEl.scrollWidth > titleEl.clientWidth) {
+      el.setAttribute('title', el.querySelector("span.menu-title").textContent);
+    } else {
+      el.setAttribute('title', '');
+    }
+  });
+}
+
+/* We create a retractable extruder block with filter settings (we move filters from the top panel) and a button in the left Sidebar menu */
+function insertControlModuleMenu() {
+  var filter = null;
+  if (currentView == 'console') {
+    destroyChosen(); // It is required to be performed BEFORE receiving the object and only for those pages on which we transfer the filter
+    filter = document.querySelector('#fbpanel');
+  } else if (currentView == 'montage') {
+    destroyChosen();
+    filter = document.querySelector('#filters_form');
+  } else if (currentView == 'montagereview') {
+    destroyChosen();
+    filter = document.createElement('div');
+    filter.setAttribute("id", "filterMontagereview");
+
+    const filterOne = document.querySelector('#mfbpanel .controlHeader');
+    const filterTwo = document.querySelector('#fieldsTable');
+    filter.prepend(filterTwo);
+    filter.prepend(filterOne);
+  } else if (currentView == 'watch') {
+    destroyChosen();
+    filter = document.querySelector('.controlHeader form');
+  } else if (currentView == 'report_event_audit') {
+    destroyChosen();
+    filter = document.querySelector('#content form');
+  } else if (currentView == 'events') {
+    destroyChosen();
+    filter = document.querySelector('#fieldsTable');
+    // We change the layout to remove the resulting void.
+    const toolbar = document.querySelector('#toolbar');
+    // The first div that is "col-sm-1"
+    const divFirst = toolbar.querySelector('.col-sm-1');
+    if (divFirst) {
+      divFirst.classList.remove('col-sm-1');
+      divFirst.classList.add('col-sm-4');
+    }
+    // The second div, which is "col-sm-9"
+    const divSecond = toolbar.querySelector('.col-sm-9');
+    if (divSecond) {
+      divSecond.style.display = 'none';
+    }
+    // The third div, which is "col-sm-2"
+    const divThird = toolbar.querySelector('.col-sm-2');
+    if (divThird) {
+      divThird.classList.remove('col-sm-2');
+      divThird.classList.add('col-sm-8');
+    }
+  }
+
+  if (!filter) return;
+  filter.classList.add('filter-block');
+
+  // Restore visibility. If the block was hidden
+  filter.classList.remove('hidden-shift');
+  filter.style.display = '';
+
+  //Create a button to open/hide the filter settings control
+  var el = document.createElement('div');
+  el.setAttribute("class", "menu-item");
+  el.innerHTML = `
+    <a href="#" class="text-success" title="Filter settings">
+      <span class="bg-light menu-icon"><i class="material-icons">tune</i></span>
+      <span class="menu-title">Filter settings</span>
+    </a>
+  `;
+
+  const menuControlModule = $j(document.querySelector('#menuControlModule'));
+  const containerExtruderLeft = $j(document.querySelector('#contextExtruderLeft'));
+  menuControlModule.prepend(el); // Menu line
+
+  // Let's create a wrapper for the filter, since the filter can start with a <span> tag or something similar.
+  var wrapper = document.createElement('div');
+  wrapper.setAttribute("id", "wrapperFilter");
+  // Let's add a filter to wrapper
+  wrapper.prepend(filter);
+  // We will create a button to close extruder panel, which is relevant for narrow screens
+  var btnClose = document.createElement('span');
+  btnClose.setAttribute("class", "btn");
+  btnClose.setAttribute("id", "wrapperBtnCloseExtruder");
+  //btnClose.style.position = "absolute";
+  //btnClose.style.top = "0";
+  //btnClose.style.right = "0";
+  btnClose.innerHTML = `<i id="btnCloseExtruder" class="material-icons">close</i>`;
+  wrapper.prepend(btnClose);
+  // Let's place the filter itself
+  containerExtruderLeft.replaceWith(wrapper);
+
+  $j(SIDEBAR_MAIN_EXTRUDER).buildMbExtruder({
+    attachToParentSide: "right", // Bind to right side of parent
+    bindToButtonByHeight: document.querySelector('#menuControlModule'), // Bind vertical position to button. Relevant when the button moves vertically, so that the extruder follows it.
+    position: "left",
+    selectorResponsiveBlock: '.filter-block',
+    extruderParentElement: document.getElementById('sidebarMain'),
+    noFlap: true,
+    width: 400,
+    topBlock: 300,
+    topFlap: 100,
+    extruderOpacity: .9,
+    //zIndex: 100,
+    onExtOpen: function() {},
+    onExtContentLoad: function() {},
+    onExtClose: function() {}
+  });
+
+  // Assign to Show/hide button
+  menuControlModule.on("click", function() {
+    if (!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened')) {
+      $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
+    } else {
+      $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+    }
+  });
+
+  // NECESSARY BECAUSE DOM HAS BEEN REBUILDED!
+  dataOnClickThis();
+  dataOnClick();
+  dataOnClickTrue();
+  dataOnChangeThis();
+  dataOnChange();
+  dataOnInput();
+  dataOnInputThis();
+  applyChosen();
+  initDatepicker();
+  if (getCookie('zmVisibleMbExtruder')) {
+    // The extruder panel was open when the previous page was closed. Perhaps the filter settings were changed before the previous page was closed.
+    $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
+  }
+
+  /* Need to change overflow for extruder sidebar
+  * If the "chosen" drop-down list fits vertically into the browser window, then overflow = 'visible' is for beauty.
+  * That is, the list will be on top of the block, and the block will not increase in height. Otherwise, we will set overflow = 'auto' for the panel so that the "chosen" drop-down list is fully accessible.
+  * We listen to ".chosen-container" for ".chosen-container-active" to be added or removed.
+  */
+  document.querySelectorAll(".chosen-container").forEach(function(el) {
+    const ob = new MutationObserver(function() {
+      const parent = SIDEBAR_MAIN_EXTRUDER.querySelector('.filter-block');
+      if (!parent) return; // Page closing moment
+      if (el.classList.contains("chosen-container-active")) {
+        const chosenDropBlock = el.querySelector('.chosen-drop');
+        //const [leftDropBlock, topDropBlock] = findPos(chosenDropBlock); // Eslint complains about not using leftDropBlock
+        const topDropBlock = findPos(chosenDropBlock)[1];
+
+        if (chosenDropBlock.clientHeight + topDropBlock > window.innerHeight ) { // There is not enough space at the bottom
+          parent.style.overflow = 'auto';
+        } else {
+          parent.style.overflow = 'visible';
+        }
+      } else {
+        //parent.style.overflow = 'visible';
+      }
+    });
+    ob.observe(el, {
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+  });
+}
+
+// Get the position of an element. Relevant for nested position == fixed&absolute
+function findPos(obj, foundScrollLeft, foundScrollTop) {
+  var curleft = 0;
+  var curtop = 0;
+  if (obj.offsetLeft) curleft += parseInt(obj.offsetLeft);
+  if (obj.offsetTop) curtop += parseInt(obj.offsetTop);
+  if (obj.scrollTop && obj.scrollTop > 0) {
+    curtop -= parseInt(obj.scrollTop);
+    foundScrollTop = true;
+  }
+  if (obj.scrollLeft && obj.scrollLeft > 0) {
+    curleft -= parseInt(obj.scrollLeft);
+    foundScrollLeft = true;
+  }
+  if (obj.offsetParent) {
+    var pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
+    curleft += pos[0];
+    curtop += pos[1];
+  } else if (obj.ownerDocument) {
+    var thewindow = obj.ownerDocument.defaultView;
+    if (!thewindow && obj.ownerDocument.parentWindow) thewindow = obj.ownerDocument.parentWindow;
+    if (thewindow) {
+      if (!foundScrollTop && thewindow.scrollY && thewindow.scrollY > 0) curtop -= parseInt(thewindow.scrollY);
+      if (!foundScrollLeft && thewindow.scrollX && thewindow.scrollX > 0) curleft -= parseInt(thewindow.scrollX);
+      if (thewindow.frameElement) {
+        var pos = findPos(thewindow.frameElement);
+        curleft += pos[0];
+        curtop += pos[1];
+      }
+    }
+  }
+
+  return [curleft, curtop];
+}
+
 /* Handling <input> change */
 function handleChangeInputTag(evt) {
   // Managing availability of channel stream selection
   manageRTSP2WebChannelStream();
 }
 
+/* Handling a mouse click */
+function handleClickGeneral(evt) {
+  const target = evt.target;
+  if (!useOldMenuView) {
+    if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
+      // Click on any element inside the extruder panel from the Sidebar
+    } else {
+      // Click outside the extruder panel
+      if (!SIDEBAR_MAIN.contains(target) &&
+          //"datepicker" changes the DOM very quickly when the month changes. Closest does not have time to go through all the parents, but only manages to get to the first parent. It is necessary to additionally analyze '.ui-datepicker-prev' and '.ui-datepicker-next'
+          !target.closest('.ui-datepicker') &&
+          !target.closest('.ui-datepicker-prev') &&
+          !target.closest('.ui-datepicker-next') &&
+          !target.matches('button[name="deleteBtn"]')) { // Multi select clear button
+        // Click outside the extruder panel Sidebar (except clicking on "datepicker"). Close the extruder panel
+        closeMbExtruder();
+      }
+    }
+    // Collapse or expand the menu.
+    if (BTN_COLLAPSE && BTN_COLLAPSE.contains(target)) {
+      setTimeout(function() {
+        // Call only after finishing expanding or collapsing. Otherwise the dimensions will be incorrect.
+        const collapsed = SIDEBAR_MAIN.classList.contains('collapsed');
+        setCookie('zmSidebarMainCollapse', collapsed);
+        changeAttrTitle(collapsed);
+      }, 500);
+    }
+    // Extruder panel close button with filters. Appears on narrow screens
+    if ('btnCloseExtruder' == target.id && SIDEBAR_MAIN_EXTRUDER) {
+      closeMbExtruder();
+    }
+  }
+  // Toggle between using the old or new menu
+  if (document.getElementById('useOldMenuView') == target) {
+    setCookie('zmUseOldMenuView', target.checked);
+    refreshWindow();
+  }
+
+  // Click on <input> to open the "datepicker" window
+  // For ui-datepicker we track the change of style "display" and to front
+  // This is necessary because some blocks, such as "extruder" always push themselves to the foreground. At the same time, "datepicker" should ALWAYS be displayed on top of all blocks. "z-index: XXX !important will not help in this case!
+  if (target.classList.contains('hasDatepicker')) {
+    const datepicker = document.getElementById('ui-datepicker-div');
+    if (datepicker) {
+      datepicker.style.removeProperty('z-index'); // Without this, problems are possible.
+      datepicker.style.setProperty('z-index', '1000000', 'important'); //Now "datepicker" will always be displayed on top of other blocks.
+    }
+  }
+}
+
+/* Handle any action on the touch screen */
+function handleTouchActionGeneral(action, evt) {
+  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
+  if (action == 'touchstart') {
+    managePanZoomButton(evt);
+  } else if (action == 'touchend') {
+  } else if (action == 'touchcancel') {
+  } else if (action == 'touchmove') {
+    //evt.preventDefault();
+  }
+}
+
+/* Processing any key press*/
+function handleKeydownGeneral(evt) {
+  const target = evt.target;
+  const key = evt.key;
+  // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
+  if (!useOldMenuView && key == 'Enter') {
+    if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
+      submitThisForm();
+    }
+  }
+}
+
 function handleMouseover(evt) {
   manageVisibilityVideoPlayerControlPanel(evt, 'show');
+  if (!useOldMenuView) {
+    manageVisibilitySidebarExtruderPanel(evt, 'show');
+  }
 }
 
 function handleMouseout(evt) {
   manageVisibilityVideoPlayerControlPanel(evt, 'hide');
+  if (!useOldMenuView) {
+    manageVisibilitySidebarExtruderPanel(evt, 'hide');
+  }
+}
+
+function manageVisibilitySidebarExtruderPanel(evt, action) {
+  if (!showExtruderPanelOnMouseHover) return;
+  if (evt.target.closest('#menuControlModule') &&
+  // Avoid false positives when moving mouse inside '#menuControlModule'
+      (evt.relatedTarget && evt.relatedTarget.closest('#menuControlModule') != evt.target.closest('#menuControlModule'))) {
+    if (action == 'show') {
+      $j(SIDEBAR_MAIN_EXTRUDER).openMbExtruder();
+    } else if (action == 'hide') {
+      // We don't do anything yet, because now the block closes either when you click on the button or anywhere on the page
+    }
+  }
 }
 
 function manageVisibilityVideoPlayerControlPanel(evt, action) {
@@ -1466,16 +1850,30 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
   }
 }
 
-/* Handle any action on the touch screen */
-function handleTouchActionGeneral(action, evt) {
-  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
-  if (action == 'touchstart') {
-    managePanZoomButton(evt);
-  } else if (action == 'touchend') {
-  } else if (action == 'touchcancel') {
-  } else if (action == 'touchmove') {
-    //evt.preventDefault();
+function initDatepicker() {
+  if (currentView == 'events') {
+    initDatepickerEventsPage();
+  } else if (currentView == 'montagereview') {
+    initDatepickerMontageReviewPage();
+  } else if (currentView == 'report_event_audit') {
+    initDatepickerReportEventAuditPage();
   }
+
+  // When hiding the "datepicker" you need to clear the 'z-index' property so that it does not affect other elements
+  document.querySelectorAll(".ui-datepicker").forEach(function(el) {
+    const ob = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'style' && mutation.target.style.display === 'none' && mutation.target.style.zIndex) {
+          console.log(">>zIndex>", mutation.target.style.zIndex);
+          mutation.target.style.removeProperty('z-index');
+        }
+      });
+    });
+    ob.observe(el, {
+      attributes: true,
+      attributeFilter: ["style"]
+    });
+  });
 }
 
 function managePanZoomButton(evt) {
@@ -1490,6 +1888,7 @@ function managePanZoomButton(evt) {
     } else {
       $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
     }
+    if (!('getAttribute' in evt.currentTarget)) return; // Touchscreen tap on '.imageFeed' does not have 'currentTarget'
     //evt.preventDefault();
     // We are looking for an object with an ID, because there may be another element in the button.
     const obj = targetId ? evt.target : evt.target.parentElement;
@@ -1533,12 +1932,89 @@ function managePanZoomButton(evt) {
   }
 }
 
+function closeMbExtruder(updateCookie = false) {
+  if (!SIDEBAR_MAIN_EXTRUDER) return;
+  if (updateCookie) {
+    // We will save the panel visibility in cookies so that we can restore the state after opening a new page.
+    // If the panel was open, it means that the filter was most likely adjusted.
+    // It is probably worth analyzing whether a new page will be opened or the old one but with different parameters.
+    setCookie('zmVisibleMbExtruder', !!SIDEBAR_MAIN_EXTRUDER.classList.contains('isOpened'));
+  }
+  $j(SIDEBAR_MAIN_EXTRUDER).closeMbExtruder();
+}
+
+/*
+* The call is configured in \www\skins\classic\views\_monitor_filters.php
+* If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
+*/
+function resetSelectElement(el) {
+  console.log("clearSelectMultiply_el=>", el);
+  const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
+  if (!selectElement) return;
+  Array.from(selectElement.options).forEach((option) => {
+    option.selected = false;
+  });
+  applyChosen(selectElement);
+
+  if (currentView == 'events') {
+    filterEvents(clickedElement = selectElement);
+  } else {
+    submitThisForm();
+  }
+}
+
 function initPageGeneral() {
-  $j(document).on('keyup.global keydown.global', function(e) {
+  $j(document).on('keyup.global keydown.global', function handleKey(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;
     ctrled = e.ctrlKey;
     alted = e.altKey;
   });
+
+  if (!useOldMenuView) {
+    if ((!isTouchDevice() || !isMobile()) && NAVBAR_RELOAD) {
+      // Increase the width of the scrollbar for NON-mobile or NON-touch devices
+      NAVBAR_RELOAD.classList.add('high-scroll-bar');
+    }
+    changeAttrTitle();
+    setTimeout(function() {
+      // It takes time for all DOM actions to complete, especially with regard to block visibility.
+      insertControlModuleMenu();
+      isNavbarOverflown();
+    }, 200);
+
+    // Swipe support, configurable via "data-swipe" in \skins\classic\includes\functions.php
+    document.addEventListener('swiped', function addListenerGlobalSwiped(e) {
+      //console.log(e.detail); // see event data below
+      if (e.detail.dir == 'right') {
+        if (e.detail.xStart < 80) {
+          // SideBar Management
+          if (SIDEBAR_MAIN.classList.contains('toggled')) { // The menu is already visible, but you can expand it wider
+            SIDEBAR_MAIN.classList.remove('collapsed');
+          } else {
+            SIDEBAR_MAIN.classList.add('toggled');
+          }
+        }
+      } else if (e.detail.dir == 'left') {
+        if ((e.detail.xStart < 80) || ((e.detail.xStart < 250) && (!SIDEBAR_MAIN.classList.contains('collapsed') && SIDEBAR_MAIN.classList.contains('toggled')))) {
+          // SideBar Management
+          if (!SIDEBAR_MAIN.classList.contains('collapsed') && SIDEBAR_MAIN.classList.contains('toggled')) { // Fully expanded
+            SIDEBAR_MAIN.classList.add('collapsed');
+          } else {
+            SIDEBAR_MAIN.classList.remove('toggled');
+          }
+        }
+      } else if (e.detail.dir == 'down') {
+      } else if (e.detail.dir == 'up') {
+      }
+    });
+  }
+
+  var observerNavbarReload = new window.ResizeObserver((entries) => {
+    endOfResize();
+  });
+  if (NAVBAR_RELOAD) {
+    observerNavbarReload.observe(NAVBAR_RELOAD);
+  }
 
   if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe', 'timeline'].includes(currentView)) {
     mainContent = document.getElementById('page');
@@ -1550,20 +2026,26 @@ function initPageGeneral() {
   /* Assigning global handlers!
   ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
   */
-  document.body.addEventListener('input', function(event) {
+  document.body.addEventListener('input', function addListenerGlobalInputTag(event) {
     handleChangeInputTag(event);
   });
+  document.body.addEventListener('click', function addListenerGlobalClick(event) {
+    handleClickGeneral(event);
+  });
+  document.body.addEventListener('keydown', function addListenerGlobalKeydown(event) {
+    handleKeydownGeneral(event);
+  });
 
-  document.body.addEventListener('mouseover', function(event) {
+  document.body.addEventListener('mouseover', function addListenerGlobalMouseover(event) {
     handleMouseover(event);
   });
-  document.body.addEventListener('mouseout', function(event) {
+  document.body.addEventListener('mouseout', function addListenerGlobalMouseout(event) {
     handleMouseout(event);
   });
 
   // Support for touch devices.
   ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
-    document.addEventListener(action, function(event) {
+    document.addEventListener(action, function addListenerGlobalTouchAction(event) {
       handleTouchActionGeneral(action, event);
     }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."
   });
@@ -1588,11 +2070,10 @@ function initPageGeneral() {
 
   window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
     //event.preventDefault();
-    /*
     if (!useOldMenuView) {
       closeMbExtruder(updateCookie = true);
     }
-    */
+
     if (mainContentJ) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!

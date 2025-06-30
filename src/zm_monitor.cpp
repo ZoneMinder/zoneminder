@@ -2540,7 +2540,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
           if (endtime - starttime > Seconds(1)) {
             Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
           } else {
-            Debug(4, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+            Debug(1, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
           }
 #endif
           int count = 10;
@@ -2555,7 +2555,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
               if (endtime - starttime > Seconds(1)) {
                 Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
               } else {
-                Debug(4, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+                Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
               }
               if (packet->ai_frame) {
                 zm_dump_video_frame(packet->ai_frame.get(), "after detect");

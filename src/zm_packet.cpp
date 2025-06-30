@@ -145,19 +145,11 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
     return ret;
   }
 
-#if HAVE_QUADRA
-  AVFrame *frame = receive_frame.get();
-  niFrameSurface1_t *pfs = (niFrameSurface1_t *) frame->data[3];
-  Debug(1, "*** Receive frame0 bufid %d (%d %d) ***", (pfs ? pfs->ui16FrameIdx : -1),
-      av_buffer_get_ref_count(frame->buf[0]),
-      av_frame_is_writable(frame));
-#endif
-
   in_frame = std::move(receive_frame);
   //zm_dump_video_frame(in_frame.get(), "got frame");
 #if HAVE_QUADRA
-  frame = in_frame.get();
-  pfs = (niFrameSurface1_t *) frame->data[3];
+  AVFrame * frame = in_frame.get();
+  niFrameSurface1_t *pfs = (niFrameSurface1_t *) frame->data[3];
   Debug(1, "*** Receive frame bufid %d (%d %d) ***", (pfs ? pfs->ui16FrameIdx : -1),
       av_buffer_get_ref_count(frame->buf[0]),
       av_frame_is_writable(frame));

@@ -442,7 +442,9 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
     }
 
     // Allocates the frame, gets the image from hw
+    Debug(1, "**** hwdl start ****");
     int ret = hwdl_filter.execute(in_frame, &input);
+    Debug(1, "**** hwdl stop ****");
     if (ret < 0) {
       Error("cannot download hwframe");
       return ret;
@@ -487,7 +489,9 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
 #endif
     if (hwdl_filter.initialised or hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, input->hw_frames_ctx, dec_ctx->pix_fmt)) {
       zm_dump_video_frame(input, "Quadra: process_roi hwframe");
+      Debug(1, "*** Start of hwdownload ***");
       int ret = hwdl_filter.execute(input, &output);
+      Debug(1, "*** End   of hwdownload ***");
       if (ret < 0) {
         Error("cannot download hwframe");
         output = input;
@@ -600,7 +604,7 @@ int Quadra_Yolo::annotate(
     }
 #endif
     SystemTimePoint endtime = std::chrono::system_clock::now();
-    Debug(4, "draw_roi_text took: %.2f seconds", FPSeconds(endtime - starttime).count());
+    Debug(1, "draw_roi_text took: %.2f seconds", FPSeconds(endtime - starttime).count());
   }  // end if drawtext
   *output = input;
   // So in_frame should not be touched, and we should have an output frame, that references the same data as in_frame.
@@ -646,7 +650,9 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
 
   AVFrame *output = nullptr;
   // Allocates the frame, gets the image from hw
+  Debug(1, "*** hwdownload start ***");
   int ret = hwdl_filter.execute(input, &output);
+  Debug(1, "*** hwdownload stop ***");
   if (ret < 0) {
     Error("cannot download hwframe");
   }
@@ -771,7 +777,11 @@ int Quadra_Yolo::draw_text(AVFrame *input, AVFrame **output, const std::string &
   }
 #endif
 
-  return drawtext_filter.execute(input, output);
+  int rc;
+  Debug(1, "*** Start of drawtext ***");
+  rc = drawtext_filter.execute(input, output);
+  Debug(1, "*** End   of drawtext ***");
+  return rc;
 }
 
 #endif

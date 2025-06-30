@@ -218,7 +218,8 @@ function buildSidebarMenu() {
     getSnapshotsHTML($view, $forLeftBar = true) .
     getReportsHTML($view, $forLeftBar = true) .
     getRprtEvntAuditHTML($view, $forLeftBar = true) .
-    getMapHTML($view, $forLeftBar = true)
+    getMapHTML($view, $forLeftBar = true) .
+    getAdditionalLinksHTML($view, $forLeftBar = true)
   ;
   } else { // USER IS NOT AUTHORIZED!
     $menuForAuthUser = '';
@@ -258,7 +259,7 @@ function buildSidebarMenu() {
                 <span class="menu-title">' . translate("zmNinja") . '</span>
               </a>
             </li>
-						<li class="menu-item">
+            <li class="menu-item">
               <a href="https://wiki.zoneminder.com/" target="_blank">
                 <span class="menu-icon">
                   <i class="material-icons">article</i>
@@ -1363,13 +1364,44 @@ function getMapHTML($view, $forLeftBar = false) {
 
 // Returns the html representing the content of the ZM_WEB_NAVBAR_LINKS content
 
-function getAdditionalLinksHTML($view) {
+function getAdditionalLinksHTML($view, $forLeftBar = false) {
   $result = '';
 
   if (defined('ZM_WEB_NAVBAR_LINKS')) {
     if (ZM_WEB_NAVBAR_LINKS) {
       foreach (explode(',', ZM_WEB_NAVBAR_LINKS) as $link) {
-        $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+        if ($forLeftBar) {
+          $doc = new DomDocument();
+          fixAmps($link);
+          $doc->loadHTML('<?xml encoding="UTF-8">' . $link);
+          $url = $doc->getElementsByTagName('a')[0];
+          $value_ = translate('Error in link string: "') . htmlspecialchars($link) . '"';
+          $href_ = '';
+          $icon_ = '';
+          $class_ = '';
+          $queryView = '';
+          if ($url) {
+            $value_ = $url->nodeValue;
+            $href_ = $url->getAttribute( 'href' );
+            $icon_ = $url->getAttribute('data-icon');
+            $class_ = $url->getAttribute('class');
+            $parts = parse_url($href_);
+            parse_str($parts['query'], $query);
+            $queryView = $query['view'];
+          }
+
+          $result .= buildMenuItem(
+            $viewItemName = $queryView,
+            $id = '',
+            $itemName = $value_,
+            $href = $href_,
+            $icon = $icon_,
+            $classNameForTag_A = $class_,
+            $subMenu = ''
+          );
+        } else {
+          $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+        }
       }
     }
   }
@@ -1511,6 +1543,23 @@ function getCSRFinputHTML() {
   }
   
   return $result;
+}
+
+function fixAmps(&$html) {
+  //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
+  $positionAmp = strpos($html, '&');
+  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
+  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
+  if ($positionAmp !== false) { // If an '&' can be found.
+    if ($positionSemiColumn === false) { // If no ';' can be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
+    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
+      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
+    } else {
+      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
+    }
+  }
 }
 
 function xhtmlFooter() {

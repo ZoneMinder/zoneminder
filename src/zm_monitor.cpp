@@ -423,11 +423,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
-  Go2RTC_type = (Go2RTCOption)atoi(dbrow[col]);
-  col++;
-
-  Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
-  col++;
 
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;

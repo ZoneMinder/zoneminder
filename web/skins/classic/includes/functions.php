@@ -284,7 +284,7 @@ function buildSidebarMenu() {
               </a>
             </li>
             <li class="menu-header hidden-for-collapsed" style="padding-top: 20px">
-              <label for="useOldMenuView" class="control-label text-md-right">' . translate("USE OLD MENU VIEW") . '</label>
+              <label for="useOldMenuView" class="control-label text-md-right">' . translate("USE TOP MENU") . '</label>
               <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
             </li>
           </ul>
@@ -930,7 +930,7 @@ function getNavBrandHTML() {
   if ($useOldMenuView) {
     $result .= '
       <div id="blockUseOldMenuView" style="display: flex;">
-        <label style="font-size: 14px; color: white;" for="useOldMenuView" class="control-label text-md-right">' . translate("Use old menu view") . '</label>
+        <label style="font-size: 14px; color: white;" for="useOldMenuView" class="control-label text-md-right">' . translate("Use Top menu") . '</label>
         <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
       </div>
     '.PHP_EOL;

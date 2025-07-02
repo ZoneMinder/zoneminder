@@ -1487,20 +1487,23 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       offerToReceiveAudio: true,
       offerToReceiveVideo: true
     });
+    if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
     await stream.webrtc.setLocalDescription(offer);
     console.log(stream.webrtc.localDescription.sdp);
 
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
-      console.log(data);
-      try {
-        stream.webrtc.setRemoteDescription(new RTCSessionDescription({
-          type: 'answer',
-          sdp: atob(data)
-        }));
-      } catch (e) {
-        console.warn(e);
+      if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
+        console.log(data);
+        try {
+          stream.webrtc.setRemoteDescription(new RTCSessionDescription({
+            type: 'answer',
+            sdp: atob(data)
+          }));
+        } catch (e) {
+          console.warn(e);
+        }
       }
     });
   };

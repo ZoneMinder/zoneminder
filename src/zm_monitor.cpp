@@ -19,11 +19,11 @@
 
 #include "zm_monitor.h"
 
-#include "zm_group.h"
 #include "zm_eventstream.h"
 #include "zm_ffmpeg_camera.h"
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
+#include "zm_group.h"
 #include "zm_monitorlink_expression.h"
 #include "zm_mqtt.h"
 #include "zm_remote_camera.h"
@@ -32,8 +32,8 @@
 #include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
 #include "zm_time.h"
-#include "zm_utils.h"
 #include "zm_uri.h"
+#include "zm_utils.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L2
@@ -49,16 +49,16 @@
 #endif  // HAVE_LIBVNC
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <chrono>
 #include <string>
 #include <utility>
 
 #if ZM_MEM_MAPPED
-#include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #else  // ZM_MEM_MAPPED
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -83,6 +83,7 @@ std::string load_monitor_sql =
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
+  "`Go2RTCEnabled`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
   "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
   "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
@@ -93,7 +94,7 @@ std::string load_monitor_sql =
   "`Deinterlacing`, "
   "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
-  "`OutputCodec`, `Encoder`, `OutputContainer`, "
+  "`OutputCodec`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
   "`RecordAudio`, WallClockTimestamps,"
   "`Brightness`, `Contrast`, `Hue`, `Colour`, "
   "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
@@ -183,6 +184,7 @@ Monitor::Monitor() :
   decoding(DECODING_ALWAYS),
   RTSP2Web_enabled(false),
   RTSP2Web_type(WEBRTC),
+  Go2RTC_enabled(false),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -220,6 +222,8 @@ Monitor::Monitor() :
   encoderparams(""),
   output_codec(0),
   encoder(""),
+  encoder_hwaccel_name(""),
+  encoder_hwaccel_device(""),
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
   record_audio(false),
@@ -346,7 +350,9 @@ Monitor::Monitor() :
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+   " RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   " GO2RTCEnabled, "
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
@@ -424,6 +430,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]) ;
   col++;
+
+  Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
+  col++;
+
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
@@ -545,6 +555,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   encoder = dbrow[col] ? dbrow[col] : "";
   col++;
+  encoder_hwaccel_name = dbrow[col] ? dbrow[col] : "";
+  col++;
+  encoder_hwaccel_device = dbrow[col] ? dbrow[col] : "";
+  col++;
   output_container = dbrow[col] ? dbrow[col] : "";
   col++;
   record_audio = (*dbrow[col] != '0');
@@ -605,9 +619,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   if (section_length < min_section_length) {
     section_length = min_section_length;
-    Warning("Section length %jd < Min Section Length %jd. This is invalid.",
-            Seconds(section_length).count(),
-            Seconds(min_section_length).count()
+    Warning("Section length %" PRId64 " < Min Section Length %" PRId64 ". This is invalid.",
+            static_cast<int64>(Seconds(section_length).count()),
+            static_cast<int64>(Seconds(min_section_length).count())
            );
   }
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0);
@@ -1164,6 +1178,11 @@ bool Monitor::connect() {
       RTSP2Web_Manager->add_to_RTSP2Web();
     }
 
+    if (Go2RTC_enabled) {
+      Go2RTC_Manager = new Go2RTCManager(this);
+      Go2RTC_Manager->add_to_Go2RTC();
+    }
+
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
       Janus_Manager->add_to_janus();
@@ -1451,13 +1470,13 @@ void Monitor::actionReload() {
 }
 
 void Monitor::actionEnable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = true;
+  Info("actionEnable, capturing enabled.");
 }
 
 void Monitor::actionDisable() {
-  shared_data->action |= RELOAD;
   shared_data->capturing = false;
+  Info("actionDisable, capturing temporarily disabled.");
 }
 
 void Monitor::actionSuspend() {
@@ -1899,6 +1918,12 @@ bool Monitor::Poll() {
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
       Debug(1, "Trying to add stream to RTSP2Web");
       RTSP2Web_Manager->add_to_RTSP2Web();
+    }
+  }
+
+  if (Go2RTC_enabled and Go2RTC_Manager) {
+    if (Go2RTC_Manager->check_Go2RTC() == 0) {
+      Go2RTC_Manager->add_to_Go2RTC();
     }
   }
 
@@ -2593,6 +2618,10 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
+  if (!shared_data->capturing) {
+    Debug(1, "Not capturing");
+    return 0;
+  }
   unsigned int index = shared_data->image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu", image_buffer.size());
@@ -3258,30 +3287,47 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
-#endif // ZM_HAS_V4L2
-  sprintf(output+strlen(output), "Colours : %u\n", camera->Colours() );
-  sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
-  sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
-  sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
-  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.x_, label_coord.y_ );
-  sprintf(output+strlen(output), "Label Size : %d\n", label_size );
-  sprintf(output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
-  sprintf(output+strlen(output), "Warmup Count : %d\n", warmup_count );
-  sprintf(output+strlen(output), "Pre Event Count : %d\n", pre_event_count );
-  sprintf(output+strlen(output), "Post Event Count : %d\n", post_event_count );
-  sprintf(output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
-  sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
-  sprintf(output+strlen(output), "Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(section_length).count()));
-  sprintf(output+strlen(output), "Min Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
-  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay != Seconds(0) ? 1 / FPSeconds(alarm_capture_delay).count() : 0.0);
-  sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
-  sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
-  sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output+strlen(output), "Capturing %d - %s\n", capturing, Capturing_Strings[capturing].c_str());
-  sprintf(output+strlen(output), "Analysing %d - %s\n", analysing, Analysing_Strings[analysing].c_str());
-  sprintf(output+strlen(output), "Recording %d - %s\n", recording, Recording_Strings[recording].c_str());
-  sprintf(output+strlen(output), "Zones : %zu\n", zones.size());
+#endif  // ZM_HAS_V4L2
+  sprintf(output + strlen(output), "Colours : %u\n", camera->Colours());
+  sprintf(output + strlen(output), "Subpixel Order : %u\n",
+          camera->SubpixelOrder());
+  sprintf(output + strlen(output), "Event Prefix : %s\n", event_prefix.c_str());
+  sprintf(output + strlen(output), "Label Format : %s\n", label_format.c_str());
+  sprintf(output + strlen(output), "Label Coord : %d,%d\n", label_coord.x_,
+          label_coord.y_);
+  sprintf(output + strlen(output), "Label Size : %d\n", label_size);
+  sprintf(output + strlen(output), "Image Buffer Count : %d\n",
+          image_buffer_count);
+  sprintf(output + strlen(output), "Warmup Count : %d\n", warmup_count);
+  sprintf(output + strlen(output), "Pre Event Count : %d\n", pre_event_count);
+  sprintf(output + strlen(output), "Post Event Count : %d\n", post_event_count);
+  sprintf(output + strlen(output), "Stream Replay Buffer : %d\n",
+          stream_replay_buffer);
+  sprintf(output + strlen(output), "Alarm Frame Count : %d\n",
+          alarm_frame_count);
+  sprintf(output + strlen(output), "Section Length : %" PRIi64 "\n",
+          static_cast<int64>(Seconds(section_length).count()));
+  sprintf(output + strlen(output), "Min Section Length : %" PRIi64 "\n",
+          static_cast<int64>(Seconds(min_section_length).count()));
+  sprintf(
+      output + strlen(output), "Maximum FPS : %.2f\n",
+      capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
+  sprintf(output + strlen(output), "Alarm Maximum FPS : %.2f\n",
+          alarm_capture_delay != Seconds(0)
+              ? 1 / FPSeconds(alarm_capture_delay).count()
+              : 0.0);
+  sprintf(output + strlen(output), "Reference Blend %%ge : %d\n",
+          ref_blend_perc);
+  sprintf(output + strlen(output), "Alarm Reference Blend %%ge : %d\n",
+          alarm_ref_blend_perc);
+  sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
+  sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
+          Capturing_Strings[shared_data->capturing].c_str());
+  sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
+          Analysing_Strings[analysing].c_str());
+  sprintf(output + strlen(output), "Recording %d - %s\n", recording,
+          Recording_Strings[recording].c_str());
+  sprintf(output + strlen(output), "Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
@@ -3478,6 +3524,12 @@ int Monitor::Close() {
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
+  }
+
+  // Go2RTC teardown
+  if (Go2RTC_enabled and (purpose == CAPTURE) and Go2RTC_Manager) {
+    delete Go2RTC_Manager;
+    Go2RTC_Manager = nullptr;
   }
 
   // Janus Teardown

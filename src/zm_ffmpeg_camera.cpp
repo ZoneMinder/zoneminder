@@ -555,6 +555,12 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+    if (entry) {
+      mVideoCodecContext->thread_count = std::stoul(entry->value);
+      Debug(1, "Setting codec thread_count to %d", mVideoCodecContext->thread_count);
+      av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+    }
     // reorder_queue is for avformat not codec
     av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);

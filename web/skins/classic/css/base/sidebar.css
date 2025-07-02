@@ -1,0 +1,323 @@
+.layout-main .sidebar-main a.text-success:focus,
+.layout-main .sidebar-main a.text-success:hover { /* FIX bootstrap on a dark background*/
+  color: #007bff !important;
+}
+
+.layout-main .sidebar-main.collapsed .hidden-for-collapsed {
+  display: none;
+}
+
+/* +++ Scrollbar for menu in left sidebar NEEDS MORE COMPACT */
+#navbar-container,
+.layout-main .sidebar-main .sidebar-layout,
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar-track,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar-track ,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar-track ,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar-track {
+  background-color: var(--backgroundMediumDark); /* #485460 */
+}
+
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar-thumb,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 0px solid var(--scrollbarBG);
+  width: 6px;
+  height: 6px;
+}
+
+.layout-main .sidebar-main .sidebar-content::-webkit-scrollbar,
+.layout-main .sidebar-main .sidebar-layout::-webkit-scrollbar,
+.layout-main .sidebar-main .extruder-wrapper::-webkit-scrollbar,
+.layout-main .sidebar-main .extruder-content .filter-block::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.layout-main .sidebar-main .sidebar-layout:hover::-webkit-scrollbar-thumb { /* this is also defined in the _sidebar.scss file */
+  background-color: var(--sliderBG);
+}
+/* --- Scrollbar for menu in left sidebar */
+
+.layout-main .sidebar-main .sidebar-post-header {
+  padding: 5px 0 5px 0;
+}
+
+.layout-main .sidebar-main .sidebar-main-menu,
+.layout-main .sidebar-main .sidebar-post-header {
+  text-align: left;
+}
+
+.layout-main .sidebar-main .sidebar-layout .sidebar-content {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.layout-main .sidebar-main.has-bg-image:not(.collapsed) .sidebar-main-menu > ul > .sub-menu > .sub-menu-list {
+  background-color: #34495e;
+}
+
+.layout-main .sidebar-main .sidebar-main-menu .menu-item a .menu-title, /* FIX _menu.scss */
+.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-title {
+  /*font-size: 0.9rem;*/
+  font-size: inherit;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.layout-main .sidebar-main .sidebar-post-header .menu-item a {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.layout-main .sidebar-main .sidebar-post-header .menu-item a .menu-icon {
+  font-size: 1.2rem;
+  width: 35px;
+  min-width: 35px;
+  height: 35px;
+  line-height: 35px;
+  text-align: center;
+  display: inline-block;
+  margin-right: 10px;
+  border-radius: 2px;
+  transition: color 0.3s;
+}
+
+/* +++ MontageRewiev Filter Alignment */ 
+.layout-main .sidebar-main .chosen-container {
+  text-align: left;
+  min-width: 11em;
+  width: 100% !important;
+}
+/* --- */ 
+
+body.sticky .content-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-main {
+  width: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+/* We don't need to see the filter and other things (that we cut out). */
+.montagereview-page .content-main .controlHeader,
+.montagereview-page .content-main #fieldsTable,
+.console-page .content-main #fbpanel,
+.console-page a[data-flip-control-object="#fbpanel"], /* Filter visibility control button */
+.montage-page .content-main #filters_form,
+.watch-page .content-main .controlHeader,
+.report_event_audit-page #content form,
+.events-page .content-main #fieldsTable,
+.events-page a[data-flip-control-object="#fieldsTable"], /* Filter visibility control button */
+.options-page .content-main #sidebar,
+.navbar-brand,
+#navbar-one {
+    display: none !important;
+}
+
+#monitorList {
+  overflow-y: auto; /* CHECK!!! PROBABLY THIS SHOULD ALWAYS BE USED, AND NOT JUST FOR STICK MODE!!! */
+}
+
+/* Align the entire bar to the left side */
+.navbars {
+  text-align: left;
+}
+
+#btn-collapse {
+  top: 11px;
+}
+
+#wrapperBtnCloseExtruder{ /* Extruder block close button on mobile devices */
+  display: none;
+}
+
+@media (max-width: 992px) {
+  /* +++ Manage the collapse/expand menu button for mobile devices with hidden menu */
+  #btn-collapse {
+    display: flex;
+  }
+
+  #sidebarMain.sidebar-main:not(.toggled) #btn-collapse {
+    left: -50px; /* Ideally, you need to set the value here as for ".layout-main .sidebar-main.break-point-lg" or -250 or -80. But even now the icon motion looks very good */
+  }
+  /* --- */
+
+  #extruderLeft {
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  #wrapperBtnCloseExtruder{
+    position: relative;
+    top: 0px;
+    right: 0px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .extruder-content > .text:first-child {
+    width: 100% !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .layout-main .sidebar-main .sidebar-content,
+  .layout-main .sidebar-main .sidebar-footer { /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
+    display: contents;
+  }
+}
+
+.sidebar-toggler { /* also set in pro-sidebar-template/src/styles/styles.scss */
+  position: relative;
+  right: 0;
+  top: 0;
+}
+
+#navbar-two { /* THE PANEL MUST ALWAYS BE VISIBLE, OTHERWISE IT COULD BE HIDDEN BY A BUTTON (id="flip") */
+  display: block !important;
+}
+
+/* Choice at the bar */
+#panel .dropdown-menu.show.overflown {
+  display: contents;
+}
+
+#panel .dropdown-menu.show:not(.overflown) {
+  display: block;
+  top: 27px;
+}
+
+/* +++ THIS IS REMAINING FROM THE TOP STATUS LINE */
+#reload {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  overflow-x: auto;
+  padding: 10px 5px 10px 15px
+}
+
+@media (max-width: 992px) { /* moment hamburger menu button appears */
+  #reload {
+    left: 35px;
+  }
+}
+
+#reload > ul,
+#reload > ul > ul,
+#reload > ul > li { /* remove the first part with the divas */
+  display: inline-block;
+  white-space: nowrap;
+}
+
+#reload > ul:last-child{ /* the last element when scrolling should have an indent */
+  margin-right: 30px;
+}
+
+#reload::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+#reload::-webkit-scrollbar-thumb {
+  border: 0px solid;
+}
+
+.high-scroll-bar::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+/* --- THIS IS REMAINING FROM THE TOP STATUS LINE */
+
+
+#sidebarMain.collapsed .sub-menu-list {
+  height: 0; /* Otherwise it will flicker when the page loads. */
+}
+
+/* Set submenu to scroll vertically (for narrow option) when submenu is displayed on the side */
+body #sidebarMain .sub-menu-list {
+  max-height: 100%;
+  overflow: auto;
+}
+
+/* +++ TRANSFERRED FILTERS */
+.extruder-wrapper span.term .term-label-wrapper,
+.extruder-wrapper span.term label {
+  display: flex !important;
+  text-align: left !important;
+  width: auto !important;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.extruder-wrapper span.term .term-value-wrapper {
+  display: flex !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+}
+
+.extruder-wrapper span.term,
+.extruder-wrapper span.term .term-value-wrapper input,
+.extruder-wrapper span.term > span { /* Aligning input fields */
+  width: 100%;
+}
+
+.extruder-wrapper span.term > span:first-child{
+  text-align: left;
+}
+
+.extruder-content {
+  background-color: var(--backgroundMediumDark);
+}
+
+.extruder-content > .text {
+  overflow: visible !important; /* Allows dropdowns to extend beyond the block if there is space on the screen */
+}
+
+.extruder-content .filter-block {
+  margin: 0;
+  padding: 10px;
+}
+
+.extruder-content > .text .term {
+  flex-direction: row;
+  margin-left: 0;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 564px) {
+  .extruder-content span.term {
+    margin: 0;
+  }
+
+  .extruder-content button .material-icons {
+    font-size: 18px;
+  }
+}
+
+.extruder .extruder-content .chosen-container .chosen-single,
+.extruder-wrapper span.term .term-value-wrapper input {
+  height: 27px !important;
+}
+
+/* Clear Filter Button Select Multiple Selection */
+.extruder .extruder-content .btn-term-remove-all {
+  display: flex;
+  flex-direction: row-reverse;
+  width: auto;
+  padding-left: 10px;
+  max-height: 35px;
+}
+/* --- TRANSFERRED FILTERS */
+
+/* !HACK! Otherwise the height of the parent block will be calculated based on the height of the drop-down list, even if the selection is not active! */
+div:not(.chosen-container-active) > .chosen-drop {
+  display: none;
+}

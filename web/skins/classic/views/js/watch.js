@@ -149,8 +149,8 @@ function changeStreamQuality() {
 }
 
 function onPause() {
-  setButtonState('pauseBtn', 'active');
-  setButtonState('playBtn', 'inactive');
+  setButtonStateWatch('pauseBtn', 'hidden');
+  setButtonStateWatch('playBtn', 'active');
   setButtonState('stopBtn', 'inactive');
   if (monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
@@ -168,12 +168,10 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
-  //monitorStream.setup_onplay(onPlay); //IgorA100 Added for testing, but probably not required
-  //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'inactive');
-  setButtonStateWatch('playBtn', 'unavail');
+  setButtonStateWatch('playBtn', 'hidden');
   if (monitorStream.status.delayed == true) {
     //setButtonState('stopBtn', 'inactive');
     if (monitorStreamReplayBuffer) {
@@ -225,7 +223,7 @@ function streamCmdStop(action) {
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('playBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'unavail');
-  setButtonStateWatch('pauseBtn', 'unavail');
+  setButtonStateWatch('pauseBtn', 'hidden');
 }
 
 function streamCmdFastFwd(action) {
@@ -832,6 +830,10 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  monitorStream.setup_volume(document.getElementById('volume'));
+  monitorStream.setup_mute(document.getElementById('mute'));
+
+  monitorStream.setPlayer(player);
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
@@ -921,7 +923,6 @@ function streamReStart(oldId, newId) {
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
-  loadFontFaceObserver();
   manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
@@ -1045,7 +1046,7 @@ function initPage() {
       }
     };
     inactivityTime();
-  }
+  }  // end setup AYSW
 
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
@@ -1090,6 +1091,8 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
+
+
   manageRTSP2WebChannelStream();
 } // initPage
 
@@ -1307,6 +1310,22 @@ function monitorChangeStreamChannel() {
   }
 }
 
+function changePlayer() {
+  const player = $j('#player').val();
+  setCookie('zmWatchPlayer', player);
+  //setCookie('zmWatchPlayer'+monitorId, player);
+  streamCmdStop(true); // takes care of button state and calls stream.kill()
+  console.log('setting to ', $j('#player').val());
+  monitorStream.setPlayer($j('#player').val());
+  streamCmdPlay(true);
+  return;
+
+  setTimeout(function() {
+    monitorStream.start();
+    onPlay();
+  }, 300);
+}
+
 function monitorsSetScale(id=null) {
   //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
   if (id || typeof monitorStream !== 'undefined') {
@@ -1315,58 +1334,45 @@ function monitorsSetScale(id=null) {
       var curentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var curentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
+      var curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id; });
     } else {
       //Stream is missing
       return;
     }
-    //const el = document.getElementById('liveStream'+id);
-    if (panZoomEnabled && zmPanZoom.panZoom[id]) {
-      var panZoomScale = zmPanZoom.panZoom[id].getScale();
-    } else {
-      var panZoomScale = 1;
-    }
+    var panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id]) ? zmPanZoom.panZoom[id].getScale() : 1;
 
-    const scale = $j('#scale').val();
-    let resize;
-    let width;
+    let resize = false;
+    let width = 'auto';
     let maxWidth = '';
-    let height;
+    let height = 'auto';
     let overrideHW = false;
     let defScale = 0;
     const landscape = curentMonitor.width / curentMonitor.height > 1 ? true : false; //Image orientation.
 
+    const scale = $j('#scale').val();
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
       resize = true;
-      width = 'auto';
-      height = 'auto';
     } else if (scale == '100') {
       //Actual, 100% of original size
-      resize = false;
       width = curentMonitor.width + 'px';
       height = curentMonitor.height + 'px';
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
-      resize = false;
       width = parseInt(window.innerWidth * panZoomScale) + 'px';
-      height = 'auto';
     } else if (scale.indexOf("px") > -1) {
       if (landscape) {
         maxWidth = scale;
         defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
-        height = 'auto';
       } else {
         defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / curentMonitor.height * panZoomScale * 100);
         height = scale;
       }
       resize = true;
-      width = 'auto';
       overrideHW = true;
     }
 
+    const liveStream = document.getElementById('liveStream'+id);
     const monitor_div = document.getElementById('monitor'+id);
     if (!monitor_div) console.log("No monitor div for ", id);
     if (resize) {
@@ -1376,16 +1382,16 @@ function monitorsSetScale(id=null) {
       monitor_div.style.maxWidth = maxWidth;
       if (!landscape) { //PORTRAIT
         monitor_div.style.width = 'max-content';
-        document.getElementById('liveStream'+id).style.height = height;
+        liveStream.style.height = height;
       }
     } else {
-      document.getElementById('liveStream'+id).style.height = '';
+      liveStream.style.height = '';
       monitor_div.style.width = width;
       monitor_div.style.maxWidth = '';
       if (scale == 'fit_to_width') {
         monitor_div.style.width = '';
       } else if (scale == '100') {
-        document.getElementById('liveStream'+id).style.width = width;
+        liveStream.style.width = width;
       }
     }
     //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
@@ -1394,40 +1400,30 @@ function monitorsSetScale(id=null) {
       if (!landscape) { //PORTRAIT
         monitor_div.style.width = 'max-content';
       } else {
-        document.getElementById('liveStream'+id).style.height = 'auto';
+        liveStream.style.height = 'auto';
         monitor_div.style.width = 'auto';
       }
     }
-  } else {
+  } else { // Not a specific stream, but all streams.
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      //const el = document.getElementById('liveStream'+id);
-      if (panZoomEnabled) {
-        var panZoomScale = panZoom[id].getScale();
-      } else {
-        var panZoomScale = 1;
-      }
+      var panZoomScale = panZoomEnabled ?  panZoom[id].getScale() : 1;
+
+      let resize = false;
+      let width = 'auto';
+      let height = 'auto';
 
       const scale = $j('#scale').val();
-      let resize;
-      let width;
-      let height;
-
       if (scale == '0') {
         //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
         resize = true;
-        width = 'auto';
-        height = 'auto';
       } else if (scale == '100') {
         //Actual, 100% of original size
-        resize = false;
         width = monitors[i].width + 'px';
         height = monitors[i].height + 'px';
       } else if (scale == 'fit_to_width') {
         //Fit to screen width
-        resize = false;
         width = parseInt(window.innerWidth * panZoomScale) + 'px';
-        height = 'auto';
       }
 
       if (resize) {
@@ -1436,12 +1432,13 @@ function monitorsSetScale(id=null) {
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
       monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
-        document.getElementById('liveStream'+id).style.height = '';
+        livestream = document.getElementById('liveStream'+id);
+        livestream.style.height = '';
         if (scale == 'fit_to_width') {
           monitor_div.style.width = '';
         } else if (scale == '100') {
           monitor_div.style.width = 'max-content';
-          document.getElementById('liveStream'+id).style.width = width;
+          liveStream.style.width = width;
         }
       }
     } // end foreach monitor

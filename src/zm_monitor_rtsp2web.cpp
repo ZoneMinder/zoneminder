@@ -21,12 +21,10 @@
 #include "zm_monitor.h"
 #include "zm_server.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 
 #include <algorithm>
 #include <regex>
-
-std::string remove_newlines(std::string input);
-std::string escape_json_string(std::string input);
 
 Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   parent(parent_),
@@ -187,23 +185,3 @@ size_t Monitor::RTSP2WebManager::WriteCallback(void *contents, size_t size, size
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
-
-std::string remove_newlines( std::string str ) {
-  while (!str.empty() && str.find("\n") != std::string::npos)
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
-  return str;
-}
-
-/*
-std::string escape_json_string( std::string input ) {
-  std::string tmp;
-  tmp = regex_replace(input, std::regex("\n"), "\\n");
-  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
-  return tmp;
-}
-*/

@@ -1169,6 +1169,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
       if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
+        console.log(data);
         try {
           stream.webrtc.setRemoteDescription(new RTCSessionDescription({
             type: 'answer',

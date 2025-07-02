@@ -1490,9 +1490,8 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     await stream.webrtc.setLocalDescription(offer);
     console.log(stream.webrtc.localDescription.sdp);
 
-    $j.get(url, {
+    $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
-    //$j.post(url, {
     }, function(data) {
       console.log(data);
       try {

@@ -1122,6 +1122,7 @@ class Monitor extends ZM_Object {
 </select></div>' : '';
     $html = '
       <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
+        ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
           <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor"
             title="Shift+Click to Zoom, Click+Drag to Pan &#013;Ctrl+Click to Zoom out, Ctrl+Shift+Click to Zoom out completely"
@@ -1135,7 +1136,7 @@ class Monitor extends ZM_Object {
 #(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
 #(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
             '">';
-              $html .= $blockRatioControl . '
+              $html .= '
                 <div id="button_zoom'.$this->Id().'" class="button_zoom hidden">
                   <button id="btn-zoom-in'.$this->Id().'" class="btn btn-zoom-in hidden" data-on-click="panZoomIn" title="'.translate('Zoom IN').'"><span class="material-icons md-36">add</span></button>
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>

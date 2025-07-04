@@ -164,7 +164,8 @@ class MonitorsController extends AppController {
         'conditions' => array('Id' => $id)
       ))['Monitor'];
 
-      $this->Monitor->daemonControl($monitor, 'start');
+      if ($monitor['Capturing'] != 'None')
+        $this->Monitor->daemonControl($monitor, 'start');
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }

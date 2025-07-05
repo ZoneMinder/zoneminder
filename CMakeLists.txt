@@ -486,6 +486,7 @@ find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS
     avcodec
     avdevice
+    avfilter
     avformat
     avutil
     swresample

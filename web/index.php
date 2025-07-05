@@ -54,6 +54,9 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
+require_once('includes/session.php');
+zm_session_start();
+
 if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
   $skin = ZM_FORCE_SKIN_DEFAULT;
 } else if ( isset($_GET['skin']) ) {
@@ -105,6 +108,7 @@ if (!is_dir("skins/$skin/css/$css")) {
 }
 
 global $navbar_type;
+$navbar_type = $_SESSION['navbar_type'];
 $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 if (isset($_REQUEST['navbar_type'])) {
@@ -115,6 +119,7 @@ if (isset($_REQUEST['navbar_type'])) {
   }
 }
 
+# Cookie overrides session
 if (isset($_COOKIE['navbar_type'])) {
   if (isset($valid_navbar_types[$_COOKIE['navbar_type']])) {
     $navbar_type = $_COOKIE['navbar_type'];
@@ -152,8 +157,6 @@ if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
-require_once('includes/session.php');
-zm_session_start();
 if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
@@ -173,6 +176,7 @@ if (
   $_SESSION['css'] = $css;
   zm_setcookie('zmCSS', $css);
 }
+$_SESSION['navbar_type'] = $navbar_type;
 
 # Add Cross domain access headers
 CORSHeaders();

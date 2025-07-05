@@ -2643,8 +2643,10 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   
   //Image img(packet->in_frame.get(), 640, 640); // copy, since we are scaling, maybe better to take from in_frame
 
-  uint8_t *img_buffer = new uint8_t[img.Size()];
-  img.EncodeJpeg(static_cast<JOCTET *>(img_buffer), &img_buffer_size);
+  std::vector<uint8_t> img_buffer;
+  img_buffer.reserve(img.Size());
+
+  img.EncodeJpeg(static_cast<JOCTET *>(img_buffer.data()), &img_buffer_size);
 
   endtime = std::chrono::system_clock::now();
   Debug(1, "UVICORN took: %.3f seconds to scale file size is %zu.", FPSeconds(endtime - partial_starttime).count(), img_buffer_size);
@@ -2652,40 +2654,45 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   //
   std::string response;
   response.reserve(4096);
+
   std::string endpoint = stringtf("http://127.0.0.1:8000/predict/?camera_id=%d", id);
-  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
-  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  if (endpoint.find("http") != std::string::npos) {
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
+    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
 
-  curl_mime *mime = nullptr;
-  curl_mimepart *part = nullptr;
-  mime = curl_mime_init(curl);
-  part = curl_mime_addpart(mime);
+    curl_mime *mime = nullptr;
+    curl_mimepart *part = nullptr;
+    mime = curl_mime_init(curl);
+    part = curl_mime_addpart(mime);
 
-  struct transfer tr = {img_buffer, img_buffer_size, 0};
-  curl_mime_data_cb(part, (size_t)img_buffer_size, ReadCallback, NULL, NULL, &tr);
-  //curl_mime_data(part, (const char *)img_buffer, img_buffer_size);
-  curl_mime_name(part, "file");
-  curl_mime_filename(part, stringtf("camera%d.jpg", id).c_str());
-  
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10); //timeout in seconds
-  CURLcode res = curl_easy_perform(curl);
+    struct transfer tr = {img_buffer.data(), img_buffer_size, 0};
+    curl_mime_data_cb(part, (size_t)img_buffer_size, ReadCallback, NULL, NULL, &tr);
+    //curl_mime_data(part, (const char *)img_buffer, img_buffer_size);
+    curl_mime_name(part, "file");
+    curl_mime_filename(part, stringtf("camera%d.jpg", id).c_str());
+    
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10); //timeout in seconds
+    CURLcode res = curl_easy_perform(curl);
+    curl_mime_free(mime);
 
-  if (res != CURLE_OK) {
-    Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
-    return std::make_pair(motion_score, cause);
+    if (res != CURLE_OK) {
+      Warning("CURL: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+      return std::make_pair(motion_score, cause);
+    }
+  } else {
+    // Write to local hotfolder
+    img.WriteJpeg(endpoint + stringtf("/camera%d.jpg", id));
   }
   endtime = std::chrono::system_clock::now();
   Debug(1, "UVICORN took: %.3f seconds to send.", FPSeconds(endtime - partial_starttime).count());
   partial_starttime = endtime;
   //Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
-  curl_mime_free(mime);
-  delete[] img_buffer;
 
   nlohmann::json detections = nlohmann::json::parse(response);
   Debug(1, "CURL detections %s", detections.dump().c_str());

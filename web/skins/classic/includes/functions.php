@@ -225,7 +225,9 @@ function buildSidebarMenu() {
   $menu = '
         <nav class="sidebar-main-menu open-current-submenu">
           <ul>
-' . $menuForAuthUser . '
+          ' . $menuForAuthUser;
+  if (ZM_HOME_ABOUT) {
+  $menu .= '
             <li class="menu-header" style="padding-top: 20px"><span> OTHER </span></li>
             <li class="menu-item">
               <a href="http://zoneminder.com/" target="_blank">
@@ -281,6 +283,9 @@ function buildSidebarMenu() {
                 <span class="menu-title">' . translate("Slack") . '</span>
               </a>
             </li>
+';
+  }
+  $menu .= '
           </ul>
         </nav>
   ';

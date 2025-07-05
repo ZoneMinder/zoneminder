@@ -18,7 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-$useOldMenuView = (isset($_COOKIE['zmUseOldMenuView']) and $_COOKIE["zmUseOldMenuView"] === 'true') ? true : false;
 
 function xhtmlHeaders($file, $title) {
   xhtmlHeadersStart($file, $title);
@@ -119,8 +118,8 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 
-  global $useOldMenuView;
-  if (!$useOldMenuView) {
+  global $navbar_type;
+  if ($navbar_type == 'left') {
     echo output_link_if_exists(array(
       '/assets/pro-sidebar-template/dist/main.css',
       '/css/base/sidebar.css',
@@ -172,8 +171,8 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
-  global $useOldMenuView;
-  if ($useOldMenuView !== true) {
+  global $navbar_type;
+  if ($navbar_type == 'left') {
     getSidebarTopHTML();
   }
 } // end function getBodyTopHTML
@@ -200,7 +199,6 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
 
 function buildSidebarMenu() {
   global $view;
-  global $useOldMenuView;
   global $user;
   if ( $user and $user->Username() ) {
   $menuForAuthUser = '
@@ -282,10 +280,6 @@ function buildSidebarMenu() {
                 </span>
                 <span class="menu-title">' . translate("Slack") . '</span>
               </a>
-            </li>
-            <li class="menu-header hidden-for-collapsed" style="padding-top: 20px">
-              <label for="useOldMenuView" class="control-label text-md-right">' . translate("USE TOP MENU") . '</label>
-              <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
             </li>
           </ul>
         </nav>
@@ -377,10 +371,11 @@ function getNavBarHTML() {
   global $bandwidth_options;
   global $view;
   global $skin;
+  global $navbar_type;
 
   ob_start();
   
-  if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
+  if ( $navbar_type == 'normal' ) {
     echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
   } else {
     echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
@@ -521,8 +516,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
 // *** Build the statistics shown on the navigation bar ***
-global $useOldMenuView;
-if ($useOldMenuView !== true) {
+global $navbar_type;
+if ($navbar_type == 'left') {
   echo buildStatisticsBar($forLeftBar = true);
 } else {
   echo buildStatisticsBar($forLeftBar = false);
@@ -621,7 +616,10 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?> 
       </nav>
-
+<?php
+  global $navbar_type;
+  if ($navbar_type == 'collapsed') {
+?>
       <ul class="list-group list-group-horizontal ml-auto">
         <?php
         echo getAccountCircleHTML($skin, $user);
@@ -661,7 +659,9 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       }
       ?>
       </div>
-
+<?php
+  } // end if collapsed vs left
+?>
     </nav><!-- End First Navbar -->
     <?php echo getConsoleBannerHTML() ?>
   </div>
@@ -926,16 +926,6 @@ function getNavBrandHTML() {
   $result .= '<a id="getNavBrandHTML" href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
   }
 
-  global $useOldMenuView;
-  if ($useOldMenuView) {
-    $result .= '
-      <div id="blockUseOldMenuView" style="display: flex;">
-        <label style="font-size: 14px; color: white;" for="useOldMenuView" class="control-label text-md-right">' . translate("Use Top menu") . '</label>
-        <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
-      </div>
-    '.PHP_EOL;
-  }
-
   return $result;
 }
 
@@ -975,7 +965,7 @@ function getOptionsHTML($forLeftBar = false) {
 
       $tabs = array();
       if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
-      $tabs['skins'] = translate('Display');
+      $tabs['display'] = translate('Display');
       $tabs['system'] = translate('System');
       $tabs['auth'] = translate('Authentication');
       $tabs['config'] = translate('Config');
@@ -1563,26 +1553,23 @@ function fixAmps(&$html) {
 }
 
 function xhtmlFooter() {
-  global $useOldMenuView;
-  if ($useOldMenuView !== true) {
-    getSidebarBottomHTML();
-  }
   global $css;
   global $cspNonce;
   global $view;
   global $skin;
   global $basename;
 
-  $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
-  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    getSidebarBottomHTML();
+  }
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php 
-  if (!$useOldMenuView) {
+  if ($navbar_type == 'left') {
     echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
     echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
@@ -1619,16 +1606,15 @@ function xhtmlFooter() {
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
 <?php
-  if ( $skinJsPhpFile ) {
-    require_once( $skinJsPhpFile );
-  }
-  if ( $viewJsPhpFile ) {
-    require_once( $viewJsPhpFile );
-  }
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  if ( $viewJsPhpFile ) require_once( $viewJsPhpFile );
 ?>
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
   <script src="<?php echo cache_bust($viewJsFile) ?>"></script>

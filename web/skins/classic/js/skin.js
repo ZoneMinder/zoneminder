@@ -1496,14 +1496,6 @@ function isNavbarOverflown() {
       el.classList.remove('overflown');
     });
   }
-
-  if (useOldMenuView) {
-    if (window.innerWidth < 600) { // To support the old top menu
-      document.getElementById('main-header-nav').appendChild(document.getElementById('blockUseOldMenuView'));
-    } else {
-      document.querySelector('#navbar-container .navbar-brand').appendChild(document.getElementById('blockUseOldMenuView'));
-    }
-  }
 }
 
 function changeAttrTitle(collapsed = null) {

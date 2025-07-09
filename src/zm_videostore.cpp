@@ -1252,7 +1252,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Outof ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), zm_packet->out_frame.get(), 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }

@@ -1633,7 +1633,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'string',
-      hint        => 'normal|collapsed',
+      hint        => 'normal|collapsed|left',
       pattern     => qr|^([nc])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },

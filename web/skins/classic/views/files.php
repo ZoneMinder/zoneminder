@@ -73,6 +73,8 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
+        <div id="toolbar">
+          <div class="path">
 <?php
 $files = array();
 $folders = array();
@@ -99,6 +101,14 @@ if ($path) {
   } 
 } # end if path
 ?>
+          </div><!--path-->
+          <div id="contentButtons">
+            <button type="submit" name="action" value="delete" disabled="disabled">
+            <?php echo translate('Delete') ?>
+            </button>
+          </div>
+        </div><!--toolbar-->
+        <div id="inner-content">
         <table id="contentTable" class="major">
           <thead class="thead-highlight">
             <tr>
@@ -189,11 +199,6 @@ foreach ($files as $file) {
 ?>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <button type="submit" name="action" value="delete" disabled="disabled">
-          <?php echo translate('Delete') ?>
-          </button>
-        </div>
       </form>
     </div>
   </div>

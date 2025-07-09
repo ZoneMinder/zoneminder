@@ -105,7 +105,12 @@ class EventsController extends AppController {
     }
     $settings['conditions'] = array($conditions, $mon_options);
 
-    $events = $this->Event->find('all', $settings);
+    if ($this->request->query('paginate')) {
+      $this->Paginator->settings = $settings;
+      $events = $this->Paginator->paginate('Event');
+    } else {
+      $events = $this->Event->find('all', $settings);
+    }
     // For each event, get the frameID which has the largest score also add FS path
 
     foreach ( $events as $key => $value ) {

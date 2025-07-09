@@ -46,7 +46,7 @@ foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
       </nav>
       <div id="optionsContainer" class="col">
 <?php 
-if ($tab == 'skins') {
+if ($tab == 'display') {
 ?>
           <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -84,6 +84,23 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 ?>
                 </select>
                 <span class="form-text"><?php echo translate('CSSDescription'); ?></span>
+              </div>
+            </div>
+            <div class="form-group row">
+            <label for="navbar_type" class="col-sm-3 col-form-label"><?php echo translate('Navbar Type') ?></label>
+              <div class="col-sm-6">
+                <label for="navbar_type_normal">
+                  <input type="radio" name="navbar_type" value="normal" id="navbar_type_normal" <?php echo $navbar_type == 'normal' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Normal') ?>
+                </label> 
+                <label for="navbar_type_collapsed">
+                  <input type="radio" name="navbar_type" value="collapsed" id="navbar_type_collapsed" <?php echo $navbar_type == 'collapsed' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Collapsed') ?>
+                </label> 
+                <label for="navbar_type_left">
+                  <input type="radio" name="navbar_type" value="left" id="navbar_type_left" <?php echo $navbar_type == 'left' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Left') ?>
+                </label> 
               </div>
             </div>
           </form>

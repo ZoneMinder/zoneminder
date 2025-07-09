@@ -275,7 +275,7 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get">
+      <form method="get" id="filters_form">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>

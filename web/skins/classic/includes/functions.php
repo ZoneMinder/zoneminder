@@ -18,7 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-$useOldMenuView = (isset($_COOKIE['zmUseOldMenuView']) and $_COOKIE["zmUseOldMenuView"] === 'true') ? true : false;
 
 function xhtmlHeaders($file, $title) {
   xhtmlHeadersStart($file, $title);
@@ -119,8 +118,8 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 
-  global $useOldMenuView;
-  if (!$useOldMenuView) {
+  global $navbar_type;
+  if ($navbar_type == 'left') {
     echo output_link_if_exists(array(
       '/assets/pro-sidebar-template/dist/main.css',
       '/css/base/sidebar.css',
@@ -172,8 +171,8 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
-  global $useOldMenuView;
-  if ($useOldMenuView !== true) {
+  global $navbar_type;
+  if ($navbar_type == 'left') {
     getSidebarTopHTML();
   }
 } // end function getBodyTopHTML
@@ -200,7 +199,6 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
 
 function buildSidebarMenu() {
   global $view;
-  global $useOldMenuView;
   global $user;
   if ( $user and $user->Username() ) {
   $menuForAuthUser = '
@@ -218,7 +216,8 @@ function buildSidebarMenu() {
     getSnapshotsHTML($view, $forLeftBar = true) .
     getReportsHTML($view, $forLeftBar = true) .
     getRprtEvntAuditHTML($view, $forLeftBar = true) .
-    getMapHTML($view, $forLeftBar = true)
+    getMapHTML($view, $forLeftBar = true) .
+    getAdditionalLinksHTML($view, $forLeftBar = true)
   ;
   } else { // USER IS NOT AUTHORIZED!
     $menuForAuthUser = '';
@@ -226,7 +225,9 @@ function buildSidebarMenu() {
   $menu = '
         <nav class="sidebar-main-menu open-current-submenu">
           <ul>
-' . $menuForAuthUser . '
+          ' . $menuForAuthUser;
+  if (ZM_HOME_ABOUT) {
+  $menu .= '
             <li class="menu-header" style="padding-top: 20px"><span> OTHER </span></li>
             <li class="menu-item">
               <a href="http://zoneminder.com/" target="_blank">
@@ -258,7 +259,7 @@ function buildSidebarMenu() {
                 <span class="menu-title">' . translate("zmNinja") . '</span>
               </a>
             </li>
-						<li class="menu-item">
+            <li class="menu-item">
               <a href="https://wiki.zoneminder.com/" target="_blank">
                 <span class="menu-icon">
                   <i class="material-icons">article</i>
@@ -282,10 +283,9 @@ function buildSidebarMenu() {
                 <span class="menu-title">' . translate("Slack") . '</span>
               </a>
             </li>
-            <li class="menu-header hidden-for-collapsed" style="padding-top: 20px">
-              <label for="useOldMenuView" class="control-label text-md-right">' . translate("USE OLD MENU VIEW") . '</label>
-              <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
-            </li>
+';
+  }
+  $menu .= '
           </ul>
         </nav>
   ';
@@ -376,10 +376,11 @@ function getNavBarHTML() {
   global $bandwidth_options;
   global $view;
   global $skin;
+  global $navbar_type;
 
   ob_start();
   
-  if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
+  if ( $navbar_type == 'normal' ) {
     echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
   } else {
     echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
@@ -520,8 +521,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
 // *** Build the statistics shown on the navigation bar ***
-global $useOldMenuView;
-if ($useOldMenuView !== true) {
+global $navbar_type;
+if ($navbar_type == 'left') {
   echo buildStatisticsBar($forLeftBar = true);
 } else {
   echo buildStatisticsBar($forLeftBar = false);
@@ -620,7 +621,10 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?> 
       </nav>
-
+<?php
+  global $navbar_type;
+  if ($navbar_type == 'collapsed') {
+?>
       <ul class="list-group list-group-horizontal ml-auto">
         <?php
         echo getAccountCircleHTML($skin, $user);
@@ -660,7 +664,9 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       }
       ?>
       </div>
-
+<?php
+  } // end if collapsed vs left
+?>
     </nav><!-- End First Navbar -->
     <?php echo getConsoleBannerHTML() ?>
   </div>
@@ -925,16 +931,6 @@ function getNavBrandHTML() {
   $result .= '<a id="getNavBrandHTML" href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
   }
 
-  global $useOldMenuView;
-  if ($useOldMenuView) {
-    $result .= '
-      <div id="blockUseOldMenuView" style="display: flex;">
-        <label style="font-size: 14px; color: white;" for="useOldMenuView" class="control-label text-md-right">' . translate("Use old menu view") . '</label>
-        <input type="checkbox" name="useOldMenuView" id="useOldMenuView" value="1"' . ( $useOldMenuView ? ' checked="checked"' : '') . '/>
-      </div>
-    '.PHP_EOL;
-  }
-
   return $result;
 }
 
@@ -974,7 +970,7 @@ function getOptionsHTML($forLeftBar = false) {
 
       $tabs = array();
       if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
-      $tabs['skins'] = translate('Display');
+      $tabs['display'] = translate('Display');
       $tabs['system'] = translate('System');
       $tabs['auth'] = translate('Authentication');
       $tabs['config'] = translate('Config');
@@ -1363,13 +1359,44 @@ function getMapHTML($view, $forLeftBar = false) {
 
 // Returns the html representing the content of the ZM_WEB_NAVBAR_LINKS content
 
-function getAdditionalLinksHTML($view) {
+function getAdditionalLinksHTML($view, $forLeftBar = false) {
   $result = '';
 
   if (defined('ZM_WEB_NAVBAR_LINKS')) {
     if (ZM_WEB_NAVBAR_LINKS) {
       foreach (explode(',', ZM_WEB_NAVBAR_LINKS) as $link) {
-        $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+        if ($forLeftBar) {
+          $doc = new DomDocument();
+          fixAmps($link);
+          $doc->loadHTML('<?xml encoding="UTF-8">' . $link);
+          $url = $doc->getElementsByTagName('a')[0];
+          $value_ = translate('Error in link string: "') . htmlspecialchars($link) . '"';
+          $href_ = '';
+          $icon_ = '';
+          $class_ = '';
+          $queryView = '';
+          if ($url) {
+            $value_ = $url->nodeValue;
+            $href_ = $url->getAttribute( 'href' );
+            $icon_ = $url->getAttribute('data-icon');
+            $class_ = $url->getAttribute('class');
+            $parts = parse_url($href_);
+            parse_str($parts['query'], $query);
+            $queryView = $query['view'];
+          }
+
+          $result .= buildMenuItem(
+            $viewItemName = $queryView,
+            $id = '',
+            $itemName = $value_,
+            $href = $href_,
+            $icon = $icon_,
+            $classNameForTag_A = $class_,
+            $subMenu = ''
+          );
+        } else {
+          $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+        }
       }
     }
   }
@@ -1513,27 +1540,41 @@ function getCSRFinputHTML() {
   return $result;
 }
 
-function xhtmlFooter() {
-  global $useOldMenuView;
-  if ($useOldMenuView !== true) {
-    getSidebarBottomHTML();
+function fixAmps(&$html) {
+  //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
+  $positionAmp = strpos($html, '&');
+  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
+  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
+  if ($positionAmp !== false) { // If an '&' can be found.
+    if ($positionSemiColumn === false) { // If no ';' can be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
+    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
+      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
+    } else {
+      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
+    }
   }
+}
+
+function xhtmlFooter() {
   global $css;
   global $cspNonce;
   global $view;
   global $skin;
   global $basename;
 
-  $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
-  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    getSidebarBottomHTML();
+  }
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php 
-  if (!$useOldMenuView) {
+  if ($navbar_type == 'left') {
     echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
     echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
@@ -1570,16 +1611,15 @@ function xhtmlFooter() {
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
 <?php
-  if ( $skinJsPhpFile ) {
-    require_once( $skinJsPhpFile );
-  }
-  if ( $viewJsPhpFile ) {
-    require_once( $viewJsPhpFile );
-  }
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  if ( $viewJsPhpFile ) require_once( $viewJsPhpFile );
 ?>
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
   <script src="<?php echo cache_bust($viewJsFile) ?>"></script>

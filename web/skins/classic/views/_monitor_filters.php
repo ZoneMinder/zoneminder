@@ -30,8 +30,8 @@ function addFilterSelect($name, $options) {
         'data-placeholder'=>'All',
       )
     );
-  $html .= '</span>';
   $html .= addButtonResetForFilterSelect($name.'[]');
+  $html .= '</span>';
   $html .= '</span>'.PHP_EOL;
   return $html;
 }
@@ -102,8 +102,8 @@ function buildMonitorsFilters() {
       $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
       $html .= ZM\Group::get_group_dropdown();
       $groupSql = ZM\Group::get_group_sql($group_id);
-      $html .= '</span>';
       $html .= addButtonResetForFilterSelect('GroupId[]');
+      $html .= '</span>';
       $html .= '</span>';
     }
   }
@@ -157,8 +157,8 @@ function buildMonitorsFilters() {
         'data-placeholder'=>'All',
       )
     );
-    $html .= '</span>';
     $html .= addButtonResetForFilterSelect('ServerId[]');
+    $html .= '</span>';
     $html .= '</span>';
   } # end if have Servers
 
@@ -173,8 +173,8 @@ function buildMonitorsFilters() {
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
       ) );
-    $html .= '</span>';
     $html .= addButtonResetForFilterSelect('StorageId[]');
+    $html .= '</span>';
     $html .= '</span>';
   } # end if have Storage Areas
 
@@ -194,8 +194,8 @@ function buildMonitorsFilters() {
       'multiple'=>'multiple',
       'data-placeholder'=>'All'
     ) );
-  $html .= '</span>';
   $html .= addButtonResetForFilterSelect('Status[]');
+  $html .= '</span>';
   $html .= '</span>';
 
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
@@ -303,8 +303,8 @@ function buildMonitorsFilters() {
     ) );
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
   $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-  $html .= '</span>';
   $html .= addButtonResetForFilterSelect('MonitorId[]');
+  $html .= '</span>';
   $html .= '</span>';
   $html .= '</div>';
 

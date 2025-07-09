@@ -591,7 +591,7 @@ if(HAVE_LIBPCRE AND HAVE_PCRE_H)
   set(ZM_PCRE 1)
 endif()
 
-find_package(nlohmann_json 3.11.0 REQUIRED)
+find_package(nlohmann_json)
 
 # Check for mmap and enable in all components
 set(ZM_MEM_MAPPED 0)

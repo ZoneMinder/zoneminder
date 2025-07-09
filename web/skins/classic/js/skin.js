@@ -43,7 +43,6 @@ var expiredTap; //Time between touch screen clicks. Used to analyze double click
 var shifted = ctrled = alted = false;
 var mainContent = document.getElementById('content');
 
-const useOldMenuView = !!getCookie('zmUseOldMenuView');
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
@@ -559,30 +558,30 @@ function submitTab(evt) {
 
 // Called by 'data-on-change=submitThisForm' for Select and in Montage page when date/time changes
 function submitThisForm(param = null) {
-  var form = null;
+  var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (currentView == 'console' && !useOldMenuView) {
-    // We get the form that we process
-    form = document.querySelector('form[name="monitorForm"]');
-    // We get a filter
-    filter = document.querySelector('#fbpanel');
-  } else if (currentView == 'montage' && !useOldMenuView) {
-    form = document.querySelector('#filters_form');
-    // Filter is inside the form.
-  } else if (currentView == 'montagereview' && !useOldMenuView) {
-    form = document.querySelector('#montagereview_form');
-    filter = document.querySelector('#filterMontagereview');
-  } else if (currentView == 'watch' && !useOldMenuView) {
-    form = document.querySelector('#wrapperFilter form');
-  } else {
-    form = this.form;
+  if (navbar_type == 'left') {
+    if (currentView == 'console') {
+      // We get the form that we process
+      form = document.querySelector('form[name="monitorForm"]');
+      // We get a filter
+      filter = document.querySelector('#fbpanel');
+    } else if (currentView == 'montage') {
+      form = document.querySelector('#filters_form');
+      // Filter is inside the form.
+    } else if (currentView == 'montagereview') {
+      form = document.querySelector('#montagereview_form');
+      filter = document.querySelector('#filterMontagereview');
+    } else if (currentView == 'watch') {
+      form = document.querySelector('#wrapperFilter form');
+    }
   }
 
   if ( ! form ) {
     console.log("No this.form.  element with onchange is not in a form");
     return;
   }
-  if (filter && !useOldMenuView) {
+  if (filter && navbar_type == 'left') {
     // Let's hide the old filter so that it doesn't appear during the transfer...
     filter.style.display = 'none';
     // We return the filter to its place in the form, since in the left side menu the filter should always be inside the form.
@@ -1724,7 +1723,7 @@ function handleChangeInputTag(evt) {
 /* Handling a mouse click */
 function handleClickGeneral(evt) {
   const target = evt.target;
-  if (!useOldMenuView) {
+  if (navbar_type == 'left') {
     if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
       // Click on any element inside the extruder panel from the Sidebar
     } else {
@@ -1752,11 +1751,6 @@ function handleClickGeneral(evt) {
     if ('btnCloseExtruder' == target.id && SIDEBAR_MAIN_EXTRUDER) {
       closeMbExtruder();
     }
-  }
-  // Toggle between using the old or new menu
-  if (document.getElementById('useOldMenuView') == target) {
-    setCookie('zmUseOldMenuView', target.checked);
-    refreshWindow();
   }
 
   // Click on <input> to open the "datepicker" window
@@ -1788,7 +1782,7 @@ function handleKeydownGeneral(evt) {
   const target = evt.target;
   const key = evt.key;
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
-  if (!useOldMenuView && key == 'Enter') {
+  if (navbar_type == 'left' && key == 'Enter') {
     if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
       submitThisForm();
     }
@@ -1797,14 +1791,15 @@ function handleKeydownGeneral(evt) {
 
 function handleMouseover(evt) {
   manageVisibilityVideoPlayerControlPanel(evt, 'show');
-  if (!useOldMenuView) {
+
+  if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'show');
   }
 }
 
 function handleMouseout(evt) {
   manageVisibilityVideoPlayerControlPanel(evt, 'hide');
-  if (!useOldMenuView) {
+  if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'hide');
   }
 }
@@ -1962,7 +1957,7 @@ function initPageGeneral() {
     alted = e.altKey;
   });
 
-  if (!useOldMenuView) {
+  if (navbar_type == 'left') {
     if ((!isTouchDevice() || !isMobile()) && NAVBAR_RELOAD) {
       // Increase the width of the scrollbar for NON-mobile or NON-touch devices
       NAVBAR_RELOAD.classList.add('high-scroll-bar');
@@ -2062,7 +2057,7 @@ function initPageGeneral() {
 
   window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
     //event.preventDefault();
-    if (!useOldMenuView) {
+    if (navbar_type == 'left') {
       closeMbExtruder(updateCookie = true);
     }
 

@@ -162,5 +162,7 @@ body.sticky #monitorList thead {
 }
 
 .colThumbnail img:hover {
+  /*
   position: absolute;
+  */
 }

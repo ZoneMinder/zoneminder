@@ -67,8 +67,9 @@ function findEventByTime(arr, time, debug=false) {
   }
   // Iterate while start not meets end
   while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
-    if (debug)
+    if (debug) {
       console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
+    }
     // Find the middle index
     const middle = Math.floor((start + end)/2);
     const zm_event = arr[middle];
@@ -534,7 +535,7 @@ function drawSliderOnGraph(val) {
 function drawFrameOnGraph(frame) {
   if (!frame.Score) return;
   // Now put in scored frames (if any)
-  let x1 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
+  const x1 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
   let x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
   if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
   ctx.fillStyle=monitorColour[Event.MonitorId];
@@ -1002,7 +1003,8 @@ function changeFilters(e) {
   console.log(e, this);
   // Need to update minTimeSecs and maxTimeSecs
 
-  let minMoment, maxMoment;
+  let minMoment;
+  let maxMoment;
 
   const matches = this.name.match(/^filter\[Query\]\[terms\]\[(\d+)\]\[val\]$/);
   console.log(matches);
@@ -1048,7 +1050,7 @@ function changeFilters(e) {
         } else {
           console.log("no val ", matches);
         }
-      } else { 
+      } else {
         console.log("No matches for ", this.name);
       }
     });
@@ -1060,15 +1062,15 @@ function changeFilters(e) {
       console.log("Adjusting currentTimeSecs", currentTimeSecs, minTimeSecs);
       currentTimeSecs = minTimeSecs;
     }
-  } else { 
+  } else {
     console.log("No minMoment");
   }
 
   if (maxMoment) {
     maxTimeSecs = maxMoment.unix();
-    console.log(currentTimeSecs,  minTimeSecs, maxTimeSecs);
+    console.log(currentTimeSecs, minTimeSecs, maxTimeSecs);
     if (currentTimeSecs > maxTimeSecs) currentTimeSecs = maxTimeSecs;
-  } else { 
+  } else {
     console.log("No maxMoment");
   }
 
@@ -1280,8 +1282,9 @@ function initDatepickerMontageReviewPage() {
 
 function wait_for_events() {
   if (Object.keys(events).length === 0) {
-    if (!wait_for_events_interval)
-    wait_for_events_interval = setInterval(wait_for_events, 1000);
+    if (!wait_for_events_interval) {
+      wait_for_events_interval = setInterval(wait_for_events, 1000);
+    }
   } else {
     clearInterval(wait_for_events_interval);
     wait_for_events_interval = null;

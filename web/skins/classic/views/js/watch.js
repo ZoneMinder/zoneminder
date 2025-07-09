@@ -1046,7 +1046,7 @@ function initPage() {
       }
     };
     inactivityTime();
-  }  // end setup AYSW
+  } // end setup AYSW
 
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
@@ -1334,7 +1334,9 @@ function monitorsSetScale(id=null) {
       var curentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id; });
+      var curentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
     } else {
       //Stream is missing
       return;
@@ -1407,7 +1409,7 @@ function monitorsSetScale(id=null) {
   } else { // Not a specific stream, but all streams.
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      var panZoomScale = panZoomEnabled ?  panZoom[id].getScale() : 1;
+      var panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
 
       let resize = false;
       let width = 'auto';

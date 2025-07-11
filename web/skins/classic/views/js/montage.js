@@ -693,7 +693,7 @@ function initPage() {
       const id = stringToNumber(el.id);
       if (event.target && event.relatedTarget) {
         if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-            return;
+          return;
         }
       }
       if (!event.relatedTarget) {
@@ -866,7 +866,7 @@ function showСontrolElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');
-  $j('#ratioControl' + id).css({ top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px' });
+  $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
 }
 
 function on_scroll() {

@@ -108,7 +108,7 @@ if (!is_dir("skins/$skin/css/$css")) {
 }
 
 global $navbar_type;
-$navbar_type = $_SESSION['navbar_type'];
+$navbar_type = isset($_SESSION['navbar_type']) ? $_SESSION['navbar_type'] : '';
 $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 if (isset($_REQUEST['navbar_type'])) {

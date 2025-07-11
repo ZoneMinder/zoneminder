@@ -380,7 +380,7 @@ function getNavBarHTML() {
 
   ob_start();
   
-  if ( $navbar_type == 'normal' ) {
+  if ( $navbar_type == 'normal' || $navbar_type == 'left') {
     echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
   } else {
     echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin);

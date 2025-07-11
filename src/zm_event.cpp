@@ -31,6 +31,7 @@
 #include "zm_videostore.h"
 
 #include <cstring>
+#include <fcntl.h>
 #include <list>
 #include <dirent.h>
 #include <sys/stat.h>

@@ -25,6 +25,7 @@
 extern "C" {
 
 #define MAX_JPEG_ERRS 25
+#define MAX_JPEG_ERR_MULT 10   /* ratio of acceptable frame errors without a fatal error */
 
   static int jpeg_err_count = 0;
 
@@ -43,8 +44,10 @@ extern "C" {
     zmerr->pub.format_message(cinfo, buffer);
 
     Error("%s", buffer);
-    if (++jpeg_err_count == MAX_JPEG_ERRS) {
-      Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count);
+
+    jpeg_err_count += MAX_JPEG_ERR_MULT;
+    if (jpeg_err_count >= ( MAX_JPEG_ERRS * MAX_JPEG_ERR_MULT )) {
+      Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count / MAX_JPEG_ERR_MULT);
     }
 
     longjmp(zmerr->setjmp_buffer, 1);
@@ -366,6 +369,9 @@ extern "C" {
     src->inbuffer_size = inbuffer_size;
     src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
     src->pub.next_input_byte = nullptr; /* until buffer loaded */
+
+    /* Decrement the error count slowly when processing ok otherwise occasional frame errors build up to a zmc exit */
+    if (jpeg_err_count > 0) jpeg_err_count--; else jpeg_err_count = 0;
   }
 
   void zm_use_std_huff_tables(j_decompress_ptr cinfo) {

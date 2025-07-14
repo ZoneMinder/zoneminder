@@ -1007,7 +1007,7 @@ function getOptionsHTML($forLeftBar = false) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
             <a href="?view='.$view_.'&amp;tab='.$name.'">
-              <span class="menu-title">'.translate(($value == 'Skins') ? 'Display' : (($value == 'Version') ? 'Versions' : $value)).'</span>
+              <span class="menu-title">'.$value.'</span>
             </a>
           </li>'.PHP_EOL;
       }
@@ -1649,7 +1649,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = mb_ucfirst($cat);
+        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'skins') ? 'Display' : (($cat == 'version') ? 'Versions' : $cat)));
         unset($categoriesOptionsInDB[$key]);
       }
     }
@@ -1658,7 +1658,7 @@ class ZM_Menu {
     if (count($categoriesOptionsInDB)) {
       foreach ($categoriesOptionsInDB as $cat) {
         if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
-          self::$submenuOptionsItems[$cat] = mb_ucfirst($cat);
+          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
       }
     }
   }

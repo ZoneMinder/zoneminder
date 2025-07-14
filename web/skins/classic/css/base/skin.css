@@ -1289,7 +1289,7 @@ button.btn.btn-view-watch:hover {
     margin-left: 4px;
   }
   input[type='checkbox']:not(.input-switch) {
-    border-radius: 7px;
+    border-radius: .2rem;
   }
   input[type='checkbox']:not(.input-switch):after {
     width: 5px;

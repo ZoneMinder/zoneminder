@@ -1006,7 +1006,7 @@ function getOptionsHTML($forLeftBar = false) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
             <a href="?view='.$view_.'&amp;tab='.$name.'">
-              <span class="menu-title">'.$value.'</span>
+              <span class="menu-title">'.(($value == 'Skins') ? 'Display' : $value).'</span>
             </a>
           </li>'.PHP_EOL;
       }
@@ -1642,7 +1642,6 @@ class ZM_Menu {
       $added = false;
       if ($cat == 'skins' && (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))) {
         $added = true;
-        $cat = 'Display'; // Renaming required
       } else if ($cat == 'dnsmasq' && (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF)) {
         $added = true;
       } else {

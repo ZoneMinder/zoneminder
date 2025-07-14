@@ -87,6 +87,10 @@ th {
 }
 */
 
+table thead {
+  z-index: 10;
+}
+
 .thead-highlight {
   background-color:#dfe4ea;
 }

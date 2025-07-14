@@ -1007,7 +1007,7 @@ function getOptionsHTML($forLeftBar = false) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
             <a href="?view='.$view_.'&amp;tab='.$name.'">
-              <span class="menu-title">'.(($value == 'Skins') ? 'Display' : $value).'</span>
+              <span class="menu-title">'.(($value == 'Skins') ? 'Display' : (($value == 'Version') ? 'Versions' : $value)).'</span>
             </a>
           </li>'.PHP_EOL;
       }

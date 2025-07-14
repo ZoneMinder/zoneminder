@@ -1212,11 +1212,11 @@ button.btn.btn-view-watch:hover {
 @supports (-webkit-appearance: none) or (-moz-appearance: none) {
   input[type='checkbox'], input[type='radio'] {
     --active: #3498db;
-    --active-inner: #fff;
+    --active-inner: #eee;
     --focus: 2px rgba(39, 94, 254, 0.3);
     --border: #3498db;
     --border-hover: #3498db;
-    --background: #fff;
+    --background: #eee;
     --disabled: #F6F8FF;
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;

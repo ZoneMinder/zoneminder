@@ -26,6 +26,9 @@
   --sliderBG: #C1C1C1;
   --alarmBG: #FFC0C0;
   --alarmText: inherit;
+  --colorLink: #3498db;
+  --colorBackgroundButtons: #3498db;
+  --colorBorder: #3498db;
 }
 
 html,
@@ -104,7 +107,7 @@ a {
 
 a.optionhelp,
 a:link {
-    color: #3498db;
+    color: var (--colorLink);
     text-decoration: none;
 }
 
@@ -191,8 +194,8 @@ hr {
     height: 1px;
     width: 100%;
     border: 0;
-    color: #3498db;
-    background-color: #3498db;
+    color: var (--colorLink);
+    background-color: var (--colorBackgroundButtons);
 }
 
 /*
@@ -620,9 +623,9 @@ input[type=button],
 input[type=submit],
 .btn-primary,
 .btn-primary:link {
-    background-color: #3498db;
+    background-color: var (--colorBackgroundButtons);
     color: #fff;
-    border-color: #3498db;
+    border-color: var (--colorBorder);
     text-transform: uppercase;
     font-weight: 200;
     padding: 7px 10px 5px 10px;
@@ -636,8 +639,8 @@ input[type=submit],
 .btn-normal,
 .btn-normal:link {
     color: #fff;
-    background-color: #3498db;
-    border: 1px solid #3498db;
+    background-color: var (--colorBackgroundButtons);
+    border: 1px solid var (--colorBorder);
 }
 
 button:hover,

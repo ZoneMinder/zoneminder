@@ -93,13 +93,6 @@ echo output_cache_busted_stylesheet_links(array(
   'css/bootstrap.min.css',
 ));
 
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-), true);
-
 if ( $basename == 'montage' ) {
   echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
 }
@@ -450,9 +443,11 @@ function getCpuUsageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
   global $thisServer;
-  if ($thisServer and $thisServer->Id()) {
-    $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+  if ($thisServer) {
+    $thisServer->ReadStats();
+
+    $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;

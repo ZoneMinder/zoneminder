@@ -107,7 +107,7 @@ a {
 
 a.optionhelp,
 a:link {
-    color: var (--colorLink);
+    color: var(--colorLink);
     text-decoration: none;
 }
 
@@ -194,8 +194,8 @@ hr {
     height: 1px;
     width: 100%;
     border: 0;
-    color: var (--colorLink);
-    background-color: var (--colorBackgroundButtons);
+    color: var(--colorLink);
+    background-color: var(--colorBackgroundButtons);
 }
 
 /*
@@ -623,9 +623,9 @@ input[type=button],
 input[type=submit],
 .btn-primary,
 .btn-primary:link {
-    background-color: var (--colorBackgroundButtons);
+    background-color: var(--colorBackgroundButtons);
     color: #fff;
-    border-color: var (--colorBorder);
+    border-color: var(--colorBorder);
     text-transform: uppercase;
     font-weight: 200;
     padding: 7px 10px 5px 10px;
@@ -639,8 +639,8 @@ input[type=submit],
 .btn-normal,
 .btn-normal:link {
     color: #fff;
-    background-color: var (--colorBackgroundButtons);
-    border: 1px solid var (--colorBorder);
+    background-color: var(--colorBackgroundButtons);
+    border: 1px solid var(--colorBorder);
 }
 
 button:hover,

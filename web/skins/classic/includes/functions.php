@@ -962,7 +962,8 @@ function getConsoleHTML($forLeftBar = false) {
 function getOptionsHTML($forLeftBar = false) {
   global $zmMenu;
   $result = '';
-  
+
+  // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
   $zmMenu::buildSubMenuOptions($categoryDisplayOrder = [
     'skins',
     'system',

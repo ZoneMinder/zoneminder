@@ -668,7 +668,7 @@ input[type=submit]:disabled,
   padding: 0;
   display: flex;
   justify-content: space-between;
-	background-color:#485460 !important;
+  background-color: var(--backgroundMediumDark) !important;
 }
 
 #navbar-container > nav {
@@ -688,20 +688,20 @@ input[type=submit]:disabled,
 
 .navbar {
   padding: 0 0 0 0px;
-	margin-bottom: 0 !important;
-	border-radius: 0;
-	background-color:#485460 !important;
-	color: #0fbcf9;
-	border:none;
+  margin-bottom: 0 !important;
+  border-radius: 0;
+  background-color: var(--backgroundMediumDark) !important;
+  color: #0fbcf9;
+  border:none;
 }
 
 .navbar-brand {
   margin-left: 15px;
-	font-weight: normal;
-	font-size: 30px;
+  font-weight: normal;
+  font-size: 30px;
 }
 .navbar-brand a {
-color:#ffa801;
+  color:#ffa801;
 }
 @media (max-width: 600px){
   .navbar-brand {
@@ -831,11 +831,11 @@ li.search-choice {
 #dropdown_storage+div,
 #dropdown_reminder+div,
 #dropdown_bandwidth+div {
-  background-color:#485460;
+  background-color: var(--backgroundMediumDark);
 }
 
 #framesTable td:hover {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .zoom,

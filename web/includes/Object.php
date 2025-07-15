@@ -337,7 +337,7 @@ class ZM_Object {
           $this->$field = $default;
         }
       } else {
-        Debug("Property $field exists ".$this->$field);
+        Debug("Property $field exists ".print_r($this->$field, true));
       }
     } # end foreach default
   }

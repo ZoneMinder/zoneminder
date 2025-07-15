@@ -41,7 +41,7 @@ echo getNavBarHTML();
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center table-responsive-sm">      
+    <div id="content" class="row justify-content-center table-responsive-sm">
       <table
         id="framesTable"
         data-locale="<?php echo i18n() ?>"

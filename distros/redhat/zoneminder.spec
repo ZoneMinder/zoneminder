@@ -18,7 +18,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.66
+Version: 1.37.67
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -46,7 +46,7 @@ BuildRequires: polkit-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
-BuildRequires: pcre-devel 
+BuildRequires: pcre2-devel 
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
@@ -245,6 +245,9 @@ ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildr
 
 # Handle the polkit file differently for web server agnostic support (see post)
 rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%check
+# Nothing to do. No tests exist.
 
 %post common
 # Initial installation

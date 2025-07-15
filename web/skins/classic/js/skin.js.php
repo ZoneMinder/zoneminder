@@ -30,6 +30,7 @@ const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
+const navbar_type = '<?php echo $navbar_type ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
@@ -96,10 +97,7 @@ const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
-var user = <?php
-
-echo $user ? json_encode($user->expose(['Password'])) : '{}';
-?>;
+var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
 const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
@@ -145,8 +143,8 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 global $user;
 if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
-  global $config;
-  foreach ($config as $name=>$c) {
+  global $zm_config;
+  foreach ($zm_config as $name=>$c) {
     if (!$c['Private']) {
       $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
       $value = preg_replace('/\'/', '\\\\\'', $value);

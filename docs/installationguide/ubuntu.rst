@@ -37,7 +37,7 @@ Alternatively
 
 ::
 
-  apt-get install mariab-server
+  apt-get install mariadb-server
 
 **Step 4:** Configure the ZoneMinder Database
 

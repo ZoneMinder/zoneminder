@@ -160,3 +160,9 @@ body.sticky #monitorList thead {
     font-size: 16px;
   }
 }
+
+.colThumbnail img:hover {
+  /*
+  position: absolute;
+  */
+}

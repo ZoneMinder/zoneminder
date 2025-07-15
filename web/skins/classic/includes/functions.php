@@ -18,6 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+
 function xhtmlHeaders($file, $title) {
   xhtmlHeadersStart($file, $title);
   xhtmlHeadersEnd();
@@ -124,6 +125,14 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    echo output_link_if_exists(array(
+      '/assets/pro-sidebar-template/dist/main.css',
+      '/css/base/sidebar.css',
+    ));
+  }
+
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
@@ -153,8 +162,11 @@ function xhtmlHeadersEnd() {
 
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
+  global $view;
+  //Needed for more flexible global governance
+  $classHTML = ' class="'.$view.'-page'.((defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) ? ' sticky"' : '"');
   echo '
-<body'.((defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) ? ' class="sticky"' : '').'>
+<body data-swipe-threshold="10" data-swipe-unit="vw" data-swipe-timeout="300"'.$classHTML.'>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 '. validHtmlStr(ZM_WEB_TITLE) .' requires Javascript. Please enable Javascript in your browser for this site.
@@ -166,7 +178,200 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    getSidebarTopHTML();
+  }
 } // end function getBodyTopHTML
+
+function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '') {
+  global $view;
+   /* Highlighting the active menu section */
+  if ($viewItemName == 'watch') {
+    $activeClass = ($view == $viewItemName && (isset($_REQUEST['cycle']) && $_REQUEST['cycle'] == "true")) ? ' active' : '';
+  } else {
+    $activeClass = $view == $viewItemName ? ' active' : '';
+  }
+  $itemName = translate($itemName);
+  $result = '
+            <li id="' . $id . '" class="menu-item '.$activeClass.'">
+              <a href="' . $href . '" class="' . $classNameForTag_A . '">
+                <span class="menu-icon"><i class="material-icons">' . $icon . '</i></span>
+                <span class="menu-title">'.$itemName.'</span>
+              </a>
+            </li>'.PHP_EOL;
+
+  return $result;
+}
+
+function buildSidebarMenu() {
+  global $view;
+  global $user;
+  if ( $user and $user->Username() ) {
+  $menuForAuthUser = '
+            <li class="menu-header"><span> GENERAL </span></li> ' .
+    getConsoleHTML($forLeftBar = true) .
+    getMontageHTML($view, $forLeftBar = true) .
+    getCycleHTML($view, $forLeftBar = true) .
+    getMontageReviewHTML($view, $forLeftBar = true) .
+    getEventsHTML($view, $forLeftBar = true) .
+    getOptionsHTML($forLeftBar = true) .
+    getLogHTML($forLeftBar = true) .
+    getDevicesHTML($forLeftBar = true) .
+    getGroupsHTML($view, $forLeftBar = true) .
+    getFilterHTML($view, $forLeftBar = true) .
+    getSnapshotsHTML($view, $forLeftBar = true) .
+    getReportsHTML($view, $forLeftBar = true) .
+    getRprtEvntAuditHTML($view, $forLeftBar = true) .
+    getMapHTML($view, $forLeftBar = true) .
+    getAdditionalLinksHTML($view, $forLeftBar = true)
+  ;
+  } else { // USER IS NOT AUTHORIZED!
+    $menuForAuthUser = '';
+  }
+  $menu = '
+        <nav class="sidebar-main-menu open-current-submenu">
+          <ul>
+          ' . $menuForAuthUser;
+  if (ZM_HOME_ABOUT) {
+  $menu .= '
+            <li class="menu-header" style="padding-top: 20px"><span> OTHER </span></li>
+            <li class="menu-item">
+              <a href="http://zoneminder.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">videocam</i>
+               </span>
+                <span class="menu-title">' . translate("ZoneMinder") . '</span>
+                <span class="menu-suffix">
+                  <span class="badge secondary"><i class="material-icons md-14">thumb_up</i></span>
+                </span>
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="http://zoneminder.readthedocs.org/en/latest/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">description</i>
+                </span>
+                <span class="menu-title">' . translate("Documentation") . '</span>
+                <!--<span class="menu-suffix">
+                  <span class="badge secondary">Beta</span>
+                </span>-->
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="https://zmninja.zoneminder.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">face_5</i>
+                </span>
+                <span class="menu-title">' . translate("zmNinja") . '</span>
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="https://wiki.zoneminder.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">article</i>
+                </span>
+                <span class="menu-title">' . translate("Wiki") . '</span>
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="https://forums.zoneminder.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">forum</i>
+                </span>
+                <span class="menu-title">' . translate("Forums") . '</span>
+              </a>
+            </li>
+            <li class="menu-item">
+              <a href="https://zoneminder-chat.slack.com/" target="_blank">
+                <span class="menu-icon">
+                  <i class="material-icons">chat</i>
+                </span>
+                <span class="menu-title">' . translate("Slack") . '</span>
+              </a>
+            </li>
+';
+  }
+  $menu .= '
+          </ul>
+        </nav>
+  ';
+  return $menu;
+}
+
+function getSidebarTopHTML() {
+  global $skin;
+  global $user;
+  global $running;
+
+  $blockExtruder = '
+<div id="extruderLeft">
+  <div id="contextExtruderLeft" class="text">
+    <! -- Pull-out panel FILLED VIA JS -->
+  </div>
+</div>
+';
+
+  $block = '
+<div class="layout-main has-sidebar fixed-sidebar fixed-header">
+  <aside id="sidebarMain" class="sidebar-main break-point-lg has-bg-image '. (( isset($_COOKIE['zmSidebarMainCollapse']) and $_COOKIE["zmSidebarMainCollapse"] === 'true' ) ? "collapsed" : "") . '">
+' . $blockExtruder . '
+    <a id="btn-collapse" class="sidebar-collapser"><i class="material-icons">chevron_left</i></a>
+    <div class="image-wrapper">
+      <img src="skins/'.$skin.'/assets/pro-sidebar-template/assets/images/sidebar-bg.jpg" alt="sidebar background" />
+    </div>
+    <div class="sidebar-layout">
+      <div class="sidebar-header">
+        <div class="pro-sidebar-logo">
+          <div>ZM</div>
+          <h5>ZoneMinder</h5>
+        </div>
+      </div>
+      <!-- End of header, before scrolling menu -->
+      <div id="menuControlModule" class="sidebar-post-header">
+        <!-- FILLED VIA JS -->
+      </div>
+      <!-- Start of scrolling menu -->
+      <div class="sidebar-content">
+' . buildSidebarMenu() . '
+      </div>
+      <div class="sidebar-footer hidden-for-collapsed">
+        <div class="footer-box">
+          <div>
+' . getAccountCircleHTML($skin, $user, $forLeftBar = true) . '
+          </div>
+          <div style="padding: 0 10px">
+            <span style="display: block; margin-bottom: 10px">
+              <ul id="versionSidebar">
+' . getZMVersionHTML() . '
+              </ul>
+            </span>
+            <ul id="statusSidebar">
+' . getStatusBtnHTML(runtimeStatus($running)) . '
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div id="overlay" class="overlay"></div>
+  <div class="content-main">
+';
+echo $block;
+} // end function getSidebarTopHTML
+
+function getSidebarBottomHTML() {
+  global $skin;
+  $block = '
+    <div class="overlay"></div>
+  </div> <!-- class="content-main" -->
+</div> <!-- class="layout-main has-sidebar fixed-sidebar fixed-header" -->
+<style>
+
+</style>
+';
+echo $block;
+} // end function getSidebarBottomHTML
 
 function getNavBarHTML() {
   # Provide a facility to turn off the headers if you put navbar=0 into the url
@@ -178,10 +383,11 @@ function getNavBarHTML() {
   global $bandwidth_options;
   global $view;
   global $skin;
+  global $navbar_type;
 
   ob_start();
   
-  if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
+  if ( $navbar_type == 'normal' || $navbar_type == 'left') {
     echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
   } else {
     echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin);
@@ -303,10 +509,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getMapHTML($view);
+          echo getAdditionalLinksHTML($view);
           echo getHeaderFlipHTML();
-          echo '</ul></div><div id="accountstatus">
-';
-
+        echo '</ul></div><div id="accountstatus">';
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAccountCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
@@ -323,27 +528,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
 // *** Build the statistics shown on the navigation bar ***
-?>
-      <div id="reload" class="container-fluid">
-        <ul id="Bandwidth" class="navbar-nav justify-content-start">
-          <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
-        </ul>
-        
-        <ul class="navbar-nav list-inline justify-content-center">
-          <?php
-          echo getSysLoadHTML();
-          echo getCpuUsageHTML();
-          echo getDbConHTML();
-          echo getStorageHTML();
-          echo getRamHTML();
-          ?>
-        </ul>
-
-        <ul id="Version" class="nav navbar-nav justify-content-end">
-          <?php echo getZMVersionHTML() ?>
-        </ul>
-      </div>
-<?php
+global $navbar_type;
+if ($navbar_type == 'left') {
+  echo buildStatisticsBar($forLeftBar = true);
+} else {
+  echo buildStatisticsBar($forLeftBar = false);
+}
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
@@ -356,6 +546,46 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 </div><!--navbar continaer-->
 <?php
 } // end function getNormalNavBarHTML()
+
+function buildStatisticsBar($forLeftBar = false) {
+// *** Build the statistics shown on the navigation bar ***
+  global $bandwidth_options;
+  global $user;
+  $block = '';
+  if ($forLeftBar) {
+    // Mobile menu hamburger button
+    $block .= '
+<div style="left: 5px; top: 10px; position: absolute;">
+  <a id="btn-toggle" href="#" class="sidebar-toggler break-point-lg">
+    <i class="material-icons">menu</i>
+  </a>
+</div>
+    ';
+  }
+
+  $block .= '
+    <div id="reload" class="container-fluid">
+      <ul id="Bandwidth" class="navbar-nav justify-content-start">
+        ' . getBandwidthHTML($bandwidth_options, $user) .'
+      </ul>
+
+      <ul class="navbar-nav list-inline justify-content-center">
+        '.
+        getSysLoadHTML().
+        getCpuUsageHTML().
+        getDbConHTML().
+        getStorageHTML().
+        getRamHTML()
+        .'
+      </ul>
+
+      <ul id="Version" class="nav navbar-nav justify-content-end">
+        ' . getZMVersionHTML() . '
+      </ul>
+    </div>
+  ';
+  return $block;
+}
 
 //
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
@@ -398,7 +628,10 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?> 
       </nav>
-
+<?php
+  global $navbar_type;
+  if ($navbar_type == 'collapsed') {
+?>
       <ul class="list-group list-group-horizontal ml-auto">
         <?php
         echo getAccountCircleHTML($skin, $user);
@@ -433,11 +666,14 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
             echo getMapHTML($view);
+            echo getAdditionalLinksHTML($view);
           echo '</ul>';
       }
       ?>
       </div>
-
+<?php
+  } // end if collapsed vs left
+?>
     </nav><!-- End First Navbar -->
     <?php echo getConsoleBannerHTML() ?>
   </div>
@@ -467,7 +703,7 @@ function getSysLoadHTML() {
     $thisServer->ReadStats();
 
     $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
-    $result .= '<i class="material-icons md-18" style="display: inline-block;">trending_up</i>';
+    $result .= '<i class="material-icons md-18">trending_up</i>';
     $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
     $result .= '</li>'.PHP_EOL;
   } 
@@ -484,7 +720,7 @@ function getDbConHTML() {
   $class = ( $percent_used > 90 ) ? ' text-warning' : '';
 
   $result .= '<li id="getDbConHTML" class="nav-item dropdown mx-2' .$class. '">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
+  $result .= '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
 
@@ -532,7 +768,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1" style="display: inline-block;">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  
@@ -628,7 +864,7 @@ function getBandwidthHTML($bandwidth_options, $user) {
   $result = '';
   if (count($bandwidth_options) > 1) {
     $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1" style="display: inline-block;">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
@@ -699,42 +935,132 @@ function getNavBrandHTML() {
   } else {
   $result .= '<a id="getNavBrandHTML" href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Console menu item
-function getConsoleHTML() {
+function getConsoleHTML($forLeftBar = false) {
   global $user;
   $result = '';
 
   if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
-    $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'console',
+        $id = 'getConsoleHTML',
+        $itemName = 'Console',
+        $href = '?view=console',
+        $icon = 'dashboard',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Options menu item
-function getOptionsHTML() {
+function getOptionsHTML($forLeftBar = false) {
   $result = '';
   
   if ( canView('System') ) {
-    $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      // Copied from web/skins/classic/views/options.php
+      // When using the old top menu, the list of options pages is still generated in the views/options.php file.
+      global $view;
+
+      $tabs = array();
+      if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
+      $tabs['display'] = translate('Display');
+      $tabs['system'] = translate('System');
+      $tabs['auth'] = translate('Authentication');
+      $tabs['config'] = translate('Config');
+      if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
+        $tabs['dnsmasq'] = translate('DHCP');
+      }
+      $tabs['API'] = translate('API');
+      $tabs['servers'] = translate('Servers');
+      $tabs['storage'] = translate('Storage');
+      $tabs['web'] = translate('Web');
+      $tabs['images'] = translate('Images');
+      $tabs['logging'] = translate('Logging');
+      $tabs['network'] = translate('Network');
+      $tabs['mail'] = translate('Email');
+      $tabs['upload'] = translate('Upload');
+      $tabs['x10'] = translate('X10');
+      $tabs['highband'] = translate('HighBW');
+      $tabs['medband'] = translate('MediumBW');
+      $tabs['lowband'] = translate('LowBW');
+      $tabs['users'] = translate('Users');
+      $tabs['groups'] = translate('Groups');
+      $tabs['control'] = translate('Control');
+      $tabs['privacy'] = translate('Privacy');
+      $tabs['MQTT'] = translate('MQTT');
+      $tabs['telemetry'] = translate('Telemetry');
+      $tabs['version'] = translate('Versions');
+
+      $view_ = 'options';
+      //$tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
+      $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : '';
+
+      $subMenuOptions = '
+      <div class="sub-menu-list">
+        <ul>
+      ';
+      foreach ($tabs as $name=>$value) {
+        $subMenuOptions .= '
+          <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
+            <a href="?view='.$view_.'&amp;tab='.$name.'">
+              <span class="menu-title">'.$value.'</span>
+            </a>
+          </li>'.PHP_EOL;
+      }
+      $subMenuOptions .= '
+        </ul>
+      </div>
+      ';
+
+      $result .= '
+<li id="getOptionsHTML" class="menu-item sub-menu '.($view == "options" ? ' open' : '').'">
+  <a href="#<!--?view='.$view_.'&amp;tab=system-->">
+    <span class="menu-icon"><i class="material-icons">settings</i></span>
+    <span class="menu-title">'.translate('Options').'</span>
+  </a>
+' . $subMenuOptions . '
+</li>'.PHP_EOL;
+    } else {
+      $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Log menu item
-function getLogHTML() {
+function getLogHTML($forLeftBar = false) {
   $result = '';
   
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
+      if ($forLeftBar) {
+        $result .= buildMenuItem(
+          $viewItemName = 'log',
+          $id = 'getLogHTML',
+          $itemName = 'Log',
+          $href = '?view=log',
+          $icon = 'notification_important',
+          $classNameForTag_A = $class,
+          $subMenu = ''
+        );
+      } else {
+        $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
+      }
     }
   }
   
@@ -750,7 +1076,7 @@ function getLogIconHTML() {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogIconHTML" class="nav-item">'.
-        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18" style="display: inline-block;">report</i>'.translate('Log').'</span>').
+        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
   }
@@ -759,65 +1085,126 @@ function getLogIconHTML() {
 }
 
 // Returns the html representing the X10 Devices menu item
-function getDevicesHTML() {
+function getDevicesHTML($forLeftBar = false) {
   $result = '';
 
   if ( ZM_OPT_X10 && canView('Devices') ) {
-    $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'devices',
+        $id = 'getDevicesHTML',
+        $itemName = 'Devices',
+        $href = '?view=devices',
+        $icon = 'devices_other',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.translate('Devices').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Groups menu item
-function getGroupsHTML($view) {
+function getGroupsHTML($view, $forLeftBar = false) {
   $result = '';
   if ( !canView('Groups') ) return $result;
 
   $class = $view == 'groups' ? ' selected' : '';
-  $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
-  
+  if ($forLeftBar) {
+    $result .= buildMenuItem(
+      $viewItemName = 'groups',
+      $id = 'getGroupsHTML',
+      $itemName = 'Groups',
+      $href = '?view=groups',
+      $icon = 'group',
+      $classNameForTag_A = '',
+      $subMenu = ''
+    );
+  } else {
+    $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  }
+
   return $result;
 }
 
 // Returns the html representing the Filter menu item
-function getFilterHTML($view) {
+function getFilterHTML($view, $forLeftBar = false) {
   $result = '';
   if ( !canView('Events') ) return $result;
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
-  
+  if ($forLeftBar) {
+    $result .= buildMenuItem(
+      $viewItemName = 'filter',
+      $id = 'getFilterHTML',
+      $itemName = 'Filters',
+      $href = '?view=filter',
+      $icon = 'filter_alt',
+      $classNameForTag_A = '',
+      $subMenu = ''
+    );
+  } else {
+    $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
+  }
+
   return $result;
 }
 
 // Returns the html representing the Cycle menu item
-function getCycleHTML($view) {
+function getCycleHTML($view, $forLeftBar = false) {
   $result = '';
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'watch',
+        $id = 'getCycleHTML',
+        $itemName = 'Cycle',
+        $href = '?view=watch&amp;cycle=true',
+        //$icon = 'cyclone',
+        $icon = 'repeat',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Montage menu item
-function getMontageHTML($view) {
+function getMontageHTML($view, $forLeftBar = false) {
   global $user;
   $result = '';
 
   if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
-    $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'montage',
+        $id = 'getMontageHTML',
+        $itemName = 'Montage',
+        $href = '?view=montage',
+        $icon = 'live_tv',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the MontageReview menu item
-function getMontageReviewHTML($view) {
+function getMontageReviewHTML($view, $forLeftBar = false) {
   $result = '';
   
   if ( canView('Events') ) {
@@ -837,71 +1224,204 @@ function getMontageReviewHTML($view) {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
-    $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'montagereview',
+        $id = 'getMontageReviewHTML',
+        $itemName = 'MontageReview',
+        $href = '?view=montagereview' .$live,
+        $icon = 'movie',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Montage menu item
-function getSnapshotsHTML($view) {
+function getSnapshotsHTML($view, $forLeftBar = false) {
   $result = '';
 
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
-    $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'snapshots',
+        $id = 'getSnapshotsHTML',
+        $itemName = 'Snapshots',
+        $href = '?view=snapshots',
+        $icon = 'preview',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
-function getReportsHTML($view) {
+// Returns the html representing the Events menu item
+function getEventsHTML($view, $forLeftBar = false) {
+  global $user;
+  $result = '';
+
+  if (canView('Events')) {
+    $class = $view == 'events' ? ' selected' : '';
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'events',
+        $id = 'getEventsHTML',
+        $itemName = 'Events',
+        $href = '?view=events',
+        $icon = 'event',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getEventsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=events">' .translate('Events'). '</a></li>'.PHP_EOL;
+    }
+  }
+
+  return $result;
+}
+
+function getReportsHTML($view, $forLeftBar = false) {
   $result = '';
 
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
-    $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'reports',
+        $id = 'getReportsHTML',
+        $itemName = 'Reports',
+        $href = '?view=reports',
+        $icon = 'report',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
-function getRprtEvntAuditHTML($view) {
+function getRprtEvntAuditHTML($view, $forLeftBar = false) {
   $result = '';
 
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
-    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'report_event_audit',
+        $id = 'getRprtEvntAuditHTML',
+        $itemName = 'ReportEventAudit',
+        $href = '?view=report_event_audit',
+        $icon = 'shield',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
-function getMapHTML($view) {
+function getMapHTML($view, $forLeftBar = false) {
   $result = '';
 
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
     $class = $view == 'map' ? ' selected' : '';
-    $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.translate('Map').'</a></li>'.PHP_EOL;
+    if ($forLeftBar) {
+      $result .= buildMenuItem(
+        $viewItemName = 'map',
+        $id = 'getMapHTML',
+        $itemName = 'Map',
+        $href = '?view=map',
+        $icon = 'language',
+        $classNameForTag_A = '',
+        $subMenu = ''
+      );
+    } else {
+      $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.translate('Map').'</a></li>'.PHP_EOL;
+    }
   }
 
   return $result;
 }
+
+// Returns the html representing the content of the ZM_WEB_NAVBAR_LINKS content
+
+function getAdditionalLinksHTML($view, $forLeftBar = false) {
+  $result = '';
+
+  if (defined('ZM_WEB_NAVBAR_LINKS')) {
+    if (ZM_WEB_NAVBAR_LINKS) {
+      foreach (explode(',', ZM_WEB_NAVBAR_LINKS) as $link) {
+        if ($forLeftBar) {
+          $doc = new DomDocument();
+          fixAmps($link);
+          $doc->loadHTML('<?xml encoding="UTF-8">' . $link);
+          $url = $doc->getElementsByTagName('a')[0];
+          $value_ = translate('Error in link string: "') . htmlspecialchars($link) . '"';
+          $href_ = '';
+          $icon_ = '';
+          $class_ = '';
+          $queryView = '';
+          if ($url) {
+            $value_ = $url->nodeValue;
+            $href_ = $url->getAttribute( 'href' );
+            $icon_ = $url->getAttribute('data-icon');
+            $class_ = $url->getAttribute('class');
+            $parts = parse_url($href_);
+            parse_str($parts['query'], $query);
+            $queryView = $query['view'];
+          }
+
+          $result .= buildMenuItem(
+            $viewItemName = $queryView,
+            $id = '',
+            $itemName = $value_,
+            $href = $href_,
+            $icon = $icon_,
+            $classNameForTag_A = $class_,
+            $subMenu = ''
+          );
+        } else {
+          $result .= '<li class="nav-item">'.$link.'</li>'.PHP_EOL;
+        }
+      }
+    }
+  }
+
+  return $result;
+}
+
 
 // Returns the html representing the header collapse toggle menu item
 function getHeaderFlipHTML() {
   $result = '';
   
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18" style="display: inline-block;">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
   
   return $result;
 }
 
 // Returns the html representing the logged in user name and avatar
-function getAccountCircleHTML($skin, $user=null) {
+function getAccountCircleHTML($skin, $user=null, $forLeftBar = false) {
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
@@ -925,7 +1445,7 @@ function getStatusBtnHTML($status) {
 
     if (ZM_SYSTEM_SHUTDOWN) {
       $result .= '<li class="shutdown">'.PHP_EOL;
-      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18" style="display: inline-block;">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 
 
@@ -1025,6 +1545,23 @@ function getCSRFinputHTML() {
   return $result;
 }
 
+function fixAmps(&$html) {
+  //https://stackoverflow.com/questions/1685277/warning-domdocumentloadhtml-htmlparseentityref-expecting-in-entity
+  $positionAmp = strpos($html, '&');
+  $positionSemiColumn = strpos($html, ';', $positionAmp+1);
+  $string = substr($html, $positionAmp, $positionSemiColumn-$positionAmp+1);
+  if ($positionAmp !== false) { // If an '&' can be found.
+    if ($positionSemiColumn === false) { // If no ';' can be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // Replace straight away.
+    } else if (preg_match('/&(#[0-9]+|[A-Z|a-z|0-9]+);/', $string) === 0) { // If a standard escape cannot be found.
+      $html = substr_replace($html, '&amp;', $positionAmp, 1); // This mean we need to escape the '&' sign.
+      fixAmps($html, $positionAmp+5); // Recursive call from the new position.
+    } else {
+      fixAmps($html, $positionAmp+1); // Recursive call from the new position.
+    }
+  }
+}
+
 function xhtmlFooter() {
   global $css;
   global $cspNonce;
@@ -1032,15 +1569,21 @@ function xhtmlFooter() {
   global $skin;
   global $basename;
 
-  $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
-  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    getSidebarBottomHTML();
+  }
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php 
+  if ($navbar_type == 'left') {
+    echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
+    echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
+    echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
+  }
   if ( $basename == 'montage' ) {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
@@ -1073,16 +1616,15 @@ function xhtmlFooter() {
     var $j = jQuery.noConflict();
     var DateTime = luxon.DateTime;
 <?php
-  if ( $skinJsPhpFile ) {
-    require_once( $skinJsPhpFile );
-  }
-  if ( $viewJsPhpFile ) {
-    require_once( $viewJsPhpFile );
-  }
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  if ( $skinJsPhpFile ) require_once( $skinJsPhpFile );
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
+  if ( $viewJsPhpFile ) require_once( $viewJsPhpFile );
 ?>
   </script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   if ( $viewJsFile ) {
 ?>
   <script src="<?php echo cache_bust($viewJsFile) ?>"></script>

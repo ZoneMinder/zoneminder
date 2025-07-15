@@ -513,6 +513,23 @@ function initPage() {
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });
 
+  if (navbar_type != 'left') {
+    // If new menu is used, then Datepicker initialization occurs in main "skin.js"
+    // Reinitialization is not allowed because the 'Destroy' method is missing.
+    initDatepickerEventsPage();
+  }
+
+  window.onpageshow = function(evt) {
+    console.log('Refreshing table');
+    table.bootstrapTable('refresh');
+  };
+
+  table.bootstrapTable('resetSearch');
+  // The table is initially given a hidden style, so now that we are done rendering, show it
+  table.show();
+}
+
+function initDatepickerEventsPage() {
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     if (el.hasClass('datetimepicker')) {
@@ -523,15 +540,6 @@ function initPage() {
       el.on('change', filterEvents);
     }
   });
-
-  window.onpageshow = function(evt) {
-    console.log('Refreshing table');
-    table.bootstrapTable('refresh');
-  };
-
-  table.bootstrapTable('resetSearch');
-  // The table is initially given a hidden style, so now that we are done rendering, show it
-  table.show();
 }
 
 function filterEvents(clickedElement) {

@@ -508,7 +508,7 @@ function initPage() {
     });
 
     const thumb_ndx = $j('#eventTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
+      return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });

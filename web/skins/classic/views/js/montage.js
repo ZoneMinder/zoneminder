@@ -687,26 +687,42 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  $j(".grid-monitor").hover(
-      //Displaying "Scale" and other buttons at the top of the monitor image
-      function() {
-        const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j(this).find('#monitorStatus'+id).removeClass('hidden');
+  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+    // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
+    el.addEventListener('mouseout', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
         }
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
-      },
-      function() {
-        const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j(this).find('#monitorStatus'+id).addClass('hidden');
-        }
-        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
-        $j('#ratioControl' + id).stop(true, true).slideUp('fast');
       }
-  );
+      if (!event.relatedTarget) {
+        hideСontrolElementsOnStream(el);
+        return;
+      }
+      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+        }
+        hideСontrolElementsOnStream(el);
+      }
+    });
+
+    el.addEventListener('mouseover', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
+        }
+      }
+      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+        }
+        showСontrolElementsOnStream(el);
+      }
+    });
+  });
 
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
@@ -753,7 +769,12 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
+                  for (let i=0, length = monitors.length; i < length; i++) {
+                    const monitor = monitors[i];
+                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
+                      monitor.start();
+                    }
+                  }
                 });
                 ayswModal.modal('show');
               })
@@ -835,8 +856,21 @@ function initPage() {
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
+function hideСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#ratioControl' + id).stop(true, true).slideUp('fast');
+}
+
+function showСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
+}
+
 function on_scroll() {
-  if (!monitorInitComplete) return;
+  if (!monitorInitComplete || idleTimeoutTriggered) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 

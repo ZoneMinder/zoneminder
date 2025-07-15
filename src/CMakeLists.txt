@@ -20,6 +20,7 @@ set(ZM_BIN_SRC_FILES
   zm_logger.cpp
   zm_event.cpp
   zm_eventstream.cpp
+  zm_event_tag.cpp
   zm_exception.cpp
   zm_fifo.cpp
   zm_fifo_debug.cpp
@@ -36,6 +37,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitor.cpp
   zm_monitor_monitorlink.cpp
   zm_monitor_rtsp2web.cpp
+  zm_monitor_go2rtc.cpp
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
   zm_monitor_onvif.cpp
@@ -71,6 +73,7 @@ set(ZM_BIN_SRC_FILES
   zm_signal.cpp
   zm_stream.cpp
   zm_swscale.cpp
+  zm_tag.cpp
   zm_time.cpp
   zm_uri.cpp
   zm_user.cpp

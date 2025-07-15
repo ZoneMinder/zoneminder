@@ -76,7 +76,7 @@ if (isset($_REQUEST['sort'])) {
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
-if (isset($_REQUEST['offset'])) {
+if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
   if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
     ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
   } else {
@@ -87,7 +87,7 @@ if (isset($_REQUEST['offset'])) {
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
-if (isset($_REQUEST['limit'])) {
+if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
   if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
   } else {

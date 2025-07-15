@@ -77,12 +77,18 @@ $presetLayoutsNames = array( //Order matters!
   '6 Wide',
   '8 Wide',
   '12 Wide',
-  '16 Wide'
+  '16 Wide',
+  '24 Wide',
+  '48 Wide'
 );
 
 /* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
+  /* IMPORTANT! 
+  * Before GridStack integration, instead of the layer name "Auto", we used "Freeform" in the DB.
+  * Before deleting this check, you need to replace "Freeform" with "Auto" in the DB of already installed ZM !!!
+  */
   if ($l->Name() == 'Freeform') $l->Name('Auto');
   $layoutsByName[$l->Name()] = $l;
 }
@@ -269,7 +275,7 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get">
+      <form method="get" id="filters_form">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>
@@ -412,4 +418,6 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
-<?php xhtmlFooter() ?>
+<?php
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
+  xhtmlFooter() ?>

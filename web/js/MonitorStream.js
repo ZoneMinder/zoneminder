@@ -255,6 +255,8 @@ function MonitorStream(monitorData) {
 
     console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));
 
+    $j('#volumeControls').hide();
+
     if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
@@ -280,6 +282,8 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
+
+        $j('#volumeControls').show();
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");

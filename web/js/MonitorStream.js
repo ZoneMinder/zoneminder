@@ -254,6 +254,8 @@ function MonitorStream(monitorData) {
   this.start = function(streamChannel = 'default') {
     this.streamListenerBind = streamListener.bind(null, this);
 
+    $j('#volumeControls').hide();
+
     if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
@@ -279,6 +281,8 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
+
+        $j('#volumeControls').show();
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
@@ -409,13 +413,21 @@ function MonitorStream(monitorData) {
 
   this.stop = function() {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    if ( 0 ) {
+    if ( 1 ) {
       const stream = this.getElement();
       if (!stream) return;
-      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
-      if (stream.src != src) {
-        stream.src = '';
-        stream.src = src;
+      if (stream.src) {
+        let src = stream.src;
+        if (-1 === src.indexOf('mode=')) {
+          src += '&mode=single';
+        } else {
+          src = src.replace(/mode=jpeg/i, 'mode=single');
+        }
+
+        if (stream.src != src) {
+          stream.src = '';
+          stream.src = src;
+        }
       }
     }
     this.streamCommand(CMD_STOP);
@@ -486,10 +498,8 @@ function MonitorStream(monitorData) {
   };
 
   this.kill = function() {
-    if (janus) {
-      if (streaming[this.id]) {
-        streaming[this.id].detach();
-      }
+    if (janus && streaming[this.id]) {
+      streaming[this.id].detach();
     }
     const stream = this.getElement();
     if (!stream) {
@@ -502,11 +512,7 @@ function MonitorStream(monitorData) {
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
     if (stream.src) {
-      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
-      if (stream.src != src) {
-        stream.src = '';
-        stream.src = src;
-      }
+      stream.src = '';
     }
 
     // Because we stopped the zms process above, any remaining ajaxes will fail.  But aborting them will also cause them to fail, so why bother?

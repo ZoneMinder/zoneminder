@@ -1,6 +1,5 @@
 <?php 
   global $monitor_index;
-  global $nextMid;
   global $options;
   global $monitors;
   global $monitorsExtraData;
@@ -36,7 +35,6 @@ var monitorStreamReplayBuffer = parseInt('<?php echo $monitor->StreamReplayBuffe
 var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var monIdx = '<?php echo $monitor_index; ?>';
-var nextMid = '<?php echo isset($nextMid)?$nextMid:'' ?>';
 var mode = '<?php echo $options['mode'] ?>';
 
 var monitorData = new Array();

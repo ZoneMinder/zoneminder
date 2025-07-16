@@ -51,6 +51,7 @@
 
 .monitor .imageFeed img,
 .monitor .imageFeed video,
+.monitor .imageFeed video-stream,
 .monitor .imageFeed svg {
   border: none;
   display: inline-block;

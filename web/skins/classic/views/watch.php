@@ -304,7 +304,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="playerControl">
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
-              $players = ['zms'=>'ZMS MJPEG'];
+              $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
               if ($monitor->Go2RTCEnabled()) $players['go2rtc'] = 'Go2RTC';
               if ($monitor->RTSP2WebEnabled()) {
                 $players = array_merge($players,[
@@ -450,7 +450,7 @@ $muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
 ZM\Debug("Muted $muted");
 
 ?>
-    <span class="volume">
+    <span id="volumeControls" class="volume">
       <button id="mute" class="muteBtn" <?php $muted ? 'class="avail"' : '' ?>>
         <i class="material-icons md-18">volume_<?php echo $muted ? 'off' : 'up' ?></i>
       </button>

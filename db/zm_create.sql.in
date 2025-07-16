@@ -203,6 +203,7 @@ CREATE TABLE `Events` (
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
+  `MaxScoreFrameId` int(10) unsigned default NULL,
   `Archived` tinyint(3) unsigned NOT NULL default '0',
   `Videoed` tinyint(3) unsigned NOT NULL default '0',
   `Uploaded` tinyint(3) unsigned NOT NULL default '0',

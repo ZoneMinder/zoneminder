@@ -66,6 +66,7 @@ Event::Event(
   alarm_frame_written(false),
   tot_score(0),
   max_score(-1),
+  max_score_frame_id(0),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),
@@ -327,12 +328,12 @@ Event::~Event() {
   std::string notes;
   createNotes(notes);
   std::string sql = stringtf(
-      "UPDATE Events SET Notes='%s', Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Notes='%s', Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
       zmDbEscapeString(notes).c_str(),
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
-      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
       video_file.c_str(), // defaults to ""
       video_size,
       id);
@@ -340,12 +341,12 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET Notes='%s', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        "UPDATE Events SET Notes='%s', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
         zmDbEscapeString(notes).c_str(),
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
-        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
         video_file.c_str(), // defaults to ""
         video_size,
         id);
@@ -784,6 +785,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
   if (score > max_score) {
     max_score = score;
+    max_score_frame_id = frames;
   }
 
   if (db_frame) {
@@ -813,7 +815,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       std::string notes;
       createNotes(notes);
       std::string sql = stringtf(
-                          "UPDATE Events SET Notes='%s', Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          "UPDATE Events SET Notes='%s', Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d WHERE Id = %" PRIu64,
                           zmDbEscapeString(notes).c_str(),
                           FPSeconds(delta_time).count(),
                           frames,
@@ -821,6 +823,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
                           tot_score,
                           static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
                           max_score,
+                          max_score_frame_id,
                           id);
       dbQueue.push(std::move(sql));
     } else {

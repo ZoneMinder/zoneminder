@@ -94,6 +94,7 @@ class Event {
   bool alarm_frame_written;
   int  tot_score;
   int  max_score;
+  int max_score_frame_id;
   std::string path;
   std::string snapshot_file;
   bool snapshot_file_written;

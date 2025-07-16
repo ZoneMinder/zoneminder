@@ -778,7 +778,7 @@ function streamPrepareStart(monitor=null) {
       // Update table links each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
         const thumb_ndx = $j('#eventList tr th').filter(function() {
-          return $j(this).text().trim() == 'Thumbnail';
+          return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
         }).index();
         table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });

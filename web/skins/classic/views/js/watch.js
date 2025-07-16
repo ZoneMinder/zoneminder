@@ -468,7 +468,8 @@ function fetchImage(streamImage) {
 function handleClick(event) {
   const targetId = event.target.id;
   if (targetId.indexOf("nav-link") >= 0) { //Navigation through monitors
-    cycleStop(event.target);
+    cycleStop();
+    monIdx = event.target.getAttribute('data-monIdx');
     const oldId = stringToNumber(document.querySelector('[id ^= "liveStream"]').id);
     const newId = stringToNumber(targetId);
     streamReStart(oldId, newId);
@@ -887,8 +888,8 @@ function streamReStart(oldId, newId) {
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
-  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
-  document.querySelector('title').textContent = newMonitorName;
+  //const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
+  document.querySelector('title').textContent = currentMonitor.name;
   const url = new URL(document.location.href);
   url.searchParams.set('mid', monitorId);
   history.pushState(null, "", url);
@@ -896,6 +897,8 @@ function streamReStart(oldId, newId) {
   zmPanZoom.action('disable', {id: oldId});
   if (monitorStream) {
     monitorStream.kill();
+  } else {
+    console.log("No monitorStream?");
   }
 
   const el = document.querySelector('.imageFeed');
@@ -1114,7 +1117,7 @@ function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
 }
 
-var intervalId;
+var cycleIntervalId;
 var secondsToCycle = 0;
 
 function nextCycleView() {
@@ -1126,7 +1129,7 @@ function nextCycleView() {
 }
 
 function cyclePause() {
-  clearInterval(intervalId);
+  clearInterval(cycleIntervalId);
   cycle = false;
   $j('#cyclePauseBtn').hide();
   $j('#cyclePlayBtn').show();
@@ -1134,50 +1137,43 @@ function cyclePause() {
 
 function cycleStart() {
   if (secondsToCycle == 0) secondsToCycle = $j('#cyclePeriod').val();
-  intervalId = setInterval(nextCycleView, 1000);
+  cycleIntervalId = setInterval(nextCycleView, 1000);
   cycle = true;
   $j('#cyclePauseBtn').show();
   $j('#cyclePlayBtn').hide();
 }
 
-function cycleStop(target) {
+function cycleStop() {
   secondsToCycle = 0;
-  monIdx = target.getAttribute('data-monIdx');
   $j('#secondsToCycle').text('');
   cyclePause();
 }
 
 // FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
-  monIdx ++;
-  if (monIdx >= monitorData.length) {
-    monIdx = 0;
-  }
+  clearInterval(cycleIntervalId);
+  const oldId = monitorData[monIdx].id;
+  monIdx = (monIdx >= monitorData.length) ? 0 : parseInt(monIdx)+1;
   if (!monitorData[monIdx]) {
     console.log('No monitorData for ' + monIdx);
   }
-  clearInterval(intervalId);
+  const newId = monitorData[monIdx].id;
 
   // +++ Start next monitor
-  const oldId = monitorData[(monIdx == 0) ? monitorData.length-1 : monIdx-1].id;
-  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
 }
 
 function cyclePrev() {
-  monIdx --;
-  if (monIdx < 0) {
-    monIdx = monitorData.length - 1;
-  }
+  clearInterval(cycleIntervalId);
+  const oldId = monitorData[monIdx].id;
+  monIdx = (monIdx <= 0) ? monitorData.length - 1 : monIdx-1;
   if (!monitorData[monIdx]) {
     console.log('No monitorData for ' + monIdx);
   }
-  clearInterval(intervalId);
+  const newId = monitorData[monIdx].id;
 
   // +++ Start previous monitor
-  const oldId = monitorData[(monIdx == monitorData.length - 1)? 0 : monIdx+1].id;
-  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
 }

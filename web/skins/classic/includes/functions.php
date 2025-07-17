@@ -965,7 +965,7 @@ function getOptionsHTML($forLeftBar = false) {
 
   // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
   $zmMenu::buildSubMenuOptions($categoryDisplayOrder = [
-    'skins',
+    'display',
     'system',
     'auth',
     'config',
@@ -1642,7 +1642,7 @@ class ZM_Menu {
     foreach ($categoryDisplayOrder as $cat) {
       $key = array_search(strtolower($cat), array_map('strtolower', $categoriesOptionsInDB));
       $added = false;
-      if ($cat == 'skins' && (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))) {
+      if ($cat == 'display' && (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))) {
         $added = true;
       } else if ($cat == 'dnsmasq' && (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF)) {
         $added = true;
@@ -1650,7 +1650,7 @@ class ZM_Menu {
         $added = true;
       }
       if ($added) {
-        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'skins') ? 'Display' : (($cat == 'version') ? 'Versions' : $cat)));
+        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
         unset($categoriesOptionsInDB[$key]);
       }
     }

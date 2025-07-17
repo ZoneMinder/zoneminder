@@ -452,6 +452,7 @@ our @options = (
     help        => q`This value points to the location of the Go2RTC API
     install, including username and password. If left blank, this
     will default to 127.0.0.1:1984
+    Take in mind that you must add /api to url so it works.
     `,
     type        => $types{string},
     category    => 'system',

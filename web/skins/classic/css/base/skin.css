@@ -90,6 +90,10 @@ th {
 }
 */
 
+table thead {
+  z-index: 10;
+}
+
 .thead-highlight {
   background-color:#dfe4ea;
 }
@@ -1210,6 +1214,140 @@ button.btn.btn-view-watch:hover {
     min-width: 200px;
   }
 }
+
+/* +++ Style for <input> +++ */
+@supports (-webkit-appearance: none) or (-moz-appearance: none) {
+  input[type='checkbox'], input[type='radio'] {
+    --active: #3498db;
+    --active-inner: #eee;
+    --focus: 2px rgba(39, 94, 254, 0.3);
+    --border: #3498db;
+    --border-hover: #3498db;
+    --background: #eee;
+    --disabled: #F6F8FF;
+    --disabled-inner: #E1E6F9;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    /*height: 21px;*/
+    height: 18px;
+    outline: none;
+    display: inline-block;
+    vertical-align: top;
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+    border: 1px solid var(--bc, var(--border));
+    background: var(--b, var(--background));
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+  }
+  input[type='checkbox']:after, input[type='radio']:after {
+    content: '';
+    display: block;
+    left: 0;
+    top: 0;
+    position: absolute;
+    transition: transform var(--d-t, 0.3s) var(--d-t-e, ease), opacity var(--d-o, 0.2s);
+  }
+  input[type='checkbox']:checked, input[type='radio']:checked {
+    --b: var(--active);
+    --bc: var(--active);
+    --d-o: 0.3s;
+    --d-t: 0.6s;
+    --d-t-e: cubic-bezier(0.2, 0.85, 0.32, 1.2);
+  }
+  input[type='checkbox']:disabled, input[type='radio']:disabled {
+    --b: var(--disabled);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+  input[type='checkbox']:disabled:checked, input[type='radio']:disabled:checked {
+    --b: var(--disabled-inner);
+    --bc: var(--border);
+  }
+  input[type='checkbox']:disabled + label, input[type='radio']:disabled + label {
+    cursor: not-allowed;
+  }
+  input[type='checkbox']:hover:not(:checked):not(:disabled), input[type='radio']:hover:not(:checked):not(:disabled) {
+    --bc: var(--border-hover);
+  }
+  input[type='checkbox']:focus, input[type='radio']:focus {
+    box-shadow: 0 0 0 var(--focus);
+  }
+  input[type='checkbox']:not(.input-switch), input[type='radio']:not(.input-switch) {
+    /*width: 21px;*/
+    width: 18px;
+  }
+  input[type='checkbox']:not(.input-switch):after, input[type='radio']:not(.input-switch):after {
+    opacity: var(--o, 0);
+  }
+  input[type='checkbox']:not(.input-switch):checked, input[type='radio']:not(.input-switch):checked {
+    --o: 1;
+  }
+  input[type='checkbox'] + label, input[type='radio'] + label {
+    font-size: 14px;
+    line-height: 21px;
+    display: inline-block;
+    vertical-align: top;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  input[type='checkbox']:not(.input-switch) {
+    border-radius: .2rem;
+  }
+  input[type='checkbox']:not(.input-switch):after {
+    width: 5px;
+    height: 9px;
+    border: 2px solid var(--active-inner);
+    border-top: 0;
+    border-left: 0;
+    /*left: 7px;*/
+    left: 6px;
+    /*top: 4px;*/
+    top: 2px;
+    transform: rotate(var(--r, 20deg));
+  }
+  input[type='checkbox']:not(.input-switch):checked {
+    --r: 43deg;
+  }
+  input[type='checkbox'].input-switch {
+    width: 38px;
+    border-radius: 11px;
+  }
+  input[type='checkbox'].input-switch:after {
+    left: 2px;
+    top: 2px;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    background: var(--ab, var(--border));
+    transform: translateX(var(--x, 0));
+  }
+  input[type='checkbox'].input-switch:checked {
+    --ab: var(--active-inner);
+    --x: 17px;
+  }
+  input[type='checkbox'].input-switch:disabled:not(:checked):after {
+    opacity: 0.6;
+  }
+  input[type='radio'] {
+    border-radius: 50%;
+  }
+  input[type='radio']:after {
+    position: static;
+    /*width: 19px;*/
+    width: 16px;
+    /*height: 19px;*/
+    height: 16px;
+    border-radius: 50%;
+    background: var(--active-inner);
+    opacity: 0;
+    transform: scale(var(--s, 0.7));
+  }
+  input[type='radio']:checked {
+    --s: 0.5;
+  }
+}
+/* --- Style for <input> --- */
 
 /* +++ This block should always be located at the end! */
 .hidden {

@@ -1330,6 +1330,7 @@ button.btn.btn-view-watch:hover {
     border-radius: 50%;
   }
   input[type='radio']:after {
+    position: static;
     /*width: 19px;*/
     width: 16px;
     /*height: 19px;*/

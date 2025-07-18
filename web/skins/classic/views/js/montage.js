@@ -88,6 +88,8 @@ var alted = null;
 var lastSpeed; //Странно, но этого вообще не было и похоже это не было реализовано
 var streamCmdTimer = null;
 
+var monitorsPlaced = false; //<audio>
+
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }
@@ -498,11 +500,15 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
+  const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
+    if (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) {
     objStream.style['height'] = height + 'px';
+    } else {
+      objStream.style['height'] = 'auto';
+    }
     objStream.parentNode.style['height'] = height + 'px';
   }
 }
@@ -942,6 +948,7 @@ console.log("*********startAllEvents in RECORDING mode");
         //const img = document.getElementById('liveStream'+item);
         //const img = (document.getElementById('liveStream'+item)) ? document.getElementById('liveStream'+item) : document.getElementById('evtStream'+item);
         const img = getStream(item);
+  //      const img = getFeed(item);
         if (!img) { //IgorA100 ВРЕМЕННО для просмотре в записи
           changedMonitors.splice(object.length - 1 - index, 1);
           return;
@@ -988,6 +995,19 @@ console.log("<setInterval>changedMonitors.item", item, "<img.offsetHeight=>", im
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
+function hideСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#ratioControl' + id).stop(true, true).slideUp('fast');
+}
+
+function showСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).css({ top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px' });
+}
+
 function initPageLive() {
   monitors_ul = $j('#monitors');
 
@@ -1012,27 +1032,87 @@ function initPageLive() {
   //if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
-
+/*
   $j(".grid-monitor").hover(
-      //Displaying "Scale" and other buttons at the top of the monitor image
+      //Display monitor status information inside at the bottom
       function() {
         const id = stringToNumber(this.id);
         if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).removeClass('hidden');
         }
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).css({ top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px' });
       },
       function() {
         const id = stringToNumber(this.id);
         if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).addClass('hidden');
         }
-        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
-        $j('#ratioControl' + id).stop(true, true).slideUp('fast');
       }
   );
+*/
+/*
+  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+    el.addEventListener('mouseout', function addListenerMouseover(event) {
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('.monitorStream') && event.target.closest('.monitorStream')) {
+            return;
+        }
+      }
+      if (!event.relatedTarget.closest('.monitorStream') && (!event.relatedTarget.closest('.ratioControl'))) {
+        hideСontrolElementsOnStream(el);
+      }
+    });
+
+    el.addEventListener('mouseover', function addListenerMouseover(event) {
+      //event.target – это элемент, на который курсор перешёл.
+      //event.relatedTarget – это элемент, с которого курсор ушёл (relatedTarget → target).
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('.monitorStream') && event.target.closest('.monitorStream')) {
+          return;
+        }
+      }
+      if (event.target.closest('.monitorStream') || event.target.closest('.ratioControl')) showСontrolElementsOnStream(el);
+    });
+  });
+*/
+
+  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+    el.addEventListener('mouseout', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+            return;
+        }
+      }
+      if (!event.relatedTarget) {
+        hideСontrolElementsOnStream(el);
+        return;
+      }
+      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+        }
+        hideСontrolElementsOnStream(el);
+      }
+    });
+
+    el.addEventListener('mouseover', function addListenerMouseover(event) {
+      //event.target – это элемент, на который курсор перешёл.
+      //event.relatedTarget – это элемент, с которого курсор ушёл (relatedTarget → target).
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
+        }
+      }
+      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+        }
+        showСontrolElementsOnStream(el);
+      }
+    });
+  });
+
 
   //const arrRatioMonitors = [];
   buildMonitors(arrRatioMonitors);
@@ -1059,16 +1139,22 @@ function initPageLive() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
+        // +++ ОСТАВИМ КАК В МАСТЕР ВЕТКЕ на 20-05-25
         for (let i=0, length = monitors.length; i < length; i++) {
-          const monitor = monitors[i];
-          const objStream = getStream(monitor.id);
-          if (!objStream) continue;
-          if (objStream.src) { //НЕ УВЕРЕН, ЧТО ЭТО НУЖНО... 27-02-25 в мастер ветке этого не было... Толи это убрали, толи я зачем-то добавлял....... РАЗОБРАТЬСЯ !!!
-            monitor.kill();
-          } else {
-            console.log("It is not possible to pause a monitor with ID='"+monitor.id+"'"+" because it does not have the SRC attribute.");
-          }
+          monitors[i].kill();
         }
+
+        //for (let i=0, length = monitors.length; i < length; i++) {
+        //  const monitor = monitors[i];
+        //  const objStream = getStream(monitor.id);
+        //  if (!objStream) continue;
+        //  if (objStream.src) { //Вероятно из за этого нормально не останавливается RTSP поток при долгом бездействии и появлении сообщения 'Are you still watching?' НЕ УВЕРЕН, ЧТО ЭТО НУЖНО... 27-02-25 в мастер ветке этого не было... Толи это убрали, толи я зачем-то добавлял....... РАЗОБРАТЬСЯ !!!
+        //    monitor.kill();
+        //  } else {
+        //    console.log("It is not possible to pause a monitor with ID='"+monitor.id+"'"+" because it does not have the SRC attribute.");
+        //  }
+        //}
+        // --- ОСТАВИМ КАК В МАСТЕР ВЕТКЕ на 20-05-25
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
@@ -1076,7 +1162,12 @@ function initPageLive() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].start();
+                  for (let i=0, length = monitors.length; i < length; i++) {
+                    const monitor = monitors[i];
+                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started && monitorDisplayedOnPage(monitor.id)) {
+                      monitor.start();
+                    }
+                  }
                 });
                 ayswModal.modal('show');
               })
@@ -1145,6 +1236,36 @@ function initPageReview() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
+  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+    el.addEventListener('mouseout', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+            return;
+        }
+      }
+      if (!event.relatedTarget) {
+        hideСontrolElementsOnStream(el);
+        return;
+      }
+      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
+        hideСontrolElementsOnStream(el);
+      }
+    });
+
+    el.addEventListener('mouseover', function addListenerMouseover(event) {
+      //event.target – это элемент, на который курсор перешёл.
+      //event.relatedTarget – это элемент, с которого курсор ушёл (relatedTarget → target).
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
+        }
+      }
+      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) showСontrolElementsOnStream(el);
+    });
+  });
+/*
   $j(".grid-monitor").hover(
       //Displaying "Scale" and other buttons at the top of the monitor image
       function() {
@@ -1164,7 +1285,7 @@ function initPageReview() {
         $j('#ratioControl' + id).stop(true, true).slideUp('fast');
       }
   );
-
+*/
   //const arrRatioMonitors = [];
   buildMonitors(arrRatioMonitors);
   calculateAverageMonitorsRatio(arrRatioMonitors);
@@ -1347,7 +1468,7 @@ function on_scroll() {
   //For now, use only for live viewing.
 console.log("!!!on_scroll_checkEndMonitorsPlaced", checkEndMonitorsPlaced());
   if (montageMode == 'inRecording') return;
-  if (!monitorInitComplete) return;
+  if (!monitorInitComplete || idleTimeoutTriggered) return;
   //if (!checkEndMonitorsPlaced()) return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
@@ -1549,6 +1670,12 @@ function getStream(id) {
   if (!id) return null;
   const liveStream = document.getElementById('liveStream'+id);
   return (liveStream) ? liveStream : document.getElementById('evtStream'+id);
+}
+
+function getFeed(id) {
+  if (!id) return null;
+  const imageFeed = document.getElementById('imageFeed'+id);
+  return (imageFeed) ? imageFeed : document.getElementById('evtStream'+id);
 }
 
 function monitorsEventSetScale(id=null) {
@@ -1945,6 +2072,7 @@ function waitingMonitorsPlaced(action = null) {
         // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
       }
       clearInterval(intervalWait);
+      monitorsPlaced = true; //<audio>
 console.log(`${dateTimeToISOLocal(new Date())} ВСЕ МОНИТОРЫ РАСПОЛОЖИЛИСЬ!!!`);
   //$j('#monitors').removeClass('hidden-shift');
     }
@@ -3726,46 +3854,3 @@ window.onbeforeunload = function(e) {
   return undefined;
 };
 */
-/**
-define('MSG_CMD', 1);
-define('MSG_DATA_WATCH', 2);
-define('MSG_DATA_EVENT', 3);
-
-define('CMD_NONE', 0);
-define('CMD_PAUSE', 1);
-define('CMD_PLAY', 2);
-define('CMD_STOP', 3);
-define('CMD_FASTFWD', 4);
-define('CMD_SLOWFWD', 5);
-define('CMD_SLOWREV', 6);
-define('CMD_FASTREV', 7);
-define('CMD_ZOOMIN', 8);
-define('CMD_ZOOMOUT', 9);
-define('CMD_PAN', 10);
-define('CMD_SCALE', 11);
-define('CMD_PREV', 12);
-define('CMD_NEXT', 13);
-define('CMD_SEEK', 14 );
-define('CMD_VARPLAY', 15);
-define('CMD_GET_IMAGE', 16);
-define('CMD_QUIT', 17);
-define('CMD_MAXFPS', 18);
-define('CMD_ANALYZE_ON', 19);
-define('CMD_ANALYZE_OFF', 20);
-define('CMD_ZOOMSTOP', 21);
-define('CMD_QUERY', 99);
-
-
-initPage()
-  setInRecordingMode() || setLiveMode()
-    montageMode = 'inRecording' || 'Live';
-    getGridMonitors()  формируем сетку.
-      initPageLive() || initPageReview() - все основное
-        buildRatioSelect(...)
-        buildMonitors(arrRatioMonitors);  - формируем массив "monitors"
-        selectLayout()
-        changeMonitorStatusPosition()
-        zmPanZoom.init()
-        // Registering an observer
-        initTimeline()
-**/

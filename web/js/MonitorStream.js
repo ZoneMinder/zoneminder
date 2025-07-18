@@ -277,6 +277,9 @@ function MonitorStream(monitorData) {
         stream_container.appendChild(stream);
         this.webrtc = stream; // track separately do to api differences between video tag and video-stream
         this.set_stream_volume(this.muted ? 0.0 : this.volume/100);
+        if (-1 != this.player.indexOf('_')) {
+          stream.mode = this.player.substring(this.player.indexOf('_')+1);
+        }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);

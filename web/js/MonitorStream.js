@@ -513,12 +513,12 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = null;
     stream.onload = null;
-    this.stop();
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
     if (stream.src) {
       stream.src = '';
     }
+    this.stop();
   };
 
   this.restart = function(channelStream = "default", delay = 200) {

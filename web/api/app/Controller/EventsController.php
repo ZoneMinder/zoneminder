@@ -81,10 +81,9 @@ class EventsController extends AppController {
       // ICON: 2023-11-16: MontageReview now uses API and unless we specifiy a limit in params, there should be no limit
       // TODO: Implement request based limits.
 
-      # 'limit' => '100',
-      'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
+
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
         array(
@@ -99,22 +98,19 @@ class EventsController extends AppController {
     }
     $settings['conditions'] = array($conditions, $mon_options);
 
-    // How many events to return 
-    $this->loadModel('Config');
-    $limit = $this->Config->find('list', array(
-      'conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'),
-      'fields' => array('Name', 'Value')
-    ));
     $this->Paginator->settings = $settings;
-    $events = $this->Paginator->paginate('Event');
-
-    // For each event, get the frameID which has the largest score
-    // also add FS path
+    if ($this->request->query('limit') or $this->request->query('page')) {
+      $events = $this->Paginator->paginate('Event');
+    } else {
+      $events = $this->Event->find('all', $settings);
+    }
+    // For each event, get the frameID which has the largest score also add FS path
 
     foreach ( $events as $key => $value ) {
       $EventObj = new ZM\Event($value['Event']);
-      $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
-      $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
+      if ($EventObj['MaxScoreFrameId'] == NULL) {
+        $EventObj['MaxScoreFrameId'] = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+      }
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
     }
 

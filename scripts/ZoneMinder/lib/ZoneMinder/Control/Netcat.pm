@@ -221,7 +221,7 @@ sub digestBase64 {
 sub authentificationHeader {
   my ($username, $password) = @_;
   return '' if !$username;
-  my $nonce = chr(int(rand(254))) for (0 .. 20);
+  my @n; my $i = 0; while ($i < 20) { $n[$i] = chr(int(rand(254))); $i = $i + 1; } my $nonce = join("",@n);
   my $nonceBase64 = encode_base64($nonce, '');
   my $currentDate = DateTime->now()->iso8601().'Z';
 

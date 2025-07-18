@@ -456,7 +456,6 @@ if (canEdit('Monitors')) {
     <!-- BEGIN ITEM LIST -->
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
-        <input autocomplete="false" name="hidden" type="text" style="display:none;">
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
@@ -603,7 +602,7 @@ switch ($name) {
             </li>
             <li>
               <label><?php echo translate('Password') ?></label>
-              <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>" autocomplete="new-password"/>
+              <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>" autocomplete="off"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
             </li>
             <li>
@@ -716,11 +715,11 @@ include('_monitor_source_nvsocket.php');
         </li>
         <li>
           <label><?php echo translate('Username') ?></label>
-          <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
+          <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" autocomplete="off"/>
         </li>
         <li>
           <label><?php echo translate('Password') ?></label>
-            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
+            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="off"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
         </li>
 <?php
@@ -731,7 +730,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li>
             <label><?php echo translate('Password') ?></label>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="off"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
           <li>
@@ -796,7 +795,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li>
             <label><?php echo translate('Password') ?></label>
-            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
+            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="off"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
           <li>
@@ -1170,6 +1169,18 @@ $videowriter_encoders = array(
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>
             </li>
+            <li class="EncoderHWAccelName">
+              <label>
+                <?php echo translate('EncoderHWAccelName'); echo makeHelpLink('OPTIONS_ENCODERHWACCELNAME') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelName]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelName()) ?>"/>
+            <li>
+            <li class="EncoderHWAccelDevice">
+              <label><?php echo translate('EncoderHWAccelDevice') ?>
+                  <?php echo makeHelpLink('OPTIONS_ENCODERHWACCELDEVICE') ?>
+              </label>
+              <input type="text" name="newMonitor[EncoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->EncoderHWAccelDevice()) ?>"/>
+            <li>
             <li class="OutputContainer">
               <label><?php echo translate('OutputContainer') ?></label>
 <?php
@@ -1221,6 +1232,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
             </li>
+            <li id="FunctionGo2RTCEnabled">
+              <label><?php echo translate('Go2RTC Live Stream') ?></label>
+              <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
+  }
+?>
+            </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1229,8 +1249,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_RTSP2WEB_ENABLED']['Help'].'</div>';
   }
 ?>
+            </li>
             <li id="RTSP2WebType">
-              <label><?php echo translate('RTSP2Web Type') ?> <?php echo $monitor->RTSP2WebType() ?> </label>
+              <label><?php echo translate('RTSP2Web Type') ?></label>
               <?php echo htmlSelect('newMonitor[RTSP2WebType]', $RTSP2WebTypes, $monitor->RTSP2WebType()); ?>
             </li>
             <li id="RTSP2WebStream">

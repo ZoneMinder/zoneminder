@@ -319,5 +319,6 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
     </div>
   </div>
 </div>
-<script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
-<?php xhtmlFooter() ?>
+<?php
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
+  xhtmlFooter() ?>

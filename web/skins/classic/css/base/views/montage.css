@@ -24,6 +24,7 @@ h4.alert-heading {
 
 #monitors .grid-stack-item .imageFeed img ,
 #monitors .grid-stack-item .imageFeed video ,
+#monitors .grid-stack-item .imageFeed video-stream ,
 #monitors .grid-stack-item .imageFeed svg {
   border: none;
   display: inline-block;

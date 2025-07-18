@@ -1113,7 +1113,6 @@ function initPageLive() {
     });
   });
 
-
   //const arrRatioMonitors = [];
   buildMonitors(arrRatioMonitors);
   calculateAverageMonitorsRatio(arrRatioMonitors);
@@ -1462,6 +1461,19 @@ function panZoomEventPanzoomzoom(event) {
   //  parent.style.height = h+'px';
   //  console.log('panzoomzoom', event.detail) // => { x: 0, y: 0, scale: 1 }
   */
+}
+
+function hideСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#ratioControl' + id).stop(true, true).slideUp('fast');
+}
+
+function showСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
 }
 
 function on_scroll() {

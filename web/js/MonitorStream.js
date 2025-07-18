@@ -519,13 +519,6 @@ function MonitorStream(monitorData) {
     if (stream.src) {
       stream.src = '';
     }
-
-    // Because we stopped the zms process above, any remaining ajaxes will fail.  But aborting them will also cause them to fail, so why bother?
-    if (0 && this.ajaxQueue) {
-      console.log("Aborting in progress ajax for kill");
-      // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
-      this.ajaxQueue.abort();
-    }
   };
 
   this.restart = function(channelStream = "default", delay = 200) {

@@ -1153,9 +1153,9 @@ function cycleStop() {
 function cycleNext() {
   clearInterval(cycleIntervalId);
   const oldId = monitorData[monIdx].id;
-  monIdx = (monIdx >= monitorData.length) ? 0 : parseInt(monIdx)+1;
+  monIdx = (monIdx++) % monitorData.length;
   if (!monitorData[monIdx]) {
-    console.log('No monitorData for ' + monIdx);
+    console.log('No monitorData for ' + monIdx, monitorData.length);
   }
   const newId = monitorData[monIdx].id;
 

@@ -86,7 +86,7 @@ function MonitorStream(monitorData) {
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
 
-    } else if (-1 != p.indexOf('rtsp2web')){
+    } else if (-1 != p.indexOf('rtsp2web')) {
       if (-1 != p.indexOf('_hls')) {
         this.RTSP2WebType = 'HLS';
       } else if (-1 != p.indexOf('_mse')) {
@@ -94,7 +94,7 @@ function MonitorStream(monitorData) {
       } else if (-1 != p.indexOf('_webrtc')) {
         this.RTSP2WebType = 'WebRTC';
       }
-    } else if (-1 != p.indexOf('janus')){
+    } else if (-1 != p.indexOf('janus')) {
 
     }
     return this.player = p;
@@ -484,12 +484,13 @@ function MonitorStream(monitorData) {
         this.mseSourceBuffer.addEventListener('updateend', onBufferRemoved, this);
         try {
           /*
-          Very, very rarely, on the MOTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
-          Possibly due to high CPU load, the browser does not have time to process.
+          Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
+          Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
           this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
+          reject();
         }
       }
 
@@ -505,10 +506,6 @@ function MonitorStream(monitorData) {
         this.removeEventListener('updateend', onBufferRemoved);
         resolve();
       }
-      setTimeout(function() {
-        // We can't wait forever, which means everything is bad, for example, the "src" attribute was removed from the object
-        reject();
-      }, 500);
     })
         .then(() => {
           if (this.mseSourceBuffer) {

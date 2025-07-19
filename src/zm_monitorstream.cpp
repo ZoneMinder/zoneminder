@@ -414,7 +414,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
 
-    int img_buffer_size = 0;
+    size_t img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
     switch (type) {
@@ -1036,7 +1036,7 @@ void MonitorStream::runStream() {
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {
-  int img_buffer_size = 0;
+  size_t img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
@@ -1099,7 +1099,7 @@ void MonitorStream::SingleImage(int scale) {
   }
   if (snap_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext)) {
     fprintf(stdout,
-        "Content-Length: %d\r\n"
+        "Content-Length: %zu\r\n"
         "Content-Type: image/jpeg\r\n\r\n",
         img_buffer_size);
     fwrite(img_buffer, img_buffer_size, 1, stdout);

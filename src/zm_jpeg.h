@@ -42,8 +42,8 @@ extern "C"
   void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level );
 
 // Prototypes for memory compress/decompression object */
-  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size );
-  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size );
+  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, size_t inbuffer_size );
+  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, size_t *outbuffer_size );
 
   void zm_use_std_huff_tables( j_decompress_ptr cinfo );
 }

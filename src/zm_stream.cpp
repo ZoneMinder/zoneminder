@@ -376,7 +376,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
-    int n_bytes = 0;
+    size_t n_bytes = 0;
 
     AVPixelFormat pixformat = image.AVPixFormat();
     if ((!mJpegCodecContext) ||

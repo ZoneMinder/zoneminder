@@ -901,7 +901,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, send_image->Width(), send_image->Height(), 32));
-      int img_buffer_size = 0;
+      size_t img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
       if (type != STREAM_SINGLE)

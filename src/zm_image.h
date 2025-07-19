@@ -255,8 +255,8 @@ SwsContext *sws_convert_context;
                  SwsContext *p_jpegswscontext) const;
 
   bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
-  bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
-  bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const;
+  bool EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_override=0) const;
+  bool EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const;
 
 #if HAVE_ZLIB_H
   bool Unzip(const Bytef *inbuffer, unsigned long inbuffer_size);

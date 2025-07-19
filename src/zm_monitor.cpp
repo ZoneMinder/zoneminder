@@ -2634,7 +2634,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     }
   }
 
-  int img_buffer_size = 0;
+  size_t img_buffer_size = 0;
   //Image img(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); // copy, since we are scaling, maybe better to take from in_frame
   Image img(packet->in_frame.get(), 640, 640); // copy, since we are scaling, maybe better to take from in_frame
   SystemTimePoint endtime = std::chrono::system_clock::now();
@@ -2647,7 +2647,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   img.EncodeJpeg(static_cast<JOCTET *>(img_buffer), &img_buffer_size);
 
   endtime = std::chrono::system_clock::now();
-  Debug(1, "UVICORN took: %.3f seconds to scale file size is %d.", FPSeconds(endtime - partial_starttime).count(), img_buffer_size);
+  Debug(1, "UVICORN took: %.3f seconds to scale file size is %zu.", FPSeconds(endtime - partial_starttime).count(), img_buffer_size);
   partial_starttime = endtime;
   //
   std::string response;

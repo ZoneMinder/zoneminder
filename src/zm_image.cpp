@@ -1703,7 +1703,7 @@ bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p
   return true;
 }
 
-bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override) const {
+bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_override) const {
   if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
@@ -1798,7 +1798,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
   return true;
 }
 
-bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const {
+bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const {
   if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);

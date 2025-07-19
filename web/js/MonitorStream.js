@@ -490,7 +490,7 @@ function MonitorStream(monitorData) {
           this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
-          reject();
+          reject(e);
         }
       }
 

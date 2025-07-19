@@ -883,7 +883,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
       Image *send_image = prepareImage(image);
       reserveTempImgBuffer(send_image->Size());
-      int img_buffer_size = 0;
+      size_t img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
       if (type != STREAM_SINGLE)

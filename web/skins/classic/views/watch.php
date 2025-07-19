@@ -103,16 +103,12 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
-$hasHLS = false;
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS')) {
-    $hasHLS = true;
-  }
-  if ($hasPtzControls && $hasHLS) {
+  if ($hasPtzControls) {
     break;
   }
 }
@@ -534,13 +530,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
-<?php
-if ($hasHLS) {
-?>
   <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
-<?php
-}
-?>
 <?php
   } else {
     echo "There are no monitors to display\n";

@@ -429,7 +429,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       return false;
     }
     if (
-      (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+      (0 > fprintf(stdout, "Content-Length: %zu\r\nX-Timestamp: %.6f\r\n\r\n",
                    img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
       ||
       (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
@@ -947,7 +947,7 @@ void MonitorStream::SingleImage(int scale) {
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 
   fprintf(stdout,
-          "Content-Length: %d\r\n"
+          "Content-Length: %zu\r\n"
           "Content-Type: image/jpeg\r\n\r\n",
           img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);

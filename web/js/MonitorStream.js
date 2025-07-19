@@ -1029,49 +1029,53 @@ function MonitorStream(monitorData) {
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
-    // We correct the lag from real time. Relevant for long viewing and network problems.
-    if (this.RTSP2WebType == 'MSE') {
-      const videoEl = document.getElementById("liveStream" + this.id);
-      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-        const videoElCurrentTime = videoEl.currentTime; // Current time of playback
-        const currentTime = (Date.now() / 1000);
-        const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
-        const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
-        let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
-        if (delayCurrent < 0) {
-          //Possibly with high client CPU load. Cannot be negative.
-          this.streamStartTime = currentTime - bufferEndTime;
-          delayCurrent = 0;
-        }
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
+    } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
 
-        $j('#delayValue'+this.id).text(delayCurrent);
-
-        // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
-        if (!videoEl.paused && deltaRealTime > 10) {
-          // Ability to scroll through the last buffered frames when paused.
-          if (bufferEndTime - videoElCurrentTime > 2.0) {
-            // Correcting a flow lag of more than X seconds from the end of the buffer
-            // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
-            //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
-            videoEl.currentTime = bufferEndTime - 0.1;
+      // We correct the lag from real time. Relevant for long viewing and network problems.
+      if (this.RTSP2WebType == 'MSE') {
+        const videoEl = document.getElementById("liveStream" + this.id);
+        if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+          const videoElCurrentTime = videoEl.currentTime; // Current time of playback
+          const currentTime = (Date.now() / 1000);
+          const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
+          const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
+          let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
+          if (delayCurrent < 0) {
+            //Possibly with high client CPU load. Cannot be negative.
+            this.streamStartTime = currentTime - bufferEndTime;
+            delayCurrent = 0;
           }
-          if (deltaRealTime - bufferEndTime > 1.5) {
-            // Correcting the buffer end lag by more than X seconds from real time
-            console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
 
-            this.restart(this.currentChannelStream);
+          $j('#delayValue'+this.id).text(delayCurrent);
+
+          // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
+          if (!videoEl.paused && deltaRealTime > 10) {
+            // Ability to scroll through the last buffered frames when paused.
+            if (bufferEndTime - videoElCurrentTime > 2.0) {
+              // Correcting a flow lag of more than X seconds from the end of the buffer
+              // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
+              //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
+              videoEl.currentTime = bufferEndTime - 0.1;
+            }
+            if (deltaRealTime - bufferEndTime > 1.5) {
+              // Correcting the buffer end lag by more than X seconds from real time
+              console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
+
+              this.restart(this.currentChannelStream);
+            }
           }
+        } else if (!this.wsMSE && this.started) {
+          console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
+          this.restart(this.currentChannelStream);
         }
-      } else if (!this.wsMSE && this.started) {
-        console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
-        this.restart(this.currentChannelStream);
+      } else if (this.RTSP2WebType == 'WebRTC') {
+        if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+          console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
+          this.restart(this.currentChannelStream);
+        }
       }
-    } else if (this.RTSP2WebType == 'WebRTC') {
-      if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
-        console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
-        this.restart(this.currentChannelStream);
-      }
-    }
+    } // end if Go2RTC or RTSP2Web
   };
 
   this.statusQuery = function() {

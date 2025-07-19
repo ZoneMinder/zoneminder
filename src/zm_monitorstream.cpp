@@ -400,7 +400,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   } else {
     reserveTempImgBuffer(send_image->Size());
 
-    int img_buffer_size = 0;
+    size_t img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
     switch (type) {
@@ -914,7 +914,7 @@ void MonitorStream::runStream() {
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {
-  int img_buffer_size = 0;
+  size_t img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 

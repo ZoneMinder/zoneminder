@@ -84,6 +84,19 @@ function MonitorStream(monitorData) {
 
   this.player = '';
   this.setPlayer = function(p) {
+    if (-1 != p.indexOf('go2rtc')) {
+
+    } else if (-1 != p.indexOf('rtsp2web')){
+      if (-1 != p.indexOf('_hls')) {
+        this.RTSP2WebType = 'HLS';
+      } else if (-1 != p.indexOf('_mse')) {
+        this.RTSP2WebType = 'MSE';
+      } else if (-1 != p.indexOf('_webrtc')) {
+        this.RTSP2WebType = 'WebRTC';
+      }
+    } else if (-1 != p.indexOf('janus')){
+
+    }
     return this.player = p;
   };
 
@@ -257,7 +270,7 @@ function MonitorStream(monitorData) {
 
     $j('#volumeControls').hide();
 
-    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
+    if ((this.Go2RTCEnabled && !this.player) || (-1 != this.player.indexOf('go2rtc'))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
@@ -293,7 +306,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    if (((!this.player) || (-1 !== this.player.indexOf('janus'))) && this.janusEnabled) {
+    if ((this.janusEnabled && !this.player) || (-1 != this.player.indexOf('janus'))) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -317,7 +330,7 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
-    if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
+    if ((this.RTSP2WebEnabled && !this.player) || (-1 != this.player.indexOf('rtsp2web'))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
         if (stream.nodeName != 'VIDEO') {
@@ -417,10 +430,13 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
+    const stream = this.getElement();
+    if (!stream) {
+      console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
+      return;
+    }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
     if ( 1 ) {
-      const stream = this.getElement();
-      if (!stream) return;
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -442,6 +458,7 @@ function MonitorStream(monitorData) {
     if (this.RTSP2WebEnabled) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
+        stream.srcObject = null;
         this.webrtc = null;
       }
       if (this.hls) {
@@ -488,12 +505,24 @@ function MonitorStream(monitorData) {
         this.removeEventListener('updateend', onBufferRemoved);
         resolve();
       }
+      setTimeout(function() {
+        // We can't wait forever, which means everything is bad, for example, the "src" attribute was removed from the object
+        reject();
+      }, 500);
     })
         .then(() => {
           if (this.mseSourceBuffer) {
             this.mse.removeSourceBuffer(this.mseSourceBuffer);
             this.mse.endOfStream();
           }
+          this.closeWebSocket();
+          this.mse = null;
+          this.mseStreamingStarted = false;
+          this.mseSourceBuffer = null;
+          this.MSEBufferCleared = true;
+        })
+        .catch((error) => {
+          console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while stopMse() for ID=${this.id}`, error);
           this.closeWebSocket();
           this.mse = null;
           this.mseStreamingStarted = false;
@@ -1029,8 +1058,8 @@ function MonitorStream(monitorData) {
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
-    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
-    } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
+    if ((this.Go2RTCEnabled && !this.player) || (-1 != this.player.indexOf('go2rtc'))) {
+    } else if ((this.RTSP2WebEnabled && !this.player) || (-1 != this.player.indexOf('rtsp2web'))) {
       // We correct the lag from real time. Relevant for long viewing and network problems.
       if (this.RTSP2WebType == 'MSE') {
         const videoEl = document.getElementById("liveStream" + this.id);

@@ -282,7 +282,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
-    int n_bytes = 0;
+    size_t n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
 
@@ -292,8 +292,8 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         return false;
       }
     }
-    if (0 > fprintf(stdout, "Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes)) {
-      Debug(1, "Error sending Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes);
+    if (0 > fprintf(stdout, "Content-Type: image/jpeg\r\nContent-Length: %zu\r\n\r\n", n_bytes)) {
+      Debug(1, "Error sending Content-Type: image/jpeg\r\nContent-Length: %zu\r\n\r\n", n_bytes);
       return false;
     }
     int rc = fwrite(buffer, n_bytes, 1, stdout);

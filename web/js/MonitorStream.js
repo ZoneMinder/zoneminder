@@ -437,7 +437,8 @@ function MonitorStream(monitorData) {
       return;
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    if ( 1 ) {
+    //if ( 1 ) {
+    if (-1 === this.player.indexOf('rtsp2web')) {
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -542,7 +543,7 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src) {
+    if (stream.src && -1 === this.player.indexOf('rtsp2web')) {
       stream.src = '';
     }
     this.stop();

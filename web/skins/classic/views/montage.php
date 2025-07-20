@@ -246,7 +246,7 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="header">
+  <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
@@ -347,7 +347,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </button>
         </form>
       </div>
-    </div>
+    </div><!--header-->
   </div>
   <div id="content">
     <div id="monitors" class="grid-stack hidden-shift">

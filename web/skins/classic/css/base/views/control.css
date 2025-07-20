@@ -169,6 +169,7 @@
 
 .ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls div {
+  width: 100%;
 }
 
 .ptzControls .presetControls button {

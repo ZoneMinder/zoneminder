@@ -270,7 +270,7 @@ function MonitorStream(monitorData) {
 
     $j('#volumeControls').hide();
 
-    if ((this.Go2RTCEnabled && !this.player) || (-1 != this.player.indexOf('go2rtc'))) {
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
@@ -306,7 +306,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    if ((this.janusEnabled && !this.player) || (-1 != this.player.indexOf('janus'))) {
+    if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -330,7 +330,8 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
-    if ((this.RTSP2WebEnabled && !this.player) || (-1 != this.player.indexOf('rtsp2web'))) {
+
+    if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
         if (stream.nodeName != 'VIDEO') {

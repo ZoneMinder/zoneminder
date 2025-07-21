@@ -339,6 +339,9 @@ function MonitorStream(monitorData) {
           const stream_container = stream.parentNode;
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
+          new_stream.setAttribute("autoplay", "");  
+          new_stream.setAttribute("muted", "");  
+          new_stream.setAttribute("playsinline", "");  
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
           stream_container.appendChild(new_stream);
@@ -457,7 +460,13 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (this.RTSP2WebEnabled) {
+    if (-1 !== this.player.indexOf('go2rtc')) {
+      if (this.webrtc) {
+        if (this.webrtc.close) this.webrtc.close();
+        stream.srcObject = null;
+        this.webrtc = null;
+      }
+    } else if (-1 !== this.player.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
         stream.srcObject = null;

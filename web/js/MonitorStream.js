@@ -1066,8 +1066,8 @@ function MonitorStream(monitorData) {
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
-    if ((this.Go2RTCEnabled && !this.player) || (-1 != this.player.indexOf('go2rtc'))) {
-    } else if ((this.RTSP2WebEnabled && !this.player) || (-1 != this.player.indexOf('rtsp2web'))) {
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+    } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       // We correct the lag from real time. Relevant for long viewing and network problems.
       if (this.RTSP2WebType == 'MSE') {
         const videoEl = document.getElementById("liveStream" + this.id);

@@ -84,6 +84,19 @@ function MonitorStream(monitorData) {
 
   this.player = '';
   this.setPlayer = function(p) {
+    if (-1 != p.indexOf('go2rtc')) {
+
+    } else if (-1 != p.indexOf('rtsp2web')) {
+      if (-1 != p.indexOf('_hls')) {
+        this.RTSP2WebType = 'HLS';
+      } else if (-1 != p.indexOf('_mse')) {
+        this.RTSP2WebType = 'MSE';
+      } else if (-1 != p.indexOf('_webrtc')) {
+        this.RTSP2WebType = 'WebRTC';
+      }
+    } else if (-1 != p.indexOf('janus')) {
+
+    }
     return this.player = p;
   };
 
@@ -257,7 +270,7 @@ function MonitorStream(monitorData) {
 
     $j('#volumeControls').hide();
 
-    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
@@ -293,7 +306,7 @@ function MonitorStream(monitorData) {
       }
     }
 
-    if (((!this.player) || (-1 !== this.player.indexOf('janus'))) && this.janusEnabled) {
+    if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -317,6 +330,7 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
+
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
@@ -325,6 +339,9 @@ function MonitorStream(monitorData) {
           const stream_container = stream.parentNode;
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
+          new_stream.setAttribute("autoplay", "");  
+          new_stream.setAttribute("muted", "");  
+          new_stream.setAttribute("playsinline", "");  
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
           stream_container.appendChild(new_stream);
@@ -417,10 +434,14 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
+    const stream = this.getElement();
+    if (!stream) {
+      console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
+      return;
+    }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    if ( 1 ) {
-      const stream = this.getElement();
-      if (!stream) return;
+    //if ( 1 ) {
+    if (-1 === this.player.indexOf('rtsp2web')) {
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -439,9 +460,16 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (this.RTSP2WebEnabled) {
+    if (-1 !== this.player.indexOf('go2rtc')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
+        stream.srcObject = null;
+        this.webrtc = null;
+      }
+    } else if (-1 !== this.player.indexOf('rtsp2web')) {
+      if (this.webrtc) {
+        if (this.webrtc.close) this.webrtc.close();
+        stream.srcObject = null;
         this.webrtc = null;
       }
       if (this.hls) {
@@ -467,12 +495,13 @@ function MonitorStream(monitorData) {
         this.mseSourceBuffer.addEventListener('updateend', onBufferRemoved, this);
         try {
           /*
-          Very, very rarely, on the MOTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
-          Possibly due to high CPU load, the browser does not have time to process.
+          Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
+          Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
           this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
+          reject(e);
         }
       }
 
@@ -499,6 +528,14 @@ function MonitorStream(monitorData) {
           this.mseStreamingStarted = false;
           this.mseSourceBuffer = null;
           this.MSEBufferCleared = true;
+        })
+        .catch((error) => {
+          console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while stopMse() for ID=${this.id}`, error);
+          this.closeWebSocket();
+          this.mse = null;
+          this.mseStreamingStarted = false;
+          this.mseSourceBuffer = null;
+          this.MSEBufferCleared = true;
         });
   };
 
@@ -515,7 +552,7 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src) {
+    if (stream.src && -1 === this.player.indexOf('rtsp2web')) {
       stream.src = '';
     }
     this.stop();
@@ -1029,7 +1066,7 @@ function MonitorStream(monitorData) {
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
-    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       // We correct the lag from real time. Relevant for long viewing and network problems.
       if (this.RTSP2WebType == 'MSE') {

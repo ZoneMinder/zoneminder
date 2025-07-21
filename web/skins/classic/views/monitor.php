@@ -1097,8 +1097,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         $storage_areas[$Storage->Id()] = $Storage->Name();
       }
        if (count($storage_areas) > 1) {
-         echo '<li class="StorageArea">
-           <label><?php echo translate('StorageArea') ?></label>'.PHP_EOL;
+         echo '<li class="StorageArea"><label>'.translate('StorageArea').'</label>'.PHP_EOL;
          echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());
          echo PHP_EOL.'</li>'.PHP_EOL;
        }

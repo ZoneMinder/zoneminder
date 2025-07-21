@@ -101,7 +101,7 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
 <div id="page">
-  <div id="header">
+  <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
@@ -205,8 +205,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </button>
         </form>
       </div>
-    </div>
-
+    </div><!--header-->
     <div class="btn-group mr-2" role="group" aria-label="Second group">
       <button type="button" class="btn btn-success btn-sm" data-on-click-this="setLiveMode"><?php echo translate('Live') ?></button>
       <button type="button" class="btn btn-info btn-sm" data-on-click-this="setInRecordingMode"><?php echo translate('InRecording') ?></button>

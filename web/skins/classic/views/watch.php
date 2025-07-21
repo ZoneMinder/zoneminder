@@ -103,16 +103,12 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
-$hasHLS = false;
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS')) {
-    $hasHLS = true;
-  }
-  if ($hasPtzControls && $hasHLS) {
+  if ($hasPtzControls) {
     break;
   }
 }
@@ -305,7 +301,13 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
               $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
-              if ($monitor->Go2RTCEnabled()) $players['go2rtc'] = 'Go2RTC';
+              if ($monitor->Go2RTCEnabled()) {
+                $players['go2rtc'] = 'Go2RTC Auto';
+                $players['go2rtc_webrtc'] = 'Go2RTC WEBRTC';
+                $players['go2rtc_mse'] = 'Go2RTC MSE';
+                $players['go2rtc_hls'] = 'Go2RTC HLS';
+              }
+
               if ($monitor->RTSP2WebEnabled()) {
                 $players = array_merge($players,[
                   'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
@@ -313,8 +315,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
                   'rtsp2web_hls' => 'RTSP2Web HLS',
                 ]);
               } #
-              $player = $monitor->getStreamMode();
-
+              $player = ''; # Auto
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
@@ -528,13 +529,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
-<?php
-if ($hasHLS) {
-?>
   <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
-<?php
-}
-?>
 <?php
   } else {
     echo "There are no monitors to display\n";

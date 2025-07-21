@@ -42,7 +42,7 @@ function addButtonResetForFilterSelect($nameSelect) {
   } else {
     $html = PHP_EOL . '
       <span class="btn-term-remove-all">
-        <button type="button" name="deleteBtn" data-on-click-this="resetSelectElement" data-select-target="'.$nameSelect.'">
+        <button type="button" name="clearAllBtn" data-on-click-this="resetSelectElement" data-select-target="'.$nameSelect.'">
           <i class="material-icons">clear</i>
           <span class="text"></span>
         </button>

@@ -319,8 +319,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
                   'rtsp2web_hls' => 'RTSP2Web HLS',
                 ]);
               } #
-              $player = $monitor->getStreamMode();
-
+              $player = ''; # Auto
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {

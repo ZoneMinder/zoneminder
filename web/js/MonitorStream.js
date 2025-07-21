@@ -339,9 +339,9 @@ function MonitorStream(monitorData) {
           const stream_container = stream.parentNode;
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
-          new_stream.setAttribute("autoplay", "");  
-          new_stream.setAttribute("muted", "");  
-          new_stream.setAttribute("playsinline", "");  
+          new_stream.setAttribute("autoplay", "");
+          new_stream.setAttribute("muted", "");
+          new_stream.setAttribute("playsinline", "");
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
           stream_container.appendChild(new_stream);

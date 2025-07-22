@@ -1405,15 +1405,7 @@ class Monitor extends ZM_Object {
   }
 
   public function getStreamMode() {
-    if ($this->Go2RTCEnabled()) {
-      $streamMode = 'go2rtc';
-    } else if ($this->RTSP2WebEnabled()) {
-      $streamMode = 'rtsp2web_'.$this->RTSP2WebType();
-    } else if ($this->JanusEnabled()) {
-      $streamMode = 'janus';
-    } else {
-      $streamMode = getStreamMode();
-    }
+    $streamMode = getStreamMode(); # from includs/functions.php
     return $streamMode;
   }
 

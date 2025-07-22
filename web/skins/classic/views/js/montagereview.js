@@ -1260,7 +1260,7 @@ function initPage() {
     this.form.submit();
   });
 
-  if (useOldMenuView) {
+  if (navbar_type != 'left') {
     // If new menu is used, then Datepicker initialization occurs in main "skin.js"
     // Reinitialization is not allowed because the 'Destroy' method is missing.
     initDatepickerMontageReviewPage();

@@ -1,7 +1,7 @@
 "use strict";
 
 
-var LOADING = 1;
+var LOADING = true;
 
 var ajax = null;
 var wait_for_events_interval = null;
@@ -224,7 +224,7 @@ function getFrame(monId, time, last_Frame) {
     }
   }
   if (!Event) {
-    console.log('No event found for ' + time + ' ' + secs2inputstr(time) + ' on monitor ' + monId);
+    console.log('No event found for ' + time + ' ' + secs2inputstr(time) + ' on monitor ' + monId, events_for_monitor[monId]);
     return;
   }
 
@@ -1136,10 +1136,12 @@ function loadEventData(e) {
     console.log("Event data ", data);
 
     if (data.events.length) {
+      // event_list is solely for sending to loadFrames
       const event_list = {};
       for (let i=0, len = data.events.length; i<len; i++) {
         const ev = data.events[i].Event;
-        events[parseInt(ev.Id)] = ev;
+        ev.Id = parseInt(ev.Id);
+        events[ev.Id] = ev;
         if (!events_by_monitor_id[ev.MonitorId]) {
           events_by_monitor_id[ev.MonitorId] = []; // just event ids
           events_for_monitor[ev.MonitorId] = []; // id=>event
@@ -1151,6 +1153,8 @@ function loadEventData(e) {
         events[ev.id] = ev;
       }
       loadFrames(event_list);
+    } else {
+      console.log("No events in data?");
     }
   } // end function receive_events
 

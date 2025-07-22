@@ -20,9 +20,10 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
+#include <sys/time.h>
+
 #include <chrono>
 #include <string>
-#include <sys/time.h>
 
 typedef std::chrono::microseconds Microseconds;
 typedef std::chrono::milliseconds Milliseconds;
@@ -40,11 +41,11 @@ namespace zm {
 namespace chrono {
 namespace impl {
 
-template<typename From, typename To>
+template <typename From, typename To>
 struct posix_duration_cast;
 
 // chrono -> timeval caster
-template<typename Rep, typename Period>
+template <typename Rep, typename Period>
 struct posix_duration_cast<std::chrono::duration<Rep, Period>, timeval> {
   static timeval cast(std::chrono::duration<Rep, Period> const &d) {
     timeval tv = {};
@@ -59,7 +60,7 @@ struct posix_duration_cast<std::chrono::duration<Rep, Period>, timeval> {
 };
 
 // timeval -> chrono caster
-template<typename Rep, typename Period>
+template <typename Rep, typename Period>
 struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
   static std::chrono::duration<Rep, Period> cast(timeval const &tv) {
     return std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
@@ -67,22 +68,22 @@ struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
            );
   }
 };
-}
+}  // namespace impl
 
 // chrono -> timeval
-template<typename T, typename Rep, typename Period>
-auto duration_cast(std::chrono::duration<Rep, Period> const &d)
--> typename std::enable_if<std::is_same<T, timeval>::value, timeval>::type {
+template <typename T, typename Rep, typename Period>
+auto duration_cast(std::chrono::duration<Rep, Period> const &d) ->
+    typename std::enable_if<std::is_same<T, timeval>::value, timeval>::type {
   return impl::posix_duration_cast<std::chrono::duration<Rep, Period>, timeval>::cast(d);
 }
 
 // timeval -> chrono
-template<typename Duration>
+template <typename Duration>
 Duration duration_cast(timeval const &tv) {
   return impl::posix_duration_cast<timeval, Duration>::cast(tv);
 }
-}
-}
+}  // namespace chrono
+}  // namespace zm
 
 //
 // This can be used for benchmarking. It will measure the time in between
@@ -97,9 +98,7 @@ class TimeSegmentAdder {
     finished_(false) {
   }
 
-  ~TimeSegmentAdder() {
-    Finish();
-  }
+  ~TimeSegmentAdder() { Finish(); }
 
   // Call this to stop the timer and add the timed duration to `target`.
   void Finish() {
@@ -125,4 +124,4 @@ std::string SystemTimePointToString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
 SystemTimePoint StringToSystemTimePoint(const std::string &stp);
 
-#endif // ZM_TIME_H
+#endif  // ZM_TIME_H

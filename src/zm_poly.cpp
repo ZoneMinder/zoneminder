@@ -20,6 +20,7 @@
 #include "zm_poly.h"
 
 #include "zm_line.h"
+
 #include <cmath>
 
 Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices)), area(0) {
@@ -29,8 +30,7 @@ Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices))
 }
 
 void Polygon::UpdateExtent() {
-  if (vertices_.empty())
-    return;
+  if (vertices_.empty()) return;
 
   int min_x = vertices_[0].x_;
   int max_x = 0;
@@ -49,7 +49,8 @@ void Polygon::UpdateExtent() {
 void Polygon::UpdateArea() {
   double float_area = 0.0;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    double trap_area = ((vertices_[i].x_ - vertices_[j].x_) * ((vertices_[i].y_ + vertices_[j].y_))) / 2.0;
+    double trap_area =
+        ((vertices_[i].x_ - vertices_[j].x_) * ((vertices_[i].y_ + vertices_[j].y_))) / 2.0;
     float_area += trap_area;
   }
 
@@ -57,21 +58,23 @@ void Polygon::UpdateArea() {
 }
 
 void Polygon::UpdateCentre() {
-  if (!area && !vertices_.empty())
-    UpdateArea();
+  if (!area && !vertices_.empty()) UpdateArea();
 
   double float_x = 0.0;
   double float_y = 0.0;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    float_x += ((vertices_[i].y_ - vertices_[j].y_)
-                * ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
-    float_y += ((vertices_[j].x_ - vertices_[i].x_)
-                * ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
+    float_x +=
+        ((vertices_[i].y_ - vertices_[j].y_) *
+         ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
+    float_y +=
+        ((vertices_[j].x_ - vertices_[i].x_) *
+         ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
   }
   float_x /= (6 * area);
   float_y /= (6 * area);
 
-  centre = Vector2(static_cast<int32>(std::lround(float_x)), static_cast<int32>(std::lround(float_y)));
+  centre =
+      Vector2(static_cast<int32>(std::lround(float_x)), static_cast<int32>(std::lround(float_y)));
 }
 
 bool Polygon::Contains(const Vector2 &coord) const {

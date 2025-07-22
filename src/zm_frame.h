@@ -23,13 +23,10 @@
 #include "zm_event.h"
 #include "zm_time.h"
 #include "zm_zone.h"
+
 #include <vector>
 
-enum FrameType {
-  NORMAL = 0,
-  BULK,
-  ALARM
-};
+enum FrameType { NORMAL = 0, BULK, ALARM };
 
 //
 // This describes a frame record
@@ -54,4 +51,4 @@ class Frame {
   std::vector<ZoneStats> zone_stats;
 };
 
-#endif // ZM_FRAME_H
+#endif  // ZM_FRAME_H

@@ -34,7 +34,7 @@ class LineSegment {
 class Line {
  public:
   Line(Vector2 p1, Vector2 p2) : position_(p1), direction_(p2 - p1) {}
-  explicit Line(LineSegment segment) : Line(segment.start_, segment.end_) {};
+  explicit Line(LineSegment segment) : Line(segment.start_, segment.end_){};
 
   bool IsPointLeftOfOrColinear(Vector2 p) const {
     int32 det = direction_.Determinant(p - position_);
@@ -61,4 +61,4 @@ class Line {
   Vector2 direction_;
 };
 
-#endif //ZONEMINDER_SRC_ZM_LINE_H_
+#endif  // ZONEMINDER_SRC_ZM_LINE_H_

@@ -461,10 +461,8 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
     if (-1 !== this.player.indexOf('go2rtc')) {
-      if (this.webrtc) {
-        if (this.webrtc.close) this.webrtc.close();
-        stream.srcObject = null;
-        this.webrtc = null;
+      if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
+        stream.ondisconnect();
       }
     } else if (-1 !== this.player.indexOf('rtsp2web')) {
       if (this.webrtc) {

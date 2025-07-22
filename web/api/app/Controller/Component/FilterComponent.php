@@ -60,6 +60,7 @@ class FilterComponent extends Component {
 					      //'*',
 					      '-',
 					      //'XOR',
+                'IN',
 					      );
 
 	// Build a CakePHP find() condition based on the named parameters
@@ -83,6 +84,8 @@ class FilterComponent extends Component {
 				}
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
+        } else if ($operator == 'IN') {
+          $value = explode(',', $value);
         }
 
 				$lhs = $matches['field'] . ' ' . $operator;

@@ -50,7 +50,7 @@ NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
 
    SELinux must be disabled or put into permissive mode. This is not optional!
    
-   To immediately disbale SELinux for the current seesion, issue the following
+   To immediately disable SELinux for the current session, issue the following
    from the command line:
 
      sudo setenforce 0
@@ -137,7 +137,7 @@ Upgrades
    
 3. Verify the ZoneMinder Apache configuration file in the folder 
    /etc/zm/www. You will have a file called "zoneminder.httpd.conf" and there
-   may also be one or more files with "rpmnew" extenstion. If the rpmnew file
+   may also be one or more files with "rpmnew" extension. If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
    Verify the SSL Requirements meet your needs. Read README.https if necessary.
 

@@ -3,8 +3,80 @@ Ubuntu
 
 .. contents::
 
-Easy Way: Ubuntu 18.04 (Bionic)
--------------------------------
+Ubuntu 22.04+ (Jammy)
+---------------------
+These instructions are for a brand new ubuntu 22.04 LTS system or newer which does not have ZM installed.
+
+**Step 1:** Update system
+
+::
+
+    sudo apt-get update && sudo apt upgrade -y
+
+**Step 2:** Update repositories (Optional)
+
+ZoneMinder is part of the current standard Ubuntu repository, but sometimes the official repository can lag behind.
+To find out check our `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for the latest release.
+    
+Alternatively, the ZoneMinder project team maintains a `PPA <https://askubuntu.com/questions/4983/what-are-ppas-and-how-do-i-use-them>`_, which is updated immediately following a new release of ZoneMinder.
+To use this repository instead of the official Ubuntu repository, enter the following commands:
+
+::
+
+        sudo apt install -y software-properties-common
+        sudo add-apt-repository ppa:iconnor/zoneminder-1.36
+        sudo apt update
+
+**Step 3:** Configuration MySQL/MariaDB
+
+::
+
+	apt-get install mysql-server
+
+Alternatively
+
+::
+
+  apt-get install mariadb-server
+
+**Step 4:** Configure the ZoneMinder Database
+
+This step is not required if you are using our ppa packages as they will do it for you.  It is ok to do it yourself though.
+
+::
+
+	sudo mysql --defaults-file=/etc/mysql/debian.cnf -p < /usr/share/zoneminder/db/zm_create.sql
+	sudo mysql --defaults-file=/etc/mysql/debian.cnf -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute,references on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+
+**Step 5:** Install Zoneminder
+
+::
+
+        sudo apt install -y zoneminder
+
+
+**Step 6:** Configure Apache correctly:
+
+::
+        
+        sudo a2enmod rewrite headers cgi
+        sudo a2enconf zoneminder
+        sudo systemctl restart apache2
+
+
+**Step 7:** Enable and start zoneminder
+
+::
+
+        sudo systemctl enable zoneminder
+        sudo systemctl start zoneminder
+
+**Step 8:** Open Zoneminder
+
+Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder Console.
+
+Ubuntu 18.04 (Bionic)
+---------------------
 These instructions are for a brand new ubuntu 18.04 system which does not have ZM
 installed.
 
@@ -47,8 +119,7 @@ Update repo and upgrade.
 
 ::
 
-	apt-get update
-        apt-get upgrade
+	      apt-get update
         apt-get dist-upgrade
 
 
@@ -123,7 +194,6 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
         chmod 740 /etc/zm/zm.conf
         chown root:www-data /etc/zm/zm.conf
-        chown -R www-data:www-data /usr/share/zoneminder/
 
 **Step 7:** Configure Apache correctly:
 
@@ -177,8 +247,12 @@ CTRL+x to exit
 PPA install may need some tweaking of ZMS_PATH in ZoneMinder options. `Socket_sendto or no live streaming`_
 
 
-Harder Way: Build Package From Source
--------------------------------------
+Harder Way: Build Package From Source (Discouraged)
+---------------------------------------------------
+Historically, installing ZoneMinder onto your system required building from source code by issuing the traditional configure, make, make install commands. To get ZoneMinder to build, all of its dependencies had to be determined and installed beforehand. Init and logrotate scripts had to be manually copied into place following the build. Optional packages such as jscalendar and Cambozola had to be manually installed. Uninstalls could leave stale files around, which could cause problems during an upgrade. Speaking of upgrades, when it comes time to upgrade all these manual steps must be repeated again.
+
+Better methods exist today that do much of this for you. The current development team, along with other volunteers, have taken great strides in providing the resources necessary to avoid building from source.
+
 (These instructions assume installation from source on a ubuntu 15.x+ system)
 
 **Step 1:** Grab the package installer script

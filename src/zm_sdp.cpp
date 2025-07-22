@@ -1,21 +1,21 @@
 //
 // ZoneMinder SDP Class Implementation, $Date: 2009-04-14 21:20:02 +0100 (Tue, 14 Apr 2009) $, $Revision: 2850 $
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_sdp.h"
 
@@ -63,8 +63,7 @@ SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
 
 SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   mTtl( 16 ),
-  mNoAddresses( 0 )
-{
+  mNoAddresses( 0 ) {
   StringVector tokens = Split(connInfo, " ");
   if ( tokens.size() < 3 )
     throw Exception( "Unable to parse SDP connection info from '"+connInfo+"'" );
@@ -75,7 +74,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   if ( mAddressType != "IP4" && mAddressType != "IP6" )
     throw Exception( "Invalid SDP address type '"+mAddressType+"' in connection info '"+connInfo+"'" );
   StringVector addressTokens = Split(tokens[2], "/");
-  if ( addressTokens.size() < 1 ) 
+  if ( addressTokens.size() < 1 )
     throw Exception( "Invalid SDP address '"+tokens[2]+"' in connection info '"+connInfo+"'" );
   mAddress = addressTokens[0];
   if ( addressTokens.size() >= 2 )
@@ -85,23 +84,22 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
 }
 
 SessionDescriptor::BandInfo::BandInfo( const std::string &bandInfo ) :
-  mValue( 0 )
-{
+  mValue( 0 ) {
   StringVector tokens = Split(bandInfo, ":");
   if ( tokens.size() < 2 )
     throw Exception( "Unable to parse SDP bandwidth info from '"+bandInfo+"'" );
   mType = tokens[0];
   //if ( mNetworkType != "IN" )
-    //throw Exception( "Invalid SDP network type '"+mNetworkType+"' in connection info '"+connInfo+"'" );
+  //throw Exception( "Invalid SDP network type '"+mNetworkType+"' in connection info '"+connInfo+"'" );
   mValue = atoi(tokens[1].c_str());
 }
 
 SessionDescriptor::MediaDescriptor::MediaDescriptor(
-    const std::string &type,
-    int port,
-    int numPorts,
-    const std::string &transport,
-    int payloadType ) :
+  const std::string &type,
+  int port,
+  int numPorts,
+  const std::string &transport,
+  int payloadType ) :
   mType( type ),
   mPort( port ),
   mNumPorts( numPorts ),
@@ -112,15 +110,13 @@ SessionDescriptor::MediaDescriptor::MediaDescriptor(
   mWidth( 0 ),
   mHeight( 0 ),
   mSprops( "" ),
-  mConnInfo( nullptr )
-{
+  mConnInfo( nullptr ) {
 }
 
-SessionDescriptor::SessionDescriptor( const std::string &url, const std::string &sdp ) : 
+SessionDescriptor::SessionDescriptor( const std::string &url, const std::string &sdp ) :
   mUrl( url ),
   mConnInfo( nullptr ),
-  mBandInfo( nullptr )
-{
+  mBandInfo( nullptr ) {
   MediaDescriptor *currMedia = nullptr;
 
   StringVector lines = Split(sdp, "\r\n");
@@ -136,141 +132,139 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
 
     line.erase(0, 2);
     switch( sdpType ) {
-      case 'v' :
-        mVersion = line;
-        break;
-      case 'o' :
-        mOwner = line;
-        break;
-      case 's' :
-        mName = line;
-        break;
-      case 'i' :
-        mInfo = line;
-        break;
-      case 'c' :
-        // This prevent a memory leak if the field appears more than one time
-        if ( mConnInfo )
-          delete mConnInfo;
-        mConnInfo = new ConnInfo( line );
-        break;
-      case 'b' :
-        // This prevent a memory leak if the field appears more than one time
-        if ( mBandInfo )
-          delete mBandInfo;
-        mBandInfo = new BandInfo( line );
-        break;
-      case 't' :
-        mTimeInfo = line;
-        break;
-      case 'a' :
-      {
-        mAttributes.push_back( line );
-        StringVector tokens = Split(line, ":", 2);
-        std::string attrName = tokens[0];
-        if ( currMedia ) {
-          if ( attrName == "control" ) {
-            if ( tokens.size() < 2 )
-              throw Exception( "Unable to parse SDP control attribute '"+line+"' for media '"+currMedia->getType()+"'" );
-            currMedia->setControlUrl( tokens[1] );
-          } else if ( attrName == "range" ) {
-          } else if ( attrName == "rtpmap" ) {
-            // a=rtpmap:96 MP4V-ES/90000
-            if ( tokens.size() < 2 )
-              throw Exception( "Unable to parse SDP rtpmap attribute '"+line+"' for media '"+currMedia->getType()+"'" );
-            StringVector attrTokens = Split(tokens[1], " ");
-            int payloadType = atoi(attrTokens[0].c_str());
-            if ( payloadType != currMedia->getPayloadType() )
-              throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
-            if ( attrTokens.size() > 1 ) {
-              StringVector payloadTokens = Split(attrTokens[1], "/");
-              std::string payloadDesc = payloadTokens[0];
-              int payloadClock = atoi(payloadTokens[1].c_str());
-              currMedia->setPayloadDesc( payloadDesc );
-              currMedia->setClock( payloadClock );
-            }
-          } else if ( attrName == "framesize" ) {
-            // a=framesize:96 320-240
-            if ( tokens.size() < 2 )
-              throw Exception("Unable to parse SDP framesize attribute '"+line+"' for media '"+currMedia->getType()+"'");
-            StringVector attrTokens = Split(tokens[1], " ");
-            int payloadType = atoi(attrTokens[0].c_str());
-            if ( payloadType != currMedia->getPayloadType() )
-              throw Exception( stringtf("Payload type mismatch, expected %d, got %d in '%s'",
-                    currMedia->getPayloadType(), payloadType, line.c_str()));
-            //currMedia->setPayloadType( payloadType );
-            StringVector sizeTokens = Split(attrTokens[1], "-");
-            int width = atoi(sizeTokens[0].c_str());
-            int height = atoi(sizeTokens[1].c_str());
-            currMedia->setFrameSize(width, height);
-          } else if ( attrName == "framerate" ) {
-            // a=framerate:5.0
-            if ( tokens.size() < 2 )
-              throw Exception("Unable to parse SDP framerate attribute '"+line+"' for media '"+currMedia->getType()+"'");
-            double frameRate = atof(tokens[1].c_str());
-            currMedia->setFrameRate(frameRate);
-          } else if ( attrName == "fmtp" ) {
-            // a=fmtp:96 profile-level-id=247; config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
-            if ( tokens.size() < 2 )
-              throw Exception("Unable to parse SDP fmtp attribute '"+line+"' for media '"+currMedia->getType()+"'");
-            StringVector attrTokens = Split(tokens[1], " ", 2);
-            int payloadType = atoi(attrTokens[0].c_str());
-            if ( payloadType != currMedia->getPayloadType() )
-              throw Exception(stringtf("Payload type mismatch, expected %d, got %d in '%s'",
-                    currMedia->getPayloadType(), payloadType, line.c_str()));
-            //currMedia->setPayloadType( payloadType );
-            if ( attrTokens.size() > 1 ) {
-              StringVector attr2Tokens = Split(attrTokens[1], "; ");
-              for ( unsigned int i = 0; i < attr2Tokens.size(); i++ ) {
-                StringVector attr3Tokens = Split(attr2Tokens[i], "=");
-                //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
-                if ( attr3Tokens[0] == "profile-level-id" ) {
-                } else if ( attr3Tokens[0] == "config" ) {
-                } else if ( attr3Tokens[0] == "sprop-parameter-sets" ) {
-                    size_t t = attr2Tokens[i].find("=");
-                    char *c = (char *)attr2Tokens[i].c_str() + t + 1;
-                    Debug(4, "sprop-parameter-sets value %s", c);
-                  currMedia->setSprops(std::string(c));
-                } else {
-                  Debug(3, "Ignoring SDP fmtp attribute '%s' for media '%s'",
-                        attr3Tokens[0].c_str(),
-                        currMedia->getType().c_str());
-                }
+    case 'v' :
+      mVersion = line;
+      break;
+    case 'o' :
+      mOwner = line;
+      break;
+    case 's' :
+      mName = line;
+      break;
+    case 'i' :
+      mInfo = line;
+      break;
+    case 'c' :
+      // This prevent a memory leak if the field appears more than one time
+      if ( mConnInfo )
+        delete mConnInfo;
+      mConnInfo = new ConnInfo( line );
+      break;
+    case 'b' :
+      // This prevent a memory leak if the field appears more than one time
+      if ( mBandInfo )
+        delete mBandInfo;
+      mBandInfo = new BandInfo( line );
+      break;
+    case 't' :
+      mTimeInfo = line;
+      break;
+    case 'a' : {
+      mAttributes.push_back( line );
+      StringVector tokens = Split(line, ":", 2);
+      std::string attrName = tokens[0];
+      if ( currMedia ) {
+        if ( attrName == "control" ) {
+          if ( tokens.size() < 2 )
+            throw Exception( "Unable to parse SDP control attribute '"+line+"' for media '"+currMedia->getType()+"'" );
+          currMedia->setControlUrl( tokens[1] );
+        } else if ( attrName == "range" ) {
+        } else if ( attrName == "rtpmap" ) {
+          // a=rtpmap:96 MP4V-ES/90000
+          if ( tokens.size() < 2 )
+            throw Exception( "Unable to parse SDP rtpmap attribute '"+line+"' for media '"+currMedia->getType()+"'" );
+          StringVector attrTokens = Split(tokens[1], " ");
+          int payloadType = atoi(attrTokens[0].c_str());
+          if ( payloadType != currMedia->getPayloadType() )
+            throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
+          if ( attrTokens.size() > 1 ) {
+            StringVector payloadTokens = Split(attrTokens[1], "/");
+            std::string payloadDesc = payloadTokens[0];
+            int payloadClock = atoi(payloadTokens[1].c_str());
+            currMedia->setPayloadDesc( payloadDesc );
+            currMedia->setClock( payloadClock );
+          }
+        } else if ( attrName == "framesize" ) {
+          // a=framesize:96 320-240
+          if ( tokens.size() < 2 )
+            throw Exception("Unable to parse SDP framesize attribute '"+line+"' for media '"+currMedia->getType()+"'");
+          StringVector attrTokens = Split(tokens[1], " ");
+          int payloadType = atoi(attrTokens[0].c_str());
+          if ( payloadType != currMedia->getPayloadType() )
+            throw Exception( stringtf("Payload type mismatch, expected %d, got %d in '%s'",
+                                      currMedia->getPayloadType(), payloadType, line.c_str()));
+          //currMedia->setPayloadType( payloadType );
+          StringVector sizeTokens = Split(attrTokens[1], "-");
+          int width = atoi(sizeTokens[0].c_str());
+          int height = atoi(sizeTokens[1].c_str());
+          currMedia->setFrameSize(width, height);
+        } else if ( attrName == "framerate" ) {
+          // a=framerate:5.0
+          if ( tokens.size() < 2 )
+            throw Exception("Unable to parse SDP framerate attribute '"+line+"' for media '"+currMedia->getType()+"'");
+          double frameRate = atof(tokens[1].c_str());
+          currMedia->setFrameRate(frameRate);
+        } else if ( attrName == "fmtp" ) {
+          // a=fmtp:96 profile-level-id=247; config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
+          if ( tokens.size() < 2 )
+            throw Exception("Unable to parse SDP fmtp attribute '"+line+"' for media '"+currMedia->getType()+"'");
+          StringVector attrTokens = Split(tokens[1], " ", 2);
+          int payloadType = atoi(attrTokens[0].c_str());
+          if ( payloadType != currMedia->getPayloadType() )
+            throw Exception(stringtf("Payload type mismatch, expected %d, got %d in '%s'",
+                                     currMedia->getPayloadType(), payloadType, line.c_str()));
+          //currMedia->setPayloadType( payloadType );
+          if ( attrTokens.size() > 1 ) {
+            StringVector attr2Tokens = Split(attrTokens[1], "; ");
+            for ( unsigned int i = 0; i < attr2Tokens.size(); i++ ) {
+              StringVector attr3Tokens = Split(attr2Tokens[i], "=");
+              //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
+              if ( attr3Tokens[0] == "profile-level-id" ) {
+              } else if ( attr3Tokens[0] == "config" ) {
+              } else if ( attr3Tokens[0] == "sprop-parameter-sets" ) {
+                size_t t = attr2Tokens[i].find("=");
+                char *c = (char *)attr2Tokens[i].c_str() + t + 1;
+                Debug(4, "sprop-parameter-sets value %s", c);
+                currMedia->setSprops(std::string(c));
+              } else {
+                Debug(3, "Ignoring SDP fmtp attribute '%s' for media '%s'",
+                      attr3Tokens[0].c_str(),
+                      currMedia->getType().c_str());
               }
             }
-          } else if ( attrName == "mpeg4-iod" ) {
-            // a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
-          } else if ( attrName == "mpeg4-esid" ) {
-            // a=mpeg4-esid:201
-          } else {
-            Debug(3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str());
           }
+        } else if ( attrName == "mpeg4-iod" ) {
+          // a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
+        } else if ( attrName == "mpeg4-esid" ) {
+          // a=mpeg4-esid:201
         } else {
-          Debug(3, "Ignoring general SDP attribute '%s'", line.c_str());
+          Debug(3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str());
         }
-        break;
+      } else {
+        Debug(3, "Ignoring general SDP attribute '%s'", line.c_str());
       }
-      case 'm' :
-      {
-        StringVector tokens = Split(line, " ");
-        if ( tokens.size() < 4 )
-          throw Exception("Can't parse SDP media description '"+line+"'");
-        std::string mediaType = tokens[0];
-        if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
-          throw Exception("Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'");
-        StringVector portTokens = Split(tokens[1], "/");
-        int mediaPort = atoi(portTokens[0].c_str());
-        int mediaNumPorts = 1;
-        if ( portTokens.size() > 1 )
-          mediaNumPorts = atoi(portTokens[1].c_str());
-        std::string mediaTransport = tokens[2];
-        if ( mediaTransport != "RTP/AVP" )
-          throw Exception("Unsupported media transport '"+mediaTransport+"' in SDP media attribute '"+line+"'");
-        int payloadType = atoi(tokens[3].c_str());
-        currMedia = new MediaDescriptor(mediaType, mediaPort, mediaNumPorts, mediaTransport, payloadType);
-        mMediaList.push_back(currMedia);
-        break;
-      }
+      break;
+    }
+    case 'm' : {
+      StringVector tokens = Split(line, " ");
+      if ( tokens.size() < 4 )
+        throw Exception("Can't parse SDP media description '"+line+"'");
+      std::string mediaType = tokens[0];
+      if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
+        throw Exception("Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'");
+      StringVector portTokens = Split(tokens[1], "/");
+      int mediaPort = atoi(portTokens[0].c_str());
+      int mediaNumPorts = 1;
+      if ( portTokens.size() > 1 )
+        mediaNumPorts = atoi(portTokens[1].c_str());
+      std::string mediaTransport = tokens[2];
+      if ( mediaTransport != "RTP/AVP" )
+        throw Exception("Unsupported media transport '"+mediaTransport+"' in SDP media attribute '"+line+"'");
+      int payloadType = atoi(tokens[3].c_str());
+      currMedia = new MediaDescriptor(mediaType, mediaPort, mediaNumPorts, mediaTransport, payloadType);
+      mMediaList.push_back(currMedia);
+      break;
+    }
     } // end switch
   } // end foreach line
 }
@@ -293,12 +287,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
   strncpy(formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) - 1);
   formatContext->filename[sizeof(formatContext->filename) - 1] = '\0';
 #endif
-/*
-  if ( mName.length() )
-    strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
-  if ( mInfo.length() )
-    strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
-*/
+  /*
+    if ( mName.length() )
+      strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
+    if ( mInfo.length() )
+      strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
+  */
   //formatContext->nb_streams = mMediaList.size();
   for ( unsigned int i = 0; i < mMediaList.size(); i++ ) {
     const MediaDescriptor *mediaDesc = mMediaList[i];
@@ -309,7 +303,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 
     std::string type = mediaDesc->getType();
     Debug(1, "Looking for codec for %s payload type %d / %s",
-        type.c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str());
+          type.c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str());
     if ( type == "video" )
       codec_context->codec_type = AVMEDIA_TYPE_VIDEO;
     else if ( type == "audio" )
@@ -349,7 +343,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 
     if (codec_name.empty()) {
       Warning( "Can't find payload details for %s payload type %d, name %s",
-          mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
+               mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
     }
     if ( mediaDesc->getWidth() )
       codec_context->width = mediaDesc->getWidth();
@@ -360,9 +354,9 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
       codec_context->extradata_size= 0;
       codec_context->extradata= nullptr;
       char pvalue[1024], *value = pvalue;
-    
+
       strcpy(pvalue, mediaDesc->getSprops().c_str());
-    
+
       while ( *value ) {
         char base64packet[1024];
         uint8_t decoded_packet[1024];
@@ -370,7 +364,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
         char *dst = base64packet;
 
         while (*value && *value != ','
-             && (dst - base64packet) < (long)(sizeof(base64packet)) - 1) {
+               && (dst - base64packet) < (long)(sizeof(base64packet)) - 1) {
           *dst++ = *value++;
         }
         *dst++ = '\0';
@@ -382,8 +376,8 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
         Hexdump(4, (char *)decoded_packet, packet_size);
         if ( packet_size ) {
           uint8_t *dest =
-              (uint8_t *) av_malloc(
-                  packet_size + sizeof(start_sequence) + codec_context->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+            (uint8_t *) av_malloc(
+              packet_size + sizeof(start_sequence) + codec_context->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
           if ( dest ) {
             if ( codec_context->extradata_size ) {
               // av_realloc?
@@ -394,12 +388,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
             memcpy(dest+codec_context->extradata_size, start_sequence, sizeof(start_sequence));
             memcpy(dest+codec_context->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
             memset(dest+codec_context->extradata_size+sizeof(start_sequence)+
-                packet_size, 0,
-                AV_INPUT_BUFFER_PADDING_SIZE
-                );
+                   packet_size, 0,
+                   AV_INPUT_BUFFER_PADDING_SIZE
+                  );
 
-              codec_context->extradata= dest;
-              codec_context->extradata_size+= sizeof(start_sequence)+packet_size;
+            codec_context->extradata= dest;
+            codec_context->extradata_size+= sizeof(start_sequence)+packet_size;
 //          } else {
 //            av_log(codec, AV_LOG_ERROR, "Unable to allocate memory for extradata!");
 //            return AVERROR(ENOMEM);

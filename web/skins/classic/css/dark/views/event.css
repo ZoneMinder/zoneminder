@@ -68,7 +68,7 @@ height: 100%;
 }
 
 #eventVideo {
-    display: inline-block;
+    /* display: inline-block; */
 }
 
 #imageFeed {
@@ -138,9 +138,13 @@ height: 100%;
 
 #progressBar {
     position: relative;
+    /*
     top: -1.25em;
+     */
     height: 1.25em;
+    /*
     margin: 0 auto -1.25em auto;
+     */
 }
 
 #progressBar .progressBox {

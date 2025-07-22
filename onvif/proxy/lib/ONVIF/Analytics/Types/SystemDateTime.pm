@@ -87,7 +87,7 @@ ONVIF::Analytics::Types::SystemDateTime
 Perl data type class for the XML Schema defined complexType
 SystemDateTime from the namespace http://www.onvif.org/ver10/schema.
 
-General date time inforamtion returned by the GetSystemDateTime method.
+General date time information returned by the GetSystemDateTime method.
 
 
 

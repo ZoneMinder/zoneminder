@@ -28,12 +28,12 @@ if ( ($action == 'privacy') && isset($_POST['option']) ) {
   case '0' :
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_SHOW_PRIVACY'");
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_TELEMETRY_DATA'");
-    $redirect = '?view=console';
+    $redirect = '?view='.getHomeView();
     break;
   case '1' :
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_SHOW_PRIVACY'");
     dbQuery("UPDATE Config SET Value = '1' WHERE Name = 'ZM_TELEMETRY_DATA'");
-    $redirect = '?view=console';
+    $redirect = '?view='.getHomeView();
     break;
   default: # Enable the privacy statement if we somehow submit something other than accept or decline
     dbQuery("UPDATE Config SET Value = '1' WHERE Name = 'ZM_SHOW_PRIVACY'");

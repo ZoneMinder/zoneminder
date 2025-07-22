@@ -5,7 +5,7 @@ Options - Storage
 
 Storage tab is used to setup storage areas for recorded Events. To add a new area use the Add New Storage button.
 
-By default storage on local drive is automatically set up on installion. When no area is specified events will be 
+By default storage on local drive is automatically set up on installation. When no area is specified events will be 
 stored to a default built-in location, which for example on Ubuntu is /var/cache/zoneminder/events.
 
 Name: Storage names - can be anything

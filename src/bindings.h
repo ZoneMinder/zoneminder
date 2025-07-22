@@ -517,8 +517,8 @@ typedef xsd__token wstop__ConcreteTopicExpression "(([\\i-[:]][\\c-[:]]*:)?[\\i-
 /// - tev__Capabilities* tev__Capabilities::soap_dup(soap*) returns deep copy of tev__Capabilities, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - tev__Capabilities::soap_del() deep deletes tev__Capabilities data members, use only after tev__Capabilities::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int tev__Capabilities::soap_type() returns SOAP_TYPE_tev__Capabilities or derived type identifier
-class tev__Capabilities
-{ public:
+class tev__Capabilities {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -526,7 +526,7 @@ class tev__Capabilities
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <PRE><BLOCKQUOTE>
 ///   Indicates that the WS Subscription policy is supported.
 /// </BLOCKQUOTE></PRE>
@@ -570,7 +570,7 @@ class tev__Capabilities
 /// Attribute "EventBrokerProtocols" of type xs:string.
   @ std::string*                         EventBrokerProtocols           0;	///< Optional attribute.
 /// <PRE><BLOCKQUOTE>
-///   Maxiumum number of event broker configurations that can be added to the device.
+///   Maximum number of event broker configurations that can be added to the device.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Attribute "MaxEventBrokers" of type xs:int.
@@ -582,7 +582,7 @@ class tev__Capabilities
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://www.onvif.org/ver10/events/wsdl":EventBrokerConfig is a complexType.
@@ -598,62 +598,62 @@ class tev__Capabilities
 /// - tev__EventBrokerConfig* tev__EventBrokerConfig::soap_dup(soap*) returns deep copy of tev__EventBrokerConfig, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - tev__EventBrokerConfig::soap_del() deep deletes tev__EventBrokerConfig data members, use only after tev__EventBrokerConfig::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int tev__EventBrokerConfig::soap_type() returns SOAP_TYPE_tev__EventBrokerConfig or derived type identifier
-class tev__EventBrokerConfig
-{ public:
+class tev__EventBrokerConfig {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   Event broker address in the format "scheme://host:port[/resource]". The supported schemes shall be returned by the EventBrokerProtocols capability. The resource part of the URL is only valid when using websocket. The Address must be unique.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Address" of type xs:anyURI.
-    xsd__anyURI                          Address                        1;	///< Required element.
+  xsd__anyURI                          Address                        1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Prefix that will be prepended to all topics before they are published. This is used to make published topics unique for each device. TopicPrefix is not allowed to be empty.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "TopicPrefix" of type xs:string.
-    std::string                          TopicPrefix                    1;	///< Required element.
+  std::string                          TopicPrefix                    1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   User name for the event broker.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "UserName" of type xs:string.
-    std::string*                         UserName                       0;	///< Optional element.
+  std::string*                         UserName                       0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Password for the event broker. Password shall not be included when returned with GetEventBrokers.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Password" of type xs:string.
-    std::string*                         Password                       0;	///< Optional element.
+  std::string*                         Password                       0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Optional certificate ID in the key store pointing to a client certificate to be used for authenticating the device at the message broker.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "CertificateID" of type xs:token.
-    xsd__token*                          CertificateID                  0;	///< Optional element.
+  xsd__token*                          CertificateID                  0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Concrete Topic Expression to select specific topics to publish.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "PublishFilter" of type "http://docs.oasis-open.org/wsn/b-2":FilterType.
-    wsnt__FilterType*                    PublishFilter                  0;	///< Optional element.
+  wsnt__FilterType*                    PublishFilter                  0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Quality of service level to use when publishing. This defines the guarantee of delivery for a specific message: 0 = At most once, 1 = At least once, 2 = Exactly once.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "QoS" of type xs:int.
-    int*                                 QoS                            0;	///< Optional element.
+  int*                                 QoS                            0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Current connection status (see tev:ConnectionStatus for possible values).
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Status" of type xs:string.
-    std::string*                         Status                         0;	///< Optional element.
+  std::string*                         Status                         0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   The ID of the certification path validation policy used to validate the broker certificate. In case encryption is used but no validation policy is specified, the device shall not validate the broker certificate.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "CertPathValidationPolicyID" of type xs:string.
-    std::string*                         CertPathValidationPolicyID     0;	///< Optional element.
+  std::string*                         CertPathValidationPolicyID     0;	///< Optional element.
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -661,7 +661,7 @@ class tev__EventBrokerConfig
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -669,7 +669,7 @@ class tev__EventBrokerConfig
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetServiceCapabilities
@@ -686,10 +686,10 @@ class tev__EventBrokerConfig
 /// - _tev__GetServiceCapabilities* _tev__GetServiceCapabilities::soap_dup(soap*) returns deep copy of _tev__GetServiceCapabilities, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetServiceCapabilities::soap_del() deep deletes _tev__GetServiceCapabilities data members, use only after _tev__GetServiceCapabilities::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetServiceCapabilities::soap_type() returns SOAP_TYPE__tev__GetServiceCapabilities or derived type identifier
-class _tev__GetServiceCapabilities
-{ public:
+class _tev__GetServiceCapabilities {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetServiceCapabilitiesResponse
@@ -706,16 +706,16 @@ class _tev__GetServiceCapabilities
 /// - _tev__GetServiceCapabilitiesResponse* _tev__GetServiceCapabilitiesResponse::soap_dup(soap*) returns deep copy of _tev__GetServiceCapabilitiesResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetServiceCapabilitiesResponse::soap_del() deep deletes _tev__GetServiceCapabilitiesResponse data members, use only after _tev__GetServiceCapabilitiesResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetServiceCapabilitiesResponse::soap_type() returns SOAP_TYPE__tev__GetServiceCapabilitiesResponse or derived type identifier
-class _tev__GetServiceCapabilitiesResponse
-{ public:
+class _tev__GetServiceCapabilitiesResponse {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   The capabilities for the event service is returned in the Capabilities element.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Capabilities" of type "http://www.onvif.org/ver10/events/wsdl":Capabilities.
-    tev__Capabilities*                   Capabilities                   1;	///< Required element.
+  tev__Capabilities*                   Capabilities                   1;	///< Required element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":CreatePullPointSubscription
@@ -732,20 +732,20 @@ class _tev__GetServiceCapabilitiesResponse
 /// - _tev__CreatePullPointSubscription* _tev__CreatePullPointSubscription::soap_dup(soap*) returns deep copy of _tev__CreatePullPointSubscription, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__CreatePullPointSubscription::soap_del() deep deletes _tev__CreatePullPointSubscription data members, use only after _tev__CreatePullPointSubscription::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__CreatePullPointSubscription::soap_type() returns SOAP_TYPE__tev__CreatePullPointSubscription or derived type identifier
-class _tev__CreatePullPointSubscription
-{ public:
+class _tev__CreatePullPointSubscription {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   Optional XPATH expression to select specific topics.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Filter" of type "http://docs.oasis-open.org/wsn/b-2":FilterType.
-    wsnt__FilterType*                    Filter                         0;	///< Optional element.
+  wsnt__FilterType*                    Filter                         0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Initial termination time.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "InitialTerminationTime" of type "http://docs.oasis-open.org/wsn/b-2":AbsoluteOrRelativeTimeType.
-    wsnt__AbsoluteOrRelativeTimeType*    InitialTerminationTime         0;	///< Optional element.
+  wsnt__AbsoluteOrRelativeTimeType*    InitialTerminationTime         0;	///< Optional element.
 /// <PRE><BLOCKQUOTE>
 ///   Refer to <a href="http://docs.oasis-open.org/wsn/wsn-ws_base_notification-1.3-spec-os.htm">Web Services Base Notification 1.3 (WS-BaseNotification)</a>.
 /// </BLOCKQUOTE></PRE>
@@ -761,8 +761,8 @@ class _tev__CreatePullPointSubscription
 /// - _tev__CreatePullPointSubscription_SubscriptionPolicy* _tev__CreatePullPointSubscription_SubscriptionPolicy::soap_dup(soap*) returns deep copy of _tev__CreatePullPointSubscription_SubscriptionPolicy, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__CreatePullPointSubscription_SubscriptionPolicy::soap_del() deep deletes _tev__CreatePullPointSubscription_SubscriptionPolicy data members, use only after _tev__CreatePullPointSubscription_SubscriptionPolicy::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__CreatePullPointSubscription_SubscriptionPolicy::soap_type() returns SOAP_TYPE__tev__CreatePullPointSubscription_SubscriptionPolicy or derived type identifier
-    class _tev__CreatePullPointSubscription_SubscriptionPolicy
-    { public:
+  class _tev__CreatePullPointSubscription_SubscriptionPolicy {
+   public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -771,7 +771,7 @@ class _tev__CreatePullPointSubscription
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
     std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *SubscriptionPolicy             0;	///< Optional element.
+  }                                   *SubscriptionPolicy             0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -779,9 +779,9 @@ class _tev__CreatePullPointSubscription
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":CreatePullPointSubscriptionResponse
@@ -798,26 +798,26 @@ class _tev__CreatePullPointSubscription
 /// - _tev__CreatePullPointSubscriptionResponse* _tev__CreatePullPointSubscriptionResponse::soap_dup(soap*) returns deep copy of _tev__CreatePullPointSubscriptionResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__CreatePullPointSubscriptionResponse::soap_del() deep deletes _tev__CreatePullPointSubscriptionResponse data members, use only after _tev__CreatePullPointSubscriptionResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__CreatePullPointSubscriptionResponse::soap_type() returns SOAP_TYPE__tev__CreatePullPointSubscriptionResponse or derived type identifier
-class _tev__CreatePullPointSubscriptionResponse
-{ public:
+class _tev__CreatePullPointSubscriptionResponse {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   Endpoint reference of the subscription to be used for pulling the messages.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "SubscriptionReference" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType          SubscriptionReference          1;	///< Required element.
+  wsa5__EndpointReferenceType          SubscriptionReference          1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Current time of the server for synchronization purposes.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element reference "http://www.onvif.org/ver10/events/wsdl:"CurrentTime.
-    time_t                               wsnt__CurrentTime              1;	///< Required element.
+  time_t                               wsnt__CurrentTime              1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Date time when the PullPoint will be shut down without further pull requests.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element reference "http://www.onvif.org/ver10/events/wsdl:"TerminationTime.
-    time_t                               wsnt__TerminationTime          1;	///< Required element.
+  time_t                               wsnt__TerminationTime          1;	///< Required element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -825,9 +825,9 @@ class _tev__CreatePullPointSubscriptionResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":PullMessages
@@ -844,20 +844,20 @@ class _tev__CreatePullPointSubscriptionResponse
 /// - _tev__PullMessages* _tev__PullMessages::soap_dup(soap*) returns deep copy of _tev__PullMessages, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__PullMessages::soap_del() deep deletes _tev__PullMessages data members, use only after _tev__PullMessages::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__PullMessages::soap_type() returns SOAP_TYPE__tev__PullMessages or derived type identifier
-class _tev__PullMessages
-{ public:
+class _tev__PullMessages {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   Maximum time to block until this method returns.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Timeout" of type xs:duration.
-    xsd__duration                        Timeout                        1;	///< Required element.
+  xsd__duration                        Timeout                        1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Upper limit for the number of messages to return at once. A server implementation may decide to return less messages.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "MessageLimit" of type xs:int.
-    int                                  MessageLimit                   1;	///< Required element.
+  int                                  MessageLimit                   1;	///< Required element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -865,9 +865,9 @@ class _tev__PullMessages
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":PullMessagesResponse
@@ -884,28 +884,28 @@ class _tev__PullMessages
 /// - _tev__PullMessagesResponse* _tev__PullMessagesResponse::soap_dup(soap*) returns deep copy of _tev__PullMessagesResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__PullMessagesResponse::soap_del() deep deletes _tev__PullMessagesResponse data members, use only after _tev__PullMessagesResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__PullMessagesResponse::soap_type() returns SOAP_TYPE__tev__PullMessagesResponse or derived type identifier
-class _tev__PullMessagesResponse
-{ public:
+class _tev__PullMessagesResponse {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   The date and time when the messages have been delivered by the web server to the client.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "CurrentTime" of type xs:dateTime.
-    time_t                               CurrentTime                    1;	///< Required element.
+  time_t                               CurrentTime                    1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Date time when the PullPoint will be shut down without further pull requests.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "TerminationTime" of type xs:dateTime.
-    time_t                               TerminationTime                1;	///< Required element.
+  time_t                               TerminationTime                1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   List of messages. This list shall be empty in case of a timeout.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of wsnt__NotificationMessageHolderType* element refs of length 0..unbounded.
-    std::vector<wsnt__NotificationMessageHolderType*> wsnt__NotificationMessage      0;	///< Multiple elements.
+  std::vector<wsnt__NotificationMessageHolderType*> wsnt__NotificationMessage      0;	///< Multiple elements.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":PullMessagesFaultResponse
@@ -922,20 +922,20 @@ class _tev__PullMessagesResponse
 /// - _tev__PullMessagesFaultResponse* _tev__PullMessagesFaultResponse::soap_dup(soap*) returns deep copy of _tev__PullMessagesFaultResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__PullMessagesFaultResponse::soap_del() deep deletes _tev__PullMessagesFaultResponse data members, use only after _tev__PullMessagesFaultResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__PullMessagesFaultResponse::soap_type() returns SOAP_TYPE__tev__PullMessagesFaultResponse or derived type identifier
-class _tev__PullMessagesFaultResponse
-{ public:
+class _tev__PullMessagesFaultResponse {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   Maximum timeout supported by the device.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "MaxTimeout" of type xs:duration.
-    xsd__duration                        MaxTimeout                     1;	///< Required element.
+  xsd__duration                        MaxTimeout                     1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Maximum message limit supported by the device.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "MaxMessageLimit" of type xs:int.
-    int                                  MaxMessageLimit                1;	///< Required element.
+  int                                  MaxMessageLimit                1;	///< Required element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -943,9 +943,9 @@ class _tev__PullMessagesFaultResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":Seek
@@ -962,20 +962,20 @@ class _tev__PullMessagesFaultResponse
 /// - _tev__Seek* _tev__Seek::soap_dup(soap*) returns deep copy of _tev__Seek, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__Seek::soap_del() deep deletes _tev__Seek data members, use only after _tev__Seek::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__Seek::soap_type() returns SOAP_TYPE__tev__Seek or derived type identifier
-class _tev__Seek
-{ public:
+class _tev__Seek {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   The date and time to match against stored messages.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "UtcTime" of type xs:dateTime.
-    time_t                               UtcTime                        1;	///< Required element.
+  time_t                               UtcTime                        1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Reverse the pull direction of PullMessages.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element "Reverse" of type xs:boolean.
-    bool*                                Reverse                        0;	///< Optional element.
+  bool*                                Reverse                        0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -983,9 +983,9 @@ class _tev__Seek
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":SeekResponse
@@ -1002,10 +1002,10 @@ class _tev__Seek
 /// - _tev__SeekResponse* _tev__SeekResponse::soap_dup(soap*) returns deep copy of _tev__SeekResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__SeekResponse::soap_del() deep deletes _tev__SeekResponse data members, use only after _tev__SeekResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__SeekResponse::soap_type() returns SOAP_TYPE__tev__SeekResponse or derived type identifier
-class _tev__SeekResponse
-{ public:
+class _tev__SeekResponse {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":SetSynchronizationPoint
@@ -1022,10 +1022,10 @@ class _tev__SeekResponse
 /// - _tev__SetSynchronizationPoint* _tev__SetSynchronizationPoint::soap_dup(soap*) returns deep copy of _tev__SetSynchronizationPoint, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__SetSynchronizationPoint::soap_del() deep deletes _tev__SetSynchronizationPoint data members, use only after _tev__SetSynchronizationPoint::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__SetSynchronizationPoint::soap_type() returns SOAP_TYPE__tev__SetSynchronizationPoint or derived type identifier
-class _tev__SetSynchronizationPoint
-{ public:
+class _tev__SetSynchronizationPoint {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":SetSynchronizationPointResponse
@@ -1042,10 +1042,10 @@ class _tev__SetSynchronizationPoint
 /// - _tev__SetSynchronizationPointResponse* _tev__SetSynchronizationPointResponse::soap_dup(soap*) returns deep copy of _tev__SetSynchronizationPointResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__SetSynchronizationPointResponse::soap_del() deep deletes _tev__SetSynchronizationPointResponse data members, use only after _tev__SetSynchronizationPointResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__SetSynchronizationPointResponse::soap_type() returns SOAP_TYPE__tev__SetSynchronizationPointResponse or derived type identifier
-class _tev__SetSynchronizationPointResponse
-{ public:
+class _tev__SetSynchronizationPointResponse {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetEventProperties
@@ -1062,10 +1062,10 @@ class _tev__SetSynchronizationPointResponse
 /// - _tev__GetEventProperties* _tev__GetEventProperties::soap_dup(soap*) returns deep copy of _tev__GetEventProperties, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetEventProperties::soap_del() deep deletes _tev__GetEventProperties data members, use only after _tev__GetEventProperties::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetEventProperties::soap_type() returns SOAP_TYPE__tev__GetEventProperties or derived type identifier
-class _tev__GetEventProperties
-{ public:
+class _tev__GetEventProperties {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetEventPropertiesResponse
@@ -1082,26 +1082,26 @@ class _tev__GetEventProperties
 /// - _tev__GetEventPropertiesResponse* _tev__GetEventPropertiesResponse::soap_dup(soap*) returns deep copy of _tev__GetEventPropertiesResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetEventPropertiesResponse::soap_del() deep deletes _tev__GetEventPropertiesResponse data members, use only after _tev__GetEventPropertiesResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetEventPropertiesResponse::soap_type() returns SOAP_TYPE__tev__GetEventPropertiesResponse or derived type identifier
-class _tev__GetEventPropertiesResponse
-{ public:
+class _tev__GetEventPropertiesResponse {
+ public:
 /// <PRE><BLOCKQUOTE>
 ///   List of topic namespaces supported.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of xsd__anyURI of length 1..unbounded.
-    std::vector<xsd__anyURI            > TopicNamespaceLocation         1;	///< Multiple elements.
+  std::vector<xsd__anyURI            > TopicNamespaceLocation         1;	///< Multiple elements.
 /// <PRE><BLOCKQUOTE>
 ///   True when topicset is fixed for all times.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element reference "http://www.onvif.org/ver10/events/wsdl:"FixedTopicSet.
-    bool                                 wsnt__FixedTopicSet            1 = true;	///< Required element with default value="true".
+  bool                                 wsnt__FixedTopicSet            1 = true;	///< Required element with default value="true".
 /// <PRE><BLOCKQUOTE>
 ///   Set of topics supported.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Element reference "http://www.onvif.org/ver10/events/wsdl:"TopicSet.
-    wstop__TopicSetType*                 wstop__TopicSet                1;	///< Required element.
+  wstop__TopicSetType*                 wstop__TopicSet                1;	///< Required element.
 /// <PRE><BLOCKQUOTE>
 ///   Defines the XPath expression syntax supported for matching topic expressions. <br/>
 ///   The following TopicExpressionDialects are mandatory for an ONVIF compliant device :
@@ -1112,7 +1112,7 @@ class _tev__GetEventPropertiesResponse
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of xsd__anyURI element refs of length 1..unbounded.
-    std::vector<xsd__anyURI            > wsnt__TopicExpressionDialect   1;	///< Multiple elements.
+  std::vector<xsd__anyURI            > wsnt__TopicExpressionDialect   1;	///< Multiple elements.
 /// <PRE><BLOCKQUOTE>
 ///   Defines the XPath function set supported for message content filtering.<br/> The following MessageContentFilterDialects should be returned if a device supports the message content filtering:
 ///   <ul type="disc">
@@ -1122,13 +1122,13 @@ class _tev__GetEventPropertiesResponse
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of xsd__anyURI of length 1..unbounded.
-    std::vector<xsd__anyURI            > MessageContentFilterDialect    1;	///< Multiple elements.
+  std::vector<xsd__anyURI            > MessageContentFilterDialect    1;	///< Multiple elements.
 /// <PRE><BLOCKQUOTE>
 ///   Optional ProducerPropertiesDialects. Refer to <a href="http://docs.oasis-open.org/wsn/wsn-ws_base_notification-1.3-spec-os.htm">Web Services Base Notification 1.3 (WS-BaseNotification)</a> for advanced filtering.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of xsd__anyURI of length 0..unbounded.
-    std::vector<xsd__anyURI            > ProducerPropertiesFilterDialect 0;	///< Multiple elements.
+  std::vector<xsd__anyURI            > ProducerPropertiesFilterDialect 0;	///< Multiple elements.
 /// <PRE><BLOCKQUOTE>
 ///   The Message Content Description Language allows referencing
 ///   of vendor-specific types. In order to ease the integration of such types into a client application,
@@ -1137,7 +1137,7 @@ class _tev__GetEventPropertiesResponse
 /// </BLOCKQUOTE></PRE>
 ///
 /// Vector of xsd__anyURI of length 1..unbounded.
-    std::vector<xsd__anyURI            > MessageContentSchemaLocation   1;	///< Multiple elements.
+  std::vector<xsd__anyURI            > MessageContentSchemaLocation   1;	///< Multiple elements.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1145,9 +1145,9 @@ class _tev__GetEventPropertiesResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":AddEventBroker
@@ -1164,12 +1164,12 @@ class _tev__GetEventPropertiesResponse
 /// - _tev__AddEventBroker* _tev__AddEventBroker::soap_dup(soap*) returns deep copy of _tev__AddEventBroker, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__AddEventBroker::soap_del() deep deletes _tev__AddEventBroker data members, use only after _tev__AddEventBroker::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__AddEventBroker::soap_type() returns SOAP_TYPE__tev__AddEventBroker or derived type identifier
-class _tev__AddEventBroker
-{ public:
+class _tev__AddEventBroker {
+ public:
 /// Element "EventBroker" of type "http://www.onvif.org/ver10/events/wsdl":EventBrokerConfig.
-    tev__EventBrokerConfig*              EventBroker                    1;	///< Required element.
+  tev__EventBrokerConfig*              EventBroker                    1;	///< Required element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":AddEventBrokerResponse
@@ -1186,10 +1186,10 @@ class _tev__AddEventBroker
 /// - _tev__AddEventBrokerResponse* _tev__AddEventBrokerResponse::soap_dup(soap*) returns deep copy of _tev__AddEventBrokerResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__AddEventBrokerResponse::soap_del() deep deletes _tev__AddEventBrokerResponse data members, use only after _tev__AddEventBrokerResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__AddEventBrokerResponse::soap_type() returns SOAP_TYPE__tev__AddEventBrokerResponse or derived type identifier
-class _tev__AddEventBrokerResponse
-{ public:
+class _tev__AddEventBrokerResponse {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":DeleteEventBroker
@@ -1206,12 +1206,12 @@ class _tev__AddEventBrokerResponse
 /// - _tev__DeleteEventBroker* _tev__DeleteEventBroker::soap_dup(soap*) returns deep copy of _tev__DeleteEventBroker, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__DeleteEventBroker::soap_del() deep deletes _tev__DeleteEventBroker data members, use only after _tev__DeleteEventBroker::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__DeleteEventBroker::soap_type() returns SOAP_TYPE__tev__DeleteEventBroker or derived type identifier
-class _tev__DeleteEventBroker
-{ public:
+class _tev__DeleteEventBroker {
+ public:
 /// Element "Address" of type xs:anyURI.
-    xsd__anyURI                          Address                        1;	///< Required element.
+  xsd__anyURI                          Address                        1;	///< Required element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":DeleteEventBrokerResponse
@@ -1228,10 +1228,10 @@ class _tev__DeleteEventBroker
 /// - _tev__DeleteEventBrokerResponse* _tev__DeleteEventBrokerResponse::soap_dup(soap*) returns deep copy of _tev__DeleteEventBrokerResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__DeleteEventBrokerResponse::soap_del() deep deletes _tev__DeleteEventBrokerResponse data members, use only after _tev__DeleteEventBrokerResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__DeleteEventBrokerResponse::soap_type() returns SOAP_TYPE__tev__DeleteEventBrokerResponse or derived type identifier
-class _tev__DeleteEventBrokerResponse
-{ public:
+class _tev__DeleteEventBrokerResponse {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetEventBrokers
@@ -1248,12 +1248,12 @@ class _tev__DeleteEventBrokerResponse
 /// - _tev__GetEventBrokers* _tev__GetEventBrokers::soap_dup(soap*) returns deep copy of _tev__GetEventBrokers, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetEventBrokers::soap_del() deep deletes _tev__GetEventBrokers data members, use only after _tev__GetEventBrokers::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetEventBrokers::soap_type() returns SOAP_TYPE__tev__GetEventBrokers or derived type identifier
-class _tev__GetEventBrokers
-{ public:
+class _tev__GetEventBrokers {
+ public:
 /// Element "Address" of type xs:anyURI.
-    xsd__anyURI*                         Address                        0;	///< Optional element.
+  xsd__anyURI*                         Address                        0;	///< Optional element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://www.onvif.org/ver10/events/wsdl":GetEventBrokersResponse
@@ -1270,12 +1270,12 @@ class _tev__GetEventBrokers
 /// - _tev__GetEventBrokersResponse* _tev__GetEventBrokersResponse::soap_dup(soap*) returns deep copy of _tev__GetEventBrokersResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _tev__GetEventBrokersResponse::soap_del() deep deletes _tev__GetEventBrokersResponse data members, use only after _tev__GetEventBrokersResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _tev__GetEventBrokersResponse::soap_type() returns SOAP_TYPE__tev__GetEventBrokersResponse or derived type identifier
-class _tev__GetEventBrokersResponse
-{ public:
+class _tev__GetEventBrokersResponse {
+ public:
 /// Vector of tev__EventBrokerConfig* of length 0..unbounded.
-    std::vector<tev__EventBrokerConfig*> EventBroker                    0;	///< Multiple elements.
+  std::vector<tev__EventBrokerConfig*> EventBroker                    0;	///< Multiple elements.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 
@@ -1347,8 +1347,8 @@ class _tev__GetEventBrokersResponse
 /// - wsrfbf__BaseFaultType* wsrfbf__BaseFaultType::soap_dup(soap*) returns deep copy of wsrfbf__BaseFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsrfbf__BaseFaultType::soap_del() deep deletes wsrfbf__BaseFaultType data members, use only after wsrfbf__BaseFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsrfbf__BaseFaultType::soap_type() returns SOAP_TYPE_wsrfbf__BaseFaultType or derived type identifier
-class wsrfbf__BaseFaultType
-{ public:
+class wsrfbf__BaseFaultType {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1356,11 +1356,11 @@ class wsrfbf__BaseFaultType
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
+  time_t                               Timestamp                      1;	///< Required element.
 /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
 /// @note class _wsrfbf__BaseFaultType_ErrorCode operations:
 /// - _wsrfbf__BaseFaultType_ErrorCode* soap_new__wsrfbf__BaseFaultType_ErrorCode(soap*) allocate and default initialize
 /// - _wsrfbf__BaseFaultType_ErrorCode* soap_new__wsrfbf__BaseFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
@@ -1372,18 +1372,18 @@ class wsrfbf__BaseFaultType
 /// - _wsrfbf__BaseFaultType_ErrorCode* _wsrfbf__BaseFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__BaseFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsrfbf__BaseFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__BaseFaultType_ErrorCode data members, use only after _wsrfbf__BaseFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsrfbf__BaseFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__BaseFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__BaseFaultType_ErrorCode
-    { public:
+  class _wsrfbf__BaseFaultType_ErrorCode {
+   public:
 /// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
 /// Mixed content.
 /// @note Mixed content is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
     xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
+  }                                   *ErrorCode                      0;	///< Optional element.
 /// Vector of Description of length 0..unbounded.
-    std::vector<
+  std::vector<
 /// @note class _wsrfbf__BaseFaultType_Description operations:
 /// - _wsrfbf__BaseFaultType_Description* soap_new__wsrfbf__BaseFaultType_Description(soap*) allocate and default initialize
 /// - _wsrfbf__BaseFaultType_Description* soap_new__wsrfbf__BaseFaultType_Description(soap*, int num) allocate and default initialize an array
@@ -1395,13 +1395,13 @@ class wsrfbf__BaseFaultType
 /// - _wsrfbf__BaseFaultType_Description* _wsrfbf__BaseFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__BaseFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsrfbf__BaseFaultType_Description::soap_del() deep deletes _wsrfbf__BaseFaultType_Description data members, use only after _wsrfbf__BaseFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsrfbf__BaseFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__BaseFaultType_Description or derived type identifier
-    class _wsrfbf__BaseFaultType_Description
-    { public:
+  class _wsrfbf__BaseFaultType_Description {
+   public:
 /// __item wraps simpleContent of type xs:string.
     std::string                          __item                        ;
 /// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+  }>                                   Description                    0;	///< Multiple elements.
 /// @note class _wsrfbf__BaseFaultType_FaultCause operations:
 /// - _wsrfbf__BaseFaultType_FaultCause* soap_new__wsrfbf__BaseFaultType_FaultCause(soap*) allocate and default initialize
 /// - _wsrfbf__BaseFaultType_FaultCause* soap_new__wsrfbf__BaseFaultType_FaultCause(soap*, int num) allocate and default initialize an array
@@ -1413,8 +1413,8 @@ class wsrfbf__BaseFaultType
 /// - _wsrfbf__BaseFaultType_FaultCause* _wsrfbf__BaseFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__BaseFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsrfbf__BaseFaultType_FaultCause::soap_del() deep deletes _wsrfbf__BaseFaultType_FaultCause data members, use only after _wsrfbf__BaseFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsrfbf__BaseFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__BaseFaultType_FaultCause or derived type identifier
-    class _wsrfbf__BaseFaultType_FaultCause
-    { public:
+  class _wsrfbf__BaseFaultType_FaultCause {
+   public:
 /// <any namespace="##other" minOccurs="1" maxOccurs="1">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1422,7 +1422,7 @@ class wsrfbf__BaseFaultType
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
     xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
+  }                                   *FaultCause                     0;	///< Optional element.
 /// <anyAttribute namespace="##other">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1430,7 +1430,7 @@ class wsrfbf__BaseFaultType
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 
@@ -1454,24 +1454,24 @@ class wsrfbf__BaseFaultType
 /// - wsnt__QueryExpressionType* wsnt__QueryExpressionType::soap_dup(soap*) returns deep copy of wsnt__QueryExpressionType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__QueryExpressionType::soap_del() deep deletes wsnt__QueryExpressionType data members, use only after wsnt__QueryExpressionType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__QueryExpressionType::soap_type() returns SOAP_TYPE_wsnt__QueryExpressionType or derived type identifier
-class wsnt__QueryExpressionType
-{ public:
+class wsnt__QueryExpressionType {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="1">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -x to remove this element.
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "Dialect" of type xs:anyURI.
   @ xsd__anyURI                          Dialect                        1;	///< Required attribute.
 /// Mixed content.
 /// @note Mixed content is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+  xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":TopicExpressionType is a complexType.
@@ -1487,15 +1487,15 @@ class wsnt__QueryExpressionType
 /// - wsnt__TopicExpressionType* wsnt__TopicExpressionType::soap_dup(soap*) returns deep copy of wsnt__TopicExpressionType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__TopicExpressionType::soap_del() deep deletes wsnt__TopicExpressionType data members, use only after wsnt__TopicExpressionType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__TopicExpressionType::soap_type() returns SOAP_TYPE_wsnt__TopicExpressionType or derived type identifier
-class wsnt__TopicExpressionType
-{ public:
+class wsnt__TopicExpressionType {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="1">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -x to remove this element.
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "Dialect" of type xs:anyURI.
   @ xsd__anyURI                          Dialect                        1;	///< Required attribute.
 /// <anyAttribute namespace="##any">.
@@ -1508,9 +1508,9 @@ class wsnt__TopicExpressionType
 /// @note Mixed content is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+  xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":FilterType is a complexType.
@@ -1526,8 +1526,8 @@ class wsnt__TopicExpressionType
 /// - wsnt__FilterType* wsnt__FilterType::soap_dup(soap*) returns deep copy of wsnt__FilterType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__FilterType::soap_del() deep deletes wsnt__FilterType data members, use only after wsnt__FilterType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__FilterType::soap_type() returns SOAP_TYPE_wsnt__FilterType or derived type identifier
-class wsnt__FilterType
-{ public:
+class wsnt__FilterType {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1535,9 +1535,9 @@ class wsnt__FilterType
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":SubscriptionPolicyType is a complexType.
@@ -1553,8 +1553,8 @@ class wsnt__FilterType
 /// - wsnt__SubscriptionPolicyType* wsnt__SubscriptionPolicyType::soap_dup(soap*) returns deep copy of wsnt__SubscriptionPolicyType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__SubscriptionPolicyType::soap_del() deep deletes wsnt__SubscriptionPolicyType data members, use only after wsnt__SubscriptionPolicyType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__SubscriptionPolicyType::soap_type() returns SOAP_TYPE_wsnt__SubscriptionPolicyType or derived type identifier
-class wsnt__SubscriptionPolicyType
-{ public:
+class wsnt__SubscriptionPolicyType {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1562,9 +1562,9 @@ class wsnt__SubscriptionPolicyType
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":NotificationMessageHolderType is a complexType.
@@ -1580,14 +1580,14 @@ class wsnt__SubscriptionPolicyType
 /// - wsnt__NotificationMessageHolderType* wsnt__NotificationMessageHolderType::soap_dup(soap*) returns deep copy of wsnt__NotificationMessageHolderType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__NotificationMessageHolderType::soap_del() deep deletes wsnt__NotificationMessageHolderType data members, use only after wsnt__NotificationMessageHolderType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__NotificationMessageHolderType::soap_type() returns SOAP_TYPE_wsnt__NotificationMessageHolderType or derived type identifier
-class wsnt__NotificationMessageHolderType
-{ public:
+class wsnt__NotificationMessageHolderType {
+ public:
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"SubscriptionReference.
-    wsa5__EndpointReferenceType*         SubscriptionReference          0;	///< Optional element.
+  wsa5__EndpointReferenceType*         SubscriptionReference          0;	///< Optional element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"Topic.
-    wsnt__TopicExpressionType*           Topic                          0;	///< Optional element.
+  wsnt__TopicExpressionType*           Topic                          0;	///< Optional element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"ProducerReference.
-    wsa5__EndpointReferenceType*         ProducerReference              0;	///< Optional element.
+  wsa5__EndpointReferenceType*         ProducerReference              0;	///< Optional element.
 /// @note class _wsnt__NotificationMessageHolderType_Message operations:
 /// - _wsnt__NotificationMessageHolderType_Message* soap_new__wsnt__NotificationMessageHolderType_Message(soap*) allocate and default initialize
 /// - _wsnt__NotificationMessageHolderType_Message* soap_new__wsnt__NotificationMessageHolderType_Message(soap*, int num) allocate and default initialize an array
@@ -1599,8 +1599,8 @@ class wsnt__NotificationMessageHolderType
 /// - _wsnt__NotificationMessageHolderType_Message* _wsnt__NotificationMessageHolderType_Message::soap_dup(soap*) returns deep copy of _wsnt__NotificationMessageHolderType_Message, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__NotificationMessageHolderType_Message::soap_del() deep deletes _wsnt__NotificationMessageHolderType_Message data members, use only after _wsnt__NotificationMessageHolderType_Message::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__NotificationMessageHolderType_Message::soap_type() returns SOAP_TYPE__wsnt__NotificationMessageHolderType_Message or derived type identifier
-    class _wsnt__NotificationMessageHolderType_Message
-    { public:
+  class _wsnt__NotificationMessageHolderType_Message {
+   public:
 /// <any namespace="##any" minOccurs="1" maxOccurs="1">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1608,9 +1608,9 @@ class wsnt__NotificationMessageHolderType
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
     xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                    Message                        1;	///< Required element.
+  }                                    Message                        1;	///< Required element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":NotificationProducerRP
@@ -1627,18 +1627,18 @@ class wsnt__NotificationMessageHolderType
 /// - _wsnt__NotificationProducerRP* _wsnt__NotificationProducerRP::soap_dup(soap*) returns deep copy of _wsnt__NotificationProducerRP, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__NotificationProducerRP::soap_del() deep deletes _wsnt__NotificationProducerRP data members, use only after _wsnt__NotificationProducerRP::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__NotificationProducerRP::soap_type() returns SOAP_TYPE__wsnt__NotificationProducerRP or derived type identifier
-class _wsnt__NotificationProducerRP
-{ public:
+class _wsnt__NotificationProducerRP {
+ public:
 /// Vector of wsnt__TopicExpressionType* element refs of length 0..unbounded.
-    std::vector<wsnt__TopicExpressionType*> TopicExpression                0;	///< Multiple elements.
+  std::vector<wsnt__TopicExpressionType*> TopicExpression                0;	///< Multiple elements.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"FixedTopicSet.
-    bool*                                FixedTopicSet                  0 = true;	///< Optional element with default value="true".
+  bool*                                FixedTopicSet                  0 = true;	///< Optional element with default value="true".
 /// Vector of xsd__anyURI element refs of length 0..unbounded.
-    std::vector<xsd__anyURI            > TopicExpressionDialect         0;	///< Multiple elements.
+  std::vector<xsd__anyURI            > TopicExpressionDialect         0;	///< Multiple elements.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"TopicSet.
-    wstop__TopicSetType*                 wstop__TopicSet                0;	///< Optional element.
+  wstop__TopicSetType*                 wstop__TopicSet                0;	///< Optional element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":SubscriptionManagerRP
@@ -1655,18 +1655,18 @@ class _wsnt__NotificationProducerRP
 /// - _wsnt__SubscriptionManagerRP* _wsnt__SubscriptionManagerRP::soap_dup(soap*) returns deep copy of _wsnt__SubscriptionManagerRP, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__SubscriptionManagerRP::soap_del() deep deletes _wsnt__SubscriptionManagerRP data members, use only after _wsnt__SubscriptionManagerRP::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__SubscriptionManagerRP::soap_type() returns SOAP_TYPE__wsnt__SubscriptionManagerRP or derived type identifier
-class _wsnt__SubscriptionManagerRP
-{ public:
+class _wsnt__SubscriptionManagerRP {
+ public:
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"ConsumerReference.
-    wsa5__EndpointReferenceType          ConsumerReference              1;	///< Required element.
+  wsa5__EndpointReferenceType          ConsumerReference              1;	///< Required element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"Filter.
-    wsnt__FilterType*                    Filter                         0;	///< Optional element.
+  wsnt__FilterType*                    Filter                         0;	///< Optional element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"SubscriptionPolicy.
-    wsnt__SubscriptionPolicyType*        SubscriptionPolicy             0;	///< Optional element.
+  wsnt__SubscriptionPolicyType*        SubscriptionPolicy             0;	///< Optional element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"CreationTime.
-    time_t*                              CreationTime                   0;	///< Optional element.
+  time_t*                              CreationTime                   0;	///< Optional element.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":Notify
@@ -1683,10 +1683,10 @@ class _wsnt__SubscriptionManagerRP
 /// - _wsnt__Notify* _wsnt__Notify::soap_dup(soap*) returns deep copy of _wsnt__Notify, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__Notify::soap_del() deep deletes _wsnt__Notify data members, use only after _wsnt__Notify::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__Notify::soap_type() returns SOAP_TYPE__wsnt__Notify or derived type identifier
-class _wsnt__Notify
-{ public:
+class _wsnt__Notify {
+ public:
 /// Vector of wsnt__NotificationMessageHolderType* element refs of length 1..unbounded.
-    std::vector<wsnt__NotificationMessageHolderType*> NotificationMessage            1;	///< Multiple elements.
+  std::vector<wsnt__NotificationMessageHolderType*> NotificationMessage            1;	///< Multiple elements.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1694,9 +1694,9 @@ class _wsnt__Notify
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":UseRaw
@@ -1713,10 +1713,10 @@ class _wsnt__Notify
 /// - _wsnt__UseRaw* _wsnt__UseRaw::soap_dup(soap*) returns deep copy of _wsnt__UseRaw, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__UseRaw::soap_del() deep deletes _wsnt__UseRaw data members, use only after _wsnt__UseRaw::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__UseRaw::soap_type() returns SOAP_TYPE__wsnt__UseRaw or derived type identifier
-class _wsnt__UseRaw
-{ public:
+class _wsnt__UseRaw {
+ public:
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":Subscribe
@@ -1733,14 +1733,14 @@ class _wsnt__UseRaw
 /// - _wsnt__Subscribe* _wsnt__Subscribe::soap_dup(soap*) returns deep copy of _wsnt__Subscribe, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__Subscribe::soap_del() deep deletes _wsnt__Subscribe data members, use only after _wsnt__Subscribe::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__Subscribe::soap_type() returns SOAP_TYPE__wsnt__Subscribe or derived type identifier
-class _wsnt__Subscribe
-{ public:
+class _wsnt__Subscribe {
+ public:
 /// Element "ConsumerReference" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType          ConsumerReference              1;	///< Required element.
+  wsa5__EndpointReferenceType          ConsumerReference              1;	///< Required element.
 /// Element "Filter" of type "http://docs.oasis-open.org/wsn/b-2":FilterType.
-    wsnt__FilterType*                    Filter                         0;	///< Optional element.
+  wsnt__FilterType*                    Filter                         0;	///< Optional element.
 /// Element "InitialTerminationTime" of type "http://docs.oasis-open.org/wsn/b-2":AbsoluteOrRelativeTimeType.
-    wsnt__AbsoluteOrRelativeTimeType*    InitialTerminationTime         0;	///< Optional element.
+  wsnt__AbsoluteOrRelativeTimeType*    InitialTerminationTime         0;	///< Optional element.
 /// @note class _wsnt__Subscribe_SubscriptionPolicy operations:
 /// - _wsnt__Subscribe_SubscriptionPolicy* soap_new__wsnt__Subscribe_SubscriptionPolicy(soap*) allocate and default initialize
 /// - _wsnt__Subscribe_SubscriptionPolicy* soap_new__wsnt__Subscribe_SubscriptionPolicy(soap*, int num) allocate and default initialize an array
@@ -1752,8 +1752,8 @@ class _wsnt__Subscribe
 /// - _wsnt__Subscribe_SubscriptionPolicy* _wsnt__Subscribe_SubscriptionPolicy::soap_dup(soap*) returns deep copy of _wsnt__Subscribe_SubscriptionPolicy, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__Subscribe_SubscriptionPolicy::soap_del() deep deletes _wsnt__Subscribe_SubscriptionPolicy data members, use only after _wsnt__Subscribe_SubscriptionPolicy::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__Subscribe_SubscriptionPolicy::soap_type() returns SOAP_TYPE__wsnt__Subscribe_SubscriptionPolicy or derived type identifier
-    class _wsnt__Subscribe_SubscriptionPolicy
-    { public:
+  class _wsnt__Subscribe_SubscriptionPolicy {
+   public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1762,7 +1762,7 @@ class _wsnt__Subscribe
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
     std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *SubscriptionPolicy             0;	///< Optional element.
+  }                                   *SubscriptionPolicy             0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1770,9 +1770,9 @@ class _wsnt__Subscribe
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":SubscribeResponse
@@ -1789,14 +1789,14 @@ class _wsnt__Subscribe
 /// - _wsnt__SubscribeResponse* _wsnt__SubscribeResponse::soap_dup(soap*) returns deep copy of _wsnt__SubscribeResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__SubscribeResponse::soap_del() deep deletes _wsnt__SubscribeResponse data members, use only after _wsnt__SubscribeResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__SubscribeResponse::soap_type() returns SOAP_TYPE__wsnt__SubscribeResponse or derived type identifier
-class _wsnt__SubscribeResponse
-{ public:
+class _wsnt__SubscribeResponse {
+ public:
 /// Element "SubscriptionReference" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType          SubscriptionReference          1;	///< Required element.
+  wsa5__EndpointReferenceType          SubscriptionReference          1;	///< Required element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"CurrentTime.
-    time_t*                              CurrentTime                    0;	///< Optional element.
+  time_t*                              CurrentTime                    0;	///< Optional element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"TerminationTime.
-    time_t*                              TerminationTime                0;	///< Optional element.
+  time_t*                              TerminationTime                0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1804,9 +1804,9 @@ class _wsnt__SubscribeResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":GetCurrentMessage
@@ -1823,10 +1823,10 @@ class _wsnt__SubscribeResponse
 /// - _wsnt__GetCurrentMessage* _wsnt__GetCurrentMessage::soap_dup(soap*) returns deep copy of _wsnt__GetCurrentMessage, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__GetCurrentMessage::soap_del() deep deletes _wsnt__GetCurrentMessage data members, use only after _wsnt__GetCurrentMessage::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__GetCurrentMessage::soap_type() returns SOAP_TYPE__wsnt__GetCurrentMessage or derived type identifier
-class _wsnt__GetCurrentMessage
-{ public:
+class _wsnt__GetCurrentMessage {
+ public:
 /// Element "Topic" of type "http://docs.oasis-open.org/wsn/b-2":TopicExpressionType.
-    wsnt__TopicExpressionType*           Topic                          1;	///< Required element.
+  wsnt__TopicExpressionType*           Topic                          1;	///< Required element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1834,9 +1834,9 @@ class _wsnt__GetCurrentMessage
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":GetCurrentMessageResponse
@@ -1853,8 +1853,8 @@ class _wsnt__GetCurrentMessage
 /// - _wsnt__GetCurrentMessageResponse* _wsnt__GetCurrentMessageResponse::soap_dup(soap*) returns deep copy of _wsnt__GetCurrentMessageResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__GetCurrentMessageResponse::soap_del() deep deletes _wsnt__GetCurrentMessageResponse data members, use only after _wsnt__GetCurrentMessageResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__GetCurrentMessageResponse::soap_type() returns SOAP_TYPE__wsnt__GetCurrentMessageResponse or derived type identifier
-class _wsnt__GetCurrentMessageResponse
-{ public:
+class _wsnt__GetCurrentMessageResponse {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1862,9 +1862,9 @@ class _wsnt__GetCurrentMessageResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":GetMessages
@@ -1881,10 +1881,10 @@ class _wsnt__GetCurrentMessageResponse
 /// - _wsnt__GetMessages* _wsnt__GetMessages::soap_dup(soap*) returns deep copy of _wsnt__GetMessages, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__GetMessages::soap_del() deep deletes _wsnt__GetMessages data members, use only after _wsnt__GetMessages::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__GetMessages::soap_type() returns SOAP_TYPE__wsnt__GetMessages or derived type identifier
-class _wsnt__GetMessages
-{ public:
+class _wsnt__GetMessages {
+ public:
 /// Element "MaximumNumber" of type xs:nonNegativeInteger.
-    xsd__nonNegativeInteger*             MaximumNumber                  0;	///< Optional element.
+  xsd__nonNegativeInteger*             MaximumNumber                  0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1892,7 +1892,7 @@ class _wsnt__GetMessages
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1900,7 +1900,7 @@ class _wsnt__GetMessages
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":GetMessagesResponse
@@ -1917,10 +1917,10 @@ class _wsnt__GetMessages
 /// - _wsnt__GetMessagesResponse* _wsnt__GetMessagesResponse::soap_dup(soap*) returns deep copy of _wsnt__GetMessagesResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__GetMessagesResponse::soap_del() deep deletes _wsnt__GetMessagesResponse data members, use only after _wsnt__GetMessagesResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__GetMessagesResponse::soap_type() returns SOAP_TYPE__wsnt__GetMessagesResponse or derived type identifier
-class _wsnt__GetMessagesResponse
-{ public:
+class _wsnt__GetMessagesResponse {
+ public:
 /// Vector of wsnt__NotificationMessageHolderType* element refs of length 0..unbounded.
-    std::vector<wsnt__NotificationMessageHolderType*> NotificationMessage            0;	///< Multiple elements.
+  std::vector<wsnt__NotificationMessageHolderType*> NotificationMessage            0;	///< Multiple elements.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1928,7 +1928,7 @@ class _wsnt__GetMessagesResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1936,7 +1936,7 @@ class _wsnt__GetMessagesResponse
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":DestroyPullPoint
@@ -1953,8 +1953,8 @@ class _wsnt__GetMessagesResponse
 /// - _wsnt__DestroyPullPoint* _wsnt__DestroyPullPoint::soap_dup(soap*) returns deep copy of _wsnt__DestroyPullPoint, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__DestroyPullPoint::soap_del() deep deletes _wsnt__DestroyPullPoint data members, use only after _wsnt__DestroyPullPoint::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__DestroyPullPoint::soap_type() returns SOAP_TYPE__wsnt__DestroyPullPoint or derived type identifier
-class _wsnt__DestroyPullPoint
-{ public:
+class _wsnt__DestroyPullPoint {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1962,7 +1962,7 @@ class _wsnt__DestroyPullPoint
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1970,7 +1970,7 @@ class _wsnt__DestroyPullPoint
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":DestroyPullPointResponse
@@ -1987,8 +1987,8 @@ class _wsnt__DestroyPullPoint
 /// - _wsnt__DestroyPullPointResponse* _wsnt__DestroyPullPointResponse::soap_dup(soap*) returns deep copy of _wsnt__DestroyPullPointResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__DestroyPullPointResponse::soap_del() deep deletes _wsnt__DestroyPullPointResponse data members, use only after _wsnt__DestroyPullPointResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__DestroyPullPointResponse::soap_type() returns SOAP_TYPE__wsnt__DestroyPullPointResponse or derived type identifier
-class _wsnt__DestroyPullPointResponse
-{ public:
+class _wsnt__DestroyPullPointResponse {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -1996,7 +1996,7 @@ class _wsnt__DestroyPullPointResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2004,7 +2004,7 @@ class _wsnt__DestroyPullPointResponse
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":CreatePullPoint
@@ -2021,8 +2021,8 @@ class _wsnt__DestroyPullPointResponse
 /// - _wsnt__CreatePullPoint* _wsnt__CreatePullPoint::soap_dup(soap*) returns deep copy of _wsnt__CreatePullPoint, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__CreatePullPoint::soap_del() deep deletes _wsnt__CreatePullPoint data members, use only after _wsnt__CreatePullPoint::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__CreatePullPoint::soap_type() returns SOAP_TYPE__wsnt__CreatePullPoint or derived type identifier
-class _wsnt__CreatePullPoint
-{ public:
+class _wsnt__CreatePullPoint {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2030,7 +2030,7 @@ class _wsnt__CreatePullPoint
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2038,7 +2038,7 @@ class _wsnt__CreatePullPoint
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":CreatePullPointResponse
@@ -2055,10 +2055,10 @@ class _wsnt__CreatePullPoint
 /// - _wsnt__CreatePullPointResponse* _wsnt__CreatePullPointResponse::soap_dup(soap*) returns deep copy of _wsnt__CreatePullPointResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__CreatePullPointResponse::soap_del() deep deletes _wsnt__CreatePullPointResponse data members, use only after _wsnt__CreatePullPointResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__CreatePullPointResponse::soap_type() returns SOAP_TYPE__wsnt__CreatePullPointResponse or derived type identifier
-class _wsnt__CreatePullPointResponse
-{ public:
+class _wsnt__CreatePullPointResponse {
+ public:
 /// Element "PullPoint" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType          PullPoint                      1;	///< Required element.
+  wsa5__EndpointReferenceType          PullPoint                      1;	///< Required element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2066,7 +2066,7 @@ class _wsnt__CreatePullPointResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// <anyAttribute namespace="##any">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2074,7 +2074,7 @@ class _wsnt__CreatePullPointResponse
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":Renew
@@ -2091,10 +2091,10 @@ class _wsnt__CreatePullPointResponse
 /// - _wsnt__Renew* _wsnt__Renew::soap_dup(soap*) returns deep copy of _wsnt__Renew, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__Renew::soap_del() deep deletes _wsnt__Renew data members, use only after _wsnt__Renew::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__Renew::soap_type() returns SOAP_TYPE__wsnt__Renew or derived type identifier
-class _wsnt__Renew
-{ public:
+class _wsnt__Renew {
+ public:
 /// Element "TerminationTime" of type "http://docs.oasis-open.org/wsn/b-2":AbsoluteOrRelativeTimeType.
-    wsnt__AbsoluteOrRelativeTimeType*    TerminationTime                nullptr 1;	///< Required nillable (xsi:nil when NULL) element.
+  wsnt__AbsoluteOrRelativeTimeType*    TerminationTime                nullptr 1;	///< Required nillable (xsi:nil when NULL) element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2102,9 +2102,9 @@ class _wsnt__Renew
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":RenewResponse
@@ -2121,12 +2121,12 @@ class _wsnt__Renew
 /// - _wsnt__RenewResponse* _wsnt__RenewResponse::soap_dup(soap*) returns deep copy of _wsnt__RenewResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__RenewResponse::soap_del() deep deletes _wsnt__RenewResponse data members, use only after _wsnt__RenewResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__RenewResponse::soap_type() returns SOAP_TYPE__wsnt__RenewResponse or derived type identifier
-class _wsnt__RenewResponse
-{ public:
+class _wsnt__RenewResponse {
+ public:
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"TerminationTime.
-    time_t                               TerminationTime                1;	///< Required element.
+  time_t                               TerminationTime                1;	///< Required element.
 /// Element reference "http://docs.oasis-open.org/wsn/b-2:"CurrentTime.
-    time_t*                              CurrentTime                    0;	///< Optional element.
+  time_t*                              CurrentTime                    0;	///< Optional element.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2134,9 +2134,9 @@ class _wsnt__RenewResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":Unsubscribe
@@ -2153,8 +2153,8 @@ class _wsnt__RenewResponse
 /// - _wsnt__Unsubscribe* _wsnt__Unsubscribe::soap_dup(soap*) returns deep copy of _wsnt__Unsubscribe, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__Unsubscribe::soap_del() deep deletes _wsnt__Unsubscribe data members, use only after _wsnt__Unsubscribe::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__Unsubscribe::soap_type() returns SOAP_TYPE__wsnt__Unsubscribe or derived type identifier
-class _wsnt__Unsubscribe
-{ public:
+class _wsnt__Unsubscribe {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2162,9 +2162,9 @@ class _wsnt__Unsubscribe
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":UnsubscribeResponse
@@ -2181,8 +2181,8 @@ class _wsnt__Unsubscribe
 /// - _wsnt__UnsubscribeResponse* _wsnt__UnsubscribeResponse::soap_dup(soap*) returns deep copy of _wsnt__UnsubscribeResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__UnsubscribeResponse::soap_del() deep deletes _wsnt__UnsubscribeResponse data members, use only after _wsnt__UnsubscribeResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__UnsubscribeResponse::soap_type() returns SOAP_TYPE__wsnt__UnsubscribeResponse or derived type identifier
-class _wsnt__UnsubscribeResponse
-{ public:
+class _wsnt__UnsubscribeResponse {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2190,9 +2190,9 @@ class _wsnt__UnsubscribeResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":PauseSubscription
@@ -2209,8 +2209,8 @@ class _wsnt__UnsubscribeResponse
 /// - _wsnt__PauseSubscription* _wsnt__PauseSubscription::soap_dup(soap*) returns deep copy of _wsnt__PauseSubscription, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__PauseSubscription::soap_del() deep deletes _wsnt__PauseSubscription data members, use only after _wsnt__PauseSubscription::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__PauseSubscription::soap_type() returns SOAP_TYPE__wsnt__PauseSubscription or derived type identifier
-class _wsnt__PauseSubscription
-{ public:
+class _wsnt__PauseSubscription {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2218,9 +2218,9 @@ class _wsnt__PauseSubscription
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":PauseSubscriptionResponse
@@ -2237,8 +2237,8 @@ class _wsnt__PauseSubscription
 /// - _wsnt__PauseSubscriptionResponse* _wsnt__PauseSubscriptionResponse::soap_dup(soap*) returns deep copy of _wsnt__PauseSubscriptionResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__PauseSubscriptionResponse::soap_del() deep deletes _wsnt__PauseSubscriptionResponse data members, use only after _wsnt__PauseSubscriptionResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__PauseSubscriptionResponse::soap_type() returns SOAP_TYPE__wsnt__PauseSubscriptionResponse or derived type identifier
-class _wsnt__PauseSubscriptionResponse
-{ public:
+class _wsnt__PauseSubscriptionResponse {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2246,9 +2246,9 @@ class _wsnt__PauseSubscriptionResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":ResumeSubscription
@@ -2265,8 +2265,8 @@ class _wsnt__PauseSubscriptionResponse
 /// - _wsnt__ResumeSubscription* _wsnt__ResumeSubscription::soap_dup(soap*) returns deep copy of _wsnt__ResumeSubscription, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__ResumeSubscription::soap_del() deep deletes _wsnt__ResumeSubscription data members, use only after _wsnt__ResumeSubscription::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__ResumeSubscription::soap_type() returns SOAP_TYPE__wsnt__ResumeSubscription or derived type identifier
-class _wsnt__ResumeSubscription
-{ public:
+class _wsnt__ResumeSubscription {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2274,9 +2274,9 @@ class _wsnt__ResumeSubscription
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief Top-level root element "http://docs.oasis-open.org/wsn/b-2":ResumeSubscriptionResponse
@@ -2293,8 +2293,8 @@ class _wsnt__ResumeSubscription
 /// - _wsnt__ResumeSubscriptionResponse* _wsnt__ResumeSubscriptionResponse::soap_dup(soap*) returns deep copy of _wsnt__ResumeSubscriptionResponse, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wsnt__ResumeSubscriptionResponse::soap_del() deep deletes _wsnt__ResumeSubscriptionResponse data members, use only after _wsnt__ResumeSubscriptionResponse::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wsnt__ResumeSubscriptionResponse::soap_type() returns SOAP_TYPE__wsnt__ResumeSubscriptionResponse or derived type identifier
-class _wsnt__ResumeSubscriptionResponse
-{ public:
+class _wsnt__ResumeSubscriptionResponse {
+ public:
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2302,9 +2302,9 @@ class _wsnt__ResumeSubscriptionResponse
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 
@@ -2328,8 +2328,8 @@ class _wsnt__ResumeSubscriptionResponse
 /// - wstop__Documentation* wstop__Documentation::soap_dup(soap*) returns deep copy of wstop__Documentation, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__Documentation::soap_del() deep deletes wstop__Documentation data members, use only after wstop__Documentation::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__Documentation::soap_type() returns SOAP_TYPE_wstop__Documentation or derived type identifier
-class wstop__Documentation
-{ public:
+class wstop__Documentation {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2337,14 +2337,14 @@ class wstop__Documentation
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Mixed content.
 /// @note Mixed content is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+  xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/t-1":ExtensibleDocumented is an abstract complexType.
@@ -2365,10 +2365,10 @@ class wstop__Documentation
 /// - wstop__ExtensibleDocumented* wstop__ExtensibleDocumented::soap_dup(soap*) returns deep copy of wstop__ExtensibleDocumented, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__ExtensibleDocumented::soap_del() deep deletes wstop__ExtensibleDocumented data members, use only after wstop__ExtensibleDocumented::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__ExtensibleDocumented::soap_type() returns SOAP_TYPE_wstop__ExtensibleDocumented or derived type identifier
-class wstop__ExtensibleDocumented
-{ public:
+class wstop__ExtensibleDocumented {
+ public:
 /// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
-    wstop__Documentation*                documentation                  0;	///< Optional element.
+  wstop__Documentation*                documentation                  0;	///< Optional element.
 /// <anyAttribute namespace="##other">.
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -2376,7 +2376,7 @@ class wstop__ExtensibleDocumented
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/t-1":QueryExpressionType is a complexType.
@@ -2392,24 +2392,24 @@ class wstop__ExtensibleDocumented
 /// - wstop__QueryExpressionType* wstop__QueryExpressionType::soap_dup(soap*) returns deep copy of wstop__QueryExpressionType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__QueryExpressionType::soap_del() deep deletes wstop__QueryExpressionType data members, use only after wstop__QueryExpressionType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__QueryExpressionType::soap_type() returns SOAP_TYPE_wstop__QueryExpressionType or derived type identifier
-class wstop__QueryExpressionType
-{ public:
+class wstop__QueryExpressionType {
+ public:
 /// <any namespace="##any" minOccurs="0" maxOccurs="1">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -x to remove this element.
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "Dialect" of type xs:anyURI.
   @ xsd__anyURI                          Dialect                        1;	///< Required attribute.
 /// Mixed content.
 /// @note Mixed content is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+  xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
 /// Pointer to soap context that manages this instance.
-    struct soap                         *soap                          ;
+  struct soap                         *soap                          ;
 };
 
 /// @brief "http://docs.oasis-open.org/wsrf/r-2":ResourceUnknownFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2425,90 +2425,90 @@ class wstop__QueryExpressionType
 /// - wsrfr__ResourceUnknownFaultType* wsrfr__ResourceUnknownFaultType::soap_dup(soap*) returns deep copy of wsrfr__ResourceUnknownFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsrfr__ResourceUnknownFaultType::soap_del() deep deletes wsrfr__ResourceUnknownFaultType data members, use only after wsrfr__ResourceUnknownFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsrfr__ResourceUnknownFaultType::soap_type() returns SOAP_TYPE_wsrfr__ResourceUnknownFaultType or derived type identifier
-class wsrfr__ResourceUnknownFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__ResourceUnknownFaultType_ErrorCode operations:
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new_req__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new_set__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnknownFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnknownFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_ErrorCode data members, use only after _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__ResourceUnknownFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__ResourceUnknownFaultType_Description operations:
-/// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new__wsrfbf__ResourceUnknownFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new__wsrfbf__ResourceUnknownFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new_req__wsrfbf__ResourceUnknownFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new_set__wsrfbf__ResourceUnknownFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnknownFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnknownFaultType_Description(soap*, _wsrfbf__ResourceUnknownFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnknownFaultType_Description(soap*, _wsrfbf__ResourceUnknownFaultType_Description*) serialize to a stream
-/// - _wsrfbf__ResourceUnknownFaultType_Description* _wsrfbf__ResourceUnknownFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnknownFaultType_Description::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_Description data members, use only after _wsrfbf__ResourceUnknownFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnknownFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_Description or derived type identifier
-    class _wsrfbf__ResourceUnknownFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__ResourceUnknownFaultType_FaultCause operations:
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new_req__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new_set__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, _wsrfbf__ResourceUnknownFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, _wsrfbf__ResourceUnknownFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause* _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_FaultCause data members, use only after _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_FaultCause or derived type identifier
-    class _wsrfbf__ResourceUnknownFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsrfr__ResourceUnknownFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__ResourceUnknownFaultType_ErrorCode operations:
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new_req__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* soap_new_set__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnknownFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnknownFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnknownFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode* _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_ErrorCode data members, use only after _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnknownFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__ResourceUnknownFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__ResourceUnknownFaultType_Description operations:
+  /// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new__wsrfbf__ResourceUnknownFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new__wsrfbf__ResourceUnknownFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new_req__wsrfbf__ResourceUnknownFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnknownFaultType_Description* soap_new_set__wsrfbf__ResourceUnknownFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnknownFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnknownFaultType_Description(soap*, _wsrfbf__ResourceUnknownFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnknownFaultType_Description(soap*, _wsrfbf__ResourceUnknownFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__ResourceUnknownFaultType_Description* _wsrfbf__ResourceUnknownFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnknownFaultType_Description::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_Description data members, use only after _wsrfbf__ResourceUnknownFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnknownFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_Description or derived type identifier
+      class _wsrfbf__ResourceUnknownFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__ResourceUnknownFaultType_FaultCause operations:
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new_req__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause* soap_new_set__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, _wsrfbf__ResourceUnknownFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnknownFaultType_FaultCause(soap*, _wsrfbf__ResourceUnknownFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause* _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnknownFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResourceUnknownFaultType_FaultCause data members, use only after _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnknownFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnknownFaultType_FaultCause or derived type identifier
+      class _wsrfbf__ResourceUnknownFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsrf/r-2":ResourceUnavailableFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2524,90 +2524,90 @@ class wsrfr__ResourceUnknownFaultType : public wsrfbf__BaseFaultType
 /// - wsrfr__ResourceUnavailableFaultType* wsrfr__ResourceUnavailableFaultType::soap_dup(soap*) returns deep copy of wsrfr__ResourceUnavailableFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsrfr__ResourceUnavailableFaultType::soap_del() deep deletes wsrfr__ResourceUnavailableFaultType data members, use only after wsrfr__ResourceUnavailableFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsrfr__ResourceUnavailableFaultType::soap_type() returns SOAP_TYPE_wsrfr__ResourceUnavailableFaultType or derived type identifier
-class wsrfr__ResourceUnavailableFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__ResourceUnavailableFaultType_ErrorCode operations:
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new_req__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new_set__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnavailableFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnavailableFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_ErrorCode data members, use only after _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__ResourceUnavailableFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__ResourceUnavailableFaultType_Description operations:
-/// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new__wsrfbf__ResourceUnavailableFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new__wsrfbf__ResourceUnavailableFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new_req__wsrfbf__ResourceUnavailableFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new_set__wsrfbf__ResourceUnavailableFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnavailableFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnavailableFaultType_Description(soap*, _wsrfbf__ResourceUnavailableFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnavailableFaultType_Description(soap*, _wsrfbf__ResourceUnavailableFaultType_Description*) serialize to a stream
-/// - _wsrfbf__ResourceUnavailableFaultType_Description* _wsrfbf__ResourceUnavailableFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnavailableFaultType_Description::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_Description data members, use only after _wsrfbf__ResourceUnavailableFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnavailableFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_Description or derived type identifier
-    class _wsrfbf__ResourceUnavailableFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__ResourceUnavailableFaultType_FaultCause operations:
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new_req__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new_set__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, _wsrfbf__ResourceUnavailableFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, _wsrfbf__ResourceUnavailableFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_FaultCause data members, use only after _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_FaultCause or derived type identifier
-    class _wsrfbf__ResourceUnavailableFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsrfr__ResourceUnavailableFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__ResourceUnavailableFaultType_ErrorCode operations:
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new_req__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* soap_new_set__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnavailableFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnavailableFaultType_ErrorCode(soap*, _wsrfbf__ResourceUnavailableFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode* _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_ErrorCode data members, use only after _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnavailableFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__ResourceUnavailableFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__ResourceUnavailableFaultType_Description operations:
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new__wsrfbf__ResourceUnavailableFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new__wsrfbf__ResourceUnavailableFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new_req__wsrfbf__ResourceUnavailableFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description* soap_new_set__wsrfbf__ResourceUnavailableFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnavailableFaultType_Description(soap*, _wsrfbf__ResourceUnavailableFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnavailableFaultType_Description(soap*, _wsrfbf__ResourceUnavailableFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description* _wsrfbf__ResourceUnavailableFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnavailableFaultType_Description::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_Description data members, use only after _wsrfbf__ResourceUnavailableFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnavailableFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_Description or derived type identifier
+      class _wsrfbf__ResourceUnavailableFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__ResourceUnavailableFaultType_FaultCause operations:
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new_req__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* soap_new_set__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, _wsrfbf__ResourceUnavailableFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResourceUnavailableFaultType_FaultCause(soap*, _wsrfbf__ResourceUnavailableFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause* _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResourceUnavailableFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResourceUnavailableFaultType_FaultCause data members, use only after _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResourceUnavailableFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResourceUnavailableFaultType_FaultCause or derived type identifier
+      class _wsrfbf__ResourceUnavailableFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":SubscribeCreationFailedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2623,90 +2623,90 @@ class wsrfr__ResourceUnavailableFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__SubscribeCreationFailedFaultType* wsnt__SubscribeCreationFailedFaultType::soap_dup(soap*) returns deep copy of wsnt__SubscribeCreationFailedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__SubscribeCreationFailedFaultType::soap_del() deep deletes wsnt__SubscribeCreationFailedFaultType data members, use only after wsnt__SubscribeCreationFailedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__SubscribeCreationFailedFaultType::soap_type() returns SOAP_TYPE_wsnt__SubscribeCreationFailedFaultType or derived type identifier
-class wsnt__SubscribeCreationFailedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode operations:
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__SubscribeCreationFailedFaultType_Description operations:
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, _wsrfbf__SubscribeCreationFailedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, _wsrfbf__SubscribeCreationFailedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description* _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_Description data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_Description or derived type identifier
-    class _wsrfbf__SubscribeCreationFailedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__SubscribeCreationFailedFaultType_FaultCause operations:
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, _wsrfbf__SubscribeCreationFailedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, _wsrfbf__SubscribeCreationFailedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_FaultCause data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__SubscribeCreationFailedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__SubscribeCreationFailedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode operations:
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode(soap*, _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode* _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__SubscribeCreationFailedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__SubscribeCreationFailedFaultType_Description operations:
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, _wsrfbf__SubscribeCreationFailedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_Description(soap*, _wsrfbf__SubscribeCreationFailedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description* _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_Description data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__SubscribeCreationFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_Description or derived type identifier
+      class _wsrfbf__SubscribeCreationFailedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__SubscribeCreationFailedFaultType_FaultCause operations:
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new_req__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* soap_new_set__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, _wsrfbf__SubscribeCreationFailedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__SubscribeCreationFailedFaultType_FaultCause(soap*, _wsrfbf__SubscribeCreationFailedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause* _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__SubscribeCreationFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__SubscribeCreationFailedFaultType_FaultCause data members, use only after _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__SubscribeCreationFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__SubscribeCreationFailedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__SubscribeCreationFailedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":InvalidFilterFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2722,92 +2722,92 @@ class wsnt__SubscribeCreationFailedFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__InvalidFilterFaultType* wsnt__InvalidFilterFaultType::soap_dup(soap*) returns deep copy of wsnt__InvalidFilterFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__InvalidFilterFaultType::soap_del() deep deletes wsnt__InvalidFilterFaultType data members, use only after wsnt__InvalidFilterFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__InvalidFilterFaultType::soap_type() returns SOAP_TYPE_wsnt__InvalidFilterFaultType or derived type identifier
-class wsnt__InvalidFilterFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__InvalidFilterFaultType_ErrorCode operations:
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, _wsrfbf__InvalidFilterFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, _wsrfbf__InvalidFilterFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode* _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_ErrorCode data members, use only after _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__InvalidFilterFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__InvalidFilterFaultType_Description operations:
-/// - _wsrfbf__InvalidFilterFaultType_Description* soap_new__wsrfbf__InvalidFilterFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidFilterFaultType_Description* soap_new__wsrfbf__InvalidFilterFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidFilterFaultType_Description* soap_new_req__wsrfbf__InvalidFilterFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidFilterFaultType_Description* soap_new_set__wsrfbf__InvalidFilterFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidFilterFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidFilterFaultType_Description(soap*, _wsrfbf__InvalidFilterFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidFilterFaultType_Description(soap*, _wsrfbf__InvalidFilterFaultType_Description*) serialize to a stream
-/// - _wsrfbf__InvalidFilterFaultType_Description* _wsrfbf__InvalidFilterFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidFilterFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_Description data members, use only after _wsrfbf__InvalidFilterFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidFilterFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_Description or derived type identifier
-    class _wsrfbf__InvalidFilterFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__InvalidFilterFaultType_FaultCause operations:
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new__wsrfbf__InvalidFilterFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new_req__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new_set__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, _wsrfbf__InvalidFilterFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, _wsrfbf__InvalidFilterFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause* _wsrfbf__InvalidFilterFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidFilterFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_FaultCause data members, use only after _wsrfbf__InvalidFilterFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidFilterFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_FaultCause or derived type identifier
-    class _wsrfbf__InvalidFilterFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__InvalidFilterFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__InvalidFilterFaultType_ErrorCode operations:
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, _wsrfbf__InvalidFilterFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidFilterFaultType_ErrorCode(soap*, _wsrfbf__InvalidFilterFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode* _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_ErrorCode data members, use only after _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidFilterFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__InvalidFilterFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__InvalidFilterFaultType_Description operations:
+  /// - _wsrfbf__InvalidFilterFaultType_Description* soap_new__wsrfbf__InvalidFilterFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidFilterFaultType_Description* soap_new__wsrfbf__InvalidFilterFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidFilterFaultType_Description* soap_new_req__wsrfbf__InvalidFilterFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidFilterFaultType_Description* soap_new_set__wsrfbf__InvalidFilterFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidFilterFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidFilterFaultType_Description(soap*, _wsrfbf__InvalidFilterFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidFilterFaultType_Description(soap*, _wsrfbf__InvalidFilterFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__InvalidFilterFaultType_Description* _wsrfbf__InvalidFilterFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidFilterFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_Description data members, use only after _wsrfbf__InvalidFilterFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidFilterFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_Description or derived type identifier
+      class _wsrfbf__InvalidFilterFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__InvalidFilterFaultType_FaultCause operations:
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new__wsrfbf__InvalidFilterFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new_req__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause* soap_new_set__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, _wsrfbf__InvalidFilterFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidFilterFaultType_FaultCause(soap*, _wsrfbf__InvalidFilterFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause* _wsrfbf__InvalidFilterFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidFilterFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidFilterFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidFilterFaultType_FaultCause data members, use only after _wsrfbf__InvalidFilterFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidFilterFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidFilterFaultType_FaultCause or derived type identifier
+      class _wsrfbf__InvalidFilterFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 /// Vector of xsd__QName of length 1..unbounded.
-    std::vector<xsd__QName             > UnknownFilter                  1;	///< Multiple elements.
+  std::vector<xsd__QName             > UnknownFilter                  1;	///< Multiple elements.
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":TopicExpressionDialectUnknownFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2823,90 +2823,90 @@ class wsnt__InvalidFilterFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__TopicExpressionDialectUnknownFaultType* wsnt__TopicExpressionDialectUnknownFaultType::soap_dup(soap*) returns deep copy of wsnt__TopicExpressionDialectUnknownFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__TopicExpressionDialectUnknownFaultType::soap_del() deep deletes wsnt__TopicExpressionDialectUnknownFaultType data members, use only after wsnt__TopicExpressionDialectUnknownFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__TopicExpressionDialectUnknownFaultType::soap_type() returns SOAP_TYPE_wsnt__TopicExpressionDialectUnknownFaultType or derived type identifier
-class wsnt__TopicExpressionDialectUnknownFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode operations:
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_Description operations:
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_Description*) serialize to a stream
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_Description data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_Description or derived type identifier
-    class _wsrfbf__TopicExpressionDialectUnknownFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause operations:
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause or derived type identifier
-    class _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__TopicExpressionDialectUnknownFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode operations:
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode* _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__TopicExpressionDialectUnknownFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_Description operations:
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_Description(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description* _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_Description data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_Description or derived type identifier
+      class _wsrfbf__TopicExpressionDialectUnknownFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause operations:
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new_req__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* soap_new_set__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause(soap*, _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause* _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_del() deep deletes _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause data members, use only after _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause or derived type identifier
+      class _wsrfbf__TopicExpressionDialectUnknownFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":InvalidTopicExpressionFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -2922,90 +2922,90 @@ class wsnt__TopicExpressionDialectUnknownFaultType : public wsrfbf__BaseFaultTyp
 /// - wsnt__InvalidTopicExpressionFaultType* wsnt__InvalidTopicExpressionFaultType::soap_dup(soap*) returns deep copy of wsnt__InvalidTopicExpressionFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__InvalidTopicExpressionFaultType::soap_del() deep deletes wsnt__InvalidTopicExpressionFaultType data members, use only after wsnt__InvalidTopicExpressionFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__InvalidTopicExpressionFaultType::soap_type() returns SOAP_TYPE_wsnt__InvalidTopicExpressionFaultType or derived type identifier
-class wsnt__InvalidTopicExpressionFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode operations:
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__InvalidTopicExpressionFaultType_Description operations:
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, _wsrfbf__InvalidTopicExpressionFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, _wsrfbf__InvalidTopicExpressionFaultType_Description*) serialize to a stream
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description* _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_Description data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_Description or derived type identifier
-    class _wsrfbf__InvalidTopicExpressionFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__InvalidTopicExpressionFaultType_FaultCause operations:
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidTopicExpressionFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidTopicExpressionFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_FaultCause or derived type identifier
-    class _wsrfbf__InvalidTopicExpressionFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__InvalidTopicExpressionFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode operations:
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode* _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__InvalidTopicExpressionFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__InvalidTopicExpressionFaultType_Description operations:
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, _wsrfbf__InvalidTopicExpressionFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_Description(soap*, _wsrfbf__InvalidTopicExpressionFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description* _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_Description data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidTopicExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_Description or derived type identifier
+      class _wsrfbf__InvalidTopicExpressionFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__InvalidTopicExpressionFaultType_FaultCause operations:
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidTopicExpressionFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidTopicExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidTopicExpressionFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause* _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidTopicExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidTopicExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidTopicExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidTopicExpressionFaultType_FaultCause or derived type identifier
+      class _wsrfbf__InvalidTopicExpressionFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":TopicNotSupportedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3021,90 +3021,90 @@ class wsnt__InvalidTopicExpressionFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__TopicNotSupportedFaultType* wsnt__TopicNotSupportedFaultType::soap_dup(soap*) returns deep copy of wsnt__TopicNotSupportedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__TopicNotSupportedFaultType::soap_del() deep deletes wsnt__TopicNotSupportedFaultType data members, use only after wsnt__TopicNotSupportedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__TopicNotSupportedFaultType::soap_type() returns SOAP_TYPE_wsnt__TopicNotSupportedFaultType or derived type identifier
-class wsnt__TopicNotSupportedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__TopicNotSupportedFaultType_ErrorCode operations:
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new_req__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new_set__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__TopicNotSupportedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__TopicNotSupportedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_ErrorCode data members, use only after _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__TopicNotSupportedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__TopicNotSupportedFaultType_Description operations:
-/// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new__wsrfbf__TopicNotSupportedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new__wsrfbf__TopicNotSupportedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new_req__wsrfbf__TopicNotSupportedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new_set__wsrfbf__TopicNotSupportedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicNotSupportedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicNotSupportedFaultType_Description(soap*, _wsrfbf__TopicNotSupportedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicNotSupportedFaultType_Description(soap*, _wsrfbf__TopicNotSupportedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__TopicNotSupportedFaultType_Description* _wsrfbf__TopicNotSupportedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicNotSupportedFaultType_Description::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_Description data members, use only after _wsrfbf__TopicNotSupportedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicNotSupportedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_Description or derived type identifier
-    class _wsrfbf__TopicNotSupportedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__TopicNotSupportedFaultType_FaultCause operations:
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new_req__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new_set__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, _wsrfbf__TopicNotSupportedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, _wsrfbf__TopicNotSupportedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_FaultCause data members, use only after _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__TopicNotSupportedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__TopicNotSupportedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__TopicNotSupportedFaultType_ErrorCode operations:
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new_req__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* soap_new_set__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__TopicNotSupportedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__TopicNotSupportedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode* _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_ErrorCode data members, use only after _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicNotSupportedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__TopicNotSupportedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__TopicNotSupportedFaultType_Description operations:
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new__wsrfbf__TopicNotSupportedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new__wsrfbf__TopicNotSupportedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new_req__wsrfbf__TopicNotSupportedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description* soap_new_set__wsrfbf__TopicNotSupportedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicNotSupportedFaultType_Description(soap*, _wsrfbf__TopicNotSupportedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicNotSupportedFaultType_Description(soap*, _wsrfbf__TopicNotSupportedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description* _wsrfbf__TopicNotSupportedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicNotSupportedFaultType_Description::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_Description data members, use only after _wsrfbf__TopicNotSupportedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicNotSupportedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_Description or derived type identifier
+      class _wsrfbf__TopicNotSupportedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__TopicNotSupportedFaultType_FaultCause operations:
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new_req__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* soap_new_set__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, _wsrfbf__TopicNotSupportedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__TopicNotSupportedFaultType_FaultCause(soap*, _wsrfbf__TopicNotSupportedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause* _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__TopicNotSupportedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__TopicNotSupportedFaultType_FaultCause data members, use only after _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__TopicNotSupportedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__TopicNotSupportedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__TopicNotSupportedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":MultipleTopicsSpecifiedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3120,90 +3120,90 @@ class wsnt__TopicNotSupportedFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__MultipleTopicsSpecifiedFaultType* wsnt__MultipleTopicsSpecifiedFaultType::soap_dup(soap*) returns deep copy of wsnt__MultipleTopicsSpecifiedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__MultipleTopicsSpecifiedFaultType::soap_del() deep deletes wsnt__MultipleTopicsSpecifiedFaultType data members, use only after wsnt__MultipleTopicsSpecifiedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__MultipleTopicsSpecifiedFaultType::soap_type() returns SOAP_TYPE_wsnt__MultipleTopicsSpecifiedFaultType or derived type identifier
-class wsnt__MultipleTopicsSpecifiedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode operations:
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_Description operations:
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_Description data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_Description or derived type identifier
-    class _wsrfbf__MultipleTopicsSpecifiedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause operations:
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__MultipleTopicsSpecifiedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode operations:
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode* _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__MultipleTopicsSpecifiedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_Description operations:
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_Description(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description* _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_Description data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_Description or derived type identifier
+      class _wsrfbf__MultipleTopicsSpecifiedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause operations:
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new_req__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* soap_new_set__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause(soap*, _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause* _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause data members, use only after _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__MultipleTopicsSpecifiedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":InvalidProducerPropertiesExpressionFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3219,90 +3219,90 @@ class wsnt__MultipleTopicsSpecifiedFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__InvalidProducerPropertiesExpressionFaultType* wsnt__InvalidProducerPropertiesExpressionFaultType::soap_dup(soap*) returns deep copy of wsnt__InvalidProducerPropertiesExpressionFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__InvalidProducerPropertiesExpressionFaultType::soap_del() deep deletes wsnt__InvalidProducerPropertiesExpressionFaultType data members, use only after wsnt__InvalidProducerPropertiesExpressionFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__InvalidProducerPropertiesExpressionFaultType::soap_type() returns SOAP_TYPE_wsnt__InvalidProducerPropertiesExpressionFaultType or derived type identifier
-class wsnt__InvalidProducerPropertiesExpressionFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode operations:
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description operations:
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description*) serialize to a stream
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description or derived type identifier
-    class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause operations:
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause or derived type identifier
-    class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__InvalidProducerPropertiesExpressionFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode operations:
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description operations:
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description or derived type identifier
+      class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause operations:
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause* _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause or derived type identifier
+      class _wsrfbf__InvalidProducerPropertiesExpressionFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":InvalidMessageContentExpressionFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3318,90 +3318,90 @@ class wsnt__InvalidProducerPropertiesExpressionFaultType : public wsrfbf__BaseFa
 /// - wsnt__InvalidMessageContentExpressionFaultType* wsnt__InvalidMessageContentExpressionFaultType::soap_dup(soap*) returns deep copy of wsnt__InvalidMessageContentExpressionFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__InvalidMessageContentExpressionFaultType::soap_del() deep deletes wsnt__InvalidMessageContentExpressionFaultType data members, use only after wsnt__InvalidMessageContentExpressionFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__InvalidMessageContentExpressionFaultType::soap_type() returns SOAP_TYPE_wsnt__InvalidMessageContentExpressionFaultType or derived type identifier
-class wsnt__InvalidMessageContentExpressionFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode operations:
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_Description operations:
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_Description*) serialize to a stream
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_Description data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_Description or derived type identifier
-    class _wsrfbf__InvalidMessageContentExpressionFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause operations:
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause or derived type identifier
-    class _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__InvalidMessageContentExpressionFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode operations:
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode* _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__InvalidMessageContentExpressionFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_Description operations:
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_Description(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description* _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_Description data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidMessageContentExpressionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_Description or derived type identifier
+      class _wsrfbf__InvalidMessageContentExpressionFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause operations:
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new_req__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* soap_new_set__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause(soap*, _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause* _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause data members, use only after _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause or derived type identifier
+      class _wsrfbf__InvalidMessageContentExpressionFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnrecognizedPolicyRequestFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3417,92 +3417,92 @@ class wsnt__InvalidMessageContentExpressionFaultType : public wsrfbf__BaseFaultT
 /// - wsnt__UnrecognizedPolicyRequestFaultType* wsnt__UnrecognizedPolicyRequestFaultType::soap_dup(soap*) returns deep copy of wsnt__UnrecognizedPolicyRequestFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnrecognizedPolicyRequestFaultType::soap_del() deep deletes wsnt__UnrecognizedPolicyRequestFaultType data members, use only after wsnt__UnrecognizedPolicyRequestFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnrecognizedPolicyRequestFaultType::soap_type() returns SOAP_TYPE_wsnt__UnrecognizedPolicyRequestFaultType or derived type identifier
-class wsnt__UnrecognizedPolicyRequestFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode operations:
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_Description operations:
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_Description data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_Description or derived type identifier
-    class _wsrfbf__UnrecognizedPolicyRequestFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause operations:
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnrecognizedPolicyRequestFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode* _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnrecognizedPolicyRequestFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_Description operations:
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description* _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_Description data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_Description or derived type identifier
+      class _wsrfbf__UnrecognizedPolicyRequestFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause operations:
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new_req__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* soap_new_set__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause* _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause data members, use only after _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnrecognizedPolicyRequestFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 /// Vector of xsd__QName of length 0..unbounded.
-    std::vector<xsd__QName             > UnrecognizedPolicy             0;	///< Multiple elements.
+  std::vector<xsd__QName             > UnrecognizedPolicy             0;	///< Multiple elements.
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnsupportedPolicyRequestFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3518,92 +3518,92 @@ class wsnt__UnrecognizedPolicyRequestFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnsupportedPolicyRequestFaultType* wsnt__UnsupportedPolicyRequestFaultType::soap_dup(soap*) returns deep copy of wsnt__UnsupportedPolicyRequestFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnsupportedPolicyRequestFaultType::soap_del() deep deletes wsnt__UnsupportedPolicyRequestFaultType data members, use only after wsnt__UnsupportedPolicyRequestFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnsupportedPolicyRequestFaultType::soap_type() returns SOAP_TYPE_wsnt__UnsupportedPolicyRequestFaultType or derived type identifier
-class wsnt__UnsupportedPolicyRequestFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode operations:
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_Description operations:
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_Description data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_Description or derived type identifier
-    class _wsrfbf__UnsupportedPolicyRequestFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause operations:
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnsupportedPolicyRequestFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode* _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnsupportedPolicyRequestFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_Description operations:
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_Description(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description* _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_Description data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnsupportedPolicyRequestFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_Description or derived type identifier
+      class _wsrfbf__UnsupportedPolicyRequestFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause operations:
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new_req__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* soap_new_set__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause(soap*, _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause* _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause data members, use only after _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnsupportedPolicyRequestFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 /// Vector of xsd__QName of length 0..unbounded.
-    std::vector<xsd__QName             > UnsupportedPolicy              0;	///< Multiple elements.
+  std::vector<xsd__QName             > UnsupportedPolicy              0;	///< Multiple elements.
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":NotifyMessageNotSupportedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3619,90 +3619,90 @@ class wsnt__UnsupportedPolicyRequestFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__NotifyMessageNotSupportedFaultType* wsnt__NotifyMessageNotSupportedFaultType::soap_dup(soap*) returns deep copy of wsnt__NotifyMessageNotSupportedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__NotifyMessageNotSupportedFaultType::soap_del() deep deletes wsnt__NotifyMessageNotSupportedFaultType data members, use only after wsnt__NotifyMessageNotSupportedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__NotifyMessageNotSupportedFaultType::soap_type() returns SOAP_TYPE_wsnt__NotifyMessageNotSupportedFaultType or derived type identifier
-class wsnt__NotifyMessageNotSupportedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode operations:
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_Description operations:
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_Description data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_Description or derived type identifier
-    class _wsrfbf__NotifyMessageNotSupportedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause operations:
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__NotifyMessageNotSupportedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode operations:
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode* _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__NotifyMessageNotSupportedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_Description operations:
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_Description(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description* _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_Description data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NotifyMessageNotSupportedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_Description or derived type identifier
+      class _wsrfbf__NotifyMessageNotSupportedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause operations:
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new_req__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* soap_new_set__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause(soap*, _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause* _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause data members, use only after _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__NotifyMessageNotSupportedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnacceptableInitialTerminationTimeFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3718,94 +3718,94 @@ class wsnt__NotifyMessageNotSupportedFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnacceptableInitialTerminationTimeFaultType* wsnt__UnacceptableInitialTerminationTimeFaultType::soap_dup(soap*) returns deep copy of wsnt__UnacceptableInitialTerminationTimeFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnacceptableInitialTerminationTimeFaultType::soap_del() deep deletes wsnt__UnacceptableInitialTerminationTimeFaultType data members, use only after wsnt__UnacceptableInitialTerminationTimeFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnacceptableInitialTerminationTimeFaultType::soap_type() returns SOAP_TYPE_wsnt__UnacceptableInitialTerminationTimeFaultType or derived type identifier
-class wsnt__UnacceptableInitialTerminationTimeFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode operations:
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description operations:
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description or derived type identifier
-    class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause operations:
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnacceptableInitialTerminationTimeFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description operations:
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description or derived type identifier
+      class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause operations:
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new_req__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* soap_new_set__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause* _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause data members, use only after _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnacceptableInitialTerminationTimeFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 /// Element "MinimumTime" of type xs:dateTime.
-    time_t                               MinimumTime                    1;	///< Required element.
+  time_t                               MinimumTime                    1;	///< Required element.
 /// Element "MaximumTime" of type xs:dateTime.
-    time_t*                              MaximumTime                    0;	///< Optional element.
+  time_t*                              MaximumTime                    0;	///< Optional element.
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":NoCurrentMessageOnTopicFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3821,90 +3821,90 @@ class wsnt__UnacceptableInitialTerminationTimeFaultType : public wsrfbf__BaseFau
 /// - wsnt__NoCurrentMessageOnTopicFaultType* wsnt__NoCurrentMessageOnTopicFaultType::soap_dup(soap*) returns deep copy of wsnt__NoCurrentMessageOnTopicFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__NoCurrentMessageOnTopicFaultType::soap_del() deep deletes wsnt__NoCurrentMessageOnTopicFaultType data members, use only after wsnt__NoCurrentMessageOnTopicFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__NoCurrentMessageOnTopicFaultType::soap_type() returns SOAP_TYPE_wsnt__NoCurrentMessageOnTopicFaultType or derived type identifier
-class wsnt__NoCurrentMessageOnTopicFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode operations:
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_Description operations:
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_Description*) serialize to a stream
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_Description data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_Description or derived type identifier
-    class _wsrfbf__NoCurrentMessageOnTopicFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause operations:
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause or derived type identifier
-    class _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__NoCurrentMessageOnTopicFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode operations:
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode* _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__NoCurrentMessageOnTopicFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_Description operations:
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_Description(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description* _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_Description data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_Description or derived type identifier
+      class _wsrfbf__NoCurrentMessageOnTopicFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause operations:
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new_req__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* soap_new_set__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause(soap*, _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause* _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_del() deep deletes _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause data members, use only after _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause or derived type identifier
+      class _wsrfbf__NoCurrentMessageOnTopicFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnableToGetMessagesFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -3920,90 +3920,90 @@ class wsnt__NoCurrentMessageOnTopicFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnableToGetMessagesFaultType* wsnt__UnableToGetMessagesFaultType::soap_dup(soap*) returns deep copy of wsnt__UnableToGetMessagesFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnableToGetMessagesFaultType::soap_del() deep deletes wsnt__UnableToGetMessagesFaultType data members, use only after wsnt__UnableToGetMessagesFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnableToGetMessagesFaultType::soap_type() returns SOAP_TYPE_wsnt__UnableToGetMessagesFaultType or derived type identifier
-class wsnt__UnableToGetMessagesFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnableToGetMessagesFaultType_ErrorCode operations:
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, _wsrfbf__UnableToGetMessagesFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, _wsrfbf__UnableToGetMessagesFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_ErrorCode data members, use only after _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnableToGetMessagesFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnableToGetMessagesFaultType_Description operations:
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new__wsrfbf__UnableToGetMessagesFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, _wsrfbf__UnableToGetMessagesFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, _wsrfbf__UnableToGetMessagesFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description* _wsrfbf__UnableToGetMessagesFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToGetMessagesFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_Description data members, use only after _wsrfbf__UnableToGetMessagesFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToGetMessagesFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_Description or derived type identifier
-    class _wsrfbf__UnableToGetMessagesFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnableToGetMessagesFaultType_FaultCause operations:
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, _wsrfbf__UnableToGetMessagesFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, _wsrfbf__UnableToGetMessagesFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_FaultCause data members, use only after _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnableToGetMessagesFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnableToGetMessagesFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnableToGetMessagesFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, _wsrfbf__UnableToGetMessagesFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_ErrorCode(soap*, _wsrfbf__UnableToGetMessagesFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode* _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_ErrorCode data members, use only after _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToGetMessagesFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnableToGetMessagesFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnableToGetMessagesFaultType_Description operations:
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new__wsrfbf__UnableToGetMessagesFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, _wsrfbf__UnableToGetMessagesFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_Description(soap*, _wsrfbf__UnableToGetMessagesFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description* _wsrfbf__UnableToGetMessagesFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToGetMessagesFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_Description data members, use only after _wsrfbf__UnableToGetMessagesFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToGetMessagesFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_Description or derived type identifier
+      class _wsrfbf__UnableToGetMessagesFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnableToGetMessagesFaultType_FaultCause operations:
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new_req__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* soap_new_set__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, _wsrfbf__UnableToGetMessagesFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToGetMessagesFaultType_FaultCause(soap*, _wsrfbf__UnableToGetMessagesFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause* _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToGetMessagesFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToGetMessagesFaultType_FaultCause data members, use only after _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToGetMessagesFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToGetMessagesFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnableToGetMessagesFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnableToDestroyPullPointFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4019,90 +4019,90 @@ class wsnt__UnableToGetMessagesFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnableToDestroyPullPointFaultType* wsnt__UnableToDestroyPullPointFaultType::soap_dup(soap*) returns deep copy of wsnt__UnableToDestroyPullPointFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnableToDestroyPullPointFaultType::soap_del() deep deletes wsnt__UnableToDestroyPullPointFaultType data members, use only after wsnt__UnableToDestroyPullPointFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnableToDestroyPullPointFaultType::soap_type() returns SOAP_TYPE_wsnt__UnableToDestroyPullPointFaultType or derived type identifier
-class wsnt__UnableToDestroyPullPointFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode operations:
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnableToDestroyPullPointFaultType_Description operations:
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_Description data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_Description or derived type identifier
-    class _wsrfbf__UnableToDestroyPullPointFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause operations:
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnableToDestroyPullPointFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode* _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnableToDestroyPullPointFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnableToDestroyPullPointFaultType_Description operations:
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_Description(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description* _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_Description data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroyPullPointFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_Description or derived type identifier
+      class _wsrfbf__UnableToDestroyPullPointFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause operations:
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new_req__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* soap_new_set__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause* _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause data members, use only after _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroyPullPointFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnableToDestroyPullPointFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnableToCreatePullPointFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4118,90 +4118,90 @@ class wsnt__UnableToDestroyPullPointFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnableToCreatePullPointFaultType* wsnt__UnableToCreatePullPointFaultType::soap_dup(soap*) returns deep copy of wsnt__UnableToCreatePullPointFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnableToCreatePullPointFaultType::soap_del() deep deletes wsnt__UnableToCreatePullPointFaultType data members, use only after wsnt__UnableToCreatePullPointFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnableToCreatePullPointFaultType::soap_type() returns SOAP_TYPE_wsnt__UnableToCreatePullPointFaultType or derived type identifier
-class wsnt__UnableToCreatePullPointFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode operations:
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnableToCreatePullPointFaultType_Description operations:
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, _wsrfbf__UnableToCreatePullPointFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, _wsrfbf__UnableToCreatePullPointFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description* _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_Description data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_Description or derived type identifier
-    class _wsrfbf__UnableToCreatePullPointFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnableToCreatePullPointFaultType_FaultCause operations:
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToCreatePullPointFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToCreatePullPointFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_FaultCause data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnableToCreatePullPointFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnableToCreatePullPointFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode(soap*, _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode* _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnableToCreatePullPointFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnableToCreatePullPointFaultType_Description operations:
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, _wsrfbf__UnableToCreatePullPointFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_Description(soap*, _wsrfbf__UnableToCreatePullPointFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description* _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_Description data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToCreatePullPointFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_Description or derived type identifier
+      class _wsrfbf__UnableToCreatePullPointFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnableToCreatePullPointFaultType_FaultCause operations:
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new_req__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* soap_new_set__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToCreatePullPointFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToCreatePullPointFaultType_FaultCause(soap*, _wsrfbf__UnableToCreatePullPointFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause* _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToCreatePullPointFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToCreatePullPointFaultType_FaultCause data members, use only after _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToCreatePullPointFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToCreatePullPointFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnableToCreatePullPointFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnacceptableTerminationTimeFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4217,94 +4217,94 @@ class wsnt__UnableToCreatePullPointFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnacceptableTerminationTimeFaultType* wsnt__UnacceptableTerminationTimeFaultType::soap_dup(soap*) returns deep copy of wsnt__UnacceptableTerminationTimeFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnacceptableTerminationTimeFaultType::soap_del() deep deletes wsnt__UnacceptableTerminationTimeFaultType data members, use only after wsnt__UnacceptableTerminationTimeFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnacceptableTerminationTimeFaultType::soap_type() returns SOAP_TYPE_wsnt__UnacceptableTerminationTimeFaultType or derived type identifier
-class wsnt__UnacceptableTerminationTimeFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode operations:
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_Description operations:
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_Description data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_Description or derived type identifier
-    class _wsrfbf__UnacceptableTerminationTimeFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause operations:
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnacceptableTerminationTimeFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode* _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnacceptableTerminationTimeFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_Description operations:
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_Description(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description* _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_Description data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableTerminationTimeFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_Description or derived type identifier
+      class _wsrfbf__UnacceptableTerminationTimeFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause operations:
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new_req__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* soap_new_set__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause(soap*, _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause* _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause data members, use only after _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnacceptableTerminationTimeFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 /// Element "MinimumTime" of type xs:dateTime.
-    time_t                               MinimumTime                    1;	///< Required element.
+  time_t                               MinimumTime                    1;	///< Required element.
 /// Element "MaximumTime" of type xs:dateTime.
-    time_t*                              MaximumTime                    0;	///< Optional element.
+  time_t*                              MaximumTime                    0;	///< Optional element.
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":UnableToDestroySubscriptionFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4320,90 +4320,90 @@ class wsnt__UnacceptableTerminationTimeFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__UnableToDestroySubscriptionFaultType* wsnt__UnableToDestroySubscriptionFaultType::soap_dup(soap*) returns deep copy of wsnt__UnableToDestroySubscriptionFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__UnableToDestroySubscriptionFaultType::soap_del() deep deletes wsnt__UnableToDestroySubscriptionFaultType data members, use only after wsnt__UnableToDestroySubscriptionFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__UnableToDestroySubscriptionFaultType::soap_type() returns SOAP_TYPE_wsnt__UnableToDestroySubscriptionFaultType or derived type identifier
-class wsnt__UnableToDestroySubscriptionFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode operations:
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_Description operations:
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_Description*) serialize to a stream
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_Description data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_Description or derived type identifier
-    class _wsrfbf__UnableToDestroySubscriptionFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause operations:
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause or derived type identifier
-    class _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__UnableToDestroySubscriptionFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode operations:
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode* _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__UnableToDestroySubscriptionFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_Description operations:
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_Description(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description* _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_Description data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroySubscriptionFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_Description or derived type identifier
+      class _wsrfbf__UnableToDestroySubscriptionFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause operations:
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new_req__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* soap_new_set__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause(soap*, _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause* _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_del() deep deletes _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause data members, use only after _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause or derived type identifier
+      class _wsrfbf__UnableToDestroySubscriptionFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":PauseFailedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4419,90 +4419,90 @@ class wsnt__UnableToDestroySubscriptionFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__PauseFailedFaultType* wsnt__PauseFailedFaultType::soap_dup(soap*) returns deep copy of wsnt__PauseFailedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__PauseFailedFaultType::soap_del() deep deletes wsnt__PauseFailedFaultType data members, use only after wsnt__PauseFailedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__PauseFailedFaultType::soap_type() returns SOAP_TYPE_wsnt__PauseFailedFaultType or derived type identifier
-class wsnt__PauseFailedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__PauseFailedFaultType_ErrorCode operations:
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new__wsrfbf__PauseFailedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new_req__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new_set__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, _wsrfbf__PauseFailedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, _wsrfbf__PauseFailedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode* _wsrfbf__PauseFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__PauseFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_ErrorCode data members, use only after _wsrfbf__PauseFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__PauseFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__PauseFailedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__PauseFailedFaultType_Description operations:
-/// - _wsrfbf__PauseFailedFaultType_Description* soap_new__wsrfbf__PauseFailedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__PauseFailedFaultType_Description* soap_new__wsrfbf__PauseFailedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__PauseFailedFaultType_Description* soap_new_req__wsrfbf__PauseFailedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__PauseFailedFaultType_Description* soap_new_set__wsrfbf__PauseFailedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__PauseFailedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__PauseFailedFaultType_Description(soap*, _wsrfbf__PauseFailedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__PauseFailedFaultType_Description(soap*, _wsrfbf__PauseFailedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__PauseFailedFaultType_Description* _wsrfbf__PauseFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__PauseFailedFaultType_Description::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_Description data members, use only after _wsrfbf__PauseFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__PauseFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_Description or derived type identifier
-    class _wsrfbf__PauseFailedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__PauseFailedFaultType_FaultCause operations:
-/// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new__wsrfbf__PauseFailedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new__wsrfbf__PauseFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new_req__wsrfbf__PauseFailedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new_set__wsrfbf__PauseFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__PauseFailedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__PauseFailedFaultType_FaultCause(soap*, _wsrfbf__PauseFailedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__PauseFailedFaultType_FaultCause(soap*, _wsrfbf__PauseFailedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__PauseFailedFaultType_FaultCause* _wsrfbf__PauseFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__PauseFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_FaultCause data members, use only after _wsrfbf__PauseFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__PauseFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__PauseFailedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__PauseFailedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__PauseFailedFaultType_ErrorCode operations:
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new__wsrfbf__PauseFailedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new_req__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode* soap_new_set__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, _wsrfbf__PauseFailedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__PauseFailedFaultType_ErrorCode(soap*, _wsrfbf__PauseFailedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode* _wsrfbf__PauseFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__PauseFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_ErrorCode data members, use only after _wsrfbf__PauseFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__PauseFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__PauseFailedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__PauseFailedFaultType_Description operations:
+  /// - _wsrfbf__PauseFailedFaultType_Description* soap_new__wsrfbf__PauseFailedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__PauseFailedFaultType_Description* soap_new__wsrfbf__PauseFailedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__PauseFailedFaultType_Description* soap_new_req__wsrfbf__PauseFailedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__PauseFailedFaultType_Description* soap_new_set__wsrfbf__PauseFailedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__PauseFailedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__PauseFailedFaultType_Description(soap*, _wsrfbf__PauseFailedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__PauseFailedFaultType_Description(soap*, _wsrfbf__PauseFailedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__PauseFailedFaultType_Description* _wsrfbf__PauseFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__PauseFailedFaultType_Description::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_Description data members, use only after _wsrfbf__PauseFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__PauseFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_Description or derived type identifier
+      class _wsrfbf__PauseFailedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__PauseFailedFaultType_FaultCause operations:
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new__wsrfbf__PauseFailedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new__wsrfbf__PauseFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new_req__wsrfbf__PauseFailedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause* soap_new_set__wsrfbf__PauseFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__PauseFailedFaultType_FaultCause(soap*, _wsrfbf__PauseFailedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__PauseFailedFaultType_FaultCause(soap*, _wsrfbf__PauseFailedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause* _wsrfbf__PauseFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__PauseFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__PauseFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__PauseFailedFaultType_FaultCause data members, use only after _wsrfbf__PauseFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__PauseFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__PauseFailedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__PauseFailedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/b-2":ResumeFailedFaultType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsrf/bf-2":BaseFaultType.
@@ -4518,90 +4518,90 @@ class wsnt__PauseFailedFaultType : public wsrfbf__BaseFaultType
 /// - wsnt__ResumeFailedFaultType* wsnt__ResumeFailedFaultType::soap_dup(soap*) returns deep copy of wsnt__ResumeFailedFaultType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wsnt__ResumeFailedFaultType::soap_del() deep deletes wsnt__ResumeFailedFaultType data members, use only after wsnt__ResumeFailedFaultType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wsnt__ResumeFailedFaultType::soap_type() returns SOAP_TYPE_wsnt__ResumeFailedFaultType or derived type identifier
-class wsnt__ResumeFailedFaultType : public wsrfbf__BaseFaultType
-{ public:
-/*  INHERITED FROM wsrfbf__BaseFaultType:
-/// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-/// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
-/// Element "Timestamp" of type xs:dateTime.
-    time_t                               Timestamp                      1;	///< Required element.
-/// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
-    wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
-/// @note class _wsrfbf__ResumeFailedFaultType_ErrorCode operations:
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*) allocate and default initialize
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new_req__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new_set__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, _wsrfbf__ResumeFailedFaultType_ErrorCode*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, _wsrfbf__ResumeFailedFaultType_ErrorCode*) serialize to a stream
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode* _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_ErrorCode data members, use only after _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_ErrorCode or derived type identifier
-    class _wsrfbf__ResumeFailedFaultType_ErrorCode
-    { public:
-/// Attribute "dialect" of type xs:anyURI.
-  @ xsd__anyURI                          dialect                        1;	///< Required attribute.
-/// Mixed content.
-/// @note Mixed content is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
-    xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
-    }                                   *ErrorCode                      0;	///< Optional element.
-/// Vector of Description of length 0..unbounded.
-    std::vector<
-/// @note class _wsrfbf__ResumeFailedFaultType_Description operations:
-/// - _wsrfbf__ResumeFailedFaultType_Description* soap_new__wsrfbf__ResumeFailedFaultType_Description(soap*) allocate and default initialize
-/// - _wsrfbf__ResumeFailedFaultType_Description* soap_new__wsrfbf__ResumeFailedFaultType_Description(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResumeFailedFaultType_Description* soap_new_req__wsrfbf__ResumeFailedFaultType_Description(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResumeFailedFaultType_Description* soap_new_set__wsrfbf__ResumeFailedFaultType_Description(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResumeFailedFaultType_Description::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResumeFailedFaultType_Description(soap*, _wsrfbf__ResumeFailedFaultType_Description*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResumeFailedFaultType_Description(soap*, _wsrfbf__ResumeFailedFaultType_Description*) serialize to a stream
-/// - _wsrfbf__ResumeFailedFaultType_Description* _wsrfbf__ResumeFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResumeFailedFaultType_Description::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_Description data members, use only after _wsrfbf__ResumeFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResumeFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_Description or derived type identifier
-    class _wsrfbf__ResumeFailedFaultType_Description
-    { public:
-/// __item wraps simpleContent of type xs:string.
-    std::string                          __item                        ;
-/// Imported attribute reference xml:lang.
-  @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
-    }>                                   Description                    0;	///< Multiple elements.
-/// @note class _wsrfbf__ResumeFailedFaultType_FaultCause operations:
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new__wsrfbf__ResumeFailedFaultType_FaultCause(soap*) allocate and default initialize
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new_req__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, ...) allocate, set required members
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new_set__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause::soap_default(soap*) default initialize members
-/// - int soap_read__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, _wsrfbf__ResumeFailedFaultType_FaultCause*) deserialize from a stream
-/// - int soap_write__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, _wsrfbf__ResumeFailedFaultType_FaultCause*) serialize to a stream
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause* _wsrfbf__ResumeFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
-/// - _wsrfbf__ResumeFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_FaultCause data members, use only after _wsrfbf__ResumeFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
-/// - int _wsrfbf__ResumeFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_FaultCause or derived type identifier
-    class _wsrfbf__ResumeFailedFaultType_FaultCause
-    { public:
-/// <any namespace="##other" minOccurs="1" maxOccurs="1">
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this element.
-///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
-///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
-    xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
-    }                                   *FaultCause                     0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wsrfbf__BaseFaultType */
+class wsnt__ResumeFailedFaultType : public wsrfbf__BaseFaultType {
+ public:
+  /*  INHERITED FROM wsrfbf__BaseFaultType:
+  /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+  /// Size of the array of XML or DOM nodes is 0..unbounded.
+      std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  /// Element "Timestamp" of type xs:dateTime.
+      time_t                               Timestamp                      1;	///< Required element.
+  /// Element "Originator" of type "http://www.w3.org/2005/08/addressing":EndpointReferenceType.
+      wsa5__EndpointReferenceType*         Originator                     0;	///< Optional element.
+  /// @note class _wsrfbf__ResumeFailedFaultType_ErrorCode operations:
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*) allocate and default initialize
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new_req__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode* soap_new_set__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, _wsrfbf__ResumeFailedFaultType_ErrorCode*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResumeFailedFaultType_ErrorCode(soap*, _wsrfbf__ResumeFailedFaultType_ErrorCode*) serialize to a stream
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode* _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_ErrorCode, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_ErrorCode data members, use only after _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResumeFailedFaultType_ErrorCode::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_ErrorCode or derived type identifier
+      class _wsrfbf__ResumeFailedFaultType_ErrorCode
+      { public:
+  /// Attribute "dialect" of type xs:anyURI.
+    @ xsd__anyURI                          dialect                        1;	///< Required attribute.
+  /// Mixed content.
+  /// @note Mixed content is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -d for DOM (soap_dom_element) to store mixed content.
+      xsd__anyType                         __mixed                       0;	///< Store mixed content as xsd:any (by default a xsd__anyType DOM soap_dom_element linked node structure).
+      }                                   *ErrorCode                      0;	///< Optional element.
+  /// Vector of Description of length 0..unbounded.
+      std::vector<
+  /// @note class _wsrfbf__ResumeFailedFaultType_Description operations:
+  /// - _wsrfbf__ResumeFailedFaultType_Description* soap_new__wsrfbf__ResumeFailedFaultType_Description(soap*) allocate and default initialize
+  /// - _wsrfbf__ResumeFailedFaultType_Description* soap_new__wsrfbf__ResumeFailedFaultType_Description(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResumeFailedFaultType_Description* soap_new_req__wsrfbf__ResumeFailedFaultType_Description(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResumeFailedFaultType_Description* soap_new_set__wsrfbf__ResumeFailedFaultType_Description(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResumeFailedFaultType_Description::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResumeFailedFaultType_Description(soap*, _wsrfbf__ResumeFailedFaultType_Description*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResumeFailedFaultType_Description(soap*, _wsrfbf__ResumeFailedFaultType_Description*) serialize to a stream
+  /// - _wsrfbf__ResumeFailedFaultType_Description* _wsrfbf__ResumeFailedFaultType_Description::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_Description, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResumeFailedFaultType_Description::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_Description data members, use only after _wsrfbf__ResumeFailedFaultType_Description::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResumeFailedFaultType_Description::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_Description or derived type identifier
+      class _wsrfbf__ResumeFailedFaultType_Description
+      { public:
+  /// __item wraps simpleContent of type xs:string.
+      std::string                          __item                        ;
+  /// Imported attribute reference xml:lang.
+    @ _xml__lang*                          xml__lang                      0;	///< Optional attribute.
+      }>                                   Description                    0;	///< Multiple elements.
+  /// @note class _wsrfbf__ResumeFailedFaultType_FaultCause operations:
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new__wsrfbf__ResumeFailedFaultType_FaultCause(soap*) allocate and default initialize
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, int num) allocate and default initialize an array
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new_req__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, ...) allocate, set required members
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause* soap_new_set__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, ...) allocate, set all public members
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause::soap_default(soap*) default initialize members
+  /// - int soap_read__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, _wsrfbf__ResumeFailedFaultType_FaultCause*) deserialize from a stream
+  /// - int soap_write__wsrfbf__ResumeFailedFaultType_FaultCause(soap*, _wsrfbf__ResumeFailedFaultType_FaultCause*) serialize to a stream
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause* _wsrfbf__ResumeFailedFaultType_FaultCause::soap_dup(soap*) returns deep copy of _wsrfbf__ResumeFailedFaultType_FaultCause, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
+  /// - _wsrfbf__ResumeFailedFaultType_FaultCause::soap_del() deep deletes _wsrfbf__ResumeFailedFaultType_FaultCause data members, use only after _wsrfbf__ResumeFailedFaultType_FaultCause::soap_dup(NULL) (use soapcpp2 -Ed)
+  /// - int _wsrfbf__ResumeFailedFaultType_FaultCause::soap_type() returns SOAP_TYPE__wsrfbf__ResumeFailedFaultType_FaultCause or derived type identifier
+      class _wsrfbf__ResumeFailedFaultType_FaultCause
+      { public:
+  /// <any namespace="##other" minOccurs="1" maxOccurs="1">
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this element.
+  ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
+  ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
+      xsd__anyType                         __any                         0;	///< Store any element content in DOM soap_dom_element node.
+      }                                   *FaultCause                     0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wsrfbf__BaseFaultType */
 };
 
 /// @brief "http://docs.oasis-open.org/wsn/t-1":TopicNamespaceType is a complexType with complexContent extension of type "http://docs.oasis-open.org/wsn/t-1":ExtensibleDocumented.
@@ -4617,20 +4617,20 @@ class wsnt__ResumeFailedFaultType : public wsrfbf__BaseFaultType
 /// - wstop__TopicNamespaceType* wstop__TopicNamespaceType::soap_dup(soap*) returns deep copy of wstop__TopicNamespaceType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__TopicNamespaceType::soap_del() deep deletes wstop__TopicNamespaceType data members, use only after wstop__TopicNamespaceType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__TopicNamespaceType::soap_type() returns SOAP_TYPE_wstop__TopicNamespaceType or derived type identifier
-class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
-{ public:
-/*  INHERITED FROM wstop__ExtensibleDocumented:
-/// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
-    wstop__Documentation*                documentation                  0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wstop__ExtensibleDocumented */
+class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented {
+ public:
+  /*  INHERITED FROM wstop__ExtensibleDocumented:
+  /// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
+      wstop__Documentation*                documentation                  0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wstop__ExtensibleDocumented */
 /// Vector of Topic of length 0..unbounded.
-    std::vector<
+  std::vector<
 /// @note class _wstop__TopicNamespaceType_Topic operations:
 /// - _wstop__TopicNamespaceType_Topic* soap_new__wstop__TopicNamespaceType_Topic(soap*) allocate and default initialize
 /// - _wstop__TopicNamespaceType_Topic* soap_new__wstop__TopicNamespaceType_Topic(soap*, int num) allocate and default initialize an array
@@ -4642,8 +4642,8 @@ class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
 /// - _wstop__TopicNamespaceType_Topic* _wstop__TopicNamespaceType_Topic::soap_dup(soap*) returns deep copy of _wstop__TopicNamespaceType_Topic, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - _wstop__TopicNamespaceType_Topic::soap_del() deep deletes _wstop__TopicNamespaceType_Topic data members, use only after _wstop__TopicNamespaceType_Topic::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int _wstop__TopicNamespaceType_Topic::soap_type() returns SOAP_TYPE__wstop__TopicNamespaceType_Topic or derived type identifier
-    class _wstop__TopicNamespaceType_Topic
-    { public:
+  class _wstop__TopicNamespaceType_Topic {
+   public:
 /// INHERITED FROM wstop__ExtensibleDocumented:
 /// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
     wstop__Documentation*                documentation                  0;	///< Optional element.
@@ -4652,7 +4652,7 @@ class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
 ///       Consult the protocol documentation to change or insert declarations.
 ///       Use wsdl2h option -x to remove this attribute.
 ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
 //  END OF INHERITED FROM wstop__ExtensibleDocumented
 /// INHERITED FROM wstop__TopicType:
 /// Element "MessagePattern" of type "http://docs.oasis-open.org/wsn/t-1":QueryExpressionType.
@@ -4668,16 +4668,16 @@ class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
 /// Size of the array of XML or DOM nodes is 0..unbounded.
     std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "name" of type xs:NCName.
-  @ xsd__NCName                          name                           1;	///< Required attribute.
-@    xsd__QName                                                         
+    @ xsd__NCName                          name                           1;	///< Required attribute.
+    @    xsd__QName
 
-                                        *messageTypes                   0;	///< Optional attribute.
+    *messageTypes                   0;	///< Optional attribute.
 /// Attribute "final" of type xs:boolean.
-  @ bool                                 final_                         0 = false;	///< Optional attribute with default value="false".
+    @ bool                                 final_                         0 = false;	///< Optional attribute with default value="false".
 //  END OF INHERITED FROM wstop__TopicType
 /// Attribute "parent" of type "http://docs.oasis-open.org/wsn/t-1":ConcreteTopicExpression.
-  @ wstop__ConcreteTopicExpression*      parent                         0;	///< Optional attribute.
-    }>                                   Topic                          0;	///< Multiple elements.
+    @ wstop__ConcreteTopicExpression*      parent                         0;	///< Optional attribute.
+  }>                                   Topic                          0;	///< Multiple elements.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -4685,7 +4685,7 @@ class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "name" of type xs:NCName.
   @ xsd__NCName*                         name                           0;	///< Optional attribute.
 /// Attribute "targetNamespace" of type xs:anyURI.
@@ -4707,22 +4707,22 @@ class wstop__TopicNamespaceType : public wstop__ExtensibleDocumented
 /// - wstop__TopicType* wstop__TopicType::soap_dup(soap*) returns deep copy of wstop__TopicType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__TopicType::soap_del() deep deletes wstop__TopicType data members, use only after wstop__TopicType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__TopicType::soap_type() returns SOAP_TYPE_wstop__TopicType or derived type identifier
-class wstop__TopicType : public wstop__ExtensibleDocumented
-{ public:
-/*  INHERITED FROM wstop__ExtensibleDocumented:
-/// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
-    wstop__Documentation*                documentation                  0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wstop__ExtensibleDocumented */
+class wstop__TopicType : public wstop__ExtensibleDocumented {
+ public:
+  /*  INHERITED FROM wstop__ExtensibleDocumented:
+  /// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
+      wstop__Documentation*                documentation                  0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wstop__ExtensibleDocumented */
 /// Element "MessagePattern" of type "http://docs.oasis-open.org/wsn/t-1":QueryExpressionType.
-    wstop__QueryExpressionType*          MessagePattern                 0;	///< Optional element.
+  wstop__QueryExpressionType*          MessagePattern                 0;	///< Optional element.
 /// Vector of wstop__TopicType* of length 0..unbounded.
-    std::vector<wstop__TopicType*      > Topic                          0;	///< Multiple elements.
+  std::vector<wstop__TopicType*      > Topic                          0;	///< Multiple elements.
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -4730,12 +4730,12 @@ class wstop__TopicType : public wstop__ExtensibleDocumented
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 /// Attribute "name" of type xs:NCName.
   @ xsd__NCName                          name                           1;	///< Required attribute.
-@    xsd__QName                                                         
+  @    xsd__QName
 
-                                        *messageTypes                   0;	///< Optional attribute.
+  *messageTypes                   0;	///< Optional attribute.
 /// Attribute "final" of type xs:boolean.
   @ bool                                 final_                         0 = false;	///< Optional attribute with default value="false".
 };
@@ -4753,18 +4753,18 @@ class wstop__TopicType : public wstop__ExtensibleDocumented
 /// - wstop__TopicSetType* wstop__TopicSetType::soap_dup(soap*) returns deep copy of wstop__TopicSetType, copies the (cyclic) graph structure when a context is provided, or (cycle-pruned) tree structure with soap_set_mode(soap, SOAP_XML_TREE) (use soapcpp2 -Ec)
 /// - wstop__TopicSetType::soap_del() deep deletes wstop__TopicSetType data members, use only after wstop__TopicSetType::soap_dup(NULL) (use soapcpp2 -Ed)
 /// - int wstop__TopicSetType::soap_type() returns SOAP_TYPE_wstop__TopicSetType or derived type identifier
-class wstop__TopicSetType : public wstop__ExtensibleDocumented
-{ public:
-/*  INHERITED FROM wstop__ExtensibleDocumented:
-/// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
-    wstop__Documentation*                documentation                  0;	///< Optional element.
-/// <anyAttribute namespace="##other">.
-/// @note Schema extensibility is user-definable.
-///       Consult the protocol documentation to change or insert declarations.
-///       Use wsdl2h option -x to remove this attribute.
-///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
-  @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
-    END OF INHERITED FROM wstop__ExtensibleDocumented */
+class wstop__TopicSetType : public wstop__ExtensibleDocumented {
+ public:
+  /*  INHERITED FROM wstop__ExtensibleDocumented:
+  /// Element "documentation" of type "http://docs.oasis-open.org/wsn/t-1":Documentation.
+      wstop__Documentation*                documentation                  0;	///< Optional element.
+  /// <anyAttribute namespace="##other">.
+  /// @note Schema extensibility is user-definable.
+  ///       Consult the protocol documentation to change or insert declarations.
+  ///       Use wsdl2h option -x to remove this attribute.
+  ///       Use wsdl2h option -d for xsd__anyAttribute DOM (soap_dom_attribute).
+    @ xsd__anyAttribute                    __anyAttribute                ;	///< Store anyAttribute content in DOM soap_dom_attribute linked node structure.
+      END OF INHERITED FROM wstop__ExtensibleDocumented */
 /// <any namespace="##other" minOccurs="0" maxOccurs="unbounded">
 /// @note Schema extensibility is user-definable.
 ///       Consult the protocol documentation to change or insert declarations.
@@ -4772,7 +4772,7 @@ class wstop__TopicSetType : public wstop__ExtensibleDocumented
 ///       Use wsdl2h option -d for xsd__anyType DOM (soap_dom_element):
 ///       wsdl2h maps xsd:any to xsd__anyType, use typemap.dat to remap.
 /// Size of the array of XML or DOM nodes is 0..unbounded.
-    std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
+  std::vector<xsd__anyType           > __any                         0;	///< Store any element content in DOM soap_dom_element node.
 };
 
 
@@ -5026,10 +5026,10 @@ class wstop__TopicSetType : public wstop__ExtensibleDocumented
 // This service supports SOAP 1.2 namespaces:
 #import "soap12.h"
 
-//gsoap tev  service name:	PullPointSubscriptionBinding 
-//gsoap tev  service type:	PullPointSubscription 
-//gsoap tev  service namespace:	http://www.onvif.org/ver10/events/wsdl 
-//gsoap tev  service transport:	http://schemas.xmlsoap.org/soap/http 
+//gsoap tev  service name:	PullPointSubscriptionBinding
+//gsoap tev  service type:	PullPointSubscription
+//gsoap tev  service namespace:	http://www.onvif.org/ver10/events/wsdl
+//gsoap tev  service transport:	http://schemas.xmlsoap.org/soap/http
 
 /** @mainpage Service Definitions
 
@@ -5121,56 +5121,55 @@ soap.fault->SOAP_ENV__Detail variable (SOAP 1.2).
 Use wsdl2h option -j to omit these declarations.
 
 */
-mutable struct SOAP_ENV__Detail
-{
+mutable struct SOAP_ENV__Detail {
   @ xsd__anyAttribute                    __anyAttribute                ;	///< Catch any attribute content in DOM.
 /// SOAP Fault message "InvalidFilterFault" part "InvalidFilterFault" element ""http://docs.oasis-open.org/wsn/b-2":InvalidFilterFault".
-    wsnt__InvalidFilterFaultType*        wsnt__InvalidFilterFault      ;
+  wsnt__InvalidFilterFaultType*        wsnt__InvalidFilterFault      ;
 /// SOAP Fault message "InvalidMessageContentExpressionFault" part "InvalidMessageContentExpressionFault" element ""http://docs.oasis-open.org/wsn/b-2":InvalidMessageContentExpressionFault".
-    wsnt__InvalidMessageContentExpressionFaultType*  wsnt__InvalidMessageContentExpressionFault;
+  wsnt__InvalidMessageContentExpressionFaultType*  wsnt__InvalidMessageContentExpressionFault;
 /// SOAP Fault message "InvalidProducerPropertiesExpressionFault" part "InvalidProducerPropertiesExpressionFault" element ""http://docs.oasis-open.org/wsn/b-2":InvalidProducerPropertiesExpressionFault".
-    wsnt__InvalidProducerPropertiesExpressionFaultType*  wsnt__InvalidProducerPropertiesExpressionFault;
+  wsnt__InvalidProducerPropertiesExpressionFaultType*  wsnt__InvalidProducerPropertiesExpressionFault;
 /// SOAP Fault message "InvalidTopicExpressionFault" part "InvalidTopicExpressionFault" element ""http://docs.oasis-open.org/wsn/b-2":InvalidTopicExpressionFault".
-    wsnt__InvalidTopicExpressionFaultType*  wsnt__InvalidTopicExpressionFault;
+  wsnt__InvalidTopicExpressionFaultType*  wsnt__InvalidTopicExpressionFault;
 /// SOAP Fault message "MultipleTopicsSpecifiedFault" part "MultipleTopicsSpecifiedFault" element ""http://docs.oasis-open.org/wsn/b-2":MultipleTopicsSpecifiedFault".
-    wsnt__MultipleTopicsSpecifiedFaultType*  wsnt__MultipleTopicsSpecifiedFault;
+  wsnt__MultipleTopicsSpecifiedFaultType*  wsnt__MultipleTopicsSpecifiedFault;
 /// SOAP Fault message "NoCurrentMessageOnTopicFault" part "NoCurrentMessageOnTopicFault" element ""http://docs.oasis-open.org/wsn/b-2":NoCurrentMessageOnTopicFault".
-    wsnt__NoCurrentMessageOnTopicFaultType*  wsnt__NoCurrentMessageOnTopicFault;
+  wsnt__NoCurrentMessageOnTopicFaultType*  wsnt__NoCurrentMessageOnTopicFault;
 /// SOAP Fault message "NotifyMessageNotSupportedFault" part "NotifyMessageNotSupportedFault" element ""http://docs.oasis-open.org/wsn/b-2":NotifyMessageNotSupportedFault".
-    wsnt__NotifyMessageNotSupportedFaultType*  wsnt__NotifyMessageNotSupportedFault;
+  wsnt__NotifyMessageNotSupportedFaultType*  wsnt__NotifyMessageNotSupportedFault;
 /// SOAP Fault message "PauseFailedFault" part "PauseFailedFault" element ""http://docs.oasis-open.org/wsn/b-2":PauseFailedFault".
-    wsnt__PauseFailedFaultType*          wsnt__PauseFailedFault        ;
+  wsnt__PauseFailedFaultType*          wsnt__PauseFailedFault        ;
 /// SOAP Fault message "PullMessagesFaultResponse" part "parameters" element ""http://www.onvif.org/ver10/events/wsdl":PullMessagesFaultResponse".
-    _tev__PullMessagesFaultResponse*     tev__PullMessagesFaultResponse;
+  _tev__PullMessagesFaultResponse*     tev__PullMessagesFaultResponse;
 /// SOAP Fault message "ResourceUnknownFault" part "ResourceUnknownFault" element ""http://docs.oasis-open.org/wsrf/r-2":ResourceUnknownFault".
-    wsrfr__ResourceUnknownFaultType*     wsrfr__ResourceUnknownFault   ;
+  wsrfr__ResourceUnknownFaultType*     wsrfr__ResourceUnknownFault   ;
 /// SOAP Fault message "ResumeFailedFault" part "ResumeFailedFault" element ""http://docs.oasis-open.org/wsn/b-2":ResumeFailedFault".
-    wsnt__ResumeFailedFaultType*         wsnt__ResumeFailedFault       ;
+  wsnt__ResumeFailedFaultType*         wsnt__ResumeFailedFault       ;
 /// SOAP Fault message "SubscribeCreationFailedFault" part "SubscribeCreationFailedFault" element ""http://docs.oasis-open.org/wsn/b-2":SubscribeCreationFailedFault".
-    wsnt__SubscribeCreationFailedFaultType*  wsnt__SubscribeCreationFailedFault;
+  wsnt__SubscribeCreationFailedFaultType*  wsnt__SubscribeCreationFailedFault;
 /// SOAP Fault message "TopicExpressionDialectUnknownFault" part "TopicExpressionDialectUnknownFault" element ""http://docs.oasis-open.org/wsn/b-2":TopicExpressionDialectUnknownFault".
-    wsnt__TopicExpressionDialectUnknownFaultType*  wsnt__TopicExpressionDialectUnknownFault;
+  wsnt__TopicExpressionDialectUnknownFaultType*  wsnt__TopicExpressionDialectUnknownFault;
 /// SOAP Fault message "TopicNotSupportedFault" part "TopicNotSupportedFault" element ""http://docs.oasis-open.org/wsn/b-2":TopicNotSupportedFault".
-    wsnt__TopicNotSupportedFaultType*    wsnt__TopicNotSupportedFault  ;
+  wsnt__TopicNotSupportedFaultType*    wsnt__TopicNotSupportedFault  ;
 /// SOAP Fault message "UnableToCreatePullPointFault" part "UnableToCreatePullPointFault" element ""http://docs.oasis-open.org/wsn/b-2":UnableToCreatePullPointFault".
-    wsnt__UnableToCreatePullPointFaultType*  wsnt__UnableToCreatePullPointFault;
+  wsnt__UnableToCreatePullPointFaultType*  wsnt__UnableToCreatePullPointFault;
 /// SOAP Fault message "UnableToDestroyPullPointFault" part "UnableToDestroyPullPointFault" element ""http://docs.oasis-open.org/wsn/b-2":UnableToDestroyPullPointFault".
-    wsnt__UnableToDestroyPullPointFaultType*  wsnt__UnableToDestroyPullPointFault;
+  wsnt__UnableToDestroyPullPointFaultType*  wsnt__UnableToDestroyPullPointFault;
 /// SOAP Fault message "UnableToDestroySubscriptionFault" part "UnableToDestroySubscriptionFault" element ""http://docs.oasis-open.org/wsn/b-2":UnableToDestroySubscriptionFault".
-    wsnt__UnableToDestroySubscriptionFaultType*  wsnt__UnableToDestroySubscriptionFault;
+  wsnt__UnableToDestroySubscriptionFaultType*  wsnt__UnableToDestroySubscriptionFault;
 /// SOAP Fault message "UnableToGetMessagesFault" part "UnableToGetMessagesFault" element ""http://docs.oasis-open.org/wsn/b-2":UnableToGetMessagesFault".
-    wsnt__UnableToGetMessagesFaultType*  wsnt__UnableToGetMessagesFault;
+  wsnt__UnableToGetMessagesFaultType*  wsnt__UnableToGetMessagesFault;
 /// SOAP Fault message "UnacceptableInitialTerminationTimeFault" part "UnacceptableInitialTerminationTimeFault" element ""http://docs.oasis-open.org/wsn/b-2":UnacceptableInitialTerminationTimeFault".
-    wsnt__UnacceptableInitialTerminationTimeFaultType*  wsnt__UnacceptableInitialTerminationTimeFault;
+  wsnt__UnacceptableInitialTerminationTimeFaultType*  wsnt__UnacceptableInitialTerminationTimeFault;
 /// SOAP Fault message "UnacceptableTerminationTimeFault" part "UnacceptableTerminationTimeFault" element ""http://docs.oasis-open.org/wsn/b-2":UnacceptableTerminationTimeFault".
-    wsnt__UnacceptableTerminationTimeFaultType*  wsnt__UnacceptableTerminationTimeFault;
+  wsnt__UnacceptableTerminationTimeFaultType*  wsnt__UnacceptableTerminationTimeFault;
 /// SOAP Fault message "UnrecognizedPolicyRequestFault" part "UnrecognizedPolicyRequestFault" element ""http://docs.oasis-open.org/wsn/b-2":UnrecognizedPolicyRequestFault".
-    wsnt__UnrecognizedPolicyRequestFaultType*  wsnt__UnrecognizedPolicyRequestFault;
+  wsnt__UnrecognizedPolicyRequestFaultType*  wsnt__UnrecognizedPolicyRequestFault;
 /// SOAP Fault message "UnsupportedPolicyRequestFault" part "UnsupportedPolicyRequestFault" element ""http://docs.oasis-open.org/wsn/b-2":UnsupportedPolicyRequestFault".
-    wsnt__UnsupportedPolicyRequestFaultType*  wsnt__UnsupportedPolicyRequestFault;
-    int                                  __type                        ;	///< set to SOAP_TYPE_T for a serializable type T
-    void                                *fault                         ;	///< points to serializable value of type T or NULL
-    _XML                                 __any                         ;	///< Catch any other content in XML string.
+  wsnt__UnsupportedPolicyRequestFaultType*  wsnt__UnsupportedPolicyRequestFault;
+  int                                  __type                        ;	///< set to SOAP_TYPE_T for a serializable type T
+  void                                *fault                         ;	///< points to serializable value of type T or NULL
+  _XML                                 __any                         ;	///< Catch any other content in XML string.
 };
 
 
@@ -5199,7 +5198,7 @@ command. This method shall not wait until
 				the requested number of messages is available but
 return as soon as at least one message is available.<br/>
 				The command shall at least support a Timeout of
-one minute. In case a device supports retrieval of less messages 
+one minute. In case a device supports retrieval of less messages
 				than requested it shall return these without generating
 a fault.
 
@@ -5261,8 +5260,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	PullMessages tev__PullMessagesFaultResponse
 //gsoap tev  service method-fault-action:	PullMessages http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/PullMessages/Fault/PullMessagesFaultResponse
 int __tev__PullMessages(
-    _tev__PullMessages*                 tev__PullMessages,	///< Input parameter
-    _tev__PullMessagesResponse         &tev__PullMessagesResponse	///< Output parameter
+  _tev__PullMessages*                 tev__PullMessages,	///< Input parameter
+  _tev__PullMessagesResponse         &tev__PullMessagesResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5287,7 +5286,7 @@ command.<br/>
 				The UtcTime argument will be matched against the
 UtcTime attribute on a
 				NotificationMessage.
-			
+
 
   - SOAP document/literal style messaging
 
@@ -5342,8 +5341,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	Seek http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SeekRequest
 //gsoap tev  service method-output-action:	Seek http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SeekResponse
 int __tev__Seek(
-    _tev__Seek*                         tev__Seek,	///< Input parameter
-    _tev__SeekResponse                 &tev__SeekResponse	///< Output parameter
+  _tev__Seek*                         tev__Seek,	///< Input parameter
+  _tev__SeekResponse                 &tev__SeekResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5370,7 +5369,7 @@ which was returned in either the
 The property update is
 				transmitted via the notification transportation
 of the notification interface. This method is mandatory.
-			
+
 
   - SOAP document/literal style messaging
 
@@ -5425,8 +5424,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	SetSynchronizationPoint http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SetSynchronizationPointRequest
 //gsoap tev  service method-output-action:	SetSynchronizationPoint http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SetSynchronizationPointResponse
 int __tev__SetSynchronizationPoint(
-    _tev__SetSynchronizationPoint*      tev__SetSynchronizationPoint,	///< Input parameter
-    _tev__SetSynchronizationPointResponse&tev__SetSynchronizationPointResponse	///< Output parameter
+  _tev__SetSynchronizationPoint*      tev__SetSynchronizationPoint,	///< Input parameter
+  _tev__SetSynchronizationPointResponse&tev__SetSynchronizationPointResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5442,7 +5441,7 @@ The device shall provide the following Unsubscribe command for all SubscriptionM
 endpoints returned by the CreatePullPointSubscription command.<br/>
 				This command shall terminate the lifetime of a pull
 point.
-			
+
 
   - SOAP document/literal style messaging
 
@@ -5503,8 +5502,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Unsubscribe wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	Unsubscribe wsnt__UnableToDestroySubscriptionFault
 int __tev__Unsubscribe(
-    _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
-    _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
+  _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
+  _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5572,8 +5571,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	GetServiceCapabilities http://www.onvif.org/ver10/events/wsdl/EventPortType/GetServiceCapabilitiesRequest
 //gsoap tev  service method-output-action:	GetServiceCapabilities http://www.onvif.org/ver10/events/wsdl/EventPortType/GetServiceCapabilitiesResponse
 int __tev__GetServiceCapabilities(
-    _tev__GetServiceCapabilities*       tev__GetServiceCapabilities,	///< Input parameter
-    _tev__GetServiceCapabilitiesResponse&tev__GetServiceCapabilitiesResponse	///< Output parameter
+  _tev__GetServiceCapabilities*       tev__GetServiceCapabilities,	///< Input parameter
+  _tev__GetServiceCapabilitiesResponse&tev__GetServiceCapabilitiesResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5682,8 +5681,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	CreatePullPointSubscription wsnt__NotifyMessageNotSupportedFault
 //gsoap tev  service method-fault:	CreatePullPointSubscription wsnt__SubscribeCreationFailedFault
 int __tev__CreatePullPointSubscription(
-    _tev__CreatePullPointSubscription*  tev__CreatePullPointSubscription,	///< Input parameter
-    _tev__CreatePullPointSubscriptionResponse&tev__CreatePullPointSubscriptionResponse	///< Output parameter
+  _tev__CreatePullPointSubscription*  tev__CreatePullPointSubscription,	///< Input parameter
+  _tev__CreatePullPointSubscriptionResponse&tev__CreatePullPointSubscriptionResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5757,8 +5756,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	GetEventProperties http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventPropertiesRequest
 //gsoap tev  service method-output-action:	GetEventProperties http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventPropertiesResponse
 int __tev__GetEventProperties(
-    _tev__GetEventProperties*           tev__GetEventProperties,	///< Input parameter
-    _tev__GetEventPropertiesResponse   &tev__GetEventPropertiesResponse	///< Output parameter
+  _tev__GetEventProperties*           tev__GetEventProperties,	///< Input parameter
+  _tev__GetEventPropertiesResponse   &tev__GetEventPropertiesResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5828,8 +5827,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	AddEventBroker http://www.onvif.org/ver10/events/wsdl/EventPortType/AddEventBrokerRequest
 //gsoap tev  service method-output-action:	AddEventBroker http://www.onvif.org/ver10/events/wsdl/EventPortType/AddEventBrokerRequestResponse
 int __tev__AddEventBroker(
-    _tev__AddEventBroker*               tev__AddEventBroker,	///< Input parameter
-    _tev__AddEventBrokerResponse       &tev__AddEventBrokerResponse	///< Output parameter
+  _tev__AddEventBroker*               tev__AddEventBroker,	///< Input parameter
+  _tev__AddEventBrokerResponse       &tev__AddEventBrokerResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5897,8 +5896,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	DeleteEventBroker http://www.onvif.org/ver10/events/wsdl/EventPortType/DeleteEventBrokerRequest
 //gsoap tev  service method-output-action:	DeleteEventBroker http://www.onvif.org/ver10/events/wsdl/EventPortType/DeleteEventBrokerRequestResponse
 int __tev__DeleteEventBroker(
-    _tev__DeleteEventBroker*            tev__DeleteEventBroker,	///< Input parameter
-    _tev__DeleteEventBrokerResponse    &tev__DeleteEventBrokerResponse	///< Output parameter
+  _tev__DeleteEventBroker*            tev__DeleteEventBroker,	///< Input parameter
+  _tev__DeleteEventBrokerResponse    &tev__DeleteEventBrokerResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -5966,8 +5965,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-input-action:	GetEventBrokers http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventBrokersRequest
 //gsoap tev  service method-output-action:	GetEventBrokers http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventBrokersRequestResponse
 int __tev__GetEventBrokers(
-    _tev__GetEventBrokers*              tev__GetEventBrokers,	///< Input parameter
-    _tev__GetEventBrokersResponse      &tev__GetEventBrokersResponse	///< Output parameter
+  _tev__GetEventBrokers*              tev__GetEventBrokers,	///< Input parameter
+  _tev__GetEventBrokersResponse      &tev__GetEventBrokersResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6039,8 +6038,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Renew wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	Renew wsnt__UnacceptableTerminationTimeFault
 int __tev__Renew(
-    _wsnt__Renew*                       wsnt__Renew,	///< Input parameter
-    _wsnt__RenewResponse               &wsnt__RenewResponse	///< Output parameter
+  _wsnt__Renew*                       wsnt__Renew,	///< Input parameter
+  _wsnt__RenewResponse               &wsnt__RenewResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6112,8 +6111,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Unsubscribe_ wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	Unsubscribe_ wsnt__UnableToDestroySubscriptionFault
 int __tev__Unsubscribe_(
-    _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
-    _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
+  _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
+  _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6215,8 +6214,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Subscribe wsnt__NotifyMessageNotSupportedFault
 //gsoap tev  service method-fault:	Subscribe wsnt__SubscribeCreationFailedFault
 int __tev__Subscribe(
-    _wsnt__Subscribe*                   wsnt__Subscribe,	///< Input parameter
-    _wsnt__SubscribeResponse           &wsnt__SubscribeResponse	///< Output parameter
+  _wsnt__Subscribe*                   wsnt__Subscribe,	///< Input parameter
+  _wsnt__SubscribeResponse           &wsnt__SubscribeResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6300,8 +6299,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	GetCurrentMessage wsnt__NoCurrentMessageOnTopicFault
 //gsoap tev  service method-fault:	GetCurrentMessage wsnt__MultipleTopicsSpecifiedFault
 int __tev__GetCurrentMessage(
-    _wsnt__GetCurrentMessage*           wsnt__GetCurrentMessage,	///< Input parameter
-    _wsnt__GetCurrentMessageResponse   &wsnt__GetCurrentMessageResponse	///< Output parameter
+  _wsnt__GetCurrentMessage*           wsnt__GetCurrentMessage,	///< Input parameter
+  _wsnt__GetCurrentMessageResponse   &wsnt__GetCurrentMessageResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6363,8 +6362,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-encoding:	Notify literal
 //gsoap tev  service method-input-action:	Notify http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer/Notify
 int __tev__Notify(
-    _wsnt__Notify*                      wsnt__Notify,	///< Input parameter
-    void	///< One-way message: no output parameter
+  _wsnt__Notify*                      wsnt__Notify,	///< Input parameter
+  void	///< One-way message: no output parameter
 );
 
 /******************************************************************************\
@@ -6436,8 +6435,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	GetMessages wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	GetMessages wsnt__UnableToGetMessagesFault
 int __tev__GetMessages(
-    _wsnt__GetMessages*                 wsnt__GetMessages,	///< Input parameter
-    _wsnt__GetMessagesResponse         &wsnt__GetMessagesResponse	///< Output parameter
+  _wsnt__GetMessages*                 wsnt__GetMessages,	///< Input parameter
+  _wsnt__GetMessagesResponse         &wsnt__GetMessagesResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6509,8 +6508,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	DestroyPullPoint wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	DestroyPullPoint wsnt__UnableToDestroyPullPointFault
 int __tev__DestroyPullPoint(
-    _wsnt__DestroyPullPoint*            wsnt__DestroyPullPoint,	///< Input parameter
-    _wsnt__DestroyPullPointResponse    &wsnt__DestroyPullPointResponse	///< Output parameter
+  _wsnt__DestroyPullPoint*            wsnt__DestroyPullPoint,	///< Input parameter
+  _wsnt__DestroyPullPointResponse    &wsnt__DestroyPullPointResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6572,8 +6571,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-encoding:	Notify_ literal
 //gsoap tev  service method-input-action:	Notify_ http://docs.oasis-open.org/wsn/bw-2/PullPoint/Notify
 int __tev__Notify_(
-    _wsnt__Notify*                      wsnt__Notify,	///< Input parameter
-    void	///< One-way message: no output parameter
+  _wsnt__Notify*                      wsnt__Notify,	///< Input parameter
+  void	///< One-way message: no output parameter
 );
 
 /******************************************************************************\
@@ -6642,8 +6641,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-output-action:	CreatePullPoint http://docs.oasis-open.org/wsn/bw-2/CreatePullPoint/CreatePullPointRequestResponse
 //gsoap tev  service method-fault:	CreatePullPoint wsnt__UnableToCreatePullPointFault
 int __tev__CreatePullPoint(
-    _wsnt__CreatePullPoint*             wsnt__CreatePullPoint,	///< Input parameter
-    _wsnt__CreatePullPointResponse     &wsnt__CreatePullPointResponse	///< Output parameter
+  _wsnt__CreatePullPoint*             wsnt__CreatePullPoint,	///< Input parameter
+  _wsnt__CreatePullPointResponse     &wsnt__CreatePullPointResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6715,8 +6714,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Renew_ wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	Renew_ wsnt__UnacceptableTerminationTimeFault
 int __tev__Renew_(
-    _wsnt__Renew*                       wsnt__Renew,	///< Input parameter
-    _wsnt__RenewResponse               &wsnt__RenewResponse	///< Output parameter
+  _wsnt__Renew*                       wsnt__Renew,	///< Input parameter
+  _wsnt__RenewResponse               &wsnt__RenewResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6788,8 +6787,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	Unsubscribe__ wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	Unsubscribe__ wsnt__UnableToDestroySubscriptionFault
 int __tev__Unsubscribe__(
-    _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
-    _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
+  _wsnt__Unsubscribe*                 wsnt__Unsubscribe,	///< Input parameter
+  _wsnt__UnsubscribeResponse         &wsnt__UnsubscribeResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6861,8 +6860,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	PauseSubscription wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	PauseSubscription wsnt__PauseFailedFault
 int __tev__PauseSubscription(
-    _wsnt__PauseSubscription*           wsnt__PauseSubscription,	///< Input parameter
-    _wsnt__PauseSubscriptionResponse   &wsnt__PauseSubscriptionResponse	///< Output parameter
+  _wsnt__PauseSubscription*           wsnt__PauseSubscription,	///< Input parameter
+  _wsnt__PauseSubscriptionResponse   &wsnt__PauseSubscriptionResponse	///< Output parameter
 );
 
 /******************************************************************************\
@@ -6934,8 +6933,8 @@ Important: use soapcpp2 option '-j' (or '-i') to generate improved and easy-to-u
 //gsoap tev  service method-fault:	ResumeSubscription wsrfr__ResourceUnknownFault
 //gsoap tev  service method-fault:	ResumeSubscription wsnt__ResumeFailedFault
 int __tev__ResumeSubscription(
-    _wsnt__ResumeSubscription*          wsnt__ResumeSubscription,	///< Input parameter
-    _wsnt__ResumeSubscriptionResponse  &wsnt__ResumeSubscriptionResponse	///< Output parameter
+  _wsnt__ResumeSubscription*          wsnt__ResumeSubscription,	///< Input parameter
+  _wsnt__ResumeSubscriptionResponse  &wsnt__ResumeSubscriptionResponse	///< Output parameter
 );
 
 /** @page PullPointSubscriptionBinding Binding "PullPointSubscriptionBinding"
@@ -7747,3 +7746,4 @@ generated .h file in your code.
 /* End of /home/jbennett/src/zoneminder/build/generated/bindings.h */
 #import "wsse.h"
 #import "struct_timeval.h"
+#import "wsa5.h"

@@ -162,6 +162,12 @@ our %types = (
     pattern     => qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
     format      => q( $1\@$2 )
   },
+  password => {
+    db_type     => 'password',
+    hint        => 'password',
+    pattern      => qr|^(.+)$|,
+    format      => q($1)
+  },
   timezone => {
     db_type     => 'string',
     hint        => 'America/Toronto',
@@ -281,7 +287,7 @@ our @options = (
       limited by their defined permissions.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_TYPE',
@@ -305,7 +311,19 @@ our @options = (
       pattern     => qr|^([br])|i,
       format      => q( $1 =~ /^b/ ? 'builtin' : 'remote' )
     },
-    category    => 'system',
+    category    => 'auth',
+  },
+  {
+    name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
+    default     => 'no',
+    description => 'Case insensitive username authentication',
+    help        => q`
+      This option makes usernames case insensitive when
+      authenticating.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => $types{boolean},
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_RELAY',
@@ -330,7 +348,7 @@ our @options = (
       pattern     => qr|^([hpn])|i,
       format      => q( ($1 =~ /^h/) ? 'hashed' : ($1 =~ /^p/ ? 'plain' : 'none' ) )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_SECRET',
@@ -349,7 +367,7 @@ our @options = (
     ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
@@ -364,7 +382,7 @@ our @options = (
       requesting address can change for each request which will cause
       most requests to fail. This option allows you to control
       whether IP addresses are included in the authentication hash on
-      your system. If you experience intermitent problems with
+      your system. If you experience intermittent problems with
       authentication, switching this option off may help.
       `,
     requires    => [
@@ -372,7 +390,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_TTL',
@@ -387,7 +405,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{integer},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
@@ -413,6 +431,29 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
+    category    => 'auth',
+  },
+  {
+    name        => 'ZM_RTSP2WEB_PATH',
+    default     => '',
+    description => 'URL for RTSP2Web port.',
+    help        => q`This value points to the location of the RTSP2Web
+      install, including username and password. If left blank, this
+      will default to demo:demo@127.0.0.1:8083
+      port 8083.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_GO2RTC_PATH',
+    default     => 'http://127.0.0.1:1984/api',
+    description => 'URL for Go2RTC API.',
+    help        => q`This value points to the location of the Go2RTC API
+    install, including username and password. If left blank, this
+    will default to http://127.0.0.1:1984/api
+    `,
+    type        => $types{string},
     category    => 'system',
   },
   {
@@ -467,7 +508,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'api',
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
@@ -478,7 +519,7 @@ our @options = (
       Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
@@ -515,7 +556,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_AUTH', value=>'yes'}
                    ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SITEKEY',
@@ -530,7 +571,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SECRETKEY',
@@ -546,7 +587,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        =>  'ZM_OPT_USE_GEOLOCATION',
@@ -593,7 +634,7 @@ our @options = (
     description =>  'Enable snapshot functionality.',
     help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
     type      =>  $types{boolean},
-    category  =>  'hidden',
+    category  =>  'system',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',
@@ -978,13 +1019,12 @@ our @options = (
   {
     name        =>  'ZM_MIN_RTSP_PORT',
     default     =>  '',
-    description =>  'Start of port range to contact for RTSP streaming video.',
+    description =>  'Port used for RTSP streaming video.',
     help        =>  q`
-      The beginng of a port range that will be used to offer
+      The port that will be used to offer
       RTSP streaming of live captured video.
-      Each monitor will use this value plus the Monitor Id to stream
-      content.  So a value of 2000 here will cause a stream for Monitor 1 to
-      hit port 2001.`,
+      Each camera to be streamed must be enabled
+      under its misc tab.`,
     type  =>  $types{integer},
     category  => 'network',
   },
@@ -1146,6 +1186,32 @@ our @options = (
     },
     category    => 'logging',
   },
+   {
+    name        => 'ZM_LOG_LEVEL_TERM',
+    default     => '-1',
+    description => 'Save logging output to stdout',
+    help        => q`
+      ZoneMinder logging is now more integrated between
+      components and allows you to specify the destination for
+      logging output and the individual levels for each. This option
+      lets you control the level of logging output that goes to the
+      terminal stdout. This really only affects ZoneMinder binaries,
+      not so much the web php scripts. This is generally only useful
+      for debugging purposes.
+      This option controls the maximum level
+      of logging that will be written, so Info includes Warnings and
+      Errors etc. To disable entirely, set this option to None.
+      If you want debug
+      you will also need to set a level and component below
+      `,
+    type        => {
+      db_type     => 'integer',
+      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      pattern     => qr|^(\d+)$|,
+      format      => q( $1 )
+    },
+    category    => 'logging',
+  },
   {
     name        => 'ZM_LOG_LEVEL_FILE',
     default     => '1',
@@ -1270,6 +1336,20 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_LOG_INJECT',
+    default     => 'no',
+    description => 'Allow log injection via API by unprivileged users.',
+    help        => q`
+       When enabled (default is off), this option will allow users without System:Edit
+       permissions to inject javascript console or other messages into the ZoneMinder log.
+       Before 1.36.27 Users were able to abuse this functionality to create a denial of service by
+       filling up the logs. This feature is useful in debugging and detecting errors
+       experienced by end users, but requires trust of users and monitoring of resources.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 {
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',
@@ -1338,7 +1418,7 @@ our @options = (
     help        => q`
       This option allows you to specify a different target for debug
       output. All components have a default log file which will
-      norally be in /tmp or /var/log and this is where debug will be
+      normally be in /var/log and this is where debug will be
       written to if this value is empty. Adding a path here will
       temporarily redirect debug, and other logging output, to this
       file. This option is a simple filename and you are debugging
@@ -1348,9 +1428,7 @@ our @options = (
       suffix containing your process id. In this way debug from each
       run of a component is kept separate. This is the recommended
       setting as it will also prevent subsequent runs from
-      overwriting the same log. You should ensure that permissions
-      are set up to allow writing to the file and directory specified
-      here.
+      overwriting the same log. 
       `,
     requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
     type        => $types{string},
@@ -1535,6 +1613,13 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_HOMEVIEW',
+    default     => 'console',
+    description => 'Default destination after login.',
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_NAVBAR_TYPE',
     default     => 'normal',
     description => 'Style of the web console navigation bar',
@@ -1548,10 +1633,25 @@ our @options = (
       `,
     type        => {
       db_type     => 'string',
-      hint        => 'normal|collapsed',
+      hint        => 'normal|collapsed|left',
       pattern     => qr|^([nc])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_NAVBAR_LINKS',
+    default     => '',
+    description => 'Additional Links to put in navbar.  Should be a comma separated list of HTML a tags.',
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
+    name          => 'ZM_WEB_NAVBAR_STICKY',
+    default       => '1',
+    description   => 'Are navbars and button bars sticky?',
+    help          => 'Do navbars and button bars remain fixed in place or scroll with the page content? Please note that this will only affect large browsers.  Due to our responsive layout on narrow screens everything will become unsticky.',
+    type        => $types{boolean},
     category    => 'web',
   },
   {
@@ -1637,22 +1737,6 @@ our @options = (
       overhead as it will call du on the event directory.  In practice
       this overhead is fairly small but may be noticeable on IO-constrained
       systems.
-      `,
-    type        => $types{boolean},
-    category    => 'web',
-  },
-  {
-    name        => 'ZM_WEB_RESIZE_CONSOLE',
-    default     => 'yes',
-    description => 'Should the console window resize itself to fit',
-    help        => q`
-      Traditionally the main ZoneMinder web console window has
-      resized itself to shrink to a size small enough to list only
-      the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyone's
-      tastes, especially if opened in a tab in browsers which support
-      this kind if layout. Switch this option off to have the console
-      window size left to the users preference
       `,
     type        => $types{boolean},
     category    => 'web',
@@ -1750,7 +1834,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ALARM_SOUND',
-    default     => '',
+    default     => 'snap.ogg',
     description => 'The sound to play on alarm, put this in the sounds directory',
     help        => q`
       You can specify a sound file to play if an alarm occurs whilst
@@ -2449,14 +2533,20 @@ our @options = (
     description => 'When continuous events are closed.',
     help        => q`
       When a monitor is running in a continuous recording mode
-      (Record or Mocord) events are usually closed after a fixed
-      period of time (the section length). However in Mocord mode it
-      is possible that motion detection may occur near the end of a
-      section. This option controls what happens when an alarm occurs
-      in Mocord mode.~~
+      (Recording=Always) events are usually closed after a fixed
+      period of time (the section length). However when doing motion
+      detection it is possible that an alarm may occur near the end of a
+      section. This option controls what happens in this situation.~~
       ~~
       The 'time' setting means that the event will be
-      closed at the end of the section regardless of alarm activity.~~
+      closed when the time is an even multiple of the section length 
+      regardless of alarm activity. So if the section length is 600 (10 minutes)
+      and the time is 12:05, then the event will be closed at 12:10~~
+      ~~
+      The 'duration' setting means that the event will be
+      closed when the event has reached its section length, regardless of the
+      current time or alarm activity. If the section length is 600 (10 minutes)
+      and the event started at 12:03, then the event will end at 12:13.
       ~~
       The 'idle' setting means that the event will be closed at the
       end of the section if there is no alarm activity occurring at
@@ -2472,15 +2562,10 @@ our @options = (
       the events may be shorter than the section length if an alarm
       has occurred.
       `,
-    type        => $types{boolean},
     type        => {
       db_type     =>'string',
-      hint        =>'time|idle|alarm',
-      pattern     =>qr|^([tia])|i,
-      format      =>q( ($1 =~ /^t/)
-          ? 'time'
-          : ($1 =~ /^i/ ? 'idle' : 'time' )
-          )
+      hint        =>'time|duration|idle|alarm',
+      pattern     =>qr/^(time|duration|idle|alarm)/,
     },
     category    => 'config',
   },
@@ -2623,7 +2708,7 @@ our @options = (
       we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_UUID',
@@ -2635,7 +2720,7 @@ our @options = (
       existence.
       `,
     type        => $types{string},
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_LAST_UPLOAD',
@@ -2644,7 +2729,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_INTERVAL',
@@ -2652,7 +2737,7 @@ our @options = (
     description => 'Interval in seconds between telemetry updates.',
     help        => 'This value can be expressed as a mathematical expression for ease.',
     type        => $types{string},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
@@ -2673,7 +2758,7 @@ our @options = (
       of http://<proxy host>:<proxy port>/
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'version',
   },
   {
     name        => 'ZM_SHM_KEY',
@@ -2898,6 +2983,16 @@ our @options = (
       totals for all monitors. This is not a trivial task and should
       not be repeated too frequently or it may affect the performance
       of the rest of the system.
+      `,
+    type        => $types{integer},
+    category    => 'highband',
+  },
+  {
+    name        => 'ZM_WEB_H_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
       `,
     type        => $types{integer},
     category    => 'highband',
@@ -3186,6 +3281,16 @@ our @options = (
     category    => 'medband',
   },
   {
+    name        => 'ZM_WEB_M_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'medband',
+  },
+  {
     name        => 'ZM_WEB_M_REFRESH_CYCLE',
     default     => '20',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3459,6 +3564,16 @@ our @options = (
     category    => 'lowband',
   },
   {
+    name        => 'ZM_WEB_L_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'lowband',
+  },
+  {
     name        => 'ZM_WEB_L_REFRESH_CYCLE',
     default     => '30',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3707,7 +3822,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_CURR_VERSION',
@@ -3719,7 +3834,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DB_VERSION',
@@ -3728,7 +3843,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_LAST_CHECK',
@@ -3737,7 +3852,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_NEXT_REMINDER',
@@ -3746,7 +3861,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DONATE_REMINDER_TIME',
@@ -3833,6 +3948,93 @@ our @options = (
     help        => 'This font is used for timestamp labels.',
     type        => $types{string},
     category    => 'config',
+  },
+  {
+    name        => 'ZM_MQTT_HOSTNAME',
+    default     => 'mqtt.zoneminder.com',
+    description => 'MQTT broker hostname',
+    help        => 'MQTT uses a central server to send/receive messages. This is the hostname or ip address of the server you wish to use.',
+    type        => $types{hostname},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_PORT',
+    default     => '1883',
+    description => 'MQTT broker port',
+    help        => 'MQTT uses a central server to send/receive messages. This is the port to connect to.',
+    type        => $types{integer},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_USERNAME',
+    default     => '',
+    description => 'MQTT broker username',
+    help        => 'MQTT uses a central server to send/receive messages. This is the username to authenticate with.',
+    type        => $types{string},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_PASSWORD',
+    default     => '',
+    description => 'MQTT broker password',
+    help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
+    type        => $types{password},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_TOPIC_PREFIX',
+    default     => 'ZoneMinder',
+    description => 'MQTT topic prefix',
+    help        => 'MQTT each message generated by ZoneMinder will start with this. For example /ZoneMinder/available.',
+    type        => $types{string},
+    category    => 'MQTT',
+  },
+# Add options for Alarm Server
+  {
+    name        => 'ZM_OPT_USE_ALARMSERVER',
+    default     => 'no',
+    description => 'Enable NETSurveillance WEB Camera ALARM SERVER',
+    help        => q`
+      Alarm Server that works with cameras that use Netsurveillance Web Server, 
+      and has the Alarm Server option it receives alarms sent by this cameras 
+      (once enabled), and pass to Zoneminder the events. 
+      It requires pyzm installed, visit https://pyzm.readthedocs.io/en/latest/
+      for installation instructions.
+      `,
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_LOGENTRY',
+    default     => 'no',
+    description => 'Makes ALARM SERVER create a log entry in ZoneMinder on Human Detected',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_ALARM',
+    default     => 'no',
+    description => 'Send the Human Detected alarm from ALARM SERVER to ZoneMinder, It does not work along with OPT_ALS_TRIGGEREVENT',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_TRIGGEREVENT',
+    default     => 'no',
+    description => 'Trigger an event on Human Detected alarm from ALARM SERVER to ZoneMinder. Requires the zmTrigger option Enabled',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_PORT',
+    default     => '15002',
+    description => 'Port Number to receive alarms from Alarm Server',
+    help        => '',
+    type        => $types{integer},
+    category    => 'system',
   },
 );
 

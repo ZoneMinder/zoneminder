@@ -1,21 +1,21 @@
 //
 // ZoneMinder RTP Source Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_rtp_source.h"
 
@@ -26,16 +26,16 @@
 #include <unistd.h>
 
 RtpSource::RtpSource(
-    int id,
-    const std::string &localHost,
-    int localPortBase,
-    const std::string &remoteHost,
-    int remotePortBase,
-    uint32_t ssrc,
-    uint16_t seq,
-    uint32_t rtpClock,
-    uint32_t rtpTime,
-    _AVCODECID codecId ) :
+  int id,
+  const std::string &localHost,
+  int localPortBase,
+  const std::string &remoteHost,
+  int remotePortBase,
+  uint32_t ssrc,
+  uint16_t seq,
+  uint32_t rtpClock,
+  uint32_t rtpTime,
+  _AVCODECID codecId ) :
   mId(id),
   mSsrc(ssrc),
   mLocalHost(localHost),
@@ -48,8 +48,7 @@ RtpSource::RtpSource(
   prevM(false),
   mFrameReady(false),
   mFrameProcessed(false),
-  mTerminate(false)
-{
+  mTerminate(false) {
   char hostname[256] = "";
   gethostname(hostname, sizeof(hostname));
 
@@ -198,11 +197,11 @@ void RtpSource::updateJitter( const RtpDataHeader *header ) {
 }
 
 void RtpSource::updateRtcpData(
-    uint32_t ntpTimeSecs,
-    uint32_t ntpTimeFrac,
-    uint32_t rtpTime) {
+  uint32_t ntpTimeSecs,
+  uint32_t ntpTimeFrac,
+  uint32_t rtpTime) {
   timeval ntpTime = zm::chrono::duration_cast<timeval>(
-      Seconds(ntpTimeSecs) + Microseconds((Microseconds::period::den * (ntpTimeFrac >> 16)) / (1 << 16)));
+                      Seconds(ntpTimeSecs) + Microseconds((Microseconds::period::den * (ntpTimeFrac >> 16)) / (1 << 16)));
 
   Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
@@ -212,18 +211,18 @@ void RtpSource::updateRtcpData(
     mBaseTimeRtp = rtpTime;
   } else if ( !mRtpClock ) {
     Debug(5, "lastSrNtpTime: %ld.%06ld, rtpTime: %x"
-        "ntpTime: %ld.%06ld, rtpTime: %x",
-        mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime,
-        ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
+          "ntpTime: %ld.%06ld, rtpTime: %x",
+          mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime,
+          ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
     FPSeconds diffNtpTime =
-        zm::chrono::duration_cast<Microseconds>(ntpTime) - zm::chrono::duration_cast<Microseconds>(mBaseTimeNtp);
+      zm::chrono::duration_cast<Microseconds>(ntpTime) - zm::chrono::duration_cast<Microseconds>(mBaseTimeNtp);
 
     uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;
     mRtpFactor = static_cast<uint32>(diffRtpTime / diffNtpTime.count());
 
     Debug( 5, "NTP-diff: %.6f RTP-diff: %d RTPfactor: %d",
-        diffNtpTime.count(), diffRtpTime, mRtpFactor);
+           diffNtpTime.count(), diffRtpTime, mRtpFactor);
   }
   mLastSrTimeNtpSecs = ntpTimeSecs;
   mLastSrTimeNtpFrac = ntpTimeFrac;
@@ -282,29 +281,30 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
         Debug(3, "Have H264 frame: nal type is %d", nalType);
 
         switch (nalType) {
-          case 24: // STAP-A
-              extraHeader = 2;
-              break;
-          case 25: // STAP-B
-          case 26: // MTAP-16
-          case 27: // MTAP-24
-              extraHeader = 3;
-              break;
-            // FU-A and FU-B
-          case 28: case 29:
-              // Is this NAL the first NAL in fragmentation sequence
-              if ( packet[rtpHeaderSize+1] & 0x80 ) {
-                // Now we will form new header of frame
-                mFrame.append( "\x0\x0\x1\x0", 4 );
-                // Reconstruct NAL header from FU headers
-                *(mFrame+3) = (packet[rtpHeaderSize+1] & 0x1f) |
-                  (packet[rtpHeaderSize] & 0xe0);
-              }
+        case 24: // STAP-A
+          extraHeader = 2;
+          break;
+        case 25: // STAP-B
+        case 26: // MTAP-16
+        case 27: // MTAP-24
+          extraHeader = 3;
+          break;
+        // FU-A and FU-B
+        case 28:
+        case 29:
+          // Is this NAL the first NAL in fragmentation sequence
+          if ( packet[rtpHeaderSize+1] & 0x80 ) {
+            // Now we will form new header of frame
+            mFrame.append( "\x0\x0\x1\x0", 4 );
+            // Reconstruct NAL header from FU headers
+            *(mFrame+3) = (packet[rtpHeaderSize+1] & 0x1f) |
+                          (packet[rtpHeaderSize] & 0xe0);
+          }
 
-              extraHeader = 2;
-              break;
-          default:
-              Debug(3, "Unhandled nalType %d", nalType);
+          extraHeader = 2;
+          break;
+        default:
+          Debug(3, "Unhandled nalType %d", nalType);
         }
 
         // Append NAL frame start code
@@ -312,7 +312,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
           mFrame.append("\x0\x0\x1", 3);
       } // end if H264
       mFrame.append(packet+rtpHeaderSize+extraHeader,
-          packetLen-rtpHeaderSize-extraHeader);
+                    packetLen-rtpHeaderSize-extraHeader);
     } else {
       Debug(3, "NOT H264 frame: type is %d", mCodecId);
     }
@@ -331,7 +331,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 
         {
           std::unique_lock<std::mutex> lck(mFrameProcessedMutex);
-          mFrameProcessedCv.wait(lck, [&]{ return mFrameProcessed || mTerminate; });
+          mFrameProcessedCv.wait(lck, [&] { return mFrameProcessed || mTerminate; });
           mFrameProcessed = false;
         }
 
@@ -367,7 +367,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 bool RtpSource::getFrame(Buffer &buffer) {
   {
     std::unique_lock<std::mutex> lck(mFrameReadyMutex);
-    mFrameReadyCv.wait(lck, [&]{ return mFrameReady || mTerminate; });
+    mFrameReadyCv.wait(lck, [&] { return mFrameReady || mTerminate; });
     mFrameReady = false;
   }
 

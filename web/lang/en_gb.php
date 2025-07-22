@@ -75,6 +75,7 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
+    'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
@@ -116,6 +117,7 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
+    'Auth'                  => 'Authentication',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'AvgBrScore'            => 'Avg.<br/>Score',
     'BackgroundFilter'      => 'Run filter in background',
@@ -139,12 +141,13 @@ $SLANG = array(
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
-    'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
-    'BadPath'               => 'Path must be set to a valid value',
-    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
-    'BadPort'               => 'Port must be set to a valid number',
+    'BadPassthrough'        => 'Recording -> Passthrough only works with ffmpeg type monitors.',
+    'BadPath'               => 'Source -> Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Source -> Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
+    'BadPort'               => 'Source -> Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
+    'BadPreEventCountMaxImageBufferCount'      => 'Max Image Buffer Count should be greater than Pre event image count or else it cannot be satisfied',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
@@ -216,11 +219,14 @@ $SLANG = array(
     'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
+    'ConfirmAction'         => 'Action Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
+    'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
     'ContactAdmin'          => 'Please contact your adminstrator for details.',
@@ -246,6 +252,7 @@ $SLANG = array(
     'DeviceNumber'          => 'Device Number',
     'DevicePath'            => 'Device Path',
     'DisableAlarms'         => 'Disable Alarms',
+    'Dnsmasq'               => 'DHCP',
     'DonateAlready'         => 'No, I\'ve already donated',
     'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to <a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a> in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on <a href="https://forums.zoneminder.com">ZoneMinder.com</a> for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
@@ -256,6 +263,7 @@ $SLANG = array(
     'DonateRemindWeek'      => 'Not yet, remind again in 1 week',
     'DonateYes'             => 'Yes, I\'d like to donate now',
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
+    'DontSave'              => 'Do not save',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
     'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'EditControl'           => 'Edit Control',
@@ -275,6 +283,7 @@ $SLANG = array(
     'Exif'                  => 'Embed EXIF data into image',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'EventsLoading'         => 'Events are loading',
     'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -332,7 +341,7 @@ $SLANG = array(
     'HasTurboTilt'          => 'Has Turbo Tilt',
     'HasWhiteSpeed'         => 'Has White Bal. Speed',
     'HasZoomSpeed'          => 'Has Zoom Speed',
-    'HighBW'                => 'High&nbsp;B/W',
+    'Highband'              => 'High&nbsp;B/W',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
@@ -343,7 +352,8 @@ $SLANG = array(
     'ListMatches'           => 'List Matches',
     'LoggedInAs'            => 'Logged in as',
     'LoggingIn'             => 'Logging In',
-    'LowBW'                 => 'Low&nbsp;B/W',
+    'Lowband'               => 'Low&nbsp;B/W',
+    'Mail'                  => 'Email',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -368,7 +378,8 @@ $SLANG = array(
     'MaxZoomRange'          => 'Max Zoom Range',
     'MaxZoomSpeed'          => 'Max Zoom Speed',
     'MaxZoomStep'           => 'Max Zoom Step',
-    'MediumBW'              => 'Medium&nbsp;B/W',
+    'Medband'               => 'Medium&nbsp;B/W',
+    'MessageSavingDataWhenLeavingPage' => 'You are leaving the page.<br>Want to save data?',
     'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
     'MinAlarmAreaUnset'     => 'You must specify the minimum alarm pixel count',
@@ -405,6 +416,7 @@ $SLANG = array(
     'MinZoomSpeed'          => 'Min Zoom Speed',
     'MinZoomStep'           => 'Min Zoom Step',
     'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
+    'MonitorDataIsSaved'    => 'Monitor data is saved',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'MonitorPreset'         => 'Monitor Preset',
@@ -434,10 +446,12 @@ $SLANG = array(
     'NoneAvailable'         => 'None available',
     'NoSavedFilters'        => 'No Saved Filters',
     'NoStatisticsRecorded'  => 'There are no statistics recorded for this event/frame',
+    'No Tag'                => 'No Tag',
     'NumPresets'            => 'Num Presets',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OpBlank'               => 'is blank',
     'OpEq'                  => 'equal to',
     'OpGtEq'                => 'greater than or equal to',
     'OpGt'                  => 'greater than',
@@ -547,6 +561,7 @@ $SLANG = array(
     'RunStats'              => 'Run Stats Process',
     'RunTrigger'            => 'Run Trigger Process',
     'RunEventNotification'  => 'Run Event Notification Process',
+    'SaveAndClose'          => 'Save and close',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
     'SaveJPEGs'             => 'Save JPEGs',
@@ -598,6 +613,7 @@ $SLANG = array(
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
     'TimeStamp'             => 'Time Stamp',
+    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
@@ -651,6 +667,32 @@ $SLANG = array(
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
+// language names translation
+    'es_la' => 'Spanish Latam',
+    'es_CR' => 'Spanish Costa Rica',
+    'es_ar' => 'Spanish Argentina',
+    'es_es' => 'Spanish Spain',
+    'en_gb' => 'British English',
+    'en_us' => 'Us English',
+    'fr_fr' => 'French',
+    'cs_cz' => 'Czech',
+    'zh_cn' => 'Simplified Chinese',
+    'zh_tw' => 'Traditional Chinese',
+    'de_de' => 'German',
+    'it_it' => 'Italian',
+    'ja_jp' => 'Japanese',
+    'hu_hu' => 'Hungarian',
+    'pl_pl' => 'Polish',
+    'pt_br' => 'Portuguese Brazil',
+    'ru_ru' => 'Russian',
+    'nl_nl' => 'Dutch',
+    'se_se' => 'Sami',
+    'et_ee' => 'Estonian',
+    'he_il' => 'Hebrew',
+    'dk_dk' => 'Danish',
+    'ro_ro' => 'Romanian',
+    'no_nb' => 'Norwegian',
+
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -844,6 +886,15 @@ $OLANG = array(
       for new images. In this case, it is safe to use the field.
       '
 	),
+	'OPTIONS_ALARMMAXFPS' => array(
+    'Help' => '
+    This field has certain limitations when used for non-local devices.~~
+    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+    and missed events~
+    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
+    setting, leaving this blank implies no limit.
+    '
+	),
 	'OPTIONS_LINKED_MONITORS' => array(
     'Help' => '
       This field allows you to select other monitors on your system that act as 
@@ -862,6 +913,22 @@ Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbna
 Always: A zmc process will run and immediately connect and stay connected.~~~~
 ',
   ),
+  'OPTIONS_RTSPSERVER' => array(
+    'Help' => '
+     ZM supplies its own RTSP server that can re-stream RTSP or attempt to convert the
+     monitor stream into RTSP. This is useful if you want to use the ZM Host machines
+     resources instead of having multiple clients pulling from a single camera.~~~~
+     NOTE:~~
+     Options > Network > MIN_RTSP_PORT is configurable.
+     ',
+    ),
+  'OPTIONS_RTSPSTREAMNAME' => array(
+     'Help' => '
+     If RTSPServer is enabled, this will be the endpoint it will be available at.
+     For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
+     is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     ',
+    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When to perform motion detection on the captured video.  
@@ -881,6 +948,16 @@ KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very lo
 None: No frames will be decoded, live view and thumbnails will not be available~~~~
 '
   ),
+  'FUNCTION_RTSP2WEB_ENABLED' => array(
+    'Help' => '
+      Attempt to use RTSP2Web streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_RTSP2WEB_TYPE' => array(
+    'Help' => '
+      RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
+      Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
       Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
@@ -890,6 +967,21 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     'Help' => '
       Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
       but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+  ),
+  'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
+    'Help' => '
+      Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
+      for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
+  ),
+  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+    'Help' => '
+      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
+      RTSP restream as the Janus source.'
+  ),
+  'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
+    'Help' => '
+    Override or set a timeout period in seconds for the RTSP session. Useful if you see a lot of 401
+    Unauthorized responses in janus logs. Set to 0 to use the timeout (if sent) from the source.'
   ),
   'ImageBufferCount' => array(
     'Help' => '
@@ -904,6 +996,14 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
   '
   ),
+// Help for soap_wsa issue with chinesse cameras
+   'OPTIONS_SOAP_wsa' => array(
+    'Help' => '
+     Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
+     <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
+     help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

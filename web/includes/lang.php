@@ -33,9 +33,9 @@ function loadLanguage($prefix='') {
   if ($prefix)
     $prefix = $prefix.'/';
 
-  if (isset($user['Language']) and $user['Language']) {
+  if ($user and $user->Language()) {
     # Languages can only have letters, numbers and underscore
-    $userLangFile = $prefix.'lang/'.preg_replace('/[^[:alnum:]_]+/', '', $user['Language']).'.php';
+    $userLangFile = $prefix.'lang/'.preg_replace('/[^[:alnum:]_]+/', '', $user->Language()).'.php';
 
     if (file_exists($userLangFile)) {
       return $userLangFile;

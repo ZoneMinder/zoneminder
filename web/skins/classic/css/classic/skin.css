@@ -64,11 +64,14 @@ p {
     font-weight: normal;
 }
 
-
 a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;
+}
+
+a {
+  cursor: pointer;
 }
 
 a:hover {
@@ -377,7 +380,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #content {
-    width: 96%;
     margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
@@ -396,14 +398,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin-bottom: 8px;
 }
 
-/*
-#contentDiv {
-    margin: 0 auto 8px;
-    line-height: 140%;
-    text-align: center;
-}
-*/
-
 #content > input[type=submit],
 #content > input[type=button],
 #content > button,
@@ -416,6 +410,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 #content table button,
 #content table .btn-primary {
     margin-top: 0;
+    margin-right: 4px;
 }
 
 #contentButtons {

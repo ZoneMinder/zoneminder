@@ -27,7 +27,7 @@
 # V0.6b Le 01 AOUT 2013 -
 # V1.0  Le 04 AOUT 2013 - production usable if you do not use preset ptz
 # V1.1  Le 11 AOUT 2013 - put a cosmetic update source code
-# If you wan't to contact me i understand French and English, precise ZoneMinder in subject
+# If you want to contact me i understand French and English, precise ZoneMinder in subject
 # My name is Christophe DAPREMONT my email is christophe_y2k@yahoo.fr
 #
 # V1.1 ====================================================================================
@@ -66,7 +66,7 @@ our @ISA = qw(ZoneMinder::Control);
 # -8 Preset PTZ are implemented but the firmware is buggy and that do not work
 #  You Need to configure ZoneMinder PANSPEED & TILTSEPPED & ZOOMSPEED 1 to 63 by 1 step
 # -This Script use for login "admin" this hardcoded and your password must setup in "Control Device" section
-# -This script is compatible with the basic authentification method used by mostly new camera
+# -This script is compatible with the basic authentication method used by mostly new camera
 # -AutoStop function is active and you must set up value (in sec example 0.5) under AutoStop section
 #  or you can set up to 0 for disable it but the camera never stop to move and trust me, she can move all the night...
 #  (you need to click to the center arrow for stop)
@@ -81,7 +81,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 
-# Set $osd to "off" if you wan't disabled OSD i need to place this variable in another script because
+# Set $osd to "off" if you want disabled OSD i need to place this variable in another script because
 # this script is reload at every command ,if i want the button on/off (Focus MAN) for OSD works...
 my $osd = "on";
 
@@ -109,8 +109,8 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
     printMsg( $cmd, "Tx" );
-    # I solve the authentification problem with recent Foscam
-    # I use perl Basic Authentification method
+    # I solve the authentication problem with recent Foscam
+    # I use perl Basic Authentication method
     my $ua = LWP::UserAgent->new();
     my $req = HTTP::Request->new( GET =>"http://".$self->{Monitor}->{ControlAddress}."/web/cgi-bin/hi3510/".$cmd );
     $req->authorization_basic('admin', $self->{Monitor}->{ControlDevice} );

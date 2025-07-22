@@ -109,7 +109,8 @@ function requestFrameData(eventId, frameId) {
     data.loopback = frameId;
     eventQuery(data);
   } else {
-    data.id = [eventId, frameId];
+    data.eid = eventId;
+    data.fid = frameId;
     frameQuery(data);
   }
 }

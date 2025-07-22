@@ -3,11 +3,15 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 
-DecoderThread::DecoderThread(Monitor *monitor) : monitor_(monitor), terminate_(false) {
+DecoderThread::DecoderThread(Monitor *monitor) :
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&DecoderThread::Run, this);
 }
 
-DecoderThread::~DecoderThread() { Stop(); }
+DecoderThread::~DecoderThread() {
+  Stop();
+  if (thread_.joinable()) thread_.join();
+}
 
 void DecoderThread::Start() {
   if (thread_.joinable()) thread_.join();
@@ -17,6 +21,9 @@ void DecoderThread::Start() {
 
 void DecoderThread::Stop() {
   terminate_ = true;
+}
+
+void DecoderThread::Join() {
   if (thread_.joinable()) thread_.join();
 }
 

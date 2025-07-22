@@ -925,7 +925,7 @@ function exportEvents(
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
       global $user;
-      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
     $event_dir = $export_dir.'/'.$event->Id();
@@ -938,7 +938,7 @@ function exportEvents(
      #if ( preg_match('/\.html$/', $file) )
         #continue;
       if ($exportStructure == 'flat') {
-        if (false !== strpos($file, $event->Id())) {
+        if (false !== strpos($file, strval($event->Id()))) {
           $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
           $exportFileList[] = $file;
         } else {

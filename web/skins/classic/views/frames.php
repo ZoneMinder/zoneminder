@@ -30,9 +30,9 @@ $eid = validInt($_REQUEST['eid']);
 $Event = new ZM\Event($eid);
 
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
@@ -41,7 +41,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center table-responsive-sm">      
+    <div id="content" class="row justify-content-center table-responsive-sm">
       <table
         id="framesTable"
         data-locale="<?php echo i18n() ?>"

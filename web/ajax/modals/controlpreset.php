@@ -1,5 +1,8 @@
 <?php
-if (!canEdit('Monitors')) return ' ';
+if (!canEdit('Monitors')) {
+  ZM\Warning('Tried to load PTZ preset modal without monitor edit permission.');
+  return ' ';
+}
 
 $monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($_REQUEST['mid']));
 

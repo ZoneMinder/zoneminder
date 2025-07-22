@@ -1,3 +1,9 @@
+//
+// Import constants
+//
+
+const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
+
 <?php
   global $presets;
   global $zone;
@@ -6,7 +12,6 @@
   global $selfIntersecting;
   global $streamMode;
   global $connkey;
-  global $streamSrc;
 ?>
 
 var presets = new Object();
@@ -62,14 +67,20 @@ var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
 var monitorData = new Array();
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'name': '<?php echo $monitor->Name() ?>',
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
+  'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
+  'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
+  'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'capturing': '<?php echo $monitor->Capturing() ?>',
+  'refresh': '<?php echo $monitor->Refresh() ?>',
+  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };
 
 var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
@@ -96,8 +107,6 @@ var deleteString = "<?php echo translate('Delete') ?>";
 //
 
 
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
-
 const POPUP_ON_ALARM = false;
 
 var streamMode = "<?php echo $streamMode ?>";
@@ -106,8 +115,6 @@ var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
 var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
-
-var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;

@@ -28,12 +28,12 @@ $monitor = $monitors[0];
 $servers = ZM\Server::find();
 $ServersById = array();
 foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
+  $ServersById[validCardinal($S->Id())] = $S;
 }
 $storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
-  $StorageById[$S->Id()] = $S;
+  $StorageById[validCardinal($S->Id())] = $S;
 }
 
 $focusWindow = true;
@@ -46,8 +46,13 @@ echo getNavBarHTML();
   <div id="page">
     <h2 class="pt-2"><?php echo translate('Monitors') ?></h2>
     <div id="content">
-The following monitors will have these settings update when you click Save:<br/><br/>
-      <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
+      <div class="Monitors">
+        <div class="Instructions">
+          The following monitors will have these settings updated when you click Save:<br/><br/>
+          <?php echo implode(', ', array_map(function($m){return '<a href="?view=monitor&mid='.validCardinal($m->Id()).'">'.htmlspecialchars($m->Id().' ' .$m->Name()).'</a>';}, $monitors)); ?>
+        </div>
+        <div class="Settings">
+
       <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
         <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
@@ -56,7 +61,7 @@ The following monitors will have these settings update when you click Save:<br/>
   echo implode(
     "\n",
     array_map(function($m){
-      return '<input type="hidden" name="mids[]" value="'.$m->Id().'"/>';
+      return '<input type="hidden" name="mids[]" value="'.validCardinal($m->Id()).'"/>';
     }, $monitors)
   );
   if ( count($ServersById) > 0 ) { ?>
@@ -109,7 +114,9 @@ The following monitors will have these settings update when you click Save:<br/>
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
           <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
+        </div><!--settings-->
       </form>
+</div><!--Monitors-->
     </div>
   </div>
 <?php xhtmlFooter() ?>

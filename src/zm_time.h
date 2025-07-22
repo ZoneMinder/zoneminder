@@ -63,8 +63,9 @@ struct posix_duration_cast<std::chrono::duration<Rep, Period>, timeval> {
 template <typename Rep, typename Period>
 struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
   static std::chrono::duration<Rep, Period> cast(timeval const &tv) {
-    return std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(Seconds(tv.tv_sec) +
-                                                                          Microseconds(tv.tv_usec));
+    return std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
+             Seconds(tv.tv_sec) + Microseconds(tv.tv_usec)
+           );
   }
 };
 }  // namespace impl
@@ -91,8 +92,11 @@ Duration duration_cast(timeval const &tv) {
 //
 class TimeSegmentAdder {
  public:
-  explicit TimeSegmentAdder(Microseconds &in_target)
-      : target_(in_target), start_time_(std::chrono::steady_clock::now()), finished_(false) {}
+  explicit TimeSegmentAdder(Microseconds &in_target) :
+    target_(in_target),
+    start_time_(std::chrono::steady_clock::now()),
+    finished_(false) {
+  }
 
   ~TimeSegmentAdder() { Finish(); }
 
@@ -118,5 +122,6 @@ class TimeSegmentAdder {
 
 std::string SystemTimePointToString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
+SystemTimePoint StringToSystemTimePoint(const std::string &stp);
 
 #endif  // ZM_TIME_H

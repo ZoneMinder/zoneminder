@@ -1,21 +1,21 @@
 //
 // ZoneMinder RTCP Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_RTP_CTRL_H
 #define ZM_RTP_CTRL_H
@@ -35,9 +35,9 @@ class RtspThread;
 class RtpSource;
 
 class RtpCtrlThread {
-friend class RtspThread;
+  friend class RtspThread;
 
-private:
+ private:
   typedef enum {
     RTCP_SR   = 200,
     RTCP_RR   = 201,
@@ -63,7 +63,7 @@ private:
     uint8_t p:1;      // padding flag
     uint8_t version:2;  // protocol version
     uint8_t pt;       // RTCP packet type
-    uint16_t lenN;    // pkt len in words, w/o this word, network order 
+    uint16_t lenN;    // pkt len in words, w/o this word, network order
   };
 
   // Reception report block
@@ -116,10 +116,10 @@ private:
         uint32_t srcN[];   // list of sources
         // can't express trailing text for reason (what does this mean? it's not even english!)
       } bye;
-     } body;
+    } body;
   };
 
-private:
+ private:
   RtspThread &mRtspThread;
   RtpSource &mRtpSource;
   int mPort;
@@ -127,7 +127,7 @@ private:
   std::atomic<bool> mTerminate;
   std::thread mThread;
 
-private:
+ private:
   int recvPacket( const unsigned char *packet, ssize_t packetLen );
   int generateRr( const unsigned char *packet, ssize_t packetLen );
   int generateSdes( const unsigned char *packet, ssize_t packetLen );
@@ -135,7 +135,7 @@ private:
   int recvPackets( unsigned char *buffer, ssize_t nBytes );
   void Run();
 
-public:
+ public:
   RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource );
   ~RtpCtrlThread();
 

@@ -1,0 +1,6 @@
+[requires]
+jwt-cpp/0.6.0
+picojson/cci.20210117
+
+[generators]
+cmake

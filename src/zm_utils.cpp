@@ -1,30 +1,32 @@
 //
 // ZoneMinder General Utility Functions, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_utils.h"
 
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <cctype>
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
+#include <regex>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -253,17 +255,17 @@ void HwCapsDetect() {
 #elif defined(__arm__)
   // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
-  #ifdef __linux__
+#ifdef __linux__
   unsigned long auxval = getauxval(AT_HWCAP);
   if (auxval & HWCAP_ARM_NEON) {
-  #elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__)
   unsigned long auxval = 0;
   elf_aux_info(AT_HWCAP, &auxval, sizeof(auxval));
   if (auxval & HWCAP_NEON) {
-  #else
+#else
   {
-  #error Unsupported OS.
-  #endif
+#error Unsupported OS.
+#endif
     Debug(1,"Detected ARM (AArch32) processor with Neon");
     neonversion = 1;
   } else {
@@ -292,35 +294,35 @@ void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes) {
     const uint8_t *lastsrc = (uint8_t *) src + (bytes - remainder);
 
     __asm__ __volatile__(
-    "sse2_copy_iter:\n\t"
-    "movdqa (%0),%%xmm0\n\t"
-    "movdqa 0x10(%0),%%xmm1\n\t"
-    "movdqa 0x20(%0),%%xmm2\n\t"
-    "movdqa 0x30(%0),%%xmm3\n\t"
-    "movdqa 0x40(%0),%%xmm4\n\t"
-    "movdqa 0x50(%0),%%xmm5\n\t"
-    "movdqa 0x60(%0),%%xmm6\n\t"
-    "movdqa 0x70(%0),%%xmm7\n\t"
-    "movntdq %%xmm0,(%1)\n\t"
-    "movntdq %%xmm1,0x10(%1)\n\t"
-    "movntdq %%xmm2,0x20(%1)\n\t"
-    "movntdq %%xmm3,0x30(%1)\n\t"
-    "movntdq %%xmm4,0x40(%1)\n\t"
-    "movntdq %%xmm5,0x50(%1)\n\t"
-    "movntdq %%xmm6,0x60(%1)\n\t"
-    "movntdq %%xmm7,0x70(%1)\n\t"
-    "add $0x80, %0\n\t"
-    "add $0x80, %1\n\t"
-    "cmp %2, %0\n\t"
-    "jb sse2_copy_iter\n\t"
-    "test %3, %3\n\t"
-    "jz sse2_copy_finish\n\t"
-    "cld\n\t"
-    "rep movsb\n\t"
-    "sse2_copy_finish:\n\t"
-    :
-    : "S" (src), "D" (dest), "r" (lastsrc), "c" (remainder)
-    : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+      "sse2_copy_iter:\n\t"
+      "movdqa (%0),%%xmm0\n\t"
+      "movdqa 0x10(%0),%%xmm1\n\t"
+      "movdqa 0x20(%0),%%xmm2\n\t"
+      "movdqa 0x30(%0),%%xmm3\n\t"
+      "movdqa 0x40(%0),%%xmm4\n\t"
+      "movdqa 0x50(%0),%%xmm5\n\t"
+      "movdqa 0x60(%0),%%xmm6\n\t"
+      "movdqa 0x70(%0),%%xmm7\n\t"
+      "movntdq %%xmm0,(%1)\n\t"
+      "movntdq %%xmm1,0x10(%1)\n\t"
+      "movntdq %%xmm2,0x20(%1)\n\t"
+      "movntdq %%xmm3,0x30(%1)\n\t"
+      "movntdq %%xmm4,0x40(%1)\n\t"
+      "movntdq %%xmm5,0x50(%1)\n\t"
+      "movntdq %%xmm6,0x60(%1)\n\t"
+      "movntdq %%xmm7,0x70(%1)\n\t"
+      "add $0x80, %0\n\t"
+      "add $0x80, %1\n\t"
+      "cmp %2, %0\n\t"
+      "jb sse2_copy_iter\n\t"
+      "test %3, %3\n\t"
+      "jz sse2_copy_finish\n\t"
+      "cld\n\t"
+      "rep movsb\n\t"
+      "sse2_copy_finish:\n\t"
+      :
+      : "S" (src), "D" (dest), "r" (lastsrc), "c" (remainder)
+      : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
     );
 
   } else {
@@ -375,6 +377,27 @@ std::string UriDecode(const std::string &encoded) {
     } else {
       retbuf.push_back(*src++);
     }
+  }
+  return retbuf;
+}
+
+std::string UriEncode(const std::string &value) {
+  const char *src = value.c_str();
+  std::string retbuf;
+  retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
+
+  char tmp[5] = "";
+  while (*src) {
+    std::string::value_type c = *src;
+    if (c == ' ') {
+      retbuf.append("%%20");
+    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      retbuf.push_back(c);
+    } else {
+      snprintf(tmp, 4, "%%%02X", c);
+      retbuf.append(tmp);
+    }
+    src++;
   }
   return retbuf;
 }
@@ -452,7 +475,7 @@ std::string mask_authentication(const std::string &url) {
   std::size_t password_at = masked_url.rfind(":", at_at);
 
   if (password_at == std::string::npos) {
-    // no : means no http:// either so something liek username@192.168.1.1
+    // no : means no http:// either so something like username@192.168.1.1
     masked_url.replace(0, at_at, at_at, '*');
   } else if (masked_url[password_at+1] == '/') {
     // no password, something like http://username@192.168.1.1
@@ -497,4 +520,22 @@ std::string remove_authentication(const std::string &url) {
     }
   }
   return result;
+}
+
+std::string remove_newlines( std::string str ) {
+  while (!str.empty() && str.find("\n") != std::string::npos)
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
+  return str;
+}
+
+std::string escape_json_string( std::string input ) {
+  std::string tmp;
+  tmp = regex_replace(input, std::regex("\n"), "\\n");
+  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
+  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
+  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
+  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
+  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
+  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
+  return tmp;
 }

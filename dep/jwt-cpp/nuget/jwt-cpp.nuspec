@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>jwt-cpp</id>
+    <version>0.7.0</version>
+    <authors>Thalhammer; prince-chrismc</authors>
+    <owners>Thalhammer; prince-chrismc</owners>
+    <projectUrl>https://github.com/Thalhammer/jwt-cpp</projectUrl>
+    <description>JWT++ is a header only library for creating and validating JSON Web Tokens in C++11. This library supports all the algorithms defined by the JWT specifications, and the modular design allows to easily add additional algorithms without any problems. In the name of flexibility and extensibility, jwt-cpp supports OpenSSL, LibreSSL, and wolfSSL. And there is no hard dependency on a JSON library.
+    </description>
+    <releaseNotes>Supporting OpenSSL 3.0.0, WolfSSL, Hunter CMake, Boost.JSON, JWKs, ES256K.</releaseNotes>
+    <license type="expression">MIT</license>
+    <copyright>Copyright (c) 2018 Dominik Thalhammer</copyright>
+    <title>JWT++: JSON Web Tokens in C++11</title>
+    <summary>JWT++; a header only library for creating and validating JSON Web Tokens in C++11.</summary>
+    <tags>JWT, json, web, token, C++, header-only</tags>
+    <dependencies>
+      <group targetFramework="native0.0">
+	    <dependency id="PicoJSON" version="1.3.0" />
+	    <dependency id="openssl-vc141-static-x86_64" version="1.1.0" />
+	  </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="..\include\jwt-cpp\**" target="\lib\native\include\jwt-cpp\" />
+    <file src="jwt-cpp.targets" target="\build\native\" />
+    <file src="..\README.md" target="docs\" />
+  </files>
+</package>

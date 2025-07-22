@@ -33,9 +33,9 @@ foreach( dbFetchAll( $sql ) as $row )
 }
 
 xhtmlHeaders(__FILE__, translate('Devices') );
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML(); ?>
   <div id="page" class="container-fluid">
     <h2>X10 <?php echo translate('Devices') ?></h2>
 

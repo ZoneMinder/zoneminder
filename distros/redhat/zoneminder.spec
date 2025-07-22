@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     eab32851421ffe54fec0229c3efc44c642bc8d46
+%global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -17,27 +17,8 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Newer php's keep json functions in a subpackage
-%if 0%{?fedora} || 0%{?rhel} >= 8
-%global with_gsoap 1
-%global with_php_json 1
-%endif
-
-# el7 uses cmake3 package and macros
-%if 0%{?rhel} == 7
-%global cmake %{cmake3}
-%global cmake_build %{cmake3_build}
-%global cmake_install %{cmake3_install}
-%global cmake_pkg_name cmake3
-%else
-%global cmake_pkg_name cmake
-%endif
-
-# The default for everything but el7 these days
-%global _hardened_build 1
-
 Name: zoneminder
-Version: 1.37.19
+Version: 1.37.68
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -62,10 +43,10 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: %{cmake_pkg_name}
+BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
-BuildRequires: pcre-devel 
+BuildRequires: pcre2-devel 
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
@@ -94,11 +75,19 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
-%{?with_gsoap:BuildRequires: gsoap-devel}
+
+# jwt-cpp looks for nlohmann_json which is part of json-devel
+BuildRequires: json-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
+
+# Optional but needed for ONVIF and others
+BuildRequires: gnutls-devel
+BuildRequires: gsoap-devel
+BuildRequires: libvncserver-devel
+BuildRequires: mosquitto-devel
 
 # Allow existing user base to seamlessly transition to sub-packages
 Requires: %{name}-common%{?_isa} = %{version}-%{release}
@@ -124,9 +113,8 @@ Requires: php-common
 Requires: php-gd
 Requires: php-intl
 Requires: php-process
-%{?with_php_json:Requires: php-json}
-%{?fedora:Requires: php-pecl-memcached}
-%{?rhel:Requires: php-pecl-apcu}
+Requires: php-json
+Requires: php-pecl-apcu
 Requires: net-tools
 Requires: psmisc
 Requires: polkit
@@ -145,7 +133,6 @@ Requires: perl(LWP::Protocol::https)
 Requires: perl(Module::Load::Conditional)
 Requires: ca-certificates
 Requires: zip
-%{?with_gsoap:Requires: gsoap}
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
@@ -228,7 +215,8 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 %cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
+        .
 
 %cmake_build
 
@@ -244,6 +232,10 @@ desktop-file-install					\
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
 
+# Remove third-party header and cmake files that should not have been installed
+rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_includedir}
+
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
 
@@ -253,6 +245,9 @@ ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildr
 
 # Handle the polkit file differently for web server agnostic support (see post)
 rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%check
+# Nothing to do. No tests exist.
 
 %post common
 # Initial installation
@@ -355,7 +350,8 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
-%{_datadir}/polkit-1/actions/com.zoneminder.*
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.arp-scan.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
@@ -363,6 +359,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
@@ -378,7 +375,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
-%{_bindir}/zmeventtool.pl
 %{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*
@@ -435,6 +431,17 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Fri Aug 16 2024  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.34-1
+- 1.36.34 release
+- remove el7 support
+
+* Sun Nov 12 2023 Jonathan Bennett <JBennett@IncomSystems.biz> - 1.37.47
+- Specify folders to remove before packaging
+
+* Thu Sep 28 2023  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.45-2
+- buildrequire mariadb-connector-c-devel
+- conditionals around gsoap and php-json packages no longer needed
+
 * Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
 - 1.37.x development build
 
@@ -635,7 +642,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - New contact email
 
 * Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0-1 
-- Bump version fo 1.30.0 release.
+- Bump version for 1.30.0 release.
 
 * Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0-1 
 - Bump version for 1.29.0 release on Fedora 23.
@@ -653,7 +660,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 
 * Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5-1
-- This is a bug fixe release
+- This is a bug fix release
 - RTSP fixes, cmake enhancements, couple other misc fixes
 
 * Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4-1

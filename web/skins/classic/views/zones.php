@@ -23,9 +23,11 @@ if ( isset($_REQUEST['mid']) ) {
   $mids = array();
   $mids[] = validInt($_REQUEST['mid']);
 } else if ( isset($_REQUEST['mids']) ) {
-  $mids = $_REQUEST['mids'];
+  $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
+} else if ($user->unviewableMonitorIds()) {
+  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')', 'Id', $user->viewableMonitorIds());
 } else {
-  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user['MonitorIds'] ? 'WHERE Id IN ('.$user['MonitorIds'].')' : ''), 'Id');
+  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false', 'Id');
 }
 
 if ( !($mids and count($mids)) ) {
@@ -35,9 +37,9 @@ if ( !($mids and count($mids)) ) {
 $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
 
 xhtmlHeaders(__FILE__, translate('Zones'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div class="w-100 py-1">
       <div class="float-left pl-3">
@@ -49,9 +51,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </div>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="delete"/>
+      <form name="contentForm" id="contentForm" method="post" action="?view=<?php echo $view ?>">
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
@@ -102,8 +102,12 @@ xhtmlHeaders(__FILE__, translate('Zones'));
             </tbody>
           </table>
           <div id="contentButtons">
-            <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
-            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+            <button type="button" data-on-click-this="AddNewZone" data-url="?view=zone&amp;mid=<?php echo $monitor->Id() ?>&amp;zid=0" <?php echo canEdit('Monitors') ? '' : 'disabled="disabled"' ?>>
+              <i class="material-icons">add_circle</i><span class="text"><?php echo translate('Add New Zone') ?></span>
+            </button>
+            <button type="submit" name="action" id="deleteBtn" value="delete" disabled="disabled">
+              <i class="material-icons">delete</i><span class="text"><?php echo translate('Delete') ?></span>
+            </button>
           </div>
         </div><!--zones-->
         <br class="clear"/>

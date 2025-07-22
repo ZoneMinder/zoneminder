@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.8)
+project(jwt-cpp-traits)
+
+if(NOT TARGET jwt-cpp)
+  find_package(jwt-cpp CONFIG REQUIRED)
+endif()
+
+find_package(jsoncons CONFIG)
+if(TARGET jsoncons)
+  add_executable(danielaparker-jsoncons danielaparker-jsoncons.cpp)
+  target_link_libraries(danielaparker-jsoncons jwt-cpp::jwt-cpp jsoncons)
+endif()
+
+include("../../cmake/private-find-boost-json.cmake")
+if(TARGET boost_json)
+  add_executable(boost-json boost-json.cpp)
+  target_link_libraries(boost-json jwt-cpp::jwt-cpp boost_json)
+endif()
+
+find_package(nlohmann_json CONFIG)
+if(TARGET nlohmann_json::nlohmann_json)
+  add_executable(nlohmann-json nlohmann-json.cpp)
+  target_link_libraries(nlohmann-json nlohmann_json::nlohmann_json jwt-cpp::jwt-cpp)
+endif()
+
+include("../../cmake/private-find-kazuho-picojson.cmake")
+if(TARGET kazuho_picojson)
+  add_executable(kazuho-picojson kazuho-picojson.cpp)
+  target_link_libraries(kazuho-picojson jwt-cpp::jwt-cpp kazuho_picojson)
+endif()

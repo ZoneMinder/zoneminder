@@ -11,7 +11,7 @@ ZM_LOGDIR="@ZM_LOGDIR@"
 # Set the zoneminder temp dir default to be the one supplied to cmake
 ZM_TMPDIR="@ZM_TMPDIR@"
 
-echo "*** This bash script creates the nessecary symlinks for the zoneminder content"
+echo "*** This bash script creates the necessary symlinks for the zoneminder content"
 echo "*** It can use an existing content folder or create a new one"
 echo "*** For usage: use -h"
 echo "*** The default content directory is: $ZM_PATH_CONTENT"

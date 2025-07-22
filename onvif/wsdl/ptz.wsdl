@@ -933,7 +933,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
         the
         selected profile. The operation is supported if the
         PresetPosition
-        capability exists for teh Node in the
+        capability exists for the Node in the
         selected profile.
       </wsdl:documentation>
 			<wsdl:input message="tptz:RemovePresetRequest"/>

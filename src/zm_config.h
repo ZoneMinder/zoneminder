@@ -74,7 +74,7 @@ struct StaticConfig {
 extern StaticConfig staticConfig;
 
 class ConfigItem {
-private:
+ private:
   char *name;
   char *value;
   char *type;
@@ -88,7 +88,7 @@ private:
   } cfg_value;
   mutable bool accessed;
 
-public:
+ public:
   ConfigItem(const char *p_name, const char *p_value, const char *const p_type);
   ConfigItem(const ConfigItem &);
   ~ConfigItem();
@@ -118,14 +118,14 @@ public:
 };
 
 class Config {
-public:
+ public:
   ZM_CFG_DECLARE_LIST
 
-private:
+ private:
   int n_items;
   ConfigItem **items;
 
-public:
+ public:
   Config();
   ~Config();
 

@@ -1,0 +1,19 @@
+@media (prefers-color-scheme: dark) {
+    table.markdownTable, table.fieldtable {
+        width: auto;
+    }
+
+    html:not(.light-mode) {
+        /* define dark-mode variable overrides here if you DON'T use doxygen-awesome-darkmode-toggle.js */
+    }
+
+    html:not(.light-mode) div.contents table img {
+        filter: none;
+    }
+
+    html:not(.light-mode) div.qindex,
+    html:not(.light-mode) div.navtab {
+        background-color: var(--side-nav-background);
+        border: 1px solid var(--separator-color);
+    }
+}

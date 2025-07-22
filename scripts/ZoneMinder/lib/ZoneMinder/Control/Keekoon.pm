@@ -28,7 +28,7 @@
 #
 # Create a new Control Capabilities:
 #   Main:    Name Keekoon, Type = Remote, Protocol = Keekoon
-#   Move:    Can Move, Can Move Diagonally, Can Move Continous
+#   Move:    Can Move, Can Move Diagonally, Can Move Continuous
 #   Pan:     Can Pan
 #   Tilt:    Can Tilt
 #   Presets: Has Presets, Num Presets = 6, Can Set Presets

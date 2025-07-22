@@ -1,21 +1,21 @@
 //
 // ZoneMinder General Utility Functions, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
@@ -43,11 +43,17 @@
 
 typedef std::vector<std::string> StringVector;
 
+std::string escape_json_string(std::string input);
+std::string remove_newlines(std::string input);
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string StringToUpper(std::string str) {
   std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+  return str;
+}
+inline std::string StringToLower(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::tolower);
   return str;
 }
 
@@ -100,7 +106,7 @@ constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
 }
 template<class T>
 constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-  return zm::clamp(v, lo, hi, std::less<T>{});
+  return zm::clamp(v, lo, hi, std::less<T> {});
 }
 
 // C++17 std::data (TODO: remove this once C++17 is supported)
@@ -130,6 +136,7 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
 
+std::string UriEncode(const std::string &value);
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {
@@ -181,13 +188,11 @@ namespace utils {
  *         last if no such element is found.
  */
 template< typename InputIt, typename UnaryPredicate >
-[[ nodiscard ]] constexpr InputIt find_if( InputIt first, InputIt last, UnaryPredicate p ) noexcept
-{
-    for ( ; first != last; ++first )
-    {
-        if ( p( *first ) ) { return first; }
-    }
-    return last;
+[[ nodiscard ]] constexpr InputIt find_if( InputIt first, InputIt last, UnaryPredicate p ) noexcept {
+  for ( ; first != last; ++first ) {
+    if ( p( *first ) ) { return first; }
+  }
+  return last;
 }
 };
 #endif // ZM_UTILS_H

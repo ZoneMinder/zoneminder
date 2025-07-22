@@ -1,13 +1,7 @@
-var table = $j('#controlTable');
-var addNewBtn = $j('#addNewBtn');
-var editBtn = $j('#editBtn');
-var deleteBtn = $j('#deleteBtn');
-
-// Manage the Add New Control button
-function AddNewControl(el) {
-  url = el.getAttribute('data-url');
-  window.location.assign(url);
-}
+var tableControlCaps;
+var addNewBtnControlCaps;
+var editBtnControlCaps;
+var deleteBtnControlCaps;
 
 // Manage the Add New Control button
 function addNewControl(el) {
@@ -25,7 +19,7 @@ function editControl(el) {
 
 // Returns the event id's of the selected rows
 function getIdSelections() {
-  return $j.map(table.bootstrapTable('getSelections'), function(row) {
+  return $j.map(tableControlCaps.bootstrapTable('getSelections'), function(row) {
     return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
   });
 }
@@ -60,20 +54,20 @@ function manageDelConfirmModalBtns() {
   });
 }
 
-function initPage() {
+function initPageControlCaps() {
   // enable or disable buttons based on current selection and user rights
-  table.on('check.bs.table uncheck.bs.table ' +
+  tableControlCaps.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    selections = table.bootstrapTable('getSelections');
+    selections = tableControlCaps.bootstrapTable('getSelections');
 
-    addNewBtn.prop('disabled', (selections.length || !canEdit.Control));
-    editBtn.prop('disabled', !((selections.length == 1) && canEdit.Control));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Control));
+    addNewBtnControlCaps.prop('disabled', (selections.length || !canEdit.Control));
+    editBtnControlCaps.prop('disabled', !((selections.length == 1) && canEdit.Control));
+    deleteBtnControlCaps.prop('disabled', !(selections.length && canEdit.Control));
   });
 
   // Init the bootstrap-table
-  table.bootstrapTable({icons: icons});
+  tableControlCaps.bootstrapTable({icons: icons});
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
@@ -106,10 +100,16 @@ function initPage() {
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmControlTable.bs.table.columns") ) {
-    table.bootstrapTable('hideColumn', 'Id');
+    tableControlCaps.bootstrapTable('hideColumn', 'Id');
   }
 }
 
-$j(document).ready(function() {
-  initPage();
+document.addEventListener("DOMContentLoaded", () => {
+//$j(document).ready(function() {
+  tableControlCaps = $j('#controlTable');
+  addNewBtnControlCaps = $j('#addNewBtn');
+  editBtnControlCaps = $j('#editBtn');
+  deleteBtnControlCaps = $j('#deleteBtn');
+
+  initPageControlCaps();
 });

@@ -36,7 +36,7 @@ management of the ZM daemons based on the receipt of X10 signals.
 
 =head1 OPTIONS
 
- -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','status','shutdown'
+ -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
  -v, --verison                           - Pirnts the currently installed version of ZoneMinder
@@ -75,9 +75,6 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-logInit();
-logSetSignal();
-
 my $command;
 my $unit_code;
 my $version;
@@ -102,6 +99,16 @@ if ( $command eq 'start' ) {
   exit();
 }
 
+logInit();
+logSetSignal();
+my $zm_terminate = 0;
+sub TermHandler {
+  Info('Received TERM, exiting');
+  $zm_terminate = 1;
+}
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
+
 socket(CLIENT, PF_UNIX, SOCK_STREAM, 0)
   or Fatal("Can't open socket: $!");
 
@@ -116,10 +123,8 @@ if ( !connect(CLIENT, $saddr) ) {
     # Parent process just sleep and fall through
     sleep(2);
     logReinit();
-    socket(CLIENT, PF_UNIX, SOCK_STREAM, 0)
-      or Fatal("Can't open socket: $!");
-    connect(CLIENT, $saddr)
-      or Fatal("Can't connect: $!");
+    socket(CLIENT, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
+    connect(CLIENT, $saddr) or Fatal("Can't connect: $!");
   } elsif ( defined($cpid) ) {
     setpgrp();
 
@@ -130,7 +135,6 @@ if ( !connect(CLIENT, $saddr) ) {
   }
 }
 # The server is there, connect to it
-#print( "Writing commands\n" );
 CLIENT->autoflush();
 my $message = $command;
 $message .= ';'.$unit_code if $unit_code;
@@ -141,7 +145,6 @@ while ( my $line = <CLIENT> ) {
   print("$line\n");
 }
 close(CLIENT);
-#print( "Finished writing, bye\n" );
 exit;
 
 #
@@ -173,8 +176,7 @@ our %pending_tasks;
 sub runServer {
   Info('X10 server starting');
 
-  socket(SERVER, PF_UNIX, SOCK_STREAM, 0)
-    or Fatal("Can't open socket: $!");
+  socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE);
   my $saddr = sockaddr_un(main::SOCK_FILE);
   bind(SERVER, $saddr) or Fatal("Can't bind: $!");
@@ -185,28 +187,31 @@ sub runServer {
   $x10 = new X10::ActiveHome(
     port=>$Config{ZM_X10_DEVICE},
     house_code=>$Config{ZM_X10_HOUSE_CODE},
-    debug=>0
+    debug=>1
   );
+  Fatal("Failed to open x10 device at $Config{ZM_X10_DEVICE}") if !$x10;
 
   loadTasks();
 
   $x10->register_listener(\&x10listen);
 
   my $rin = '';
-  vec($rin, fileno(SERVER),1) = 1;
-  vec($rin, $x10->select_fds(),1) = 1;
-  my $timeout = 0.2;
-  #print( 'F:'.fileno(SERVER)."\n" );
+  vec($rin, fileno(SERVER), 1) = 1;
+  vec($rin, $x10->select_fds(), 1) = 1;
+  my $timeout = 1.0; # WHy .2?  Why not 1s?
+  Debug(2, 'F:'.fileno(SERVER)."\n" );
   my $reload = undef;
   my $reload_count = 0;
   my $reload_limit = $Config{ZM_X10_DB_RELOAD_INTERVAL} / $timeout;
-  while( 1 ) {
+  while ( !$zm_terminate ) {
+    Debug(2, "Selecting for $timeout");
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     #print( "Off select, NF:$nfound, ER:$!\n" );
     #print( vec( $rout, fileno(SERVER),1)."\n" );
     #print( vec( $rout, $x10->select_fds(),1)."\n" );
     if ( $nfound > 0 ) {
-      if ( vec($rout, fileno(SERVER),1) ) {
+      Debug(2, "Nfound $nfound");
+      if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
         my $message = <CLIENT>;
 
@@ -267,7 +272,7 @@ sub runServer {
           }
         } # end if defined result
         close(CLIENT);
-      } elsif ( vec($rout, $x10->select_fds(),1) ) {
+      } elsif ( vec($rout, $x10->select_fds(), 1) ) {
         $x10->handle_input();
       } else {
         Fatal('Bogus descriptor');
@@ -275,9 +280,11 @@ sub runServer {
     } elsif ( $nfound < 0 ) {
       if ( $! != EINTR ) {
         Fatal("Can't select: $!");
+      } else {
+        Debug(2, "Nfound $nfound $!");
       }
     } else {
-      #print( "Select timed out\n" );
+      Debug(2, "Select timed out");
       # Check for state changes
       foreach my $monitor_id ( sort(keys(%monitor_hash) ) ) {
         my $monitor = $monitor_hash{$monitor_id};
@@ -289,15 +296,13 @@ sub runServer {
         if ( defined( $monitor->{LastState} ) ) {
           my $task_list;
           if ( ($state == STATE_ALARM || $state == STATE_ALERT)
-            && ($monitor->{LastState} == STATE_IDLE || $monitor->{LastState} == STATE_TAPE)
+            && ($monitor->{LastState} == STATE_IDLE )
           ) # Gone into alarm state
           {
             Debug("Applying ON_list for $monitor_id");
             $task_list = $monitor->{ON_list};
-          } elsif ( ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE)
-            || ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
-          ) # Come out of alarm state
-          {
+          } elsif ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE) {
+           # Come out of alarm state
             Debug("Applying OFF_list for $monitor_id");
             $task_list = $monitor->{OFF_list};
           }
@@ -656,8 +661,10 @@ sub x10listen {
           processTask($task);
         }
       }
+    } else {
+      Debug("Not for out house code ".$event->house_code().' eq '.$Config{ZM_X10_HOUSE_CODE});
     } # end if correct house code
-    Info('Got event - '.$event->as_string());
+    Debug('Got event - '.$event->as_string());
   }
 } # end sub x10listen
 

@@ -1,21 +1,21 @@
 //
 // ZoneMinder RTP Source Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_RTP_SOURCE_H
 #define ZM_RTP_SOURCE_H
@@ -32,17 +32,16 @@
 
 struct RtpDataHeader;
 
-class RtpSource
-{
-public: 
+class RtpSource {
+ public:
   typedef enum { EMPTY, FILLING, READY } FrameState;
-private:
+ private:
   static const int RTP_SEQ_MOD = 1<<16;
   static const int MAX_DROPOUT = 3000;
   static const int MAX_MISORDER = 100;
   static const int MIN_SEQUENTIAL = 2;
 
-private:
+ private:
   // Identity
   int mId;         // General id (usually monitor id)
   std::string mCname;    // Canonical name, for SDES
@@ -59,12 +58,12 @@ private:
   uint32_t mReceivedPrior;    // packet received at last interval
   uint32_t mTransit;      // relative trans time for prev pkt
   uint32_t mJitter;       // estimated jitter
-  
+
   // Ports/Channels
   std::string mLocalHost;
-  int mLocalPortChans[2]; 
+  int mLocalPortChans[2];
   std::string mRemoteHost;
-  int mRemotePortChans[2]; 
+  int mRemotePortChans[2];
 
   // Time keys
   uint32_t mRtpClock;
@@ -100,13 +99,13 @@ private:
   std::mutex mFrameProcessedMutex;
   bool mTerminate;
 
-private:
+ private:
   void init(uint16_t seq);
 
-public:
+ public:
   RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId );
   ~RtpSource();
-  
+
   bool updateSeq( uint16_t seq );
   void updateJitter( const RtpDataHeader *header );
   void updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime );
@@ -114,79 +113,64 @@ public:
 
   bool handlePacket( const unsigned char *packet, size_t packetLen );
 
-  uint32_t getSsrc() const
-  {
+  uint32_t getSsrc() const {
     return( mSsrc );
   }
-  void setSsrc( uint32_t ssrc )
-  {
+  void setSsrc( uint32_t ssrc ) {
     mSsrc = ssrc;
   }
 
   bool getFrame( Buffer &buffer );
 
-  const std::string &getCname() const
-  {
+  const std::string &getCname() const {
     return( mCname );
   }
 
-  const std::string &getLocalHost() const
-  {
+  const std::string &getLocalHost() const {
     return( mLocalHost );
   }
 
-  int getLocalDataPort() const
-  {
+  int getLocalDataPort() const {
     return( mLocalPortChans[0] );
   }
 
-  int getLocalCtrlPort() const
-  {
+  int getLocalCtrlPort() const {
     return( mLocalPortChans[1] );
   }
 
-  const std::string &getRemoteHost() const
-  {
+  const std::string &getRemoteHost() const {
     return( mRemoteHost );
   }
 
-  int getRemoteDataPort() const
-  {
+  int getRemoteDataPort() const {
     return( mRemotePortChans[0] );
   }
 
-  int getRemoteCtrlPort() const
-  {
+  int getRemoteCtrlPort() const {
     return( mRemotePortChans[1] );
   }
 
-  uint32_t getMaxSeq() const
-  {
+  uint32_t getMaxSeq() const {
     return( mCycles + mMaxSeq );
   }
 
-  uint32_t getExpectedPackets() const
-  {
+  uint32_t getExpectedPackets() const {
     return( mExpectedPackets );
   }
-  
-  uint32_t getLostPackets() const
-  {
+
+  uint32_t getLostPackets() const {
     return( mLostPackets );
   }
 
-  uint8_t getLostFraction() const
-  {
+  uint8_t getLostFraction() const {
     return( mLostFraction );
   }
 
-  uint32_t getJitter() const
-  {
+  uint32_t getJitter() const {
     return( mJitter >> 4 );
   }
 
-  uint32_t getLastSrTimestamp() const
-  {
+  uint32_t getLastSrTimestamp() const {
     return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
   }
 };

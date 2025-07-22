@@ -1,0 +1,50 @@
+FROM docker.io/library/debian:testing-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && \
+    apt install -y \
+        build-essential \
+        cmake \
+        default-libmysqlclient-dev \
+        git \
+        ffmpeg \
+        libavcodec-dev \
+        libavdevice-dev \
+        libavutil-dev \
+        libcurl4-openssl-dev \
+        libgnutls28-dev \
+        libjpeg-dev \
+        libnetpbm-dev \
+        libpcre2-dev \
+        libpolkit-gobject-1-dev \
+        libssl-dev \
+        libswscale-dev \
+        libswresample-dev \
+        libv4l-dev \
+        libvlc-dev \
+        net-tools \
+        pkg-config \
+        libphp-serialization-perl \
+        libdate-manip-perl \
+        libmime-lite-perl \
+        libmime-tools-perl \
+        libdbd-mysql-perl \
+        libwww-perl \
+        libarchive-tar-perl \
+        libarchive-zip-perl \
+        libdevice-serialport-perl \
+        libmodule-load-perl \
+        libsys-mmap-perl \
+        libjson-maybexs-perl \
+        libnet-sftp-foreign-perl \
+        libio-pty-perl \
+        libexpect-perl \
+        libdata-dump-perl \
+        libclass-std-fast-perl \
+        libsoap-wsdl-perl \
+        libio-socket-multicast-perl \
+        libdigest-sha-perl \
+        libsys-cpu-perl \
+        libsys-meminfo-perl \
+        libdata-uuid-perl \
+        && \
+    rm -rf /var/lib/apt/lists/*

@@ -2,7 +2,7 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
-Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
+Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd-theme, dh-linktree, dh-apache2
               ,cmake
               ,libavcodec-dev
               ,libavdevice-dev
@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libswresample-dev
               ,libswscale-dev
               ,ffmpeg
+              ,arp-scan
               ,net-tools
               ,libbz2-dev
               ,libcurl4-gnutls-dev
@@ -31,7 +32,9 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libdata-entropy-perl
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
-              ,libgsoap-dev
+              ,libgsoap-dev, gsoap
+              ,libmosquittopp-dev
+              ,nlohmann-json3-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -40,9 +43,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice58|libavdevice57
-        ,libswscale5|libswscale4
-        ,libswresample3|libswresample2
+        ,libavdevice61|libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,libswscale8|libswscale7|libswscale6|libswscale5|libswscale4
+        ,libswresample5|libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
@@ -54,6 +57,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdbd-mysql-perl
         ,libdevice-serialport-perl
         ,libimage-info-perl
+        ,libio-interface-perl
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
@@ -63,21 +67,24 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
+        ,libio-socket-ssl-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-json, php-intl
-        ,policykit-1
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl
+        ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
+        ,arp-scan, iproute2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
-        ,libjwt-gnutls0|libjwt0
-        ,libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
+        ,libgsoap-2.8.135|libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

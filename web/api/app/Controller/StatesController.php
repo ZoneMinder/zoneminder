@@ -14,7 +14,7 @@ public $components = array('RequestHandler');
 public function beforeFilter() {
   parent::beforeFilter();
   global $user;
-  $canView = (!$user) || ($user['System'] != 'None');
+  $canView = (!$user) || ($user->System() != 'None');
   if ( !$canView ) {
     throw new UnauthorizedException(__('Insufficient Privileges'));
     return;
@@ -60,7 +60,7 @@ public function add() {
   if ($this->request->is('post')) {
 
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -86,7 +86,7 @@ public function edit($id = null) {
   }
 
   global $user;
-  $canEdit = (!$user) || ($user['System'] == 'Edit');
+  $canEdit = (!$user) || ($user->System() == 'Edit');
   if ( !$canEdit ) {
     throw new UnauthorizedException(__('Insufficient privileges'));
     return;
@@ -112,7 +112,7 @@ public function edit($id = null) {
 public function delete($id = null) {
   $this->State->id = $id;
   global $user;
-  $canEdit = (!$user) || ($user['System'] == 'Edit');
+  $canEdit = (!$user) || ($user->System() == 'Edit');
   if ( !$canEdit ) {
     throw new UnauthorizedException(__('Insufficient privileges'));
     return;
@@ -131,7 +131,7 @@ public function delete($id = null) {
 
 public function change() {
   global $user;
-  $canEdit = (!$user) || ($user['System'] == 'Edit');
+  $canEdit = (!$user) || ($user->System() == 'Edit');
   if ( !$canEdit ) {
     throw new UnauthorizedException(__('Insufficient privileges'));
     return;

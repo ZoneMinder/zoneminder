@@ -1,13 +1,13 @@
 HTTPS is now the default
 ========================
 
-By default, ZoneMinder will use the certifciate created when the mod_ssl
-pacakge was installed on your system. 
+By default, ZoneMinder will use the certificate created when the mod_ssl
+package was installed on your system. 
 
 Since the certificate is self-signed, you will get a warning from your browser
 the first time you access the web portal. This is normal.
 
-This is not intended to be an all encompasing solution for everyone. ZoneMinder
+This is not intended to be an all encompassing solution for everyone. ZoneMinder
 will work just fine over HTTPS the way it is currently configured. However,
 here are a couple of considerations you may want to take to improve your
 experience.

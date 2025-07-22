@@ -28,77 +28,78 @@
 
 class MonitorLinkExpression {
 
-  public:
+ public:
+  /**
+   * struct node
+   *
+   * Represents the tree node containing references to left and right child nodes
+   * as well as the token that the node represents in the actual expression tree.
+   */
+  class Node {
+   public:
+    Token token{ Token::TokenType::unknown };
+
+    std::unique_ptr< Node > left { nullptr };
+    std::unique_ptr< Node > right{ nullptr };
+
+    constexpr Node() noexcept = default;
+
+    Node( Node       && rhs ) noexcept = default;
+    Node( Node const  & rhs ) noexcept = delete;
+
+    constexpr Node(Token::TokenType const type) noexcept : token(type) {}
+    constexpr Node(Token const &token) noexcept : token(token) {}
+
+    Node & operator=( Node && rhs ) noexcept = default;
+    Node & operator=( Node const  & rhs ) noexcept = delete;
+
+    ~Node() noexcept = default;
+  };
+
+  struct Result {
     /**
-     * struct node
-     *
-     * Represents the tree node containing references to left and right child nodes
-     * as well as the token that the node represents in the actual expression tree.
+     * True if evaluation process is successful. Otherwise, false.
      */
-    class Node {
-      public:
-      Token token{ Token::TokenType::unknown };
+    bool success{ false };
 
-      std::unique_ptr< Node > left { nullptr };
-      std::unique_ptr< Node > right{ nullptr };
+    /**
+     * Message in case of the fault.
+     */
+    std::string_view message{};
+    int score {-1};
+  };
 
-      constexpr Node() noexcept = default;
+ public:
+  using Tokens = std::vector< Token >;
+ private:
+  std::unique_ptr<Node> tree_;
+  int score_;
 
-      Node( Node       && rhs ) noexcept = default;
-      Node( Node const  & rhs ) noexcept = delete;
+  static std::unique_ptr< Node > parse_and_operation       ( Tokens const & tokens, std::size_t & current );
+  static std::unique_ptr< Node > parse_or_operation       ( Tokens const & tokens, std::size_t & current );
+  static std::unique_ptr< Node > parse_parentheses         ( Tokens const & tokens, std::size_t & current );
+  static std::unique_ptr< Node > parse_terminal            ( Tokens const & tokens, std::size_t & current );
+  static std::unique_ptr<Node> parse_expression( Tokens const & tokens, std::size_t & current );
 
-      constexpr Node(Token::TokenType const type) noexcept : token(type) {}
-      constexpr Node(Token const &token) noexcept : token(token) {}
+  static inline bool has_unused( Tokens const & tokens, std::size_t const current ) noexcept {
+    return current < std::size( tokens );
+  }
 
-      Node & operator=( Node && rhs ) noexcept = default;
-      Node & operator=( Node const  & rhs ) noexcept = delete;
+  static Result visit(Node const &node);
+  static Result visit_logical_and(Node const &node);
+  static Result visit_logical_or(Node const &node);
 
-      ~Node() noexcept = default;
-    };
-
-    struct result {
-      /**
-       * True if evaluation process is successful. Otherwise, false.
-       */
-      bool success{ false };
-
-      /**
-       * Message in case of the fault.
-       */
-      std::string_view message{};
-      int score {-1};
-    };
-
-  public:
-    using Tokens = std::vector< Token >;
-  private:
-    std::unique_ptr<Node> tree_;
-    int score_;
-
-    static std::unique_ptr< Node > parse_and_operation       ( Tokens const & tokens, std::size_t & current );
-    static std::unique_ptr< Node > parse_or_operation       ( Tokens const & tokens, std::size_t & current );
-    static std::unique_ptr< Node > parse_parentheses         ( Tokens const & tokens, std::size_t & current );
-    static std::unique_ptr< Node > parse_terminal            ( Tokens const & tokens, std::size_t & current );
-    static std::unique_ptr<Node> parse_expression( Tokens const & tokens, std::size_t & current );
-
-    static inline bool has_unused( Tokens const & tokens, std::size_t const current ) noexcept {
-      return current < std::size( tokens );
-    }
-
-    static result visit(Node const &node);
-    static result visit_logical_and(Node const &node);
-    static result visit_logical_or(Node const &node);
-
-  public:
-    MonitorLinkExpression();
-    MonitorLinkExpression(const std::string &expression) : expression_(expression) {
-    };
-    int score() { return score_; }
-    bool evaluate();
-    bool parse();
-  private:
-    const std::string_view delimiters_ = "|&(),";
-    std::string_view expression_;
+ public:
+  MonitorLinkExpression();
+  MonitorLinkExpression(const std::string &expression) : expression_(expression) {
+  };
+  int score() { return score_; }
+  bool evaluate();
+  const Result result();
+  bool parse();
+ private:
+  const std::string_view delimiters_ = "|&(),";
+  std::string_view expression_;
 };
 
 #endif

@@ -25,6 +25,7 @@ if (!canEdit('Monitors')) {
 }
 
 if ($action == 'save') {
+  global $error_message;
   foreach ($_REQUEST['mids'] as $mid) {
     $mid = ValidInt($mid);
     if (!canEdit('Monitors', $mid)) {
@@ -36,14 +37,18 @@ if ($action == 'save') {
       $Monitor->zmcControl('stop');
     }
     if (!$Monitor->save($_REQUEST['newMonitor'])) {
-      global $error_message;
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
     }
   } // end foreach mid
-  $view = 'console';
+
+  if ($error_message) {
+    $view = 'console';
+  } else {
+    $redirect = '?view=console';
+  }
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

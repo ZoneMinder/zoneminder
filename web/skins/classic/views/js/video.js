@@ -46,6 +46,11 @@ function initPage() {
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
+
+  videoobj = $j('#videoobj');
+  if (videoobj.length) {
+    vid = videojs('videoobj');
+  }
 }
 
 $j(document).ready(initPage);

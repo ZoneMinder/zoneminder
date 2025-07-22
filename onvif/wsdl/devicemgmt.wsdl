@@ -484,7 +484,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 					<xs:sequence>
 						<xs:element name="SupportInformation" type="tt:SupportInformation">
 							<xs:annotation>
-								<xs:documentation>Contains the arbitary device diagnostics information.</xs:documentation>
+								<xs:documentation>Contains the arbitrary device diagnostics information.</xs:documentation>
 							</xs:annotation>
 						</xs:element>
 					</xs:sequence>
@@ -525,7 +525,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 					<xs:sequence>
 						<xs:element name="Scopes" type="tt:Scope" minOccurs="1" maxOccurs="unbounded">
 							<xs:annotation>
-								<xs:documentation>Contains a list of URI definining the device scopes. Scope parameters can be of two types: fixed and configurable. Fixed parameters can not be altered.</xs:documentation>
+								<xs:documentation>Contains a list of URI defining the device scopes. Scope parameters can be of two types: fixed and configurable. Fixed parameters can not be altered.</xs:documentation>
 							</xs:annotation>
 						</xs:element>
 					</xs:sequence>
@@ -2409,7 +2409,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 			<wsdl:output message="tds:GetSystemLogResponse"/>
 		</wsdl:operation>
 		<wsdl:operation name="GetSystemSupportInformation">
-			<wsdl:documentation>This operation gets arbitary device diagnostics information from the device.</wsdl:documentation>
+			<wsdl:documentation>This operation gets arbitrary device diagnostics information from the device.</wsdl:documentation>
 			<wsdl:input message="tds:GetSystemSupportInformationRequest"/>
 			<wsdl:output message="tds:GetSystemSupportInformationResponse"/>
 		</wsdl:operation>
@@ -2582,7 +2582,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 		<wsdl:operation name="SetHostname">
 			<wsdl:documentation>This operation sets the hostname on a device. It shall be possible to set the device hostname
 				configurations through the SetHostname command.<br/>
-				A device shall accept string formated according to RFC 1123 section 2.1 or alternatively to RFC 952, 
+				A device shall accept string formatted according to RFC 1123 section 2.1 or alternatively to RFC 952, 
 				other string shall be considered as invalid strings. 
 			</wsdl:documentation>
 			<wsdl:input message="tds:SetHostnameRequest"/>
@@ -2614,7 +2614,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 		<wsdl:operation name="SetNTP">
 			<wsdl:documentation>This operation sets the NTP settings on a device. If the device supports NTP, it shall be
 				possible to set the NTP server settings through the SetNTP command.<br/>
-				A device shall accept string formated according to RFC 1123 section 2.1 or alternatively to RFC 952, 
+				A device shall accept string formatted according to RFC 1123 section 2.1 or alternatively to RFC 952, 
 				other string shall be considered as invalid strings. <br/>
 				Changes to the NTP server list will not affect the clock mode DateTimeType. Use SetSystemDateAndTime to activate NTP operation.
 			</wsdl:documentation>
@@ -2830,19 +2830,19 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 		</wsdl:operation>
 		<wsdl:operation name="GetRelayOutputs">
 			<wsdl:documentation>This operation gets a list of all available relay outputs and their settings.<br/>
-				This method has been depricated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
+				This method has been deprecated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
 			<wsdl:input message="tds:GetRelayOutputsRequest"/>
 			<wsdl:output message="tds:GetRelayOutputsResponse"/>
 		</wsdl:operation>
 		<wsdl:operation name="SetRelayOutputSettings">
 			<wsdl:documentation>This operation sets the settings of a relay output.
-				<br/>This method has been depricated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
+				<br/>This method has been deprecated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
 			<wsdl:input message="tds:SetRelayOutputSettingsRequest"/>
 			<wsdl:output message="tds:SetRelayOutputSettingsResponse"/>
 		</wsdl:operation>
 		<wsdl:operation name="SetRelayOutputState">
 			<wsdl:documentation>This operation sets the state of a relay output.
-				<br/>This method has been depricated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
+				<br/>This method has been deprecated with version 2.0. Refer to the DeviceIO service.</wsdl:documentation>
 			<wsdl:input message="tds:SetRelayOutputStateRequest"/>
 			<wsdl:output message="tds:SetRelayOutputStateResponse"/>
 		</wsdl:operation>

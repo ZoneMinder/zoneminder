@@ -278,7 +278,7 @@ while (!$zm_terminate) {
     @needsReload = ();
   }
 
-  # zmDbConnect will ping and reconnect if neccessary
+  # zmDbConnect will ping and reconnect if necessary
   $dbh = zmDbConnect();
 } # end while (!$zm_terminate)
 Info('Trigger daemon exiting');

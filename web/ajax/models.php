@@ -8,7 +8,7 @@ $message = '';
 //
 
 if (!canView('Monitors')) {
-  $message = 'Insufficient permissions to view model entries for user '.$user['Username'];
+  $message = 'Insufficient permissions to view model entries for user '.$user->Username();
 } else if (!isset($_REQUEST['ManufacturerId'])) {
   $message = 'This request requires a ManufacturerId to be set';
 }

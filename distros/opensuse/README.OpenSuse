@@ -2,7 +2,7 @@ OpenSuse Notes
 ===============
 
 1. OpenSuse, along with other distros, now use systemd for task control.  
-   One of the capabilties of systemd is to use private space for /tmp to reduce
+   One of the capabilities of systemd is to use private space for /tmp to reduce
    the possibility of cross talk between applications.  The default settings 
    for zoneminder use /tmp for a number of files.  When you start/stop 
    zoneminder from a web page /tmp will be in private space but when the 

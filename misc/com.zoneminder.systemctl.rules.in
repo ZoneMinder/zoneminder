@@ -3,5 +3,4 @@ polkit.addRule(function(action, subject) {
         subject.user != "@WEB_USER@") {
         return polkit.Result.NO;
     }
-
 });

@@ -32,6 +32,8 @@ class Event extends AppModel {
 	public $displayField = 'Name';
 
   public $virtualFields = array(
+    'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
+    'EndTimeSecs' => 'UNIX_TIMESTAMP(EndDateTime)',
     'StartTime' => 'StartDateTime',
     'EndTime' => 'EndDateTime'
   );
@@ -104,6 +106,22 @@ class Event extends AppModel {
       'finderQuery' => '',
       'counterQuery' => ''
     ),
+    'Tag' => array(
+      'className' => 'Tag',
+      'joinTable' =>  'Events_Tags',
+      'foreignKey' => 'EventId',
+      'associationForeignKey' => 'TagId',
+      'unique'      =>  true,
+      'dependent' => false,
+      'conditions' => '',
+      'fields' => '',
+      'order' => '',
+      'limit' => '',
+      'offset' => '',
+      'exclusive' => '',
+      'finderQuery' => '',
+      'counterQuery' => ''
+    ),
   );
 
   public $actsAs = array(
@@ -114,33 +132,29 @@ class Event extends AppModel {
   );
 
   public function Relative_Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Relative_Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Relative_Path() : '';
   } // end function Relative_Path()
 
   public function Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Path() : '';
   }
 
   public function Link_Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Link_Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Link_Path() : '';
   }
 
   public function fileExists($event) {
-    //$data = $this->findById($id);
-    //return $data['Event']['dataset_filename'];
-    $storage = $this->Storage->findById($event['StorageId']);
-
-    if ( $event['DefaultVideo'] ) {
-      if ( file_exists($this->Path().'/'.$event['DefaultVideo']) ) {
+    if ($event['DefaultVideo']) {
+      if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
         return 1;
       } else {
-        ZM\Debug('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
+        ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
+        ZM\Warning(print_r($this, true));
       }
     } else {
-      ZM\Debug('No DefaultVideo in Event' . $this->Event);
       return 0;
     }
   } // end function fileExists($event)
@@ -150,8 +164,8 @@ class Event extends AppModel {
   }
 
   public function beforeDelete($cascade=true) {
-    $Event = new ZM\Event($this->id);
-    $Event->delete();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    if ($Event) $Event->delete();
     // Event->delete() will do it all, so cake doesn't have to do anything.
     return false;
   } // end function afterDelete

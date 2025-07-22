@@ -39,7 +39,8 @@ class Frame {
         SystemTimePoint p_timestamp,
         Microseconds p_delta,
         int p_score,
-        std::vector<ZoneStats> p_stats);
+        std::vector<ZoneStats> p_stats
+       );
 
   event_id_t event_id;
   int frame_id;

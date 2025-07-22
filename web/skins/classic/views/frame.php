@@ -46,6 +46,7 @@ $firstFid = 1;
 $prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
 $nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
 $lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
+if ($maxFid > $lastFid) $maxFid = $lastFid;
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
@@ -56,24 +57,24 @@ if (isset($_REQUEST['scale'])) {
 } else if (isset($_COOKIE['zmWatchScale'])) {
   $scale = validNum($_COOKIE['zmWatchScale']);
 } else {
-  $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+  $scale = validNum($Monitor->DefaultScale());
 }
 $scale = $scale ? $scale : 0;
 
 $imageData = $Event->getImageSrc($frame, $scale, 0);
 if (!$imageData) {
   ZM\Error("No data found for Event $eid frame $fid");
-  $imageData = array();
+  $imageData = array('hasAnalysisImage'=>0, 'thumbPath' => '', 'eventPath'=>'');
 }
 
-$show = 'capt';
-if (isset($_REQUEST['show']) && in_array($_REQUEST['show'], array('capt', 'anal'))) {
+$show = 'capture';
+if (isset($_REQUEST['show']) && in_array($_REQUEST['show'], array('capture', 'analysis'))) {
   $show = $_REQUEST['show'];
-  if ($show == 'anal' and ! $imageData['hasAnalImage']) {
-    $show = 'capt';
+  if ($show == 'analysis' and ! $imageData['hasAnalysisImage']) {
+    $show = 'capture';
   }
-} else if ($imageData['hasAnalImage']) {
-  $show = 'anal';
+} else if ($imageData['hasAnalysisImage']) {
+  $show = 'analysis';
 }
 
 $imagePath = $imageData['thumbPath'];
@@ -84,20 +85,19 @@ $rImagePath = sprintf('%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-r.jpg', $eventPath, 
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->FrameId());
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page p-0">
     <div class="d-flex flex-row justify-content-between px-3 pt-1">
       <div id="toolbar" >
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
         <button type="button" id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button type="button" id="statsViewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats').' '.translate('View') ?>" ><i class="fa fa-table"></i></button>
       </div>
-      
-      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
-      
+      <h2><?php echo translate('Frame').' <span title="'.translate('Event Id').'">'.$Event->Id().'</span>-<span title="'.translate('Frame Id').'">'.$Frame->FrameId().'</span> (<span title="'.translate('Score').'">'.$Frame->Score().'</span>)' ?></h2>
       <form>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
@@ -115,16 +115,16 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
       <div>
         <p id="image">
 <?php
-if ($imageData['hasAnalImage']) {
+if ($imageData['hasAnalysisImage']) {
   echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s" title="Click to display frame %s analysis">',
     $Event->Id(), $Frame->FrameId(), $scale,
-    ($show=='anal'?'capt':'anal'),
-    ($show=='anal'?'without':'with')
+    ($show=='analysis'?'capture':'analysis'),
+    ($show=='analysis'?'without':'with')
   );
 }
 ?>
 <img id="frameImg"
-  src="<?php echo validHtmlStr($Frame->getImageSrc($show=='anal'?'analyse':'capture')) ?>"
+  src="<?php echo validHtmlStr($Frame->getImageSrc($show=='analysis'?'analyse':'capture')) ?>"
   width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
   height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
   alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>"
@@ -132,7 +132,7 @@ if ($imageData['hasAnalImage']) {
   loading="lazy"
 />
 <?php
-if ($imageData['hasAnalImage']) { ?></a><?php } ?>
+if ($imageData['hasAnalysisImage']) { ?></a><?php } ?>
         </p>
 <?php
   $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&amp;fid=';

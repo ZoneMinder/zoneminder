@@ -21,17 +21,16 @@ static const int samplingFrequencyTable[16] = {
 // ---------------------------------
 //
 ZoneMinderFifoAudioSource::ZoneMinderFifoAudioSource(
-    std::shared_ptr<xop::RtspServer>& rtspServer,
-    xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
-    )
+  std::shared_ptr<xop::RtspServer>& rtspServer,
+  xop::MediaSessionId sessionId,
+  xop::MediaChannelId channelId,
+  const std::string &fifo
+)
   :
-    ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo),
-    samplingFrequencyIndex(-1),
-    frequency(-1),
-    channels(1)
-{
+  ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo),
+  samplingFrequencyIndex(-1),
+  frequency(-1),
+  channels(1) {
 }
 int ZoneMinderFifoAudioSource::getFrequencyIndex() {
   for (int i=0; i<16; i++)

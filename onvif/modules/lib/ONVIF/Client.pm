@@ -250,7 +250,7 @@ sub create_user {
 sub set_credentials {
   my ($self, $username, $password, $create_if_not_exists) = @_;
 
-#  TODO: snyc device and client time  
+#  TODO: sync device and client time  
 
   if ( $create_if_not_exists ) {
 #  If GetUsers() is ok but empty then CreateUsers()

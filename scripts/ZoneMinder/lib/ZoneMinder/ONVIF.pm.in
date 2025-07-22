@@ -309,6 +309,8 @@ sub profiles {
       my $Resolution = $VideoEncoderConfiguration->get_Resolution();
       my $Width = $Resolution ? $Resolution->get_Width() : 0;
       my $Height = $Resolution ? $Resolution->get_Height() : 0;
+      my $RateControl = $VideoEncoderConfiguration->get_RateControl();
+      my $FrameRateLimit = $RateControl ? $RateControl->get_FrameRateLimit() : 0;
 
       push @profiles, [
         $token,
@@ -316,7 +318,7 @@ sub profiles {
         $VideoEncoderConfiguration->get_Encoding(),
         $Width,
         $Height,
-        $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
+        $FrameRateLimit,
         $streamtype,
         $Uri,
       ];

@@ -6,7 +6,7 @@ echo "*** The file can be used with cmake like so: cmake -C zm_conf.cmake [extra
 echo "*** Usage: ./cmakecacheimport.sh [PATH TO ZM.CONF]"
 echo ""
 
-# Check for too many prameters
+# Check for too many parameters
 if [[ "$#" -gt "0" && "$#" -ne "1" ]]; then
        echo "Error: Too many parameters!"
        exit 50

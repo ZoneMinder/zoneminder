@@ -4,7 +4,7 @@
 ** any purpose.
 **
 ** ServerMediaSubsession.h
-** 
+**
 ** -------------------------------------------------------------------------*/
 
 #ifndef ZM_RTSP_SERVER_SERVER_MEDIA_SUBSESSION_H
@@ -20,28 +20,28 @@
 class ZoneMinderDeviceSource;
 
 class BaseServerMediaSubsession {
-	public:
-    explicit BaseServerMediaSubsession(StreamReplicator* replicator):
-      m_replicator(replicator) {};
+ public:
+  explicit BaseServerMediaSubsession(StreamReplicator* replicator):
+    m_replicator(replicator) {};
 
-		FramedSource* createSource(
-        UsageEnvironment& env,
-        FramedSource * videoES,
-        const std::string& format);
+  FramedSource* createSource(
+    UsageEnvironment& env,
+    FramedSource * videoES,
+    const std::string& format);
 
-		RTPSink * createSink(
-        UsageEnvironment& env,
-        Groupsock * rtpGroupsock,
-        unsigned char rtpPayloadTypeIfDynamic,
-        const std::string& format,
-        FramedSource *source);
+  RTPSink * createSink(
+    UsageEnvironment& env,
+    Groupsock * rtpGroupsock,
+    unsigned char rtpPayloadTypeIfDynamic,
+    const std::string& format,
+    FramedSource *source);
 
-		char const* getAuxLine(
-        ZoneMinderFifoSource* source,
-        unsigned char rtpPayloadType);
-		
-	protected:
-		StreamReplicator* m_replicator;
+  char const* getAuxLine(
+    ZoneMinderFifoSource* source,
+    unsigned char rtpPayloadType);
+
+ protected:
+  StreamReplicator* m_replicator;
 };
 #endif // HAVE_RTSP_SERVER
 

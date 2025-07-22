@@ -87,7 +87,7 @@ sub zmMemAttach {
 
   my $mmap_file = $Config{ZM_PATH_MAP}.'/zm.mmap.'.$monitor->{Id};
   if ( ! -e $mmap_file ) {
-    Error("Memory map file '$mmap_file' does not exist in zmMemAttach.  zmc might not be running.");
+    Debug(1, "Memory map file '$mmap_file' does not exist in zmMemAttach.  zmc might not be running.");
     return undef;
   }
   my $mmap_file_size = -s $mmap_file;

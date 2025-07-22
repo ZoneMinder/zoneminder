@@ -59,7 +59,7 @@ sub new {
             if ! exists $SOAP::WSDL::Expat::MessageParser::LOADED_OF{ $self->{ class_resolver } };
     }
     return $self;
-##  calling the parent's calss new() dows not work here.
+##  calling the parent's class new() does not work here.
 #    return SOAP::WSDL::Expat::MessageParser->new($class, $args);
 }
 
@@ -90,11 +90,9 @@ sub _initialize {
                     if($_[0]->namespace($_[1]) eq URI_SOAP11_ENV) {
                        $_[0]{ soap_version } = '1.1';
 #                      $soap_version_of{ident $_[0]} = '1.1';
-                    }
-                    elsif($_[0]->namespace($_[1]) eq URI_SOAP12_ENV) {
+                    } elsif($_[0]->namespace($_[1]) eq URI_SOAP12_ENV) {
                       $_[0]{ soap_version } = '1.2';
-                    }
-                    else {
+                    } else {
                       die "Bad namespace for SOAP envelope: " . $_[0]->recognized_string();
                     }
                     #print "Receiving SOAP " . $_[0]{ soap_version } ."\n";
@@ -144,8 +142,7 @@ sub _initialize {
             # That's slightly faster than $content_check{ $depth }->()
             # and we don't have to pass $_[1] to the method.
             # Yup, that's dirty.
-            return &{$content_check{ $depth }}
-                if exists $content_check{ $depth };
+            return &{$content_check{ $depth }} if exists $content_check{ $depth };
 
             push @{ $path }, $_[1];        # step down in path
             return if $skip;               # skip inside __SKIP__
@@ -204,7 +201,7 @@ sub _initialize {
                     my %attr = @_[2..$#_];
                     if (my $nil = delete $attr{nil}) {
                         # TODO: check namespace
-                        if ($nil && $nil ne 'false') {
+                        if ($nil && ($nil ne 'false')) {
                             undef $characters;
                             last ATTR if not (%attr);
                         }
@@ -228,7 +225,7 @@ sub _initialize {
 
             # check __SKIP__
             if ($skip) {
-                return if $skip ne join '/', @{ $path }, $_[1];
+                return if $skip ne join('/', @{ $path }, $_[1]);
                 $skip = 0;
                 $_[0]->setHandlers( Char => $char_handler );
                 return;
@@ -246,7 +243,7 @@ sub _initialize {
                 #
                 $SOAP::WSDL::XSD::Typelib::Builtin::anySimpleType::___value
                     ->{ $$current } = $characters
-                        if defined $characters && defined $current; # =~m{ [^\s] }xms;
+                        if defined($characters) && defined($current); # =~m{ [^\s] }xms;
             }
 
             # empty characters
@@ -255,7 +252,7 @@ sub _initialize {
             # stop believing we're a leaf node
             $_leaf = 0;
 
-            # return if there's only one elment - can't set it in parent ;-)
+            # return if there's only one element - can't set it in parent ;-)
             # but set as root element if we don't have one already.
             if (not defined $list->[-1]) {
                 $self->{ data } = $current if (not exists $self->{ data });

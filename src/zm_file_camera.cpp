@@ -23,17 +23,17 @@
 #include <sys/stat.h>
 
 FileCamera::FileCamera(
-    const Monitor *monitor,
-    const char *p_path,
-    int p_width,
-    int p_height,
-    int p_colours,
-    int p_brightness,
-    int p_contrast,
-    int p_hue,
-    int p_colour,
-    bool p_capture,
-    bool p_record_audio)
+  const Monitor *monitor,
+  const char *p_path,
+  int p_width,
+  int p_height,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio)
   : Camera(
       monitor,
       FILE_SRC,
@@ -47,8 +47,7 @@ FileCamera::FileCamera(
       p_colour,
       p_capture,
       p_record_audio),
-  path(p_path)
-{
+    path(p_path) {
   if (capture) {
     Initialise();
   }
@@ -69,6 +68,12 @@ void FileCamera::Initialise() {
 void FileCamera::Terminate() {
 }
 
+int FileCamera::PrimeCapture() {
+  getVideoStream();
+  Info("Priming capture from %s", path.c_str());
+  return 1;
+}
+
 int FileCamera::PreCapture() {
   struct stat statbuf = {};
   if (stat(path.c_str(), &statbuf) < 0) {
@@ -87,6 +92,13 @@ int FileCamera::PreCapture() {
 }
 
 int FileCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
+  if (!zm_packet->image) {
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
+  }
+  zm_packet->keyframe = 1;
+  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet->packet->stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
   return zm_packet->image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
 }
 

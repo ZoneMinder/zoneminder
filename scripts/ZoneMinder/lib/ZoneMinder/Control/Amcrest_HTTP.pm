@@ -54,78 +54,70 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-    # Has no scheme at the beginning, so won't parse as a URI
-    $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-  }
-  my $uri = URI->new($self->{Monitor}->{ControlAddress});
-
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
-  my ( $username, $password );
-  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
-  if ( $self->{Monitor}->{ControlAddress} ) {
-    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
 
-    $$self{address} = $uri->host_port();
-    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
-    # Testing seems to show that we need the username/password in each url as well as credentials
-    $$self{base_url} = $uri->canonical();
-    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
-  }
+  if ($self->{Monitor}->{ControlAddress}
+      and
+    $self->{Monitor}->{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}->{ControlAddress} ne 'user:port@ip'
+  ) {
 
-  # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType');
-
-  if ( $res->is_success ) {
-    $self->{state} = 'open';
-    return;
-  }
-
-  if ( $res->status_line() eq '401 Unauthorized' ) {
-
-    my $headers = $res->headers();
-    foreach my $k ( keys %$headers ) {
-      Debug("Initial Header $k => $$headers{$k}");
+    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+      # Has no scheme at the beginning, so won't parse as a URI
+      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
     }
+    my $uri = URI->new($self->{Monitor}->{ControlAddress});
 
-    if ( $$headers{'www-authenticate'} ) {
-      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /realm="([^"]+)"/i ) {
-        if ( $realm ne $1 ) {
-          $realm = $1;
-          Debug("Changing REALM to ($realm)");
-          $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-          $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
-          if ( $res->is_success() ) {
-            $self->{state} = 'open';
-            return;
-          } elsif ( $res->status_line eq '400 Bad Request' ) {
-          # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
-            $self->{state} = 'open';
-            return;
-          } else {
-            Error('Authentication still failed after updating REALM' . $res->status_line);
-            $headers = $res->headers();
-            foreach my $k ( keys %$headers ) {
-              Debug("Header $k => $$headers{$k}");
-            }  # end foreach
-          }
-        } else {
-          Error('Authentication failed, not a REALM problem');
-        }
+    $$self{realm} = 'Login to ' . $self->{Monitor}->{ControlDevice} if $self->{Monitor}->{ControlDevice};
+    if ($self->{Monitor}->{ControlAddress}) {
+      if ( $uri->userinfo()) {
+        @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
       } else {
-        Error('Failed to match realm in tokens');
-      } # end if
-    } else {
-      Debug('No headers line');
-    } # end if headers
-  } else {
-    Error("Failed to get $$self{base_url}cgi-bin/magicBox.cgi?action=getDeviceType ".$res->status_line());
+        $$self{username} = $self->{Monitor}->{User};
+        $$self{password} = $self->{Monitor}->{Pass};
+      }
 
-  } # end if $res->status_line() eq '401 Unauthorized'
+      $$self{address} = $uri->host_port();
+      $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
+      # Testing seems to show that we need the username/password in each url as well as credentials
+      $$self{base_url} = $uri->canonical();
+      Debug('Using initial credentials for '.$uri->host_port().join(',', '', @$self{'realm', 'username', 'password'}).", base_url: $$self{base_url} auth:".$uri->authority());
+    }
+ } elsif ( $self->{Monitor}->{Path}) {
+    my $uri = URI->new($self->{Monitor}->{Path});
+    Debug("Using Path for credentials: $self->{Monitor}{Path} " . $uri->userinfo());
+      if ( $uri->userinfo()) {
+        @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
+      $uri->userinfo($$self{username}.':'.$$self{password});
+    }
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path_query('');
+
+    $$self{base_url} = $uri->canonical();
+    $$self{address} = $uri->host_port();
+    Debug("User auth $$self{username} $$self{password} " . $uri->authority() . ' ' . $uri->host_port());
+    $self->{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
+    chomp $$self{base_url};
+    Debug("Base_url is ".$$self{base_url});
+  } else {
+    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+  }
+
+  my $url = $$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType';
+  # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
+  if ($self->get_realm($url)) {
+    $self->{state} = 'open';
+    return !undef;
+  }
 
   $self->{state} = 'closed';
+  return undef;
 }
 
 sub close {
@@ -140,7 +132,7 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $res = $self->{ua}->get($$self{base_url}.$cmd);
+  my $res = $self->get($$self{base_url}.$cmd);
 
   if ( $res->is_success ) {
     $result = !undef;
@@ -148,14 +140,19 @@ sub sendCmd {
     Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
+    # Have seen on some HikVision cams that whatever cookie LWP uses times out and it never refreshes, so we have to actually create a new LWP object.
+    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua}->cookie_jar( {} );
+    $self->{ua}->credentials($$self{address}, $$self{realm}, $$self{username}, $$self{password});
+
     # Try again
-    $res = $self->{ua}->get($$self{base_url}.$cmd);
+    $res = $self->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
       # Command to camera appears successful, write Info item to log
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
-      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+      $res = $self->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 
@@ -363,6 +360,48 @@ sub zoomConWide {
   $$self{LastCmd} = 'code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
+
+my %config_urls = (
+  caps => 'cgi-bin/encode.cgi?action=getCaps',
+  encode1 => 'cgi-bin/encode.cgi?action=getConfigCaps&channel=1',
+
+);
+
+sub get_config {
+  my $self = shift;
+  my %config;
+
+  foreach my $cat ( keys %config_urls ) {
+    my $url = $$self{base_url}.$config_urls{$cat};
+    my $response = $self->get($url);
+    if ($response->is_success()) {
+      my $resp = $response->decoded_content;
+      $config{$cat} = ZoneMinder::General::parseNameEqualsValueToHash($resp);
+    }
+    Warning("Failed to get config from $url: " . $response->status_line());
+  } # end foreach
+  return keys %config ? \%config : undef;
+} # end sub get_config
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+
+  my $url = $$self{base_url}.'/cgi-bin/configManager.cgi?action=setConfig'.
+        join('&', map { $_.'='.uri_encode($$diff{$_}) } keys %$diff);
+  my $response = $self->get($url);
+  Debug($response->content);
+  return $response->is_success();
+}
+
+sub reboot {
+  my $self = shift;
+  my $response = $self->{ua}->post( $$self{base_url}.'/cgi-bin/setparam.cgi', {
+      system_reset => 1
+    });
+  return $response->is_success();
+}
+
 
 1;
 

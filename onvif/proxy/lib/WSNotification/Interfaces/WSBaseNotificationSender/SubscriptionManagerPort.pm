@@ -4,6 +4,7 @@ use warnings;
 use Class::Std::Fast::Storable;
 use Scalar::Util qw(blessed);
 use base qw(SOAP::WSDL::Client::Base);
+use Data::Dumper;
 
 # only load if it hasn't been loaded before
 require WSNotification::Typemaps::WSBaseNotificationSender
@@ -20,7 +21,7 @@ sub START {
 sub Renew {
     my ($self, $body, $header) = @_;
     die "Renew must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
+    return  $self->SUPER::call({
         operation => 'Renew',
         soap_action => 'http://docs.oasis-open.org/wsn/bw-2/Renew',
         style => 'document',
@@ -34,7 +35,10 @@ sub Renew {
 
         },
         header => {
-            
+           'use'           => 'literal',
+            namespace       => 'http://schemas.xmlsoap.org/ws/2004/08/addressing',
+            encodingStyle   => '',
+            parts           => [qw( WSNotification::Elements::Header )],
         },
         headerfault => {
             

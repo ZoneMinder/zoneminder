@@ -84,8 +84,8 @@ foreach($pluginOptions as $name => $values)
 }
 
 $PLANG=array();
-if(file_exists($plugin_path."/lang/".$user['Language'].".php")) {
-   include_once($plugin_path."/lang/".$user['Language'].".php");
+if(file_exists($plugin_path."/lang/".$user->Language().".php")) {
+   include_once($plugin_path."/lang/".$user->Language().".php");
 }
 
 function pLang($name)
@@ -97,9 +97,10 @@ function pLang($name)
       return $name;
 }
 
-
+xhtmlHeaders(__FILE__, translate('Plugin'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
@@ -161,5 +162,4 @@ foreach($pluginOptions as $name => $popt) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

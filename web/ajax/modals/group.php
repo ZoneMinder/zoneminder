@@ -42,13 +42,12 @@ function parentGrpSelect($newGroup) {
   }
 
   $kids = get_children($newGroup);
-  if ( $newGroup->Id() )
-    $kids[] = $newGroup->Id();
+  if ( $newGroup->Id() ) $kids[] = $newGroup->Id();
   $sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
   $options = array(''=>'None');
 
   foreach ( dbFetchAll($sql, null, $kids) as $option ) {
-    $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
+    $options[validCardinal($option['Id'])] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()).$option['Name'];
   }
 
   return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configModalBtns'));
@@ -57,11 +56,11 @@ function parentGrpSelect($newGroup) {
 function monitorList($newGroup) {
   $result = '';
 
-  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
+  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Deleted=false ORDER BY Sequence ASC');
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
-      $result .= '<option value="' .$monitor['Id']. '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
+      $result .= '<option value="' .validCardinal($monitor['Id']). '"' .( in_array($monitor['Id'], $monitorIds, true) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
     }
   }
   
@@ -78,14 +77,10 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new ZM\Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group(validCardinal($_REQUEST['gid']));
 } else {
   $newGroup = new ZM\Group();
 }
-
-//
-// BEGIN HTML
-//
 ?>
 <div id="groupModal" class="modal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
@@ -96,40 +91,39 @@ if ( !empty($_REQUEST['gid']) ) {
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
-      <form id="groupForm" name="groupForm" method="post" action="?view=group&action=save">
+      <form id="groupForm" name="groupForm" method="post" action="?view=group">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();
         ?>
-        <input type="hidden" name="view" value="group"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
-        <table id="groupModalTable" class="table-sm table-borderless">
-          <tbody>
-            <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configModalBtns"/></td>
-            </tr>
-            <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('ParentGroup') ?></th>
-              <td><?php echo parentGrpSelect($newGroup) ?></td>
-            </tr>
-            <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Monitor') ?></th>
-              <td>
-                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configModalBtns">
-                  <?php echo monitorList($newGroup) ?>
-                </select>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" name="action" id="grpModalSaveBtn" value="save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>><?php echo translate('Save') ?></button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
-      </div>
-    </form>
+        <div class="modal-body">
+          <table id="groupModalTable" class="table-sm table-borderless">
+            <tbody>
+              <tr>
+                <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
+                <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configModalBtns"/></td>
+              </tr>
+              <tr>
+                <th class="text-right pr-3" scope="row"><?php echo translate('ParentGroup') ?></th>
+                <td><?php echo parentGrpSelect($newGroup) ?></td>
+              </tr>
+              <tr>
+                <th class="text-right pr-3" scope="row"><?php echo translate('Monitor') ?></th>
+                <td>
+                  <select name="newGroup[MonitorIds][]" id="newGroupMonitorIds" class="chosen" multiple="multiple" data-on-change="configModalBtns">
+                    <?php echo monitorList($newGroup) ?>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary" name="action" value="save" id="groupModalSaveBtn"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>><?php echo translate('Save') ?></button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

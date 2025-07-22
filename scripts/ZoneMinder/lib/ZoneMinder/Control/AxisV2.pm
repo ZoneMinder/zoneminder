@@ -163,57 +163,81 @@ sub cameraReset {
 
 sub moveConUp {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = 0; # purely moving vertically
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=up';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConDown {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = 0; # purely moving vertically
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1 ;
   Debug('Move Down');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=down';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1 ;
+  my $tiltspeed = 0; # purely moving horizontally
   Debug('Move Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=left';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = 0; # purely moving horizontally
   Debug('Move Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=right';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConUpRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up/Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=upright';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConUpLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1;
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up/Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=upleft';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConDownRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1;
   Debug('Move Down/Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=downright';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd( $cmd );
 }
 
 sub moveConDownLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1;
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1;
   Debug('Move Down/Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=downleft';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
@@ -248,7 +272,7 @@ sub moveRelDown {
 sub moveRelLeft {
   my $self = shift;
   my $params = shift;
-  my $step = $self->getParam($params, 'panstep');
+  my $step = abs($self->getParam($params, 'panstep'));
   Debug("Step Left $step");
   my $cmd = '/axis-cgi/com/ptz.cgi?rpan=-'.$step;
   $self->sendCmd($cmd);
@@ -276,8 +300,8 @@ sub moveRelUpRight {
 sub moveRelUpLeft {
   my $self = shift;
   my $params = shift;
-  my $panstep = $self->getParam($params, 'panstep');
-  my $tiltstep = $self->getParam($params, 'tiltstep');
+  my $panstep = abs($self->getParam($params, 'panstep'));
+  my $tiltstep = abs($self->getParam($params, 'tiltstep'));
   Debug("Step Up/Left $tiltstep/$panstep");
   my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=$tiltstep";
   $self->sendCmd($cmd);
@@ -302,6 +326,47 @@ sub moveRelDownLeft {
   my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=-$tiltstep";
   $self->sendCmd($cmd);
 }
+
+sub zoomConTele {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 20;
+  Debug('Zoom ConTele');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomConWide {
+  my $self = shift;
+  my $params = shift;
+  #my $step = $self->getParam($params, 'step');
+  my $speed = -20;
+  Debug('Zoom ConWide');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Zoom Stop');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub moveStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Move Stop');
+  # we have to stop both pans and zooms
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
+  $self->sendCmd($cmd);
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
 
 sub zoomRelTele {
   my $self = shift;
@@ -425,20 +490,15 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Control::Axis - Zoneminder control for Axis Cameras using the V2 API
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+  use ZoneMinder::Control::AxisV2 ; place this in /usr/share/perl5/ZoneMinder/Control
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+This module is an implementation of the Axis V2 API 
 
 =head2 EXPORT
 
@@ -448,14 +508,8 @@ None by default.
 
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+AXIS VAPIX Library Documentation; e.g.:
+https://www.axis.com/vapix-library/subjects/t10175981/section/t10036011/display 
 
 =head1 AUTHOR
 

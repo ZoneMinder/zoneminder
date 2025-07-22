@@ -1,21 +1,21 @@
 //
 // ZoneMinder SDP Class Interface, $Date: 2009-02-16 18:21:50 +0000 (Mon, 16 Feb 2009) $, $Revision: 2765 $
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
@@ -26,7 +26,7 @@
 #include <vector>
 
 class SessionDescriptor {
-protected:
+ protected:
   enum { PAYLOAD_TYPE_DYNAMIC=96 };
 
   struct StaticPayloadDesc {
@@ -47,30 +47,30 @@ protected:
     //int autoChannels;
   };
 
-public:
+ public:
   class ConnInfo {
-  protected:
+   protected:
     std::string mNetworkType;
     std::string mAddressType;
     std::string mAddress;
     int mTtl;
     int mNoAddresses;
 
-  public:
+   public:
     explicit ConnInfo( const std::string &connInfo );
   };
 
   class BandInfo {
-  protected:
+   protected:
     std::string mType;
     int mValue;
 
-  public:
+   public:
     explicit BandInfo( const std::string &bandInfo );
   };
 
   class MediaDescriptor {
-  protected:
+   protected:
     std::string mType;
     int mPort;
     int mNumPorts;
@@ -87,41 +87,33 @@ public:
 
     ConnInfo *mConnInfo;
 
-  public:
+   public:
     MediaDescriptor( const std::string &type, int port, int numPorts, const std::string &transport, int payloadType );
 
-    const std::string &getType() const
-    {
+    const std::string &getType() const {
       return( mType );
     }
-    int getPort() const
-    {
+    int getPort() const {
       return( mPort );
     }
-    int getNumPorts() const
-    {
+    int getNumPorts() const {
       return( mNumPorts );
     }
-    const std::string &getTransport() const
-    {
+    const std::string &getTransport() const {
       return( mTransport );
     }
-    int getPayloadType() const
-    {
+    int getPayloadType() const {
       return( mPayloadType );
     }
 
-    const std::string &getPayloadDesc() const
-    {
+    const std::string &getPayloadDesc() const {
       return( mPayloadDesc );
     }
-    void setPayloadDesc( const std::string &payloadDesc )
-    {
+    void setPayloadDesc( const std::string &payloadDesc ) {
       mPayloadDesc = payloadDesc;
     }
 
-    const std::string &getControlUrl() const
-    {
+    const std::string &getControlUrl() const {
       return( mControlUrl );
     }
     void setControlUrl( const std::string &controlUrl ) {
@@ -162,11 +154,11 @@ public:
 
   typedef std::vector<MediaDescriptor *> MediaList;
 
-protected:
+ protected:
   static StaticPayloadDesc smStaticPayloads[];
   static DynamicPayloadDesc smDynamicPayloads[];
 
-protected:
+ protected:
   std::string mUrl;
 
   std::string mVersion;
@@ -181,21 +173,18 @@ protected:
 
   MediaList mMediaList;
 
-public:
+ public:
   SessionDescriptor( const std::string &url, const std::string &sdp );
   ~SessionDescriptor();
 
-  const std::string &getUrl() const
-  {
+  const std::string &getUrl() const {
     return( mUrl );
   }
 
-  int getNumStreams() const
-  {
+  int getNumStreams() const {
     return( mMediaList.size() );
   }
-  MediaDescriptor *getStream( int index )
-  {
+  MediaDescriptor *getStream( int index ) {
     if ( index < 0 || (unsigned int)index >= mMediaList.size() )
       return nullptr;
     return( mMediaList[index] );
@@ -205,26 +194,31 @@ public:
 };
 #if 0
 v=0
-o=- 1239719297054659 1239719297054674 IN IP4 192.168.1.11
-s=Media Presentation
-e=NONE
-c=IN IP4 0.0.0.0
-b=AS:174
-t=0 0
-a=control:*
-a=range:npt=now-
-a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
-m=video 0 RTP/AVP 96
-b=AS:110
-a=framerate:5.0
-a=control:trackID=1
-a=rtpmap:96 MP4V-ES/90000
-a=fmtp:96 profile-level-id=247; config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
-a=mpeg4-esid:201
-m=audio 0 RTP/AVP 0
-b=AS:64
-a=control:trackID=2
-  
+  o=- 1239719297054659 1239719297054674 IN IP4 192.168.1.11
+    s=Media Presentation
+      e=NONE
+        c=IN IP4 0.0.0.0
+          b=AS:174
+            t=0 0
+              a=control:
+                *
+                a=range:
+                  npt=now-
+                      a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
+                        m=video 0 RTP/AVP 96
+                          b=AS:110
+                            a=framerate:5.0
+                              a=control:
+                                trackID=1
+                                        a=rtpmap:96 MP4V-ES/90000
+                                            a=fmtp:96 profile-level-id=247;
+config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
+       a=mpeg4-esid:201
+         m=audio 0 RTP/AVP 0
+           b=AS:64
+             a=control:
+               trackID=2
+
 #endif
 
 #endif // ZM_SDP_H

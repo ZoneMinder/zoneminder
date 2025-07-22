@@ -26,35 +26,35 @@ class Monitor;
 
 class Fifo {
  private:
-   std::string path;
-   bool on_blocking_abort;
-   FILE *outfile;
-   int raw_fd;
+  std::string path;
+  bool on_blocking_abort;
+  FILE *outfile;
+  int raw_fd;
 
  public:
   static void file_create_if_missing(const std::string &path, bool is_fifo, bool delete_fake_fifo = true);
   static void fifo_create_if_missing(const std::string &path, bool delete_fake_fifo = true);
 
-    Fifo() :
-      on_blocking_abort(true),
-      outfile(nullptr),
-      raw_fd(-1)
-    {}
-    Fifo(const char *p_path, bool p_on_blocking_abort) :
-      path(p_path),
-      on_blocking_abort(p_on_blocking_abort),
-      outfile(nullptr),
-      raw_fd(-1)
-    {}
-    ~Fifo();
+  Fifo() :
+    on_blocking_abort(true),
+    outfile(nullptr),
+    raw_fd(-1)
+  {}
+  Fifo(const char *p_path, bool p_on_blocking_abort) :
+    path(p_path),
+    on_blocking_abort(p_on_blocking_abort),
+    outfile(nullptr),
+    raw_fd(-1)
+  {}
+  ~Fifo();
 
-    static bool writePacket(const std::string &filename, const ZMPacket &packet);
-    static bool write(const std::string &filename, uint8_t *data, size_t size);
+  static bool writePacket(const std::string &filename, const ZMPacket &packet);
+  static bool write(const std::string &filename, uint8_t *data, size_t size);
 
-    bool open();
-    bool close();
+  bool open();
+  bool close();
 
-    bool writePacket(const ZMPacket &packet);
-    bool write(uint8_t *data, size_t size, int64_t pts);
+  bool writePacket(const ZMPacket &packet);
+  bool write(uint8_t *data, size_t size, int64_t pts);
 };
 #endif  // ZM_FIFO_H

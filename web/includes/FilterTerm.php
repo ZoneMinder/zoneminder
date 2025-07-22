@@ -1,5 +1,4 @@
 <?php
-
 namespace ZM;
 $validConjunctionTypes = null;
 
@@ -13,7 +12,6 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
-
 class FilterTerm {
   public $filter;
   public $index;
@@ -24,42 +22,61 @@ class FilterTerm {
   public $cnj;
   public $obr;
   public $cbr;
+  public $cookie;
+  public $placeholder;
+  public $collate;
+  public $multiple;
+  public $chosen;
+  public $tablename;
 
-
-  public function __construct($filter = null, $term = NULL, $index=0) {
+  public function __construct($filter = null, $term = null, $index=0) {
+    $this->cnj = '';
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
-    $this->attr = $term['attr'];
-    $this->op = $term['op'];
-    $this->val = $term['val'];
-    if ( isset($term['cnj']) ) {
-      if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-        $this->cnj = $term['cnj'];
-      } else {
-        Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+    if ($term) {
+      $this->attr = isset($term['attr']) ? $term['attr'] : '';
+      $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
+      if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
+      $this->op = isset($term['op']) ? $term['op'] : '=';
+      $this->val = isset($term['val']) ? $term['val'] : '';
+      if (is_array($this->val)) $this->val = implode(',', $this->val);
+      if ( isset($term['cnj']) ) {
+        if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
+          $this->cnj = $term['cnj'];
+        } else {
+          Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['tablename']) ) {
-      $this->tablename = $term['tablename'];
-    } else {
-      $this->tablename = 'E';
-    }
+      if ( isset($term['tablename']) ) {
+        $this->tablename = $term['tablename'];
+      } else {
+        $this->tablename = 'E';
+      }
 
-    if ( isset($term['obr']) ) {
-      if ( (string)(int)$term['obr'] == $term['obr'] ) {
-        $this->obr = $term['obr'];
-      } else {
-        Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+      if ( isset($term['obr']) ) {
+        if ( (string)(int)$term['obr'] == $term['obr'] ) {
+          $this->obr = $term['obr'];
+        } else {
+          Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['cbr']) ) {
-      if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $this->cbr = $term['cbr'];
-      } else {
-        Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+      if ( isset($term['cbr']) ) {
+        if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
+          $this->cbr = $term['cbr'];
+        } else {
+          Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+        }
       }
+      $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
+      $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
+      $this->collate = isset($term['collate']) ? $term['collate'] : '';
+      $this->multiple = isset($term['multiple']) ? $term['multiple'] : '';
+      $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
+
+    } else {
+      Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -67,7 +84,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Logger::Warning('No value in term'.$this->attr);
+      Warning('No value in term '.$this->attr);
       return $values;
     }
 
@@ -75,9 +92,12 @@ class FilterTerm {
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
-
+      case 'Group': 
+        $group = new Group($value);
+        $value = $group->MonitorIds();
+        break;
       case 'AlarmedZoneId':
-        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0)';
+        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0 LIMIT 1)';
         break;
       case 'ExistsInFileSystem':
         $value = '';
@@ -85,12 +105,12 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
-      case 'MonitorName':
+      case 'Tags':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
       case 'Notes':
-        if ( strstr($this->op, 'LIKE') and ! strstr($this->val, '%' ) ) {
+        if ( ((!$this->op) or strstr($this->op, 'LIKE')) and ! strstr($this->val, '%' ) ) {
           $value = '%'.$value.'%';
         }
         $value = dbEscape($value);
@@ -100,7 +120,7 @@ class FilterTerm {
       case 'StorageServerId':
       case 'ServerId':
         if ( $value == 'ZM_SERVER_ID' ) {
-          $value = ZM_SERVER_ID;
+          $value = defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0;
         } else if ( $value_upper == 'NULL' ) {
 
         } else {
@@ -115,7 +135,9 @@ class FilterTerm {
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
+
+        } else if ( $value_upper != 'NULL' )
           $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
@@ -130,8 +152,9 @@ class FilterTerm {
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper != 'NULL' ) {
           $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+        }
         break;
       default :
         if ( $value == 'Odd' ) {
@@ -142,13 +165,19 @@ class FilterTerm {
           $value = dbEscape($value);
         break;
       }
-      $values[] = $value;
+      if (is_array($value)) {
+        $values += $value;
+      } else {
+        $values[] = $value;
+      }
     } // end foreach value
     return $values;
   } # end function sql_values
 
   public function sql_operator() {
     switch ($this->attr) {
+    case 'Group':
+      return ' IN ';
     case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
@@ -196,90 +225,62 @@ class FilterTerm {
     } // end switch op
   } # end public function sql_operator
 
-  /* Some terms don't have related SQL */
-  public function sql() {
-
-    $sql = '';
-    if ( isset($this->cnj) ) {
-      $sql .= ' '.$this->cnj;
-    }
-    if ( isset($this->obr) ) {
-      $sql .= ' '.str_repeat('(', $this->obr);
-    }
-    $sql .= ' ';
-
+  public function sql_attr() {
     switch ( $this->attr ) {
     case 'AlarmedZoneId':
-      $sql .= '/* AlarmedZoneId */ ';
-      break;
+      return '/* AlarmedZoneId */ ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
-      $sql .= 'TRUE /*'.$this->attr.'*/';
-      break;
+      return 'TRUE /*'.$this->attr.'*/';
     case 'MonitorName':
-      $sql .= 'M.Name';
-      break;
+      return 'M.Name';
+    case 'Group':
+    case 'Monitor':
+      return 'E.MonitorId';
     case 'ServerId':
     case 'MonitorServerId':
-      $sql .= 'M.ServerId';
-      break;
+      return 'M.ServerId';
     case 'StorageServerId':
-      $sql .= 'S.ServerId';
-      break;
+      return 'S.ServerId';
     case 'FilterServerId':
-      $sql .= ZM_SERVER_ID;
-      break;
+      return 'ZM_SERVER_ID:'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
-      $sql .= 'E.StartDateTime';
-      break;
+      return 'E.StartDateTime';
     case 'Date':
-      $sql .= 'to_days(E.StartDateTime)';
-      break;
+     return 'to_days(E.StartDateTime)';
     case 'Time':
-      $sql .= 'extract(hour_second FROM E.StartDateTime)';
-      break;
+     return 'extract(hour_second FROM E.StartDateTime)';
     case 'Weekday':
-      $sql .= 'weekday(E.StartDateTime)';
-      break;
+      return 'weekday(E.StartDateTime)';
       # Starting Time
     case 'StartDateTime':
-      $sql .= 'E.StartDateTime';
-      break;
+      return 'E.StartDateTime';
     case 'FrameId':
-      $sql .= 'Id';
-      break;
+      return 'Id';
     case 'Type':
     case 'TimeStamp':
     case 'Delta':
     case 'Score':
-      $sql .= $this->attr;
-      break;
+      return $this->attr;
     case 'FramesEventId':
-      $sql .= 'F.EventId';
-      break;
+      return 'F.EventId';
     case 'StartDate':
-      $sql .= 'to_days(E.StartDateTime)';
-      break;
+      return 'to_days(E.StartDateTime)';
     case 'StartTime':
-      $sql .= 'extract(hour_second FROM E.StartDateTime)';
-      break;
+      return 'extract(hour_second FROM E.StartDateTime)';
     case 'StartWeekday':
-      $sql .= 'weekday(E.StartDateTime)';
-      break;
+      return 'weekday(E.StartDateTime)';
       # Ending Time
     case 'EndDateTime':
-      $sql .= 'E.EndDateTime';
-      break;
+      return 'E.EndDateTime';
     case 'EndDate':
-      $sql .= 'to_days(E.EndDateTime)';
-      break;
+      return 'to_days(E.EndDateTime)';
     case 'EndTime':
-      $sql .= 'extract(hour_second FROM E.EndDateTime)';
-      break;
+      return 'extract(hour_second FROM E.EndDateTime)';
     case 'EndWeekday':
-      $sql .= 'weekday(E.EndDateTime)';
-      break;
+      return 'weekday(E.EndDateTime)';
+    case 'Notes':
     case 'Emailed':
     case 'Id':
     case 'Name':
@@ -294,22 +295,56 @@ class FilterTerm {
     case 'AvgScore':
     case 'MaxScore':
     case 'Cause':
-    case 'Notes':
     case 'StateId':
     case 'Archived':
-      $sql .= $this->tablename.'.'.$this->attr;
-      break;
+      return $this->tablename.'.'.$this->attr;
+    case 'Tags':
+      return 'T.Id';
     default :
-      $sql .= $this->tablename.'.'.$this->attr;
+      return $this->tablename.'.'.$this->attr;
     }
-    $sql .= $this->sql_operator();
-    $values = $this->sql_values();
-    if ((count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') or ($this->op == '=[]') or ($this->op == '![]')) {
-      $sql .= '('.join(',', $values).')';
-    } else {
-      $sql .= $values[0];
+  }
+
+  /* Some terms don't have related SQL */
+  public function sql() {
+    if (!$this->attr) {
+      return '';
     }
 
+    $sql = '';
+    if ( isset($this->cnj) ) {
+      $sql .= ' '.$this->cnj;
+    }
+    if ( isset($this->obr) ) {
+      $sql .= ' '.str_repeat('(', $this->obr);
+    }
+    $sql .= ' ';
+
+    $operator = $this->sql_operator();
+    $values = $this->sql_values();
+    if ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
+      $subterms = [];
+      foreach ($values as $value) {
+        $subterm = $this->sql_attr();
+        if ($this->collate) $subterm .= ' COLLATE '.$this->collate;
+        $subterm .= $operator;
+        $subterm .= $value;
+        $subterms[] = $subterm;
+      }
+      $sql .= '('.implode(' OR ', $subterms).')';
+    } elseif (($this->attr === 'Tags') && ($values[0] === '')) {
+      $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+    } else {
+      $sql .= $this->sql_attr();
+      if ($this->collate) $sql .= ' COLLATE '.$this->collate;
+      if (($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] ')) {
+        $sql .= $operator;
+        $sql .= count($values) ? '('.join(',', $values).')' : '(SELECT NULL WHERE 1!=1)';
+      } else {
+        $sql .= $operator;
+        $sql .= $values[0];
+      }
+    }
     if ( isset($this->cbr) ) {
       $sql .= ' '.str_repeat(')', $this->cbr);
     }
@@ -320,31 +355,31 @@ class FilterTerm {
   public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
     $query = '';
-    if ( $this->cnj ) 
+    if (isset($this->cnj) and $this->cnj)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
-    if ( $this->obr )
+    if ($this->obr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
 
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
-    if ( $this->cbr )
+    if ($this->cbr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
     return $query;
   } # end public function querystring
 
   public function hidden_fields() {
     $html ='';
-    if ( $this->cnj )
+    if ( isset($this->cnj) and $this->cnj )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cnj]" value="'.$this->cnj.'"/>'.PHP_EOL;
 
     if ( $this->obr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][obr]" value="'.$this->obr.'"/>'.PHP_EOL;
 
-    # attr should have been already validation, so shouldn't need htmlspecialchars
+    # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val).'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -354,19 +389,24 @@ class FilterTerm {
   public function test($event=null) {
     if ( !isset($event) ) {
       # Is a Pre Condition
-      Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
-        # The logic on this is really ugly.  We are going to treat it as an OR
-        foreach ( $this->filter->get_StorageAreas() as $storage ) {
-          $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
-          try {
-            $ret = eval($string_to_eval);
-            Debug("Evalled $string_to_eval = $ret");
-            if ( $ret )
-              return true;
-          } catch ( Throwable $t ) {
-            Error('Failed evaluating '.$string_to_eval);
-            return false;
+        $storage_areas = $this->filter->get_StorageAreas();
+        # The logic on this when there are multiple storage areas breaks.  We will just use the first.
+        foreach ( $storage_areas as $storage ) {
+          Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
+          switch ($this->op) {
+          case '=':
+            return ($storage->disk_usage_percent() == $this->val);
+          case '>':
+            return ($storage->disk_usage_percent() > $this->val);
+          case '<':
+            return ($storage->disk_usage_percent() < $this->val);
+          case '<=':
+            return ($storage->disk_usage_percent() <= $this->val);
+          case '>=':
+            return ($storage->disk_usage_percent() >= $this->val);
+          default:
+            Warning('Invalid op '.$this->op .' for DiskPercent.');
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {
@@ -387,9 +427,9 @@ class FilterTerm {
       # Is a Post Condition 
       if ( $this->attr == 'ExistsInFileSystem' ) {
         if ( 
-          ($this->op == 'IS' and $this->val == 'True')
+          ($this->op == 'IS' and $this->val == 'true')
           or
-          ($this->op == 'IS NOT' and $this->val == 'False')
+          ($this->op == 'IS NOT' and $this->val == 'false')
         ) {
           return file_exists($event->Path());
         } else {
@@ -417,6 +457,11 @@ class FilterTerm {
           Error('Failed evaluating '.$string_to_eval);
           return false;
         }
+      } else if ( $this->attr == 'Tags' ) {
+        // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
+        // Debug(print_r($this, true));
+        // Debug(print_r($event, true));
+        return true;
       } else {
         Error('testing unsupported post term ' . $this->attr);
       }
@@ -433,7 +478,7 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
+    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
         return true;
     }
     return false;
@@ -446,6 +491,7 @@ class FilterTerm {
       'TimeStamp',
       'Type',
       'FrameId',
+      'Group',
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
@@ -453,6 +499,7 @@ class FilterTerm {
       'DiskPercent',
       'DiskBlocks',
       'MonitorName',
+      'Monitor',
       'ServerId',
       'MonitorServerId',
       'StorageServerId',
@@ -486,11 +533,43 @@ class FilterTerm {
       'Notes',
       'StateId',
       'Archived',
+      'Tags',
       # The following are for snapshots
       'CreatedOn', 
       'Description'
     );
     return in_array($attr, $attrs);
+  }
+
+  public function valid() {
+    switch ($this->attr) {
+    case 'AlarmFrames' :
+      if (!(is_integer($this->val) or ctype_digit($this->val))) 
+        return false;
+      return true;
+    case 'EndDate' :
+    case 'StartDate' :
+    case 'EndDateTime' :
+    case 'StartDateTime' :
+      if (!$this->val)
+        return false;
+      break;
+    case 'Archived' :
+    case 'Tags' :
+    case 'Monitor' :
+    case 'MonitorId' :
+    case 'ServerId' :
+    case 'FilterServerId' :
+    case 'Group' :
+    case 'Notes' :
+      if ($this->val === '')
+        return false;
+      break;
+    }
+    return true;
+  }
+  public function to_string() {
+    return 'Term: '.$this->attr .'op:' . $this->op . ' val:' . $this->val;
   }
 } # end class FilterTerm
 

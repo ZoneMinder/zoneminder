@@ -11,15 +11,15 @@ bool MonitorLinkExpression::parse() {
   // First we tokenize
   while (first != std::end(expression_)) {
     auto const second = std::find_first_of(
-        first, std::cend(expression_),
-        std::cbegin(delimiters_), std::cend(delimiters_)
-        );
+                          first, std::cend(expression_),
+                          std::cbegin(delimiters_), std::cend(delimiters_)
+                        );
 
     if (first != second) {
       std::string_view t = expression_.substr(
-            std::distance(std::begin(expression_), first),
-            std::distance(first, second)
-            );
+                             std::distance(std::begin(expression_), first),
+                             std::distance(first, second)
+                           );
       Debug(1, "Have a token %s", std::string(t).c_str());
 
       tokens.emplace_back(t);
@@ -55,47 +55,54 @@ bool MonitorLinkExpression::evaluate() {
     Debug(1, "No tree");
     return false;
   }
-  MonitorLinkExpression::result result = this->visit(*tree_);
+  MonitorLinkExpression::Result result = this->visit(*tree_);
   if (!result.success) {
     Warning("%s", std::string(result.message).c_str());
     return false;
-  } 
+  }
   return result.score > 0;
 }
 
-MonitorLinkExpression::result
-MonitorLinkExpression::visit(Node const & node) {
+const MonitorLinkExpression::Result MonitorLinkExpression::result() {
+  if (!tree_) {
+    Debug(1, "No tree");
+    MonitorLinkExpression::Result result;
+    return result;
+  }
+  return this->visit(*tree_);
+}
+
+MonitorLinkExpression::Result MonitorLinkExpression::visit(Node const & node) {
   Debug(1, "visit: Node: %p Token: %d value %s",
-      &node,
-      static_cast<int>(node.token.type()),
-      std::string(node.token.value()).c_str()
-      );
+        &node,
+        static_cast<int>(node.token.type()),
+        std::string(node.token.value()).c_str()
+       );
   if (node.token.type() == Token::TokenType::monitorlink) {
-    Debug(1, "Have monitorlink, return true, value");
+    Debug(1, "Have monitorlink, return true, value %d", node.token.score());
     return { true, "", node.token.score() };
   } else if (nullptr == node.left || nullptr == node.right) {
     return { false, "Missing operand", 0 };
   }
 
   switch (node.token.type()) {
-    case Token::TokenType::logical_and:
-      Debug(1, "and");
-      return visit_logical_and(node);
-    case Token::TokenType::logical_or :
-      Debug(1, "or");
-      return visit_logical_or(node);
-    case Token::TokenType::logical_comma :
-      Debug(1, "comma");
-      return visit_logical_or(node);
-    default:
-      Debug(1, "unknown");
-      return { false, "Unknown token type" };
+  case Token::TokenType::logical_and:
+    Debug(1, "and");
+    return visit_logical_and(node);
+  case Token::TokenType::logical_or :
+    Debug(1, "or");
+    return visit_logical_or(node);
+  case Token::TokenType::logical_comma :
+    Debug(1, "comma");
+    return visit_logical_or(node);
+  default:
+    Debug(1, "unknown");
+    return { false, "Unknown token type" };
   }
 }
 
-MonitorLinkExpression::result
-MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & node) 
-{
+MonitorLinkExpression::Result
+MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & node) {
   auto const left  { visit(*node.left) };
   auto const right { visit(*node.right) };
 
@@ -104,15 +111,14 @@ MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & nod
     left.message.empty() ? right.message : left.message
   };
 
-  Debug(1, "aND left score %d right score %d", left.score, right.score);
+  Debug(1, "AND left score %d right score %d", left.score, right.score);
   return { left.success && right.success, message,
-    ((left.score and right.score) ? left.score + right.score : 0)
-  };
+           ((left.score and right.score) ? left.score + right.score : 0)
+         };
 }
 
-MonitorLinkExpression::result
-MonitorLinkExpression::visit_logical_or(MonitorLinkExpression::Node const & node) 
-{
+MonitorLinkExpression::Result
+MonitorLinkExpression::visit_logical_or(MonitorLinkExpression::Node const & node) {
   auto const left  { visit(*node.left) };
   auto const right { visit(*node.right) };
 
@@ -124,12 +130,12 @@ MonitorLinkExpression::visit_logical_or(MonitorLinkExpression::Node const & node
   Debug(1, "Or left score %d right score %d", left.score, right.score);
   return {
     left.success || right.success,
-      message,
-      ((left.score or right.score) ? left.score + right.score : 0)
+    message,
+    ((left.score or right.score) ? left.score + right.score : 0)
   };
 }
 
-std::unique_ptr<MonitorLinkExpression::Node> 
+std::unique_ptr<MonitorLinkExpression::Node>
 MonitorLinkExpression::parse_expression( Tokens const & tokens, std::size_t & current ) {
   if (tokens.size() == 1) {
     Debug(1, "Special case monitorlink");
@@ -138,16 +144,16 @@ MonitorLinkExpression::parse_expression( Tokens const & tokens, std::size_t & cu
   }
 
   // First token could me a parenthesis or monitorlink.  Otherwise invalid.
-  
+
   auto left{ parse_and_operation(tokens, current) };
 
   if (
-      has_unused(tokens, current) 
-      and
-      tokens[current].is_not(Token::TokenType::logical_or)
-      and
-      tokens[current].is_not(Token::TokenType::logical_comma)
-     ) {
+    has_unused(tokens, current)
+    and
+    tokens[current].is_not(Token::TokenType::logical_or)
+    and
+    tokens[current].is_not(Token::TokenType::logical_comma)
+  ) {
     Debug(1, "parse_expression: not or, Returning left %s", std::string(left->token.value()).c_str());
     return left;
   }
@@ -166,19 +172,19 @@ MonitorLinkExpression::parse_expression( Tokens const & tokens, std::size_t & cu
   */
 
   while (has_unused(tokens, current) and
-      ( 
-       tokens[current].is(Token::TokenType::logical_or)
-       or
-       tokens[current].is(Token::TokenType::logical_comma)
-      )
-      ) {
+         (
+           tokens[current].is(Token::TokenType::logical_or)
+           or
+           tokens[current].is(Token::TokenType::logical_comma)
+         )
+        ) {
     Debug(1, "Have or adding it");
 
     auto logical_or{ std::make_unique<Node>( Token::TokenType::logical_or ) };
     current++;
 
     auto right{ parse_and_operation( tokens, current ) };
-    if (right == nullptr) { 
+    if (right == nullptr) {
       Debug(1, "null from right side");
       return nullptr;
     }
@@ -191,7 +197,7 @@ MonitorLinkExpression::parse_expression( Tokens const & tokens, std::size_t & cu
   return left;
 }
 
-std::unique_ptr<MonitorLinkExpression::Node> 
+std::unique_ptr<MonitorLinkExpression::Node>
 MonitorLinkExpression::parse_and_operation( Tokens const & tokens, std::size_t & current ) {
   auto left{ parse_parentheses( tokens, current ) };
 
@@ -202,10 +208,10 @@ MonitorLinkExpression::parse_and_operation( Tokens const & tokens, std::size_t &
   }
 
   while (
-      has_unused(tokens, current)
-      and
-      tokens[current].is(Token::TokenType::logical_and)
-      ) {
+    has_unused(tokens, current)
+    and
+    tokens[current].is(Token::TokenType::logical_and)
+  ) {
     ++current;
 
     auto logical_and{ std::make_unique< Node >(Token::TokenType::logical_and) };
@@ -226,7 +232,7 @@ MonitorLinkExpression::parse_and_operation( Tokens const & tokens, std::size_t &
   return left;
 }
 
-std::unique_ptr<MonitorLinkExpression::Node> 
+std::unique_ptr<MonitorLinkExpression::Node>
 MonitorLinkExpression::parse_parentheses(Tokens const &tokens, std::size_t &current) {
   if (!has_unused(tokens, current)) {
     Debug(1, "No unused...");

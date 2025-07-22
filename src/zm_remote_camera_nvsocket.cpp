@@ -1,21 +1,21 @@
 //
 // ZoneMinder Remote Camera Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_remote_camera_nvsocket.h"
 
@@ -53,6 +53,8 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
     p_host,
     p_port,
     p_path,
+    "", /* username */
+    "", /* Password */
     p_width,
     p_height,
     p_colours,
@@ -61,8 +63,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
     p_hue,
     p_colour,
     p_capture,
-    p_record_audio )
-{
+    p_record_audio ) {
   sd = -1;
 
   timeout.tv_sec = 0;
@@ -85,7 +86,7 @@ void RemoteCameraNVSocket::Initialise() {
   RemoteCamera::Initialise();
 
   if ( !timeout.tv_sec ) {
-    timeout.tv_sec = config.http_timeout/1000; 
+    timeout.tv_sec = config.http_timeout/1000;
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
 
@@ -113,7 +114,7 @@ int RemoteCameraNVSocket::Connect() {
   }
 
   //if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
-  if ( connect( sd, (struct sockaddr *)&servaddr , sizeof(servaddr) ) < 0 ) {
+  if ( connect( sd, (struct sockaddr *)&servaddr, sizeof(servaddr) ) < 0 ) {
     close(sd);
     sd = -1;
 
@@ -189,13 +190,13 @@ int RemoteCameraNVSocket::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
-	int bytes_read = Read(sd, buffer, imagesize);
+  int bytes_read = Read(sd, buffer, imagesize);
   if ( (bytes_read < 0) || ( (unsigned int)bytes_read < imagesize ) ) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
   uint32_t end;
-  if (Read(sd, (char *) &end , sizeof(end)) < 0) {
+  if (Read(sd, (char *) &end, sizeof(end)) < 0) {
     Warning("Unable to capture image, retrying");
     return 0;
   }

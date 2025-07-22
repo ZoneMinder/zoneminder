@@ -61,6 +61,9 @@ if [ "$1" = "configure" ]; then
   done
 
   # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
+  chown www-data:root -R /etc/zm
+  chmod 640 -R /etc/zm/zm.conf
+  chmod 640 -R /etc/zm/conf.d/*
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
@@ -140,6 +143,18 @@ if [ "$1" = "configure" ]; then
 
 else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
+fi
+
+if [ ! -f /etc/apt/sources.list.d/zoneminder.list ]; then
+  wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
+  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+
+	cat >/etc/apt/sources.list.d/zoneminder.list <<EOF
+# This file makes sure that ZoneMinder is kept up-to-date
+# as part of regular system upgrades
+ 
+deb http://zmrepo.zoneminder.com/debian/master $DISTRO/
+EOF
 fi
 
 if [ $SYSTEMD -eq 1 ]; then

@@ -4,11 +4,6 @@ function getServerModal(sid) {
       .done(function(data) {
         insertModalHtml('ServerModal', data.html);
         $j('#ServerModal').modal('show');
-        // Manage the Save button
-        $j('#serverSubmitBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#serverModalForm').submit();
-        });
       })
       .fail(logAjaxFail);
 }
@@ -16,7 +11,7 @@ function getServerModal(sid) {
 function enableServerModal() {
   $j(".serverCol").click(function(evt) {
     evt.preventDefault();
-    var sid = $j(this).data('sid');
+    const sid = $j(this).data('sid');
     getServerModal(sid);
   });
   $j('#NewServerBtn').click(function(evt) {
@@ -31,11 +26,6 @@ function getStorageModal(sid) {
       .done(function(data) {
         insertModalHtml('storageModal', data.html);
         $j('#storageModal').modal('show');
-        // Manage the Save button
-        $j('#storageSubmitBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#storageModalForm').submit();
-        });
       })
       .fail(logAjaxFail);
 }
@@ -59,14 +49,16 @@ function AddNewUser(el) {
 }
 
 function initPage() {
-  var NewStorageBtn = $j('#NewStorageBtn');
-  var NewServerBtn = $j('#NewServerBtn');
+  const NewStorageBtn = $j('#NewStorageBtn');
+  const NewServerBtn = $j('#NewServerBtn');
 
   if ( canEdit.System ) enableStorageModal();
   if ( canEdit.System ) enableServerModal();
 
   NewStorageBtn.prop('disabled', !canEdit.System);
   NewServerBtn.prop('disabled', !canEdit.System);
+
+  $j('.bootstraptable').bootstrapTable({icons: icons}).show();
 }
 
 $j(document).ready(function() {

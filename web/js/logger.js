@@ -17,9 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 $j.ajaxSetup({timeout: AJAX_TIMEOUT});
-var reportLogs = true;
+const reportLogs = (typeof(ZM_LOG_INJECT) !== 'undefined') && ((ZM_LOG_INJECT !== '0') || canEdit["System"]);
 
-if ( !window.console ) {
+if (!window.console) {
   window.console =
     {
       init: function() {},
@@ -29,9 +29,7 @@ if ( !window.console ) {
       warn: function() {},
       error: function() {}
     };
-}
-
-if ( !console.debug ) {
+} else if (!console.debug) {
   // IE8 has console but doesn't have console.debug so lets alias it.
   console.debug = console.log;
 }
@@ -41,22 +39,22 @@ window.onerror = function(message, url, line) {
 };
 
 window.addEventListener("securitypolicyviolation", function logCSP(evt) {
-  var level = evt.disposition == "enforce" ? "ERR" : "DBG";
-  var message = evt.blockedURI + " violated CSP " + evt.violatedDirective;
+  const level = evt.disposition == "enforce" ? "ERR" : "DBG";
+  let message = evt.blockedURI + " violated CSP " + evt.violatedDirective;
 
   if ( evt.sample ) message += " (Sample: " + evt.sample + ")";
   logReport(level, message, evt.sourceFile, evt.lineNumber);
 });
 
 function logReport( level, message, file, line ) {
-  if ( !reportLogs ) return;
+  if (!reportLogs) return;
 
   /* eslint-disable no-caller */
-  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name ) {
+  if (arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name) {
     message += ' - '+arguments.callee.caller.caller.name+'()';
   }
 
-  var data = {
+  const data = {
     view: 'request',
     request: 'log',
     task: 'create',
@@ -65,14 +63,14 @@ function logReport( level, message, file, line ) {
     browser: browserInfo()
   };
 
-  if ( file ) {
+  if (file) {
     data.file = file;
-  } else if ( location.search ) {
+  } else if (location.search) {
     //location.search is the querystring part, so ?blah=blah but there is almost never any value to this
     data.file = location.search;
   }
 
-  if ( line ) data.line = line;
+  if (line) data.line = line;
 
   $j.post(thisUrl, data, null, 'json');
 }
@@ -85,8 +83,8 @@ function Panic(message) {
 
 function Fatal(message) {
   console.error(message);
-  logReport( "FAT", message );
-  alert( "FATAL: "+message );
+  logReport("FAT", message);
+  alert("FATAL: "+message);
 }
 
 function Error(message) {
@@ -110,7 +108,7 @@ function Debug(message) {
 }
 
 function Dump(value, label) {
-  if ( label ) console.debug(label+" => ");
+  if (label) console.debug(label+" => ");
   console.debug(value);
 }
 

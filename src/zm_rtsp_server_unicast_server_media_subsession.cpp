@@ -17,36 +17,36 @@
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
 UnicastServerMediaSubsession* UnicastServerMediaSubsession::createNew(
-    UsageEnvironment& env,
-    StreamReplicator* replicator,
-    //FramedSource *source,
-    const std::string& format
-    ) {
-	return new UnicastServerMediaSubsession(env, replicator, format);
-	//return new UnicastServerMediaSubsession(env, replicator, source, format);
+  UsageEnvironment& env,
+  StreamReplicator* replicator,
+  //FramedSource *source,
+  const std::string& format
+) {
+  return new UnicastServerMediaSubsession(env, replicator, format);
+  //return new UnicastServerMediaSubsession(env, replicator, source, format);
 }
 
 FramedSource* UnicastServerMediaSubsession::createNewStreamSource(
-    unsigned clientSessionId,
-    unsigned& estBitrate
-    ) {
-	FramedSource* replica = m_replicator->createStreamReplica();
-	return createSource(envir(), replica, m_format);
+  unsigned clientSessionId,
+  unsigned& estBitrate
+) {
+  FramedSource* replica = m_replicator->createStreamReplica();
+  return createSource(envir(), replica, m_format);
 }
 
 RTPSink* UnicastServerMediaSubsession::createNewRTPSink(
-    Groupsock* rtpGroupsock,
-    unsigned char rtpPayloadTypeIfDynamic,
-    FramedSource* inputSource
-    ) {
-	return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format, inputSource);
+  Groupsock* rtpGroupsock,
+  unsigned char rtpPayloadTypeIfDynamic,
+  FramedSource* inputSource
+) {
+  return createSink(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, m_format, inputSource);
 }
 
 char const* UnicastServerMediaSubsession::getAuxSDPLine(
-    RTPSink* rtpSink, FramedSource* inputSource
-    ) {
-	return this->getAuxLine(
-      dynamic_cast<ZoneMinderFifoSource*>(m_replicator->inputSource()),
-      rtpSink->rtpPayloadType());
+  RTPSink* rtpSink, FramedSource* inputSource
+) {
+  return this->getAuxLine(
+           dynamic_cast<ZoneMinderFifoSource*>(m_replicator->inputSource()),
+           rtpSink->rtpPayloadType());
 }
 #endif // HAVE_RTSP_SERVER

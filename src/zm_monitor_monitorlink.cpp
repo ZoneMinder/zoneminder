@@ -38,8 +38,7 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
   shared_data(nullptr),
   trigger_data(nullptr),
   video_store_data(nullptr),
-  zone_scores(nullptr)
-{
+  zone_scores(nullptr) {
   name = monitor->Name();
   if (zone_id) {
     zones = Zone::Load(monitor);

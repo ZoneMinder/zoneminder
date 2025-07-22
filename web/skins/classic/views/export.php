@@ -59,10 +59,10 @@ $focusWindow = true;
 $connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Export'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
       <div class="w-100 py-1">
         <div class="float-left pl-3">
           <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -83,8 +83,8 @@ $sortColumn = '';
 $sortOrder = '';
 $limitQuery = '';
 
-if ( $user['MonitorIds'] ) {
-  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+if (count($user->unviewableMonitorIds())) {
+  $user_monitor_ids = ' M.Id in ('.implode(',',$user->viewableMonitorIds()).')';
   $eventsSql .= $user_monitor_ids;
 } else if ( !isset($_REQUEST['filter']) ) {
   $eventsSql .= ' 1';
@@ -105,7 +105,7 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
     $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
-  if ( isset($_REQUEST['filter']['Query']['limit']) )
+  if ( isset($_REQUEST['filter']['Query']['limit']) and validInt($_REQUEST['filter']['Query']['limit']))
     $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
 
@@ -155,8 +155,8 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="colMonitorName"><?php echo makeLink('?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit('Monitors')) ?></td>
               <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canView('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid="'.$event->Id().'"') ?></td>
               <td class="colTime"><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) .
-( $event->EndDateTime() ? ' until ' . $dateTimeFormater->format(strtotime($event->EndDateTime())) : '' ) ?></td>
-              <td class="colDuration"><?php echo gmdate('H:i:s', $event->Length()) ?></td>
+( $event->EndDateTime() ? ' until ' . $dateTimeFormatter->format(strtotime($event->EndDateTime())) : '' ) ?></td>
+              <td class="colDuration"><?php echo gmdate('H:i:s', intval($event->Length())) ?></td>
               <td class="colFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->Frames()) ?></td>
               <td class="colAlarmFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames()) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
@@ -184,7 +184,7 @@ while ( $event_row = dbFetchNext($results) ) {
           </tr>
 				</tfoot>
       </table>
-<div class="container-fluid">
+<div class="container-fluid export_options">
   <div class="row">
     <div class="col-md-3">
       <div class="form-group">

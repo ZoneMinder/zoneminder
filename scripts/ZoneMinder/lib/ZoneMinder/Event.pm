@@ -33,6 +33,8 @@ require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Frame;
 require ZoneMinder::Monitor;
+require ZoneMinder::Event_Tag;
+require ZoneMinder::Tag;
 require Date::Manip;
 require File::Find;
 require File::Path;
@@ -264,7 +266,7 @@ sub createIdFile {
 }
 
 sub GenerateVideo {
-  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
+  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format, $transforms ) = @_;
 
   my $event_path = $self->Path();
   chdir($event_path);
@@ -277,14 +279,14 @@ sub GenerateVideo {
     $file_rate =~ s/_00//;
     $file_rate =~ s/(_\d+)0+$/$1/;
     $file_rate = 'r'.$file_rate;
-    push( @file_parts, $file_rate );
+    push @file_parts, $file_rate;
   } elsif ( $fps ) {
     my $file_fps = $fps;
     $file_fps =~ s/\./_/;
     $file_fps =~ s/_00//;
     $file_fps =~ s/(_\d+)0+$/$1/;
     $file_fps = 'R'.$file_fps;
-    push( @file_parts, $file_fps );
+    push @file_parts, $file_fps;
   }
 
   if ( $scale ) {
@@ -298,7 +300,11 @@ sub GenerateVideo {
     my $file_size = 'S'.$size;
     push @file_parts, $file_size;
   }
-  my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
+  my @transforms = split(',', $transforms);
+  foreach (@transforms) {
+    push @file_parts, $_;
+  }
+  my $video_file = join('-', $video_name, @file_parts).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
@@ -329,7 +335,10 @@ sub GenerateVideo {
       .$Config{ZM_FFMPEG_INPUT_OPTIONS}
     .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
-      ." -s $video_size "
+    #
+   .join(' ', map { ' -vf '.$_ } @transforms)
+       ." -s $video_size "
+
       .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > ffmpeg.log 2>&1"
       ;
@@ -456,33 +465,34 @@ sub delete_files {
       }
     } # end if Scheme eq Deep
 
-    # Now check for empty directories and delete them.
-    my @path_parts = split('/', $event_path);
-    pop @path_parts;
-    # Guaranteed the first part is the monitor id
-    Debug("Initial path_parts: @path_parts");
-    while ( @path_parts > 1 ) {
-      my $path = join('/', $storage_path, @path_parts);
-      my $dh;
-      if ( !opendir($dh, $path) ) {
-        Warning("Fail to open $path");
-        last;
-      }
-      my @dir =  readdir($dh);
-      closedir($dh);
-      if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
-        Debug("Removing empty dir at $path");
-        if ( !rmdir $path ) {
-          Warning("Fail to rmdir $path: $!");
+    if ($Storage->Type() ne 's3fs') {
+      # Now check for empty directories and delete them.
+      my @path_parts = split('/', $event_path);
+      pop @path_parts;
+      # Guaranteed the first part is the monitor id
+      Debug("Initial path_parts: @path_parts");
+      while ( @path_parts > 1 ) {
+        my $path = join('/', $storage_path, @path_parts);
+        my $dh;
+        if ( !opendir($dh, $path) ) {
+          Warning("Fail to open $path");
           last;
         }
-      } else {
-        Debug("Dir $path is not empty @dir");
-        last;
-      }
-      pop @path_parts;
-    } # end while path_parts
-
+        my @dir =  readdir($dh);
+        closedir($dh);
+        if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
+          Debug("Removing empty dir at $path");
+          if ( !rmdir $path ) {
+            Warning("Fail to rmdir $path: $!");
+            last;
+          }
+        } else {
+          Debug(4, "Dir $path is not empty @dir");
+          last;
+        }
+        pop @path_parts;
+      } # end while path_parts
+    } # end if not s3fs
   } # end foreach Storage
 } # end sub delete_files
 
@@ -578,21 +588,19 @@ sub age {
 }
 
 sub DiskSpace {
-  if ( @_ > 1 ) {
-    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}") if $_[0]{DiskSpace};
-    $_[0]{DiskSpace} = $_[1];
-  }
-  if ( ! defined $_[0]{DiskSpace} ) {
-    if ( -e $_[0]->Path() ) {
+  my $self = shift;
+  $$self{DiskSpace} = shift if @_;
+  if ( ! defined $$self{DiskSpace} ) {
+    if ( -e $self->Path() ) {
       my $size = 0;
-      File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-      $_[0]{DiskSpace} = $size;
-      Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
+      File::Find::find( { wanted=>sub { $size += -f $_ ? -s $_ : 0 }, untaint=>1 }, $self->Path() );
+      $$self{DiskSpace} = $size;
+      Debug("DiskSpace for event $$self{Id} at $$self{Path} Updated to $size bytes");
     } else {
-      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $_[0]->to_string() );
+      Warning("DiskSpace: Event does not exist at $$self{Path}:" . $self->to_string());
     }
   } # end if ! defined DiskSpace
-  return $_[0]{DiskSpace};
+  return $$self{DiskSpace};
 }
 
 # Icon: I removed the locking from this. So we now have an assumption that the Event object is up to date.
@@ -640,64 +648,43 @@ sub CopyTo {
 	($NewPath) = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
-    return "New path and old path are the same! $NewPath";
+    return "New path and old path are the same! $OldPath $NewPath";
   }
   Debug("Copying event $$self{Id} from $OldPath to $NewPath");
 
   my $moved = 0;
 
-  if ( $$NewStorage{Type} eq 's3fs' ) {
-    if ( $$NewStorage{Url} ) {
-      my $url = $$NewStorage{Url};
-      $url =~ s/^(s3|s3fs):\/\///ig;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
-        eval {
-          require Net::Amazon::S3;
-          require File::Slurp;
-          my $s3 = Net::Amazon::S3->new( {
-              aws_access_key_id     => $aws_id,
-              aws_secret_access_key => $aws_secret,
-              ( $aws_host ? ( host => $aws_host ) : () ),
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
-            });
-          my $bucket = $s3->bucket($aws_bucket);
-          if ( !$bucket ) {
-            Error("S3 bucket $bucket not found.");
-            die;
+  if ($$NewStorage{Type} eq 's3fs') {
+    my $s3 = $NewStorage->s3();
+    my $bucket = $NewStorage->bucket();
+    if ($s3 and $bucket) {
+      my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
+      my @files = glob("$OldPath/*");
+      Debug("Files to move @files");
+      eval {
+        foreach my $file (@files) {
+          next if $file =~ /^\./;
+          ($file) = ($file =~ /^(.*)$/); # De-taint
+          my $starttime = [gettimeofday];
+          Debug("Moving file $file to $NewPath");
+          my $size = -s $file;
+          if (!$size) {
+            Info('Not moving file with 0 size');
+          }
+          my $filename = $event_path.'/'.File::Basename::basename($file);
+          if (!$bucket->add_key_filename($filename, $file)) {
+            die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
           }
 
-          my $event_path = $subpath.$self->RelativePath();
+          my $duration = tv_interval($starttime);
+          Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+        } # end foreach file.
 
-          my @files = glob("$OldPath/*");
-          Debug("Files to move @files");
-          foreach my $file (@files) {
-            next if $file =~ /^\./;
-            ($file) = ($file =~ /^(.*)$/); # De-taint
-            my $starttime = [gettimeofday];
-            Debug("Moving file $file to $NewPath");
-            my $size = -s $file;
-            if (!$size) {
-              Info('Not moving file with 0 size');
-            }
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if (!$bucket->add_key_filename($filename, $file)) {
-              die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
-            }
-
-            my $duration = tv_interval($starttime);
-            Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
-          } # end foreach file.
-
-          $moved = 1;
-        };
-        Error($@) if $@;
-      } else {
-        Error('Unable to parse S3 Url into it\'s component parts.');
-      }
-    } # end if Url
-  } # end if s3
+        $moved = 1;
+      };
+      Error($@) if $@;
+    } # end if s3
+  } # end if s3f3
 
   my $error = '';
   if (!$moved) {
@@ -714,12 +701,16 @@ sub CopyTo {
       }
     }
     return $error if $error;
-    my @files = glob("$OldPath/*");
+    Debug("Made new path at $NewPath, starting to glob");
+    opendir(my $dh, $OldPath) || return "Failed to open $OldPath";
+    my @files = readdir($dh);
     return 'No files to move.' if !@files;
 
     for my $file (@files) {
       next if $file =~ /^\./;
       ($file) = ($file =~ /^(.*)$/); # De-taint
+      $file = $OldPath.'/'.$file;
+      next if !-f $file;
       my $starttime = [gettimeofday];
       my $size = -s $file;
       if (!File::Copy::copy($file, $NewPath)) {
@@ -751,17 +742,28 @@ sub MoveTo {
   }
 
   my $OldStorage = $self->Storage(undef);
-  my $error = $self->CopyTo($NewStorage);
-  if (!$error) {
-    # Succeeded in copying all files, so we may now update the Event.
-    $$self{StorageId} = $$NewStorage{Id};
-    $self->Storage($NewStorage);
-    $error .= $self->save();
 
-    # Going to leave it to upper layer as to whether we rollback or not
+  # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
+  # So here's a special case test to fix that.
+  my ( $SrcPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+  my $NewPath = $NewStorage->Path().'/'.$self->RelativePath();
+  $NewPath =~ /^(.*)$/; # De-taint
+
+  my $error = '';
+  if ((! -e $SrcPath) and -e $NewPath) {
+    Debug("srcPath: $SrcPath newPath: $NewPath");
+    Warning("Event has already been moved, just updating the event record in db.");
+  } else {
+    $error = $self->CopyTo($NewStorage);
+    return $error if $error;
   }
-  $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+
+  # Succeeded in copying all files, so we may now update the Event.
+  $self->Storage($NewStorage);
+  $error .= $self->save();
+  # Going to leave it to upper layer as to whether we rollback or not
   return $error if $error;
+  $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   $self->delete_files($OldStorage);
   return $error;
@@ -773,6 +775,9 @@ sub recover_timestamps {
   my ( $Event, $path ) = @_;
   $path = $Event->Path() if ! $path;
 
+  # Get timestamp of the dir.  Any files older than this will override this as the starttime
+  my $starttime = (stat($path))[9];
+
   if ( !opendir(DIR, $path) ) {
     Error("Can't open directory '$path': $!");
     return;
@@ -781,7 +786,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -800,6 +805,7 @@ sub recover_timestamps {
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
+    $starttime = $first_timestamp if $first_timestamp < $starttime;
 
     my $last_file = $path.'/'.$capture_jpgs[@capture_jpgs-1];
     ( $last_file ) = $last_file =~ /^(.*)$/;
@@ -840,6 +846,7 @@ sub recover_timestamps {
     ( $file ) = $file =~ /^(.*)$/;
 
     my $first_timestamp = (stat($file))[9];
+    $starttime = $first_timestamp if $first_timestamp < $starttime;
     my $output = `ffprobe $file 2>&1`;
     my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
     Debug("From mp4 have duration $duration, start: $first_timestamp");
@@ -857,6 +864,7 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+  $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
 
 sub files {
@@ -909,6 +917,65 @@ sub Monitor {
     $$self{Monitor} = new ZoneMinder::Monitor($$self{MonitorId});
   }
   return $$self{Monitor};
+}
+
+sub Close {
+  my $self = shift;
+  my $tag = @_ ? shift : '(r)';
+  my $text = @_ ? shift : 'Recovered.';
+
+  my $FrameDataSql = '
+SELECT
+  max(`TimeStamp`) AS `EndDateTime`,
+  unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
+  max(`FrameId`) AS `Frames`,
+  count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
+  sum(`Score`) AS `TotScore`,
+  max(`Score`) AS `MaxScore`
+FROM `Frames` WHERE `EventId`=?';
+  my $frame = ZoneMinder::Database::zmDbFetchOne($FrameDataSql, $self->{Id});
+  if (!$frame) {
+    return 'Unable to retrieve frame data.';
+  }
+  if (!$frame->{EndDateTime}) {
+    return 'Unable to retrieve EndDateTime from Frames Table.';
+  }
+  return $self->save({
+      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
+      EndDateTime => $frame->{EndDateTime},
+      Length => $frame->{EndTimeStamp} - $self->Time(),
+      Frames => $frame->{Frames},
+      AlarmFrames => $frame->{AlarmFrames},
+      TotScore => $frame->{TotScore},
+      AvgScore => ($frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0),
+      MaxScore => $frame->{MaxScore},
+      Notes => $self->Notes() . ' ' . $text,
+    });
+} # end sub Close
+
+sub Event_Tags {
+  my $self = shift;
+  $$self{Event_Tags} = shift if @_;
+  if (!$$self{Event_Tags}) {
+    $$self{Event_Tags} = [ ZoneMinder::Event_Tag->find(EventId=>$$self{Id}) ];
+  }
+  return wantarray ? @{$$self{Event_Tags}} : $$self{Event_Tags};
+}
+
+sub Tags {
+  my $self = shift;
+  $$self{Tags} = shift if @_;
+
+  if (!$$self{Tags}) {
+    $$self{Tags} = [ map { $_->Tag() } $self->Event_Tags() ];
+  }
+  return wantarray ? @{$$self{Tags}} : $$self{Tags};
+}
+
+sub tags {
+  my $self = shift;
+  my @tags = map { $_->Name() } $self->Tags();
+  return wantarray ? @tags : \@tags;
 }
 
 1;

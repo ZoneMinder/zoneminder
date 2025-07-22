@@ -1,0 +1,31 @@
+name: Regular badging sequence
+description: Publishes a badge based on the job status
+inputs:
+  category:
+    description: The subfolder where to group the badges
+    required: true
+  label:
+    description: The label to you in the badge (this should be unique for each badge in a category)
+    required: true
+  github_token:
+    description: The token to use to publish the changes
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - if: job.status == 'success'
+      uses: ./.github/actions/badge/write
+      with:
+        category: ${{ inputs.category }}
+        label: ${{ inputs.label }}
+    - if: job.status == 'failure'
+      uses: ./.github/actions/badge/write
+      with:
+        category: ${{ inputs.category }}
+        label: ${{ inputs.label }}
+        message: Failing
+        color: red
+    - uses: ./.github/actions/badge/publish
+      with:
+        github_token: ${{ inputs.github_token }}

@@ -20,57 +20,57 @@
 // ---------------------------------
 #if HAVE_RTSP_SERVER
 class H26X_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
-	public:
-		H26X_ZoneMinderFifoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        )
-			:
-        ZoneMinderFifoVideoSource(rtspServer, sessionId, channelId, fifo),
-        m_keepMarker(false),
-        m_frameType(0) { }
+ public:
+  H26X_ZoneMinderFifoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  )
+    :
+    ZoneMinderFifoVideoSource(rtspServer, sessionId, channelId, fifo),
+    m_keepMarker(false),
+    m_frameType(0) { }
 
-		virtual ~H26X_ZoneMinderFifoSource() {}
+  virtual ~H26X_ZoneMinderFifoSource() {}
 
-		virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize) override;
-    virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
+  virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize) override;
+  virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
 
-	protected:
-		std::string m_sps;
-		std::string m_pps;
-		bool        m_keepMarker;
-		int         m_frameType;
+ protected:
+  std::string m_sps;
+  std::string m_pps;
+  bool        m_keepMarker;
+  int         m_frameType;
 };
 
 class H264_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
-	public:
-		H264_ZoneMinderFifoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
+ public:
+  H264_ZoneMinderFifoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
 
-		// overide ZoneMinderFifoSource
-		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
+  // override ZoneMinderFifoSource
+  virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
 };
 
 class H265_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
-	public:
-		H265_ZoneMinderFifoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
+ public:
+  H265_ZoneMinderFifoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
 
-		// overide ZoneMinderFifoSource
-		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
+  // override ZoneMinderFifoSource
+  virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
 
-	protected:
-		std::string m_vps;
+ protected:
+  std::string m_vps;
 };
 #endif // HAVE_RTSP_SERVER
 

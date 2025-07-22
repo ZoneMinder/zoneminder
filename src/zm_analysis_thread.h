@@ -16,6 +16,7 @@ class AnalysisThread {
 
   void Start();
   void Stop();
+  void Join();
   bool Stopped() const { return terminate_; }
 
  private:

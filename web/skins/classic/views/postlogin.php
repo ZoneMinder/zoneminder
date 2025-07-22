@@ -19,8 +19,9 @@
 //
 
 xhtmlHeaders(__FILE__, translate('LoggingIn'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h1><?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>

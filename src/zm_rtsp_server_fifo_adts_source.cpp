@@ -19,14 +19,13 @@
 // ---------------------------------
 //
 ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
-     std::shared_ptr<xop::RtspServer>& rtspServer,
-    xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
-    )
+  std::shared_ptr<xop::RtspServer>& rtspServer,
+  xop::MediaSessionId sessionId,
+  xop::MediaChannelId channelId,
+  const std::string &fifo
+)
   :
-    ZoneMinderFifoAudioSource(rtspServer, sessionId, channelId, fifo)
-{
+  ZoneMinderFifoAudioSource(rtspServer, sessionId, channelId, fifo) {
 #if 0
   int profile = 0;
 
@@ -37,14 +36,14 @@ ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
 
   std::ostringstream os;
   os <<
-    "profile-level-id=1;"
-    "mode=AAC-hbr;sizelength=13;indexlength=3;"
-    "indexdeltalength=3;config=" << std::hex << std::setw(2) << std::setfill('0') << audioSpecificConfig[0]
-    << std::hex << std::setw(2) << std::setfill('0') << audioSpecificConfig[1]
-    << "\r\n";
+     "profile-level-id=1;"
+     "mode=AAC-hbr;sizelength=13;indexlength=3;"
+     "indexdeltalength=3;config=" << std::hex << std::setw(2) << std::setfill('0') << audioSpecificConfig[0]
+     << std::hex << std::setw(2) << std::setfill('0') << audioSpecificConfig[1]
+     << "\r\n";
   // Construct the 'AudioSpecificConfig', and from it, the corresponding ASCII string:
 
-  m_auxLine.assign(os.str());    
+  m_auxLine.assign(os.str());
   Debug(1, "m_auxline is %s", m_auxLine.c_str());
 #endif
 }

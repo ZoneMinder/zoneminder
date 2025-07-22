@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require Device::SerialPort;
 
 our @ISA = qw(ZoneMinder::Control);
 
@@ -53,8 +54,11 @@ sub open
 
     $self->loadMonitor();
 
-    use Device::SerialPort;
     $self->{port} = new Device::SerialPort( $self->{Monitor}->{ControlDevice} );
+    if (!$self->{port}) {
+      Error("Failed to open serial port ".$self->{Monitor}->{ControlDevice}.' reason:'.$!);
+      return undef;
+    }
     $self->{port}->baudrate(4800);
     $self->{port}->databits(8);
     $self->{port}->parity('none');

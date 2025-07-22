@@ -1,5 +1,4 @@
 #content {
-    margin: 0 15px;
 }
 
 .Name {
@@ -14,4 +13,10 @@
 }
 .Description textarea {
   width: 100%;
+}
+
+#video {
+  overflow-y: auto;
+  height: 100%;
+  align-items: flex-start;
 }

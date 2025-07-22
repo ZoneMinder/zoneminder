@@ -77,6 +77,8 @@ if ( $action == 'Save' ) {
     'HasPresets'    =>  0,
     'HasHomePreset' =>  0,
     'CanSetPresets' =>  0,
+    'CanLed' => 0,
+    'CanLight' => 0,
   );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newControl.
@@ -88,7 +90,11 @@ if ( $action == 'Save' ) {
   } # end foreach type
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
-  $Control->save($_REQUEST['Control']);
-  $redirect = '?view=controlcaps';
+  if (!$Control->save($_REQUEST['Control'])) {
+    global $error_message;
+     $error_message .= "Error saving control: " . $Control->get_last_error().'</br>';
+  } else {
+    $redirect = '?view=options&tab=control';
+  }
 } // end if action
 ?>

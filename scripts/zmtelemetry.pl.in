@@ -22,6 +22,7 @@
 # ==========================================================================
 
 use strict;
+use warnings;
 use bytes;
 use utf8;
 
@@ -41,7 +42,7 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-# Setting these as contants for now. 
+# Setting these as constants for now. 
 
 my $help = 0;
 my $force = 0;
@@ -67,9 +68,11 @@ if ($help) {
   pod2usage(-exitstatus => -1);
 }
 
+logInit();
+my $dbh = zmDbConnect();
+
 if ($show) {
   my %telemetry;
-  my $dbh = zmDbConnect();
   collectData($dbh, \%telemetry);
   my $result = jsonEncode(\%telemetry);
   print($result);
@@ -90,6 +93,13 @@ print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', lo
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
 while (1) {
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    Info('Reconnecting to db');
+    if ( !($dbh = zmDbConnect()) ) {
+      #What we do here is not that important, so just skip this interval
+      sleep($interval);
+    }
+  }
   my $now = time();
   my $since_last_check = $now - $lastCheck;
   Debug("Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
@@ -100,23 +110,17 @@ while (1) {
   }
   if ((($since_last_check) > $interval) or $force) {
     print "Collecting data to send to ZoneMinder Telemetry server.\n";
-    my $dbh = zmDbConnect();
-    if ($dbh) {
-      # Build the telemetry hash
-      # We should keep *BSD systems in mind when calling system commands
+    # Build the telemetry hash
+    # We should keep *BSD systems in mind when calling system commands
 
-      my %telemetry;
-      collectData($dbh, \%telemetry);
-      my $result = jsonEncode(\%telemetry);
+    my %telemetry;
+    collectData($dbh, \%telemetry);
+    my $result = jsonEncode(\%telemetry);
 
-      if (sendData($result)) {
-        ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
-          $now, 'ZM_TELEMETRY_LAST_UPLOAD');
-        $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
-      }
-      zmDbDisconnect();
-    } else {
-      Error('Failed to open database. Sleeping.');
+    if (sendData($result)) {
+      ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
+        $now, 'ZM_TELEMETRY_LAST_UPLOAD');
+      $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
     }
   } elsif (-t STDIN) {
     print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
@@ -140,7 +144,7 @@ sub collectData {
   $telemetry->{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
   $telemetry->{monitor_count} = countQuery($dbh, 'Monitors');
   $telemetry->{event_count} = countQuery($dbh, 'Events');
-  $telemetry->{architecture} = runSysCmd('uname -p');
+  $telemetry->{architecture} = runSysCmd($Config{ZM_PATH_UNAME}.' -p');
   @$telemetry{qw(kernel distro version)} = getDistro();
   $telemetry->{zm_version} = ZoneMinder::Base::ZM_VERSION;
   $telemetry->{system_memory} = totalmem();
@@ -245,9 +249,21 @@ sub getGeo {
     (my $latitude, my $longitude) = split /,/, $content->{loc};
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
-    Warning("Geoip data retrieval returned HTTP POST error code: $resp_code");
-    Debug("Geoip data retrieval failure response message: $resp_msg");
-    return ($unknown, $unknown, $unknown, $unknown, $unknown);
+    my $endpoint2 = 'https://api.ip2location.io';
+    my $ua2 = LWP::UserAgent->new;
+    my $req2 = HTTP::Request->new(GET => $endpoint2);
+    my $resp2 = $ua2->request($req2);
+    my $resp_msg2 = $resp2->decoded_content;
+    my $resp_code2 = $resp2->code;
+
+    if ($resp2->is_success) {
+      my $content = decode_json($resp_msg2);
+      return ($content->{city_name}, $content->{region_name}, $content->{country_code}, $content->{latitude}, $content->{longitude});
+    } else {
+      Warning("Geoip data retrieval returned HTTP POST error code: $resp_code2");
+      Debug("Geoip data retrieval failure response message: $resp_msg2");
+      return ($unknown, $unknown, $unknown, $unknown, $unknown);
+    }
   }
 }
 

@@ -48,10 +48,11 @@ use Time::HiRes qw( usleep );
 
 use SOAP::Lite; # +trace;
 use SOAP::Transport::HTTP;
-
+use Data::UUID;
 use ZoneMinder;
 
 require ONVIF::Client;
+require WSNotification::Elements::Header;
 
 require WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort;
 require WSNotification::Interfaces::WSBaseNotificationSender::SubscriptionManagerPort;
@@ -74,6 +75,7 @@ my $daemon_pid;
 
 my $monitor_reload_time = 0;
 
+
 # this does not work on all architectures
 my @EXTRA_SOCK_OPTS = (
   'ReuseAddr' => '1',
@@ -87,9 +89,16 @@ my @EXTRA_SOCK_OPTS = (
 
 sub handler { # 1st argument is signal name
   my ($sig) = @_;
-  Error("Caught a SIG$sig -- shutting down");
-  confess();
-  kill($daemon_pid) if defined $daemon_pid;
+#  Error("Caught a SIG$sig --daemon_pid = $daemon_pid  shutting down");
+  Info("Caught a SIG$sig   ;;; daemon_pid = $daemon_pid");
+  if  (  $daemon_pid != 0 ) {
+    Info( "killing child  $daemon_pid \n") ;
+    kill(15 ,$daemon_pid) ;
+    Info(" sent kill signal to child , now waitpid...") ;
+    waitpid($daemon_pid, 0);
+    confess();
+  }
+    Info("Exiting ..") ;
   exit(0);
 }
 
@@ -215,6 +224,7 @@ sub xs_duration {
       }
 
       Info('Monitor URL: '.$monitor->{ONVIF_URL});
+      Info("In parent  process ;;; child PID = $daemon_pid");
 
       ## set up ONVIF client for monitor
       next if ! $monitor->{ONVIF_URL};
@@ -428,7 +438,6 @@ sub start_daemon {
   $daemon_pid = fork();
   die "fork() failed: $!" unless defined $daemon_pid;
   if ( $daemon_pid ) {
-
     # this is a new process --> use new name and log file
     $0 = $0.' [http-daemon]';
     logInit(id => 'zmonvif-trigger-httpd');
@@ -485,36 +494,39 @@ sub subscribe {
       #    },
     },,
   );
-
   die $result if not $result;
-  # print $result . "\n";
-
   ### build Subscription Manager
   my $submgr_addr = $result->get_SubscriptionReference()->get_Address()->get_value();
   Info("Subscription Manager at $submgr_addr");
-
   my $serializer = $client->service('device', 'ep')->get_serializer();
-
   my $submgr_svc = WSNotification::Interfaces::WSBaseNotificationSender::SubscriptionManagerPort->new({
       serializer => $serializer,
       proxy => $submgr_addr,
-    });
-
+    },
+);
   return $submgr_svc;
 } # end sub subscribe
 
 sub unsubscribe {
   my ($submgr_svc) = @_;
-
   $submgr_svc->Unsubscribe( { },, );
 }
 
+
 sub renew {
   my ($submgr_svc, $duration) = @_;
-
+  my $endpoint=$submgr_svc->get_endpoint();
+  my $uuid_gen = Data::UUID->new();
+  my $uuid = $uuid_gen->create_str();
   my $result = $submgr_svc->Renew( {
       TerminationTime => xs_duration($duration), # AbsoluteOrRelativeTimeType
-    },,
+    },
+     WSNotification::Elements::Header->new({
+          Action => { value => 'http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/RenewRequest' },
+          MessageID => { value => "urn:uuid:$uuid" },
+          To => { value =>  "$endpoint" },
+     #    ReplyTo => { Address => { value =>  "http://www.w3.org/2005/08/addressing/anonymous" }},
+          })
   );
   die $result if not $result;
 }

@@ -111,7 +111,7 @@ ONVIF::Device::Types::EventSubscription
 Perl data type class for the XML Schema defined complexType
 EventSubscription from the namespace http://www.onvif.org/ver10/schema.
 
-Subcription handling in the same way as base notification subscription.
+Subscription handling in the same way as base notification subscription.
 
 
 

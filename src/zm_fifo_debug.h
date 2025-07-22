@@ -31,12 +31,12 @@ class Monitor;
 #define FifoDebug(level, params...)
 #endif
 void zmFifoDbgOutput(
-    int hex,
-    const char * const file,
-    const int line,
-    const int level,
-    const char *fstring,
-    ...) __attribute__((format(printf, 5, 6)));
+  int hex,
+  const char * const file,
+  const int line,
+  const int level,
+  const char *fstring,
+  ...) __attribute__((format(printf, 5, 6)));
 int zmFifoDbgInit(Monitor * monitor);
 
 #endif  // ZM_FIFO_DEBUG_H

@@ -18,21 +18,22 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( $action == 'delete' ) {
-  if ( ! canEdit('Monitors') ) {
+global $error_message;
+
+if ($action == 'delete') {
+  if (!canEdit('Monitors')) {
     ZM\Warning('No permission to delete monitors');
     return;
   }
 
-  if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
+  if (isset($_REQUEST['markMids'])) {
     require_once('includes/Monitor.php');
-    foreach ( $_REQUEST['markMids'] as $markMid ) {
-      if ( canEdit('Monitors', $markMid) ) {
-        // This could be faster as a select all
-        if ( $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id = ?', NULL, array($markMid)) ) {
-          $Monitor = new ZM\Monitor($monitor);
-          $Monitor->delete();
-        } // end if monitor found in db
+    foreach ($_REQUEST['markMids'] as $markMid) {
+      if (canEdit('Monitors', $markMid)) {
+        $monitor = ZM\Monitor::find_one(['Id'=>$markMid]);
+        if ($monitor) $monitor->delete();
+      } else {
+        $error_message .= 'You do not have permission to delete monitor '.$markMid.'<br/>';
       } // end if canedit this monitor
     } // end foreach monitor in MarkMid
   } // markMids is set and we aren't limited to specific monitors

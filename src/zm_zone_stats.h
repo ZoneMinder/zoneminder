@@ -70,7 +70,8 @@ class ZoneStats {
           alarm_box_.Hi().y_,
           alarm_centre_.x_,
           alarm_centre_.y_,
-          score_);
+          score_
+         );
   }
 
  public:

@@ -20,11 +20,12 @@
 #include "zm_time.h"
 
 #include <cinttypes>
+#include <ctime>
 
 std::string SystemTimePointToString(SystemTimePoint tp) {
   time_t tp_sec = std::chrono::system_clock::to_time_t(tp);
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-      tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
+                            tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
 
   std::string timeString;
   timeString.reserve(64);
@@ -44,7 +45,7 @@ std::string TimePointToString(TimePoint tp) {
   time_t tp_sec = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() + tp_dur);
 
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-      tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
+                            tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
 
   std::string timeString;
   timeString.reserve(64);
@@ -56,4 +57,12 @@ std::string TimePointToString(TimePoint tp) {
            ".%06" PRIi64,
            static_cast<int64_t>(now_frac.count()));
   return timeString;
+}
+
+SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {
+  std::tm t{};
+  strptime(timestamp.c_str(), "%Y-%m-%d %H:%M:%S", &t);
+  time_t time_t_val = mktime(&t);
+  SystemTimePoint stp = std::chrono::system_clock::from_time_t(time_t_val);
+  return stp;
 }

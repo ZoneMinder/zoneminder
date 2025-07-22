@@ -28,7 +28,7 @@ target_link_libraries(tests
     zm
     ${ZM_BIN_LIBS}
     bcrypt
-    Catch2::Catch2)
+    Catch2::Catch2WithMain)
 
 target_include_directories(tests
   PRIVATE

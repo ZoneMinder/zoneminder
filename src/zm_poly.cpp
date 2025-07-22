@@ -80,11 +80,8 @@ void Polygon::UpdateCentre() {
 bool Polygon::Contains(const Vector2 &coord) const {
   bool inside = false;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    if ((((vertices_[i].y_ <= coord.y_) && (coord.y_ < vertices_[j].y_)) ||
-         ((vertices_[j].y_ <= coord.y_) && (coord.y_ < vertices_[i].y_))) &&
-        (coord.x_ < (vertices_[j].x_ - vertices_[i].x_) * (coord.y_ - vertices_[i].y_) /
-                            (vertices_[j].y_ - vertices_[i].y_) +
-                        vertices_[i].x_)) {
+    if ((((vertices_[i].y_ <= coord.y_) && (coord.y_ < vertices_[j].y_)) || ((vertices_[j].y_ <= coord.y_) && (coord.y_ < vertices_[i].y_)))
+        && (coord.x_ < (vertices_[j].x_ - vertices_[i].x_) * (coord.y_ - vertices_[i].y_) / (vertices_[j].y_ - vertices_[i].y_) + vertices_[i].x_)) {
       inside = !inside;
     }
   }

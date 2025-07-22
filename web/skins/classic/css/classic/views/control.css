@@ -136,7 +136,7 @@
 
 .ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls {
-    margin: 5px 200px 5px 180px;
+    /* margin: 5px 200px 5px 180px; */
 }
 
 .ptzControls .presetControls input {

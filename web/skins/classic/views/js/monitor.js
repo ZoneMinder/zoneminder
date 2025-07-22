@@ -1,6 +1,7 @@
 
 var map = null;
 var marker = null;
+var sourceFormMonitor = null;
 
 function updateMonitorDimensions(element) {
   var form = element.form;
@@ -72,6 +73,20 @@ function loadLocations( element ) {
   }
 }
 
+function Janus_Use_RTSP_Restream_onclick(e) {
+  Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
+  if (Janus_Use_RTSP_Restream.length) {
+    const Janus_RTSP_User = $j('#Janus_RTSP_User');
+    if (Janus_Use_RTSP_Restream[0].checked) {
+      Janus_RTSP_User.show();
+    } else {
+      Janus_RTSP_User.hide();
+    }
+  } else {
+    console.log("Didn't find newMonitor[Janus_Use_RTSP_Restream]");
+  }
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var onvifBtn = $j('#onvifBtn');
@@ -87,7 +102,7 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -115,12 +130,15 @@ function initPage() {
   });
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
-      if ( e.target.value ) {
+      if (e.target.value) {
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
       }
     };
+  });
+  document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
+    el.onchange = window['devices_onchange'].bind(el, el);
   });
   document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
     el.oninput = window['updateMonitorDimensions'].bind(el, el);
@@ -139,42 +157,24 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
-      var form = document.getElementById('contentForm');
+      const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['update_estimated_ram_use'].bind(el);
+    el.oninput = window['buffer_setting_oninput'].bind(el);
   });
   update_estimated_ram_use();
 
-  /*
-  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
-    el.onchange = function() {
-      $j('#function_help div').hide();
-      $j('#'+this.value+'Help').show();
-      if ( this.value == 'Monitor' || this.value == 'None' ) {
-        $j('#FunctionEnabled').hide();
-      } else {
-        $j('#FunctionEnabled').show();
-      }
-      if ( this.value == 'Record' || this.value == 'Nodect' ) {
-        $j('#FunctionDecodingEnabled').show();
-      } else {
-        $j('#FunctionDecodingEnabled').hide();
-      }
-    };
-    el.onchange();
-  });
-  */
-
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {
-      if ( this.value == 1 /* Encode */ ) {
+      if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
+        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
+        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }
@@ -221,13 +221,6 @@ function initPage() {
     };
     el.onchange();
   });
-
-  $j('.chosen').chosen({width: "95%"});
-  $j('#pills-tab li a').on('click', function() {
-    //$j('.chosen').chosen({width: "95%"});
-    // Store the selected tab in a cookie or something so that on reload it goes back to the tab
-  });
-
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -283,41 +276,166 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  //manage the Janus audio check
-  if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
-    document.getElementById("FunctionJanusAudioEnabled").hidden = false;
-  } else {
-    document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+  var sourceFormMonitor = $j('#contentForm').serialize();
+  // Manage the ZONES Button
+  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
+    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+      evt.preventDefault();
+      const data = {
+        request: "modal",
+        modal: "saveconfirm",
+        key: messageSavingDataWhenLeavingPage
+      };
+
+      if (!document.getElementById('saveConfirm')) {
+        // Load the save confirmation modal into the DOM
+        $j.getJSON(thisUrl, data)
+            .done(function(data) {
+              insertModalHtml('saveConfirm', data.html);
+              manageSaveConfirmModalBtns();
+              $j('#saveConfirm').modal('show');
+            })
+            .fail(function(jqXHR) {
+              console.log('error getting saveconfirm', jqXHR);
+              logAjaxFail(jqXHR);
+            });
+        return;
+      } else {
+        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+        $j('#saveConfirm').modal('show');
+      }
+    } else {
+      const href = '?view=zones&mid='+mid;
+      window.location.assign(href);
+    }
+  });
+
+  // Manage the SAVE CONFIRMATION modal button
+  function manageSaveConfirmModalBtns() {
+    const href = '?view=zones&mid='+mid;
+    document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
+      evt.preventDefault();
+      saveMonitorData(href);
+    });
+
+    // Manage the Don't SAVE modal button
+    document.getElementById('dontSaveBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      evt.preventDefault();
+      window.location.assign(href);
+    });
+
+    // Manage the CANCEL modal button
+    document.getElementById('saveCancelBtn').addEventListener('click', function onSaveCancelClick(evt) {
+      $j('#saveConfirm').modal('hide');
+    });
   }
 
-  document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
-    if (this.checked) {
+  // Manage the SAVE Button
+  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+    saveMonitorData();
+  });
+
+  const form = document.getElementById('contentForm');
+
+  //manage the Janus settings div
+
+  const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
+  if (janusEnabled) {
+    if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+      document.getElementById("FunctionJanusProfileOverride").hidden = false;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
+      document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+      document.getElementById("FunctionJanusProfileOverride").hidden = true;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
+      document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
-  });
+
+    janusEnabled.addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+        document.getElementById("FunctionJanusProfileOverride").hidden = false;
+        document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
+        document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
+      } else {
+        document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+        document.getElementById("FunctionJanusProfileOverride").hidden = true;
+        document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
+        document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
+      }
+    });
+
+    const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
+    if (Janus_Use_RTSP_Restream) {
+      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
+    }
+  }
+
+  //Manage the RTSP2Web settings div
+  const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+  if (RTSP2WebEnabled) {
+    if (RTSP2WebEnabled.checked) {
+      document.getElementById("RTSP2WebType").hidden = false;
+      document.getElementById("RTSP2WebStream").hidden = false;
+    } else {
+      document.getElementById("RTSP2WebType").hidden = true;
+      document.getElementById("RTSP2WebStream").hidden = true;
+    }
+
+    RTSP2WebEnabled.addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("RTSP2WebType").hidden = false;
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebType").hidden = true;
+        document.getElementById("RTSP2WebStream").hidden = true;
+      }
+    });
+  }
 
   // Amcrest API controller
-  if (document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].checked) {
-    document.getElementById("function_use_Amcrest_API").hidden = false;
-  } else {
-    document.getElementById("function_use_Amcrest_API").hidden = true;
-  }
-  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].addEventListener('change', function() {
-    if (this.checked) {
+  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
+  if (ONVIF_Event_Listener) {
+    if (ONVIF_Event_Listener[0].checked) {
       document.getElementById("function_use_Amcrest_API").hidden = false;
-    }
-  });
-  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[1].addEventListener('change', function() {
-    if (this.checked) {
+    } else {
       document.getElementById("function_use_Amcrest_API").hidden = true;
     }
-  });
+    ONVIF_Event_Listener[0].addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("function_use_Amcrest_API").hidden = false;
+      }
+    });
+    ONVIF_Event_Listener[1].addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("function_use_Amcrest_API").hidden = true;
+      }
+    });
+  }
 
-  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
-    if ( window.L ) {
-      const form = document.getElementById('contentForm');
+  const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
+  if (monitorPath) {
+    monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass
+    monitorPath.addEventListener('blur', change_Path); // remove fields from path if user & pass equal on end of edit
+
+    const monitorUser = document.getElementsByName("newMonitor[User]");
+    if ( monitorUser.length > 0 ) {
+      monitorUser[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+    }
+
+    const monitorPass = document.getElementsByName("newMonitor[Pass]");
+    if ( monitorPass.length > 0 ) {
+      monitorPass[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+    }
+  }
+
+  if (form.elements['newMonitor[Type]'].value == 'WebSite') return;
+
+  if (parseInt(ZM_OPT_USE_GEOLOCATION)) {
+    if (window.L) {
       const latitude = form.elements['newMonitor[Latitude]'].value;
       const longitude = form.elements['newMonitor[Longitude]'].value;
       map = L.map('LocationMap', {
@@ -342,7 +460,9 @@ function initPage() {
         const position = marker.getLatLng();
         const form = document.getElementById('contentForm');
         form.elements['newMonitor[Latitude]'].value = position.lat;
+        ll2dms(form.elements['newMonitor[Latitude]']);
         form.elements['newMonitor[Longitude]'].value = position.lng;
+        ll2dms(form.elements['newMonitor[Longitude]']);
       });
       map.invalidateSize();
       $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
@@ -351,8 +471,129 @@ function initPage() {
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
+    ll2dms(form.elements['newMonitor[Latitude]']);
+    ll2dms(form.elements['newMonitor[Longitude]']);
   } // end if ZM_OPT_USE_GEOLOCATION
+
+  updateLinkedMonitorsUI();
+
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
+
+  manageRTSP2WebChannelStream();
 } // end function initPage()
+
+function saveMonitorData(href = '') {
+  const alertBlock = $j("#alertSaveMonitorData");
+  const form_data = $j("#contentForm").serializeArray();
+  alertBlock.fadeIn({duration: 'fast'});
+  form_data.push({name: "action", value: "save"});
+  $j.ajax({
+    type: "POST",
+    url: "?view=monitor",
+    data: form_data,
+    success: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      if (href) window.location.assign(href);
+      //document.getElementById('zones-tab').classList.remove("disabled");
+    },
+    error: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      alert('An error occurred while saving data.'); /* Proper formatting required! */
+    }
+  });
+  $j('#saveConfirm').modal('hide');
+}
+
+function ll2dms(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  if (latitude.value === '') return;
+  if (latitude.value < -90) latitude.value=-90;
+  if (latitude.value > 90) latitude.value=90;
+
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  if (longitude.value === '') return;
+  if (longitude.value < -180) longitude.value=-180;
+  if (longitude.value > 180) longitude.value=180;
+  const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
+
+  if (input.id == 'newMonitor[Latitude]') {
+    const dms = document.getElementById('LatitudeDMS');
+    dms.value = dmsCoords.latitude.toString(2);
+  } else if (input.id == 'newMonitor[Longitude]') {
+    const dms = document.getElementById('LongitudeDMS');
+    dms.value = dmsCoords.longitude.toString(2);
+  } else {
+    console.log("Unknown input in ll2dms");
+  }
+  updateMarker();
+}
+
+function dms2ll(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  const dms = parseDms(input.value);
+
+  if (input.id == 'LatitudeDMS') {
+    latitude.value = dms.toFixed(8);
+  } else if (input.id == 'LongitudeDMS') {
+    longitude.value = dms.toFixed(8);
+  } else {
+    console.log('Unknown input in dms2ll');
+  }
+  updateMarker();
+}
+
+function change_Path(event) {
+  const pathInput = document.getElementsByName("newMonitor[Path]")[0];
+
+  const protoPrefixPos = pathInput.value.indexOf('://');
+  if ( protoPrefixPos == -1 ) {
+    return;
+  }
+
+  // check the formatting of the url
+  const authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
+  if ( authSeparatorPos == -1 ) {
+    console.log('ignoring URL without "@"');
+    return;
+  }
+
+  const fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
+  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+    console.warn('ignoring URL incorrectly formatted, missing ":"');
+    return;
+  }
+
+  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
+  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
+    console.warn('ignoring URL incorrectly formatted, empty username or password');
+    return;
+  }
+
+  // get the username / password inputs
+  const userInput = document.getElementsByName("newMonitor[User]");
+  const passInput = document.getElementsByName("newMonitor[Pass]");
+
+  if (userInput.length != 1 || passInput.length != 1) {
+    // If we didn't find the inputs
+    return;
+  }
+
+  // on editing update the fields only if they are empty or a prefix of the new value
+  if (event.type != 'blur') {
+    userInput[0].value = usernameValue;
+    passInput[0].value = passwordValue;
+    return;
+  }
+
+  // on leaving the input sync the values and remove it from the url
+  // only if they already match (to not overwrite already present values)
+  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
+    pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
+  }
+}
 
 function change_WebColour() {
   $j('#WebSwatch').css(
@@ -378,29 +619,46 @@ function random_WebColour() {
   );
 }
 
+function buffer_setting_oninput(e) {
+  const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
+  const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
+  if (parseInt(max_image_buffer_count.value) &&
+    (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
+  ) {
+    if (this.id == 'newMonitor[PreEventCount]') {
+      max_image_buffer_count.value = pre_event_count.value;
+    } else {
+      pre_event_count.value = max_image_buffer_count.value;
+    }
+  }
+  update_estimated_ram_use();
+}
 function update_estimated_ram_use() {
-  var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
-  var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
-  var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+  const form = document.getElementById('contentForm');
+  if (form.elements['newMonitor[Type]'].value == 'WebSite') return;
 
-  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
-  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
-  var min_buffer_size = min_buffer_count * width * height * colours;
+  const width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
+  const height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
+  const colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+
+  let min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  min_buffer_count += parseInt(document.getElementById('newMonitor[PreEventCount]').value);
+  const min_buffer_size = min_buffer_count * width * height * colours;
   document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
 
-  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  const max_buffer_count = parseInt(document.getElementById('newMonitor[MaxImageBufferCount]').value);
   if (max_buffer_count) {
-    var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
+    const max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
   } else {
     document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
   }
 }
 
-function updateLatitudeAndLongitude(latitude, longitude) {
-  var form = document.getElementById('contentForm');
-  form.elements['newMonitor[Latitude]'].value = latitude;
-  form.elements['newMonitor[Longitude]'].value = longitude;
+function updateMarker() {
+  const latitude = document.getElementById('newMonitor[Latitude]').value;
+  const longitude = document.getElementById('newMonitor[Longitude]').value;
+  console.log("Updating marker at ", latitude, longitude);
   const latlng = new L.LatLng(latitude, longitude);
   marker.setLatLng(latlng);
   map.setView(latlng, 8, {animation: true});
@@ -408,6 +666,14 @@ function updateLatitudeAndLongitude(latitude, longitude) {
     map.invalidateSize(true);
   }, 100);
 }
+
+function updateLatitudeAndLongitude(latitude, longitude) {
+  var form = document.getElementById('contentForm');
+  form.elements['newMonitor[Latitude]'].value = latitude;
+  form.elements['newMonitor[Longitude]'].value = longitude;
+  updateMarker(latitude, longitude);
+}
+
 function getLocation() {
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -516,6 +782,21 @@ function ModelId_onchange(ModelId_select) {
 
 function Model_onchange(input) {
   select_by_value_case_insensitive(input.form.elements['newMonitor[ModelId]'], input.value);
+}
+
+function updateLinkedMonitorsUI() {
+  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+}
+
+function devices_onchange(devices) {
+  const selected = $j(devices).val();
+  const device = devices.form.elements['newMonitor[Device]'];
+  if (selected !== '') {
+    device.value = selected;
+    device.style['display'] = 'none';
+  } else {
+    device.style['display'] = 'inline';
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

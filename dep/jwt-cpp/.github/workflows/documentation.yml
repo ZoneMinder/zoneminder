@@ -1,0 +1,21 @@
+name: Documentation CI
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt install graphviz
+      - run: wget https://raw.githubusercontent.com/jothepro/doxygen-awesome-css/v1.6.1/doxygen-awesome.css
+      - run: wget https://raw.githubusercontent.com/jothepro/doxygen-awesome-css/v1.6.1/doxygen-awesome-sidebar-only.css
+      - uses: mattnotmitt/doxygen-action@v1
+      - name: deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./doxy/html
+          force_orphan: true

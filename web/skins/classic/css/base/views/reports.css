@@ -1,0 +1,39 @@
+#reportsTable.major .colTime {
+    white-space: nowrap;
+}
+
+#reportsTable [data-field="Id"],
+#reportsTable [data-field="Interval"] {
+    text-align: center;
+}
+#reportsTable [data-field="Name"] {
+    text-align: left;
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#header h2, #header a {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
+#header #info, #header #pagination, #header #controls {
+    display: flex;
+    flex-direction: column;
+}
+
+#header #controls {
+    align-items: flex-end;
+}
+
+#header #pagination {
+    align-items: center;
+}
+
+/* Dirty hack to fix up/down buttons on pagination number input */
+input[type="number"].form-control {
+  padding: 5px;
+}

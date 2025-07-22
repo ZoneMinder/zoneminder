@@ -21,15 +21,6 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
-// Compatibility functions
-if ( version_compare(phpversion(), '4.3.0', '<') ) {
-  function ob_get_clean() {
-    $buffer = ob_get_contents();
-    ob_end_clean();
-    return $buffer;
-  }
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -40,8 +31,6 @@ function noCacheHeaders() {
 
 function CSPHeaders($view, $nonce) {
   global $Servers;
-  if ( ! $Servers )
-    $Servers = ZM\Server::find();
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
@@ -55,7 +44,7 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+      header("Content-Security-Policy: object-src 'self'; worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -63,46 +52,48 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
-
+  if (isset($_SERVER['HTTP_ORIGIN'])) {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
-    if ( ! $Servers )
-      $Servers = ZM\Server::find();
-    if ( sizeof($Servers) < 1 ) {
+    if (sizeof($Servers) < 1) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
-      if ( ZM_MIN_STREAMING_PORT ) {
+      if (ZM_MIN_STREAMING_PORT) {
         ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
       }
       return;
     }
-    foreach ( $Servers as $Server ) {
+    foreach ($Servers as $Server) {
       if (
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
         or
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
       ) {
         $valid = true;
-        ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
+        ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+
         break;
       }
     }
-    if ( !$valid ) {
+    if (!$valid) {
       ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
+  } else {
+    ZM\Debug('CORS: NO origin');
   }
 }
 
-function getMimeType( $file ) {
-  if ( function_exists('mime_content_type') ) {
+function getMimeType($file) {
+  if (function_exists('mime_content_type')) {
     return mime_content_type($file);
-  } elseif ( function_exists('finfo_file') ) {
+  } else if (function_exists('finfo_file')) {
     $finfo = finfo_open(FILEINFO_MIME);
     $mimeType = finfo_file($finfo, $file);
     finfo_close($finfo);
@@ -213,7 +204,25 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
             </object>';
     } # end switch
   } # end if use object tags
-  return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
+
+  switch ($mimeType) {
+    case 'video/mp4' :
+      global $rates;
+      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
+        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
+            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
+              array_map(function($r){return $r/100;},
+                array_filter(
+                  array_keys($rates),
+                  function($r){return $r >= 0 ? true : false;}
+                ))).']}\' 
+          >
+          <source src="'. $src.'" type="video/mp4">
+          Your browser does not support the video tag.
+          </video>';
+    default:
+    return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"
       name="'.$title.'"
       width="'.$width.'"
@@ -223,6 +232,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
       showcontrols="0"
       controller="0">
       </embed>';
+  }
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
@@ -231,12 +241,12 @@ function outputImageStream( $id, $src, $width, $height, $title='' ) {
 
 // width and height MUST be valid and include the px
 function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
-  if ( canStreamIframe() ) {
+  if (canStreamIframe()) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
       return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      #(($width and $width !='auto') ?'width:'.$width.';' : '').
-      (($height and $height != 'auto')?' height:'.$height.';':'').
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
       '" />';
   }
 }
@@ -248,15 +258,15 @@ function outputControlStream($src, $width, $height, $monitor, $scale, $target) {
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
     <input type="hidden" name="action" value="control"/>
     <?php
-    if ( $monitor['CanMoveMap'] ) {
+    if ($monitor['CanMoveMap']) {
     ?>
       <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } else if ( $monitor['CanMoveRel'] ) {
+    } else if ($monitor['CanMoveRel']) {
     ?>
       <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } else if ( $monitor['CanMoveCon'] ) {
+    } else if ($monitor['CanMoveCon']) {
     ?>
       <input type="hidden" name="control" value="moveConMap"/>
     <?php
@@ -330,12 +340,13 @@ function getZmuCommand($args) {
   $zmuCommand = ZMU_PATH;
 
   if ( ZM_OPT_USE_AUTH ) {
+    global $user;
+    // Always include username, so that we can do lookups faster
+    $zmuCommand .= ' -U '.escapeshellarg($user->Username());
     if ( ZM_AUTH_RELAY == 'hashed' ) {
       $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
+    } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      $zmuCommand .= ' -P '.escapeshellarg($_SESSION['password']);
     }
   }
 
@@ -351,33 +362,32 @@ function getEventDefaultVideoPath($event) {
 
 function deletePath( $path ) {
   ZM\Debug('Deleting '.$path);
-  if ( is_dir($path) ) {
+  if (is_dir($path)) {
     system(escapeshellcmd('rm -rf '.$path));
-  } else if ( file_exists($path) ) {
+  } else if (file_exists($path)) {
     unlink($path);
   }
 }
 
 function deleteEvent($event) {
-
-  if ( empty($event) ) {
+  if (empty($event)) {
     ZM\Error('Empty event passed to deleteEvent.');
     return;
   }
 
-  if ( gettype($event) != 'array' ) {
+  if (gettype($event) != 'array') {
 # $event could be an eid, so turn it into an event hash
     $event = new ZM\Event($event);
   }
 
-  if ( $event->Archived() ) {
+  if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
     return;
   } # end if Archived
 
   global $user;
 
-  if ( $user['Events'] == 'Edit' ) {
+  if ($user->Events() == 'Edit') {
     $event->delete();
   } # CAN EDIT
 }
@@ -387,11 +397,11 @@ function deleteEvent($event) {
  */
 function makeLink($url, $label, $condition=1, $options='') {
   $string = '';
-  if ( $condition ) {
+  if ($condition) {
     $string .= '<a href="'.$url.'"'.($options?(' '.$options):'').'>';
   }
   $string .= $label;
-  if ( $condition ) {
+  if ($condition) {
     $string .= '</a>';
   }
   return $string;
@@ -399,9 +409,7 @@ function makeLink($url, $label, $condition=1, $options='') {
 
 //Make it slightly easier to create a link to help text modal
 function makeHelpLink($ohndx) {
-  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
-
-  return $string;
+  return '&nbsp;(<a id="'.$ohndx.'" class="optionhelp">?</a>)';
 }
 
 function makeButton($url, $buttonValue, $condition=1, $options='') {
@@ -451,7 +459,7 @@ function htmlOptions($options, $values) {
       $text = $option;
     }
     $selected = false;
-    if ($values) {
+    if ($values !== null) {
       $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
       if ( !$has_selected ) 
         $has_selected = $selected;
@@ -463,7 +471,8 @@ function htmlOptions($options, $values) {
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
-    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true));
+    $backTrace = debug_backtrace();
+    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true). ' from ' . print_r($backTrace, true));
   }
   return $options_html;
 } # end function htmlOptions
@@ -720,7 +729,6 @@ function canStreamIframe() {
 }
 
 function canStreamNative() {
-  ZM\Debug("ZM_WEB_CAN_STREAM:".ZM_WEB_CAN_STREAM.' isInternetExplorer: ' . isInternetExplorer() . ' isOldChrome:' . isOldChrome());
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
   return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
@@ -854,23 +862,6 @@ function createListThumbnail($event, $overwrite=false) {
   return $thumbData;
 }
 
-function createVideo($event, $format, $rate, $scale, $overwrite=false) {
-  $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$event['Id'].' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-  if ( preg_match('/\d+x\d+/', $scale) )
-    $command .= ' -S '.$scale;
-  else
-    if ( version_compare(phpversion(), '4.3.10', '>=') )
-      $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-    else
-      $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
-  if ( $overwrite )
-    $command .= ' -o';
-  $command = escapeshellcmd($command);
-  $result = exec($command, $output, $status);
-  ZM\Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
-  return $status ? '' : rtrim($result);
-}
-
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
 function reScale($dimension, $dummy) {
@@ -895,13 +886,12 @@ function deScale($dimension, $dummy) {
 
 function monitorLimitSql() {
   global $user;
-  if ( !empty($user['MonitorIds']) )
-    $midSql = ' AND MonitorId IN ('.join(',', preg_split('/["\'\s]*,["\'\s]*/', $user['MonitorIds'])).')';
+  if ( count($user->unviewableMonitorIds()) )
+    $midSql = ' AND MonitorId IN ('.join(',', $user->viewableMonitorIds()).')';
   else
     $midSql = '';
   return $midSql;
 }
-
 
 function parseSort($saveToSession=false, $querySep='&amp;') {
   global $sortQuery, $sortColumn, $sortOrder, $limitQuery; // Outputs
@@ -987,7 +977,11 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
     case 'FramesScore' :
       $sortColumn = 'F.Score';
       break;
+    case 'Notes' :
+      $sortColumn = 'E.Notes';
+      break;
     default:
+      ZM\Warning("Unsupported sort field ".$_REQUEST['sort_field']);
       $sortColumn = 'E.StartDateTime';
       break;
   }
@@ -1016,6 +1010,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 
   $Filter = ZM\Filter::parse($filter, $querySep);
 
+  if (isset($filter['Id']))
+    $filter['Id'] = validCardinal($filter['Id']);
   $filter['sql'] = $Filter->sql();
   $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
@@ -1134,11 +1130,11 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
     'sort_field='.$field,
-    'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !$_REQUEST['sort_asc'] : 0),
+    'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
-    (isset($_REQUEST['eid']) ? 'eid='.$_REQUEST['eid'] : '' ),
+    (isset($_REQUEST['eid']) ? 'eid='.validCardinal($_REQUEST['eid']) : '' ),
   ));
 }
 
@@ -1184,7 +1180,6 @@ function getDiskBlocks($path = ZM_DIR_EVENTS) {
 }
 
 function systemStats() {
-
   $load = getLoad();
   $diskPercent = getDiskPercent();
   $pathMapPercent = getDiskPercent(ZM_PATH_MAP);
@@ -1231,7 +1226,6 @@ function systemStats() {
 }
 
 function getcpus() {
-
   if ( is_readable('/proc/cpuinfo') ) { # Works on Linux
     preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
     $num_cpus = count($matches[0]);
@@ -1276,8 +1270,8 @@ function verNum($version) {
 function fixSequences() {
   $sequence = 1;
   $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC, Id ASC';
-  foreach( dbFetchAll($sql) as $monitor ) {
-    if ( $monitor['Sequence'] != $sequence ) {
+  foreach (dbFetchAll($sql) as $monitor) {
+    if ($monitor['Sequence'] != $sequence) {
       dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequence, $monitor['Id']));
     }
     $sequence++;
@@ -1285,8 +1279,8 @@ function fixSequences() {
 }
 
 function firstSet() {
-  foreach ( func_get_args() as $arg ) {
-    if ( !empty($arg) )
+  foreach (func_get_args() as $arg) {
+    if (!empty($arg))
       return $arg;
   }
 }
@@ -1613,7 +1607,7 @@ function trimString($string, $length) {
 function monitorIdsToNames($ids) {
   global $mITN_monitors;
   if ( !$mITN_monitors ) {
-    $sql = 'SELECT Id, Name FROM Monitors';
+    $sql = 'SELECT Id, Name FROM Monitors WHERE `Deleted`=false';
     foreach ( dbFetchAll($sql) as $monitor ) {
       $mITN_monitors[$monitor['Id']] = $monitor;
     }
@@ -1754,18 +1748,28 @@ function checkJsonError($value) {
     switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
         ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_CTRL_CHAR :
         ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_STATE_MISMATCH :
         ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_SYNTAX :
         ZM\Error("Unable to decode JSON string '$value', syntax error");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       default :
         ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_NONE:
         break;
@@ -1855,7 +1859,7 @@ define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
   $backTrace = debug_backtrace();
-  ZM\Error($message.' from '.print_r($backTrace,true));
+  ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -1884,9 +1888,24 @@ function generateConnKey() {
   return rand(1, 999999);
 }
 
-function detaintPath($path) {
+function detaintPathAllowAbsolute($path) {
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
   // Remove any absolute paths, or relative ones that want to go up
-  $path = str_replace('../', '', $path);
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
+  return $path;
+}
+
+function detaintPath($path) {
+
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
+  // Remove any absolute paths, or relative ones that want to go up
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
   $path = ltrim($path, '/');
   return $path;
 }
@@ -1898,7 +1917,11 @@ function cache_bust($file) {
   global $css;
   $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
+  if (
+    @symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile)
+    or
+    file_exists(ZM_DIR_CACHE.'/'.$cacheFile)
+  ) {
     return 'cache/'.$cacheFile;
   } else {
     ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
@@ -2215,6 +2238,19 @@ function array_recursive_diff($aArray1, $aArray2) {
   return $aReturn;
 }
 
+function html_input($name, $type='text', $value='', $options=array()) {
+  $html = '<input ';
+  $attributes = [];
+  $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
+
+  foreach (array_keys($options) as $k) {
+    $attributes[] = $k.'="'.$options[$k].'"';
+  }
+  $html .= join(' ', $attributes);
+  $html .= '/>';
+  return $html;
+}
+
 function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
 
   $html = '';
@@ -2284,37 +2320,55 @@ function i18n() {
 function get_networks() {
   $interfaces = array();
 
-  exec('ip link', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-        if ( $matches[1] != 'lo' ) {
-          $interfaces[$matches[1]] = $matches[1];
-        } else {
-          ZM\Debug("No match for $line");
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
+	  exec(ZM_PATH_IP.' link', $output, $status);
+	  if ( $status ) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ( $output as $line ) {
+	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+          if ( $matches[1] != 'lo' ) {
+            $interfaces[$matches[1]] = $matches[1];
+          } else {
+            ZM\Debug("No match for $line");
+          }
         }
-      }
-    }
-  }
-  $routes = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces['default'] = $matches[1];
-      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces[$matches[2]] .= ' ' . $matches[1];
-        ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+	    }
+	  }
+	  $routes = array();
+	  exec(ZM_PATH_IP.' route', $output, $status);
+	  if ($status) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ($output as $line) {
+	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+          $interfaces['default'] = $matches[1];
+	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
+          $interfaces[$matches[2]] .= ' ' . $matches[1];
+          ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+        } else {
+          ZM\Debug("Didn't match $line");
+        }
+      } # end foreach line of output
+	  }
+  } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
+	  exec(ZM_PATH_IFCONFIG, $output, $status);
+	  if ($status) {
+	    $html_output = implode("\n", $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+	  } else {
+		  preg_match("/^([eth|enp][A-z0-9]*)\s+Link\s+encap:([A-z]*)\s+HWaddr\s+([A-z0-9:]*).*".
+			"inet addr:([0-9.]+).*Bcast:([0-9.]+).*Mask:([0-9.]+).*".
+			"MTU:([0-9.]+).*Metric:([0-9.]+).*".
+			"RX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*frame:([0-9.]+).*".
+			"TX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*carrier:([0-9.]+).*".
+			"RX bytes:([0-9.]+).*\((.*)\).*TX bytes:([0-9.]+).*\((.*)\)".
+			"/ims", implode("\n", $output), $regex);
+
+		  ZM\Debug(print_r( $regex,true));
+	  }
   }
   return $interfaces;
 }
@@ -2324,26 +2378,155 @@ function get_networks() {
 
 function get_subnets($interface) {
   $subnets = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output); 
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ($output as $line) {
-      if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
-        if ($matches[1] == '169.254.0.0/16') {
-          # Ignore mdns
-        } else if ($matches[2] == $interface) {
-          $subnets[] = $matches[1];
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
+    exec(ZM_PATH_IP.' route', $output, $status);
+    if ( $status ) {
+      $html_output = implode('<br/>', $output); 
+      ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+    } else {
+      foreach ($output as $line) {
+        if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
+          if ($matches[1] == '169.254.0.0/16') {
+            # Ignore mdns
+          } else if ($matches[2] == $interface) {
+            $subnets[] = $matches[1];
+          } else {
+            ZM\Debug("Wrong interface $matches[1] != $interface");
+          }
         } else {
-          ZM\Debug("Wrong interface $matches[1] != $interface");
+          ZM\Debug("Didn't match $line");
         }
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+      } # end foreach line of output
+    }
   }
   return $subnets;
+} # end function get_subnets($interface)
+
+function extract_auth_values_from_url($url) {
+  $protocolPrefixPos = strpos($url, '://');
+  if ($protocolPrefixPos === false)
+    return array();
+
+  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
+  if ($authSeparatorPos === false)
+    return array();
+
+  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  if ($fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos)
+    return array();
+
+  $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
+  $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
+
+  return array( $username, $password );
 }
 
+function output_file($path, $chunkSize=1024) {
+  if (connection_status() != 0)
+    return false;
+  $parts = pathinfo($path);
+  $file = $parts['basename'];
+
+  $contentType = getMimeType($path);
+
+  header('Cache-Control: public');
+  header('Content-Transfer-Encoding: binary');
+  header("Content-Type: $contentType");
+
+  $contentDisposition = 'inline';
+  if (strstr($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
+    $file = preg_replace('/\./', '%2e', $file, substr_count($file, '.') - 1);
+  }
+  header("Content-Disposition: $contentDisposition;filename=\"$file\"");
+
+  header('Accept-Ranges: bytes');
+  $range = 0;
+  $size = filesize($path);
+
+  if (isset($_SERVER['HTTP_RANGE'])) {
+    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
+    str_replace($range, '-', $range);
+    $range = (int)$range; #fseek etc require integers not strings
+    $size2 = $size - 1;
+    $new_length = $size - $range;
+    header('HTTP/1.1 206 Partial Content');
+    header("Content-Length: $new_length");
+    header("Content-Range: bytes $range$size2/$size");
+  } else {
+    $size2 = $size - 1;
+    header("Content-Range: bytes 0-$size2/$size");
+    header('Content-Length: ' . $size);
+  }
+
+  if ($size == 0) {
+    Error('Zero byte file! Aborting download');
+  }
+  @ini_set('magic_quotes_runtime', 0);
+  $fp = fopen($path, 'rb');
+
+  fseek($fp, $range);
+
+  while (!feof($fp) and (connection_status() == 0)) {
+    set_time_limit(0);
+    print(@fread($fp, 1024*$chunkSize));
+    flush();
+    ob_flush();
+  }
+  fclose($fp);
+
+  return ((connection_status() == 0) and !connection_aborted());
+} # end function output_file
+
+function array_to_hash_by_key($key, $array) {
+  $results = array();
+  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  return $results;
+}
+
+function check_datetime($x) {
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
+
+function getHomeView() {
+  global $user;
+  global $skin;
+  if ($user and $user->HomeView()) {
+    $view = detaintPath($user->HomeView());
+    if (preg_match('/^(\w+)([\w&=]*)$/', $view, $matches)) {
+      $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$matches[1].'.php';
+      if (file_exists($path)) {
+        return $view;
+      } else {
+        ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not exist at '.$path);
+      }
+    } else {
+      ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not match regexp');
+    }
+  }
+  if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
+    $view = detaintPath(ZM_WEB_HOMEVIEW);
+    if (preg_match('/^(\w+)([\w&=]*)$/', $view, $matches)) {
+      $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$matches[1].'.php';
+      if (file_exists($path)) {
+        return $view;
+      } else {
+        ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+      }
+    } else {
+      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not match regexp');
+    }
+  }
+  return 'console';
+}
+
+function systemd_isactive($service) {
+  $output = shell_exec("systemctl is-active $service");
+  return (trim($output) == 'active');
+}
+
+function to_string($thing) {
+  if (empty($thing)) return '';
+  if (is_array($thing)) return implode(', ', $thing);
+  return strval($thing);
+}
 ?>

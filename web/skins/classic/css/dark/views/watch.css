@@ -24,7 +24,7 @@ span.alert {
 }
 
 #eventList tr.recent {
-    background-color: #B0E0E6;
+    background-color: var(--alarmBG);
 }
 
 #eventList tr.highlight {

@@ -103,7 +103,9 @@ GetOptions(
 ) or pod2usage(-exitstatus => -1);
 
 $Config{ZM_DB_USER} = $dbUser;
+$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
+$dbPass =~ s/'/\\'/g;
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
@@ -166,7 +168,7 @@ sub selectQuery {
   return @data;
 }
 
-# Exectute a pre-built sql query
+# Execute a pre-built sql query
 sub runQuery {
   my $dbh = shift;
   my $sql = shift;
@@ -345,9 +347,9 @@ sub exportsql {
   my $command = 'mysqldump -t --skip-opt --compact -h'.$host;
   $command .= ' -P'.$port if defined($port);
   if ( $dbUser ) {
-    $command .= ' -u'.$dbUser;
+    $command .= ' -u\''.$dbUser.'\'';
     if ( $dbPass ) {
-      $command .= ' -p'.$dbPass;
+      $command .= ' -p\''.$dbPass.'\'';
     }
   }
 

@@ -25,16 +25,44 @@ var Server = function() {
     }
   }
 
-  _createClass(Server, [{
-    key: 'url',
-    value: function url() {
-      var port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+  _createClass(Server, [
+    {
+      key: 'url',
+      value: function url() {
+        const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
 
-      return location.protocol + '//' + this.Hostname + (port ? ':' + port : '') + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
+        return location.protocol + '//' + this.Hostname + (port ? ':' + port : '') + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
+      }
+    },
+    {
+      key: 'urlToZMS',
+      value: function urlToZMS() {
+        const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+        return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
+      }
+    },
+    {
+      key: 'urlToApi',
+      value: function urlToApi() {
+        const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
+      }
+    },
+    {
+      key: 'getFromApi',
+      value: function getFromApi() {
+        const url = this.urlToApi() + (arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '');
+        return fetch(url + '?' + auth_relay + (arguments.length > 1 && arguments[1] !== undefined ? '&'+arguments[1] : ''));
+      }
+    },
+    {
+      key: 'urlToJanus',
+      value: function urlToJanus() {
+        const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + '/janus';
+      }
     }
-  }]);
+  ]);
 
   return Server;
 }();
-
-;

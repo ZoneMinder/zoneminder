@@ -1,0 +1,2 @@
+ALTER TABLE `Servers` MODIFY `Longitude` DECIMAL(11,8);
+ALTER TABLE `Events` MODIFY `Longitude` DECIMAL(11,8);

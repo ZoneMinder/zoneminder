@@ -41,7 +41,7 @@ function initDatepickerReportEventAuditPage() {
 }
 
 function initPage() {
-  if (useOldMenuView) {
+  if (navbar_type != 'left') {
     // If new menu is used, then Datepicker initialization occurs in main "skin.js"
     // Reinitialization is not allowed because the 'Destroy' method is missing.
     initDatepickerReportEventAuditPage();

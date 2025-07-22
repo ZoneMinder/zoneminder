@@ -78,12 +78,12 @@ echo output_script_if_exists(array(
   <script nonce="<?php echo $cspNonce; ?>">
     const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
     fontMaterialIcons.load(null, 30000).then(function() {
-      console.log("Material Icons is loaded");
+      //console.log("Material Icons is loaded");
       var _style_ = document.createElement('style');
       _style_.innerHTML = `.material-icons {display: inline-block !important;}`;
        document.querySelector('head').prepend(_style_);
     }, function() {
-      console.log("Material Icons is NOT loaded");
+      console.log("Material Icons is NOT loaded after 30s");
     });
   </script>
 <?php

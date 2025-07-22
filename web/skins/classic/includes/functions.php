@@ -960,43 +960,41 @@ function getConsoleHTML($forLeftBar = false) {
 
 // Returns the html representing the Options menu item
 function getOptionsHTML($forLeftBar = false) {
+  global $zmMenu;
   $result = '';
-  
+
+  // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
+  $zmMenu::buildSubMenuOptions($categoryDisplayOrder = [
+    'display',
+    'system',
+    'auth',
+    'config',
+    'dnsmasq',
+    'API',
+    'servers',
+    'storage',
+    'web',
+    'images',
+    'logging',
+    'network',
+    'mail',
+    'upload',
+    'x10',
+    'highband',
+    'medband',
+    'lowband',
+    'users',
+    'groups',
+    'control',
+    'privacy',
+    'MQTT',
+    'telemetry',
+    'version'
+  ]);
+
   if ( canView('System') ) {
     if ($forLeftBar) {
-      // Copied from web/skins/classic/views/options.php
-      // When using the old top menu, the list of options pages is still generated in the views/options.php file.
       global $view;
-
-      $tabs = array();
-      if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
-      $tabs['display'] = translate('Display');
-      $tabs['system'] = translate('System');
-      $tabs['auth'] = translate('Authentication');
-      $tabs['config'] = translate('Config');
-      if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
-        $tabs['dnsmasq'] = translate('DHCP');
-      }
-      $tabs['API'] = translate('API');
-      $tabs['servers'] = translate('Servers');
-      $tabs['storage'] = translate('Storage');
-      $tabs['web'] = translate('Web');
-      $tabs['images'] = translate('Images');
-      $tabs['logging'] = translate('Logging');
-      $tabs['network'] = translate('Network');
-      $tabs['mail'] = translate('Email');
-      $tabs['upload'] = translate('Upload');
-      $tabs['x10'] = translate('X10');
-      $tabs['highband'] = translate('HighBW');
-      $tabs['medband'] = translate('MediumBW');
-      $tabs['lowband'] = translate('LowBW');
-      $tabs['users'] = translate('Users');
-      $tabs['groups'] = translate('Groups');
-      $tabs['control'] = translate('Control');
-      $tabs['privacy'] = translate('Privacy');
-      $tabs['MQTT'] = translate('MQTT');
-      $tabs['telemetry'] = translate('Telemetry');
-      $tabs['version'] = translate('Versions');
 
       $view_ = 'options';
       //$tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
@@ -1006,7 +1004,7 @@ function getOptionsHTML($forLeftBar = false) {
       <div class="sub-menu-list">
         <ul>
       ';
-      foreach ($tabs as $name=>$value) {
+      foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
             <a href="?view='.$view_.'&amp;tab='.$name.'">
@@ -1632,4 +1630,63 @@ function xhtmlFooter() {
 </html>
 <?php
 } // end xhtmlFooter
+
+class ZM_Menu {
+  public static $submenuOptionsItems = [];
+
+  public function __construct(string $typeMenu, array $menuItems) {
+
+  }
+
+  private static function addCategoryToOptionsMenu(array $categoriesOptionsInDB, array $categoryDisplayOrder) {
+    foreach ($categoryDisplayOrder as $cat) {
+      $key = array_search(strtolower($cat), array_map('strtolower', $categoriesOptionsInDB));
+      $added = false;
+      if ($cat == 'display' && (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))) {
+        $added = true;
+      } else if ($cat == 'dnsmasq' && (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF)) {
+        $added = true;
+      } else {
+        $added = true;
+      }
+      if ($added) {
+        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        unset($categoriesOptionsInDB[$key]);
+      }
+    }
+
+    // If not all categories from the database were added (according to the sorted array $categoryDisplayOrder), then add the categories to the end of the "Options" menu
+    if (count($categoriesOptionsInDB)) {
+      foreach ($categoriesOptionsInDB as $cat) {
+        if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
+          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+      }
+    }
+  }
+  
+  public static function buildSubMenuOptions($categoryDisplayOrder) {
+    $categoriesOptionsInDB = [];
+    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $сategory_row ) {
+      array_push($categoriesOptionsInDB, $сategory_row['Category']);
+    }
+    self::addCategoryToOptionsMenu($categoriesOptionsInDB, $categoryDisplayOrder);
+  }
+}
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding)) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+// $typeMenu we are not using it yet. From now on we will specify either 'leftMenu' or 'topMenu'
+// $menuItems we are not using it yet. These are main menu items with the ability to be customized by the user.
+$zmMenu = new ZM_Menu($typeMenu = '', $menuItems = [
+
+]);
 ?>

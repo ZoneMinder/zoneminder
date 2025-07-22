@@ -301,6 +301,7 @@ function MonitorStream(monitorData) {
         this.streamListenerBind();
 
         $j('#volumeControls').show();
+        if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");

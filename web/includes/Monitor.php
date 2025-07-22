@@ -1403,5 +1403,11 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     return $this->shared_read('SharedData', 'last_event');
   }
+
+  public function getStreamMode() {
+    $streamMode = getStreamMode(); # from includs/functions.php
+    return $streamMode;
+  }
+
 } // end class Monitor
 ?>

@@ -278,7 +278,8 @@ function MonitorStream(monitorData) {
         const stream = this.element = document.createElement('video-stream');
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
-        const Go2RTCModUrl = url;
+        stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
+				const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";

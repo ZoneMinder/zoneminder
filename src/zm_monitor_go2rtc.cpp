@@ -59,7 +59,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
 Monitor::Go2RTCManager::~Go2RTCManager() { remove_from_Go2RTC(); }
 
 int Monitor::Go2RTCManager::check_Go2RTC() {
-  curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) {
     Error("Go2RTC: Failed to init curl");
     return -1;
@@ -92,48 +92,26 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 }
 
 int Monitor::Go2RTCManager::add_to_Go2RTC() {
-  curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) {
     Error("Failed to init curl");
     return -1;
   }
 
-  std::string endpoint = Go2RTC_endpoint + "/streams";
-  endpoint += "?name="+std::to_string(parent->Id())+"&src="+UriEncode(rtsp_path);
-
-  // Assemble our actual request
+  std::string endpoint = Go2RTC_endpoint + "/streams?name="+std::to_string(parent->Id())+"&src="+UriEncode(rtsp_path);
   std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";
-  //if (!rtsp_second_path.empty()) {
-    //postData +=
-        //", \"1\" : {"
-        //"  \"name\" : \"ch2\", \"audio\" : true, \"url\" : \"" +
-        //rtsp_second_path +
-        //"\", \"on_demand\": true, \"debug\": false, \"status\": 0}";
-  //}
-  //postData +=
-      //"}"
-      //"}";
+  std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
+  if (response.first != CURLE_OK) return -1;
 
-  Debug(1, "Go2RTC Sending %s to %s", postData.c_str(), endpoint.c_str());
+  endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_0", parent->Id())+"&src="+UriEncode(rtsp_path);
+  postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";
+  response = CURL_PUT(endpoint, postData);
 
-  std::string response;
-
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-  CURLcode res = curl_easy_perform(curl);
-  curl_easy_cleanup(curl);
-
-  if (res != CURLE_OK) {
-    Error("Go2RTC Failed to curl_easy_perform adding rtsp stream %s", curl_easy_strerror(res));
-    return -1;
+  if (!rtsp_second_path.empty()) {
+    endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_1", parent->Id())+"&src="+UriEncode(rtsp_second_path);
+    postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 1\", \"src\": \""+rtsp_second_path+"\" }";
+    response = CURL_PUT(endpoint, postData);
   }
-
-  Debug(1, "Go2RTC Added stream response: %s", response.c_str());
   return 0;
 }
 
@@ -141,7 +119,7 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   std::string endpoint = Go2RTC_endpoint + "/streams?src="+std::to_string(parent->Id());
   std::string response;
 
-  curl = curl_easy_init();
+  CURL *curl = curl_easy_init();
   if (!curl) return -1;
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -172,8 +150,37 @@ size_t Monitor::Go2RTCManager::ReadCallback(char *ptr, size_t size, size_t nmemb
   tr->uploaded += retcode;  // <-- save progress
   return retcode;
 }
-size_t Monitor::Go2RTCManager::WriteCallback(void *contents, size_t size,
-                                             size_t nmemb, void *userp) {
+
+size_t Monitor::Go2RTCManager::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
   ((std::string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
+
+std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::string &endpoint, const std::string &data) const {
+  std::string response;
+
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    Error("Go2RTC: Failed to init curl");
+    return std::make_pair(CURLE_FAILED_INIT, response);
+  }
+  Debug(1, "Go2RTC Sending %s to %s", data.c_str(), endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  CURLcode res = curl_easy_perform(curl);
+  curl_easy_cleanup(curl);
+
+  if (res != CURLE_OK) {
+    Error("Go2RTC Failed to curl_easy_perform adding rtsp stream %s", curl_easy_strerror(res));
+  } else {
+    Debug(1, "Go2RTC Added stream response: %s", response.c_str());
+  }
+  return std::make_pair(res, response);
+}
+
+

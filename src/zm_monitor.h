@@ -408,7 +408,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   class Go2RTCManager {
     protected:
       Monitor *parent;
-      CURL *curl = nullptr;
       // helper class for CURL
       struct transfer {
         const char *buf;
@@ -417,6 +416,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       };
       static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
       static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+      std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
       std::string Go2RTC_endpoint;

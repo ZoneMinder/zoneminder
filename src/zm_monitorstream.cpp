@@ -457,7 +457,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
         return false;
     }
     if (
-        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+        (0 > fprintf(stdout, "Content-Length: %zu\r\nX-Timestamp: %.6f\r\n\r\n",
                      img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)

@@ -26,13 +26,7 @@ var player = '<?php echo $player ?>';
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo $monitor->Id() ?>');
-var monitorWidth = parseInt('<?php echo $monitor->ViewWidth() ?>');
-var monitorHeight = parseInt('<?php echo $monitor->ViewHeight() ?>');
 var monitorUrl = '<?php echo $monitor->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>';
-var monitorType = '<?php echo $monitor->Type() ?>';
-var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
-var monitorStreamReplayBuffer = parseInt('<?php echo $monitor->StreamReplayBuffer() ?>');
-var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var monIdx = '<?php echo $monitor_index; ?>';
 var mode = '<?php echo $options['mode'] ?>';

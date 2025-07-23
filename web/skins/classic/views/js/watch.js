@@ -152,7 +152,7 @@ function onPause() {
   setButtonStateWatch('pauseBtn', 'hidden');
   setButtonStateWatch('playBtn', 'active');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -174,7 +174,7 @@ function onPlay() {
   setButtonStateWatch('playBtn', 'hidden');
   if (monitorStream.status.delayed == true) {
     //setButtonState('stopBtn', 'inactive');
-    if (monitorStreamReplayBuffer) {
+    if (currentMonitor.monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'inactive');
       setButtonState('slowFwdBtn', 'inactive');
       setButtonState('slowRevBtn', 'inactive');
@@ -182,7 +182,7 @@ function onPlay() {
     }
   } else {
     //setButtonState('stopBtn', 'unavail');
-    if (monitorStreamReplayBuffer) {
+    if (currentMonitor.monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'unavail');
       setButtonState('slowFwdBtn', 'unavail');
       setButtonState('slowRevBtn', 'unavail');
@@ -209,7 +209,7 @@ function streamCmdStop(action) {
   //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'unavail');
   //setButtonState('stopBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'unavail');
     setButtonState('slowFwdBtn', 'unavail');
     setButtonState('slowRevBtn', 'unavail');
@@ -230,7 +230,7 @@ function streamCmdFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -245,7 +245,7 @@ function streamCmdSlowFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'active');
     setButtonState('slowRevBtn', 'inactive');
@@ -255,7 +255,7 @@ function streamCmdSlowFwd(action) {
     monitorStream.streamCommand(CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('slowFwdBtn', 'inactive');
   }
 }
@@ -264,7 +264,7 @@ function streamCmdSlowRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'active');
@@ -274,7 +274,7 @@ function streamCmdSlowRev(action) {
     monitorStream.streamCommand(CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('slowRevBtn', 'inactive');
   }
 }
@@ -283,7 +283,7 @@ function streamCmdFastRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -490,8 +490,8 @@ function handleClick(event) {
       const width = target.width();
       const height = target.height();
 
-      const scaleX = parseFloat(monitorWidth / width);
-      const scaleY = parseFloat(monitorHeight / height);
+      const scaleX = parseFloat(currentMonitor.monitorWidth / width);
+      const scaleY = parseFloat(currentMonitor.monitorHeight / height);
       const pos = target.offset();
       const x = parseInt((event.pageX - pos.left) * scaleX);
       const y = parseInt((event.pageY - pos.top) * scaleY);
@@ -519,9 +519,9 @@ function shiftImgFrame() { //We calculate the coordinates of the image displacem
   let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
 
   if (newPosX < 0) newPosX = 0;
-  if (newPosX > monitorWidth) newPosX = monitorWidth;
+  if (newPosX > currentMonitor.monitorWidth) newPosX = currentMonitor.monitorWidth;
   if (newPosY < 0) newPosY = 0;
-  if (newPosY > monitorHeight) newPosY = monitorHeight;
+  if (newPosY > currentMonitor.monitorHeight) newPosY = currentMonitor.monitorHeight;
 
   streamCmdPan(newPosX, newPosY);
   updatePrevCoordinatFrame(newPosX, newPosY);
@@ -541,8 +541,8 @@ function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinat
 function getCoordinateMouse(event) { //We get the current cursor coordinates taking into account the scale relative to the frame size.
   const target = $j(event.target);
 
-  const scaleX = parseFloat(monitorWidth / target.width());
-  const scaleY = parseFloat(monitorHeight / target.height());
+  const scaleX = parseFloat(currentMonitor.monitorWidth / target.width());
+  const scaleY = parseFloat(currentMonitor.monitorHeight / target.height());
   const pos = target.offset();
 
   return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
@@ -732,7 +732,7 @@ function streamPrepareStart(monitor=null) {
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Disabled due to lack of Control View permission.');
-  } else if (monitorType != 'Local') {
+  } else if (currentMonitor.monitorType != 'Local') {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Settings only available for Local monitors.');
   } else {
@@ -746,7 +746,7 @@ function streamPrepareStart(monitor=null) {
     });
   }
 
-  if ((monitorType != 'WebSite') && monitorData.length) {
+  if ((currentMonitor.monitorType != 'WebSite') && monitorData.length) {
     streamStart(monitor);
     if (window.history.length == 1) {
       $j('#closeControl').html('');
@@ -784,8 +784,8 @@ function streamPrepareStart(monitor=null) {
         table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });
     } // end if canView.Events
-  } else if (monitorRefresh > 0) {
-    setInterval(reloadWebSite, monitorRefresh*1000);
+  } else if (currentMonitor.monitorRefresh > 0) {
+    setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
   }
 
   // Manage the generate Edit button
@@ -913,12 +913,6 @@ function streamReStart(oldId, newId) {
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
 
   //Set global variables from the current monitor
-  monitorWidth = currentMonitor.monitorWidth;
-  monitorHeight = currentMonitor.monitorHeight;
-  monitorType = currentMonitor.monitorType;
-  monitorRefresh = currentMonitor.monitorRefresh;
-  monitorStreamReplayBuffer = currentMonitor.monitorStreamReplayBuffer;
-  monitorControllable = currentMonitor.monitorControllable;
   streamMode = currentMonitor.streamMode;
 
   table.bootstrapTable('destroy');
@@ -1159,9 +1153,9 @@ function cycleStop() {
 function cycleNext() {
   clearInterval(cycleIntervalId);
   const oldId = monitorData[monIdx].id;
-  monIdx = (monIdx >= monitorData.length) ? 0 : parseInt(monIdx)+1;
+  monIdx = (++monIdx) % monitorData.length;
   if (!monitorData[monIdx]) {
-    console.log('No monitorData for ' + monIdx);
+    console.log('No monitorData for ' + monIdx, monitorData.length);
   }
   const newId = monitorData[monIdx].id;
 

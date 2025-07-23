@@ -811,28 +811,9 @@ function initPage() {
   changeMonitorStatusPosition();
   zmPanZoom.init();
 
-  // Creating a ResizeObserver Instance
-  const observer = new ResizeObserver((objResizes) => {
-    const blockContent = document.getElementById('content');
-    const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
-    if (scrollBbarExists === null) {
-      scrollBbarExists = currentScrollBbarExists;
-    }
-    if (currentScrollBbarExists != scrollBbarExists) {
-      scrollBbarExists = currentScrollBbarExists;
-      return;
-    }
-    objResizes.forEach((obj) => {
-      const id = stringToNumber(obj.target.id);
-      if (mode != EDITING && !changedMonitors.includes(id)) {
-        changedMonitors.push(id);
-      }
-    });
-  });
-
   // Registering an observer on an element
   $j('[id ^= "liveStream"]').each(function() {
-    observer.observe(this);
+    observerMontage.observe(this);
   });
 
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
@@ -1199,6 +1180,25 @@ function changeMonitorStatusPosition() {
   });
   setCookie('zmMonitorStatusPositionSelected', monitorStatusPosition);
 }
+
+// Creating a ResizeObserver Instance
+const observerMontage = new ResizeObserver((objResizes) => {
+  const blockContent = document.getElementById('content');
+  const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
+  if (scrollBbarExists === null) {
+    scrollBbarExists = currentScrollBbarExists;
+  }
+  if (currentScrollBbarExists != scrollBbarExists) {
+    scrollBbarExists = currentScrollBbarExists;
+    return;
+  }
+  objResizes.forEach((obj) => {
+    const id = stringToNumber(obj.target.id);
+    if (mode != EDITING && !changedMonitors.includes(id)) {
+      changedMonitors.push(id);
+    }
+  });
+});
 
 // Kick everything off
 $j(window).on('load', () => initPage());

@@ -85,6 +85,19 @@ function MonitorStream(monitorData) {
 
   this.player = '';
   this.setPlayer = function(p) {
+    if (-1 != p.indexOf('go2rtc')) {
+
+    } else if (-1 != p.indexOf('rtsp2web')) {
+      if (-1 != p.indexOf('_hls')) {
+        this.RTSP2WebType = 'HLS';
+      } else if (-1 != p.indexOf('_mse')) {
+        this.RTSP2WebType = 'MSE';
+      } else if (-1 != p.indexOf('_webrtc')) {
+        this.RTSP2WebType = 'WebRTC';
+      }
+    } else if (-1 != p.indexOf('janus')) {
+
+    }
     return this.player = p;
   };
 
@@ -256,7 +269,7 @@ function MonitorStream(monitorData) {
 
     $j('#volumeControls').hide();
 
-    if (this.Go2RTCEnabled && ((!this.player) || (-1 != this.player.indexOf('go2rtc')))) {
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
@@ -264,11 +277,14 @@ function MonitorStream(monitorData) {
         const stream = this.element = document.createElement('video-stream');
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
+        stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
+        this.currentChannelStream = (streamChannel == 'default') ? 0 : streamChannel;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
-        webrtcUrl.search = 'src='+this.id;
+        //webrtcUrl.search = 'src='+this.id;
+        webrtcUrl.search = 'src='+this.id+'_'+this.currentChannelStream;
         stream.src = webrtcUrl.href;
         const stream_container = old_stream.parentNode;
 
@@ -286,13 +302,14 @@ function MonitorStream(monitorData) {
         this.streamListenerBind();
 
         $j('#volumeControls').show();
+        if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
       }
     }
 
-    if (((!this.player) || (-1 !== this.player.indexOf('janus'))) && this.janusEnabled) {
+    if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -316,6 +333,7 @@ function MonitorStream(monitorData) {
       this.streamListenerBind();
       return;
     }
+
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
@@ -324,6 +342,9 @@ function MonitorStream(monitorData) {
           const stream_container = stream.parentNode;
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
+          new_stream.setAttribute("autoplay", "");
+          new_stream.setAttribute("muted", "");
+          new_stream.setAttribute("playsinline", "");
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
           stream_container.appendChild(new_stream);
@@ -336,7 +357,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (!streamChannel || streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
@@ -416,10 +437,14 @@ function MonitorStream(monitorData) {
   }; // this.start
 
   this.stop = function() {
+    const stream = this.getElement();
+    if (!stream) {
+      console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
+      return;
+    }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    if ( 1 ) {
-      const stream = this.getElement();
-      if (!stream) return;
+    //if ( 1 ) {
+    if (-1 === this.player.indexOf('rtsp2web')) {
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -438,9 +463,14 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (this.RTSP2WebEnabled) {
+    if (-1 !== this.player.indexOf('go2rtc')) {
+      if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
+        stream.ondisconnect();
+      }
+    } else if (-1 !== this.player.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
+        stream.srcObject = null;
         this.webrtc = null;
       }
       if (this.hls) {
@@ -466,12 +496,13 @@ function MonitorStream(monitorData) {
         this.mseSourceBuffer.addEventListener('updateend', onBufferRemoved, this);
         try {
           /*
-          Very, very rarely, on the MOTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
-          Possibly due to high CPU load, the browser does not have time to process.
+          Very, very rarely, on the MONTAGE PAGE THERE MAY BE AN ERROR OF THE TYPE: TypeError: Failed to execute 'remove' on 'SourceBuffer': The start provided (0) is outside the range (0, 0).
+          Possibly due to high CPU load, the browser does not have time to process or the "src" attribute was removed from the object.
           */
           this.mseSourceBuffer.remove(0, Infinity);
         } catch (e) {
           console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while cleaning Source Buffer for ID=${this.id}`, e);
+          reject(e);
         }
       }
 
@@ -498,6 +529,14 @@ function MonitorStream(monitorData) {
           this.mseStreamingStarted = false;
           this.mseSourceBuffer = null;
           this.MSEBufferCleared = true;
+        })
+        .catch((error) => {
+          console.warn(`${dateTimeToISOLocal(new Date())} An error occurred while stopMse() for ID=${this.id}`, error);
+          this.closeWebSocket();
+          this.mse = null;
+          this.mseStreamingStarted = false;
+          this.mseSourceBuffer = null;
+          this.MSEBufferCleared = true;
         });
   };
 
@@ -514,7 +553,7 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src) {
+    if (stream.src && -1 === this.player.indexOf('rtsp2web')) {
       stream.src = '';
     }
     this.stop();
@@ -1027,49 +1066,52 @@ function MonitorStream(monitorData) {
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
-    // We correct the lag from real time. Relevant for long viewing and network problems.
-    if (this.RTSP2WebType == 'MSE') {
-      const videoEl = document.getElementById("liveStream" + this.id);
-      if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-        const videoElCurrentTime = videoEl.currentTime; // Current time of playback
-        const currentTime = (Date.now() / 1000);
-        const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
-        const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
-        let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
-        if (delayCurrent < 0) {
-          //Possibly with high client CPU load. Cannot be negative.
-          this.streamStartTime = currentTime - bufferEndTime;
-          delayCurrent = 0;
-        }
-
-        $j('#delayValue'+this.id).text(delayCurrent);
-
-        // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
-        if (!videoEl.paused && deltaRealTime > 10) {
-          // Ability to scroll through the last buffered frames when paused.
-          if (bufferEndTime - videoElCurrentTime > 2.0) {
-            // Correcting a flow lag of more than X seconds from the end of the buffer
-            // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
-            //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
-            videoEl.currentTime = bufferEndTime - 0.1;
+    if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+    } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
+      // We correct the lag from real time. Relevant for long viewing and network problems.
+      if (this.RTSP2WebType == 'MSE') {
+        const videoEl = document.getElementById("liveStream" + this.id);
+        if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+          const videoElCurrentTime = videoEl.currentTime; // Current time of playback
+          const currentTime = (Date.now() / 1000);
+          const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
+          const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
+          let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
+          if (delayCurrent < 0) {
+            //Possibly with high client CPU load. Cannot be negative.
+            this.streamStartTime = currentTime - bufferEndTime;
+            delayCurrent = 0;
           }
-          if (deltaRealTime - bufferEndTime > 1.5) {
-            // Correcting the buffer end lag by more than X seconds from real time
-            console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
 
-            this.restart(this.currentChannelStream);
+          $j('#delayValue'+this.id).text(delayCurrent);
+
+          // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
+          if (!videoEl.paused && deltaRealTime > 10) {
+            // Ability to scroll through the last buffered frames when paused.
+            if (bufferEndTime - videoElCurrentTime > 2.0) {
+              // Correcting a flow lag of more than X seconds from the end of the buffer
+              // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
+              //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
+              videoEl.currentTime = bufferEndTime - 0.1;
+            }
+            if (deltaRealTime - bufferEndTime > 1.5) {
+              // Correcting the buffer end lag by more than X seconds from real time
+              console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
+
+              this.restart(this.currentChannelStream);
+            }
           }
+        } else if (!this.wsMSE && this.started) {
+          console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
+          this.restart(this.currentChannelStream);
         }
-      } else if (!this.wsMSE && this.started) {
-        console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
-        this.restart(this.currentChannelStream);
+      } else if (this.RTSP2WebType == 'WebRTC') {
+        if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+          console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
+          this.restart(this.currentChannelStream);
+        }
       }
-    } else if (this.RTSP2WebType == 'WebRTC') {
-      if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
-        console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
-        this.restart(this.currentChannelStream);
-      }
-    }
+    } // end if Go2RTC or RTSP2Web
   };
 
   this.statusQuery = function() {

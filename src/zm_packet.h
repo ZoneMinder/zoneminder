@@ -29,7 +29,9 @@
 #include <mutex>
 #include <vector>
 
+#if HAS_NLOHMANN_JSON
 #include <nlohmann/json.hpp>
+#endif
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -67,7 +69,9 @@ class ZMPacket {
   bool analyzed;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
+#if HAS_NLOHMANN_JSON
   nlohmann::json detections;
+#endif
 
  public:
   AVPacket *av_packet() { return packet.get(); }

@@ -108,8 +108,8 @@ class EventsController extends AppController {
 
     foreach ( $events as $key => $value ) {
       $EventObj = new ZM\Event($value['Event']);
-      if ($EventObj['MaxScoreFrameId'] == NULL) {
-        $EventObj['MaxScoreFrameId'] = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+      if ($EventObj->MaxScoreFrameId() == NULL) {
+        $events[$key]['Event']['MaxScoreFrameId'] = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       }
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
     }

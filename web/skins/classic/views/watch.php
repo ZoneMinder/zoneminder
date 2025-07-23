@@ -103,16 +103,12 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
-$hasHLS = false;
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if (($m->RTSP2WebEnabled() and $m->RTSP2WebType == 'HLS')) {
-    $hasHLS = true;
-  }
-  if ($hasPtzControls && $hasHLS) {
+  if ($hasPtzControls) {
     break;
   }
 }
@@ -319,8 +315,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
                   'rtsp2web_hls' => 'RTSP2Web HLS',
                 ]);
               } #
-              $player = $monitor->getStreamMode();
-
+              $player = ''; # Auto
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
@@ -528,14 +523,8 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
+  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
 <?php
-    if ($hasHLS) {
-      echo '<script src="'.cache_bust('js/hls-1.5.20/hls.min.js').'"></script>';
-    }
-    if ($monitorJanusUsed) {
-      echo '<script src="'.cache_bust('js/adapter.min.js').'"></script>';
-      echo '<script src="/javascript/janus/janus.js"></script>';
-    }
   } else {
     echo "There are no monitors to display\n";
   }

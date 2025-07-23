@@ -281,9 +281,11 @@ function MonitorStream(monitorData) {
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
+        this.currentChannelStream = (streamChannel == 'default') ? 0 : streamChannel;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
-        webrtcUrl.search = 'src='+this.id;
+        //webrtcUrl.search = 'src='+this.id;
+        webrtcUrl.search = 'src='+this.id+'_'+this.currentChannelStream;
         stream.src = webrtcUrl.href;
         const stream_container = old_stream.parentNode;
 

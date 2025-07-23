@@ -205,8 +205,8 @@ function getFrame(monId, time, last_Frame) {
   if ((!(monId in events_for_monitor)) || !events_for_monitor[monId].length) {
     //events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
     //if (!events_for_monitor[monId].length) {
-      //console.log("No events for monitor " + monId);
-      return;
+    //console.log("No events for monitor " + monId);
+    return;
     //}
   }
 
@@ -226,7 +226,7 @@ function getFrame(monId, time, last_Frame) {
     }
     if (Event) {
       console.log("Failed to find event for ", time, " but found it using linear search");
-      if(!findEventByTime(events_for_monitor[monId], time, true)) {
+      if (!findEventByTime(events_for_monitor[monId], time, true)) {
         for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
           const event_id = events_for_monitor[monId][i].Id;
           const e = events[event_id];
@@ -595,7 +595,7 @@ function drawGraph() {
   labbottom = parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px"; // This is positioning same as row labels below, but from bottom so 1-position
   labfont = labelpx + "px"; // set this like below row labels
 
-   // if we have no data to display don't do the slider itself
+  // if we have no data to display don't do the slider itself
   let sliderX = parseInt((currentTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
   if ( sliderX < 0 ) sliderX = 0;
   if ( sliderX + sliderWidth > cWidth ) sliderX = cWidth-sliderWidth-1;
@@ -638,7 +638,7 @@ function drawGraph() {
     scrubright.style.display = "inline-flex";
   }
 
-  /* Maybe this should be done in loadEvents and be per monitor 
+  /* Maybe this should be done in loadEvents and be per monitor
   if (events && ( Object.keys(events).length == 0 ) ) {
     ctx.font = "40px Georgia";
     ctx.globalAlpha = 1;
@@ -1072,17 +1072,17 @@ function changeFilters(e) {
   // Also, if StartDateTime <= or >= are changed, limit max duration to 24h
 
   if (minStartDateTimeElement && maxStartDateTimeElement) {
-    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', { zone: ZM_TIMEZONE });
-    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', { zone: ZM_TIMEZONE });
+    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
+    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
 
     if (this === minStartDateTimeElement) {
       if (minStartDateTime > maxStartDateTime) {
-        maxStartDateTime = minStartDateTime.plus({hours:1}); // Maybe leave a gap?
+        maxStartDateTime = minStartDateTime.plus({hours: 1}); // Maybe leave a gap?
         maxStartDateTimeElement.value = minStartDateTimeElement.value;
       } else {
         const diff = maxStartDateTime.diff(minStartDateTime, 'seconds').toObject();
         if (diff.seconds > 86400) { // 1 day
-          maxStartDateTime = minStartDateTime.plus({days:1});
+          maxStartDateTime = minStartDateTime.plus({days: 1});
           maxStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
         }
       }
@@ -1093,7 +1093,7 @@ function changeFilters(e) {
       } else {
         const diff = minStartDateTime.diff(maxStartDateTime).toObject();
         if (diff.milliseconds > 86400*1000) { // 1 day
-          minStartDateTime = maxStartDateTime.plus({days:-1});
+          minStartDateTime = maxStartDateTime.plus({days: -1});
           minStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
         }
       }
@@ -1277,12 +1277,12 @@ function initPage() {
 
     const monId = monitorPtr[i];
     if (!monId) continue;
-    let canvasObj = monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
+    const canvasObj = monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
       continue;
     }
-    let canvasCtx = monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
+    monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
     const imageObject = monitorImageObject[monId] = new Image();
     imageObject.monId = monId;
     imageObject.onload = function() {

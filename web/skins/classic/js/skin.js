@@ -1295,7 +1295,11 @@ function thisClickOnStreamObject(clickObj) {
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
-  } else return false;
+  } else {
+    // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
+    if (clickObj.closest('video-stream')) return true;
+  };
+  return false;
 }
 
 /* For mobile device Not implemented yet. */

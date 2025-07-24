@@ -263,7 +263,14 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
+  /*
+  * streamChannel = 0 || Primary; 1 || Secondary.
+  */
   this.start = function(streamChannel = 'default') {
+    if (streamChannel === null || streamChannel === '') streamChannel = 'default';
+    if (!['default', 0, 1].includes(streamChannel)) {
+      streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
+    }
     this.streamListenerBind = streamListener.bind(null, this);
 
     console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));

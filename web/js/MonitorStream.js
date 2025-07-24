@@ -473,7 +473,11 @@ function MonitorStream(monitorData) {
     this.started = false;
     if (-1 !== this.player.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
-        stream.ondisconnect();
+        try {
+          stream.ondisconnect();
+        } catch (e) {
+          console.warn(e);
+        }
       }
     } else if (-1 !== this.player.indexOf('rtsp2web')) {
       if (this.webrtc) {

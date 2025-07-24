@@ -836,6 +836,9 @@ function streamStart(monitor = null) {
 
   monitorStream.setPlayer(player);
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  // Managing the visibility of elements
+  manageStreamQualityVisibility();
+
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
@@ -861,9 +864,6 @@ function streamStart(monitor = null) {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
   }
-
-  // Managing the visibility of elements
-  manageStreamQualityVisibility();
 }
 
 function streamReStart(oldId, newId) {
@@ -905,22 +905,27 @@ function streamReStart(oldId, newId) {
 
   table.bootstrapTable('destroy');
   applyMonitorControllable();
+  manageChannelStream();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
-  manageRTSP2WebChannelStream();
-  manageStreamQualityVisibility();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
 function manageStreamQualityVisibility() {
   const streamQuality = document.getElementById('streamQuality');
+  const streamChannel = document.getElementById('streamChannel');
   const rateControl = document.getElementById('rateControl');
 
   if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream)
+    // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
+    if (streamChannel.options[streamChannel.selectedIndex].disabled) {
+      streamChannelValue = 'Primary';
+    }
     streamChannel.classList.remove("hidden-shift");
     streamQuality.classList.add("hidden-shift");
-    streamChannel.value = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream);
+    streamChannel.value = streamChannelValue;
     rateControl.classList.add("hidden-shift");
   } else {
     streamQuality.classList.remove("hidden-shift");
@@ -1094,8 +1099,7 @@ function initPage() {
     alert("No monitor found for id "+monitorId);
   }
 
-
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 } // initPage
 
 function watchFullscreen() {

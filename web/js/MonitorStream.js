@@ -100,6 +100,46 @@ function MonitorStream(monitorData) {
     return this.player = p;
   };
 
+  this.manageAvailablePlayersOptions = function(action, opt) {
+    const titleOption = "The player is disabled in the monitor settings."
+    if (action == 'disable') {
+      opt.setAttribute('disabled', '');
+      opt.setAttribute('title', titleOption);
+    } else if (action == 'enable') {
+      opt.removeAttribute('disabled');
+      opt.removeAttribute('title');
+    }
+  }
+
+  this.manageAvailablePlayers = function() {
+    const selectPlayers = document.querySelector('[id="player"][name="codec"]');
+    const opts = selectPlayers.options;
+
+    for (var opt, j = 0; opt = opts[j]; j++) {
+      if (-1 !== opt.value.indexOf('go2rtc')) {
+        if (this.Go2RTCEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      } else if (-1 !== opt.value.indexOf('rtsp2web')) {
+        if (this.RTSP2WebEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      }
+    }
+    if (selectPlayers.options[selectPlayers.selectedIndex].value == '') {
+      // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
+      selectPlayers.value = getCookie('zmWatchPlayer');
+    }
+    if (selectPlayers.options[selectPlayers.selectedIndex].disabled) {
+      // Selected player is not available for the current monitor
+      selectPlayers.value = ''; // Auto
+    }
+  }
+
   this.element = null;
   this.getElement = function() {
     if (this.element) return this.element;

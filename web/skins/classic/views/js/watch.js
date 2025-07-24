@@ -839,7 +839,7 @@ function streamStart(monitor = null) {
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start();
+  monitorStream.start(document.getElementById('streamChannel').value);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {
@@ -863,19 +863,7 @@ function streamStart(monitor = null) {
   }
 
   // Managing the visibility of elements
-  const streamChannel = document.getElementById('streamChannel');
-  const streamQuality = document.getElementById('streamQuality');
-  const rateControl = document.getElementById('rateControl');
-  if (currentMonitor.RTSP2WebEnabled) {
-    streamChannel.classList.remove("hidden-shift");
-    streamQuality.classList.add("hidden-shift");
-    streamChannel.value = currentMonitor.RTSP2WebStream;
-    rateControl.classList.add("hidden-shift");
-  } else {
-    streamQuality.classList.remove("hidden-shift");
-    streamChannel.classList.add("hidden-shift");
-    rateControl.classList.remove("hidden-shift");
-  }
+  manageStreamQualityVisibility();
 }
 
 function streamReStart(oldId, newId) {
@@ -921,7 +909,24 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   manageRTSP2WebChannelStream();
+  manageStreamQualityVisibility();
   //document.getElementById('monitor').classList.remove('hidden-shift');
+}
+
+function manageStreamQualityVisibility() {
+  const streamQuality = document.getElementById('streamQuality');
+  const rateControl = document.getElementById('rateControl');
+
+  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
+    streamChannel.classList.remove("hidden-shift");
+    streamQuality.classList.add("hidden-shift");
+    streamChannel.value = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream);
+    rateControl.classList.add("hidden-shift");
+  } else {
+    streamQuality.classList.remove("hidden-shift");
+    streamChannel.classList.add("hidden-shift");
+    rateControl.classList.remove("hidden-shift");
+  }
 }
 
 function applyMonitorControllable() {
@@ -1291,10 +1296,13 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
-  if (currentMonitor.RTSP2WebEnabled) {
+  //if (currentMonitor.RTSP2WebEnabled) {
+  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
     streamCmdStop(true);
+    const streamChannel = $j('#streamChannel').val();
+    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
-      monitorStream.start(($j('#streamChannel').val() == "Primary") ? 0 : 1);
+      monitorStream.start(streamChannel);
       onPlay();
     }, 300);
   }
@@ -1307,6 +1315,7 @@ function changePlayer() {
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
+  manageStreamQualityVisibility();
   streamCmdPlay(true);
   return;
 

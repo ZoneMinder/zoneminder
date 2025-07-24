@@ -1076,6 +1076,8 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           $od_options['speedai'] = 'Untether SpeedAI';
         if (defined('HAVE_QUADRA'))
           $od_options['quadra'] = 'NetInt Quadra';
+        if (defined('HAVE_MEMX'))
+          $od_options['memx'] = 'MemryX MX3';
 
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
 ?>
@@ -1088,7 +1090,10 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
           $model = basename($model);
           $extension = pathinfo($model, PATHINFO_EXTENSION);
-          if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
+          if ($extension == 'dfp' and defined('HAVE_MEMX')) {
+            if (!isset($models['memx'])) $models['memx'] = [];
+            $models['memx'][$model] = $model;
+          } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
             if (!isset($models['speedai'])) $models['speedai'] = [];
             $models['speedai'][$model] = $model;
           } else if ($extension == 'nb' and defined('HAVE_QUADRA')) {

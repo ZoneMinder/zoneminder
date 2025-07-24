@@ -497,7 +497,7 @@ function initPage() {
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
 
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 } // end function initPage()
 
 function saveMonitorData(href = '') {

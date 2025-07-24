@@ -918,7 +918,7 @@ function manageStreamQualityVisibility() {
   const rateControl = document.getElementById('rateControl');
 
   if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream)
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
     if (streamChannel.options[streamChannel.selectedIndex].disabled) {
       streamChannelValue = 'Primary';

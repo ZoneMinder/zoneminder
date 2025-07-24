@@ -175,7 +175,6 @@ if ( !isset($scales[$scale])) {
 $options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 $streamQualitySelected = '0';
-# TODO input validation on streamquality
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
 } else if (isset($_COOKIE['zmStreamQuality'])) {
@@ -183,6 +182,17 @@ if (isset($_REQUEST['streamQuality'])) {
 } else if (isset($_SESSION['zmStreamQuality']) ) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
+$streamQualitySelected = validHtmlStr($streamQualitySelected);
+
+$streamChannelSelected = $monitor->RTSP2WebStream();
+if (isset($_REQUEST['streamChannel'])) {
+  $streamChannelSelected = $_REQUEST['streamChannel'];
+} else if (isset($_COOKIE['zmStreamChannel'])) {
+  $streamChannelSelected = $_COOKIE['zmStreamChannel'];
+} else if (isset($_SESSION['zmStreamChannel']) ) {
+  $streamChannelSelected = $_SESSION['zmStreamChannel'];
+}
+$streamChannelSelected = validHtmlStr($streamChannelSelected);
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
@@ -293,7 +303,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $streamChannelSelected, array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
           ?>
         </span>

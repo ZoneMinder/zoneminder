@@ -224,8 +224,11 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
  * out_packet corresponds to the image that the results are against.
  */
 int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
+  SystemTimePoint starttime = std::chrono::system_clock::now();
   /* pull filtered frames from the filtergraph */
   int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx.out_tensor);
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  Debug(1, "*** AI inference took %.2f seconds ***",FPSeconds(endtime-starttime).count());
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
     Error("Error when getting output %d", ret);
     return -1;

@@ -5892,8 +5892,9 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
   }
-  int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
-  if (size !=new_size) {
+
+  unsigned int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  if (size != new_size) {
     Debug(4, "Old size: %d, New size: %d new pixelformat %d", size, new_size, new_pixelformat);
     size = new_size;
   }

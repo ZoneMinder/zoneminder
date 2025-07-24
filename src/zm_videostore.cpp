@@ -78,6 +78,7 @@ VideoStore::VideoStore(
   opkt = av_packet_ptr{av_packet_alloc()};
 }  // VideoStore::VideoStore
 
+/* Failure to open audio will not be a total failure. */
 bool VideoStore::open() {
   Debug(1, "Opening video storage stream %s format: %s", filename, format);
 
@@ -427,21 +428,17 @@ bool VideoStore::open() {
         // if the codec is already open, nothing is done.
         if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
           Error("Can't open audio in codec!");
-          return false;
-        }
+        } else {
+          audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
+          if (!audio_out_ctx) {
+            Error("could not allocate codec ctx for AAC");
+          } else {
+            audio_out_stream = avformat_new_stream(oc, audio_out_codec);
+            audio_out_stream->time_base = audio_in_stream->time_base;
 
-        audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
-        if (!audio_out_ctx) {
-          Error("could not allocate codec ctx for AAC");
-          return false;
-        }
-
-        audio_out_stream = avformat_new_stream(oc, audio_out_codec);
-        audio_out_stream->time_base = audio_in_stream->time_base;
-
-        if (!setup_resampler()) {
-          return false;
-        }
+            setup_resampler();
+          } // end fail to alloc audio_out_ctx
+        } // codec opened
       }  // end if found AAC codec
     } else {
       Debug(2, "Got AAC");
@@ -451,39 +448,47 @@ bool VideoStore::open() {
       audio_out_stream = avformat_new_stream(oc, audio_out_codec);
       if (!audio_out_stream) {
         Error("Could not allocate new stream");
-        return false;
-      }
-      audio_out_stream->time_base = audio_in_stream->time_base;
+      } else {
+        audio_out_stream->time_base = audio_in_stream->time_base;
 
-      // Just use the ctx to copy the parameters over
-      audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
-      if (!audio_out_ctx) {
-        Error("Could not allocate new output_context");
-        return false;
-      }
+        // Just use the ctx to copy the parameters over
+        audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
+        if (!audio_out_ctx) {
+          Error("Could not allocate new output_context");
+        } else {
 
-      // Copy params from instream to ctx
-      ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
-      if (ret < 0) {
-        Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
-      }
-      ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
-      if (ret < 0) {
-        Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
-      }
+          // Copy params from instream to ctx
+          ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
+          if (ret < 0) {
+            Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
+          }
+          ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
+          if (ret < 0) {
+            Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
+          }
 
       audio_out_ctx->codec_tag = 0;
       audio_out_stream->codecpar->codec_tag = 0;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+          /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
+#else
+          if (audio_out_ctx->channels > 1) {
+            Warning("Audio isn't mono, changing it.");
+            audio_out_ctx->channels = 1;
+          } else {
+            Debug(3, "Audio is mono");
+          }
+#endif
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+          }
+         
+          // We will assume that subsequent stream allocations will increase the index
+          max_stream_index = audio_out_stream->index;
+          last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+        } // end if audio_out_ctx
+      } // end if audio_out_stream
     } // end if is AAC
-
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    }
-
-    // We will assume that subsequent stream allocations will increase the index
-    max_stream_index = audio_out_stream->index;
-    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
-    reorder_queues[audio_out_stream->index] = {};
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -829,7 +834,6 @@ bool VideoStore::setup_resampler() {
     for (i = 0; i < num_samplerates; i++)
       if (audio_out_ctx->sample_rate == supported_samplerates[i])
         break;
-
     if (i == num_samplerates) {
       Debug(1, "Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
 
@@ -837,7 +841,7 @@ bool VideoStore::setup_resampler() {
       for (int p = 0; supported_samplerates[p]; p++)
         Debug(1, "  %d\n", supported_samplerates[p]);
 
-      return AVERROR(EINVAL);
+      audio_out_ctx->sample_rate = supported_samplerates[0];
     }
   }
 #else

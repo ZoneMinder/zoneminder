@@ -584,7 +584,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet);
   }
-#if HAS_NLOHMANN_JSON
+#if ZM_HAS_NLOHMANN_JSON
   if (packet->detections.size()) {
     std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
     dbQueue.push(std::move(sql));

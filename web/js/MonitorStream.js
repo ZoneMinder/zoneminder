@@ -101,7 +101,7 @@ function MonitorStream(monitorData) {
   };
 
   this.manageAvailablePlayersOptions = function(action, opt) {
-    const titleOption = "The player is disabled in the monitor settings."
+    const titleOption = "The player is disabled in the monitor settings.";
     if (action == 'disable') {
       opt.setAttribute('disabled', '');
       opt.setAttribute('title', titleOption);
@@ -109,7 +109,7 @@ function MonitorStream(monitorData) {
       opt.removeAttribute('disabled');
       opt.removeAttribute('title');
     }
-  }
+  };
 
   this.manageAvailablePlayers = function() {
     const selectPlayers = document.querySelector('[id="player"][name="codec"]');
@@ -138,7 +138,7 @@ function MonitorStream(monitorData) {
       // Selected player is not available for the current monitor
       selectPlayers.value = ''; // Auto
     }
-  }
+  };
 
   this.element = null;
   this.getElement = function() {

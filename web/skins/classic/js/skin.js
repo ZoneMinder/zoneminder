@@ -1081,7 +1081,7 @@ function manageShutdownBtns(element) {
 }
 
 /* Controls the availability of options for selection*/
-function manageRTSP2WebChannelStream() {
+function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
@@ -1721,7 +1721,7 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
 /* Handling <input> change */
 function handleChangeInputTag(evt) {
   // Managing availability of channel stream selection
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 }
 
 /* Handling a mouse click */

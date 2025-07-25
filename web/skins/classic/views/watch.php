@@ -175,7 +175,6 @@ if ( !isset($scales[$scale])) {
 $options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 $streamQualitySelected = '0';
-# TODO input validation on streamquality
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
 } else if (isset($_COOKIE['zmStreamQuality'])) {
@@ -183,6 +182,17 @@ if (isset($_REQUEST['streamQuality'])) {
 } else if (isset($_SESSION['zmStreamQuality']) ) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
+$streamQualitySelected = validHtmlStr($streamQualitySelected);
+
+$streamChannelSelected = $monitor->RTSP2WebStream();
+if (isset($_REQUEST['streamChannel'])) {
+  $streamChannelSelected = $_REQUEST['streamChannel'];
+} else if (isset($_COOKIE['zmStreamChannel'])) {
+  $streamChannelSelected = $_COOKIE['zmStreamChannel'];
+} else if (isset($_SESSION['zmStreamChannel']) ) {
+  $streamChannelSelected = $_SESSION['zmStreamChannel'];
+}
+$streamChannelSelected = validHtmlStr($streamChannelSelected);
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
@@ -301,20 +311,13 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
           <label for="player"><?php echo translate('Player') ?></label>
 <?php 
               $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
-              if ($monitor->Go2RTCEnabled()) {
-                $players['go2rtc'] = 'Go2RTC Auto';
-                $players['go2rtc_webrtc'] = 'Go2RTC WEBRTC';
-                $players['go2rtc_mse'] = 'Go2RTC MSE';
-                $players['go2rtc_hls'] = 'Go2RTC HLS';
-              }
-
-              if ($monitor->RTSP2WebEnabled()) {
-                $players = array_merge($players,[
-                  'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
-                  'rtsp2web_mse' => 'RTSP2Web MSE',
-                  'rtsp2web_hls' => 'RTSP2Web HLS',
-                ]);
-              } #
+              $players['go2rtc'] = 'Go2RTC Auto';
+              $players['go2rtc_webrtc'] = 'Go2RTC WEBRTC';
+              $players['go2rtc_mse'] = 'Go2RTC MSE';
+              $players['go2rtc_hls'] = 'Go2RTC HLS';
+              $players['rtsp2web_webrtc'] = 'RTSP2Web WEBRTC';
+              $players['rtsp2web_mse'] = 'RTSP2Web MSE';
+              $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $player = ''; # Auto
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);

@@ -917,8 +917,7 @@ function setChannelStream() {
   manageChannelStream();
 
   if (-1 === monitorStream.activePlayer.indexOf('zms')) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath
-);
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
     streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
 

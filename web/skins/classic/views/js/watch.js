@@ -1329,14 +1329,16 @@ function changePlayer() {
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
   setChannelStream();
-  streamCmdPlay(true);
-  manageStreamQualityVisibility();
-  return;
+  setTimeout(function() {
+    streamCmdPlay(true);
+    manageStreamQualityVisibility();
+  }, 300);
+  /*return;
 
   setTimeout(function() {
     monitorStream.start();
     onPlay();
-  }, 300);
+  }, 300);*/
 }
 
 function monitorsSetScale(id=null) {

@@ -943,6 +943,7 @@ function manageStreamQualityVisibility() {
     streamChannel.classList.add("hidden-shift");
     rateControl.classList.remove("hidden-shift");
   }
+  applyChosen();
 }
 
 function applyMonitorControllable() {

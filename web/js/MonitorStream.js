@@ -102,10 +102,9 @@ function MonitorStream(monitorData) {
   };
 
   this.manageAvailablePlayersOptions = function(action, opt) {
-    const titleOption = "The player is disabled in the monitor settings.";
     if (action == 'disable') {
       opt.setAttribute('disabled', '');
-      opt.setAttribute('title', titleOption);
+      opt.setAttribute('title', playerDisabledInMonitorSettings);
     } else if (action == 'enable') {
       opt.removeAttribute('disabled');
       opt.removeAttribute('title');

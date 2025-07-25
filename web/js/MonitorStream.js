@@ -139,7 +139,7 @@ function MonitorStream(monitorData) {
       // Selected player is not available for the current monitor
       selectPlayers.value = ''; // Auto
     }
-    this.player = selectPlayers.value
+    this.player = selectPlayers.value;
   };
 
   this.element = null;

@@ -834,11 +834,10 @@ function streamStart(monitor = null) {
   monitorStream.setup_volume(document.getElementById('volume'));
   monitorStream.setup_mute(document.getElementById('mute'));
 
-  monitorStream.setPlayer(player);
+  monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
-  // Managing the visibility of elements
-  manageStreamQualityVisibility();
-
+  monitorStream.manageAvailablePlayers();
+  setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
@@ -864,6 +863,7 @@ function streamStart(monitor = null) {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
   }
+  manageStreamQualityVisibility(); // In order for the Auto mode AFTER the start to register the player value .activePlayer and based on this we select the correct "Stream quality", i.e. either the quality for ZMS, or the channel for go2rtc/RTSP2Web
 }
 
 function streamReStart(oldId, newId) {
@@ -905,11 +905,29 @@ function streamReStart(oldId, newId) {
 
   table.bootstrapTable('destroy');
   applyMonitorControllable();
-  manageChannelStream();
+  //manageChannelStream();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   //document.getElementById('monitor').classList.remove('hidden-shift');
+}
+
+function setChannelStream() {
+  const streamChannel = document.getElementById('streamChannel');
+  manageChannelStream();
+
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath
+);
+    // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
+    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+
+    if (streamChannel.options[streamChannel.selectedIndex].disabled) {
+      streamChannelValue = 'Primary';
+    }
+    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    streamChannel.value = streamChannelValue;
+  }
 }
 
 function manageStreamQualityVisibility() {
@@ -917,15 +935,9 @@ function manageStreamQualityVisibility() {
   const streamChannel = document.getElementById('streamChannel');
   const rateControl = document.getElementById('rateControl');
 
-  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream);
-    // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
-    if (streamChannel.options[streamChannel.selectedIndex].disabled) {
-      streamChannelValue = 'Primary';
-    }
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
     streamChannel.classList.remove("hidden-shift");
     streamQuality.classList.add("hidden-shift");
-    streamChannel.value = streamChannelValue;
     rateControl.classList.add("hidden-shift");
   } else {
     streamQuality.classList.remove("hidden-shift");
@@ -1098,8 +1110,6 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
-
-  manageChannelStream();
 } // initPage
 
 function watchFullscreen() {
@@ -1319,8 +1329,9 @@ function changePlayer() {
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
-  manageStreamQualityVisibility();
+  setChannelStream();
   streamCmdPlay(true);
+  manageStreamQualityVisibility();
   return;
 
   setTimeout(function() {

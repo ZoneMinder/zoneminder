@@ -374,11 +374,7 @@ function setRatioForMonitor(objStream, id=null) {
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    if (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) {
-      objStream.style['height'] = height + 'px';
-    } else {
-      objStream.style['height'] = 'auto';
-    }
+    objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
 }

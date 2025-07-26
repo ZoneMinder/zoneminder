@@ -205,9 +205,17 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
 }
 
+#sizeControl > span {
+  white-space: nowrap;
+  line-height: 36px;
+}
+
 /* +++ Support for old ZoomPan algorithm */
 .form-check.control-use-old-zoom-pan {
   display: inline-block;
+  line-height: 32px;
+  white-space: nowrap;
+  top: 8px;
 }
 #headerButtons .form-check.control-use-old-zoom-pan input.form-check-input {
   margin-left: -1.0rem;

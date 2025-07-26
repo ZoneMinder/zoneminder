@@ -271,6 +271,14 @@ echo getNavBarHTML() ?>
 >
             <span class="material-icons md-18">open_with</span>
         </button>
+      </div>
+      <div class="form-check control-use-old-zoom-pan">
+        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
+        <label class="form-check-label" for="use-old-zoom-pan">
+          <?php echo translate('Use old ZoomPan') ?>
+        </label>
+      </div>
+      <div id="sizeControl">
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
           <?php
@@ -285,17 +293,9 @@ $maxfps_options = array(''=>translate('Unlimited'),
   '15' => '15 '.translate('FPS'),
   '20' => '20 '.translate('FPS'),
 );
-echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'chosen']);
 ?>
         </span>
-      </div>
-      <div class="form-check control-use-old-zoom-pan">
-        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
-        <label class="form-check-label" for="use-old-zoom-pan">
-          <?php echo translate('Use old ZoomPan') ?>
-        </label>
-      </div>
-      <div id="sizeControl">
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
           <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
@@ -303,8 +303,8 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $streamChannelSelected, array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
-              echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
+              echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen'));
           ?>
         </span>
         <span id="playerControl">
@@ -324,7 +324,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
                 $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
               }
-              echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player'));
+              echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
 ?>
         </span>
 

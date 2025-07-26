@@ -921,7 +921,7 @@ function setChannelStream() {
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
     streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
 
-    if (streamChannel.options[streamChannel.selectedIndex].disabled) {
+    if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
       streamChannelValue = 'Primary';
     }
     monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;

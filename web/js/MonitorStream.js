@@ -130,13 +130,20 @@ function MonitorStream(monitorData) {
         }
       }
     }
-    if (selectPlayers.options[selectPlayers.selectedIndex].value == '') {
-      // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
-      selectPlayers.value = getCookie('zmWatchPlayer');
-    }
-    if (selectPlayers.options[selectPlayers.selectedIndex].disabled) {
-      // Selected player is not available for the current monitor
-      selectPlayers.value = ''; // Auto
+    let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+    if (selectedPlayerOption) {
+      if (selectedPlayerOption.value == '') {
+        // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
+        const zmWatchPlayer = getCookie('zmWatchPlayer');
+        if (zmWatchPlayer) {
+          selectPlayers.value = zmWatchPlayer;
+          selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+        }
+      }
+      if (selectedPlayerOption && selectedPlayerOption.disabled) {
+        // Selected player is not available for the current monitor
+        selectPlayers.value = ''; // Auto
+      }
     }
     this.player = selectPlayers.value;
   };

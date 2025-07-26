@@ -391,8 +391,7 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  // Find first video stream present
-  // The one we want Might not be the first
+  // Find first video stream present, the one we want Might not be the first
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
@@ -408,13 +407,13 @@ int FfmpegCamera::OpenFfmpeg() {
         mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
-	if (stream->codecpar->width == width and stream->codecpar->height == height) {
-		Debug(1, "Choosing alternate video stream because it matches our resolution.");
-		mVideoStreamId = i;
-		mVideoStream = stream;
-	} else {
-		stream->discard = AVDISCARD_ALL;
-	}
+        if (stream->codecpar->width == width and stream->codecpar->height == height) {
+          Debug(1, "Choosing alternate video stream because it matches our resolution.");
+          mVideoStreamId = i;
+          mVideoStream = stream;
+        } else {
+          stream->discard = AVDISCARD_ALL;
+        }
       }
     } else if (is_audio_stream(stream)) {
       if (mAudioStreamId == -1) {
@@ -446,9 +445,9 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if (!mVideoCodec) {
+    // Try and get the codec from the codec context
     mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
     if (!mVideoCodec) {
-      // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
       return -1;
     }

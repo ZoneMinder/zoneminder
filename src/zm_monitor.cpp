@@ -2722,7 +2722,7 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
   std::string cause = "";
 
   if (!(packet->in_frame or packet->image)) {
-    Error("no image so skipping motion detection");
+    Debug(1, "no image so skipping motion detection");
     return std::make_pair(motion_score, cause);
   }  // end if has image
      

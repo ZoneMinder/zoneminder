@@ -99,6 +99,7 @@ if ( $basename == 'montage' ) {
 }
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
+  <link rel="stylesheet" href="js/noUiSlider/dist/nouislider.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -1597,6 +1598,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
+  'js/noUiSlider/dist/nouislider.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
@@ -1626,6 +1628,8 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script type="module" src="skins/<?php echo $skin ?>/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"></script>
+  <script type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
   </body>
 </html>
 <?php

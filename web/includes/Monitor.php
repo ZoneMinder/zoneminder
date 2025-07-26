@@ -1199,6 +1199,17 @@ class Monitor extends ZM_Object {
 ';
     } # end if showZones
     $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
+    $html .= '
+      <audio-motion id="audioVisualisation'.$this->Id().'" class="audio-visualisation">
+        <div id="audiControlPanel'.$this->Id().'" class="audio-control-panel">
+          <input id="volumeControl'.$this->Id().'" type="range" min="0" max="100" step="1" style="display: none; "></input>
+          <div id="controlAudioVisualisation'.$this->Id().'" class="audio-control-mute">
+            <i id="controlMute'.$this->Id().'" class="material-icons md-22" data-on-click="clickControlMute">volume_off</i>
+          </div>
+          <div id="volumeSlider'.$this->Id().'" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+        </div>
+      </audio-motion>
+      ';
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();

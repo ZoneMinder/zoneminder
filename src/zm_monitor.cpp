@@ -2441,7 +2441,7 @@ int Monitor::Analyse() {
         shared_data->last_read_index = index;
         shared_data->analysis_image_count = analysis_image_count;
       } else if (objectdetection == OBJECT_DETECTION_NONE) {
-        if (1 and packet->analysis_image) {
+        if (packet->analysis_image) {
           analysis_image_buffer[index]->Assign(*packet->analysis_image);
           analysis_image_pixelformats[index] = packet->analysis_image->AVPixFormat();
           Debug(1, "image format %d, for index %d", analysis_image_pixelformats[index], index);
@@ -2456,7 +2456,7 @@ int Monitor::Analyse() {
           analysis_image_buffer[index]->Assign(packet->out_frame.get());
           analysis_image_pixelformats[index] = static_cast<AVPixelFormat>(packet->out_frame->format);
         } else {
-          Error( "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
+          Debug(1, "Unable to find an image to assign for index %d packet %d", index, packet->image_index);
         }
         shared_analysis_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
         shared_data->last_analysis_index = index;

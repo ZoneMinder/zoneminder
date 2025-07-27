@@ -487,6 +487,7 @@ $SLANG = array(
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'PlayCycle'             => 'Play Cycle',
+    'PlayerDisabledInMonitorSettings'  => 'The player is disabled in the monitor settings.',
     'PleaseWait'            => 'Please Wait',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',

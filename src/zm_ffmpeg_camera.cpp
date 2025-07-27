@@ -339,8 +339,7 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  // Find first video stream present
-  // The one we want Might not be the first
+  // Find first video stream present, the one we want Might not be the first
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {

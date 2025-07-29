@@ -452,14 +452,11 @@ $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
 $muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
   ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
 ZM\Debug("Muted $muted");
-
 ?>
-    <span id="volumeControls" class="volume">
-      <button id="mute" class="muteBtn" <?php $muted ? 'class="avail"' : '' ?>>
-        <i class="material-icons md-18">volume_<?php echo $muted ? 'off' : 'up' ?></i>
-      </button>
-      <progress id="volume" value="<?php echo $volume; ?>" min="0" max="100"></progress>
-    </span>
+            <span id="volumeControls" class="volume">
+              <div id="volumeSlider" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </span>
           </div>
         </div><!-- id="wrapperMonitor" -->
 

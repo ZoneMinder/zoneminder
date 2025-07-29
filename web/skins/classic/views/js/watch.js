@@ -831,8 +831,6 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
-  monitorStream.setup_volume(document.getElementById('volume'));
-  monitorStream.setup_mute(document.getElementById('mute'));
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));

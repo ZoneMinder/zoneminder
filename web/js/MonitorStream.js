@@ -777,7 +777,7 @@ function MonitorStream(monitorData) {
     const audioStream = this.getAudioStraem(mid);
     if (!volumeSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy(); // This is probably unnecessary...
+    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
     $j('#volumeControls').show();
     noUiSlider.create(volumeSlider, {
@@ -842,20 +842,6 @@ function MonitorStream(monitorData) {
     audioStream.addEventListener('volumechange', (event) => {
       this.listenerVolumechange(event);
     })
-    document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
-      el.addEventListener("click", function clickControlMute(event) {
-        let mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
-        if (!mid) return;
-        if (currentView == 'watch') {
-          monitorStream.controlMute('switch');
-        } else if (currentView == 'montage') {
-          const currentMonitor = monitors.find((o) => {
-            return parseInt(o["id"]) === mid;
-          });
-          currentMonitor.controlMute('switch');
-        }
-      });
-    });
   };
 
   /*

@@ -1349,6 +1349,65 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Style for <input> --- */
 
+/* +++ Volume сontrol +++ */
+.audio-control-mute {
+  position: relative;
+  cursor: pointer;
+  color: var(--colorBackgroundButtons);
+  /*color: #DDD;
+  float: right;
+  right: 3px;
+  margin: 5px;*/
+}
+
+.volumeSlider {
+  position: relative;
+  width: 80px;
+  display: inline-block;
+  margin: 0 10px 0 10px;
+  /*float: right;
+  right: 15px;
+  margin-top: 10px;*/
+}
+
+.noUi-target {
+  /*border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+}
+
+.noUi-base, .noUi-touch-area {
+  cursor: pointer;
+}
+
+.noUi-base .noUi-connect {
+  background: var(--colorBackgroundButtons);
+}
+
+.noUi-mute .noUi-connect {
+  background: #ccc;
+}
+
+.noUi-round {
+  height: 10px;
+}
+
+.noUi-handle:before, .noUi-handle:after {
+  height: 5px;
+}
+
+.noUi-round .noUi-connects {
+  /*background: #c0392b;*/
+}
+
+.noUi-round .noUi-handle {
+  height: 18px;
+  width: 18px;
+  top: -5px;
+  right: -9px; /* half the width */
+  border-radius: 9px;
+}
+/* --- Volume сontrol --- */
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

@@ -797,9 +797,6 @@ function MonitorStream(monitorData) {
     });
     volumeSlider.allowSetValue = true;
     volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
-      clearTimeout(volumeSlider.timeoutVolumeSliderUpdate);
-      volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
-
       audioStream.volume = values[0]/100;
       if (values[0] > 0 && !audioStream.muted) {
         iconMute.innerHTML = 'volume_up';
@@ -808,35 +805,31 @@ function MonitorStream(monitorData) {
         iconMute.innerHTML = 'volume_off';
         volumeSlider.classList.add('noUi-mute');
       }
-
-      volumeSlider.timeoutVolumeSliderUpdate = setTimeout(function() {
-        volumeSlider.allowSetValue = true;
-      }, 100);
+      //console.log("Audio volume slider event: 'update'");
     });
     volumeSlider.noUiSlider.on('end', function onEndUiSlider(values, handle) {
+      volumeSlider.allowSetValue = true;
       //console.log("Audio volume slider event: 'end'");
     });
     volumeSlider.noUiSlider.on('start', function onStartUiSlider(values, handle) {
+      volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
       //console.log("Audio volume slider event: 'start'");
     });
     volumeSlider.noUiSlider.on('set', function onSetUiSlider(values, handle) {
       //console.log("Audio volume slider event: 'set'");
     });
-    volumeSlider.noUiSlider.on('slide', function onSlideUiSlider() {
+    volumeSlider.noUiSlider.on('slide', function onSlideUiSlider(values, handle) {
       if (audioStream.volume > 0 && audioStream.muted) {
         iconMute.innerHTML = 'volume_up';
         audioStream.muted = false;
       }
+      //console.log("Audio volume slider event: 'slide'");
     });
 
-    if (volumeSlider.getAttribute("data-muted") !== 'true') {
+    if (volumeSlider.getAttribute("data-muted") !== "true") {
       this.controlMute('off');
-      audioStream.muted = false;
-      volumeSlider.classList.remove('noUi-mute');
     } else {
       this.controlMute('on');
-      audioStream.muted = true;
-      volumeSlider.classList.add('noUi-mute');
     }
 
     audioStream.addEventListener('volumechange', (event) => {
@@ -857,19 +850,22 @@ function MonitorStream(monitorData) {
       if (audioStream.muted) {
         audioStream.muted = false;
         iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.add('noUi-mute');
         audioStream.volume = volumeSlider.noUiSlider.get() / 100;
       } else {
         audioStream.muted = true;
         iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.remove('noUi-mute');
       }
     } else if (mode=='on') {
       audioStream.muted = true;
       iconMute.innerHTML = 'volume_off';
+      volumeSlider.classList.add('noUi-mute');
     } else if (mode=='off') {
       audioStream.muted = false;
       iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.remove('noUi-mute');
     }
-    volumeSlider.setAttribute('data-muted', audioStream.muted);
   }
 
   this.setStateClass = function(jobj, stateClass) {

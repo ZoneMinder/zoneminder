@@ -1,0 +1,10 @@
+.slider-styled,
+.slider-styled .noUi-handle {
+    box-shadow: none;
+}
+
+/* Hide markers on slider handles */
+.slider-styled .noUi-handle::before,
+.slider-styled .noUi-handle::after {
+    display: none;
+}

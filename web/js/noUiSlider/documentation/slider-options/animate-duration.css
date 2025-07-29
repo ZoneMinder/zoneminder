@@ -1,0 +1,5 @@
+#slider-slow.noUi-state-tap .noUi-connect,
+#slider-slow.noUi-state-tap .noUi-origin {
+    -webkit-transition: transform 1600ms;
+    transition: transform 1600ms;
+}

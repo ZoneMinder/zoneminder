@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "ES2015",
+    "lib": ["es5", "dom"],
+    "target": "es5",
+    "newLine": "LF",
+    "declaration": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "strictNullChecks": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

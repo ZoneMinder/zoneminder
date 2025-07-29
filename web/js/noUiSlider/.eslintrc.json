@@ -1,0 +1,25 @@
+{
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "rules": {
+        "no-unused-vars": "off",
+        "no-undef": "off",
+        "one-var": ["error", "never"],
+        "no-var": "off",
+        "no-console": "error",
+        "prefer-spread": "off",
+        "@typescript-eslint/no-explicit-any": "off"
+    },
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "amd": true
+    }
+}

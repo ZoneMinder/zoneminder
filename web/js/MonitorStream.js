@@ -547,6 +547,10 @@ function MonitorStream(monitorData) {
       if (this.RTSP2WebType == 'MSE') {
         this.stopMse();
       }
+    } else if (-1 !== this.player.indexOf('janus')) {
+      stream.src = '';
+      stream.srcObject = null;
+      janus = null;
     }
   };
 

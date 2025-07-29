@@ -318,6 +318,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_webrtc'] = 'RTSP2Web WEBRTC';
               $players['rtsp2web_mse'] = 'RTSP2Web MSE';
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
+              $players['janus'] = 'Janus';
               $player = ''; # Auto
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);

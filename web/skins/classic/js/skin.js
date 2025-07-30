@@ -2082,7 +2082,7 @@ function initPageGeneral() {
 
   document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
     el.addEventListener("click", function clickControlMute(event) {
-      let mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
+      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
       if (!mid) return;
       if (currentView == 'watch') {
         monitorStream.controlMute('switch');

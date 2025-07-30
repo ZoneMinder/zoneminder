@@ -754,7 +754,7 @@ function MonitorStream(monitorData) {
     // On Watch page icon has no ID, on Montage page it has ID
     return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+mid);
   };
-  
+
   this.getAudioStraem = function(mid) {
     /*
     Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,

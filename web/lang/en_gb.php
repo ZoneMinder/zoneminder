@@ -487,6 +487,7 @@ $SLANG = array(
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'PlayCycle'             => 'Play Cycle',
+    'PlayerDisabledInMonitorSettings'  => 'The player is disabled in the monitor settings.',
     'PleaseWait'            => 'Please Wait',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',
@@ -692,7 +693,7 @@ $SLANG = array(
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
     'no_nb' => 'Norwegian',
-
+  'option:router' => 'Gateway',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf

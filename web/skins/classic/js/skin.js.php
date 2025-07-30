@@ -36,6 +36,7 @@ const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
 const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
+const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,

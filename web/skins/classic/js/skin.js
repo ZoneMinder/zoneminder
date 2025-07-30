@@ -1081,7 +1081,7 @@ function manageShutdownBtns(element) {
 }
 
 /* Controls the availability of options for selection*/
-function manageRTSP2WebChannelStream() {
+function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
@@ -1262,14 +1262,14 @@ function applyChosen(selector = '') {
   var [obj_1, obj_2, obj_3] = '';
   destroyChosen(selector);
   if (typeof selector === 'string') {
-    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector + '.chosen.chosen-full-width');
-    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+    obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width').not('.hidden, .hidden-shift');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width').not('.hidden, .hidden-shift');
   } else {
     if (!$j(selector).hasClass('chosen')) return;
-    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
-    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+    obj_1 = $j(selector).not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-auto-width') ? $j(selector) : '';
   }
   if (obj_1) {
     obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
@@ -1721,7 +1721,7 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
 /* Handling <input> change */
 function handleChangeInputTag(evt) {
   // Managing availability of channel stream selection
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 }
 
 /* Handling a mouse click */

@@ -834,12 +834,14 @@ function streamStart(monitor = null) {
   monitorStream.setup_volume(document.getElementById('volume'));
   monitorStream.setup_mute(document.getElementById('mute'));
 
-  monitorStream.setPlayer(player);
+  monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream.manageAvailablePlayers();
+  setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start();
+  monitorStream.start(document.getElementById('streamChannel').value);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {
@@ -861,21 +863,7 @@ function streamStart(monitor = null) {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
   }
-
-  // Managing the visibility of elements
-  const streamChannel = document.getElementById('streamChannel');
-  const streamQuality = document.getElementById('streamQuality');
-  const rateControl = document.getElementById('rateControl');
-  if (currentMonitor.RTSP2WebEnabled) {
-    streamChannel.classList.remove("hidden-shift");
-    streamQuality.classList.add("hidden-shift");
-    streamChannel.value = currentMonitor.RTSP2WebStream;
-    rateControl.classList.add("hidden-shift");
-  } else {
-    streamQuality.classList.remove("hidden-shift");
-    streamChannel.classList.add("hidden-shift");
-    rateControl.classList.remove("hidden-shift");
-  }
+  manageStreamQualityVisibility(); // In order for the Auto mode AFTER the start to register the player value .activePlayer and based on this we select the correct "Stream quality", i.e. either the quality for ZMS, or the channel for go2rtc/RTSP2Web
 }
 
 function streamReStart(oldId, newId) {
@@ -917,11 +905,45 @@ function streamReStart(oldId, newId) {
 
   table.bootstrapTable('destroy');
   applyMonitorControllable();
+  //manageChannelStream();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
-  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
+}
+
+function setChannelStream() {
+  const streamChannel = document.getElementById('streamChannel');
+  manageChannelStream();
+
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
+    // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
+    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+
+    if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
+      streamChannelValue = 'Primary';
+    }
+    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    streamChannel.value = streamChannelValue;
+  }
+}
+
+function manageStreamQualityVisibility() {
+  const streamQuality = document.getElementById('streamQuality');
+  const streamChannel = document.getElementById('streamChannel');
+  const rateControl = document.getElementById('rateControl');
+
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
+    streamChannel.classList.remove("hidden-shift");
+    streamQuality.classList.add("hidden-shift");
+    rateControl.classList.add("hidden-shift");
+  } else {
+    streamQuality.classList.remove("hidden-shift");
+    streamChannel.classList.add("hidden-shift");
+    rateControl.classList.remove("hidden-shift");
+  }
+  applyChosen();
 }
 
 function applyMonitorControllable() {
@@ -1088,9 +1110,6 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
-
-
-  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {
@@ -1291,11 +1310,15 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
-  if (currentMonitor.RTSP2WebEnabled) {
+  //if (currentMonitor.RTSP2WebEnabled) {
+  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
     streamCmdStop(true);
+    const streamChannel = $j('#streamChannel').val();
+    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
-      monitorStream.start(($j('#streamChannel').val() == "Primary") ? 0 : 1);
+      monitorStream.start(streamChannel);
       onPlay();
+      monitorsSetScale(monitorId);
     }, 300);
   }
 }
@@ -1307,13 +1330,17 @@ function changePlayer() {
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
-  streamCmdPlay(true);
-  return;
+  setChannelStream();
+  setTimeout(function() {
+    streamCmdPlay(true);
+    manageStreamQualityVisibility();
+  }, 300);
+  /*return;
 
   setTimeout(function() {
     monitorStream.start();
     onPlay();
-  }, 300);
+  }, 300);*/
 }
 
 function monitorsSetScale(id=null) {

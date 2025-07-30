@@ -356,7 +356,9 @@ function MonitorStream(monitorData) {
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
-        document.querySelector('video').addEventListener('play', (e) => {this.createVolumeSlider();}, this);
+        document.querySelector('video').addEventListener('play', (e) => {
+          this.createVolumeSlider();
+        }, this);
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -373,7 +375,9 @@ function MonitorStream(monitorData) {
 
     if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
-      document.querySelector('video').addEventListener('play', (e) => {this.createVolumeSlider();}, this);
+      document.querySelector('video').addEventListener('play', (e) => {
+        this.createVolumeSlider();
+      }, this);
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
       } else if (this.server_id && Servers[this.server_id]) {
@@ -418,7 +422,9 @@ function MonitorStream(monitorData) {
         const useSSL = (url.protocol == 'https');
 
         const rtsp2webModUrl = url;
-        document.querySelector('video').addEventListener('play', (e) => {this.createVolumeSlider();}, this);
+        document.querySelector('video').addEventListener('play', (e) => {
+          this.createVolumeSlider();
+        }, this);
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
@@ -739,26 +745,26 @@ function MonitorStream(monitorData) {
     this.onplay = func;
   };
 
-  this.getVolumeSlider  = function(mid){
+  this.getVolumeSlider = function(mid) {
     // On Watch page slider has no ID, on Montage page it has ID
     return (document.getElementById('volumeSlider')) ? document.getElementById('volumeSlider') : document.getElementById('volumeSlider'+mid);
-  }
+  };
 
-  this.getIconMute  = function(mid){
+  this.getIconMute = function(mid) {
     // On Watch page icon has no ID, on Montage page it has ID
     return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+mid);
-  }
+  };
   
-  this.getAudioStraem  = function(mid){
+  this.getAudioStraem = function(mid) {
     /*
     Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
     RTSP2Web uses <video id='liveStreamXX'></video>
     This.getElement() may need to be changed, but the implications of such a change need to be analyzed
     */
     return (document.getElementById('liveStream'+mid).querySelector('video') || document.getElementById('liveStream'+mid));
-  }
+  };
 
-  this.listenerVolumechange = function(el){
+  this.listenerVolumechange = function(el) {
     // System audio level change
     const mid = this.id;
     const audioStream = el.target;
@@ -783,7 +789,7 @@ function MonitorStream(monitorData) {
   this.createVolumeSlider = function() {
     const mid = this.id;
     const volumeSlider = this.getVolumeSlider(mid);
-    const iconMute = this.getIconMute(mid);;
+    const iconMute = this.getIconMute(mid);
     const audioStream = this.getAudioStraem(mid);
     if (!volumeSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
@@ -844,7 +850,7 @@ function MonitorStream(monitorData) {
 
     audioStream.addEventListener('volumechange', (event) => {
       this.listenerVolumechange(event);
-    })
+    });
   };
 
   /*
@@ -854,7 +860,7 @@ function MonitorStream(monitorData) {
     const mid = this.id;
     const volumeSlider = this.getVolumeSlider(mid);
     const audioStream = this.getAudioStraem(mid);
-    const iconMute = this.getIconMute(mid);;
+    const iconMute = this.getIconMute(mid);
     if (!audioStream || !iconMute) return;
     if (mode=='switch') {
       if (audioStream.muted) {
@@ -876,7 +882,7 @@ function MonitorStream(monitorData) {
       iconMute.innerHTML = 'volume_up';
       volumeSlider.classList.remove('noUi-mute');
     }
-  }
+  };
 
   this.setStateClass = function(jobj, stateClass) {
     if (!jobj) {

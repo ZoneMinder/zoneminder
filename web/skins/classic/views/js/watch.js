@@ -1318,6 +1318,7 @@ function monitorChangeStreamChannel() {
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();
+      monitorsSetScale(monitorId);
     }, 300);
   }
 }

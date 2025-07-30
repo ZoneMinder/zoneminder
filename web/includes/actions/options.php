@@ -121,6 +121,10 @@ if ( $action == 'delete' ) {
           foreach ($value as $mac=>$ip) {
             $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
           }
+        } else if ($name == 'dhcp-option') {
+          foreach ($value as $option_name=>$option_value) {
+            $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
+          }
         } else if (
             ($name == 'bind-interfaces')
             or

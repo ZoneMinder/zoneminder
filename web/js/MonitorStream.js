@@ -128,6 +128,12 @@ function MonitorStream(monitorData) {
         } else {
           this.manageAvailablePlayersOptions('disable', opt);
         }
+      } else if (-1 !== opt.value.indexOf('janus')) {
+        if (this.janusEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
       }
     }
     let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];

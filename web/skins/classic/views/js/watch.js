@@ -1334,6 +1334,7 @@ function changePlayer() {
   setTimeout(function() {
     streamCmdPlay(true);
     manageStreamQualityVisibility();
+    monitorsSetScale(monitorId);
   }, 300);
   /*return;
 

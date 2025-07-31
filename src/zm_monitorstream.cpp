@@ -408,7 +408,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       float factor = 128.0/l_height;
       l_height = 128;
       l_width = floor(l_width * factor);
-      Debug(1, "Adjust height to 128 using factor %.2f", factor);
+      Debug(1, "Adjust height to min 128, width to %d using factor %.2f", l_width, factor);
     }
     l_width += (2-l_width)%2;
 
@@ -929,6 +929,10 @@ void MonitorStream::runStream() {
       continue;
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_decoder_index )
 
+    if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      break;
+    }
+
     FPSeconds sleep_time;
     if (now >= when_to_send_next_frame) {
       // sent a frame, so update
@@ -980,9 +984,6 @@ void MonitorStream::runStream() {
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
-      break;
-    }
-    if (frames_to_send > 0 && frame_count >= frames_to_send) {
       break;
     }
   } // end while ! zm_terminate

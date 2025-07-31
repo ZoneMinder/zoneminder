@@ -824,7 +824,6 @@ bool VideoStore::setup_resampler() {
     for (i = 0; i < num_samplerates; i++)
       if (audio_out_ctx->sample_rate == supported_samplerates[i])
         break;
-
     if (i == num_samplerates) {
       Debug(1, "Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
 

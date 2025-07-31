@@ -1853,7 +1853,7 @@ RESEND:
 	  ret = avcodec_receive_packet(p_jpegcodeccontext, pkt);
   }
   if (ret == 0) {
-    Debug(1, "receive_packet success");
+    Debug(1, "receive_packet success, pkt size is %u", pkt->size);
     memcpy(outbuffer, pkt->data, pkt->size);
     *outbuffer_size = pkt->size;
   } else {

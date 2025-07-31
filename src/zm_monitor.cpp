@@ -897,12 +897,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones,
 }
 
 bool Monitor::connect() {
-  ReloadZones();
-  if (zones.size() != zone_count) {
-    Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count,
-            zones.size());
-    zone_count = zones.size();
-  }
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");
   }
@@ -1136,6 +1130,12 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+    // Normally we trust ZoneCount in the monitor field.  In a healthy db it should be correct. 
+    ReloadZones();
+    if (zones.size() != zone_count) {
+      Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
+      zone_count = zones.size();
+    }
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);

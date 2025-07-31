@@ -11,6 +11,7 @@ WorkingDirectory=/opt/go2rtc
 # This first entry will get overwritten when you add streams and can get wiped out.  Place the permanent config in the second file
 ExecStart=/opt/go2rtc/go2rtc_linux_arm64 -c go2rtc.yaml -c /etc/zm/go2rtc.yaml
 Restart=always
+RuntimeMaxSec=1d
 RestartSec=10
 Environment=TZ=:/etc/localtime
 TimeoutSec=600

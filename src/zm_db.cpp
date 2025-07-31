@@ -138,6 +138,7 @@ MYSQL_RES *zmDbFetch(const std::string &query) {
   }
 
 
+  Debug(3, "Doing Fetch %s", query.c_str());
   int rc = mysql_query(&dbconn, query.c_str());
   if (rc) {
     std::string reason = mysql_error(&dbconn); // store for later because it will get clobbered by second attempt

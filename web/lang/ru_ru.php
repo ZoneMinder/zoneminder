@@ -832,7 +832,7 @@ $SLANG = array(
     'ZoomIn'               => 'Приблизить',
     'ZoomOut'              => 'Отдалить',
 // *********07-2022************************************ 
-    'Storage'		   => 'Хранилище',
+    'Storage'              => 'Хранилище',
     'Back'                 => 'Вернуться',
     'ParentGroup'          => 'Родительская группа',
     'FilterUnarchiveEvents' => 'Разархивировать все совпадения',
@@ -847,6 +847,7 @@ $SLANG = array(
     'PreviousMonitor'      => 'Предыдущий монитор',
     'PauseCycle'           => 'Приостановить цикл',
     'PlayCycle'            => 'Запуск цикла',
+    'PlayerDisabledInMonitorSettings'  => 'Этот плеер отключен в настройках монитора.',
     'NextMonitor'          => 'Следующий монитор',
     'Server'               => 'Сервер',
     'Servers'              => 'Сервера',

@@ -84,6 +84,7 @@ function MonitorStream(monitorData) {
   };
 
   this.player = '';
+  this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
 
@@ -99,6 +100,59 @@ function MonitorStream(monitorData) {
 
     }
     return this.player = p;
+  };
+
+  this.manageAvailablePlayersOptions = function(action, opt) {
+    if (action == 'disable') {
+      opt.setAttribute('disabled', '');
+      opt.setAttribute('title', playerDisabledInMonitorSettings);
+    } else if (action == 'enable') {
+      opt.removeAttribute('disabled');
+      opt.removeAttribute('title');
+    }
+  };
+
+  this.manageAvailablePlayers = function() {
+    const selectPlayers = document.querySelector('[id="player"][name="codec"]');
+    const opts = selectPlayers.options;
+
+    for (var opt, j = 0; opt = opts[j]; j++) {
+      if (-1 !== opt.value.indexOf('go2rtc')) {
+        if (this.Go2RTCEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      } else if (-1 !== opt.value.indexOf('rtsp2web')) {
+        if (this.RTSP2WebEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      } else if (-1 !== opt.value.indexOf('janus')) {
+        if (this.janusEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      }
+    }
+    let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+    if (selectedPlayerOption) {
+      if (selectedPlayerOption.value == '') {
+        // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
+        const zmWatchPlayer = getCookie('zmWatchPlayer');
+        if (zmWatchPlayer) {
+          selectPlayers.value = zmWatchPlayer;
+          selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+        }
+      }
+      if (selectedPlayerOption && selectedPlayerOption.disabled) {
+        // Selected player is not available for the current monitor
+        selectPlayers.value = ''; // Auto
+      }
+    }
+    this.player = selectPlayers.value;
   };
 
   this.element = null;
@@ -264,7 +318,14 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
+  /*
+  * streamChannel = 0 || Primary; 1 || Secondary.
+  */
   this.start = function(streamChannel = 'default') {
+    if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
+    if (!['default', 0, 1].includes(streamChannel)) {
+      streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
+    }
     this.streamListenerBind = streamListener.bind(null, this);
 
     $j('#volumeControls').hide();
@@ -280,7 +341,7 @@ function MonitorStream(monitorData) {
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
-        this.currentChannelStream = (streamChannel == 'default') ? 0 : streamChannel;
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
         //webrtcUrl.search = 'src='+this.id;
@@ -303,6 +364,7 @@ function MonitorStream(monitorData) {
 
         $j('#volumeControls').show();
         if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
+        this.activePlayer = 'go2rtc';
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
@@ -331,6 +393,7 @@ function MonitorStream(monitorData) {
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       this.started = true;
       this.streamListenerBind();
+      this.activePlayer = 'janus';
       return;
     }
 
@@ -375,16 +438,19 @@ function MonitorStream(monitorData) {
           } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
             stream.src = hlsUrl.href;
           }
+          this.activePlayer = 'rtsp2web_hls';
         } else if (this.RTSP2WebType == 'MSE') {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
+          this.activePlayer = 'rtsp2web_mse';
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
+          this.activePlayer = 'rtsp2web_webrtc';
         }
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -434,6 +500,7 @@ function MonitorStream(monitorData) {
     stream.onload = this.img_onload.bind(this);
     this.started = true;
     this.streamListenerBind();
+    this.activePlayer = 'zms';
   }; // this.start
 
   this.stop = function() {
@@ -465,11 +532,16 @@ function MonitorStream(monitorData) {
     this.started = false;
     if (-1 !== this.player.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
-        stream.ondisconnect();
+        try {
+          stream.ondisconnect();
+        } catch (e) {
+          console.warn(e);
+        }
       }
     } else if (-1 !== this.player.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
+        stream.src = '';
         stream.srcObject = null;
         this.webrtc = null;
       }
@@ -480,6 +552,10 @@ function MonitorStream(monitorData) {
       if (this.RTSP2WebType == 'MSE') {
         this.stopMse();
       }
+    } else if (-1 !== this.player.indexOf('janus')) {
+      stream.src = '';
+      stream.srcObject = null;
+      janus = null;
     }
   };
 
@@ -568,7 +644,7 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc') || -1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
@@ -583,10 +659,10 @@ function MonitorStream(monitorData) {
   };
 
   this.play = function() {
-    if (this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc'))) {
       this.element.play(); // go2rtc player will handle mute
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-    } else if (this.RTSP2WebEnabled) {
+    } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play().catch(() => {
         if (!this.element.muted) {
@@ -1458,13 +1534,13 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     });
     if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
     await stream.webrtc.setLocalDescription(offer);
-    console.log(stream.webrtc.localDescription.sdp);
+    //console.log(stream.webrtc.localDescription.sdp);
 
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
       if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
-        console.log(data);
+        //console.log(data);
         try {
           stream.webrtc.setRemoteDescription(new RTCSessionDescription({
             type: 'answer',

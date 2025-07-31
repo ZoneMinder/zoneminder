@@ -374,22 +374,39 @@ function initPage() {
 
   //Manage the RTSP2Web settings div
   const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
-  if (RTSP2WebEnabled) {
-    if (RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebType").hidden = false;
+  const Go2RTCEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  if (RTSP2WebEnabled || Go2RTCEnabled) {
+    if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
       document.getElementById("RTSP2WebStream").hidden = false;
     } else {
-      document.getElementById("RTSP2WebType").hidden = true;
       document.getElementById("RTSP2WebStream").hidden = true;
     }
 
-    RTSP2WebEnabled.addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("RTSP2WebType").hidden = false;
+    if (RTSP2WebEnabled.checked) {
+      document.getElementById("RTSP2WebType").hidden = false;
+    } else {
+      document.getElementById("RTSP2WebType").hidden = true;
+    }
+
+    Go2RTCEnabled.addEventListener('change', function() {
+      if (this.checked || RTSP2WebEnabled.checked) {
         document.getElementById("RTSP2WebStream").hidden = false;
       } else {
-        document.getElementById("RTSP2WebType").hidden = true;
         document.getElementById("RTSP2WebStream").hidden = true;
+      }
+    });
+
+    RTSP2WebEnabled.addEventListener('change', function() {
+      if (this.checked || Go2RTCEnabled.checked) {
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebStream").hidden = true;
+      }
+
+      if (this.checked) {
+        document.getElementById("RTSP2WebType").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebType").hidden = true;
       }
     });
   }
@@ -478,7 +495,7 @@ function initPage() {
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
 
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 } // end function initPage()
 
 function saveMonitorData(href = '') {

@@ -101,7 +101,10 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   std::string endpoint = Go2RTC_endpoint + "/streams?name="+std::to_string(parent->Id())+"&src="+UriEncode(rtsp_path);
   std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
-  if (response.first != CURLE_OK) return -1;
+  if (response.first != CURLE_OK) {
+    Debug(1, "Go2RTC response not ok");
+    return -1;
+  }
 
   endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_0", parent->Id())+"&src="+UriEncode(rtsp_path);
   postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";

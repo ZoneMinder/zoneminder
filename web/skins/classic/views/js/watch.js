@@ -1334,6 +1334,7 @@ function changePlayer() {
   setTimeout(function() {
     streamCmdPlay(true);
     manageStreamQualityVisibility();
+    monitorsSetScale(monitorId);
   }, 300);
   /*return;
 
@@ -1488,8 +1489,10 @@ document.onvisibilitychange = () => {
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = false;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
     }
   }
 };

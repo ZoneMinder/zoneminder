@@ -693,7 +693,7 @@ $SLANG = array(
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
     'no_nb' => 'Norwegian',
-
+  'option:router' => 'Gateway',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf

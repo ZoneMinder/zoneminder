@@ -44,7 +44,7 @@ $dnsmasq_config = [
   'dhcp-range'=>'192.168.1.50,192.168.1.150,12h',
   #'dhcp-rapid-commit'=>'',
   'dhcp-authoritative'=>'no',
-  'dhcp-option=option:router' => '1.2.3.4'
+  'dhcp-option'=>['option:router' => '1.2.3.4'],
 ];
 if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
   $dnsmasq_config = array_merge($dnsmasq_config, process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF));
@@ -81,9 +81,12 @@ foreach ($dnsmasq_config as $name=>$value) {
     echo '<input type="text" name="config[dhcp-range][min]" value="'.$values[0].'"/>';
     echo ' to <input type="text" name="config[dhcp-range][max]" value="'.$values[1].'"/>';
     echo ' <input type="text" name="config[dhcp-range][expires]" value="'.$values[2].'"/></span></div>'.PHP_EOL;
-  } else if ($name == 'dhcp-option=option:router') {
-    echo '<div class="row"><label class="form-label">'.translate('Gateway').'</label><span class="value">'.PHP_EOL;
-    echo '<input type="text" name="config['.validHtmlStr($name).']" value="'.validHtmlStr($value).'"/></span></div>'.PHP_EOL;
+  } else if ($name == 'dhcp-option') {
+    foreach ($dnsmasq_config[$name] as $option_name => $option_value) {
+      ZM\Debug($option_name.'=>'.print_r($option_value, true));
+      echo '<div class="row"><label class="form-label">'.translate($option_name).'</label><span class="value">'.PHP_EOL;
+      echo '<input type="text" name="config['.$name.']['.$option_name.']" value="'.validHtmlStr($option_value).'"/></span></div>'.PHP_EOL;
+    } # end foreach option
   } else if ($name == 'dhcp-host') {
     # Handled below
   } else {
@@ -104,9 +107,23 @@ function process_dnsmasq_configfile($configFile) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
-      } else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*option:[^=\s]+)?(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
-	      //ZM\Debug(print_r($matches, true));
-        $our_configvals[$matches[1].(isset($matches[2])?$matches[2]:'')] = isset($matches[4]) ? $matches[4] : 'yes';
+      //} else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*option:[^=\s]+)?(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
+      }
+      else if ( preg_match('/^\s*([^=\s]+)\s*=?(.*)$/', $str, $matches) ) {
+	      ZM\Debug(print_r($matches, true));
+        $name = $matches[1];
+        $value = isset($matches[2]) ? $matches[2] : 'yes';
+
+        if ($name == 'dhcp-option') {
+          # these can be arrays
+          if (!isset($our_configvals[$name])) {
+            $our_configvals[$name] = [];
+          }
+          $option = explode(',', $value);
+          $our_configvals[$name][$option[0]] = $option[1];
+        } else {
+          $our_configvals[$name] = $value;
+        }
       } else {
 	      ZM\Error("Malformed line in config $configFile\n$str");
       }

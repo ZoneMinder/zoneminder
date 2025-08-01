@@ -651,7 +651,7 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc') || -1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
@@ -667,10 +667,10 @@ function MonitorStream(monitorData) {
 
   this.play = function() {
     console.log('play');
-    if (this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc'))) {
       this.element.play(); // go2rtc player will handle mute
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-    } else if (this.RTSP2WebEnabled) {
+    } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play().catch(() => {
         if (!this.element.muted) {

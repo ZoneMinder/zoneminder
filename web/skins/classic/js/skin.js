@@ -2079,6 +2079,21 @@ function initPageGeneral() {
     }
     //event.returnValue = '';
   });
+
+  document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+    el.addEventListener("click", function clickControlMute(event) {
+      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
+      if (!mid) return;
+      if (currentView == 'watch') {
+        monitorStream.controlMute('switch');
+      } else if (currentView == 'montage') {
+        const currentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === mid;
+        });
+        currentMonitor.controlMute('switch');
+      }
+    });
+  });
 }
 
 $j( window ).on("load", initPageGeneral);

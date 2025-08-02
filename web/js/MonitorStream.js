@@ -761,7 +761,7 @@ function MonitorStream(monitorData) {
     RTSP2Web uses <video id='liveStreamXX'></video>
     This.getElement() may need to be changed, but the implications of such a change need to be analyzed
     */
-    return (document.getElementById('liveStream'+mid).querySelector('video') || document.getElementById('liveStream'+mid));
+    return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
   };
 
   this.listenerVolumechange = function(el) {

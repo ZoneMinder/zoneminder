@@ -10,6 +10,7 @@ class VideoStream extends VideoRTC {
         const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
         if (modeEl) modeEl.innerText = 'Go2RTC ' + value;
         if (statusEl) statusEl.innerText = '';
+        this.currentMode = value.toUpperCase();
     }
 
     set divError(value) {

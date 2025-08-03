@@ -322,7 +322,7 @@ function MonitorStream(monitorData) {
     const statusEl = document.querySelector('#monitor' + this.id + ' .stream-info-status');
     if (modeEl) modeEl.innerText = info;
     if (statusEl) statusEl.innerText = '';
-  }
+  };
 
   /*
   * streamChannel = 0 || Primary; 1 || Secondary.

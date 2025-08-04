@@ -1204,7 +1204,7 @@ class Monitor extends ZM_Object {
           <div class="stream-info-status"></div>
           <div class="stream-info-mode"></div>
       </div>
-      '.PHP_EOL;;
+      '.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();

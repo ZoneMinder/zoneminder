@@ -23,8 +23,8 @@ class VideoStream extends VideoRTC {
           modeEl.innerText = 'Go2RTC ' + 'error';
         }
         if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
-        this.setAttribute('current-mode', value.toUpperCase());
-        this.currentMode = value.toUpperCase();
+        this.setAttribute('current-mode', 'ERROR');
+        this.currentMode = 'ERROR';
     }
 
     /**

@@ -522,7 +522,7 @@ function MonitorStream(monitorData) {
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
     //if ( 1 ) {
-    if (-1 === this.player.indexOf('rtsp2web')) {
+    if (-1 === this.activePlayer.indexOf('rtsp2web')) {
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -541,7 +541,7 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (-1 !== this.player.indexOf('go2rtc')) {
+    if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
           stream.ondisconnect();
@@ -549,7 +549,7 @@ function MonitorStream(monitorData) {
           console.warn(e);
         }
       }
-    } else if (-1 !== this.player.indexOf('rtsp2web')) {
+    } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
         stream.src = '';
@@ -563,7 +563,7 @@ function MonitorStream(monitorData) {
       if (this.RTSP2WebType == 'MSE') {
         this.stopMse();
       }
-    } else if (-1 !== this.player.indexOf('janus')) {
+    } else if (-1 !== this.activePlayer.indexOf('janus')) {
       stream.src = '';
       stream.srcObject = null;
       janus = null;

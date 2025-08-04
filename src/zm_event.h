@@ -43,6 +43,7 @@ class EventStream;
 class Frame;
 class Image;
 class Monitor;
+class Tag;
 class VideoStore;
 class ZMPacket;
 class Zone;
@@ -60,7 +61,7 @@ class Event {
 
  public:
   typedef std::set<std::string> StringSet;
-  typedef std::map<std::string,StringSet> StringSetMap;
+  typedef std::map<std::string, StringSet> StringSetMap;
 
  protected:
   static const char * frame_type_names[3];
@@ -89,6 +90,7 @@ class Event {
   bool alarm_frame_written;
   int  tot_score;
   int  max_score;
+  int max_score_frame_id;
   std::string path;
   std::string snapshot_file;
   bool snapshot_file_written;
@@ -114,6 +116,7 @@ class Event {
   std::atomic<bool> terminate_;
   std::thread thread_;
 
+  std::map<const std::string,Tag> tags;
  public:
   static bool OpenFrameSocket(int);
   static bool ValidateFrameSocket(int);

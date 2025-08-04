@@ -167,6 +167,10 @@ class Monitor extends AppModel {
       ZM\Warning("Calling daemonControl with command $command when Function == None");
       return;
     }
+    if ($monitor['Capturing'] == 'None' and $command != 'stop') {
+      ZM\Warning("Calling daemonControl with command $command when Capturing == None");
+      return;
+    }
     if (defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID)) {
       ZM\Error('Calling daemonControl for Monitor assigned to different server. Our server id '.ZM_SERVER_ID.' != '.$monitor['ServerId']);
       return;

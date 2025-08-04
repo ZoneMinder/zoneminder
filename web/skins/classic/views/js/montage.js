@@ -687,26 +687,42 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  $j(".grid-monitor").hover(
-      //Displaying "Scale" and other buttons at the top of the monitor image
-      function() {
-        const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j(this).find('#monitorStatus'+id).removeClass('hidden');
+  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+    // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
+    el.addEventListener('mouseout', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
         }
-        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).stop(true, true).slideDown('fast');
-        $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
-      },
-      function() {
-        const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j(this).find('#monitorStatus'+id).addClass('hidden');
-        }
-        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
-        $j('#ratioControl' + id).stop(true, true).slideUp('fast');
       }
-  );
+      if (!event.relatedTarget) {
+        hideСontrolElementsOnStream(el);
+        return;
+      }
+      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+        }
+        hideСontrolElementsOnStream(el);
+      }
+    });
+
+    el.addEventListener('mouseover', function addListenerMouseover(event) {
+      const id = stringToNumber(el.id);
+      if (event.target && event.relatedTarget) {
+        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
+          return;
+        }
+      }
+      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+        }
+        showСontrolElementsOnStream(el);
+      }
+    });
+  });
 
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
@@ -795,28 +811,9 @@ function initPage() {
   changeMonitorStatusPosition();
   zmPanZoom.init();
 
-  // Creating a ResizeObserver Instance
-  const observer = new ResizeObserver((objResizes) => {
-    const blockContent = document.getElementById('content');
-    const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
-    if (scrollBbarExists === null) {
-      scrollBbarExists = currentScrollBbarExists;
-    }
-    if (currentScrollBbarExists != scrollBbarExists) {
-      scrollBbarExists = currentScrollBbarExists;
-      return;
-    }
-    objResizes.forEach((obj) => {
-      const id = stringToNumber(obj.target.id);
-      if (mode != EDITING && !changedMonitors.includes(id)) {
-        changedMonitors.push(id);
-      }
-    });
-  });
-
   // Registering an observer on an element
   $j('[id ^= "liveStream"]').each(function() {
-    observer.observe(this);
+    observerMontage.observe(this);
   });
 
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
@@ -839,6 +836,19 @@ function initPage() {
   }
   window.addEventListener('resize', on_scroll);
 } // end initPage
+
+function hideСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+  $j('#ratioControl' + id).stop(true, true).slideUp('fast');
+}
+
+function showСontrolElementsOnStream(stream) {
+  const id = stringToNumber(stream.id);
+  $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+  $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
+}
 
 function on_scroll() {
   if (!monitorInitComplete || idleTimeoutTriggered) return;
@@ -1170,6 +1180,25 @@ function changeMonitorStatusPosition() {
   });
   setCookie('zmMonitorStatusPositionSelected', monitorStatusPosition);
 }
+
+// Creating a ResizeObserver Instance
+const observerMontage = new ResizeObserver((objResizes) => {
+  const blockContent = document.getElementById('content');
+  const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
+  if (scrollBbarExists === null) {
+    scrollBbarExists = currentScrollBbarExists;
+  }
+  if (currentScrollBbarExists != scrollBbarExists) {
+    scrollBbarExists = currentScrollBbarExists;
+    return;
+  }
+  objResizes.forEach((obj) => {
+    const id = stringToNumber(obj.target.id);
+    if (mode != EDITING && !changedMonitors.includes(id)) {
+      changedMonitors.push(id);
+    }
+  });
+});
 
 // Kick everything off
 $j(window).on('load', () => initPage());

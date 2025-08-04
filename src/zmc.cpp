@@ -342,21 +342,29 @@ int main(int argc, char *argv[]) {
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
                              : monitors[i]->GetCaptureDelay();
-        if (delay != Seconds(0)) {
+        if (delay != Microseconds(0)) {
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
 
             // You have to add back in the previous sleep time
             sleep_time = delay - (delta_time - sleep_time);
+
+            // Limit negative since feedback - if an error occurred can loose seconds and then run too fast for a while so rather accept the frame loss
+            // Or if the camera exposure is longer than intended FPS (eg at night) don't build up a huge negative that will disable the FPS limit later and OOM (eg at dawn)
+            if (sleep_time < (delay * -1)) {
+              sleep_time = delay * -1;
+            }
+
             Debug(4,
-                  "Sleep time is %" PRIi64 " from now: %.2f s last: %.2f s delta % " PRIi64 " us delay: %" PRIi64 " us",
+                  "Sleep time is %" PRIi64 " us from now: %.3f s last: %.3f s delta % " PRIi64 " us delay: %" PRIi64 " us",
                   static_cast<int64>(Microseconds(sleep_time).count()),
                   FPSeconds(now.time_since_epoch()).count(),
                   FPSeconds(last_capture_times[i].time_since_epoch()).count(),
                   static_cast<int64>(delta_time.count()),
                   static_cast<int64>(Microseconds(delay).count()));
 
-            if (sleep_time > Seconds(0)) {
+            // When negative the capture took more than the configured FPS time and no need to sleep
+            if (sleep_time > Microseconds(0)) {
               std::this_thread::sleep_for(sleep_time);
             }
           }  // end if has a last_capture time

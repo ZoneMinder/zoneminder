@@ -1,6 +1,5 @@
 <?php 
   global $monitor_index;
-  global $nextMid;
   global $options;
   global $monitors;
   global $monitorsExtraData;
@@ -27,16 +26,9 @@ var player = '<?php echo $player ?>';
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo $monitor->Id() ?>');
-var monitorWidth = parseInt('<?php echo $monitor->ViewWidth() ?>');
-var monitorHeight = parseInt('<?php echo $monitor->ViewHeight() ?>');
 var monitorUrl = '<?php echo $monitor->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>';
-var monitorType = '<?php echo $monitor->Type() ?>';
-var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
-var monitorStreamReplayBuffer = parseInt('<?php echo $monitor->StreamReplayBuffer() ?>');
-var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var monIdx = '<?php echo $monitor_index; ?>';
-var nextMid = '<?php echo isset($nextMid)?$nextMid:'' ?>';
 var mode = '<?php echo $options['mode'] ?>';
 
 var monitorData = new Array();
@@ -54,7 +46,6 @@ monitorData[monitorData.length] = {
   'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
-  'Go2RTCType': '<?php echo $m->Go2RTCType() ?>',
   'SecondPath':'<?php echo $m->SecondPath() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

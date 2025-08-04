@@ -447,11 +447,11 @@ our @options = (
   },
   {
     name        => 'ZM_GO2RTC_PATH',
-    default     => 'http://127.0.0.1:1984',
+    default     => 'http://127.0.0.1:1984/api',
     description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
     install, including username and password. If left blank, this
-    will default to 127.0.0.1:1984
+    will default to http://127.0.0.1:1984/api
     `,
     type        => $types{string},
     category    => 'system',
@@ -1633,7 +1633,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'string',
-      hint        => 'normal|collapsed',
+      hint        => 'normal|collapsed|left',
       pattern     => qr|^([nc])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },
@@ -2834,11 +2834,11 @@ our @options = (
   {
     name        => 'ZM_WEB_LIST_THUMBS',
     default     => 'yes',
-    description => 'Display mini-thumbnails of event images in event lists',
+    description => 'Display mini-thumbnails of event images in event lists and on console',
     help        => q`
-      Ordinarily the event lists just display text details of the
-      events to save space and time. By switching this option on you
-      can also display small thumbnails to help you identify events
+      Originally the event lists and console just displayed text details of the
+      events and monitors to save space and time. By switching this option on you
+      can also display small thumbnails to help you identify events or cameras
       of interest. The size of these thumbnails is controlled by the
       following two options.
       `,
@@ -2848,10 +2848,10 @@ our @options = (
   {
     name        => 'ZM_WEB_LIST_THUMB_WIDTH',
     default     => '48',
-    description => 'The width of the thumbnails that appear in the event lists',
+    description => 'The width of the thumbnails that appear in the event lists and on console',
     help        => q`
       This options controls the width of the thumbnail images that
-      appear in the event lists. It should be fairly small to fit in
+      appear in the event lists and on the console. It should be fairly small to fit in
       with the rest of the table. If you prefer you can specify a
       height instead in the next option but you should only use one
       of the width or height and the other option should be set to

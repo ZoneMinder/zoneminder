@@ -117,6 +117,7 @@ VideoStore::VideoStore(
   opkt = av_packet_ptr{av_packet_alloc()};
 }  // VideoStore::VideoStore
 
+/* Failure to open audio will not be a total failure. */
 bool VideoStore::open() {
   Debug(1, "Opening video storage stream %s format: %s", filename, format);
 
@@ -514,21 +515,17 @@ bool VideoStore::open() {
         // if the codec is already open, nothing is done.
         if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
           Error("Can't open audio in codec!");
-          return false;
-        }
+        } else {
+          audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
+          if (!audio_out_ctx) {
+            Error("could not allocate codec ctx for AAC");
+          } else {
+            audio_out_stream = avformat_new_stream(oc, audio_out_codec);
+            audio_out_stream->time_base = audio_in_stream->time_base;
 
-        audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
-        if (!audio_out_ctx) {
-          Error("could not allocate codec ctx for AAC");
-          return false;
-        }
-
-        audio_out_stream = avformat_new_stream(oc, audio_out_codec);
-        audio_out_stream->time_base = audio_in_stream->time_base;
-
-        if (!setup_resampler()) {
-          return false;
-        }
+            setup_resampler();
+          } // end fail to alloc audio_out_ctx
+        } // codec opened
       }  // end if found AAC codec
     } else {
       Debug(2, "Got AAC");
@@ -538,46 +535,45 @@ bool VideoStore::open() {
       audio_out_stream = avformat_new_stream(oc, audio_out_codec);
       if (!audio_out_stream) {
         Error("Could not allocate new stream");
-        return false;
-      }
-      audio_out_stream->time_base = audio_in_stream->time_base;
+      } else {
+        audio_out_stream->time_base = audio_in_stream->time_base;
 
-      // Just use the ctx to copy the parameters over
-      audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
-      if (!audio_out_ctx) {
-        Error("Could not allocate new output_context");
-        return false;
-      }
+        // Just use the ctx to copy the parameters over
+        audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
+        if (!audio_out_ctx) {
+          Error("Could not allocate new output_context");
+        } else {
 
-      // Copy params from instream to ctx
-      ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
-      if (ret < 0) {
-        Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
-      }
-      ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
-      if (ret < 0) {
-        Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
-      }
+          // Copy params from instream to ctx
+          ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
+          if (ret < 0) {
+            Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
+          }
+          ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
+          if (ret < 0) {
+            Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
+          }
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-      /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
+          /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
 #else
-      if (audio_out_ctx->channels > 1) {
-        Warning("Audio isn't mono, changing it.");
-        audio_out_ctx->channels = 1;
-      } else {
-        Debug(3, "Audio is mono");
-      }
+          if (audio_out_ctx->channels > 1) {
+            Warning("Audio isn't mono, changing it.");
+            audio_out_ctx->channels = 1;
+          } else {
+            Debug(3, "Audio is mono");
+          }
 #endif
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+          }
+         
+          // We will assume that subsequent stream allocations will increase the index
+          max_stream_index = audio_out_stream->index;
+          last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+        } // end if audio_out_ctx
+      } // end if audio_out_stream
     } // end if is AAC
-
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    }
-
-    // We will assume that subsequent stream allocations will increase the index
-    max_stream_index = audio_out_stream->index;
-    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -869,6 +865,61 @@ bool VideoStore::setup_resampler() {
   }
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(61, 19,100, 19, 100)
+  const enum AVSampleFormat *sample_fmts;
+  const int *supported_samplerates;
+  int num_sample_fmts, num_samplerates;
+  ret = avcodec_get_supported_config(audio_out_ctx, NULL, AV_CODEC_CONFIG_SAMPLE_FORMAT,
+      0, (const void **) &sample_fmts,
+      &num_sample_fmts);
+  if (ret < 0)
+    return ret;
+  if (sample_fmts) {
+    int i;
+    for (i = 0; i < num_sample_fmts; i++) {
+      if (audio_out_ctx->sample_fmt == sample_fmts[i])
+        break;
+      if (audio_out_ctx->ch_layout.nb_channels == 1 &&
+          av_get_planar_sample_fmt(audio_out_ctx->sample_fmt) ==
+          av_get_planar_sample_fmt(sample_fmts[i])) {
+        audio_out_ctx->sample_fmt = sample_fmts[i];
+        break;
+      }
+    }
+    if (i == num_sample_fmts) {
+      Debug(1, "Specified sample format %s is not supported by the %s encoder",
+          av_get_sample_fmt_name(audio_out_ctx->sample_fmt), audio_out_codec->name);
+
+      Debug(1, "Supported sample formats:");
+      for (int p = 0; sample_fmts[p] != AV_SAMPLE_FMT_NONE; p++) {
+        Debug(1, "  %s", av_get_sample_fmt_name(sample_fmts[p]));
+      }
+      // AAC ONLY supports fltp
+      audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
+    }
+  } // end if sample_fmts
+
+  ret = avcodec_get_supported_config(audio_out_ctx, NULL, AV_CODEC_CONFIG_SAMPLE_RATE,
+      0, (const void **) &supported_samplerates,
+      &num_samplerates);
+  if (ret < 0)
+    return ret;
+  if (supported_samplerates) {
+    int i;
+    for (i = 0; i < num_samplerates; i++)
+      if (audio_out_ctx->sample_rate == supported_samplerates[i])
+        break;
+    if (i == num_samplerates) {
+      Debug(1, "Specified sample rate %d is not supported by the %s encoder", audio_out_ctx->sample_rate, audio_out_codec->name);
+
+      Debug(1, "Supported sample rates:");
+      for (int p = 0; supported_samplerates[p]; p++)
+        Debug(1, "  %d\n", supported_samplerates[p]);
+
+      audio_out_ctx->sample_rate = supported_samplerates[0];
+    }
+  }
+#else
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
     for (unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
@@ -893,6 +944,7 @@ bool VideoStore::setup_resampler() {
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
   }
+#endif
 
   // Example code doesn't set the codec tb.  I think it just uses whatever defaults
   //audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
@@ -1196,7 +1248,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Outof ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), zm_packet->out_frame.get(), 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
@@ -1257,13 +1309,14 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       // Need to adjust pts/dts values from codec time to stream time
       if (opkt->pts != AV_NOPTS_VALUE)
         opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-      if (opkt->dts != AV_NOPTS_VALUE)
+      if (opkt->dts != AV_NOPTS_VALUE and opkt->dts > 0)
         opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
       Debug(1, "Timebase conversions using %d/%d -> %d/%d",
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den,
             video_out_stream->time_base.num,
             video_out_stream->time_base.den);
+      ZM_DUMP_PACKET(opkt, "packet returned by codec after timebase conversions");
 
       if (video_last_pts != AV_NOPTS_VALUE) {
          opkt->duration = opkt->pts - video_last_pts;
@@ -1404,6 +1457,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;
+  ZM_DUMP_PACKET(pkt, "packet in write_packet");
 
   if (pkt->dts == AV_NOPTS_VALUE) {
     Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);

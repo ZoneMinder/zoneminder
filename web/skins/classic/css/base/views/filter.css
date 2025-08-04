@@ -83,12 +83,12 @@ min-width: 500px;
 min-width: 500px;
 }
 form {
-  border-bottom: 1px solid #3498db;
+  border-bottom: 1px solid var(--colorBorder);
 }
 #ActionsAndOptions {
   padding-top: 5px;
-  border-top: 1px solid #3498db;
-  border-bottom: 1px solid #3498db;
+  border-top: 1px solid var(--colorBorder);
+  border-bottom: 1px solid var(--colorBorder);
 }
 #ActionsAndOptions fieldset {
   border: none;

@@ -46,6 +46,7 @@ use Time::HiRes qw( usleep );
 use URI;
 
 our $uri;
+my $use_optics;
 
 sub open {
   my $self = shift;
@@ -390,17 +391,46 @@ sub focusRelNear {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'step');
-  Debug('Focus Near');
-  my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
-  $self->sendCmd($cmd);
+  Debug('Focus Rel Near');
+   if ($use_optics) {
+    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=-minstep";
+    $self->sendCmd($cmd);
+  } else {
+    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
+    my $res = $self->sendCmd($cmd);
+    if ($res->content ne 'ok') {
+      $use_optics = 1;
+      $self->focusRelNear($self, $params);
+    }
+  }
 }
 
 sub focusRelFar {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'step');
-  Debug('Focus Far');
-  my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
+  Debug('FocusRelFar');
+  if ($use_optics) {
+    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=minstep";
+    $self->sendCmd($cmd);
+  } else {
+    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
+    my $res = $self->sendCmd($cmd);
+    if ($res->content ne 'ok') {
+      $use_optics = 1;
+      $self->focusRelNear($self, $params);
+    }
+  }
+}
+
+sub focusAbs {
+  # Takes a value 0-1 in small decimal incremements
+  my $self = shift;
+  my $params = shift;
+  my $step = $self->getParam($params, 'step');
+  # step comes in as an integer, needs to be 0-1
+  Debug('Focus Abs');
+  my $cmd = "/axis-cgi/opticssetup.cgi.cgi?afocus=$step";
   $self->sendCmd($cmd);
 }
 

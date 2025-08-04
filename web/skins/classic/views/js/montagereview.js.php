@@ -97,7 +97,7 @@ if (0) {
   echo ' };
 
   const events_for_monitor = {};
-  const events_by_monitor_id = {};'; #.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK).PHP_EOL;
+  '; #.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK).PHP_EOL;
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {
@@ -234,4 +234,3 @@ var rowHeight = 0;
 var canvas;   // global canvas definition so we don't have to keep looking it up
 var ctx = null;
 var underSlider;    // use this to hold what is hidden by the slider
-var underSliderX;   // Where the above was taken from (left side, Y is zero)

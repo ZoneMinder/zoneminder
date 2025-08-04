@@ -152,7 +152,7 @@ function onPause() {
   setButtonStateWatch('pauseBtn', 'hidden');
   setButtonStateWatch('playBtn', 'active');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -174,7 +174,7 @@ function onPlay() {
   setButtonStateWatch('playBtn', 'hidden');
   if (monitorStream.status.delayed == true) {
     //setButtonState('stopBtn', 'inactive');
-    if (monitorStreamReplayBuffer) {
+    if (currentMonitor.monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'inactive');
       setButtonState('slowFwdBtn', 'inactive');
       setButtonState('slowRevBtn', 'inactive');
@@ -182,7 +182,7 @@ function onPlay() {
     }
   } else {
     //setButtonState('stopBtn', 'unavail');
-    if (monitorStreamReplayBuffer) {
+    if (currentMonitor.monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'unavail');
       setButtonState('slowFwdBtn', 'unavail');
       setButtonState('slowRevBtn', 'unavail');
@@ -209,7 +209,7 @@ function streamCmdStop(action) {
   //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'unavail');
   //setButtonState('stopBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'unavail');
     setButtonState('slowFwdBtn', 'unavail');
     setButtonState('slowRevBtn', 'unavail');
@@ -230,7 +230,7 @@ function streamCmdFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -245,7 +245,7 @@ function streamCmdSlowFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'active');
     setButtonState('slowRevBtn', 'inactive');
@@ -255,7 +255,7 @@ function streamCmdSlowFwd(action) {
     monitorStream.streamCommand(CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('slowFwdBtn', 'inactive');
   }
 }
@@ -264,7 +264,7 @@ function streamCmdSlowRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'active');
@@ -274,7 +274,7 @@ function streamCmdSlowRev(action) {
     monitorStream.streamCommand(CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('slowRevBtn', 'inactive');
   }
 }
@@ -283,7 +283,7 @@ function streamCmdFastRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  if (monitorStreamReplayBuffer) {
+  if (currentMonitor.monitorStreamReplayBuffer) {
     setButtonState('fastFwdBtn', 'inactive');
     setButtonState('slowFwdBtn', 'inactive');
     setButtonState('slowRevBtn', 'inactive');
@@ -468,7 +468,8 @@ function fetchImage(streamImage) {
 function handleClick(event) {
   const targetId = event.target.id;
   if (targetId.indexOf("nav-link") >= 0) { //Navigation through monitors
-    cycleStop(event.target);
+    cycleStop();
+    monIdx = event.target.getAttribute('data-monIdx');
     const oldId = stringToNumber(document.querySelector('[id ^= "liveStream"]').id);
     const newId = stringToNumber(targetId);
     streamReStart(oldId, newId);
@@ -489,8 +490,8 @@ function handleClick(event) {
       const width = target.width();
       const height = target.height();
 
-      const scaleX = parseFloat(monitorWidth / width);
-      const scaleY = parseFloat(monitorHeight / height);
+      const scaleX = parseFloat(currentMonitor.monitorWidth / width);
+      const scaleY = parseFloat(currentMonitor.monitorHeight / height);
       const pos = target.offset();
       const x = parseInt((event.pageX - pos.left) * scaleX);
       const y = parseInt((event.pageY - pos.top) * scaleY);
@@ -518,9 +519,9 @@ function shiftImgFrame() { //We calculate the coordinates of the image displacem
   let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
 
   if (newPosX < 0) newPosX = 0;
-  if (newPosX > monitorWidth) newPosX = monitorWidth;
+  if (newPosX > currentMonitor.monitorWidth) newPosX = currentMonitor.monitorWidth;
   if (newPosY < 0) newPosY = 0;
-  if (newPosY > monitorHeight) newPosY = monitorHeight;
+  if (newPosY > currentMonitor.monitorHeight) newPosY = currentMonitor.monitorHeight;
 
   streamCmdPan(newPosX, newPosY);
   updatePrevCoordinatFrame(newPosX, newPosY);
@@ -540,8 +541,8 @@ function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinat
 function getCoordinateMouse(event) { //We get the current cursor coordinates taking into account the scale relative to the frame size.
   const target = $j(event.target);
 
-  const scaleX = parseFloat(monitorWidth / target.width());
-  const scaleY = parseFloat(monitorHeight / target.height());
+  const scaleX = parseFloat(currentMonitor.monitorWidth / target.width());
+  const scaleY = parseFloat(currentMonitor.monitorHeight / target.height());
   const pos = target.offset();
 
   return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
@@ -731,7 +732,7 @@ function streamPrepareStart(monitor=null) {
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Disabled due to lack of Control View permission.');
-  } else if (monitorType != 'Local') {
+  } else if (currentMonitor.monitorType != 'Local') {
     settingsBtn.prop('disabled', true);
     settingsBtn.prop('title', 'Settings only available for Local monitors.');
   } else {
@@ -745,7 +746,7 @@ function streamPrepareStart(monitor=null) {
     });
   }
 
-  if ((monitorType != 'WebSite') && monitorData.length) {
+  if ((currentMonitor.monitorType != 'WebSite') && monitorData.length) {
     streamStart(monitor);
     if (window.history.length == 1) {
       $j('#closeControl').html('');
@@ -778,13 +779,13 @@ function streamPrepareStart(monitor=null) {
       // Update table links each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
         const thumb_ndx = $j('#eventList tr th').filter(function() {
-          return $j(this).text().trim() == 'Thumbnail';
+          return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
         }).index();
         table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });
     } // end if canView.Events
-  } else if (monitorRefresh > 0) {
-    setInterval(reloadWebSite, monitorRefresh*1000);
+  } else if (currentMonitor.monitorRefresh > 0) {
+    setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
   }
 
   // Manage the generate Edit button
@@ -833,12 +834,14 @@ function streamStart(monitor = null) {
   monitorStream.setup_volume(document.getElementById('volume'));
   monitorStream.setup_mute(document.getElementById('mute'));
 
-  monitorStream.setPlayer(player);
+  monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream.manageAvailablePlayers();
+  setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start();
+  monitorStream.start(document.getElementById('streamChannel').value);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {
@@ -860,21 +863,7 @@ function streamStart(monitor = null) {
     forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
   }
-
-  // Managing the visibility of elements
-  const streamChannel = document.getElementById('streamChannel');
-  const streamQuality = document.getElementById('streamQuality');
-  const rateControl = document.getElementById('rateControl');
-  if (currentMonitor.RTSP2WebEnabled) {
-    streamChannel.classList.remove("hidden-shift");
-    streamQuality.classList.add("hidden-shift");
-    streamChannel.value = currentMonitor.RTSP2WebStream;
-    rateControl.classList.add("hidden-shift");
-  } else {
-    streamQuality.classList.remove("hidden-shift");
-    streamChannel.classList.add("hidden-shift");
-    rateControl.classList.remove("hidden-shift");
-  }
+  manageStreamQualityVisibility(); // In order for the Auto mode AFTER the start to register the player value .activePlayer and based on this we select the correct "Stream quality", i.e. either the quality for ZMS, or the channel for go2rtc/RTSP2Web
 }
 
 function streamReStart(oldId, newId) {
@@ -887,8 +876,8 @@ function streamReStart(oldId, newId) {
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
-  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
-  document.querySelector('title').textContent = newMonitorName;
+  //const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
+  document.querySelector('title').textContent = currentMonitor.name;
   const url = new URL(document.location.href);
   url.searchParams.set('mid', monitorId);
   history.pushState(null, "", url);
@@ -896,6 +885,8 @@ function streamReStart(oldId, newId) {
   zmPanZoom.action('disable', {id: oldId});
   if (monitorStream) {
     monitorStream.kill();
+  } else {
+    console.log("No monitorStream?");
   }
 
   const el = document.querySelector('.imageFeed');
@@ -910,21 +901,49 @@ function streamReStart(oldId, newId) {
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
 
   //Set global variables from the current monitor
-  monitorWidth = currentMonitor.monitorWidth;
-  monitorHeight = currentMonitor.monitorHeight;
-  monitorType = currentMonitor.monitorType;
-  monitorRefresh = currentMonitor.monitorRefresh;
-  monitorStreamReplayBuffer = currentMonitor.monitorStreamReplayBuffer;
-  monitorControllable = currentMonitor.monitorControllable;
   streamMode = currentMonitor.streamMode;
 
   table.bootstrapTable('destroy');
   applyMonitorControllable();
+  //manageChannelStream();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
-  manageRTSP2WebChannelStream();
   //document.getElementById('monitor').classList.remove('hidden-shift');
+}
+
+function setChannelStream() {
+  const streamChannel = document.getElementById('streamChannel');
+  manageChannelStream();
+
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
+    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
+    // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
+    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+
+    if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
+      streamChannelValue = 'Primary';
+    }
+    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    streamChannel.value = streamChannelValue;
+  }
+}
+
+function manageStreamQualityVisibility() {
+  const streamQuality = document.getElementById('streamQuality');
+  const streamChannel = document.getElementById('streamChannel');
+  const rateControl = document.getElementById('rateControl');
+
+  if (-1 === monitorStream.activePlayer.indexOf('zms')) {
+    streamChannel.classList.remove("hidden-shift");
+    streamQuality.classList.add("hidden-shift");
+    rateControl.classList.add("hidden-shift");
+  } else {
+    streamQuality.classList.remove("hidden-shift");
+    streamChannel.classList.add("hidden-shift");
+    rateControl.classList.remove("hidden-shift");
+  }
+  applyChosen();
 }
 
 function applyMonitorControllable() {
@@ -1046,7 +1065,7 @@ function initPage() {
       }
     };
     inactivityTime();
-  }  // end setup AYSW
+  } // end setup AYSW
 
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
@@ -1091,9 +1110,6 @@ function initPage() {
   } else {
     alert("No monitor found for id "+monitorId);
   }
-
-
-  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {
@@ -1114,7 +1130,7 @@ function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
 }
 
-var intervalId;
+var cycleIntervalId;
 var secondsToCycle = 0;
 
 function nextCycleView() {
@@ -1126,7 +1142,7 @@ function nextCycleView() {
 }
 
 function cyclePause() {
-  clearInterval(intervalId);
+  clearInterval(cycleIntervalId);
   cycle = false;
   $j('#cyclePauseBtn').hide();
   $j('#cyclePlayBtn').show();
@@ -1134,50 +1150,43 @@ function cyclePause() {
 
 function cycleStart() {
   if (secondsToCycle == 0) secondsToCycle = $j('#cyclePeriod').val();
-  intervalId = setInterval(nextCycleView, 1000);
+  cycleIntervalId = setInterval(nextCycleView, 1000);
   cycle = true;
   $j('#cyclePauseBtn').show();
   $j('#cyclePlayBtn').hide();
 }
 
-function cycleStop(target) {
+function cycleStop() {
   secondsToCycle = 0;
-  monIdx = target.getAttribute('data-monIdx');
   $j('#secondsToCycle').text('');
   cyclePause();
 }
 
 // FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
-  monIdx ++;
-  if (monIdx >= monitorData.length) {
-    monIdx = 0;
-  }
+  clearInterval(cycleIntervalId);
+  const oldId = monitorData[monIdx].id;
+  monIdx = (++monIdx) % monitorData.length;
   if (!monitorData[monIdx]) {
-    console.log('No monitorData for ' + monIdx);
+    console.log('No monitorData for ' + monIdx, monitorData.length);
   }
-  clearInterval(intervalId);
+  const newId = monitorData[monIdx].id;
 
   // +++ Start next monitor
-  const oldId = monitorData[(monIdx == 0) ? monitorData.length-1 : monIdx-1].id;
-  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
 }
 
 function cyclePrev() {
-  monIdx --;
-  if (monIdx < 0) {
-    monIdx = monitorData.length - 1;
-  }
+  clearInterval(cycleIntervalId);
+  const oldId = monitorData[monIdx].id;
+  monIdx = (monIdx <= 0) ? monitorData.length - 1 : monIdx-1;
   if (!monitorData[monIdx]) {
     console.log('No monitorData for ' + monIdx);
   }
-  clearInterval(intervalId);
+  const newId = monitorData[monIdx].id;
 
   // +++ Start previous monitor
-  const oldId = monitorData[(monIdx == monitorData.length - 1)? 0 : monIdx+1].id;
-  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
 }
@@ -1301,11 +1310,14 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
-  if (currentMonitor.RTSP2WebEnabled) {
+  if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
+    const streamChannel = $j('#streamChannel').val();
+    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
-      monitorStream.start(($j('#streamChannel').val() == "Primary") ? 0 : 1);
+      monitorStream.start(streamChannel);
       onPlay();
+      monitorsSetScale(monitorId);
     }, 300);
   }
 }
@@ -1317,13 +1329,18 @@ function changePlayer() {
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
-  streamCmdPlay(true);
-  return;
+  setChannelStream();
+  setTimeout(function() {
+    streamCmdPlay(true);
+    manageStreamQualityVisibility();
+    monitorsSetScale(monitorId);
+  }, 300);
+  /*return;
 
   setTimeout(function() {
     monitorStream.start();
     onPlay();
-  }, 300);
+  }, 300);*/
 }
 
 function monitorsSetScale(id=null) {
@@ -1334,7 +1351,9 @@ function monitorsSetScale(id=null) {
       var curentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id; });
+      var curentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
     } else {
       //Stream is missing
       return;
@@ -1407,7 +1426,7 @@ function monitorsSetScale(id=null) {
   } else { // Not a specific stream, but all streams.
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      var panZoomScale = panZoomEnabled ?  panZoom[id].getScale() : 1;
+      var panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
 
       let resize = false;
       let width = 'auto';
@@ -1469,8 +1488,10 @@ document.onvisibilitychange = () => {
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = false;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
     }
   }
 };

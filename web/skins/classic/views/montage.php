@@ -241,12 +241,14 @@ if ($monitorCount <= 3) {
 
 $AutoLayoutName = $default_layout;
 
-xhtmlHeaders(__FILE__, translate('Montage'));
+xhtmlHeadersStart(__FILE__, translate('Montage'));
+echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="header">
+  <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
@@ -275,7 +277,7 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get">
+      <form method="get" id="filters_form">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>
@@ -309,7 +311,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </span>
           <span id="streamQualityControl">
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
           <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>
@@ -347,7 +349,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </button>
         </form>
       </div>
-    </div>
+    </div><!--header-->
   </div>
   <div id="content">
     <div id="monitors" class="grid-stack hidden-shift">

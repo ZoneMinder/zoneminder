@@ -1199,6 +1199,12 @@ class Monitor extends ZM_Object {
 ';
     } # end if showZones
     $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
+    $html .= '
+      <div class="stream-info">
+          <div class="stream-info-status"></div>
+          <div class="stream-info-mode"></div>
+      </div>
+      '.PHP_EOL;;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();

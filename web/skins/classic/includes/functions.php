@@ -94,9 +94,6 @@ echo output_cache_busted_stylesheet_links(array(
   'css/bootstrap.min.css',
 ));
 
-if ( $basename == 'montage' ) {
-  echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
-}
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>

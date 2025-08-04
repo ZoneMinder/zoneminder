@@ -1408,6 +1408,30 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Volume сontrol --- */
 
+video-stream {
+  position: relative;
+}
+.stream-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.stream-info-status:empty, .stream-info-mode:empty {
+  padding:0;
+}
+
+.stream-info-status, .stream-info-mode {
+  background-color: rgba(0,0,0,0.3);
+  color: #dddddd;
+  padding: 0.3em;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

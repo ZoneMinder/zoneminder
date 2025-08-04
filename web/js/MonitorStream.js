@@ -317,6 +317,13 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
+  this.updateStreamInfo = function(info) {
+    const modeEl = document.querySelector('#monitor' + this.id + ' .stream-info-mode');
+    const statusEl = document.querySelector('#monitor' + this.id + ' .stream-info-status');
+    if (modeEl) modeEl.innerText = info;
+    if (statusEl) statusEl.innerText = '';
+  };
+
   /*
   * streamChannel = 0 || Primary; 1 || Secondary.
   */
@@ -395,6 +402,7 @@ function MonitorStream(monitorData) {
       this.started = true;
       this.streamListenerBind();
       this.activePlayer = 'janus';
+      this.updateStreamInfo('Janus');
       return;
     }
 
@@ -458,6 +466,7 @@ function MonitorStream(monitorData) {
         this.started = true;
         this.streamListenerBind();
         $j('#volumeControls').show();
+        this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -502,6 +511,7 @@ function MonitorStream(monitorData) {
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
+    this.updateStreamInfo('MJPEG');
   }; // this.start
 
   this.stop = function() {

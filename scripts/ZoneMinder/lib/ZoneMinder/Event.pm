@@ -756,8 +756,7 @@ sub MoveTo {
 
   my $error = '';
   if ((! -e $SrcPath) and -e $NewPath) {
-    Debug("srcPath: $SrcPath newPath: $NewPath");
-    Warning("Event has already been moved, just updating the event record in db.");
+    Warning("Event $$self{Id} has already been moved from $$OldStorage{Id} $SrcPath, just updating the event record in db to $$NewStorage{Id} $NewPath.");
   } else {
     $error = $self->CopyTo($NewStorage);
     return $error if $error;

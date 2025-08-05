@@ -456,7 +456,6 @@ bool VideoStore::open() {
         if (!audio_out_ctx) {
           Error("Could not allocate new output_context");
         } else {
-
           // Copy params from instream to ctx
           ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
           if (ret < 0) {
@@ -467,18 +466,20 @@ bool VideoStore::open() {
             Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
           }
 
-      audio_out_ctx->codec_tag = 0;
-      audio_out_stream->codecpar->codec_tag = 0;
+          audio_out_ctx->codec_tag = 0;
+          audio_out_stream->codecpar->codec_tag = 0;
+
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+            audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+          }
+
+          // We will assume that subsequent stream allocations will increase the index
+          max_stream_index = audio_out_stream->index;
+          last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+          reorder_queues[audio_out_stream->index] = {};
+        } // end if audio_out_ctx
+      } // end if audio_out_stream
     } // end if is AAC
-
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    }
-
-    // We will assume that subsequent stream allocations will increase the index
-    max_stream_index = audio_out_stream->index;
-    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
-    reorder_queues[audio_out_stream->index] = {};
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1

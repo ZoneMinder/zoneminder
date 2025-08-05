@@ -1319,8 +1319,7 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
-  //if (currentMonitor.RTSP2WebEnabled) {
-  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
+  if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
     const streamChannel = $j('#streamChannel').val();
     setCookie('zmStreamChannel', streamChannel);
@@ -1343,6 +1342,7 @@ function changePlayer() {
   setTimeout(function() {
     streamCmdPlay(true);
     manageStreamQualityVisibility();
+    monitorsSetScale(monitorId);
   }, 300);
   /*return;
 
@@ -1499,8 +1499,10 @@ document.onvisibilitychange = () => {
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = false;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
     }
   }
 };

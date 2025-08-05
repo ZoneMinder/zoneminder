@@ -318,6 +318,13 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
+  this.updateStreamInfo = function(info) {
+    const modeEl = document.querySelector('#monitor' + this.id + ' .stream-info-mode');
+    const statusEl = document.querySelector('#monitor' + this.id + ' .stream-info-status');
+    if (modeEl) modeEl.innerText = info;
+    if (statusEl) statusEl.innerText = '';
+  };
+
   /*
   * streamChannel = 0 || Primary; 1 || Secondary.
   */
@@ -394,6 +401,7 @@ function MonitorStream(monitorData) {
       this.started = true;
       this.streamListenerBind();
       this.activePlayer = 'janus';
+      this.updateStreamInfo('Janus');
       return;
     }
 
@@ -457,6 +465,7 @@ function MonitorStream(monitorData) {
         this.started = true;
         this.streamListenerBind();
         $j('#volumeControls').show();
+        this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -501,6 +510,7 @@ function MonitorStream(monitorData) {
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
+    this.updateStreamInfo('MJPEG');
   }; // this.start
 
   this.stop = function() {
@@ -511,7 +521,7 @@ function MonitorStream(monitorData) {
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
     //if ( 1 ) {
-    if (-1 === this.player.indexOf('rtsp2web')) {
+    if (-1 === this.activePlayer.indexOf('rtsp2web')) {
       if (stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
@@ -530,7 +540,7 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
-    if (-1 !== this.player.indexOf('go2rtc')) {
+    if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
           stream.ondisconnect();
@@ -538,7 +548,7 @@ function MonitorStream(monitorData) {
           console.warn(e);
         }
       }
-    } else if (-1 !== this.player.indexOf('rtsp2web')) {
+    } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
         stream.src = '';
@@ -552,7 +562,7 @@ function MonitorStream(monitorData) {
       if (this.RTSP2WebType == 'MSE') {
         this.stopMse();
       }
-    } else if (-1 !== this.player.indexOf('janus')) {
+    } else if (-1 !== this.activePlayer.indexOf('janus')) {
       stream.src = '';
       stream.srcObject = null;
       janus = null;

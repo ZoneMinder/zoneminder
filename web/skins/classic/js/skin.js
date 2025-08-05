@@ -1283,7 +1283,7 @@ function applyChosen(selector = '') {
 }
 
 function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
+  return parseInt(String(str).replace(/\D/g, ''));
 }
 
 function thisClickOnStreamObject(clickObj) {

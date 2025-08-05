@@ -555,6 +555,8 @@ function MonitorStream(monitorData) {
           console.warn(e);
         }
       }
+      if (close in this.webrtc) this.webrtc.close();
+      this.webrtc = null;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();

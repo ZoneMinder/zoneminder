@@ -62,13 +62,6 @@ and perform AI analysis on latest frames
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#if HAVE_QUADRA
-#include "zm_quadra.h"
-#endif
-#ifdef HAVE_UNTETHER_H
-// Untether runtime API header
-#include "zm_untether_speedai.h"
-#endif
 
 #include "zm_ai_server.h"
 
@@ -85,11 +78,18 @@ void Usage() {
 }
 
 #ifdef HAVE_UNTETHER_H
+#include "zm_untether_speedai.h"
   SpeedAI *speedai;
 #endif
 
 #if HAVE_QUADRA
-Quadra quadra;
+  #include "zm_quadra.h"
+  Quadra quadra;
+#endif
+
+#if HAVE_MEMX_H
+  #include "zm_memx.h"
+  MemX *memx;
 #endif
 
 int main(int argc, char *argv[]) {
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'SpeedAI'";
+  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'memx'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (monitor_id > 0)
@@ -172,6 +172,17 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 #endif
+#if HAVE_MEMX_H
+  Debug(1, "Including MemX");
+  memx = new MemX();
+  if (!memx->setup("yolov5", "/var/cache/zoneminder/models/YOLO_v5_nano_leaky_416_416_3_tensorflow.dfp")) {
+    delete memx;
+    memx = nullptr;
+    return 0;
+  }
+#else
+  Debug(1, "Not Including MemX");
+#endif
 
   std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
   std::unordered_map<unsigned int, AIThread *> threads;
@@ -192,6 +203,9 @@ int main(int argc, char *argv[]) {
         threads[monitor->Id()] = new AIThread(monitor
 #if HAVE_UNTETHER_H
             , speedai
+#endif
+#if HAVE_MEMX_H
+            , memx
 #endif
             );
       }
@@ -257,6 +271,13 @@ void AIThread::Inference() {
   }
 #endif
 
+#ifdef HAVE_MEMX_H
+  while (!terminate_ and !( memx_job = memx->get_job() )) {
+    Warning("Waiting for job");
+    sleep(1);
+  }
+#endif
+
 #if HAVE_QUADRA
 #if !SOFT_DRAWBOX
   int ret;
@@ -297,6 +318,20 @@ void AIThread::Inference() {
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
       nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
+      Debug(1, "detections %s", detections.dump().c_str());
+
+      if (detections.size()) {
+        draw_boxes(packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
+        //draw_boxes(drawbox_filter, drawbox_filter_ctx, packet->image, ai_image, detections, monitor_->LabelSize(), monitor_->LabelSize());
+      } else {
+        ai_image->Assign(*packet->image);
+      }
+#endif
+#ifdef HAVE_MEMX_H
+      memx->send_image(memx_job, packet->image);
+
+      Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
+      nlohmann::json detections = memx->receive_detections(memx_job, monitor_->ObjectDetection_Object_Threshold());
       Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
@@ -612,10 +647,16 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H
     , SpeedAI *p_speedai
 #endif
+#if HAVE_MEMX_H
+    , MemX *p_memx
+#endif
     ) :
   monitor_(monitor), terminate_(false)
 #if HAVE_UNTETHER_H
   , speedai(p_speedai)
+#endif
+#if HAVE_MEMX_H
+  , memx(p_memx)
 #endif
 #if HAVE_QUADRA
   ,drawbox_filter(nullptr)

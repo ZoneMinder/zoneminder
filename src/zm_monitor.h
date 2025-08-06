@@ -99,6 +99,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     OBJECT_DETECTION_QUADRA,
     OBJECT_DETECTION_SPEEDAI,
     OBJECT_DETECTION_UVICORN,
+    OBJECT_DETECTION_MEMX,
   } ObjectDetectionOption;
 
   typedef enum {

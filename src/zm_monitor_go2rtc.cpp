@@ -21,13 +21,14 @@
 
 #include "zm_crypt.h"
 #include "zm_monitor.h"
+#include "zm_server.h"
 #include "zm_time.h"
+#include "zm_user.h"
 #include "zm_utils.h"
 
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
 
-  Use_RTSP_Restream = parent->RTSPServer();
 
   if ((config.go2rtc_path != nullptr) && (config.go2rtc_path[0] != '\0')) {
     Go2RTC_endpoint = config.go2rtc_path;
@@ -36,6 +37,26 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
   }
+
+  Use_RTSP_Restream = parent->RTSPServer();
+  if (Use_RTSP_Restream) {
+    if (parent->server_id) {
+      Server server(parent->server_id);
+      rtsp_restream_path = "rtsp://"+server.Hostname();
+    } else {
+      rtsp_restream_path = "rtsp://127.0.0.1";
+    }
+    rtsp_restream_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
+    if (ZM_OPT_USE_AUTH) {
+      if (parent->janus_rtsp_user) {
+        User *rtsp_user = User::find(parent->janus_rtsp_user);
+        std::string auth_key = rtsp_user->getAuthHash();
+        rtsp_path += "?auth=" + auth_key;
+      } else {
+        Warning("No user selected for RTSP_Server authentication!");
+      }
+    }  // end if ZM_OPT_USE_AUTH
+  }  // end if User_RTSP_REstream
 
   rtsp_path = parent->path;
   rtsp_second_path = parent->GetSecondPath();
@@ -113,6 +134,12 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   if (!rtsp_second_path.empty()) {
     endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_1", parent->Id())+"&src="+UriEncode(rtsp_second_path);
     postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 1\", \"src\": \""+rtsp_second_path+"\" }";
+    response = CURL_PUT(endpoint, postData);
+  }
+
+  if (!rtsp_restream_path.empty()) {
+    endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_2", parent->Id())+"&src="+UriEncode(rtsp_restream_path);
+    postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 2\", \"src\": \""+rtsp_restream_path+"\" }";
     response = CURL_PUT(endpoint, postData);
   }
   return 0;

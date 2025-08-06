@@ -446,6 +446,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
+    std::string rtsp_restream_path;
     std::string rtsp_path;
     std::string rtsp_second_path;
 
@@ -473,6 +474,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
       std::string Go2RTC_endpoint;
+      std::string rtsp_restream_path;
       std::string rtsp_username;
       std::string rtsp_password;
       std::string rtsp_path;

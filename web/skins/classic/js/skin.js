@@ -565,13 +565,13 @@ function submitThisForm(param = null) {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
       // We get a filter
-      filter = document.getElementById('#fbpanel');
+      filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.getElementById('#filters_form');
+      form = document.getElementById('filters_form');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
-      form = document.getElementById('#montagereview_form');
-      filter = document.getElementById('#filterMontagereview');
+      form = document.getElementById('montagereview_form');
+      filter = document.getElementById('filterMontagereview');
     } else if (currentView == 'watch') {
       form = document.querySelector('#wrapperFilter form');
     }

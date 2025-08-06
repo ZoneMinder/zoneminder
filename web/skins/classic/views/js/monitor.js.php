@@ -22,6 +22,7 @@ controlOptions['.$control->Id().'][0] = '.
 } # end if ZM_OPT_CONTROL
 ?>
 
+  const od_models = <?php global $models; echo json_encode($models,JSON_PRETTY_PRINT|JSON_NUMERIC_CHECK); ?>;
 const monitorNames = new Object();
 const rtspStreamNames = new Object();
 <?php

@@ -1079,11 +1079,11 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         if (defined('HAVE_MEMX'))
           $od_options['memx'] = 'MemryX MX3';
 
-        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
+        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
             </li>
 <?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
-            <li class="ObjectDetectionModel">
+            <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
         $models = [];
@@ -1111,11 +1111,11 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
 <?php } ?>
             </li>
-            <li class="ObjectDetectionObjectThreshold">
+            <li id="ObjectDetectionObjectThreshold" class="ObjectDetectionObjectThreshold">
               <label><?php echo translate('Object Detection Object Threshold')?></label>
               <input type="number" name="newMonitor[ObjectDetectionObjectThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionObjectThreshold()) ?>" min="0" step="any" max="100"/>
             </li>
-            <li class="ObjectDetectionNMSThreshold">
+            <li id="ObjectDetectionNMSThreshold" class="ObjectDetectionNMSThreshold">
               <label><?php echo translate('Object Detection NMS Threshold')?></label>
               <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" step="any" max="100"/>
             </li>

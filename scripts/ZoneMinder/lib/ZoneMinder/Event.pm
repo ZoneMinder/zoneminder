@@ -417,6 +417,9 @@ sub delete {
     # Do it individually to avoid locking up the table for new events
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+
+    my $storage = $self->Storage();
+    $storage->save({DiskSpace=>$storage->DiskSpace()-$self->DiskSpace()}) if $self->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -765,6 +768,9 @@ sub MoveTo {
     }
   }
 
+  my $old_diskspace = $self->DiskSpace();
+  my $new_diskspace = $self->DiskSpace(undef);
+
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
   $error .= $self->save();
@@ -774,6 +780,10 @@ sub MoveTo {
     return $error;
   }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+
+  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
+  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace;
+  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;

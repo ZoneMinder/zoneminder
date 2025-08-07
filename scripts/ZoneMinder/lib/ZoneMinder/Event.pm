@@ -759,14 +759,20 @@ sub MoveTo {
     Warning("Event $$self{Id} has already been moved from $$OldStorage{Id} $SrcPath, just updating the event record in db to $$NewStorage{Id} $NewPath.");
   } else {
     $error = $self->CopyTo($NewStorage);
-    return $error if $error;
+    if ($error) {
+      $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+      return $error;
+    }
   }
 
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
   $error .= $self->save();
   # Going to leave it to upper layer as to whether we rollback or not
-  return $error if $error;
+  if ($error) {
+    $ZoneMinder::Database::dbh->rollback() if !$was_in_transaction;
+    return $error;
+  }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   $self->delete_files($OldStorage);

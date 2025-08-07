@@ -216,8 +216,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    //monitorStream.streamCommand(CMD_STOP);
-    monitorStream.kill();
+    monitorStream.stop();
   }
   //setButtonState('stopBtn', 'unavail');
   //setButtonState('playBtn', 'active');

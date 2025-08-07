@@ -541,7 +541,8 @@ function MonitorStream(monitorData) {
           stream.src = src;
         }
       }
-      this.streamCommand(CMD_STOP);
+      //this.streamCommand(CMD_STOP);
+      this.streamCommand(CMD_QUIT);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {

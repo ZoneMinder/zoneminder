@@ -51,7 +51,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
       if (parent->janus_rtsp_user) {
         User *rtsp_user = User::find(parent->janus_rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_path += "?auth=" + auth_key;
+        rtsp_restream_path += "?auth=" + auth_key;
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }

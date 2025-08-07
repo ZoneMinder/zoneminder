@@ -418,8 +418,8 @@ sub delete {
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
 
-    my $storage = $self->Storage();
-    $storage->save({DiskSpace=>$storage->DiskSpace()-$self->DiskSpace()}) if $self->DiskSpace();
+    my $storage = $event->Storage();
+    $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()}) if $event->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {

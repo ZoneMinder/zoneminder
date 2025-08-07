@@ -825,13 +825,15 @@ function MonitorStream(monitorData) {
     });
     volumeSlider.allowSetValue = true;
     volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
-      audioStream.volume = values[0]/100;
-      if (values[0] > 0 && !audioStream.muted) {
-        iconMute.innerHTML = 'volume_up';
-        volumeSlider.classList.remove('noUi-mute');
-      } else {
-        iconMute.innerHTML = 'volume_off';
-        volumeSlider.classList.add('noUi-mute');
+      if (audioStream) {
+        audioStream.volume = values[0]/100;
+        if (values[0] > 0 && !audioStream.muted) {
+          iconMute.innerHTML = 'volume_up';
+          volumeSlider.classList.remove('noUi-mute');
+        } else {
+          iconMute.innerHTML = 'volume_off';
+          volumeSlider.classList.add('noUi-mute');
+        }
       }
       //console.log("Audio volume slider event: 'update'");
     });

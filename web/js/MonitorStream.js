@@ -862,9 +862,11 @@ function MonitorStream(monitorData) {
       this.controlMute('on');
     }
 
-    audioStream.addEventListener('volumechange', (event) => {
-      this.listenerVolumechange(event);
-    });
+    if (audioStream) {
+      audioStream.addEventListener('volumechange', (event) => {
+        this.listenerVolumechange(event);
+      });
+    }
   };
 
   /*

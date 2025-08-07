@@ -272,6 +272,7 @@ void AIThread::Inference() {
 #endif
 
 #ifdef HAVE_MEMX_H
+  Debug(1, "Starting for memx");
   while (!terminate_ and !( memx_job = memx->get_job() )) {
     Warning("Waiting for job");
     sleep(1);
@@ -299,11 +300,12 @@ void AIThread::Inference() {
 
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
-
+    Debug(1, "Getting lock"); 
     // Need to hold the lock because it guards shared_mem as well.
     std::unique_lock<std::mutex> lck(mutex_);
+    Debug(1, "Having lock"); 
     while (!(send_queue.size() or terminate_)) {
-      //Debug(1, "Waiting");
+      Debug(1, "Waiting");
       condition_.wait(lck);
       Debug(1, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
     }
@@ -364,6 +366,7 @@ void AIThread::Run() {
     Error("No speedai");
     return;
   }
+#endif
 
   {
     std::unique_lock<std::mutex> lck(mutex_);
@@ -481,7 +484,6 @@ void AIThread::Run() {
     }  // end if have a new image
   }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
-#endif
 } // end SpeedAIDetect   
 
 

@@ -326,13 +326,14 @@ function MonitorStream(monitorData) {
   };
 
   /*
-  * streamChannel = 0 || Primary; 1 || Secondary.
+  * streamChannel = 0 || Primary; 1 || Secondary.; 2 || Restream
   */
   this.start = function(streamChannel = 'default') {
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
-    if (!['default', 0, 1].includes(streamChannel)) {
+    if (!['default', 0, 1, 2].includes(streamChannel)) {
       streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
     }
+    console.log('streamChannel', streamChannel);
     this.streamListenerBind = streamListener.bind(null, this);
 
     $j('#volumeControls').hide();
@@ -349,6 +350,7 @@ function MonitorStream(monitorData) {
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        console.log(this.currentChannelStream);
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
         //webrtcUrl.search = 'src='+this.id;

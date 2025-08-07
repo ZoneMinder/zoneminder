@@ -1084,24 +1084,27 @@ function manageShutdownBtns(element) {
 function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
+  let restream = null;
   if (currentView == 'watch') {
     const monitor = monitorData.find((o) => {
       return parseInt(o["id"]) === monitorId;
     });
     if (monitor) {
       secondPath_ = monitor['SecondPath'];
+      restream = monitor['Restream'];
     }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    restream = document.querySelector('input[name="newMonitor[Janus_Use_RTSP_Restream]"]').checked;
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream') {
+        el.disabled = !restream;
       }
       applyChosen(select);
     });

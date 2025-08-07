@@ -314,7 +314,7 @@ class Event extends ZM_Object {
       $this->{'DiskSpace'} = folder_size($this->Path());
       if ($this->{'EndDateTime'} and $this->{'DiskSpace'}) {
         # Finished events shouldn't grow in size much so we can commit it to the db.
-        dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+        #dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
       }
     }
     return $this->{'DiskSpace'};

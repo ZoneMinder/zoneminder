@@ -591,6 +591,20 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
 }
 
 int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
+#if LIBAVCODEC_VERSION_CHECK(61, 19,100, 19, 100)
+  const enum AVSampleFormat *sample_fmts;
+  int num_sample_fmts;
+  int ret = avcodec_get_supported_config(nullptr, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, (const void **) &sample_fmts, &num_sample_fmts);
+  if (ret < 0)
+    return ret;
+  if (sample_fmts) {
+    for (int i = 0; i < num_sample_fmts; i++) {
+      if (sample_fmt == sample_fmts[i])
+        return 1;
+    }
+  } // end if sample_fmts
+
+#else
   const enum AVSampleFormat *p = codec->sample_fmts;
 
   while (*p != AV_SAMPLE_FMT_NONE) {
@@ -599,6 +613,7 @@ int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
     else Debug(2, "Not %s", av_get_sample_fmt_name( *p ) );
     p++;
   }
+#endif
   return 0;
 }
 

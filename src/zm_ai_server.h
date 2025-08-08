@@ -24,19 +24,23 @@ extern "C" {
 #if HAVE_MEMX_H
   #include "zm_memx.h"
 #endif
+#if HAVE_MX_ACCL_H
+  #include "zm_mx_accl.h"
+#endif
 
 class Monitor;
 
 class AIThread {
  public:
-  explicit AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H
-      , SpeedAI *speedai
+  explicit AIThread(const std::shared_ptr<Monitor> monitor, SpeedAI *speedai);
 #endif
 #if HAVE_MEMX_H
-      , MemX *memx
+  explicit AIThread(const std::shared_ptr<Monitor> monitor, MemX *memx);
 #endif
-      );
+#if HAVE_MX_ACCL_H
+  explicit AIThread(const std::shared_ptr<Monitor> monitor, MxAccl *memx);
+#endif
   ~AIThread();
   AIThread(AIThread &rhs) = delete;
   AIThread(AIThread &&rhs) = delete;
@@ -61,6 +65,10 @@ class AIThread {
 #if HAVE_MEMX_H
   MemX *memx;
   MemX::Job *memx_job;
+#endif
+#if HAVE_MX_ACCL_H
+  MxAccl *mx_accl;
+  MxAccl::Job *mx_accl_job;
 #endif
 #if HAVE_QUADRA
   Quadra::filter_worker *drawbox_filter;

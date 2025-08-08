@@ -20,19 +20,22 @@ extern "C" {
 }
 
 #ifdef HAVE_MEMX_H
-//#include "memx/memx.h"
-#include <memx/accl/MxAccl.h>
-
-// FIXME move model stuff to it's ownfile
-#define MODEL_WIDTH 640
-#define MODEL_HEIGHT 640
-// * 6; // 256 boxes, each with 6 elements [l, t, r, b, class, score]
-#define NUM_NMS_PREDICTIONS 256
+#include "memx/memx.h"
+#include "zm_memx_yolov8.h"
 
 class MemX {
   private:
-    MX::Runtime::MxAccl *accl;
-    MX::Types::MxModelInfo model_info;
+    std::unique_ptr<YOLOv8> yolov8_handle;
+
+    uint8_t model_id;
+    uint8_t input_port;
+    uint8_t output_port;
+
+    float obj_thresh = 0.25;
+    float nms_thresh = 0.45;
+
+    int32_t input_height, input_width, input_depth, input_channels, input_format;
+    int32_t output_height, output_width, output_depth, output_channels, output_format;
 
     std::mutex  mutex_;
     std::condition_variable condition_;
@@ -50,7 +53,6 @@ class MemX {
   public:
     class Job {
       private:
-         MX::Runtime::MxAccl *m_accl;
       public:
 
         int index;
@@ -58,13 +60,15 @@ class MemX {
         float m_width_rescale;
         float m_height_rescale;
         SwsContext *sw_scale_ctx;
-        std::vector<float> predictions_buffer;
+
+        std::vector<float> ifmap;
+        std::vector<float> ofmap;
+
         std::mutex  mutex_;
         std::unique_lock<std::mutex> lck_;
         std::condition_variable condition_;
 
-        Job(MX::Runtime::MxAccl *p_accl) :
-          m_accl(p_accl),
+        Job() :
           index(0),
           m_width_rescale(1.0),
           m_height_rescale(1.0),
@@ -72,10 +76,6 @@ class MemX {
           lck_(mutex_, std::defer_lock)
           {
             scaled_frame = av_frame_ptr(zm_av_frame_alloc());
-            scaled_frame->width = MODEL_WIDTH;
-            scaled_frame->height = MODEL_HEIGHT;
-            scaled_frame->format = AV_PIX_FMT_RGB24;
-            predictions_buffer.resize(NUM_NMS_PREDICTIONS*6);
           };
         ~Job() {
           if (sw_scale_ctx) {
@@ -85,14 +85,12 @@ class MemX {
         void setFrame(AVFrame *frame) {
         }
         Job(Job &&in) :
-          m_accl(in.m_accl),
           index(in.index),
           scaled_frame(std::move(in.scaled_frame)),
           m_width_rescale(in.m_width_rescale),
           m_height_rescale(in.m_height_rescale)
         {
           Debug(1, "In move");
-          //in.scaled_frame = nullptr;
         }
         void lock() {
           lck_.lock();
@@ -117,6 +115,7 @@ class MemX {
     Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
     Job * send_image(Job *job, Image *image);
     Job * send_frame(Job *job, AVFrame *);
+    memx_status inference(Job *job);
 
     const nlohmann::json receive_detections(Job *job, float threshold);
     nlohmann::json convert_predictions_to_coco_format(const std::vector<float>& predictions, float, float, float threshold);

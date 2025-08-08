@@ -137,17 +137,18 @@ MYSQL_RES *zmDbFetch(const std::string &query) {
     return nullptr;
   }
 
-  int rc = mysql_query(&dbconn, query.c_str());
 
+  int rc = mysql_query(&dbconn, query.c_str());
   if (rc) {
-    Debug(1, "Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, mysql_error(&dbconn));
+    std::string reason = mysql_error(&dbconn); // store for later because it will get clobbered by second attempt
+    Debug(1, "Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, reason.c_str());
     if (mysql_ping(&dbconn) and zmDbReconnect()) {
       rc = mysql_query(&dbconn, query.c_str());
     }
-  }
-  if (rc) {
-    Error("Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, mysql_error(&dbconn));
-    return nullptr;
+    if (rc) {
+      Error("Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, reason.c_str());
+      return nullptr;
+    }
   }
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if (!result) {

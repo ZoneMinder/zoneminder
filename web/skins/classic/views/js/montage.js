@@ -860,7 +860,7 @@ console.log("**********MONITOR ЗАГРУЖЕНО ВИДЕО ID=" + monitor.id);
   // --- For MontageReview
 
   // Creating a ResizeObserver Instance
-  observer = new ResizeObserver((objResizes) => {
+  const observer = new ResizeObserver((objResizes) => {
     const blockContent = document.getElementById('content');
     const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
     if (scrollBbarExists === null) {
@@ -1191,7 +1191,7 @@ function initPageLive() {
 
   // Registering an observer on an element
   $j('[id ^= "liveStream"]').each(function() {
-    observer.observe(this);
+    observerMontage.observe(this);
   });
 
 /*~*/  $j('#monitors').removeClass('hidden-shift');

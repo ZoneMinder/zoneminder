@@ -403,6 +403,11 @@ sub delete {
       $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
       return;
     }
+    ZoneMinder::Database::zmDbDo('DELETE FROM Event_Data WHERE EventId=?', $$event{Id});
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      return;
+    }
     ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {
       $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
@@ -412,6 +417,9 @@ sub delete {
     # Do it individually to avoid locking up the table for new events
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+
+    my $storage = $event->Storage();
+    $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()}) if $event->DiskSpace();
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -751,19 +759,31 @@ sub MoveTo {
 
   my $error = '';
   if ((! -e $SrcPath) and -e $NewPath) {
-    Debug("srcPath: $SrcPath newPath: $NewPath");
-    Warning("Event has already been moved, just updating the event record in db.");
+    Warning("Event $$self{Id} has already been moved from $$OldStorage{Id} $SrcPath, just updating the event record in db to $$NewStorage{Id} $NewPath.");
   } else {
     $error = $self->CopyTo($NewStorage);
-    return $error if $error;
+    if ($error) {
+      $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+      return $error;
+    }
   }
+
+  my $old_diskspace = $self->DiskSpace();
+  my $new_diskspace = $self->DiskSpace(undef);
 
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
   $error .= $self->save();
   # Going to leave it to upper layer as to whether we rollback or not
-  return $error if $error;
+  if ($error) {
+    $ZoneMinder::Database::dbh->rollback() if !$was_in_transaction;
+    return $error;
+  }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+
+  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
+  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace;
+  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace;
 
   $self->delete_files($OldStorage);
   return $error;

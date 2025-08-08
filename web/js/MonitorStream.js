@@ -83,6 +83,7 @@ function MonitorStream(monitorData) {
   };
 
   this.player = '';
+  this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
 
@@ -98,6 +99,59 @@ function MonitorStream(monitorData) {
 
     }
     return this.player = p;
+  };
+
+  this.manageAvailablePlayersOptions = function(action, opt) {
+    if (action == 'disable') {
+      opt.setAttribute('disabled', '');
+      opt.setAttribute('title', playerDisabledInMonitorSettings);
+    } else if (action == 'enable') {
+      opt.removeAttribute('disabled');
+      opt.removeAttribute('title');
+    }
+  };
+
+  this.manageAvailablePlayers = function() {
+    const selectPlayers = document.querySelector('[id="player"][name="codec"]');
+    const opts = selectPlayers.options;
+
+    for (var opt, j = 0; opt = opts[j]; j++) {
+      if (-1 !== opt.value.indexOf('go2rtc')) {
+        if (this.Go2RTCEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      } else if (-1 !== opt.value.indexOf('rtsp2web')) {
+        if (this.RTSP2WebEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      } else if (-1 !== opt.value.indexOf('janus')) {
+        if (this.janusEnabled) {
+          this.manageAvailablePlayersOptions('enable', opt);
+        } else {
+          this.manageAvailablePlayersOptions('disable', opt);
+        }
+      }
+    }
+    let selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+    if (selectedPlayerOption) {
+      if (selectedPlayerOption.value == '') {
+        // Perhaps "Auto" is left from the previous monitor, we will change it according to the cookies.
+        const zmWatchPlayer = getCookie('zmWatchPlayer');
+        if (zmWatchPlayer) {
+          selectPlayers.value = zmWatchPlayer;
+          selectedPlayerOption = selectPlayers.options[selectPlayers.selectedIndex];
+        }
+      }
+      if (selectedPlayerOption && selectedPlayerOption.disabled) {
+        // Selected player is not available for the current monitor
+        selectPlayers.value = ''; // Auto
+      }
+    }
+    this.player = selectPlayers.value;
   };
 
   this.element = null;
@@ -263,7 +317,21 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
+  this.updateStreamInfo = function(info) {
+    const modeEl = document.querySelector('#monitor' + this.id + ' .stream-info-mode');
+    const statusEl = document.querySelector('#monitor' + this.id + ' .stream-info-status');
+    if (modeEl) modeEl.innerText = info;
+    if (statusEl) statusEl.innerText = '';
+  };
+
+  /*
+  * streamChannel = 0 || Primary; 1 || Secondary.
+  */
   this.start = function(streamChannel = 'default') {
+    if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
+    if (!['default', 0, 1].includes(streamChannel)) {
+      streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
+    }
     this.streamListenerBind = streamListener.bind(null, this);
 
     console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));
@@ -278,11 +346,14 @@ function MonitorStream(monitorData) {
         const stream = this.element = document.createElement('video-stream');
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
+        stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
-        webrtcUrl.search = 'src='+this.id;
+        //webrtcUrl.search = 'src='+this.id;
+        webrtcUrl.search = 'src='+this.id+'_'+this.currentChannelStream;
         stream.src = webrtcUrl.href;
         const stream_container = old_stream.parentNode;
 
@@ -300,6 +371,8 @@ function MonitorStream(monitorData) {
         this.streamListenerBind();
 
         $j('#volumeControls').show();
+        if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
+        this.activePlayer = 'go2rtc';
         return;
       } else {
         alert("ZM_GO2RTC_PATH is empty. Go to Options->System and set ZM_GO2RTC_PATH accordingly.");
@@ -328,6 +401,8 @@ function MonitorStream(monitorData) {
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       this.started = true;
       this.streamListenerBind();
+      this.activePlayer = 'janus';
+      this.updateStreamInfo('Janus');
       return;
     }
 
@@ -354,7 +429,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (!streamChannel || streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
         if (this.RTSP2WebType == 'HLS') {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
@@ -372,22 +447,26 @@ function MonitorStream(monitorData) {
           } else if (stream.canPlayType('application/vnd.apple.mpegurl')) {
             stream.src = hlsUrl.href;
           }
+          this.activePlayer = 'rtsp2web_hls';
         } else if (this.RTSP2WebType == 'MSE') {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
+          this.activePlayer = 'rtsp2web_mse';
         } else if (this.RTSP2WebType == 'WebRTC') {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
+          this.activePlayer = 'rtsp2web_webrtc';
         }
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
         $j('#volumeControls').show();
+        this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -431,18 +510,25 @@ function MonitorStream(monitorData) {
     stream.onload = this.img_onload.bind(this);
     this.started = true;
     this.streamListenerBind();
+    this.activePlayer = 'zms';
+    this.updateStreamInfo('ZMS MJPEG');
   }; // this.start
 
   this.stop = function() {
+    /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
     if (!stream) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    //if ( 1 ) {
-    if (-1 === this.player.indexOf('rtsp2web')) {
-      if (stream.src) {
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.started = false;
+
+    if (-1 !== this.activePlayer.indexOf('zms')) {
+      // Icon: My current thought is to just tell zms to stop. Don't go to single.
+      if (0 && stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
           src += '&mode=single';
@@ -455,20 +541,25 @@ function MonitorStream(monitorData) {
           stream.src = src;
         }
       }
-    }
-    this.streamCommand(CMD_STOP);
-    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    this.started = false;
-    if (-1 !== this.player.indexOf('go2rtc')) {
-      if (this.webrtc) {
-        if (this.webrtc.close) this.webrtc.close();
-        stream.srcObject = null;
-        this.webrtc = null;
+      this.streamCommand(CMD_STOP);
+    } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
+      if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
+        try {
+          stream.ondisconnect();
+        } catch (e) {
+          console.warn(e);
+        }
       }
-    } else if (-1 !== this.player.indexOf('rtsp2web')) {
+      if (this.webrtc && ('close' in this.webrtc)) {
+        this.webrtc.close();
+      } else {
+        console.log('close not in ', this.webrtc);
+      }
+      this.webrtc = null;
+    } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
+        stream.src = '';
         stream.srcObject = null;
         this.webrtc = null;
       }
@@ -479,6 +570,12 @@ function MonitorStream(monitorData) {
       if (this.RTSP2WebType == 'MSE') {
         this.stopMse();
       }
+    } else if (-1 !== this.activePlayer.indexOf('janus')) {
+      stream.src = '';
+      stream.srcObject = null;
+      janus = null;
+    } else {
+      console.log("Unknown activePlayer", this.activePlayer);
     }
   };
 
@@ -540,6 +637,7 @@ function MonitorStream(monitorData) {
   };
 
   this.kill = function() {
+    /* kill should actually remove the zms process.  Resulting in a broken image on screen. */
     if (janus && streaming[this.id]) {
       streaming[this.id].detach();
     }
@@ -552,9 +650,12 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && -1 === this.player.indexOf('rtsp2web')) {
+    if (stream.src && (-1 !== this.player.indexOf('zms'))) {
       stream.src = '';
+      // Make zms exit
+      this.streamCommand(CMD_QUIT);
     }
+    // Kill and stop share a lot of the same code... so just call stop
     this.stop();
   };
 
@@ -567,7 +668,7 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    if (this.RTSP2WebEnabled || this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc') || -1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
@@ -583,10 +684,10 @@ function MonitorStream(monitorData) {
 
   this.play = function() {
     console.log('play');
-    if (this.Go2RTCEnabled) {
+    if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('go2rtc'))) {
       this.element.play(); // go2rtc player will handle mute
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-    } else if (this.RTSP2WebEnabled) {
+    } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.play().catch(() => {
         if (!this.element.muted) {
@@ -1168,7 +1269,7 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
 
     this.streamCmdReq = function(streamCmdParms) {
-      if (!(streamCmdParms.command == CMD_STOP && (this.RTSP2WebEnabled || this.Go2RTCEnabled))) {
+      if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
         this.ajaxQueue = jQuery.ajaxQueue({
           url: this.url + (auth_relay?'?'+auth_relay:''),
@@ -1458,13 +1559,13 @@ function startRTSP2WebPlay(videoEl, url, stream) {
     });
     if (stream.webrtc.sctp && stream.webrtc.sctp.state != 'open') return;
     await stream.webrtc.setLocalDescription(offer);
-    console.log(stream.webrtc.localDescription.sdp);
+    //console.log(stream.webrtc.localDescription.sdp);
 
     $j.post(url, {
       data: btoa(stream.webrtc.localDescription.sdp)
     }, function(data) {
       if ((stream.webrtc && 'sctp' in stream.webrtc && stream.webrtc.sctp) && stream.webrtc.sctp.state != 'stable') {
-        console.log(data);
+        //console.log(data);
         try {
           stream.webrtc.setRemoteDescription(new RTCSessionDescription({
             type: 'answer',

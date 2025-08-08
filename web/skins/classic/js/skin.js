@@ -560,18 +560,18 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (navbar_type == 'left') {
+  if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
       // We get a filter
-      filter = document.querySelector('#fbpanel');
+      filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.querySelector('#filters_form');
+      form = document.getElementById('filters_form');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
-      form = document.querySelector('#montagereview_form');
-      filter = document.querySelector('#filterMontagereview');
+      form = document.getElementById('montagereview_form');
+      filter = document.getElementById('filterMontagereview');
     } else if (currentView == 'watch') {
       form = document.querySelector('#wrapperFilter form');
     }
@@ -1081,7 +1081,7 @@ function manageShutdownBtns(element) {
 }
 
 /* Controls the availability of options for selection*/
-function manageRTSP2WebChannelStream() {
+function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
@@ -1262,14 +1262,14 @@ function applyChosen(selector = '') {
   var [obj_1, obj_2, obj_3] = '';
   destroyChosen(selector);
   if (typeof selector === 'string') {
-    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector + '.chosen.chosen-full-width');
-    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+    obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width').not('.hidden, .hidden-shift');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width').not('.hidden, .hidden-shift');
   } else {
     if (!$j(selector).hasClass('chosen')) return;
-    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
-    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+    obj_1 = $j(selector).not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-auto-width') ? $j(selector) : '';
   }
   if (obj_1) {
     obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
@@ -1283,7 +1283,7 @@ function applyChosen(selector = '') {
 }
 
 function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
+  return parseInt(String(str).replace(/\D/g, ''));
 }
 
 function thisClickOnStreamObject(clickObj) {
@@ -1295,7 +1295,11 @@ function thisClickOnStreamObject(clickObj) {
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
-  } else return false;
+  } else {
+    // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
+    if (clickObj.closest('video-stream')) return true;
+  };
+  return false;
 }
 
 /* For mobile device Not implemented yet. */
@@ -1729,7 +1733,7 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
 /* Handling <input> change */
 function handleChangeInputTag(evt) {
   // Managing availability of channel stream selection
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 }
 
 /* Handling a mouse click */

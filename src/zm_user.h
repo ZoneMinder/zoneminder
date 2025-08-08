@@ -56,6 +56,8 @@ class User {
   explicit User(const MYSQL_ROW &dbrow);
   ~User();
   User(const User &u) { Copy(u); }
+  static User *find(const std::string &username);
+  static User *find(int id);
   void Copy(const User &u);
   User& operator=(const User &u) {
     Copy(u);
@@ -72,6 +74,7 @@ class User {
   Permission getMonitors() const { return monitors; }
   Permission getSystem() const { return system; }
   bool canAccess(int monitor_id);
+  std::string getAuthHash();
 
   void loadMonitorPermissions();
   void loadGroupPermissions();

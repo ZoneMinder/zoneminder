@@ -90,8 +90,7 @@ class Filter extends ZM_Object {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
-      if ($this->sort_field())
-        $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
       if ($this->skip_locked())
         $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
       if ($this->limit())
@@ -1169,7 +1168,7 @@ class Filter extends ZM_Object {
           }
           if (isset($term['cookie'])) {
             if ((!$term['val']) and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
-            $html .= ' data-cookie="'.$term['cookie'].'"';
+            $html .= ' data-cookie="'.validHtmlStr($term['cookie']).'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"';
 

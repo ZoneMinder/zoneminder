@@ -96,7 +96,9 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-xhtmlHeaders(__FILE__, translate('Montage'));
+xhtmlHeadersStart(__FILE__, translate('Montage'));
+echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
@@ -175,7 +177,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </span>
           <span id="streamQualityControl">
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
           <span id="scaleControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Scale') ?></label>

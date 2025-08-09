@@ -32,6 +32,7 @@ class Monitor;
 
 class AIThread {
  public:
+  explicit AIThread(const std::shared_ptr<Monitor> monitor);
 #if HAVE_UNTETHER_H
   explicit AIThread(const std::shared_ptr<Monitor> monitor, SpeedAI *speedai);
 #endif

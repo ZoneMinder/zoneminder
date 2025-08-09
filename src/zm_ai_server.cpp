@@ -346,17 +346,18 @@ void AIThread::Inference() {
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
 
+      nlohmann::json detections;
 #ifdef HAVE_UNTETHER_H
       speedai->send_image(job, packet->image);
-      nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
+      detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
 #endif
 #ifdef HAVE_MEMX_H
       memx->send_image(memx_job, packet->image);
-      nlohmann::json detections = memx->receive_detections(memx_job, monitor_->ObjectDetection_Object_Threshold());
+      detections = memx->receive_detections(memx_job, monitor_->ObjectDetection_Object_Threshold());
 #endif
 #ifdef HAVE_MX_ACCL_H
       mx_accl->send_image(mx_accl_job, packet->image);
-      nlohmann::json detections = mx_accl->receive_detections(mx_accl_job, monitor_->ObjectDetection_Object_Threshold());
+      detections = mx_accl->receive_detections(mx_accl_job, monitor_->ObjectDetection_Object_Threshold());
 #endif
       Debug(1, "detections %s", detections.dump().c_str());
 

@@ -8,7 +8,7 @@
 // Here are the basic overloaded method definitions
 // The wrapper must be set BEFORE onreadystatechange is written to, since
 // a bug in ActiveXObject prevents us from properly testing for it.
-"use strict";
+// "use strict";
 var CsrfMagic = function(real) {
   // try to make it ourselves, if you didn't pass it
   if (!real) try {real = new XMLHttpRequest;} catch (e) {;}

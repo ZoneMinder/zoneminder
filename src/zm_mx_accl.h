@@ -110,6 +110,7 @@ class MxAccl {
     };
     std::list<Job *> jobs;
     std::list<Job *> send_queue;
+    std::list<Job *> receive_queue;
 
     explicit MxAccl();
     ~MxAccl();

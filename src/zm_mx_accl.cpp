@@ -264,6 +264,7 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
     }
     if (!send_queue.size()) return false;
     job = send_queue.front();
+    send_queue.pop_front();
   }
 
   SystemTimePoint starttime = std::chrono::system_clock::now();
@@ -280,6 +281,10 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
   } else {
     Debug(1, "in_callback took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
+  {
+    std::lock_guard<std::mutex> lck(mutex_);
+    receive_queue.push_back(job);
+  }
   condition_.notify_one();
   return true;
 }
@@ -290,12 +295,13 @@ bool MxAccl::out_callback_func(vector<const MX::Types::FeatureMap *> src, int ch
   Job *job;
   {
     std::unique_lock<std::mutex> lck(mutex_);
-    while (!send_queue.size() and !zm_terminate) {
-      Debug(1, "MxAccl waiting, queue size %zu", send_queue.size());
+    while (!receive_queue.size() and !zm_terminate) {
+      Debug(1, "MxAccl waiting, queue size %zu", receive_queue.size());
       condition_.wait(lck);
     }
-    if (!send_queue.size()) return false;
-    job = send_queue.front();
+    if (!receive_queue.size()) return false;
+    job = receive_queue.front();
+    receive_queue.pop_front();
   }
 
   // Retrieve output data from accelerator

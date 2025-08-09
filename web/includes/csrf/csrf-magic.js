@@ -8,7 +8,8 @@
 // Here are the basic overloaded method definitions
 // The wrapper must be set BEFORE onreadystatechange is written to, since
 // a bug in ActiveXObject prevents us from properly testing for it.
-CsrfMagic = function(real) {
+"use strict";
+var CsrfMagic = function(real) {
   // try to make it ourselves, if you didn't pass it
   if (!real) try {real = new XMLHttpRequest;} catch (e) {;}
   if (!real) try {real = new ActiveXObject('Msxml2.XMLHTTP');} catch (e) {;}
@@ -101,9 +102,9 @@ CsrfMagic.process = function(base) {
 CsrfMagic.end = function() {
   // This rewrites forms AGAIN, so in case buffering didn't work this
   // certainly will.
-  forms = document.getElementsByTagName('form');
+  const forms = document.getElementsByTagName('form');
   for (var i = 0; i < forms.length; i++) {
-    form = forms[i];
+    const form = forms[i];
     if (form.method.toUpperCase() !== 'POST') continue;
     if (form.elements[csrfMagicName]) continue;
     var input = document.createElement('input');

@@ -96,7 +96,6 @@ echo output_cache_busted_stylesheet_links(array(
 
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
-  <link rel="stylesheet" href="js/noUiSlider/dist/nouislider.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php

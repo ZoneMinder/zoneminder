@@ -122,20 +122,7 @@ CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events
 FOR EACH ROW
 BEGIN
   declare diff BIGINT default 0;
-
   set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
-  IF ( NEW.StorageId = OLD.StorageID ) THEN
-    IF ( diff ) THEN
-      UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) + diff,0) WHERE Storage.Id = OLD.StorageId;
-    END IF;
-  ELSE
-    IF ( NEW.DiskSpace ) THEN
-      UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) + NEW.DiskSpace WHERE Storage.Id = NEW.StorageId;
-    END IF;
-    IF ( OLD.DiskSpace ) THEN
-      UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) - COALESCE(OLD.DiskSpace,0),0) WHERE Storage.Id = OLD.StorageId;
-    END IF;
-  END IF;
 
   UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
@@ -204,9 +191,6 @@ DROP TRIGGER IF EXISTS event_delete_trigger//
 CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
-  IF ( OLD.DiskSpace ) THEN
-    UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) - COALESCE(OLD.DiskSpace,0),0) WHERE Storage.Id = OLD.StorageId;
-  END IF;
   DELETE FROM Events_Hour WHERE EventId=OLD.Id;
   DELETE FROM Events_Day WHERE EventId=OLD.Id;
   DELETE FROM Events_Week WHERE EventId=OLD.Id;

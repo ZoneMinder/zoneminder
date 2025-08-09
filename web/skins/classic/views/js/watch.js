@@ -216,8 +216,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    //monitorStream.streamCommand(CMD_STOP);
-    monitorStream.kill();
+    monitorStream.stop();
   }
   //setButtonState('stopBtn', 'unavail');
   //setButtonState('playBtn', 'active');
@@ -831,8 +830,6 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
-  monitorStream.setup_volume(document.getElementById('volume'));
-  monitorStream.setup_mute(document.getElementById('mute'));
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
@@ -1310,14 +1307,14 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
-  //if (currentMonitor.RTSP2WebEnabled) {
-  if ((monitorStream.player) && (-1 !== monitorStream.player.indexOf('go2rtc') || -1 !== monitorStream.player.indexOf('rtsp2web'))) {
+  if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
     const streamChannel = $j('#streamChannel').val();
     setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();
+      monitorsSetScale(monitorId);
     }, 300);
   }
 }
@@ -1333,6 +1330,7 @@ function changePlayer() {
   setTimeout(function() {
     streamCmdPlay(true);
     manageStreamQualityVisibility();
+    monitorsSetScale(monitorId);
   }, 300);
   /*return;
 
@@ -1487,8 +1485,10 @@ document.onvisibilitychange = () => {
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
+      prevStateStarted = false;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
+      monitorsSetScale(monitorId);
     }
   }
 };

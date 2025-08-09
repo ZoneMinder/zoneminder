@@ -7,8 +7,6 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-
-   easydocker 
    packpack
    ubuntu
    debian

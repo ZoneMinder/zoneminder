@@ -94,30 +94,29 @@ echo output_cache_busted_stylesheet_links(array(
   'css/bootstrap.min.css',
 ));
 
-if ( $basename == 'montage' ) {
-  echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
-}
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <link rel="stylesheet" href="js/noUiSlider/dist/nouislider.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
-  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-  'css/base/skin.css',
-  'css/base/views/'.$basename.'.css',
-), true);
-
-if ( $css != 'base' )
+  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css?'), false, $param = ['global', 'stylesheet', '  type="text/css"/']);
   echo output_link_if_exists(array(
-    'css/'.$css.'/skin.css',
-    'css/'.$css.'/views/'.$basename.'.css',
-    'css/'.$css.'/jquery-ui-theme.css',
-  ));
+    'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+    'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+    'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
+    'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+    'css/base/skin.css',
+    'css/base/views/'.$basename.'.css',
+  ), true);
+
+  if ( $css != 'base' ) {
+    echo output_link_if_exists(array(
+      'css/'.$css.'/skin.css',
+      'css/'.$css.'/views/'.$basename.'.css',
+      'css/'.$css.'/jquery-ui-theme.css',
+    ));
+  }
 
   global $navbar_type;
   if ($navbar_type == 'left') {
@@ -1598,7 +1597,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
-  'js/noUiSlider/dist/nouislider.js',
+  'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );

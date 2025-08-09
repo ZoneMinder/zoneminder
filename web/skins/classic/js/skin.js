@@ -560,18 +560,18 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (navbar_type == 'left') {
+  if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
       // We get a filter
-      filter = document.querySelector('#fbpanel');
+      filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.querySelector('#filters_form');
+      form = document.getElementById('filters_form');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
-      form = document.querySelector('#montagereview_form');
-      filter = document.querySelector('#filterMontagereview');
+      form = document.getElementById('montagereview_form');
+      filter = document.getElementById('filterMontagereview');
     } else if (currentView == 'watch') {
       form = document.querySelector('#wrapperFilter form');
     }
@@ -1283,7 +1283,7 @@ function applyChosen(selector = '') {
 }
 
 function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
+  return parseInt(String(str).replace(/\D/g, ''));
 }
 
 function thisClickOnStreamObject(clickObj) {
@@ -2078,6 +2078,21 @@ function initPageGeneral() {
       });
     }
     //event.returnValue = '';
+  });
+
+  document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+    el.addEventListener("click", function clickControlMute(event) {
+      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
+      if (!mid) return;
+      if (currentView == 'watch') {
+        monitorStream.controlMute('switch');
+      } else if (currentView == 'montage') {
+        const currentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === mid;
+        });
+        currentMonitor.controlMute('switch');
+      }
+    });
   });
 }
 

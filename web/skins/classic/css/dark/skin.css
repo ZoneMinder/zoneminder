@@ -261,6 +261,10 @@ li.search-choice {
 .chosen-container-active .chosen-choices li.search-field input[type=text] {
   color: inherit !important;
 }
+
+.chosen-container .chosen-results li.disabled-result {
+  color: #888;
+}
 /* end chosen override */
 
 .modal-content {

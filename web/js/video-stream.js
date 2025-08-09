@@ -6,15 +6,25 @@ import {VideoRTC} from './video-rtc.js';
  */
 class VideoStream extends VideoRTC {
     set divMode(value) {
-        this.querySelector('.mode').innerText = value;
-        this.querySelector('.status').innerText = '';
+        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
+        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
+        if (modeEl) modeEl.innerText = 'Go2RTC ' + value;
+        if (statusEl) statusEl.innerText = '';
+        this.setAttribute('current-mode', value.toUpperCase());
+        this.currentMode = value.toUpperCase();
     }
 
     set divError(value) {
-        const state = this.querySelector('.mode').innerText;
-        if (state !== 'loading') return;
-        this.querySelector('.mode').innerText = 'error';
-        this.querySelector('.status').innerText = value;
+        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
+        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
+        if (modeEl) {
+          const state = modeEl.innerText;
+          if (state !== 'Go2RTC loading') return;
+          modeEl.innerText = 'Go2RTC ' + 'error';
+        }
+        if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
+        this.setAttribute('current-mode', 'ERROR');
+        this.currentMode = 'ERROR';
     }
 
     /**
@@ -23,32 +33,6 @@ class VideoStream extends VideoRTC {
     oninit() {
         console.debug('stream.oninit');
         super.oninit();
-
-        this.innerHTML = `
-        <style>
-        video-stream {
-            position: relative;
-        }
-        .info {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 12px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-        }
-        </style>
-        <div class="info">
-            <div class="status"></div>
-            <div class="mode"></div>
-        </div>
-        `;
-
-        const info = this.querySelector('.info');
-        this.insertBefore(this.video, info);
     }
 
     onconnect() {

@@ -1200,16 +1200,17 @@ class Monitor extends ZM_Object {
     } # end if showZones
     $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
     $html .= '
-      <audio-motion id="audioVisualisation'.$this->Id().'" class="audio-visualisation">
+      <div class="stream-info">
+          <div class="stream-info-status"></div>
+          <div class="stream-info-mode"></div>
+      </div>
+      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
         <div id="audiControlPanel'.$this->Id().'" class="audio-control-panel">
-          <input id="volumeControl'.$this->Id().'" type="range" min="0" max="100" step="1" style="display: none; "></input>
-          <div id="controlAudioVisualisation'.$this->Id().'" class="audio-control-mute">
-            <i id="controlMute'.$this->Id().'" class="material-icons md-22" data-on-click="clickControlMute">volume_off</i>
-          </div>
-          <div id="volumeSlider'.$this->Id().'" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+          <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+          <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
         </div>
       </audio-motion>
-      ';
+    '.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();

@@ -1204,7 +1204,13 @@ class Monitor extends ZM_Object {
           <div class="stream-info-status"></div>
           <div class="stream-info-mode"></div>
       </div>
-      '.PHP_EOL;
+      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
+        <div id="audiControlPanel'.$this->Id().'" class="audio-control-panel">
+          <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+          <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
+        </div>
+      </audio-motion>
+    '.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();

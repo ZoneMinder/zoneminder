@@ -1437,12 +1437,11 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         video_first_dts = ipkt->dts;
       }
       opkt->dts = ipkt->dts - video_first_dts;
-    //} else {
-      //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
-      //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
     }
-    if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
+    if (ipkt->pts != AV_NOPTS_VALUE) {
       opkt->pts = ipkt->pts - video_first_dts;
+    }
+    if ((ipkt->pts != AV_NOPTS_VALUE) and (ipkt->dts != AV_NOPTS_VALUE)) {
       av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
     }
   }  // end if codec matches

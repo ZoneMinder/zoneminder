@@ -1093,7 +1093,12 @@ function manageChannelStream() {
     }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
-    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    
+    // Local source doesn't have second path
+    const secondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
+    if (secondPathInput) {
+      secondPath_ = SecondPathInput.value;
+    }
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
   }
   if (select) {

@@ -1444,9 +1444,12 @@ $codecs = array(
                     $controlTypes[$control->Id()] = $control->Name();
                   }
 
-                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
-                  if ( canEdit('Control') ) {
-                    echo '&nbsp;'.makeLink('?view=options&tab=control', translate('Edit'));
+                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId(), ['id'=>'ControlId', 'data-on-click-this'=>'ControlId_onChange']);
+                  if (canEdit('Control')) {
+                    if ($monitor->ControlId()) {
+                      echo '&nbsp;<button type="button" data-on-click="ControlEdit_onClick" id="ControlEdit">'.translate('Edit').'</button>';
+                    }
+                    echo '&nbsp;<button type="button" data-on-click="ControlList_onClick" id="ControlList">'.translate('List').'</button>';
                   }
 ?>
             </li>

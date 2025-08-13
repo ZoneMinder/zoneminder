@@ -560,18 +560,18 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (navbar_type == 'left') {
+  if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
       // We get a filter
-      filter = document.querySelector('#fbpanel');
+      filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.querySelector('#filters_form');
+      form = document.getElementById('filters_form');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
-      form = document.querySelector('#montagereview_form');
-      filter = document.querySelector('#filterMontagereview');
+      form = document.getElementById('montagereview_form');
+      filter = document.getElementById('filterMontagereview');
     } else if (currentView == 'watch') {
       form = document.querySelector('#wrapperFilter form');
     }
@@ -1084,24 +1084,27 @@ function manageShutdownBtns(element) {
 function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
+  let restream = null;
   if (currentView == 'watch') {
     const monitor = monitorData.find((o) => {
       return parseInt(o["id"]) === monitorId;
     });
     if (monitor) {
       secondPath_ = monitor['SecondPath'];
+      restream = monitor['Restream'];
     }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    restream = document.querySelector('input[name="newMonitor[Janus_Use_RTSP_Restream]"]').checked;
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream') {
+        el.disabled = !restream;
       }
       applyChosen(select);
     });

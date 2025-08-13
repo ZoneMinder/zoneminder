@@ -62,13 +62,6 @@ and perform AI analysis on latest frames
 #include <vector>
 
 #include <nlohmann/json.hpp>
-#if HAVE_QUADRA
-#include "zm_quadra.h"
-#endif
-#ifdef HAVE_UNTETHER_H
-// Untether runtime API header
-#include "zm_untether_speedai.h"
-#endif
 
 #include "zm_ai_server.h"
 
@@ -85,11 +78,24 @@ void Usage() {
 }
 
 #ifdef HAVE_UNTETHER_H
+#include "zm_untether_speedai.h"
   SpeedAI *speedai;
 #endif
 
 #if HAVE_QUADRA
-Quadra quadra;
+  #include "zm_quadra.h"
+  Quadra quadra;
+#endif
+
+#undef HAVE_MEMX_H
+#if HAVE_MEMX_H
+  #include "zm_memx.h"
+  MemX *memx;
+#endif
+
+#if HAVE_MX_ACCL_H
+  #include "zm_mx_accl.h"
+  MxAccl *mx_accl;
 #endif
 
 int main(int argc, char *argv[]) {
@@ -149,7 +155,7 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'SpeedAI'";
+  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `ObjectDetection` = 'memx'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (monitor_id > 0)
@@ -173,6 +179,30 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
+#if HAVE_MEMX_H
+  Debug(1, "Including MemX");
+  memx = new MemX();
+  if (!memx->setup("yolov8", "/var/cache/zoneminder/models/YOLO_v8_nano_640_640_3_onnx.dfp")) {
+  //if (!memx->setup("yolov5", "/var/cache/zoneminder/models/YOLO_v5_nano_leaky_416_416_3_tensorflow.dfp")) {
+    delete memx;
+    memx = nullptr;
+    return 0;
+  }
+#else
+  Debug(1, "Not Including MemX");
+#endif
+#if HAVE_MX_ACCL_H
+  Debug(1, "Including MemX_Accl");
+  mx_accl = new MxAccl();
+  if (!mx_accl->setup("yolov8", "/var/cache/zoneminder/models/YOLO_v8_nano_640_640_3_onnx.dfp")) {
+    delete mx_accl;
+    mx_accl = nullptr;
+    return 0;
+  }
+#else
+  Debug(1, "Not Including MXACCL");
+#endif
+
   std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
   std::unordered_map<unsigned int, AIThread *> threads;
 
@@ -192,6 +222,12 @@ int main(int argc, char *argv[]) {
         threads[monitor->Id()] = new AIThread(monitor
 #if HAVE_UNTETHER_H
             , speedai
+#endif
+#if HAVE_MEMX_H
+            , memx
+#endif
+#if HAVE_MX_ACCL_H
+            , mx_accl
 #endif
             );
       }
@@ -257,6 +293,21 @@ void AIThread::Inference() {
   }
 #endif
 
+#ifdef HAVE_MEMX_H
+  Debug(1, "Starting for memx");
+  while (!terminate_ and !( memx_job = memx->get_job() )) {
+    Warning("Waiting for job");
+    sleep(1);
+  }
+#endif
+#ifdef HAVE_MX_ACCL_H
+  Debug(1, "Starting for mx_accl");
+  while (!terminate_ and !( mx_accl_job = mx_accl->get_job() )) {
+    Warning("Waiting for job");
+    sleep(1);
+  }
+#endif
+
 #if HAVE_QUADRA
 #if !SOFT_DRAWBOX
   int ret;
@@ -278,13 +329,13 @@ void AIThread::Inference() {
 
   while (!(terminate_ or zm_terminate)) {
     std::shared_ptr<ZMPacket> packet = nullptr;
-
+    Debug(4, "Getting shm lock"); 
     // Need to hold the lock because it guards shared_mem as well.
     std::unique_lock<std::mutex> lck(mutex_);
+    Debug(4, "Having lock"); 
     while (!(send_queue.size() or terminate_)) {
-      //Debug(1, "Waiting");
       condition_.wait(lck);
-      Debug(1, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
+      Debug(4, "Send queue size for monitor %d is %zu", monitor_->Id(), send_queue.size());
     }
     if (terminate_) break;
     packet = send_queue.front();
@@ -292,11 +343,22 @@ void AIThread::Inference() {
     if (packet) {
       Monitor::SharedData *shared_data = monitor_->getSharedData();
       Debug(4, "Sending image %d for monitor %d", packet->image_index, monitor_->Id());
-#ifdef HAVE_UNTETHER_H
-      speedai->send_image(job, packet->image);
 
       Image *ai_image = monitor_->GetAnalysisImage(packet->image_index);
-      nlohmann::json detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
+
+      nlohmann::json detections;
+#ifdef HAVE_UNTETHER_H
+      speedai->send_image(job, packet->image);
+      detections = speedai->receive_detections(job, monitor_->ObjectDetection_Object_Threshold());
+#endif
+#ifdef HAVE_MEMX_H
+      memx->send_image(memx_job, packet->image);
+      detections = memx->receive_detections(memx_job, monitor_->ObjectDetection_Object_Threshold());
+#endif
+#ifdef HAVE_MX_ACCL_H
+      mx_accl->send_image(mx_accl_job, packet->image);
+      detections = mx_accl->receive_detections(mx_accl_job, monitor_->ObjectDetection_Object_Threshold());
+#endif
       Debug(1, "detections %s", detections.dump().c_str());
 
       if (detections.size()) {
@@ -305,7 +367,6 @@ void AIThread::Inference() {
       } else {
         ai_image->Assign(*packet->image);
       }
-#endif
 
       shared_data->last_analysis_index = packet->image_index;
 
@@ -329,6 +390,7 @@ void AIThread::Run() {
     Error("No speedai");
     return;
   }
+#endif
 
   {
     std::unique_lock<std::mutex> lck(mutex_);
@@ -398,7 +460,7 @@ void AIThread::Run() {
         (send_queue.size() <= static_cast<unsigned int>(image_buffer_count))
         ) {
       image_index = shared_data->last_decoder_index % image_buffer_count;
-      Debug(3, "Doing SpeedAI on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
+      Debug(3, "Doing ai on monitor %d.  Decoder index is %d=%d Our index is %d=%d, queue %zu",
           monitor_->Id(),
           decoder_image_count, shared_data->last_decoder_index,
           analysis_image_count, image_index, send_queue.size());
@@ -431,7 +493,7 @@ void AIThread::Run() {
       }
 
     } else {
-      Debug(4, "Not Doing SpeedAI on monitor %d.  Decoder count is %d index %d Our count is %d, last_index is %d, index %d",
+      Debug(4, "Not Doing ai on monitor %d.  Decoder count is %d index %d Our count is %d, last_index is %d, index %d",
           monitor_->Id(), decoder_image_count, shared_data->last_decoder_index,
           shared_data->analysis_image_count, shared_data->last_analysis_index, image_index);
 
@@ -446,7 +508,6 @@ void AIThread::Run() {
     }  // end if have a new image
   }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
-#endif
 } // end SpeedAIDetect   
 
 
@@ -612,10 +673,22 @@ AIThread::AIThread(const std::shared_ptr<Monitor> monitor
 #if HAVE_UNTETHER_H
     , SpeedAI *p_speedai
 #endif
+#if HAVE_MEMX_H
+    , MemX *p_memx
+#endif
+#if HAVE_MX_ACCL_H
+    , MxAccl *p_mx_accl
+#endif
     ) :
   monitor_(monitor), terminate_(false)
 #if HAVE_UNTETHER_H
   , speedai(p_speedai)
+#endif
+#if HAVE_MEMX_H
+  , memx(p_memx)
+#endif
+#if HAVE_MX_ACCL_H
+  , mx_accl(p_mx_accl)
 #endif
 #if HAVE_QUADRA
   ,drawbox_filter(nullptr)

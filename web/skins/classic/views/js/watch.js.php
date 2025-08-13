@@ -42,6 +42,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
+  'Restream':<?php echo $m->Janus_Use_RTSP_Restream() ?>,
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
   'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',

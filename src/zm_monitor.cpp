@@ -87,7 +87,7 @@ struct Namespace namespaces[] = {
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
-   "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
+   "`ObjectDetection`, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
   "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
   "`Go2RTCEnabled`, "
@@ -332,7 +332,7 @@ std::string TriggerState_Strings[] = {"Cancel", "On", "Off"};
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0,"
    " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`ObjectDetection`+0, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
+   "`ObjectDetection`, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
    " GO2RTCEnabled, "
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
@@ -399,8 +399,19 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   analysis_image = (AnalysisImageOption)atoi(dbrow[col]);
   col++;
-  objectdetection = (ObjectDetectionOption)atoi(dbrow[col]);
-  col++;
+  std::string od = dbrow[col]; col++;
+  if (od == "none") {
+    objectdetection = OBJECT_DETECTION_NONE;
+  } else if (od == "memx") {
+    objectdetection = OBJECT_DETECTION_MEMX;
+  } else if (od == "quadra") {
+    objectdetection = OBJECT_DETECTION_QUADRA;
+  } else if (od == "speedai") {
+    objectdetection = OBJECT_DETECTION_SPEEDAI;
+  } else {
+    Warning("Unsupported value for ObjectDetection: %s", od.c_str());
+    objectdetection = OBJECT_DETECTION_NONE;
+  }
   objectdetection_model = dbrow[col];
   col++;
   objectdetection_object_threshold = dbrow[col] ? atof(dbrow[col]) : 0.0;
@@ -2111,7 +2122,11 @@ int Monitor::Analyse() {
               }
 
               if (objectdetection != OBJECT_DETECTION_NONE) {
-                if (objectdetection == OBJECT_DETECTION_SPEEDAI and (shared_data->last_analysis_index != image_buffer_count)) {
+                if (
+                    ((objectdetection == OBJECT_DETECTION_SPEEDAI)
+                    or
+                    (objectdetection == OBJECT_DETECTION_MEMX))
+                    and (shared_data->last_analysis_index != image_buffer_count)) {
                   int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
                   while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
 

@@ -243,7 +243,7 @@ class FilterTerm {
     case 'StorageServerId':
       return 'S.ServerId';
     case 'FilterServerId':
-      return 'ZM_SERVER_ID:'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
+      return '/* ZM_SERVER_ID:*/'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
       return 'E.StartDateTime';

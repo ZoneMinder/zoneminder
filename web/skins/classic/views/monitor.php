@@ -1076,19 +1076,24 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           $od_options['speedai'] = 'Untether SpeedAI';
         if (defined('HAVE_QUADRA'))
           $od_options['quadra'] = 'NetInt Quadra';
+        if (defined('HAVE_MEMX'))
+          $od_options['memx'] = 'MemryX MX3';
 
-        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
+        echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
             </li>
 <?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
-            <li class="ObjectDetectionModel">
+            <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
         $models = [];
         foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
           $model = basename($model);
           $extension = pathinfo($model, PATHINFO_EXTENSION);
-          if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
+          if ($extension == 'dfp' and defined('HAVE_MEMX')) {
+            if (!isset($models['memx'])) $models['memx'] = [];
+            $models['memx'][$model] = $model;
+          } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
             if (!isset($models['speedai'])) $models['speedai'] = [];
             $models['speedai'][$model] = $model;
           } else if ($extension == 'nb' and defined('HAVE_QUADRA')) {
@@ -1106,11 +1111,11 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
 <?php } ?>
             </li>
-            <li class="ObjectDetectionObjectThreshold">
+            <li id="ObjectDetectionObjectThreshold" class="ObjectDetectionObjectThreshold">
               <label><?php echo translate('Object Detection Object Threshold')?></label>
               <input type="number" name="newMonitor[ObjectDetectionObjectThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionObjectThreshold()) ?>" min="0" step="any" max="100"/>
             </li>
-            <li class="ObjectDetectionNMSThreshold">
+            <li id="ObjectDetectionNMSThreshold" class="ObjectDetectionNMSThreshold">
               <label><?php echo translate('Object Detection NMS Threshold')?></label>
               <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" step="any" max="100"/>
             </li>

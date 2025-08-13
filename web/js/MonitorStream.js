@@ -326,13 +326,14 @@ function MonitorStream(monitorData) {
   };
 
   /*
-  * streamChannel = 0 || Primary; 1 || Secondary.
+  * streamChannel = 0 || Primary; 1 || Secondary.; 2 || Restream
   */
   this.start = function(streamChannel = 'default') {
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
-    if (!['default', 0, 1].includes(streamChannel)) {
+    if (!['default', 0, 1, 2].includes(streamChannel)) {
       streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
     }
+    console.log('streamChannel', streamChannel);
     this.streamListenerBind = streamListener.bind(null, this);
 
     $j('#volumeControls').hide();
@@ -349,6 +350,7 @@ function MonitorStream(monitorData) {
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        console.log(this.currentChannelStream);
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
         //webrtcUrl.search = 'src='+this.id;
@@ -510,19 +512,24 @@ function MonitorStream(monitorData) {
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
-    this.updateStreamInfo('MJPEG');
+    this.updateStreamInfo('ZMS MJPEG');
   }; // this.start
 
   this.stop = function() {
+    /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
     if (!stream) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
-    //if ( 1 ) {
-    if (-1 === this.activePlayer.indexOf('rtsp2web')) {
-      if (stream.src) {
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.started = false;
+
+    if (-1 !== this.activePlayer.indexOf('zms')) {
+      // Icon: My current thought is to just tell zms to stop. Don't go to single.
+      if (0 && stream.src) {
         let src = stream.src;
         if (-1 === src.indexOf('mode=')) {
           src += '&mode=single';
@@ -535,12 +542,8 @@ function MonitorStream(monitorData) {
           stream.src = src;
         }
       }
-    }
-    this.streamCommand(CMD_STOP);
-    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    this.started = false;
-    if (-1 !== this.activePlayer.indexOf('go2rtc')) {
+      this.streamCommand(CMD_STOP);
+    } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
           stream.ondisconnect();
@@ -548,6 +551,12 @@ function MonitorStream(monitorData) {
           console.warn(e);
         }
       }
+      if (this.webrtc && ('close' in this.webrtc)) {
+        this.webrtc.close();
+      } else {
+        console.log('close not in ', this.webrtc);
+      }
+      this.webrtc = null;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
@@ -566,6 +575,8 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.srcObject = null;
       janus = null;
+    } else {
+      console.log("Unknown activePlayer", this.activePlayer);
     }
   };
 
@@ -627,6 +638,7 @@ function MonitorStream(monitorData) {
   };
 
   this.kill = function() {
+    /* kill should actually remove the zms process.  Resulting in a broken image on screen. */
     if (janus && streaming[this.id]) {
       streaming[this.id].detach();
     }
@@ -639,9 +651,12 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && -1 === this.player.indexOf('rtsp2web')) {
+    if (stream.src && (-1 !== this.player.indexOf('zms'))) {
       stream.src = '';
+      // Make zms exit
+      this.streamCommand(CMD_QUIT);
     }
+    // Kill and stop share a lot of the same code... so just call stop
     this.stop();
   };
 
@@ -1254,7 +1269,7 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
 
     this.streamCmdReq = function(streamCmdParms) {
-      if (!(streamCmdParms.command == CMD_STOP && (this.RTSP2WebEnabled || this.Go2RTCEnabled))) {
+      if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
         this.ajaxQueue = jQuery.ajaxQueue({
           url: this.url + (auth_relay?'?'+auth_relay:''),

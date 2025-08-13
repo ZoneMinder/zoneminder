@@ -814,4 +814,33 @@ function devices_onchange(devices) {
   }
 }
 
+function ObjectDetection_onChange(od_select) {
+  const od = od_select.value;
+  if (od ==  'none') {
+    // Hide other options
+    $j('#ObjectDetectionModel').hide();
+    $j('#ObjectDetectionObjectThreshold').hide();
+    $j('#ObjectDetectionNMSThreshold').hide();
+  } else if (od == 'uvicorn') {
+    $j('#ObjectDetectionModel').hide();
+    $j('#ObjectDetectionObjectThreshold').hide();
+    $j('#ObjectDetectionNMSThreshold').hide();
+  } else if (od == 'quadra' || od == 'memx') {
+    $j('#ObjectDetectionModel').show();
+    $j('#ObjectDetectionObjectThreshold').show();
+    $j('#ObjectDetectionNMSThreshold').show();
+    const od_model_select = od_select.form.elements['newMonitor[ObjectDetectionModel]'];
+
+    od_model_select.innerHTML = '';
+    for (const [key, value] of Object.entries(od_models[od])) {
+      let opt = document.createElement('option');
+      opt.value = key; // the index
+      opt.innerHTML = value;
+      od_model_select.append(opt);
+    }
+  } else {
+    console.log('unknown object detection:', od);
+  }
+}
+
 window.addEventListener('DOMContentLoaded', initPage);

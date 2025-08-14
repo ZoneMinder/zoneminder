@@ -473,7 +473,7 @@ void AIThread::Run() {
       packet->image_index = image_index;
 
       {
-        std::unique_lock<std::mutex> lck(mutex_);
+        std::lock_guard<std::mutex> lck(mutex_);
         send_queue.push_back(packet);
       }
       Debug(4, "send queue size %zu", send_queue.size());
@@ -508,8 +508,7 @@ void AIThread::Run() {
     }  // end if have a new image
   }  // end while !zm_terminate
   if (monitor_->ShmValid()) shared_data->analysis_image_count = 0;
-} // end SpeedAIDetect   
-
+} // end void AIThread::Run()
 
 int draw_boxes(Image *in_image, Image *out_image, const nlohmann::json &coco_object, int font_size, int line_width=2) {
   out_image->Assign(*in_image);

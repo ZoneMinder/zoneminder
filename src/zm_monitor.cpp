@@ -37,6 +37,7 @@
 #include "zm_zone.h"
 
 #define DEBUG_TIMING 1
+#define AI_IN_DECODE 0
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
@@ -2148,10 +2149,17 @@ int Monitor::Analyse() {
                     packet->ai_image = new Image(*analysis_image_buffer[packet->image_index % image_buffer_count]);
                   }
                 }
+#if !AI_IN_DECODE
 #if HAVE_QUADRA
-                else {
-                  //std::pair<int, std::string> results = Analyse_Quadra(packet);
+                else if (objectdetection == OBJECT_DETECTION_QUADRA) {
+                  std::pair<int, std::string> results = Analyse_Quadra(packet);
                 }
+#endif
+#if HAVE_MX_ACCL_H
+                else if (objectdetection == OBJECT_DETECTION_MX_ACCL) {
+                  std::pair<int, std::string> results = Analyse_MxAccl(packet);
+                }
+#endif
 #endif
                 if (objectdetection == OBJECT_DETECTION_UVICORN) {
                   std::pair<int, std::string> results = Analyse_UVICORN(packet);
@@ -2431,7 +2439,11 @@ int Monitor::Analyse() {
       packetqueue.clearPackets(packet);
 
       unsigned int index = (shared_data->last_analysis_index+1) % image_buffer_count;
-      if (objectdetection == OBJECT_DETECTION_QUADRA || objectdetection == OBJECT_DETECTION_UVICORN) {
+      if (
+          objectdetection == OBJECT_DETECTION_QUADRA 
+          || objectdetection == OBJECT_DETECTION_MX_ACCL 
+          || objectdetection == OBJECT_DETECTION_UVICORN
+          ) {
         // Only do these if it's a video packet.
         if (packet->ai_frame) {
           analysis_image_buffer[index]->AVPixFormat(static_cast<AVPixelFormat>(packet->ai_frame->format));
@@ -2485,6 +2497,8 @@ int Monitor::Analyse() {
         shared_data->last_analysis_index = index;
         shared_data->last_read_index = index;
         shared_data->analysis_image_count = analysis_image_count;
+      } else {
+        Warning("Unknown value for Object_Detection");
       }
     } else {
       Debug(3, "Not video, not clearing packets");
@@ -2520,18 +2534,17 @@ int Monitor::Analyse() {
   return 1;
 } // end Monitor::Analyse
 
-#if HAVE_MX_ACCL
-std::pair<int, std::string> Monitor::Analyse_Mx_Accel(std::shared_ptr<ZMPacket> packet) {
+#if HAVE_MX_ACCL_H
+std::pair<int, std::string> Monitor::Analyse_MxAccl(std::shared_ptr<ZMPacket> packet) {
   int score = 0;
   std::string cause;
 
-  AVFrame *frame = packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get();
+  if (packet->needs_hw_transfer(mVideoCodecContext))
+    packet->get_hwframe(mVideoCodecContext);
+  AVFrame *frame = packet->in_frame.get();
 
-  // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
-  //std::lock_guard<std::mutex> lck(quadra_mutex);
-  //OBJECT_DETECTION_QUADRA) {
   if (!mx_accl and mVideoCodecContext) {
-    mx_accl = new Mx_Accel();
+    mx_accl = new MxAccl();
     if (!mx_accl->setup( "", (staticConfig.DIR_MODELS+"/"+objectdetection_model))) {
       Warning("Failed setting up Mx_Accl");
       delete mx_accl;
@@ -2545,7 +2558,7 @@ std::pair<int, std::string> Monitor::Analyse_Mx_Accel(std::shared_ptr<ZMPacket> 
 #if DEBUG_TIMING
       SystemTimePoint starttime = std::chrono::system_clock::now();
 #endif
-      int ret = mx_accl->send_image(job, packet->image);
+      int ret = packet->image ? mx_accl->send_image(mx_accl_job, packet->image) : mx_accl->send_frame(mx_accl_job, frame);
       if (ret <= 0) {
         Debug(1, "Can't send_packet %d", packet->image_index);
         return std::make_pair(ret, cause);
@@ -2553,34 +2566,21 @@ std::pair<int, std::string> Monitor::Analyse_Mx_Accel(std::shared_ptr<ZMPacket> 
 #if DEBUG_TIMING 
       SystemTimePoint endtime = std::chrono::system_clock::now();
       if (endtime - starttime > Seconds(1)) {
-        Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+        Warning("AI is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
       } else {
-        Debug(1, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+        Debug(1, "AI took: %.2f seconds", FPSeconds(endtime - starttime).count());
       }
-      starttime = std::chrono::system_clock::now();
 #endif
-      ret = mx_accel->receive_detection(packet);
-      if (0 < ret) {
-        last_detection_count = 2;
-#if DEBUG_TIMING 
-        endtime = std::chrono::system_clock::now();
-        if (endtime - starttime > Seconds(1)) {
-          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
-        } else {
-          Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
-        }
-#endif
-        if (packet->ai_frame) {
-          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
-          if (config.timestamp_on_capture) {
-            Image *ai_image = packet->get_ai_image();
-            TimestampImage(ai_image, packet->timestamp);
-          }
-        }
-      } else if (0 > ret) {
-        Debug(1, "Failed mx yolo");
-        delete mx_accl;
-        mx_accl = nullptr;
+      last_detection_count = 2;
+      const nlohmann::json detections = mx_accl->receive_detections(mx_accl_job, objectdetection_object_threshold);
+      if (detections.size()) {
+        Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
+        ai_image->draw_boxes(detections, LabelSize(), LabelSize());
+        packet->ai_image = ai_image;
+        // Populate ai_frame as well
+        packet->ai_frame = av_frame_ptr(av_frame_alloc());
+        ai_image->PopulateFrame(packet->ai_frame.get());
+        packet->detections = detections;
       }
     } else { // skipping
       if (last_detection_count>0) {
@@ -2591,7 +2591,7 @@ std::pair<int, std::string> Monitor::Analyse_Mx_Accel(std::shared_ptr<ZMPacket> 
     } // end if skip_frame
   } // end if has input_frame/hw_frame
   return std::make_pair(score, cause);
-} // end Monitor::Analyse_Mx_Accl(Packet)
+} // end Monitor::Analyse_MxAccl(Packet)
 #endif
 
 #if HAVE_QUADRA
@@ -3663,13 +3663,17 @@ int Monitor::Decode() {
     Debug(1, "Assigning %s for index %d to %s", packet->image->toString().c_str(), index, image_buffer[index]->toString().c_str());
     image_buffer[index]->Assign(*(packet->image));
   } else if (packet->in_frame) {
-#if HAVE_QUADRA
-    //if (!quadra_yolo)
-#endif
     {
+#if AI_IN_DECODE
+
 #if HAVE_QUADRA
       if (objectdetection == OBJECT_DETECTION_QUADRA) {
         std::pair<int, std::string> results = Analyse_Quadra(packet);
+      }
+#endif
+#if HAVE_MX_ACCL_H
+      if (objectdetection == OBJECT_DETECTION_MX_ACCL) {
+        std::pair<int, std::string> results = Analyse_MxAccl(packet);
       }
 #endif
       if (packet->ai_frame) {
@@ -3686,6 +3690,8 @@ int Monitor::Decode() {
         image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->in_frame->format));
         image_buffer[index]->Assign(packet->in_frame.get());
       }
+#endif // AI_IN_DECODE
+       
       //if (packet->detections.size())
         //zm_terminate = true;
       if (objectdetection == OBJECT_DETECTION_SPEEDAI) {

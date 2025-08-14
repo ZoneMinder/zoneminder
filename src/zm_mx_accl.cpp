@@ -129,25 +129,6 @@ bool MxAccl::setup(
   return true;
 }
 
-MxAccl::Job * MxAccl::send_image(Job *job, Image *image) {
-  if (!job) {
-    Error("No job");
-    return nullptr;
-  }
-  av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
-  image->PopulateFrame(frame.get());
-  return send_frame(job, frame.get());
-}
-
-MxAccl::Job * MxAccl::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
-  AVFrame *avframe = packet->in_frame.get();
-  if (!avframe) {
-    Error("NO inframe in packet %d, out of mem?", packet->image_index);
-    return nullptr;
-  }
-  return send_frame(job, avframe);
-}
-
 MxAccl::Job * MxAccl::get_job() {
   Job *job = new Job(accl);
   job->scaled_frame->width = input_width;
@@ -173,7 +154,31 @@ MxAccl::Job * MxAccl::get_job() {
   return job;
 }
 
-MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
+int MxAccl::send_image(Job *job, Image *image) {
+  if (!job) {
+    Error("No job");
+    return -1;
+  }
+  if (!image) {
+    Error("No image!");
+    return -1;
+  }
+
+  av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
+  image->PopulateFrame(frame.get());
+  return send_frame(job, frame.get());
+}
+
+int MxAccl::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
+  AVFrame *avframe = packet->in_frame.get();
+  if (!avframe) {
+    Error("NO inframe in packet %d, out of mem?", packet->image_index);
+    return -1;
+  }
+  return send_frame(job, avframe);
+}
+
+int MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "MxAccl::send_frame %d", count);
 
@@ -183,6 +188,10 @@ MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
       avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
       input_width, input_height, AV_PIX_FMT_RGB24,
       SWS_BICUBIC, nullptr, nullptr, nullptr);
+  if (!job->sw_scale_ctx) {
+    Error("Can't swscale");
+    return -1;
+  }
 
   int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
@@ -190,7 +199,7 @@ MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
         avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
-    return nullptr;
+    return -1;
   }
 
   job->m_width_rescale = ((float)input_width / (float)avframe->width);
@@ -213,8 +222,8 @@ MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
   } else {
     Debug(1, "scale took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
-  return job;
-}  // Job * MxAccl::send_frame(AVFrame *frame)
+  return 1;
+}  // int MxAccl::send_frame(AVFrame *frame)
 
 const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold) {
   // Convert yolov8 result to nlohmann::json
@@ -248,7 +257,7 @@ const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold
 
     // map class_id to class name
     std::string class_name = coco_classes[bbox.class_index];
-    predictions.push_back({{"class_name", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
+    predictions.push_back({{"class", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
   }
 
   return predictions;

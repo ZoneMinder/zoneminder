@@ -119,9 +119,9 @@ class MxAccl {
     bool setup( const std::string &model_type, const std::string &model_file, float confidence=0.5);
     void Run();
     Job * get_job();
-    Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
-    Job * send_image(Job *job, Image *image);
-    Job * send_frame(Job *job, AVFrame *);
+    int send_packet(Job *job, std::shared_ptr<ZMPacket>);
+    int send_image(Job *job, Image *image);
+    int send_frame(Job *job, AVFrame *);
 
 
     const nlohmann::json receive_detections(Job *job, float threshold);

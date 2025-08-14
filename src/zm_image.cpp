@@ -5913,13 +5913,13 @@ int Image::draw_boxes(
     if (coco_object.size()) {
       for (auto it = coco_object.begin(); it != coco_object.end(); ++it) {
         nlohmann::json detection = *it;
-        Debug(1, "CURL detections detection %s", detection.dump().c_str());
-        nlohmann::json bbox = detection["box"];
+        Debug(1, "detections detection %s", detection.dump().c_str());
+        nlohmann::json bbox = detection["box"] == nullptr ? detection["bbox"] : detection["box"];
         if ( bbox == nullptr) {
           Debug(1, "Null box");
           continue;
         }
-        Debug(1, "CURL detections box %s", bbox.dump().c_str());
+        Debug(1, "detections box %s", bbox.dump().c_str());
         if ( bbox == nullptr) {
           Debug(1, "Null box");
           continue;
@@ -5931,7 +5931,7 @@ int Image::draw_boxes(
         int x2 = bbox[2];
         int y2 = bbox[3];
         std::string coco_class = detection["class"];
-        float score = detection["confidence"];
+        float score = detection["confidence"] != nullptr ? detection["confidence"] : detection["score"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
 #if 0

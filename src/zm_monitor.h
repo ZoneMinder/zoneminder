@@ -100,6 +100,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     OBJECT_DETECTION_SPEEDAI,
     OBJECT_DETECTION_UVICORN,
     OBJECT_DETECTION_MEMX,
+    OBJECT_DETECTION_MX_ACCL,
   } ObjectDetectionOption;
 
   typedef enum {
@@ -789,6 +790,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
   std::mutex   quadra_mutex;
+#endif
+#if HAVE_MX_ACCL
+  MxAccl *mx_accl;
+  MxAccl::Job *mx_accl_job;
 #endif
   nlohmann::json last_detections;
   int last_detection_count;

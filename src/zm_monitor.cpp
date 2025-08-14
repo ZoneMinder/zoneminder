@@ -36,6 +36,8 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
+#define DEBUG_TIMING 1
+
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
 #endif  // ZM_HAS_V4L2
@@ -303,6 +305,10 @@ Monitor::Monitor() :
   //quadra(nullptr),
   quadra_yolo(nullptr),
 #endif
+#if HAVE_MX_ACCL
+  mx_accl(nullptr),
+  mx_accl_job(nullptr),
+#endif
   //nlohmann::json last_detections;
   last_detection_count(0),
   red_val(0),
@@ -404,6 +410,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
     objectdetection = OBJECT_DETECTION_NONE;
   } else if (od == "memx") {
     objectdetection = OBJECT_DETECTION_MEMX;
+  } else if (od == "mx_accl") {
+    objectdetection = OBJECT_DETECTION_MX_ACCL;
   } else if (od == "quadra") {
     objectdetection = OBJECT_DETECTION_QUADRA;
   } else if (od == "speedai") {
@@ -2511,6 +2519,80 @@ int Monitor::Analyse() {
 
   return 1;
 } // end Monitor::Analyse
+
+#if HAVE_MX_ACCL
+std::pair<int, std::string> Monitor::Analyse_Mx_Accel(std::shared_ptr<ZMPacket> packet) {
+  int score = 0;
+  std::string cause;
+
+  AVFrame *frame = packet->hw_frame ? packet->hw_frame.get() : packet->in_frame.get();
+
+  // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
+  //std::lock_guard<std::mutex> lck(quadra_mutex);
+  //OBJECT_DETECTION_QUADRA) {
+  if (!mx_accl and mVideoCodecContext) {
+    mx_accl = new Mx_Accel();
+    if (!mx_accl->setup( "", (staticConfig.DIR_MODELS+"/"+objectdetection_model))) {
+      Warning("Failed setting up Mx_Accl");
+      delete mx_accl;
+      mx_accl = nullptr;
+    }
+    mx_accl_job = mx_accl->get_job();
+  }
+
+  if (frame) {
+    if (!(shared_data->analysis_image_count % (motion_frame_skip+1))) {
+#if DEBUG_TIMING
+      SystemTimePoint starttime = std::chrono::system_clock::now();
+#endif
+      int ret = mx_accl->send_image(job, packet->image);
+      if (ret <= 0) {
+        Debug(1, "Can't send_packet %d", packet->image_index);
+        return std::make_pair(ret, cause);
+      }
+#if DEBUG_TIMING 
+      SystemTimePoint endtime = std::chrono::system_clock::now();
+      if (endtime - starttime > Seconds(1)) {
+        Warning("AI send is to slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+      } else {
+        Debug(1, "AI send took: %.2f seconds", FPSeconds(endtime - starttime).count());
+      }
+      starttime = std::chrono::system_clock::now();
+#endif
+      ret = mx_accel->receive_detection(packet);
+      if (0 < ret) {
+        last_detection_count = 2;
+#if DEBUG_TIMING 
+        endtime = std::chrono::system_clock::now();
+        if (endtime - starttime > Seconds(1)) {
+          Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
+        } else {
+          Debug(1, "AI receive took: %.2f seconds", FPSeconds(endtime - starttime).count());
+        }
+#endif
+        if (packet->ai_frame) {
+          zm_dump_video_frame(packet->ai_frame.get(), "after detect");
+          if (config.timestamp_on_capture) {
+            Image *ai_image = packet->get_ai_image();
+            TimestampImage(ai_image, packet->timestamp);
+          }
+        }
+      } else if (0 > ret) {
+        Debug(1, "Failed mx yolo");
+        delete mx_accl;
+        mx_accl = nullptr;
+      }
+    } else { // skipping
+      if (last_detection_count>0) {
+        last_detection_count --;
+        //TODO last_detection shouldn't be AI specific
+        //quadra_yolo->draw_last_roi(packet);
+      }
+    } // end if skip_frame
+  } // end if has input_frame/hw_frame
+  return std::make_pair(score, cause);
+} // end Monitor::Analyse_Mx_Accl(Packet)
+#endif
 
 #if HAVE_QUADRA
 std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> packet) {

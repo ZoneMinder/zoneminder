@@ -68,7 +68,11 @@ MxAccl::~MxAccl() {
     jobs.pop_front();
   }
 
-  accl->stop();
+  if (accl) {
+    accl->stop();
+    delete accl;
+    accl = nullptr;
+  }
 }
 
 bool MxAccl::setup(
@@ -84,8 +88,22 @@ bool MxAccl::setup(
   std::vector<int> device_ids = {0};
   std::array<bool, 2> use_model_shape = {false, false};
 
+  std::string model_file_lower = model_file;
+  std::transform(model_file_lower.begin(), model_file_lower.end(), model_file_lower.begin(), ::tolower);
+  if (model_file_lower.find("yolov8") == std::string::npos 
+      &&
+      model_file_lower.find("yolo_v8") == std::string::npos 
+      ) {
+    Error("We have no implemented support for anything other than yolov8");
+    return false;
+  }
+
   // Create the accelerator object and load the DFP model
   accl = new MX::Runtime::MxAccl(filesystem::path(model_file), device_ids, use_model_shape);
+  if (!accl) {
+    Error("Failed allocating MxAcc for %s", model_file.c_str());
+    return false;
+  }
 
   model_info = accl->get_model_info(0);
   Debug(1, "model_info in_featermaps: %d out_featuremaps: %d",

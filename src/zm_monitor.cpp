@@ -2549,6 +2549,7 @@ std::pair<int, std::string> Monitor::Analyse_MxAccl(std::shared_ptr<ZMPacket> pa
       Warning("Failed setting up Mx_Accl");
       delete mx_accl;
       mx_accl = nullptr;
+      return std::make_pair(0, "");
     }
     mx_accl_job = mx_accl->get_job();
   }

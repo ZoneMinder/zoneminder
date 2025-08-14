@@ -125,7 +125,7 @@ bool MxAccl::setup(
   */
 
   for (int i=0; i<model_info.num_out_featuremaps; i++) {
-    Debug(1, "ofmap shape = (%" PRId64 ", %" PRId64 ", %" PRId64 ", %" PRId64 ")",
+    Debug(4, "ofmap shape = (%" PRId64 ", %" PRId64 ", %" PRId64 ", %" PRId64 ")",
         model_info.out_featuremap_shapes[i][0],
         model_info.out_featuremap_shapes[i][1],
         model_info.out_featuremap_shapes[i][2],
@@ -133,13 +133,13 @@ bool MxAccl::setup(
         );
   }
 
-  Debug(1, "ifmap shape = (%d, %d, %d, %d)", input_height, input_width, input_depth, input_channels);
+  Debug(4, "ifmap shape = (%d, %d, %d, %d)", input_height, input_width, input_depth, input_channels);
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, input_width, input_height, 0);
 
 
   auto in_cb = std::bind(&MxAccl::in_callback_func, this, std::placeholders::_1, std::placeholders::_2);
   auto out_cb = std::bind(&MxAccl::out_callback_func, this, std::placeholders::_1, std::placeholders::_2);
-  accl->connect_stream(in_cb, out_cb, 21, 0);
+  accl->connect_stream(in_cb, out_cb, 21 /* channel_idx */, 0 /*model id*/);
 
   // Start the accelerator after connecting streams
   accl->start();
@@ -219,22 +219,27 @@ int MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
         avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
     return -1;
   }
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  Debug(1, "scale took: %.3f seconds", FPSeconds(endtime - starttime).count());
 
   job->m_width_rescale = ((float)input_width / (float)avframe->width);
   job->m_height_rescale = ((float)input_height / (float)avframe->height);
+  Debug(1, "Locking");
   job->lock();
   {
-    Debug(1, "Locking");
     std::lock_guard<std::mutex> lck(mutex_);
+  Debug(1, "Have Locking");
     send_queue.push_back(job);
     condition_.notify_all();
   }
-  Debug(4, "Waiting for inference");
+  Debug(1, "Waiting for inference");
   job->wait();
+  endtime = std::chrono::system_clock::now();
+  Debug(1, "waiting took: %.3f seconds", FPSeconds(endtime - starttime).count());
   job->unlock();
   Debug(4, "Done Waiting");
 
-  SystemTimePoint endtime = std::chrono::system_clock::now();
+  endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(60)) {
     Warning("scale is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
   } else {
@@ -282,7 +287,7 @@ const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold
 }
 
 bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int channel_idx) {
-  Debug(4, "MxAccl locking, queue size %zu", send_queue.size());
+  Debug(1, "MxAccl locking, queue size %zu channel %d", send_queue.size(), channel_idx);
 
   Job *job = nullptr;
   {
@@ -311,15 +316,19 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
     Debug(1, "in_callback took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
   {
+    Debug(1, "Locking");
     std::lock_guard<std::mutex> lck(mutex_);
+    Debug(1, "Pushing");
     receive_queue.push_back(job);
   }
+  Debug(1, "Notifying");
   condition_.notify_one();
   return true;
 }
 
 bool MxAccl::out_callback_func(vector<const MX::Types::FeatureMap *> src, int channel_idx) {
   YOLOv8Result result;
+  Debug(1, "out_callback,channel  %d", channel_idx);
 
   Job *job;
   {

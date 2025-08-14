@@ -73,8 +73,11 @@ MxAccl::~MxAccl() {
 
 bool MxAccl::setup(
     const std::string &model_type,
-    const std::string &model_file
+    const std::string &model_file,
+    float p_confidence
     ) {
+  confidence = p_confidence;
+
   // Load and launch module_
   Debug(1, "MxAccl: Loading model %s", model_file.c_str());
 
@@ -95,7 +98,6 @@ bool MxAccl::setup(
   input_channels = model_info.in_featuremap_shapes[0][3];
 
   yolov8 = new YOLOv8( input_width, input_height, input_channels, 0.5, 0.5);
-
 
   /*
   output_height = model_info.out_featuremap_shapes[0][0];

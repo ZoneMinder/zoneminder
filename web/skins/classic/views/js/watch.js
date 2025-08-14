@@ -216,8 +216,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    //monitorStream.streamCommand(CMD_STOP);
-    monitorStream.kill();
+    monitorStream.stop();
   }
   //setButtonState('stopBtn', 'unavail');
   //setButtonState('playBtn', 'active');
@@ -831,8 +830,6 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
-  monitorStream.setup_volume(document.getElementById('volume'));
-  monitorStream.setup_mute(document.getElementById('mute'));
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));

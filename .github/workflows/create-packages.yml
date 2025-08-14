@@ -28,6 +28,9 @@ jobs:
             dist: bookworm
             arch: x86_64
           - os: debian
+            dist: trixie
+            arch: x86_64
+          - os: debian
             dist: bullseye
             arch: aarch64
           - os: ubuntu
@@ -39,10 +42,13 @@ jobs:
           - os: debian
             dist: bookworm
             arch: aarch64
+          - os: debian
+            dist: trixie
+            arch: aarch64
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: '0'
           submodules: recursive

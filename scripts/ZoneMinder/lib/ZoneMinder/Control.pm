@@ -366,6 +366,28 @@ sub put {
   return $res;
 } # end sub put
 
+sub post {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in put');
+    return;
+  }
+  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  my $req = HTTP::Request->new(POST => $url);
+  my $content = shift;
+  if ( defined($content) ) {
+    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
+    $req->content($content);
+  }
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success) {
+    Error($res->status_line);
+  } # end unless res->is_success
+  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  return $res;
+} # end sub post
+
 sub printMsg {
   my $self = shift;
   my $msg = shift;
@@ -377,6 +399,59 @@ sub printMsg {
 sub credentials {
   my $self = shift;
   @$self{'username', 'password'} = @_;
+}
+
+sub guess_credentials {
+  my $self = shift;
+
+  require URI;
+
+  # Extract the username/password host/port from ControlAddress
+  if ($self->{Monitor}{ControlAddress}
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+  ) {
+    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    my $uri = URI->new($self->{Monitor}->{ControlAddress});
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $$self{host} = $uri->host();
+    if ( $uri->userinfo()) {
+      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
+    }
+    # Check if it is a host and port or just a host
+    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
+      $$self{host} = $1;
+      $$self{port} = $2 ? $2 : $$self{port};
+    }
+    $$self{uri} = $uri;
+  } elsif ($self->{Monitor}{Path}) {
+    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
+      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
+      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
+    } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
+      $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
+    } else {
+      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
+    }
+    my $uri = URI->new($self->{Monitor}->{Path});
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path('');
+    $$self{host} = $uri->host();
+    $$self{uri} = $uri;
+  } else {
+    Debug('Unable to guess credentials');
+  }
 }
 
 sub get_realm {

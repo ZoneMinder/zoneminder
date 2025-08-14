@@ -108,7 +108,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_STOP :
     Debug(1, "Got STOP command");
-    paused = false;
+    paused = true;
     delayed = false;
     break;
   case CMD_FASTFWD :

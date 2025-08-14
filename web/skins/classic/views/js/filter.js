@@ -412,7 +412,8 @@ function delTerm( element ) {
   parseRows(rows);
 }
 
-function debugFilter() {
+function debugFilter(element) {
+  const form = element.form;
   getModal('filterdebug', $j(form).serialize());
 }
 

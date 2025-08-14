@@ -815,5 +815,20 @@ function devices_onchange(devices) {
     device.style['display'] = 'inline';
   }
 }
+function ControlId_onChange(ddm) {
+  const ControlEditButton = document.getElementById('ControlEditButton');
+  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+}
+
+function ControlEdit_onClick() {
+  const ControlId = document.getElementById('ControlId');
+  if (ControlId) {
+    window.location = '?view=controlcap&cid='+ControlId.value;
+  }
+}
+
+function ControlList_onClick() {
+  window.location = '?view=options&tab=control';
+}
 
 window.addEventListener('DOMContentLoaded', initPage);

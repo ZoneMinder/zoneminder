@@ -223,7 +223,7 @@ void Monitor::ONVIF::WaitForMessage() {
         soap->os = old_stream; // no longer writing to the stream
         Debug(1, "Response was %s", ss.str().c_str());
 
-        // healthy = false;
+        healthy = false;
       } else {
         // EOF
         std::unique_lock<std::mutex> lck(alarms_mutex);

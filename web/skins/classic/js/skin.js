@@ -1094,8 +1094,8 @@ function manageChannelStream() {
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
-    const secondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
-    if (secondPathInput) {
+    const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
+    if (SecondPathInput) {
       secondPath_ = SecondPathInput.value;
     }
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');

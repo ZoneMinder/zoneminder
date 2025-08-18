@@ -142,7 +142,7 @@ sub sendCmd {
   my $self = shift;
   my $cmd = shift;
 
-  return $self->get($url);
+  return $self->get($cmd);
 }
 
 sub cameraReset {
@@ -506,8 +506,7 @@ sub presetHome {
 
 sub reboot {
   my $self = shift;
-  $uri->path('/axis-cgi/restart.cgi');
-  my $response = $self->get($uri->canonical);
+  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
   return $response->is_success;
 }
 

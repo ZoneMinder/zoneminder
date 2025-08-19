@@ -1095,8 +1095,11 @@ function manageChannelStream() {
     }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
-    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
-    restream = document.querySelector('input[name="newMonitor[Janus_Use_RTSP_Restream]"]').checked;
+    // Local source doesn't have second path
+    const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
+    if (SecondPathInput) {
+      secondPath_ = SecondPathInput.value;
+    }
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
   }
   if (select) {
@@ -2081,6 +2084,21 @@ function initPageGeneral() {
       });
     }
     //event.returnValue = '';
+  });
+
+  document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+    el.addEventListener("click", function clickControlMute(event) {
+      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
+      if (!mid) return;
+      if (currentView == 'watch') {
+        monitorStream.controlMute('switch');
+      } else if (currentView == 'montage') {
+        const currentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === mid;
+        });
+        currentMonitor.controlMute('switch');
+      }
+    });
   });
 }
 

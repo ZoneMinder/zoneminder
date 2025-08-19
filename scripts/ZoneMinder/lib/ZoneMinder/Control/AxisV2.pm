@@ -131,6 +131,8 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
+    # For parent get
+    $$self{BaseURL} = $uri->canonical();
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
@@ -140,19 +142,7 @@ sub sendCmd {
   my $self = shift;
   my $cmd = shift;
 
-  $self->printMsg($cmd, 'Tx');
-
-  my $url = $uri->canonical().$cmd;
-  my $res = $self->{ua}->get($url);
-
-  if ( $res->is_success ) {
-    Debug('sndCmd command: '.$url.' content: '.$res->content);
-    return !undef;
-  }
-
-  Error("Error cmd $url failed: '".$res->status_line()."'");
-
-  return undef;
+  return $self->get($cmd);
 }
 
 sub cameraReset {
@@ -512,6 +502,12 @@ sub presetHome {
   Debug('Home Preset');
   my $cmd = '/axis-cgi/com/ptz.cgi?move=home';
   $self->sendCmd($cmd);
+}
+
+sub reboot {
+  my $self = shift;
+  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
+  return $response->is_success;
 }
 
 1;

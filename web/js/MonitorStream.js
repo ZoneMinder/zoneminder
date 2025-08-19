@@ -361,17 +361,18 @@ function MonitorStream(monitorData) {
         old_stream.remove();
         stream_container.appendChild(stream);
         this.webrtc = stream; // track separately do to api differences between video tag and video-stream
-        this.set_stream_volume(this.muted ? 0.0 : this.volume/100);
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
+        document.querySelector('video').addEventListener('play', (e) => {
+          this.createVolumeSlider();
+        }, this);
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
 
-        $j('#volumeControls').show();
         if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         this.activePlayer = 'go2rtc';
         return;
@@ -382,6 +383,9 @@ function MonitorStream(monitorData) {
 
     if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
+      document.querySelector('video').addEventListener('play', (e) => {
+        this.createVolumeSlider();
+      }, this);
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
       } else if (this.server_id && Servers[this.server_id]) {
@@ -427,6 +431,9 @@ function MonitorStream(monitorData) {
         const useSSL = (url.protocol == 'https');
 
         const rtsp2webModUrl = url;
+        document.querySelector('video').addEventListener('play', (e) => {
+          this.createVolumeSlider();
+        }, this);
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
@@ -466,7 +473,6 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        $j('#volumeControls').show();
         this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
@@ -501,14 +507,15 @@ function MonitorStream(monitorData) {
     }
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
-    }
-    if (stream.src != src) {
-      console.log("Setting to streaming: " + src);
-      stream.src = '';
-      stream.src = src;
+
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
+
+    if (stream.src != src) {
+      stream.src = '';
+      stream.src = src;
+    }
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
@@ -542,7 +549,9 @@ function MonitorStream(monitorData) {
           stream.src = src;
         }
       }
-      this.streamCommand(CMD_STOP);
+      if (stream.src) {
+        this.streamCommand(CMD_STOP);
+      }
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -651,7 +660,7 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && (-1 !== this.player.indexOf('zms'))) {
+    if (stream.src && (-1 !== this.activePlayer.indexOf('zms'))) {
       stream.src = '';
       // Make zms exit
       this.streamCommand(CMD_QUIT);
@@ -762,63 +771,146 @@ function MonitorStream(monitorData) {
     this.onplay = func;
   };
 
-  this.volume_slider = null;
-  this.volume = 0.0; // Half
+  this.getVolumeSlider = function(mid) {
+    // On Watch page slider has no ID, on Montage page it has ID
+    return (document.getElementById('volumeSlider')) ? document.getElementById('volumeSlider') : document.getElementById('volumeSlider'+mid);
+  };
 
-  this.setup_volume = function(slider) {
-    this.volume_slider = slider;
-    this.volume_slider.addEventListener('click', (e) => {
-      const x = e.pageX - this.volume_slider.getBoundingClientRect().left; // or e.offsetX (less support, though)
-      const clickedValue = parseInt(x * this.volume_slider.max / this.volume_slider.offsetWidth);
-      this.volume_slider.value = clickedValue;
-      this.set_volume(clickedValue);
-      this.muted = clickedValue ? false : true;
-      setCookie('zmWatchMuted', this.muted);
-      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
+  this.getIconMute = function(mid) {
+    // On Watch page icon has no ID, on Montage page it has ID
+    return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+mid);
+  };
+
+  this.getAudioStraem = function(mid) {
+    /*
+    Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
+    RTSP2Web uses <video id='liveStreamXX'></video>
+    This.getElement() may need to be changed, but the implications of such a change need to be analyzed
+    */
+    return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
+  };
+
+  this.listenerVolumechange = function(el) {
+    // System audio level change
+    const mid = this.id;
+    const audioStream = el.target;
+    const volumeSlider = this.getVolumeSlider(mid);
+    const iconMute = this.getIconMute(mid);
+    if (volumeSlider.allowSetValue) {
+      if (audioStream.muted === true) {
+        iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.add('noUi-mute');
+      } else {
+        iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.remove('noUi-mute');
+      }
+      volumeSlider.noUiSlider.set(audioStream.volume * 100);
+    }
+    setCookie('zmWatchMuted', audioStream.muted);
+    setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
+    volumeSlider.setAttribute('data-muted', audioStream.muted);
+    volumeSlider.setAttribute('data-volume', parseInt(audioStream.volume * 100));
+  };
+
+  this.createVolumeSlider = function() {
+    const mid = this.id;
+    const volumeSlider = this.getVolumeSlider(mid);
+    const iconMute = this.getIconMute(mid);
+    const audioStream = this.getAudioStraem(mid);
+    if (!volumeSlider) return;
+    const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
+    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
+
+    $j('#volumeControls').show();
+    noUiSlider.create(volumeSlider, {
+      start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
+      step: 1,
+      //behaviour: 'unconstrained',
+      behaviour: 'tap',
+      connect: [true, false],
+      range: {
+        'min': 0,
+        'max': 100
+      },
+      /*tooltips: [
+        //true,
+        { to: function(value) { return value.toFixed(0) + '%'; } }
+      ],*/
     });
-    this.volume = this.volume_slider.value;
-  };
+    volumeSlider.allowSetValue = true;
+    volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
+      if (audioStream) {
+        audioStream.volume = values[0]/100;
+        if (values[0] > 0 && !audioStream.muted) {
+          iconMute.innerHTML = 'volume_up';
+          volumeSlider.classList.remove('noUi-mute');
+        } else {
+          iconMute.innerHTML = 'volume_off';
+          volumeSlider.classList.add('noUi-mute');
+        }
+      }
+      //console.log("Audio volume slider event: 'update'");
+    });
+    volumeSlider.noUiSlider.on('end', function onEndUiSlider(values, handle) {
+      volumeSlider.allowSetValue = true;
+      //console.log("Audio volume slider event: 'end'");
+    });
+    volumeSlider.noUiSlider.on('start', function onStartUiSlider(values, handle) {
+      volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
+      //console.log("Audio volume slider event: 'start'");
+    });
+    volumeSlider.noUiSlider.on('set', function onSetUiSlider(values, handle) {
+      //console.log("Audio volume slider event: 'set'");
+    });
+    volumeSlider.noUiSlider.on('slide', function onSlideUiSlider(values, handle) {
+      if (audioStream.volume > 0 && audioStream.muted) {
+        iconMute.innerHTML = 'volume_up';
+        audioStream.muted = false;
+      }
+      //console.log("Audio volume slider event: 'slide'");
+    });
 
-  /* Takes volume as 0->100 */
-  this.set_volume = function(volume) {
-    this.volume = volume;
-    this.set_stream_volume(volume/100);
-    setCookie('zmWatchVolume', this.volume);
-  };
-
-  /* Takes volume as percentage */
-  this.set_stream_volume = function(volume) {
-    if (this.webrtc && this.webrtc.volume ) {
-      this.webrtc.volume(volume);
+    if (volumeSlider.getAttribute("data-muted") !== "true") {
+      this.controlMute('off');
     } else {
-      const stream = this.getElement();
-      stream.volume = volume;
+      this.controlMute('on');
+    }
+
+    if (audioStream) {
+      audioStream.addEventListener('volumechange', (event) => {
+        this.listenerVolumechange(event);
+      });
     }
   };
 
-  this.mute_btn = null;
-  this.muted = false;
-
-  this.setup_mute = function(mute_btn) {
-    this.mute_btn = mute_btn;
-    this.mute_btn.onclick = () => {
-      this.muted = !this.muted;
-      setCookie('zmWatchMuted', this.muted);
-      this.mute_btn.firstElementChild.innerHTML = (this.muted ? 'volume_off' : 'volume_up');
-
-      if (this.muted === false) {
-        this.set_stream_volume(this.volume/100); // lastvolume
-        if (this.volume_slider) this.volume_slider.value = this.volume;
+  /*
+  * mode: switch, on, off
+  */
+  this.controlMute = function(mode = 'switch') {
+    const mid = this.id;
+    const volumeSlider = this.getVolumeSlider(mid);
+    const audioStream = this.getAudioStraem(mid);
+    const iconMute = this.getIconMute(mid);
+    if (!audioStream || !iconMute) return;
+    if (mode=='switch') {
+      if (audioStream.muted) {
+        audioStream.muted = false;
+        iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.add('noUi-mute');
+        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
       } else {
-        this.set_stream_volume(0.0);
-        if (this.volume_slider) this.volume_slider.value = 0;
+        audioStream.muted = true;
+        iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.remove('noUi-mute');
       }
-    };
-    this.muted = (this.mute_btn.firstElementChild.innerHTML == 'volume_off');
-    if (this.muted) {
-      // muted, adjust volume bar
-      this.set_stream_volume(0.0);
-      if (this.volume_slider) this.volume_slider.value = 0;
+    } else if (mode=='on') {
+      audioStream.muted = true;
+      iconMute.innerHTML = 'volume_off';
+      volumeSlider.classList.add('noUi-mute');
+    } else if (mode=='off') {
+      audioStream.muted = false;
+      iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.remove('noUi-mute');
     }
   };
 

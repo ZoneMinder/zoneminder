@@ -514,6 +514,7 @@ switch ($name) {
 ?>
                   <input type="text" name="newMonitor[Manufacturer]"
                     placeholder="enter new manufacturer name"
+                    autocomplete="one-time-code"
                     value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
                     data-on-input-this="Manufacturer_onchange"
                   />
@@ -531,9 +532,10 @@ switch ($name) {
 ?>
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
+                    autocomplete="one-time-code"
                     value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
                     data-on-input-this="Model_onchange"
-                  />
+                    />
               </li>
 <?php 
       $Servers = ZM\Server::find(NULL, array('order'=>'lower(Name)'));
@@ -556,12 +558,19 @@ switch ($name) {
                 <label><?php echo translate('SourceType') ?></label>
                 <?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?>
               </li>
+<?php
+      $groups_dropdown = ZM\Group::get_dropdown_options();
+      if (count($groups_dropdown)) {
+?>
               <li class="Groups">
                 <label><?php echo translate('Groups'); ?></label>
                 <select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-                  echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
+                  echo htmlOptions($groups_dropdown, $monitor->GroupIds());
                   ?></select>
               </li>
+<?php 
+      }
+?>
               <li class="Triggers"><label><?php echo translate('Triggers') ?></label>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
@@ -1506,9 +1515,12 @@ $codecs = array(
                     $controlTypes[$control->Id()] = $control->Name();
                   }
 
-                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
-                  if ( canEdit('Control') ) {
-                    echo '&nbsp;'.makeLink('?view=options&tab=control', translate('Edit'));
+                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId(), ['id'=>'ControlId', 'data-on-click-this'=>'ControlId_onChange']);
+                  if (canEdit('Control')) {
+                    if ($monitor->ControlId()) {
+                      echo '&nbsp;<button type="button" data-on-click="ControlEdit_onClick" id="ControlEdit">'.translate('Edit').'</button>';
+                    }
+                    echo '&nbsp;<button type="button" data-on-click="ControlList_onClick" id="ControlList">'.translate('List').'</button>';
                   }
 ?>
             </li>

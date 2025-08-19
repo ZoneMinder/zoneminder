@@ -111,7 +111,9 @@ $show_storage_areas = (count($storage_areas) > 1) and (canEdit('System') ? 1 : 0
 $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
-$total_capturing_bandwidth=0;
+$total_capturing_bandwidth = 0;
+$total_fps = 0;
+$total_analysis_fps = 0;
 
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
@@ -423,11 +425,13 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 
     if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
       $fps_string .= '/' . $monitor['AnalysisFPS'];
+    $total_analysis_fps += $monitor['AnalysisFPS'];
     }
     if ($fps_string) $fps_string .= ' fps';
     if (!empty($monitor['CaptureBandwidth']))
       $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
     $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
+    $total_fps += $monitor['CaptureFPS'];
     echo $fps_string;
     echo '</div>';
   } # end if offline
@@ -464,7 +468,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
 <?php } ?>
             <td class="colName"></td>
-            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s' ?></td>
+            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s '.
+$total_fps.' fps / '.$total_analysis_fps.' fps' ?></td>
 <?php if ( count($Servers) ) { ?>
             <td class="colServer"></td>
 <?php } ?>

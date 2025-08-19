@@ -46,6 +46,8 @@ class MxAccl {
     int image_size;
     int count;
 
+    bool in_callback_func(vector<const MX::Types::FeatureMap *> dst, int channel_idx);
+    bool out_callback_func(vector<const MX::Types::FeatureMap *> src, int channel_idx);
   public:
     class Job {
       private:
@@ -114,15 +116,13 @@ class MxAccl {
 
     explicit MxAccl();
     ~MxAccl();
-    bool setup( const std::string &model_type, const std::string &model_file);
+    bool setup( const std::string &model_type, const std::string &model_file, float confidence=0.5);
     void Run();
     Job * get_job();
-    Job * send_packet(Job *job, std::shared_ptr<ZMPacket>);
-    Job * send_image(Job *job, Image *image);
-    Job * send_frame(Job *job, AVFrame *);
+    int send_packet(Job *job, std::shared_ptr<ZMPacket>);
+    int send_image(Job *job, Image *image);
+    int send_frame(Job *job, AVFrame *);
 
-    bool in_callback_func(vector<const MX::Types::FeatureMap *> dst, int channel_idx);
-    bool out_callback_func(vector<const MX::Types::FeatureMap *> src, int channel_idx);
 
     const nlohmann::json receive_detections(Job *job, float threshold);
 };

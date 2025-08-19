@@ -57,6 +57,9 @@ extern "C" {
 }
 #include "zm_netint_yolo.h"
 #endif
+#if HAVE_MX_ACCL_H
+#include "zm_mx_accl.h"
+#endif
 
 class Group;
 class MonitorLinkExpression;
@@ -100,6 +103,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     OBJECT_DETECTION_SPEEDAI,
     OBJECT_DETECTION_UVICORN,
     OBJECT_DETECTION_MEMX,
+    OBJECT_DETECTION_MX_ACCL,
   } ObjectDetectionOption;
 
   typedef enum {
@@ -790,6 +794,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Quadra_Yolo *quadra_yolo;
   std::mutex   quadra_mutex;
 #endif
+#if HAVE_MX_ACCL_H
+  MxAccl *mx_accl;
+  MxAccl::Job *mx_accl_job;
+#endif
   nlohmann::json last_detections;
   int last_detection_count;
 
@@ -1077,6 +1085,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool CheckSignal( const Image *image );
   int Analyse();
   std::pair<int, std::string> Analyse_Quadra(std::shared_ptr<ZMPacket> packet);
+#if HAVE_MX_ACCL_H
+  std::pair<int, std::string> Analyse_MxAccl(std::shared_ptr<ZMPacket> packet);
+#endif
   struct transfer
 {
     uint8_t *buf;

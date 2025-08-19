@@ -68,21 +68,42 @@ MxAccl::~MxAccl() {
     jobs.pop_front();
   }
 
-  accl->stop();
+  if (accl) {
+    accl->stop();
+    delete accl;
+    accl = nullptr;
+  }
 }
 
 bool MxAccl::setup(
     const std::string &model_type,
-    const std::string &model_file
+    const std::string &model_file,
+    float p_confidence
     ) {
+  confidence = p_confidence;
+
   // Load and launch module_
   Debug(1, "MxAccl: Loading model %s", model_file.c_str());
 
   std::vector<int> device_ids = {0};
   std::array<bool, 2> use_model_shape = {false, false};
 
+  std::string model_file_lower = model_file;
+  std::transform(model_file_lower.begin(), model_file_lower.end(), model_file_lower.begin(), ::tolower);
+  if (model_file_lower.find("yolov8") == std::string::npos 
+      &&
+      model_file_lower.find("yolo_v8") == std::string::npos 
+      ) {
+    Error("We have no implemented support for anything other than yolov8");
+    return false;
+  }
+
   // Create the accelerator object and load the DFP model
   accl = new MX::Runtime::MxAccl(filesystem::path(model_file), device_ids, use_model_shape);
+  if (!accl) {
+    Error("Failed allocating MxAcc for %s", model_file.c_str());
+    return false;
+  }
 
   model_info = accl->get_model_info(0);
   Debug(1, "model_info in_featermaps: %d out_featuremaps: %d",
@@ -96,7 +117,6 @@ bool MxAccl::setup(
 
   yolov8 = new YOLOv8( input_width, input_height, input_channels, 0.5, 0.5);
 
-
   /*
   output_height = model_info.out_featuremap_shapes[0][0];
   output_width = model_info.out_featuremap_shapes[0][1];
@@ -105,7 +125,7 @@ bool MxAccl::setup(
   */
 
   for (int i=0; i<model_info.num_out_featuremaps; i++) {
-    Debug(1, "ofmap shape = (%" PRId64 ", %" PRId64 ", %" PRId64 ", %" PRId64 ")",
+    Debug(4, "ofmap shape = (%" PRId64 ", %" PRId64 ", %" PRId64 ", %" PRId64 ")",
         model_info.out_featuremap_shapes[i][0],
         model_info.out_featuremap_shapes[i][1],
         model_info.out_featuremap_shapes[i][2],
@@ -113,37 +133,18 @@ bool MxAccl::setup(
         );
   }
 
-  Debug(1, "ifmap shape = (%d, %d, %d, %d)", input_height, input_width, input_depth, input_channels);
+  Debug(4, "ifmap shape = (%d, %d, %d, %d)", input_height, input_width, input_depth, input_channels);
   image_size = av_image_get_buffer_size(AV_PIX_FMT_RGB24, input_width, input_height, 0);
 
 
   auto in_cb = std::bind(&MxAccl::in_callback_func, this, std::placeholders::_1, std::placeholders::_2);
   auto out_cb = std::bind(&MxAccl::out_callback_func, this, std::placeholders::_1, std::placeholders::_2);
-  accl->connect_stream(in_cb, out_cb, 21, 0);
+  accl->connect_stream(in_cb, out_cb, 21 /* channel_idx */, 0 /*model id*/);
 
   // Start the accelerator after connecting streams
   accl->start();
 
   return true;
-}
-
-MxAccl::Job * MxAccl::send_image(Job *job, Image *image) {
-  if (!job) {
-    Error("No job");
-    return nullptr;
-  }
-  av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
-  image->PopulateFrame(frame.get());
-  return send_frame(job, frame.get());
-}
-
-MxAccl::Job * MxAccl::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
-  AVFrame *avframe = packet->in_frame.get();
-  if (!avframe) {
-    Error("NO inframe in packet %d, out of mem?", packet->image_index);
-    return nullptr;
-  }
-  return send_frame(job, avframe);
 }
 
 MxAccl::Job * MxAccl::get_job() {
@@ -171,7 +172,31 @@ MxAccl::Job * MxAccl::get_job() {
   return job;
 }
 
-MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
+int MxAccl::send_image(Job *job, Image *image) {
+  if (!job) {
+    Error("No job");
+    return -1;
+  }
+  if (!image) {
+    Error("No image!");
+    return -1;
+  }
+
+  av_frame_ptr frame = av_frame_ptr(av_frame_alloc());
+  image->PopulateFrame(frame.get());
+  return send_frame(job, frame.get());
+}
+
+int MxAccl::send_packet(Job *job, std::shared_ptr<ZMPacket> packet) {
+  AVFrame *avframe = packet->in_frame.get();
+  if (!avframe) {
+    Error("NO inframe in packet %d, out of mem?", packet->image_index);
+    return -1;
+  }
+  return send_frame(job, avframe);
+}
+
+int MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
   count++;
   Debug(1, "MxAccl::send_frame %d", count);
 
@@ -181,6 +206,10 @@ MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
       avframe->width, avframe->height, static_cast<AVPixelFormat>(avframe->format),
       input_width, input_height, AV_PIX_FMT_RGB24,
       SWS_BICUBIC, nullptr, nullptr, nullptr);
+  if (!job->sw_scale_ctx) {
+    Error("Can't swscale");
+    return -1;
+  }
 
   int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
@@ -188,31 +217,36 @@ MxAccl::Job * MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
     Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
         (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
         avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
-    return nullptr;
+    return -1;
   }
+  SystemTimePoint endtime = std::chrono::system_clock::now();
+  Debug(1, "scale took: %.3f seconds", FPSeconds(endtime - starttime).count());
 
   job->m_width_rescale = ((float)input_width / (float)avframe->width);
   job->m_height_rescale = ((float)input_height / (float)avframe->height);
+  Debug(1, "Locking");
   job->lock();
   {
-    Debug(1, "Locking");
     std::lock_guard<std::mutex> lck(mutex_);
+  Debug(1, "Have Locking");
     send_queue.push_back(job);
     condition_.notify_all();
   }
-  Debug(4, "Waiting for inference");
+  Debug(1, "Waiting for inference");
   job->wait();
+  endtime = std::chrono::system_clock::now();
+  Debug(1, "waiting took: %.3f seconds", FPSeconds(endtime - starttime).count());
   job->unlock();
   Debug(4, "Done Waiting");
 
-  SystemTimePoint endtime = std::chrono::system_clock::now();
+  endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(60)) {
     Warning("scale is too slow: %.3f seconds", FPSeconds(endtime - starttime).count());
   } else {
     Debug(1, "scale took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
-  return job;
-}  // Job * MxAccl::send_frame(AVFrame *frame)
+  return 1;
+}  // int MxAccl::send_frame(AVFrame *frame)
 
 const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold) {
   // Convert yolov8 result to nlohmann::json
@@ -246,14 +280,14 @@ const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold
 
     // map class_id to class name
     std::string class_name = coco_classes[bbox.class_index];
-    predictions.push_back({{"class_name", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
+    predictions.push_back({{"class", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
   }
 
   return predictions;
 }
 
 bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int channel_idx) {
-  Debug(4, "MxAccl locking, queue size %zu", send_queue.size());
+  Debug(1, "MxAccl locking, queue size %zu channel %d", send_queue.size(), channel_idx);
 
   Job *job = nullptr;
   {
@@ -282,15 +316,19 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
     Debug(1, "in_callback took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
   {
+    Debug(1, "Locking");
     std::lock_guard<std::mutex> lck(mutex_);
+    Debug(1, "Pushing");
     receive_queue.push_back(job);
   }
+  Debug(1, "Notifying");
   condition_.notify_one();
   return true;
 }
 
 bool MxAccl::out_callback_func(vector<const MX::Types::FeatureMap *> src, int channel_idx) {
   YOLOv8Result result;
+  Debug(1, "out_callback,channel  %d", channel_idx);
 
   Job *job;
   {

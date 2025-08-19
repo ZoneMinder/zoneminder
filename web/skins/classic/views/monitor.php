@@ -1086,7 +1086,9 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         if (defined('HAVE_QUADRA'))
           $od_options['quadra'] = 'NetInt Quadra';
         if (defined('HAVE_MEMX'))
-          $od_options['memx'] = 'MemryX MX3';
+          $od_options['memx'] = 'MemryX Local MX3';
+        if (defined('HAVE_MEMX'))
+          $od_options['mx_accl'] = 'MemryX MxAccl';
 
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
@@ -1099,9 +1101,15 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
           $model = basename($model);
           $extension = pathinfo($model, PATHINFO_EXTENSION);
-          if ($extension == 'dfp' and defined('HAVE_MEMX')) {
-            if (!isset($models['memx'])) $models['memx'] = [];
-            $models['memx'][$model] = $model;
+          if ($extension == 'dfp') {
+            if (defined('HAVE_MEMX')) {
+              if (!isset($models['memx'])) $models['memx'] = [];
+              $models['memx'][$model] = $model;
+            }
+            if (defined('HAVE_MX_ACCL')) {
+              if (!isset($models['mx_accl'])) $models['mx_accl'] = [];
+              $models['mx_accl'][$model] = $model;
+            }
           } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
             if (!isset($models['speedai'])) $models['speedai'] = [];
             $models['speedai'][$model] = $model;

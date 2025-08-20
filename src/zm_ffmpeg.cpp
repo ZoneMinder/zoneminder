@@ -41,12 +41,18 @@ static CodecData dec_codecs[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
 #endif
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "hevc_cuvid", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 };
 
 static CodecData enc_codecs[] = {
@@ -115,7 +121,7 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
       }
     }
     if (wanted_codec and (chosen_codec_data->codec_id != wanted_codec)) {
-      Debug(1, "Not the right codec id %d %s != %d %s for %s",
+      Debug(1, "Not the right codec id %d %s != wanted %d %s for %s",
           chosen_codec_data->codec_id,
           avcodec_get_name(chosen_codec_data->codec_id),
           wanted_codec,

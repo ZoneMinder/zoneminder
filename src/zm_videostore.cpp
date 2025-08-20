@@ -298,18 +298,9 @@ bool VideoStore::open() {
         }
       }  // end if extradata_entry
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
-      int wanted_codec = monitor->OutputCodec();
-      if (!wanted_codec) {
-        // default to h264
-        //Debug(2, "Defaulting to H264");
-        //wanted_codec = AV_CODEC_ID_H264;
-        // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
-      } else {
-        if (AV_CODEC_ID_H264 != 27 and wanted_codec > 3) {
-          // Older ffmpeg had AV_CODEC_ID_MPEG2VIDEO_XVMC at position 3 has been deprecated
-          wanted_codec += 1;
-        }
-        Debug(2, "Codec wanted %d %s", wanted_codec, avcodec_get_name((AVCodecID)wanted_codec));
+      std::string wanted_codec = monitor->OutputCodec();
+      if (wanted_codec.empty() or wanted_codec == "auto") {
+        Debug(2, "Codec wanted %s", wanted_codec.c_str());
       }
       std::string wanted_encoder = monitor->Encoder();
 
@@ -321,13 +312,8 @@ bool VideoStore::open() {
             continue;
           }
         }
-        if (wanted_codec and (codec_data[i].codec_id != wanted_codec)) {
-          Debug(1, "Not the right codec %d %s != %d %s",
-                codec_data[i].codec_id,
-                avcodec_get_name(codec_data[i].codec_id),
-                wanted_codec,
-                avcodec_get_name((AVCodecID)wanted_codec)
-               );
+        if ((!wanted_codec.empty() and wanted_codec != "auto") and (codec_data[i].codec_codec != wanted_codec)) {
+          Debug(1, "Not the right codec %s != %s", codec_data[i].codec_codec, wanted_codec.c_str());
           continue;
         }
 

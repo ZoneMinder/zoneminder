@@ -537,7 +537,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             colours;
   VideoWriter     videowriter;
   std::string     encoderparams;
-  int             output_codec;
+  std::string     output_codec;
   std::string     encoder;
   std::string     encoder_hwaccel_name;
   std::string     encoder_hwaccel_device;
@@ -847,7 +847,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
   const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
-  int OutputCodec() const { return output_codec; }
+  const std::string &OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
 

@@ -1212,13 +1212,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('OutputCodec') ?></label>
 <?php
 $videowriter_codecs = array(
-  '0' => translate('Auto'),
-  '27' => 'h264',
-  '173' => 'h265/hevc',
-  '167' => 'vp9',
-  '225' => 'av1',
+  'auto' => translate('Auto'),
+  'h264' => 'h264',
+  'hevc' => 'h265/hevc',
+  'vp9' => 'vp9',
+  'av1' => 'av1',
 );
-echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
+echo htmlSelect('newMonitor[OutputCodecName]', $videowriter_codecs, $monitor->OutputCodecName());
 ?>
             </li>
             <li class="Encoder">

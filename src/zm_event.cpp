@@ -172,7 +172,7 @@ int Event::OpenJpegCodec(AVFrame *frame) {
     mJpegCodecContext = nullptr;
   }
 
-  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  std::list<const CodecData *>codec_data = get_encoder_data("mjpeg", "");
   if (!codec_data.size()) {
     Error("No codecs for mjpeg found");
     return -1;

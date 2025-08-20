@@ -51,7 +51,7 @@ bool StreamBase::initContexts(int in_width, int in_height, AVPixelFormat format,
 
   if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
 
-  std::list<const CodecData *>codec_data = get_encoder_data(AV_CODEC_ID_MJPEG, "");
+  std::list<const CodecData *>codec_data = get_encoder_data("mjpeg", "");
   if (!codec_data.size()) {
     Error("No codecs for mjpeg found");
     return false;

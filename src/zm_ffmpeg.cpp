@@ -109,7 +109,7 @@ int ni_get_cardno(const AVCodecContext *ctx) {
 }
 #endif
 
-std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_encoder) {
+std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, const std::string &wanted_encoder) {
   std::list<const CodecData*> results;
 
   for (unsigned int i = 0; i < sizeof(enc_codecs) / sizeof(*enc_codecs); i++) {
@@ -120,12 +120,10 @@ std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string
         continue;
       }
     }
-    if (wanted_codec and (enc_codecs[i].codec_id != wanted_codec)) {
-      Debug(4, "Not the right codec id %d %s != %d %s for %s",
-          chosen_codec_data->codec_id,
-          avcodec_get_name(chosen_codec_data->codec_id),
-          wanted_codec,
-          avcodec_get_name((AVCodecID)wanted_codec),
+    if ((!wanted_codec.empty() and wanted_codec != "auto") and (enc_codecs[i].codec_codec != wanted_codec)) {
+      Debug(4, "Not the right codec id %s != %s for %s",
+          chosen_codec_data->codec_codec,
+          wanted_codec.c_str(),
           chosen_codec_data->codec_name
           );
       continue;

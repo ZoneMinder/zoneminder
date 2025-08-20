@@ -507,15 +507,12 @@ function MonitorStream(monitorData) {
     }
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
-
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
 
-    if (stream.src != src) {
-      stream.src = '';
-      stream.src = src;
-    }
+    stream.src = src;
+    this.streamCommand(CMD_PLAY);
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';

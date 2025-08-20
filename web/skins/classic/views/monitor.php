@@ -1087,7 +1087,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           $od_options['quadra'] = 'NetInt Quadra';
         if (defined('HAVE_MEMX'))
           $od_options['memx'] = 'MemryX Local MX3';
-        if (defined('HAVE_MEMX'))
+        if (defined('HAVE_MX_ACCL'))
           $od_options['mx_accl'] = 'MemryX MxAccl';
 
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);

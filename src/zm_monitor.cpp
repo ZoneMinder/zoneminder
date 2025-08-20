@@ -2582,12 +2582,17 @@ std::pair<int, std::string> Monitor::Analyse_MxAccl(std::shared_ptr<ZMPacket> pa
         packet->ai_frame = av_frame_ptr(av_frame_alloc());
         ai_image->PopulateFrame(packet->ai_frame.get());
         packet->detections = detections;
+        last_detections = detections;
       }
     } else { // skipping
-      if (last_detection_count>0) {
+      if (last_detection_count >0 and last_detections.size()) {
+        Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
+        ai_image->draw_boxes(last_detections, LabelSize(), LabelSize());
+        packet->ai_image = ai_image;
+        // Populate ai_frame as well
+        packet->ai_frame = av_frame_ptr(av_frame_alloc());
+        ai_image->PopulateFrame(packet->ai_frame.get());
         last_detection_count --;
-        //TODO last_detection shouldn't be AI specific
-        //quadra_yolo->draw_last_roi(packet);
       }
     } // end if skip_frame
   } // end if has input_frame/hw_frame

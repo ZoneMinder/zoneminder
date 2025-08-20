@@ -85,7 +85,7 @@ bool MxAccl::setup(
   // Load and launch module_
   Debug(1, "MxAccl: Loading model %s", model_file.c_str());
 
-  std::vector<int> device_ids = {0};
+  std::vector<int> device_ids = {-1};
   std::array<bool, 2> use_model_shape = {false, false};
 
   std::string model_file_lower = model_file;
@@ -224,20 +224,16 @@ int MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
 
   job->m_width_rescale = ((float)input_width / (float)avframe->width);
   job->m_height_rescale = ((float)input_height / (float)avframe->height);
-  Debug(1, "Locking");
   job->lock();
   {
     std::lock_guard<std::mutex> lck(mutex_);
-  Debug(1, "Have Locking");
     send_queue.push_back(job);
     condition_.notify_all();
   }
-  Debug(1, "Waiting for inference");
   job->wait();
   endtime = std::chrono::system_clock::now();
   Debug(1, "waiting took: %.3f seconds", FPSeconds(endtime - starttime).count());
   job->unlock();
-  Debug(4, "Done Waiting");
 
   endtime = std::chrono::system_clock::now();
   if (endtime - starttime > Milliseconds(60)) {
@@ -292,7 +288,7 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
   Job *job = nullptr;
   {
     std::unique_lock<std::mutex> lck(mutex_);
-    while (!send_queue.size() and ! zm_terminate) {
+    while (!send_queue.size() and !zm_terminate) {
       Debug(1, "MxAccl waiting, queue size %zu", send_queue.size());
       condition_.wait(lck);
     }
@@ -316,13 +312,10 @@ bool MxAccl::in_callback_func(vector<const MX::Types::FeatureMap *> dst, int cha
     Debug(1, "in_callback took: %.3f seconds", FPSeconds(endtime - starttime).count());
   }
   {
-    Debug(1, "Locking");
     std::lock_guard<std::mutex> lck(mutex_);
-    Debug(1, "Pushing");
     receive_queue.push_back(job);
   }
-  Debug(1, "Notifying");
-  condition_.notify_one();
+  condition_.notify_all();
   return true;
 }
 

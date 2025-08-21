@@ -228,8 +228,8 @@ bool VideoStore::open() {
           video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
           video_out_ctx->qmin = video_in_ctx->qmin;
           video_out_ctx->qmax = video_in_ctx->qmax;
-            video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-            //video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+          //video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
 
           if (!av_dict_get(opts, "crf", nullptr, AV_DICT_MATCH_CASE)) {
             if (av_dict_set(&opts, "crf", "23", 0)<0)
@@ -237,10 +237,7 @@ bool VideoStore::open() {
           }
 
           if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-            Warning("Can't open video codec (%s) %s",
-                    video_out_codec->name,
-                    av_make_error_string(ret).c_str()
-                   );
+            Warning("Can't open video codec (%s) %s", video_out_codec->name, av_make_error_string(ret).c_str());
             video_out_codec = nullptr;
           }
         }  // end if video_out_codec

@@ -371,19 +371,24 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+    return server.PathToZMS + '?' +
+    //mode=jpeg
+     "mode=single"+
+      "&event=" + Frame.EventId + '&frame='+frame_id +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +
+      "&monitor=" + monId +
       "&frames=1" +
       "&rate=" + 100*speeds[speedIndex] +
-      '&' + auth_relay;
+      (auth_relay ? '&' + auth_relay : '');
   } // end found Frame
   return '';
 } // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
+  console.log("imagedone", obj, monId, success);
   if (success) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
@@ -440,14 +445,19 @@ function loadImage2Monitor(monId, url) {
   if ( monitorLoading[monId] && (monitorImageObject[monId].src != url) ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
     monitorLoadingStageURL[monId] = url; // we don't care if we are overriting, it means it didn't change fast enough
+    console.log("staging", monitorLoading[monId], monitorImageObject[monId].src, url);
   } else {
-    if ( monitorImageObject[monId].src == url ) return; // do nothing if it's the same
+    if ( monitorImageObject[monId].src == url ) {
+      console.log("No change in url");
+      return; // do nothing if it's the same
+    }
     if ( url == 'no data' ) {
       writeText(monId, 'No Event');
     } else {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
+      console.log("Loading", monitorImageObject[monId], url);
       monitorImageObject[monId].src = url; // starts a load but doesn't refresh yet, wait until ready
     }
   }
@@ -1298,7 +1308,9 @@ function initPage() {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
       continue;
     }
+    console.log("Setting up imagedone for ", monId);
     monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
+
     const imageObject = monitorImageObject[monId] = new Image();
     imageObject.monId = monId;
     imageObject.onload = function() {

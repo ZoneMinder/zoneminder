@@ -67,7 +67,7 @@ Tag *Tag::find(const std::string &name) {
   Debug(4, "Loading Tag using %s", sql.c_str());
   zmDbRow dbrow;
   if (!dbrow.fetch(sql)) {
-    Error("Unable to load tag using %s: %s", sql.c_str(), mysql_error(&dbconn));
+    Debug(1, "Unable to load tag using %s: %s", sql.c_str(), mysql_error(&dbconn));
     return nullptr;
   }
   return new Tag(dbrow.mysql_row());

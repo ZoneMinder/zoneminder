@@ -172,7 +172,7 @@ MYSQL_RES *zmDbRow::fetch(const std::string &query) {
   if (!result_set) return result_set;
 
   int n_rows = mysql_num_rows(result_set);
-  if (n_rows != 1) {
+  if (n_rows > 1) {
     Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query.c_str());
     mysql_free_result(result_set);
     result_set = nullptr;

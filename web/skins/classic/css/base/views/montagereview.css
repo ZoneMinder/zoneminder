@@ -1,3 +1,15 @@
+#header {
+  min-height: 25px; /* for flip icon */
+}
+a.flip {
+  position: absolute;
+  right: 5px;
+}
+#mfbpanel {
+  width: 100%;
+  padding: 0 5px;
+}
+
 #ScaleDiv,
 #SpeedDiv{
   vertical-align: top;
@@ -28,7 +40,9 @@ min-width: 0;
 }
 
 #timelinediv {
+  /*
   margin: 2px auto;
+  */
   position:relative; 
   width:100%;
 }

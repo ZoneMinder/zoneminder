@@ -1118,7 +1118,7 @@ function thumbnail_onmouseover(event) {
   const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
   img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' ) {
+  if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
     const zoomHeight = rect.height * 5; // scale factor defined in css
     if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
@@ -1139,7 +1139,7 @@ function thumbnail_onmouseout(event) {
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
-  if ( currentView == 'console' ) {
+  if ( currentView == 'console' || currentView == 'monitor' ) {
     img.style.transformOrigin = '';
   }
 }

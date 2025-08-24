@@ -20,7 +20,8 @@
 
 // Calling sequence:   ... /zm/index.php?view=image&path=/monid/path/image.jpg&scale=nnn&width=wwww&height=hhhhh
 //
-//     Path is physical path to the image starting at the monitor id
+//     Path is physical path to the image.
+//     If "path" starts with "/" - then the link is relative to the root (ZM_PATH_WEB), if there is no slash at the beginning, then it is relative to the skin folder (ZM_SKIN_PATH)
 //
 //     Scale is optional and between 1 and 400 (percent),
 //          Omitted or 100 = no scaling done, image passed through directly
@@ -201,6 +202,7 @@ $Frame = null;
 $Event = null;
 $path = null;
 $media_type='image/jpeg';
+$no_generate_scaled_jpeg = false;
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -444,6 +446,10 @@ Output was: '.implode(PHP_EOL,$output) );
       return;
     }
   } # end if ! file_exists($path)
+} else {
+  $path = (strpos(validHtmlStr($_REQUEST['path']), '/') == 0) ? ZM_PATH_WEB.validHtmlStr($_REQUEST['path']) : ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/'.validHtmlStr($_REQUEST['path']);
+  if ( !file_exists($path) ) return;
+  $no_generate_scaled_jpeg = true; //Firstly, this is not necessary, and secondly, the image may be located in a write-locked directory.
 }
 
 # we now load the actual image to send
@@ -545,7 +551,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         imagedestroy($i);
         imagedestroy($iScale);
         $scaled_jpeg_data = ob_get_contents();
-        file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
+        if (!$no_generate_scaled_jpeg) file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 
         echo $scaled_jpeg_data;
       }

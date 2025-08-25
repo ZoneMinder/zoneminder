@@ -765,8 +765,8 @@ void Image::AssignDirect(const AVFrame *frame) {
   imagePixFormat = static_cast<AVPixelFormat>(frame->format);
   size = av_image_get_buffer_size(imagePixFormat, frame->width, frame->height, 32);
   allocation = size;
-  Debug(3, "Size %u, allocation %lu", size, allocation);
-  zm_dump_video_frame(frame, "AssignDirect");
+//Debug(3, "Size %u, allocation %lu", size, allocation);
+//zm_dump_video_frame(frame, "AssignDirect");
 
   switch(static_cast<AVPixelFormat>(frame->format)) {
     case AV_PIX_FMT_RGBA:

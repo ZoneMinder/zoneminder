@@ -1120,13 +1120,8 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             ZM\Debug("Unkown extension in model $model");
           }
         }
-        if ($monitor->ObjectDetection() and isset($models[$monitor->ObjectDetection()])) {
           echo htmlSelect('newMonitor[ObjectDetectionModel]', $models[$monitor->ObjectDetection()], $monitor->ObjectDetectionModel());
-        } else {
 ?>
-
-              <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" />
-<?php } ?>
             </li>
             <li id="ObjectDetectionObjectThreshold" class="ObjectDetectionObjectThreshold">
               <label><?php echo translate('Object Detection Object Threshold')?></label>

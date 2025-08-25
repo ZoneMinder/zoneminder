@@ -509,28 +509,23 @@ void zm_dump_codec(const AVCodecContext *codec) {
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
   Debug(1, "Dumping stream index i(%d) index(%d)", i, index);
-  int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
+  int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
+  if (flags & AVFMT_SHOW_IDS)
+    Debug(1, "ids [0x%x]", st->id);
+  Debug(1, "    Stream #%d:%d", index, i);
+  zm_dump_stream(st);
+}
+void zm_dump_stream(AVStream *st) {
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", nullptr, 0);
   AVCodecParameters *codec = st->codecpar;
 
-  Debug(1, "    Stream #%d:%d", index, i);
-
   /* the pid is an important information, so we display it */
   /* XXX: add a generic system */
-  if (flags & AVFMT_SHOW_IDS)
-    Debug(1, "ids [0x%x]", st->id);
   if (lang)
     Debug(1, "language (%s)", lang->value);
-  Debug(1, "frame_size:%d stream timebase: %d/%d",
-        codec->frame_size,
-        st->time_base.num, st->time_base.den
-       );
-
-  Debug(1, "codec: %s %s",
-        avcodec_get_name(st->codecpar->codec_id),
-        av_get_media_type_string(st->codecpar->codec_type)
-       );
+  Debug(1, "frame_size:%d stream timebase: %d/%d", codec->frame_size, st->time_base.num, st->time_base.den);
+  Debug(1, "codec: %s %s", avcodec_get_name(st->codecpar->codec_id), av_get_media_type_string(st->codecpar->codec_type));
 
   if (st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)

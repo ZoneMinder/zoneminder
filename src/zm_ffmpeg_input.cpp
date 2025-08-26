@@ -262,7 +262,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME);
     if (ret < 0) {
       Error("Unable to seek in stream");
-      return nullptr;
+      //return nullptr;
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);

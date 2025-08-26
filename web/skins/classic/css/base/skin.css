@@ -1255,22 +1255,29 @@ button.btn.btn-view-watch:hover {
     --d-t: 0.6s;
     --d-t-e: cubic-bezier(0.2, 0.85, 0.32, 1.2);
   }
-  input[type='checkbox']:disabled, input[type='radio']:disabled {
+  input[type='checkbox'].disabled:not(.input-switch):after {
+    border-color: var(--active);
+  }
+  input[type='checkbox']:disabled, input[type='radio']:disabled,
+  input[type='checkbox'].disabled, input[type='radio'].disabled {
     --b: var(--disabled);
     cursor: not-allowed;
     opacity: 0.9;
   }
-  input[type='checkbox']:disabled:checked, input[type='radio']:disabled:checked {
+  input[type='checkbox']:disabled:checked, input[type='radio']:disabled:checked,
+  input[type='checkbox'].disabled:checked, input[type='radio'].disabled:checked {
     --b: var(--disabled-inner);
     --bc: var(--border);
   }
-  input[type='checkbox']:disabled + label, input[type='radio']:disabled + label {
+  input[type='checkbox']:disabled + label, input[type='radio']:disabled + label,
+  input[type='checkbox'].disabled + label, input[type='radio'].disabled + label {
     cursor: not-allowed;
   }
-  input[type='checkbox']:hover:not(:checked):not(:disabled), input[type='radio']:hover:not(:checked):not(:disabled) {
+  input[type='checkbox']:hover:not(:checked):not(:disabled), input[type='radio']:hover:not(:checked):not(:disabled),
+  input[type='checkbox']:hover:not(:checked):not(.disabled), input[type='radio']:hover:not(:checked):not(.disabled) {
     --bc: var(--border-hover);
   }
-  input[type='checkbox']:focus, input[type='radio']:focus {
+  input[type='checkbox']:not(.disabled):focus, input[type='radio']:not(.disabled):focus {
     box-shadow: 0 0 0 var(--focus);
   }
   input[type='checkbox']:not(.input-switch), input[type='radio']:not(.input-switch) {
@@ -1326,7 +1333,8 @@ button.btn.btn-view-watch:hover {
     --ab: var(--active-inner);
     --x: 17px;
   }
-  input[type='checkbox'].input-switch:disabled:not(:checked):after {
+  input[type='checkbox'].input-switch:disabled:not(:checked):after,
+  input[type='checkbox'].input-switch.disabled:not(:checked):after {
     opacity: 0.6;
   }
   input[type='radio'] {

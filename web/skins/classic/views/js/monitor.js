@@ -833,7 +833,7 @@ function ControlList_onClick() {
 }
 
 function selectPlayersSetZMS(select) {
-  for (var i = 0; i < select.length; i++){
+  for (var i = 0; i < select.length; i++) {
     var option_ = select.options[i];
     if (option_.value == 'zms') {
       option_.selected = true;
@@ -884,7 +884,7 @@ function selectPlayersChangeCheckBox(selectedPlayer, action) {
 function selectPlayers(e) {
   var select = e.target;
   var count = 0;
-  for (var i = 0; i < select.length; i++){
+  for (var i = 0; i < select.length; i++) {
     var option = select.options[i];
     if (option.selected) {
       count++;
@@ -895,7 +895,7 @@ function selectPlayers(e) {
           selectPlayersSetZMS(select);
         } else { //Adding for the first time
           select.noneExists = true;
-          for (var i = 0; i < select.length; i++){
+          for (var i = 0; i < select.length; i++) {
             var option_ = select.options[i];
             if (option_.value != 'none') {
               option_.selected = false;

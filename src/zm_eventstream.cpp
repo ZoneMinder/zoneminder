@@ -849,6 +849,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {
           Error("Failed getting a frame.");
+	  sendTextFrame("Failed getting frame");
           return false;
         }
 

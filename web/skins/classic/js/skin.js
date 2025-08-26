@@ -1792,6 +1792,14 @@ function handleKeydownGeneral(evt) {
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
   if (navbar_type == 'left' && key == 'Enter') {
     if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
+      if (target.getAttribute('data-on-change')) {
+        return;
+      } else {
+        const chosenContainer = target.closest('.chosen-container');
+        if (chosenContainer && chosenContainer.previousElementSibling.getAttribute('data-on-change') == 'submitThisForm') {
+          return;
+        }
+      }
       submitThisForm();
     }
   }

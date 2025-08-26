@@ -222,10 +222,10 @@ int main(int argc, const char *argv[], char **envp) {
     }  // end if possible parameter names
   }  // end foreach parm
 
-  if ( monitor_id ) {
-    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
-  } else {
+  if ( event_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
+  } else if ( monitor_id ) {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
   }
   logInit(log_id_string);
 

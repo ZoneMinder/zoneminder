@@ -498,6 +498,7 @@ function initPage() {
   if (!isMobile()) initThumbAnimation();
 
   manageChannelStream();
+  disableCheckboxesPlayerSelection();
 } // end function initPage()
 
 function saveMonitorData(href = '') {
@@ -829,6 +830,92 @@ function ControlEdit_onClick() {
 
 function ControlList_onClick() {
   window.location = '?view=options&tab=control';
+}
+
+function selectPlayersSetZMS(select) {
+  for (var i = 0; i < select.length; i++){
+    var option_ = select.options[i];
+    if (option_.value == 'zms') {
+      option_.selected = true;
+      break;
+    }
+  }
+  selectPlayersChangeCheckBox('zms', 'set');
+}
+
+function disableCheckboxesPlayerSelection() {
+  // Now all control is via multi selector #SelectPlayers
+  let checkBox;
+  checkBox = document.querySelector('input[name="newMonitor[ZMSEnabled]"]');
+  if (checkBox) checkBox.classList.add('disabled');
+
+  checkBox = document.querySelector('input[name="newMonitor[Go2RTCEnabled]"]');
+  if (checkBox) checkBox.classList.add('disabled');
+
+  checkBox = document.querySelector('input[name="newMonitor[RTSP2WebEnabled]"]');
+  if (checkBox) checkBox.classList.add('disabled');
+
+  checkBox = document.querySelector('input[name="newMonitor[JanusEnabled]"]');
+  if (checkBox) checkBox.classList.add('disabled');
+
+  const sel = document.querySelector('select[name="SelectPlayers"]');
+  if (sel) sel.noneExists = sel.getAttribute('none-exists');
+}
+
+function selectPlayersChangeCheckBox(selectedPlayer, action) {
+  let checkBox;
+  if (selectedPlayer == 'zms') {
+    checkBox = document.querySelector('input[name="newMonitor[ZMSEnabled]"]');
+  } else if (selectedPlayer == 'go2rtc') {
+    checkBox = document.querySelector('input[name="newMonitor[Go2RTCEnabled]"]');
+  } else if (selectedPlayer == 'rtsp2web') {
+    checkBox = document.querySelector('input[name="newMonitor[RTSP2WebEnabled]"]');
+  } else if (selectedPlayer == 'janus') {
+    checkBox = document.querySelector('input[name="newMonitor[JanusEnabled]"]');
+  }
+  if (checkBox) {
+    checkBox.checked = (action == 'set') ? true : false;
+    // Need to call the "change" event trigger
+    const event = new Event("change");
+    checkBox.dispatchEvent(event);
+  }
+}
+
+function selectPlayers(e) {
+  var select = e.target;
+  var count = 0;
+  for (var i = 0; i < select.length; i++){
+    var option = select.options[i];
+    if (option.selected) {
+      count++;
+      if (option.value == 'none') {
+        if (select.noneExists) { //Previously 'none' was already added, and now we are changing something
+          select.noneExists = false;
+          option.selected = false;
+          selectPlayersSetZMS(select);
+        } else { //Adding for the first time
+          select.noneExists = true;
+          for (var i = 0; i < select.length; i++){
+            var option_ = select.options[i];
+            if (option_.value != 'none') {
+              option_.selected = false;
+              selectPlayersChangeCheckBox(option_.value, 'remove');
+              //option_.removeAttribute('selected');
+            }
+          }
+        }
+      } else { //Let's set a checkbox for the corresponding player
+        selectPlayersChangeCheckBox(option.value, 'set');
+      }
+    } else { //Let's reset the checkbox for the corresponding player
+      selectPlayersChangeCheckBox(option.value, 'remove');
+    }
+  }
+  if (count === 0) {
+    select.noneExists = false;
+    selectPlayersSetZMS(select);
+  }
+  applyChosen();
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

@@ -1371,7 +1371,7 @@ $codecs = array(
     .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
     ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
     ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
-    ' loading="lazy" /></a></div>';
+    ' loading="lazy" data-monitor-url="'.$monitor->UrlToIndex().'" /></a></div>';
   echo $imgHTML;
 ?>
             </li>

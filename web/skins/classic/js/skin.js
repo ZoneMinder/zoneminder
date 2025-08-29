@@ -49,6 +49,8 @@ const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switc
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
 
+const PLACEHOLDER_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI="; // Transparent GIF 1 pixel
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -1117,7 +1119,19 @@ function thumbnail_onmouseover(event) {
   const img = event.target;
   const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
+  let url = null;
+  try {
+    url = new URL(img.getAttribute(imgAttr));
+  } catch (e) {
+    console.warn(e, `URL ${img.getAttribute(imgAttr)} cannot be recognized.`);
+  }
+
+  if (url) {
+    url.searchParams.set('connkey', generateConnKey());
+    img.src = url.href;
+  } else {
   img.src = img.getAttribute(imgAttr);
+  }
   if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
     const zoomHeight = rect.height * 5; // scale factor defined in css
@@ -1137,10 +1151,37 @@ function thumbnail_onmouseout(event) {
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
+  imgQuitZMS(img);
+  img.src = PLACEHOLDER_IMAGE;
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
   if ( currentView == 'console' || currentView == 'monitor' ) {
     img.style.transformOrigin = '';
+  }
+}
+
+function generateConnKey() {
+  return (Math.floor(Math.random()*900000) + 100000);
+}
+
+function imgQuitZMS(img) {
+  const url = new URL(img.src);
+  const connKey = url.searchParams.get('connkey');
+  const dataMonitorUrl = img.getAttribute('data-monitor-url');
+  if (connKey && dataMonitorUrl) {
+    const ajaxQueue = jQuery.ajaxQueue({
+      url: dataMonitorUrl + (auth_relay?'?'+auth_relay:''),
+      xhrFields: {withCredentials: true},
+      data: {
+          command: CMD_QUIT,
+          request: "stream",
+          view: "request",
+          connkey: connKey
+        },
+      dataType: 'json'
+    })
+        .done(function(data) {console.log("imgQuitZMS done:", data) })
+        .fail(function(data) {console.log("imgQuitZMS fail:", data) });
   }
 }
 

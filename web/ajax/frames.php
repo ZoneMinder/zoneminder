@@ -186,7 +186,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
       
       # finally, we assemble the the entire thumbnail img src structure, whew
-      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
+      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '" data-monitor-url="'.$Monitor->UrlToIndex().'">';
     }
     $returned_rows[] = $row;
   } # end foreach row matching search

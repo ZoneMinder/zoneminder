@@ -235,7 +235,7 @@ void Monitor::ONVIF::WaitForMessage() {
         }
       }
     } else {
-      Debug(1, "ONVIF polling : Got Good Response! %i", result);
+      Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
 

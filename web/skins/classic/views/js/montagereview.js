@@ -20,6 +20,19 @@ const scruboutput = document.getElementById('scruboutput');
 const scrubleft = document.getElementById('scrubleft');
 const scrubright = document.getElementById('scrubright');
 
+// Populated by initPage with jquery
+var dateTimeDiv;
+var speedDiv;
+var timeLineDiv;
+var liveButton;
+var zoomIn;
+var zoomOut;
+var panLeft;
+var panRight;
+var downloadVideo;
+var scaleDiv;
+var fit;
+
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
 
@@ -358,19 +371,24 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+    return server.PathToZMS + '?' +
+    //mode=jpeg
+     "mode=single"+
+      "&event=" + Frame.EventId + '&frame='+frame_id +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +
+      "&monitor=" + monId +
       "&frames=1" +
       "&rate=" + 100*speeds[speedIndex] +
-      '&' + auth_relay;
+      (auth_relay ? '&' + auth_relay : '');
   } // end found Frame
   return '';
 } // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
+  console.log("imagedone", obj, monId, success);
   if (success) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
@@ -427,14 +445,19 @@ function loadImage2Monitor(monId, url) {
   if ( monitorLoading[monId] && (monitorImageObject[monId].src != url) ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
     monitorLoadingStageURL[monId] = url; // we don't care if we are overriting, it means it didn't change fast enough
+    console.log("staging", monitorLoading[monId], monitorImageObject[monId].src, url);
   } else {
-    if ( monitorImageObject[monId].src == url ) return; // do nothing if it's the same
+    if ( monitorImageObject[monId].src == url ) {
+      console.log("No change in url");
+      return; // do nothing if it's the same
+    }
     if ( url == 'no data' ) {
       writeText(monId, 'No Event');
     } else {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
+      console.log("Loading", monitorImageObject[monId], url);
       monitorImageObject[monId].src = url; // starts a load but doesn't refresh yet, wait until ready
     }
   }
@@ -458,7 +481,6 @@ function timerFire() {
     //outputUpdate(currentTimeSecs);
   } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
     currentTimeSecs = playSecsPerInterval + currentTimeSecs;
-
     //outputUpdate(playSecsPerInterval + currentTimeSecs);
   } else {
     console.log("Not updating");
@@ -493,7 +515,10 @@ function drawSliderOnGraph(val) {
   if ( sliderX < 0 ) sliderX = 0;
   if ( sliderX + sliderWidth > cWidth ) sliderX = cWidth-sliderWidth-1;
 
-  if (!liveMode) {
+  if ( liveMode == 1 ) {
+    scruboutput.innerHTML = 'Live Feed @ ' + (1000 / currentDisplayInterval).toFixed(1) + ' fps';
+    scruboutput.style.color = 'red';
+  } else { //if (!liveMode) {
     // we get rid of the slider if we switch to live (since it may not be in the "right" place)
     // Now save where we are putting it THIS time
     underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
@@ -503,11 +528,7 @@ function drawSliderOnGraph(val) {
     ctx.strokeStyle = 'yellow';
     // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
     ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
-  }
-  if ( liveMode == 1 ) {
-    scruboutput.innerHTML = 'Live Feed @ ' + (1000 / currentDisplayInterval).toFixed(1) + ' fps';
-    scruboutput.style.color = 'red';
-  } else {
+
     scruboutput.innerHTML = secs2dbstr(val);
     scruboutput.style.color = 'yellow'; // make it different from left and right so we know which is which
   }
@@ -581,13 +602,20 @@ function drawEventOnGraph(zm_event) {
 
 function drawGraph() {
   underSlider = undefined; // flag we don't have a slider cached
-  const divWidth = document.getElementById('timelinediv').clientWidth;
+
+  // timelinediv starts off 100% of browser, but it's container can be smaller
+  const divWidth = Math.min(timeLineDiv.width(), timeLineDiv.parent().width() );
+
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
-  cHeight = parseInt(window.innerHeight * 0.10); // 10%
-  if (cHeight < numMonitors * 20) { //Minimum 20px per monitor maybe it should be 10px per monitor?
-    cHeight = numMonitors * 20;
+  canvas.height = cHeight = Math.max(parseInt(window.innerHeight * 0.10) /* 10% */, numMonitors * 20);
+
+  /* Clear timeline */
+  if (0) {
+  ctx.fillStyle = '#000000';
+  ctx.globalAlpha = 1;
+  ctx.fillRect(0, 0, cWidth, cHeight);
   }
-  canvas.height = cHeight;
+
   rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
   sliderHeight = cHeight;
 
@@ -604,7 +632,7 @@ function drawGraph() {
   scruboutput.style.bottom = labbottom;
   scruboutput.style.font = labfont;
   var len = scruboutput.offsetWidth;
-  console.log('len', len);
+  console.log('sruboutput.offsetWidth', len);
 
   // This displays (or not) the left/right limits depending on how close the slider is.
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
@@ -651,7 +679,6 @@ function drawGraph() {
   }
   */
 
-  // Should we clear the canvas?
 
   // first fill in the bars for the events (not alarms)
   // At first, no events loaded, that's ok, later, we will have some events, should only draw those in the time range.
@@ -667,7 +694,6 @@ function drawGraph() {
     }
   } // end foreach Event
 
-  /*
   for (let i=0; i < numMonitors; i++) {
     // Apparently we have to set these each time before calling fillText
     ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
@@ -677,27 +703,11 @@ function drawGraph() {
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
     console.log("Drawing ", monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
-  */
 
-  /*
-  underSlider = undefined; // flag we don't have a slider cached
   drawSliderOnGraph(currentTimeSecs);
-  */
 } // end function drawGraph
 
 function redrawScreen() {
-  var dateTimeDiv = $j('#DateTimeDiv');
-  var speedDiv = $j('#SpeedDiv');
-  var timeLineDiv = $j('#timelinediv');
-  var liveButton = $j('#liveButton');
-  var zoomIn = $j('#zoomin');
-  var zoomOut = $j('#zoomout');
-  var panLeft = $j('#panleft');
-  var panRight = $j('#panright');
-  var downloadVideo = $j('#downloadVideo');
-  var scaleDiv = $j('#ScaleDiv');
-  var fit = $j('#fit');
-
   if (liveMode == 1) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
     dateTimeDiv.hide();
@@ -748,8 +758,7 @@ function redrawScreen() {
     fit.text('fit');
     setScale(currentScale);
   }
-  outputUpdate(currentTimeSecs);
-  timerFire(); // force a fire in case it's not timing
+  timerFire(); // force a fire in case it's not timing. timerFirst will call outputUpdate
 } // end function redrawScreen
 
 function outputUpdate(time) {
@@ -760,6 +769,7 @@ function outputUpdate(time) {
     }
   }
   currentTimeSecs = time;
+  console.log('outputUpdate', time);
   drawSliderOnGraph(time);
 }
 
@@ -1203,6 +1213,8 @@ function loadEventData(e) {
         event_list[ev.Id] = events[ev.id] = ev;
       }
       loadFrames(event_list).then(function() {
+        drawGraph();
+        /*
         // HACK to refresh monitor names over event data
         for (let i=0; i < numMonitors; i++) {
           // Apparently we have to set these each time before calling fillText
@@ -1212,6 +1224,8 @@ function loadEventData(e) {
           // This should roughly center font in row
           ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
         }
+        //underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
+        */
       });
     } else {
       console.log("No events in data?");
@@ -1255,6 +1269,18 @@ function loadEventData(e) {
 } // end function loadEventData
 
 function initPage() {
+  dateTimeDiv = $j('#DateTimeDiv');
+  speedDiv = $j('#SpeedDiv');
+  timeLineDiv = $j('#timelinediv');
+  liveButton = $j('#liveButton');
+  zoomIn = $j('#zoomin');
+  zoomOut = $j('#zoomout');
+  panLeft = $j('#panleft');
+  panRight = $j('#panright');
+  downloadVideo = $j('#downloadVideo');
+  scaleDiv = $j('#ScaleDiv');
+  fit = $j('#fit');
+
   if (!liveMode) {
     canvas = document.getElementById('timeline');
 
@@ -1282,7 +1308,9 @@ function initPage() {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
       continue;
     }
+    console.log("Setting up imagedone for ", monId);
     monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
+
     const imageObject = monitorImageObject[monId] = new Image();
     imageObject.monId = monId;
     imageObject.onload = function() {
@@ -1302,7 +1330,7 @@ function initPage() {
   //setLive(liveMode);  // will redraw
   loadEventData();
   wait_for_events();
-  redrawScreen();
+  redrawScreen(); // calls drawGraph
 
   $j('#scaleslider').bind('change', function() {
     setScale(this.value);

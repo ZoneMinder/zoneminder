@@ -220,7 +220,7 @@ Monitor::Monitor() :
   colours(0),
   videowriter(DISABLED),
   encoderparams(""),
-  output_codec(0),
+  output_codec(""),
   encoder(""),
   encoder_hwaccel_name(""),
   encoder_hwaccel_device(""),

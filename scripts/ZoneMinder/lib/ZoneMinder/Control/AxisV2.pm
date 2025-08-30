@@ -73,6 +73,7 @@ sub open {
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
+  $self->{host} = $uri->host();
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
   Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
@@ -92,7 +93,7 @@ sub open {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
-    return;
+    return !undef;
   }
   if ($res->status_line() eq '404 Not Found') {
     #older style
@@ -118,7 +119,7 @@ sub open {
             if ( $res->is_success() ) {
               Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
               $self->{state} = 'open';
-              return;
+              return !undef;
             }
             Error('Authentication still failed after updating REALM status: '.$res->status_line);
           } else {
@@ -136,6 +137,7 @@ sub open {
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
+  return undef;
 } # end sub open
 
 sub sendCmd {

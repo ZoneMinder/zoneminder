@@ -46,21 +46,23 @@ int Monitor::AmcrestAPI::start() {
     curl_easy_cleanup(Amcrest_handle);
   }
 
-  Url full_url(parent->onvif_url);
-  //std::string full_url = parent->onvif_url;
-  //if (full_url.path().back() != '/') full_url += '/';
-  full_url.path("eventManager.cgi?action=attach&codes=[VideoMotion]");
+  Url full_url(parent->onvif_url.empty() ? parent->path : parent->onvif_url);
+  full_url.scheme("http");
+  full_url.path("/cgi-bin/eventManager.cgi?action=attach&heartbeat=5&codes=[All]");
   Debug(1, "AMCREST url is %s", full_url.str().c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {
     Warning("Handle is null!");
     return -1;
   }
+  std::string username = parent->onvif_username.empty() ? parent->user : parent->onvif_username;
+  std::string password = parent->onvif_password.empty() ? parent->pass : parent->onvif_password;
+
   curl_easy_setopt(Amcrest_handle, CURLOPT_URL, full_url.str().c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEDATA, &amcrest_response);
-  curl_easy_setopt(Amcrest_handle, CURLOPT_USERNAME, parent->onvif_username.c_str());
-  curl_easy_setopt(Amcrest_handle, CURLOPT_PASSWORD, parent->onvif_password.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_USERNAME, username.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_PASSWORD, password.c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
   curl_error = curl_multi_add_handle(curl_multi, Amcrest_handle);
   if (curl_error != CURLM_OK) {
@@ -102,38 +104,46 @@ int Monitor::AmcrestAPI::start() {
 void Monitor::AmcrestAPI::WaitForMessage() {
   int open_handles;
   int transfers;
-  curl_multi_perform(curl_multi, &open_handles);
+  CURLMcode curl_error;
+
+  // Tells us how many handles are open
+  curl_error = curl_multi_perform(curl_multi, &open_handles);
   if (open_handles == 0) {
     start();  // http transfer ended, need to restart.
-  } else {
-    // wait for max 5 seconds for event.
-    curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers);
-    if (transfers > 0) {  // have data to deal with
-      // actually grabs the data, populates amcrest_response
-      curl_multi_perform(curl_multi, &open_handles);
-      if (amcrest_response.find("action=Start") != std::string::npos) {
-        // Event Start
-        Debug(1, "AMCREST Triggered on ONVIF");
-        if (!alarmed) {
-          Debug(1, "AMCREST Triggered Event");
-          alarmed = true;
-        }
-      } else if (amcrest_response.find("action=Stop") != std::string::npos) {
-        Debug(1, "AMCREST Triggered off ONVIF");
-        alarmed = false;
-        if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
-          parent->Event_Poller_Closes_Event = true;
-          Debug(1, "AMCREST Setting ClosesEvent");
-        }
-      } else {
-        Debug(1, "AMCREST unhandled message: %s", amcrest_response.c_str());
-      }
-      amcrest_response.clear();  // We've dealt with the message, need to clear the queue
-    } else {
-      Debug(1, "AMCREST no transfers");
-    }
+    return;
   }
-  return;
+
+  // wait for max 5 seconds for event.
+  curl_error = curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers);
+  if (curl_error != CURLM_OK) {
+    healthy = false;
+    Debug(1, "Error code %d", curl_error);
+  }
+
+  if (transfers > 0) {  // have data to deal with
+    Debug(2, "AMCREST: response: %s", amcrest_response.c_str());
+    // FIXME need to implement proper parsing
+    if (amcrest_response.find("action=Start") != std::string::npos) {
+      // Event Start
+      Debug(1, "AMCREST Triggered on with %s", amcrest_response.c_str());
+      if (!alarmed) {
+        Debug(1, "AMCREST Triggered Event");
+        alarmed = true;
+      }
+    } else if (amcrest_response.find("action=Stop") != std::string::npos) {
+      Debug(1, "AMCREST Triggered off ONVIF");
+      alarmed = false;
+      if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
+        parent->Event_Poller_Closes_Event = true;
+        Debug(1, "AMCREST Setting ClosesEvent");
+      }
+    } else {
+      Debug(1, "AMCREST unhandled message: %s, transfers: %d", amcrest_response.c_str(), transfers);
+    }
+    amcrest_response.clear();  // We've dealt with the message, need to clear the queue // FIXME this is wrong.  Can contain multiple events.
+  } else {
+    Debug(2, "AMCREST no transfers");
+  }
 }
 
 size_t Monitor::AmcrestAPI::WriteCallback(
@@ -141,6 +151,7 @@ size_t Monitor::AmcrestAPI::WriteCallback(
   size_t size,
   size_t nmemb,
   void *userp) {
+
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }

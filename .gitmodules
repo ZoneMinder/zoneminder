@@ -8,3 +8,6 @@
 [submodule "dep/RtspServer"]
 	path = dep/RtspServer
 	url = https://github.com/ZoneMinder/RtspServer
+[submodule "dep/CxxUrl"]
+	path = dep/CxxUrl
+	url = git@github.com:chmike/CxxUrl.git

@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor.h"
+#include "dep/CxxUrl/url.hpp"
 
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),
@@ -45,16 +46,17 @@ int Monitor::AmcrestAPI::start() {
     curl_easy_cleanup(Amcrest_handle);
   }
 
-  std::string full_url = parent->onvif_url;
-  if (full_url.back() != '/') full_url += '/';
-  full_url += "eventManager.cgi?action=attach&codes=[VideoMotion]";
-  Debug(1, "AMCREST url is %s", full_url.c_str());
+  Url full_url(parent->onvif_url);
+  //std::string full_url = parent->onvif_url;
+  //if (full_url.path().back() != '/') full_url += '/';
+  full_url.path("eventManager.cgi?action=attach&codes=[VideoMotion]");
+  Debug(1, "AMCREST url is %s", full_url.str().c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {
     Warning("Handle is null!");
     return -1;
   }
-  curl_easy_setopt(Amcrest_handle, CURLOPT_URL, full_url.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_URL, full_url.str().c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEDATA, &amcrest_response);
   curl_easy_setopt(Amcrest_handle, CURLOPT_USERNAME, parent->onvif_username.c_str());
@@ -88,7 +90,7 @@ int Monitor::AmcrestAPI::start() {
   } else {
     Warning("AMCREST Response: %s", amcrest_response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
-            running_handles, curl_error, full_url.c_str());
+            running_handles, curl_error, full_url.str().c_str());
     long response_code;
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
     Warning("AMCREST Response code: %lu", response_code);

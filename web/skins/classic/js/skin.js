@@ -1167,7 +1167,7 @@ function generateConnKey() {
 function imgQuitZMS(img) {
   const url = new URL(img.src);
   const connKey = url.searchParams.get('connkey');
-  const dataMonitorUrl = img.getAttribute('data-monitor-url');
+  const dataMonitorUrl = img.getAttribute('data-server-url');
   if (connKey && dataMonitorUrl) {
     const ajaxQueue = jQuery.ajaxQueue({
       url: dataMonitorUrl + (auth_relay?'?'+auth_relay:''),

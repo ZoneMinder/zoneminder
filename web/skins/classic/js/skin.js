@@ -1130,7 +1130,7 @@ function thumbnail_onmouseover(event) {
     url.searchParams.set('connkey', generateConnKey());
     img.src = url.href;
   } else {
-  img.src = img.getAttribute(imgAttr);
+    img.src = img.getAttribute(imgAttr);
   }
   if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
@@ -1169,19 +1169,23 @@ function imgQuitZMS(img) {
   const connKey = url.searchParams.get('connkey');
   const dataMonitorUrl = img.getAttribute('data-server-url');
   if (connKey && dataMonitorUrl) {
-    const ajaxQueue = jQuery.ajaxQueue({
+    jQuery.ajaxQueue({
       url: dataMonitorUrl + (auth_relay?'?'+auth_relay:''),
       xhrFields: {withCredentials: true},
       data: {
-          command: CMD_QUIT,
-          request: "stream",
-          view: "request",
-          connkey: connKey
-        },
+        command: CMD_QUIT,
+        request: "stream",
+        view: "request",
+        connkey: connKey
+      },
       dataType: 'json'
     })
-        .done(function(data) {console.log("imgQuitZMS done:", data) })
-        .fail(function(data) {console.log("imgQuitZMS fail:", data) });
+        .done(function(data) {
+          console.log("imgQuitZMS done:", data);
+        })
+        .fail(function(data) {
+          console.log("imgQuitZMS fail:", data);
+        });
   }
 }
 

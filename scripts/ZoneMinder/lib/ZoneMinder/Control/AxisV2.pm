@@ -53,36 +53,18 @@ sub open {
 
   $self->loadMonitor();
 
-  if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
-    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
-    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-      # Has no scheme at the beginning, so won't parse as a URI
-      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-    }
-    $uri = URI->new($self->{Monitor}->{ControlAddress});
-  } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
-    $uri = URI->new($self->{Monitor}->{Path});
-    $uri->scheme('http');
-    $uri->port(80);
-    $uri->path('');
-  }
+  my $uri = $self->guess_credentials();
+  $uri = new URI() if ! $uri;;
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
-  $self->{host} = $uri->host();
-
-  my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
-  
-  $uri->userinfo(undef);
 
   my $realm = $self->{Monitor}->{ControlDevice};
 
-  $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+  $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
   my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
 
   # test auth
@@ -114,7 +96,7 @@ sub open {
         if ( $tokens =~ /\w+="([^"]+)"/i ) {
           if ( $realm ne $1 ) {
             $realm = $1;
-            $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+            $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
             $res = $self->{ua}->get($uri->canonical().$url);
             if ( $res->is_success() ) {
               Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");

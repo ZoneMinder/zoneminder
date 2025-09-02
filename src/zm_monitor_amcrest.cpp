@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor.h"
+#include "zm_signal.h"
 #include "dep/CxxUrl/url.hpp"
 
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
@@ -60,7 +61,7 @@ int Monitor::AmcrestAPI::start() {
 
   curl_easy_setopt(Amcrest_handle, CURLOPT_URL, full_url.str().c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEDATA, &amcrest_response);
+  curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(Amcrest_handle, CURLOPT_USERNAME, username.c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_PASSWORD, password.c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
@@ -77,7 +78,7 @@ int Monitor::AmcrestAPI::start() {
     if (m && (m->msg == CURLMSG_DONE)) {
       Warning("AMCREST Libcurl exited Early: %i", m->data.result);
     } else {
-      Debug(1, "AMCREST response code %ld, response %s", response_code, amcrest_response.c_str());
+      Debug(1, "AMCREST response code %ld, response %s", response_code, response.c_str());
     }
 
     curl_multi_wait(curl_multi, nullptr, 0, 300, nullptr);
@@ -90,7 +91,7 @@ int Monitor::AmcrestAPI::start() {
     healthy = true;
     Debug(1, "AMCREST Healthy");
   } else {
-    Warning("AMCREST Response: %s", amcrest_response.c_str());
+    Warning("AMCREST Response: %s", response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
             running_handles, curl_error, full_url.str().c_str());
     long response_code;
@@ -99,6 +100,22 @@ int Monitor::AmcrestAPI::start() {
   }
 
   return 0;
+}
+
+std::string get_command(const std::string &content) {
+  StringVector lines = Split(content, "\r\n");
+  std::string command;
+
+  for (auto line_it = lines.begin(); line_it != lines.end(); line_it++) {
+    std::string line = *line_it;
+
+    if (line == "Heartbeat") return line;
+    if (line.empty() and !command.empty()) break;
+    //if (line.substr(0,4) == "Code") {
+    //}
+    command += line;
+  }
+  return command;
 }
 
 void Monitor::AmcrestAPI::WaitForMessage() {
@@ -114,23 +131,41 @@ void Monitor::AmcrestAPI::WaitForMessage() {
   }
 
   // wait for max 5 seconds for event.
-  curl_error = curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers);
+  //Debug(1, "AMCREST: multi_wait");
+  curl_error = curl_multi_wait(curl_multi, nullptr, 0, 1000, &transfers);
   if (curl_error != CURLM_OK) {
     healthy = false;
     Debug(1, "Error code %d", curl_error);
   }
 
-  if (transfers > 0) {  // have data to deal with
-    Debug(2, "AMCREST: response: %s", amcrest_response.c_str());
-    // FIXME need to implement proper parsing
-    if (amcrest_response.find("action=Start") != std::string::npos) {
+  Debug(2, "AMCREST: response: %s", response.c_str());
+  // FIXME need to implement proper parsing
+  std::string boundary = "--myboundary";
+  std::string br = "\r\n";
+
+  while (!response.empty() and !zm_terminate) {
+    auto boundary_it = response.find(boundary);
+    Debug(1, "AMCREST: boundary %zu", boundary_it);
+    if (boundary_it == std::string::npos) {
+      // Might not be a boundary, might just hit the end
+      boundary_it = response.size();
+    }
+
+    std::string content = response.substr(0, boundary_it);
+    Debug(1, "AMCREST: content (%s) ending at %zu", content.c_str(), boundary_it);
+    std::string command = get_command(content);
+    Debug(1, "AMCREST: command: %s", command.c_str());
+
+    if (command.empty()) {
+    } else if (command == "Heartbeat") {
+    } else if (command.find("action=Start") != std::string::npos) {
       // Event Start
-      Debug(1, "AMCREST Triggered on with %s", amcrest_response.c_str());
+      Debug(1, "AMCREST Triggered on with %s", response.c_str());
       if (!alarmed) {
         Debug(1, "AMCREST Triggered Event");
         alarmed = true;
       }
-    } else if (amcrest_response.find("action=Stop") != std::string::npos) {
+    } else if (command.find("action=Stop") != std::string::npos) {
       Debug(1, "AMCREST Triggered off ONVIF");
       alarmed = false;
       if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
@@ -138,12 +173,15 @@ void Monitor::AmcrestAPI::WaitForMessage() {
         Debug(1, "AMCREST Setting ClosesEvent");
       }
     } else {
-      Debug(1, "AMCREST unhandled message: %s, transfers: %d", amcrest_response.c_str(), transfers);
+      Debug(1, "AMCREST unhandled message: %s", command.c_str());
     }
-    amcrest_response.clear();  // We've dealt with the message, need to clear the queue // FIXME this is wrong.  Can contain multiple events.
-  } else {
-    Debug(2, "AMCREST no transfers");
-  }
+    boundary_it = response.find(br, boundary_it);
+    Debug(1, "AMCREST Found br at %zu", boundary_it);
+    boundary_it += 2;
+    Debug(1, "AMCREST Remainder: %s", response.c_str());
+    response = response.substr(boundary_it, response.size());
+    Debug(1, "AMCREST Remainder: %s", response.c_str());
+  } // end while
 }
 
 size_t Monitor::AmcrestAPI::WriteCallback(
@@ -153,5 +191,6 @@ size_t Monitor::AmcrestAPI::WriteCallback(
   void *userp) {
 
   ((std::string*)userp)->append((char*)contents, size * nmemb);
+  //Debug(1, "AMCREST callback %s", (char *)contents);
   return size * nmemb;
 }

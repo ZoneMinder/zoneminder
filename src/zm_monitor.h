@@ -367,10 +367,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *parent;
     bool alarmed;
     bool healthy;
-    std::string amcrest_response;
+    std::string last_topic;
+    std::string last_value;
+
+    std::string response;
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    std::mutex   alarms_mutex;
+    std::mutex   response_mutex;
 
    public:
     explicit AmcrestAPI(Monitor *parent_);

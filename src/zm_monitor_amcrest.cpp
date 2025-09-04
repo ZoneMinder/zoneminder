@@ -19,7 +19,7 @@
 
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "dep/CxxUrl/url.hpp"
+#include "url.hpp"
 
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),

@@ -129,6 +129,17 @@ commonprep () {
             exit 1
         fi
     fi
+    if [ -e "build/CxxUrl" ]; then
+        echo "Found existing CxxUrl tarball..."
+    else
+      CxxUrlVER="v0.3"
+        echo "Retrieving CxxUrl ${CxxUrlVER} submodule..."
+        curl -L https://github.com/chmike/CxxUrl.git/archive/${CxxUrlVER}.tar.gz > build/CxxUrl-${CssUrlVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: CxxUrl tarball retrieval failed..."
+            exit 1
+        fi
+    fi
 }
 
 # Uncompress the submodule tarballs and move them into place
@@ -156,6 +167,14 @@ movecrud () {
         tar -xzf build/RtspServer-${RTSPVER}.tar.gz
         rmdir dep/RtspServer
         mv -f RtspServer-${RTSPVER} dep/RtspServer
+    fi
+    if [ -e "dep/CxxUrl/CMakeLists.txt" ]; then
+        echo "CxxUrl already installed..."
+    else
+        echo "Unpacking CxxUrl..."
+        tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
+        rmdir dep/CssUrl
+        mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
     fi
 }
 

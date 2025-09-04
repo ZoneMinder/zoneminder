@@ -129,12 +129,13 @@ commonprep () {
             exit 1
         fi
     fi
-    if [ -e "build/CxxUrl" ]; then
+
+    CxxUrlVER="v0.3"
+    if [ -e "build/CxxUrl-${CxxUrlVER}.tar.gz" ]; then
         echo "Found existing CxxUrl tarball..."
     else
-      CxxUrlVER="v0.3"
         echo "Retrieving CxxUrl ${CxxUrlVER} submodule..."
-        curl -L https://github.com/chmike/CxxUrl.git/archive/${CxxUrlVER}.tar.gz > build/CxxUrl-${CssUrlVER}.tar.gz
+        curl -L https://github.com/chmike/CxxUrl/archive/refs/tags/${CxxUrlVER}.tar.gz > build/CxxUrl-${CxxUrlVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: CxxUrl tarball retrieval failed..."
             exit 1

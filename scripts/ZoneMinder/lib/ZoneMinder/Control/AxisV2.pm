@@ -336,12 +336,9 @@ sub moveStop {
   my $speed = 0;
   Debug('Move Stop');
   # we have to stop both pans and zooms
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
-  $self->sendCmd($cmd);
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
-  $self->sendCmd($cmd);
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed");
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouszoommove=$speed");
 }
-
 
 sub zoomRelTele {
   my $self = shift;

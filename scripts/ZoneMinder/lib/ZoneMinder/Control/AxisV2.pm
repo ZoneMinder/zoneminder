@@ -55,6 +55,8 @@ sub open {
 
   my $uri = $self->guess_credentials();
   $uri = new URI() if ! $uri;;
+  # For parent get
+  $$self{BaseURL} = $uri->canonical();
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -114,8 +116,6 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
-    # For parent get
-    $$self{BaseURL} = $uri->canonical();
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'

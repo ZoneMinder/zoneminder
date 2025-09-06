@@ -611,7 +611,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   pre_event_count = atoi(dbrow[col]);
   col++;
-  packetqueue.setPreEventVideoPackets(pre_event_count);
+  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) &&
                                (recording != RECORDING_NONE));

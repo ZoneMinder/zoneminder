@@ -404,6 +404,9 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
+list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
+
+
 # libjwt
 if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
   find_package(LibJWT REQUIRED COMPONENTS ${ZM_CRYPTO_BACKEND})

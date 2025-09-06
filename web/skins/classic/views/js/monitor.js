@@ -411,26 +411,6 @@ function initPage() {
     });
   }
 
-  // Amcrest API controller
-  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
-  if (ONVIF_Event_Listener) {
-    if (ONVIF_Event_Listener[0].checked) {
-      document.getElementById("function_use_Amcrest_API").hidden = false;
-    } else {
-      document.getElementById("function_use_Amcrest_API").hidden = true;
-    }
-    ONVIF_Event_Listener[0].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = false;
-      }
-    });
-    ONVIF_Event_Listener[1].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = true;
-      }
-    });
-  }
-
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
     monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass

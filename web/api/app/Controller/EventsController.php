@@ -48,6 +48,7 @@ class EventsController extends AppController {
       $mon_options = '';
     }
 
+    $this->FilterComponent = $this->Components->load('Filter');
     $named_params = $this->request->params['named'];
     if ($named_params) {
       # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
@@ -64,10 +65,9 @@ class EventsController extends AppController {
           unset($named_params[$k]);
         }
       }
-      $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($named_params);
     } else {
-      $conditions = array();
+      $conditions = $this->FilterComponent->buildFilter($_REQUEST);
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995

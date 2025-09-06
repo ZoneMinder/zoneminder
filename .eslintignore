@@ -1,4 +1,5 @@
 *.min.js
+eslint.config.js
 
 # libraries
 web/api/lib

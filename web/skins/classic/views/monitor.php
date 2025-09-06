@@ -630,10 +630,6 @@ switch ($name) {
               <label><?php echo translate('ONVIF_Event_Listener') ?></label>
               <?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->ONVIF_Event_Listener()); ?>
             </li>
-            <li id="function_use_Amcrest_API" class="use_Amcreat_API">
-              <label><?php echo translate('use_Amcrest_API') ?></label>
-              <?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?>
-            </li>
 <?php
         break;
     }
@@ -1069,6 +1065,10 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
+            </li>
+            <li id="function_use_Amcrest_API" class="use_Amcreat_API">
+              <label><?php echo translate('use_Amcrest_API') ?></label>
+              <?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?>
             </li>
 <?php
     }

@@ -611,9 +611,9 @@ function drawGraph() {
 
   /* Clear timeline */
   if (0) {
-  ctx.fillStyle = '#000000';
-  ctx.globalAlpha = 1;
-  ctx.fillRect(0, 0, cWidth, cHeight);
+    ctx.fillStyle = '#000000';
+    ctx.globalAlpha = 1;
+    ctx.fillRect(0, 0, cWidth, cHeight);
   }
 
   rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort

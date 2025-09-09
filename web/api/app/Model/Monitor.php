@@ -163,10 +163,6 @@ class Monitor extends AppModel {
   );
 
   public function daemonControl($monitor, $command, $daemon=null) {
-    if ($monitor['Function'] == 'None' and $command != 'stop') {
-      ZM\Warning("Calling daemonControl with command $command when Function == None");
-      return;
-    }
     if ($monitor['Capturing'] == 'None' and $command != 'stop') {
       ZM\Warning("Calling daemonControl with command $command when Capturing == None");
       return;

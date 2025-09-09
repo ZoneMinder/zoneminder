@@ -47,8 +47,16 @@ $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component
 ZM\Debug(print_r($components, true));
 $options = [''=>translate('All')] + array_combine($components, $components);
 ZM\Debug(print_r($options, true));
+$selected_component = '';
+if (isset($_SESSION['zmLogComponent'])) {
+  if (array_search($_SESSION['zmLogComponent'], $components)) {
+    $selected_component = $_SESSION['zmLogComponent'];
+  } else {
+    unset($_SESSION['zmLogComponent']);
+  }
+}
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent', 'class'=>'chosen'));
+echo htmlSelect('filterComponent', $options, $selected_component, array('id'=>'filterComponent', 'class'=>'chosen'));
 echo '</span>';
 ?>
       </span>

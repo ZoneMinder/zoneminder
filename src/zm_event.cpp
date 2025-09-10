@@ -700,82 +700,78 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   if (score < 0) score = 0;
   tot_score += score;
 
-  if (packet->image) {
-    if (save_jpegs & 1) {
-      std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
-      Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-      if (
-          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), event_file.c_str()))
-          or
-          (packet->in_frame and WriteJpeg(packet->in_frame.get(), event_file.c_str()))
-          or
-          (packet->image and WriteFrameImage(packet->image, packet->timestamp, event_file.c_str()))
-      ) {
+  if (save_jpegs & 1) {
+    std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
+    Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
+    if (
+        (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), event_file.c_str()))
+        or
+        (packet->in_frame and WriteJpeg(packet->in_frame.get(), event_file.c_str()))
+        or
+        (packet->image and WriteFrameImage(packet->image, packet->timestamp, event_file.c_str()))
+       ) {
       Debug(1, "Wrote capture frame %d to %s", frames, event_file.c_str());
-        // Success
-      } else {
-        Error("Failed to write frame image");
-      }
-    }  // end if save_jpegs
+      // Success
+    } else {
+      Error("Failed to write frame image");
+    }
+  }  // end if save_jpegs
 
-    Debug(1, "frames %d, score %d max_score %d", frames, score, max_score);
-    // If this is the first frame, we should add a thumbnail to the event directory
-    if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
-      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
-      Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
-      if (
-          (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
-          or
-          (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
-          or
-          (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
-         ) {
-        snapshot_file_written = true;
-      } else {
-        Warning("Fail to write snapshot");
+  Debug(1, "frames %d, score %d max_score %d", frames, score, max_score);
+  // If this is the first frame, we should add a thumbnail to the event directory
+  if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
+    write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
+    Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
+    if (
+        (packet->ai_frame and WriteJpeg(packet->ai_frame.get(), snapshot_file.c_str()))
+        or
+        (packet->in_frame and WriteJpeg(packet->in_frame.get(), snapshot_file.c_str()))
+        or
+        (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
+       ) {
+      snapshot_file_written = true;
+    } else {
+      Warning("Fail to write snapshot");
+    }
+  } else {
+    Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
+  }
+
+  // We are writing an Alarm frame
+  if (frame_type == ALARM) {
+    // The first frame with a score will be the frame that alarmed the event
+    if (!alarm_frame_written) {
+      write_to_db = true; // OD processing will need it, so the db needs to know about it
+      alarm_frame_written = true;
+      Debug(1, "Writing alarm image to %s", alarm_file.c_str());
+      if (packet->ai_frame) {
+        WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
+      } else if (packet->in_frame) {
+        WriteJpeg(packet->in_frame.get(), alarm_file.c_str());
+      } else if (packet->image) {
+        WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
+      }
+#if 0
+      if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
+        Error("Failed to write alarm frame image to %s", alarm_file.c_str());
+      }
+#endif
+    } else {
+      Debug(3, "Not Writing alarm image because alarm frame already written");
+    }
+  } // end if is an alarm frame
+
+  if (save_jpegs & 2) {
+    if (packet->analysis_image) {
+      std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
+      Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
+      if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
+        Error("Failed to write analysis frame image to %s", event_file.c_str());
       }
     } else {
-      Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
-    }
-
-    // We are writing an Alarm frame
-    if (frame_type == ALARM) {
-      // The first frame with a score will be the frame that alarmed the event
-      if (!alarm_frame_written) {
-        write_to_db = true; // OD processing will need it, so the db needs to know about it
-        alarm_frame_written = true;
-        Debug(1, "Writing alarm image to %s", alarm_file.c_str());
-        if (packet->ai_frame) {
-          WriteJpeg(packet->ai_frame.get(), alarm_file.c_str());
-        } else if (packet->in_frame) {
-          WriteJpeg(packet->in_frame.get(), alarm_file.c_str());
-        } else if (packet->image) {
-          WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str());
-        }
-#if 0
-        if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
-          Error("Failed to write alarm frame image to %s", alarm_file.c_str());
-        }
-#endif
-      } else {
-        Debug(3, "Not Writing alarm image because alarm frame already written");
-      }
-    } // end if is an alarm frame
-
-    if (save_jpegs & 2) {
-      if (packet->analysis_image) {
-        std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
-        Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
-        if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
-          Error("Failed to write analysis frame image to %s", event_file.c_str());
-        }
-      } else {
-        Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");
-      }  // end if is an alarm frame
-    }  // end if has analysis images turned on
-  } else {
-    Debug(1, "No image");
-  }  // end if has image
+      Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");
+    }  // end if is an alarm frame
+  }  // end if has analysis images turned on
 
   bool db_frame = ( frame_type == BULK )
                   or ( frame_type == ALARM )

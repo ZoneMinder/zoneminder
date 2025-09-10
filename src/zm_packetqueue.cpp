@@ -125,7 +125,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     } else {
       Debug(1, "Not video stream %d", add_avpacket->stream_index);
     }
-#endif
 
     pktQueue.push_back(add_packet);
 

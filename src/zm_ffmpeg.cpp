@@ -46,7 +46,7 @@ static CodecData dec_codecs[] = {
 #ifdef HAVE_QUADRA
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
   { AV_CODEC_ID_VP9, "vp9", "vp9_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
-  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
+  { AV_CODEC_ID_H265, "hevc", "h265_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_dec", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
   { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_dec", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", "xcoder-params='out=hw'" },
 #endif
@@ -59,26 +59,27 @@ static CodecData dec_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
 
-  { AV_CODEC_ID_H265, "h265", "hevc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_cuvid", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_cuvid", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 };
 
 static CodecData enc_codecs[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
 #ifdef HAVE_QUADRA
   { AV_CODEC_ID_AV1, "av1", "av1_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
-  { AV_CODEC_ID_H265, "h265", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
+  { AV_CODEC_ID_H265, "hevc", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
+  { AV_CODEC_ID_H265, "hevc", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   //{ AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
 #endif
-  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 
   { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
@@ -88,7 +89,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
 #endif
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUVJ420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
@@ -118,15 +119,23 @@ std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, co
       if (wanted_encoder != enc_codecs[i].codec_name) {
         Debug(1, "Not the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
         continue;
+      } else {
+        Debug(1, "Have the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
       }
     }
-    if ((!wanted_codec.empty() and wanted_codec != "auto") and (enc_codecs[i].codec_codec != wanted_codec)) {
-      Debug(4, "Not the right codec id %s != %s for %s",
+    if ((!wanted_codec.empty() and (wanted_codec != "auto")) and (enc_codecs[i].codec_codec != wanted_codec)) {
+      Debug(1, "Not the right codec id %s != %s for %s",
           chosen_codec_data->codec_codec,
           wanted_codec.c_str(),
           chosen_codec_data->codec_name
           );
       continue;
+    } else {
+      Debug(1, "Have the right codec id %s != %s for %s",
+          chosen_codec_data->codec_codec,
+          wanted_codec.c_str(),
+          chosen_codec_data->codec_name
+	  );
     }
     const AVCodec *codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
     if (!codec) {

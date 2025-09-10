@@ -31,7 +31,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   nms_thresh(0.45),
   network_ctx(nullptr),
   model(nullptr),
-  //model_ctx(nullptr),
+  model_ctx(nullptr),
   net_frame(),
   sw_scale_ctx(nullptr),
 
@@ -67,8 +67,8 @@ Quadra_Yolo::~Quadra_Yolo() {
   ni_packet_buffer_free(&net_frame.api_packet.data.packet);
   if (network_ctx)
     ni_cleanup_network_context(network_ctx, use_hwframe);
-  if (model) {
-    model->destroy_model(&model_ctx);
+  if (model && model_ctx) {
+    model->destroy_model(model_ctx);
   }
 
   free(last_roi);
@@ -128,10 +128,12 @@ bool Quadra_Yolo::setup(
       devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
   if (ret != 0) {
     Error("failed to allocate network context on card %d", devid);
+    model = nullptr;
     return false;
   }
 
-  ret = model->create_model(&model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
+  model_ctx = new YoloModelCtx();
+  ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
   if (ret != 0) {
     Error("failed to initialize yolo model");
     return false;
@@ -226,7 +228,7 @@ int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMP
 int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
   SystemTimePoint starttime = std::chrono::system_clock::now();
   /* pull filtered frames from the filtergraph */
-  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx.out_tensor);
+  int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
   SystemTimePoint endtime = std::chrono::system_clock::now();
   Debug(1, "*** AI inference took %.2f seconds ***",FPSeconds(endtime-starttime).count());
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
@@ -694,7 +696,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
   struct roi_box *roi_box = nullptr;
   int roi_num = 0;
 
-  int ret = model->ni_get_boxes(&model_ctx, out->width, out->height, &roi_box, &roi_num);
+  int ret = model->ni_get_boxes(model_ctx, out->width, out->height, &roi_box, &roi_num);
   if (ret < 0) {
     Error( "failed to get roi.");
     if (roi_box) free(roi_box);

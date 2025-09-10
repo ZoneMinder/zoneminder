@@ -32,7 +32,7 @@ class Quadra_Yolo {
     float nms_thresh = 0.45;
     NiNetworkContext *network_ctx;
     YoloModel *model;
-    YoloModelCtx model_ctx;
+    YoloModelCtx *model_ctx;
     NiNetworkFrame net_frame;
     //ni_session_data_io_t *ai_frame;
 

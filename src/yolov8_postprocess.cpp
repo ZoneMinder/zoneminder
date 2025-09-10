@@ -149,19 +149,26 @@ out:
 }
 
 static void destroy_yolov8_model(YoloModelCtx *ctx) {
-    if (ctx->out_tensor) {
-        int i;
-        for (i = 0; i < ctx->output_number; i++) {
-            free(ctx->out_tensor[i]);
-            //free(ctx->layers[i].biases);
-            //ctx->layers[i].biases = nullptr;
-        }
-        free(ctx->out_tensor);
-        ctx->out_tensor = nullptr;
+  if (ctx->out_tensor) {
+    for (int i = 0; i < ctx->output_number; i++) {
+      if (ctx->out_tensor[i]) {
+        free(ctx->out_tensor[i]);
+        ctx->out_tensor[i] = nullptr;
+      }
+      //free(ctx->layers[i].biases);
+      //ctx->layers[i].biases = nullptr;
     }
+    free(ctx->out_tensor);
+    ctx->out_tensor = nullptr;
+  }
+  if (ctx->det_cache.dets) {
     free(ctx->det_cache.dets);
+    ctx->det_cache.dets = nullptr;
+  }
+  if (ctx->layers) {
     free(ctx->layers);
     ctx->layers = nullptr;
+  }
 }
 
 YoloModel yolov8 = {

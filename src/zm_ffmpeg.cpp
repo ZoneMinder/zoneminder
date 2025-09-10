@@ -88,16 +88,23 @@ std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, co
       if (wanted_encoder != enc_codecs[i].codec_name) {
         Debug(1, "Not the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
         continue;
+      } else {
+        Debug(1, "Have the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
       }
     }
-
-    if ((!wanted_codec.empty() and wanted_codec != "auto") and (enc_codecs[i].codec_codec != wanted_codec)) {
-      Debug(4, "Not the right codec id %s != %s for %s",
+    if ((!wanted_codec.empty() and (wanted_codec != "auto")) and (enc_codecs[i].codec_codec != wanted_codec)) {
+      Debug(1, "Not the right codec id %s != %s for %s",
           chosen_codec_data->codec_codec,
           wanted_codec.c_str(),
           chosen_codec_data->codec_name
           );
       continue;
+    } else {
+      Debug(1, "Have the right codec id %s != %s for %s",
+          chosen_codec_data->codec_codec,
+          wanted_codec.c_str(),
+          chosen_codec_data->codec_name
+	  );
     }
     const AVCodec *codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
     if (!codec) {

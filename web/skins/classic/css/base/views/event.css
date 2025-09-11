@@ -105,6 +105,9 @@ height: 100%;
 
 #eventStatsTable {
 }
+#eventStatsTable .label {
+  min-width: 80px;
+}
 #eventVideo {
   /* width: 100%; *//* flex will make it fill the available space */
 }

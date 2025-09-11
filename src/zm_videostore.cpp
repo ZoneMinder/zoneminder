@@ -495,6 +495,7 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
+  av_dict_set(&opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov+faststart");

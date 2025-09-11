@@ -448,7 +448,11 @@ void zm_log_fps(double d, const char *postfix) {
 }
 
 void zm_dump_codecpar(const AVCodecParameters *par) {
-  Debug(1, "Dumping codecpar codec_type %d %s codec_id %d %s codec_tag %" PRIu32
+  Debug(1, "Dumping codecpar %s", get_codecpar_string(par).c_str());
+}
+
+const std::string get_codecpar_string(const AVCodecParameters *par) {
+  return stringtf("codec_type %d %s codec_id %d %s codec_tag %" PRIu32
         " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
         " extradata:%d:%s profile %d level %d field order %d color_range %d"
         " color_primaries %d color_trc %d color_space %d location %d video_delay %d",
@@ -527,6 +531,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   if (flags & AVFMT_SHOW_IDS)
     Debug(1, "ids [0x%x]", st->id);
   Debug(1, "    Stream #%d:%d", index, i);
+  Debug(1, "global bitrate %" PRId64, ic->bit_rate);
   zm_dump_stream(st);
 }
 
@@ -562,6 +567,8 @@ void zm_dump_stream(AVStream *st) {
       output += get_fps_string(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
       output += get_fps_string(1 / av_q2d(st->time_base), "stream tb numerator");
+
+    output += get_codecpar_string(codec);
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
     output += stringtf("profile %d channels %d sample_rate %d",

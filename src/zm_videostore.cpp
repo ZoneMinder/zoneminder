@@ -72,7 +72,7 @@ VideoStore::VideoStore(
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1),
-  reorder_queue_size(0) {
+  reorder_queue_size(1) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -301,15 +301,20 @@ bool VideoStore::open() {
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
-        } else {
+        } else if (!video_out_ctx->level) {
           video_out_ctx->level = 32;
         }
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-        } else {
+        } else if (!video_out_ctx->gop_size) {
           video_out_ctx->gop_size = 12;
         }
+        zm_dump_codec(video_out_ctx);
+        if (!video_out_ctx->bit_rate) {
+          video_out_ctx->bit_rate = monitor->get_capture_bitrate();
+        }
+        zm_dump_codec(video_out_ctx);
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
         video_out_ctx->width = monitor->Width();
@@ -363,6 +368,7 @@ bool VideoStore::open() {
         av_dict_free(&opts);
 
         if (video_out_codec) {
+          zm_dump_codec(video_out_ctx);
           break;
         }
         // We allocate and copy in newer ffmpeg, so need to free it
@@ -384,6 +390,7 @@ bool VideoStore::open() {
         Error("Could not initialize stream parameters");
         return false;
       }
+      zm_dump_stream(video_out_stream);
     }  // end if copying or transcoding
   }  // end if video_in_stream
 

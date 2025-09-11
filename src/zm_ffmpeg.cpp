@@ -430,17 +430,21 @@ simple_round:
 }
 #endif
 
-static void zm_log_fps(double d, const char *postfix) {
+const std::string get_fps_string(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);
   if (!v) {
-    Debug(1, "%1.4f %s", d, postfix);
+    return stringtf("%1.4f %s", d, postfix);
   } else if (v % 100) {
-    Debug(1, "%3.2f %s", d, postfix);
+    return stringtf("%3.2f %s", d, postfix);
   } else if (v % (100 * 1000)) {
-    Debug(1, "%1.0f %s", d, postfix);
+    return stringtf("%1.0f %s", d, postfix);
   } else {
-    Debug(1, "%1.0fk %s", d / 1000, postfix);
+    return stringtf("%1.0fk %s", d / 1000, postfix);
   }
+}
+
+void zm_log_fps(double d, const char *postfix) {
+  Debug(1, "%s", get_fps_string(d, postfix).c_str());
 }
 
 void zm_dump_codecpar(const AVCodecParameters *par) {
@@ -525,16 +529,13 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   Debug(1, "    Stream #%d:%d", index, i);
   zm_dump_stream(st);
 }
-void zm_dump_stream(AVStream *st) {
-  AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", nullptr, 0);
-  AVCodecParameters *codec = st->codecpar;
 
-  /* the pid is an important information, so we display it */
-  /* XXX: add a generic system */
-  if (lang)
-    Debug(1, "language (%s)", lang->value);
-  Debug(1, "frame_size:%d stream timebase: %d/%d", codec->frame_size, st->time_base.num, st->time_base.den);
-  Debug(1, "codec: %s %s", avcodec_get_name(st->codecpar->codec_id), av_get_media_type_string(st->codecpar->codec_type));
+void zm_dump_stream(AVStream *st) {
+  AVCodecParameters *codec = st->codecpar;
+  std::string output;
+
+  output += stringtf("frame_size:%d timebase: %d/%d", codec->frame_size, st->time_base.num, st->time_base.den);
+  output += stringtf(" codec: %s %s", avcodec_get_name(st->codecpar->codec_id), av_get_media_type_string(st->codecpar->codec_type));
 
   if (st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
@@ -545,11 +546,11 @@ void zm_dump_stream(AVStream *st) {
               codec->width  * (int64_t)st->sample_aspect_ratio.num,
               codec->height * (int64_t)st->sample_aspect_ratio.den,
               1024 * 1024);
-    Debug(1, ", SAR %d:%d DAR %d:%d",
+    output += stringtf(" SAR %d:%d DAR %d:%d",
           st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
           display_aspect_ratio.num, display_aspect_ratio.den);
   } else {
-    Debug(1, ", SAR %d:%d ",
+    output += stringtf(" SAR %d:%d ",
           st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
   }
 
@@ -558,45 +559,43 @@ void zm_dump_stream(AVStream *st) {
     int tbn = st->time_base.den && st->time_base.num;
 
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
+      output += get_fps_string(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
+      output += get_fps_string(1 / av_q2d(st->time_base), "stream tb numerator");
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-    Debug(1, "profile %d channels %d sample_rate %d",
+    output += stringtf("profile %d channels %d sample_rate %d",
           codec->profile, codec->ch_layout.nb_channels, codec->sample_rate);
 #else
-    Debug(1, "profile %d channels %d sample_rate %d",
+    output += stringtf("profile %d channels %d sample_rate %d",
           codec->profile, codec->channels, codec->sample_rate);
 #endif
   } else {
-    Debug(1, "Unknown codec type %d", codec->codec_type);
+    output += stringtf("Unknown codec type %d", codec->codec_type);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)
-    Debug(1, " (default)");
+    output += " (default)";
   if (st->disposition & AV_DISPOSITION_DUB)
-    Debug(1, " (dub)");
+    output += " (dub)";
   if (st->disposition & AV_DISPOSITION_ORIGINAL)
-    Debug(1, " (original)");
+    output += " (original)";
   if (st->disposition & AV_DISPOSITION_COMMENT)
-    Debug(1, " (comment)");
+    output += " (comment)";
   if (st->disposition & AV_DISPOSITION_LYRICS)
-    Debug(1, " (lyrics)");
+    output += " (lyrics)";
   if (st->disposition & AV_DISPOSITION_KARAOKE)
-    Debug(1, " (karaoke)");
+    output += " (karaoke)";
   if (st->disposition & AV_DISPOSITION_FORCED)
-    Debug(1, " (forced)");
+    output += " (forced)";
   if (st->disposition & AV_DISPOSITION_HEARING_IMPAIRED)
-    Debug(1, " (hearing impaired)");
+    output += " (hearing impaired)";
   if (st->disposition & AV_DISPOSITION_VISUAL_IMPAIRED)
-    Debug(1, " (visual impaired)");
+    output += " (visual impaired)";
   if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
-    Debug(1, " (clean effects)");
+    output += " (clean effects)";
 
-  //dump_metadata(NULL, st->metadata, "    ");
-
-  //dump_sidedata(NULL, st, "    ");
+  Debug(1, "%s", output.c_str());
 }
 
 int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {

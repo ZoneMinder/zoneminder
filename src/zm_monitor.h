@@ -1158,6 +1158,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   double get_capture_fps() const {
     return shared_data ? shared_data->capture_fps : 0.0;
   }
+  unsigned int get_capture_bitrate() const {
+    return last_camera_bytes;
+  }
   double get_analysis_fps() const {
     return shared_data ? shared_data->analysis_fps : 0.0;
   }

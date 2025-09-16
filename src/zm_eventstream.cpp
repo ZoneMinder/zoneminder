@@ -318,6 +318,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if (delta > Microseconds(0)) {
       while (event_data->end_time > last_timestamp and !zm_terminate) {
         last_timestamp += delta;
+        if (event_data->end_time < last_timestamp) break;
         last_id ++;
 
         auto frame = event_data->frames.emplace_back(
@@ -802,6 +803,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     }
   } else if (event_data->SaveJPEGs & 1) {
     filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+        if (!std::filesystem::exists(filepath)) {
+          Debug(1, "File at %s does not exist", filepath.c_str());
+        }
   } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
@@ -835,11 +839,21 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       Image *image = nullptr;
 
       if (!filepath.empty()) {
-        image = new Image();
-        if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
-          return true;
+        if (!std::filesystem::exists(filepath)) {
+          Debug(1, "File at %s does not exist", filepath.c_str());
+        } else {
+          image = new Image();
+          if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
+            Debug(1, "ReadJpeg failed");
+            delete image;
+            image = nullptr;
+          }
         }
-      } else if (ffmpeg_input) {
+      }
+
+      if (image) Debug(1, "Have image");
+
+      if ((!image) and ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         AVFrame *frame = ffmpeg_input->get_frame(
@@ -849,7 +863,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {
           Error("Failed getting a frame.");
-	  sendTextFrame("Failed getting frame");
+          sendTextFrame("Failed getting frame");
           return false;
         }
 
@@ -880,7 +894,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         } else {
           Debug(2, "Not Rotating image %d", event_data->Orientation);
         } // end if have rotation
-      } else {
+      } // end if ffmpeg_input
+
+      if (!image) {
         Error("Unable to get a frame");
         return false;
       }
@@ -888,6 +904,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       Image *send_image = prepareImage(image);
       int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
       int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+      Debug(1, "Send dimensions %dx%d", l_width, l_height);
       if (l_width < 144) {
         float factor = 144.0/l_width;
         l_width = 144;
@@ -920,6 +937,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           initContexts(send_image->Width(), send_image->Height(), send_image->AVPixFormat(),
               l_width, l_height, config.jpeg_stream_quality);
         }
+        Debug(1, "Encoding");
         send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
         fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
@@ -938,7 +956,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         Fatal("Unexpected frame type %d", type);
         break;
       }
-      int rc = send_buffer(img_buffer, img_buffer_size);
+      Debug(1, "Sending");
+      bool rc = send_buffer(img_buffer, img_buffer_size);
+      Debug(1, "Sent %d", rc);
       delete image;
       image = nullptr;
       if (!rc) return false;

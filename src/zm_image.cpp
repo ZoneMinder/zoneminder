@@ -723,8 +723,8 @@ uint8_t* Image::WriteBuffer(
     linesize = p_width * p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
-    AVPixelFormat format = imagePixFormat = AVPixFormat();
 
+    AVPixelFormat format = imagePixFormat = AVPixFormat();
     unsigned int newsize = av_image_get_buffer_size(static_cast<AVPixelFormat>(format), width, height, 32);
 
     if ( buffer == nullptr ) {
@@ -749,7 +749,16 @@ uint8_t* Image::WriteBuffer(
     linesize = p_width * p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
+    imagePixFormat = AVPixFormat();
   }  // end if need to re-alloc buffer
+
+  if ( imagePixFormat == AV_PIX_FMT_YUV420P or imagePixFormat == AV_PIX_FMT_YUVJ420P) {
+    u_buffer = buffer + width * height;
+    v_buffer = u_buffer + (width * height / 2);
+  } else {
+    u_buffer = nullptr;
+    v_buffer = nullptr;
+  }
 
   return buffer;
 }
@@ -1113,7 +1122,12 @@ bool Image::WriteRaw(const std::string &filename) const {
 
 bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
 
-  unsigned int new_width, new_height, new_colours, new_subpixelorder;
+  FILE *infile;
+  if ((infile = fopen(filename.c_str(), "rb")) == nullptr) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
+    return false;
+  }
+
 
   if (!readjpg_dcinfo) {
     readjpg_dcinfo = new jpeg_decompress_struct;
@@ -1123,13 +1137,9 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     jpeg_create_decompress(readjpg_dcinfo);
   }
 
-  FILE *infile;
-  if ((infile = fopen(filename.c_str(), "rb")) == nullptr) {
-    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
-    return false;
-  }
 
   if (setjmp(jpg_err.setjmp_buffer)) {
+    Error("setjmp");
     jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
@@ -1152,6 +1162,7 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
     zm_use_std_huff_tables(readjpg_dcinfo);
   }
 
+  unsigned int new_width, new_height, new_colours, new_subpixelorder;
   new_width = readjpg_dcinfo->image_width;
   new_height = readjpg_dcinfo->image_height;
 
@@ -1169,17 +1180,14 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
 //case ZM_COLOUR_YUV420P:
 //case ZM_COLOUR_YUVJ420P:
       if (p_subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-        Debug(1, "Reading YUV420P");
         readjpg_dcinfo->out_color_space = JCS_YCbCr;
         new_colours = ZM_COLOUR_YUV420P;
         new_subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       } else if (p_subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) {
-        Debug(1, "Reading YUVJ420P");
         readjpg_dcinfo->out_color_space = JCS_YCbCr;
         new_colours = ZM_COLOUR_YUVJ420P;
         new_subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
       } else {
-        Debug(1, "Reading GRAY");
         readjpg_dcinfo->out_color_space = JCS_GRAYSCALE;
         new_colours = ZM_COLOUR_GRAY8;
         new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
@@ -1208,7 +1216,6 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
 #endif
     case ZM_COLOUR_RGB24:
     default:
-        Debug(1, "Reading RGB24");
       new_colours = ZM_COLOUR_RGB24;
       if (p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS
@@ -1216,7 +1223,7 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
         new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
         Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
-        cinfo->out_color_space = JCS_RGB;
+        readjpg_dcinfo->out_color_space = JCS_RGB;
         new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
       } else {
@@ -1241,22 +1248,80 @@ cinfo->out_color_space = JCS_RGB;
     return false;
   }
 
+
   jpeg_start_decompress(readjpg_dcinfo);
 
-  JSAMPROW row_pointer = buffer;
-  while (readjpg_dcinfo->output_scanline < readjpg_dcinfo->output_height) {
-    JDIMENSION lines = jpeg_read_scanlines(readjpg_dcinfo, &row_pointer, 1);
-    if (lines != 1) {
-      Error("jpeg_read_scanlines returned != 1 lines %d", lines);
+  if (p_subpixelorder == ZM_SUBPIX_ORDER_YUV420P or p_subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) {
+    unsigned char cb_block[4], cr_block[4];
+    JSAMPARRAY row_buffer = (readjpg_dcinfo->mem->alloc_sarray)((j_common_ptr) readjpg_dcinfo, JPOOL_IMAGE, new_width * 3, 1);
+    if (!(u_buffer  or v_buffer)) {
+      Debug(1, "Need to setup u_buffer and v_buffer");
+      if (!u_buffer || !v_buffer) {
+        u_buffer = buffer + new_width*new_height;
+        v_buffer = u_buffer + new_width*new_height/4;
+      }
     }
-    row_pointer += linesize;
+
+    for (unsigned int row = 0; row < readjpg_dcinfo->output_height; ++row) {
+      JDIMENSION lines = jpeg_read_scanlines(readjpg_dcinfo, row_buffer, 1);
+      if (lines != 1) {
+        Error("jpeg_read_scanlines returned != 1 lines %d", lines);
+      }
+
+      for (unsigned int col = 0; col < new_width; ++col) {
+        int idx = col * 3;
+        uint8_t y  = row_buffer[0][idx + 0];
+        uint8_t cb = row_buffer[0][idx + 1];
+        uint8_t cr = row_buffer[0][idx + 2];
+
+        // Write Y
+        buffer[row * new_width + col] = y;
+        //(*buffer)[row * new_width + col] = y;
+
+        // For chroma: 2x2 block average for subsampling
+        if ((row % 2 == 0) && (col % 2 == 0)) {
+          // gather 2x2 Cb/Cr block
+          int block_count = 0;
+          for (int dy = 0; dy < 2; ++dy) {
+            for (int dx = 0; dx < 2; ++dx) {
+              unsigned int r = row + dy;
+              unsigned int c = col + dx;
+              if (r < new_height && c < new_width) {
+                unsigned int i = c * 3;
+                cb_block[block_count] = row_buffer[0][i + 1];
+                cr_block[block_count] = row_buffer[0][i + 2];
+              } else {
+                cb_block[block_count] = cb;
+                cr_block[block_count] = cr;
+              }
+              block_count++;
+            }
+          }
+          // Average and store in U/V plane
+          int uv_index = (row/2) * (new_width/2) + (col/2);
+          unsigned int cb_sum = cb_block[0] + cb_block[1] + cb_block[2] + cb_block[3];
+          unsigned int cr_sum = cr_block[0] + cr_block[1] + cr_block[2] + cr_block[3];
+          u_buffer[uv_index] = (cb_sum / 4);
+          v_buffer[uv_index] = (cr_sum / 4);
+        }
+      } // end foreach col
+    } // end foreach row
+  } else {
+    JSAMPROW row_pointer = buffer;
+    while (readjpg_dcinfo->output_scanline < readjpg_dcinfo->output_height) {
+      JDIMENSION lines = jpeg_read_scanlines(readjpg_dcinfo, &row_pointer, 1);
+      if (lines != 1) {
+        Error("jpeg_read_scanlines returned != 1 lines %d", lines);
+      }
+      row_pointer += linesize;
+    }
   }
 
   jpeg_finish_decompress(readjpg_dcinfo);
   fclose(infile);
 
   return true;
-}
+} // end bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder)
 
 // Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default

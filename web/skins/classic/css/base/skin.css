@@ -640,6 +640,9 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+.btn-term-remove-all button {
+  padding: 4px 10px;
+}
 
 .btn-normal,
 .btn-normal:link {

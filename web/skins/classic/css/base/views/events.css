@@ -75,7 +75,9 @@ body.sticky #eventTable thead {
 }
 
 .term-value, .chosen-container{
+  /*
   width: 100% !important;
+  */
 }
 
 .bs-bars {

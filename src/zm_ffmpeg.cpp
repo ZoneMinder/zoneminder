@@ -74,7 +74,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H265, "hevc", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_H265, "hevc", "h265_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
-  //{ AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
 #endif
   { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },

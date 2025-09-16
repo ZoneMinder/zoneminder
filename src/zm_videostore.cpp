@@ -72,7 +72,7 @@ VideoStore::VideoStore(
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1),
-  reorder_queue_size(1) {
+  reorder_queue_size(0) {
   FFMPEGInit();
   swscale.init();
   opkt = av_packet_ptr{av_packet_alloc()};
@@ -301,19 +301,30 @@ bool VideoStore::open() {
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
-        } else if (!video_out_ctx->level) {
-          video_out_ctx->level = 32;
+        //} else if (!video_out_ctx->level) {
+          //video_out_ctx->level = 32;
         }
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-        } else if (!video_out_ctx->gop_size) {
-          video_out_ctx->gop_size = 12;
+        //} else if (!video_out_ctx->gop_size) {
+          //video_out_ctx->gop_size = 12;
         }
-        zm_dump_codec(video_out_ctx);
-        if (!video_out_ctx->bit_rate) {
-          video_out_ctx->bit_rate = monitor->get_capture_bitrate();
+        //zm_dump_codec(video_out_ctx);
+        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_bitrate) {
+          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        } else {
+          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_bitrate) {
+            video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          }
         }
+        //if (!video_out_ctx->bit_rate) {
+          //video_out_ctx->bit_rate = monitor->get_capture_bitrate();
+        //}
         zm_dump_codec(video_out_ctx);
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -322,8 +333,8 @@ bool VideoStore::open() {
         video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
         if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->max_b_frames = 1;
+          //video_out_ctx->bit_rate = 2000000;
+          //video_out_ctx->max_b_frames = 1;
         } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -345,6 +356,10 @@ bool VideoStore::open() {
           av_opt_set(video_out_ctx->priv_data, "enc", std::to_string(devid).c_str(), 0);
         }
 #endif
+        const AVDictionaryEntry *xcoder_params = av_dict_get(opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
+        if (xcoder_params) {
+          av_opt_set(video_out_ctx->priv_data, "xcoder-params", xcoder_params->value, 0);
+        }
 
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -495,6 +510,7 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
+  av_dict_set(&opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov+faststart");
@@ -1050,7 +1066,6 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
     Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
     return -1;
   }
-  Debug(1, "Queue for %d", stream_index);
   auto &queue = reorder_queues[stream_index];
   Debug(1, "Queue size for %d is %zu", stream_index, queue.size());
 
@@ -1154,23 +1169,27 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               );
         }
       } else if (zm_packet->ai_frame) {
-        Debug(1, "Using ai_frame");
+        Debug(1, "Want ai_frame");
         if (zm_packet->ai_frame->width == video_out_ctx->width
-          and
-          zm_packet->ai_frame->height == video_out_ctx->height
-          and
-          static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
-          ) {
-            av_frame_ref(frame.get(), zm_packet->ai_frame.get());
-          } else {
-            frame = av_frame_ptr(zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
-            if (!frame) {
-              Error("Unable to allocate a frame");
-              return 0;
-            }
-            // Have in_frame.... may need to convert it to out_frame
-            swscale.Convert(zm_packet->ai_frame.get(), frame.get());
+            and
+            zm_packet->ai_frame->height == video_out_ctx->height
+            and
+            static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
+           ) {
+          Debug(1, "Using ai_frame");
+          av_frame_ref(frame.get(), zm_packet->ai_frame.get());
+        } else {
+          Debug(1, "reating ai_frame");
+          frame = av_frame_ptr(zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
+          if (!frame) {
+            Error("Unable to allocate a frame");
+            return 0;
           }
+          av_frame_copy_props(frame.get(), zm_packet->ai_frame.get());
+
+          // Have in_frame.... may need to convert it to out_frame
+          swscale.Convert(zm_packet->ai_frame.get(), frame.get());
+        }
       } else if (zm_packet->in_frame) {
         Debug(1, "Using in_frame");
         if (zm_packet->in_frame->width == video_out_ctx->width
@@ -1181,16 +1200,18 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
            ) {
           av_frame_ref(frame.get(), zm_packet->in_frame.get());
         } else {
+        Debug(1, "Scaling in_frame");
           av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
           // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->in_frame.get(), frame.get());
+          av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
         }
       } // end if no in_frame
     } // end if no out_frame
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx and (static_cast<AVPixelFormat>(frame->format) != video_out_ctx->pix_fmt)) {
-      Debug(1, "Using hwframe");
+      zm_dump_frame(frame.get(), "using hwframe, src is");
       int ret;
       av_frame_ptr hw_frame = av_frame_ptr{zm_av_frame_alloc()};
       if (!hw_frame) {
@@ -1208,12 +1229,13 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
-      ret = av_frame_copy_props(frame.get(), hw_frame.get());
+      ret = av_frame_copy_props( hw_frame.get(), frame.get());
       if (ret < 0) {
         Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
       }
 
       frame = std::move(hw_frame);
+      zm_dump_frame(frame.get(), "using hwframe, dst is");
     }  // end if hwaccel
 #endif
     if (!frame) {
@@ -1244,6 +1266,17 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
     } else {
       if (zm_packet->in_frame) {
+         Debug(2,
+              "pts for frame(%d) to packet pts (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
+              frame_count,
+              zm_packet->packet->pts,
+              zm_packet->in_frame->pts,
+              video_first_pts,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
+              video_out_ctx->time_base.num,
+              video_out_ctx->time_base.den);
+
         if (video_first_pts == AV_NOPTS_VALUE) {
           video_first_pts = zm_packet->in_frame->pts;
           Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
@@ -1305,7 +1338,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         if (ret != AVERROR(EAGAIN)) {
           Error("Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
         } else {
-          Debug(1, "Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
+          Debug(4, "Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
         }
         return ret;
       }
@@ -1487,10 +1520,10 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {
         // Commonly seen
-        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " stream %d. reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], stream->index, reorder_queue_size);
+        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last duration %" PRId64 " stream %d. reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index], stream->index, reorder_queue_size);
         // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
-        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        pkt->dts = last_dts[stream->index]+last_duration[stream->index]-1;
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       }
     }

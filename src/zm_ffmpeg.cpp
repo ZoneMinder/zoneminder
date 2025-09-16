@@ -76,14 +76,14 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_ni_quadra_enc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
   { AV_CODEC_ID_MJPEG, "mjpeg", "jpeg_ni_quadra_enc", AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_NI_QUAD, AV_HWDEVICE_TYPE_NI_QUADRA, "-1", nullptr },
 #endif
-  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_nvenc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 
-  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },

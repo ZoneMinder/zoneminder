@@ -563,6 +563,7 @@ CREATE TABLE `Monitors` (
   `DecoderHWAccelDevice`  varchar(255),
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
+  `OutputCodec` int(10) unsigned NOT NULL default 0, /* Deprecated */
   `OutputCodecName` varchar(32) NOT NULL default 'auto',
   `Encoder`     varchar(32),
   `EncoderHWAccelName`  varchar(64),

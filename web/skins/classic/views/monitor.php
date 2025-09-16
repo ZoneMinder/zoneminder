@@ -1241,7 +1241,8 @@ $videowriter_encoders = array(
   'libaom-av1'  => 'libaom-av1',
   'av1_qsv' => 'av1_qsv',
   'av1_ni_quadra_enc' => 'av1_ni_quadra',
-  'av1_vaapi' => 'av1_vaapi'
+  'av1_vaapi' => 'av1_vaapi',
+  'av1_nvenc' => 'av1_nvenc'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>

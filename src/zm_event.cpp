@@ -202,14 +202,14 @@ int Event::OpenJpegCodec(AVFrame *frame) {
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
     // Should be able to just set quality with the q setting.  Need to convert the old quality to 2-31
-    int quality = config.jpeg_file_quality;
+    int quality = libjpeg_to_ffmpeg_qv(config.jpeg_file_quality);
 
       //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
       //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
-    mJpegCodecContext->qcompress = quality/100.0; // 0-1
-    mJpegCodecContext->qmax = 1;
-    mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
-    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+    //mJpegCodecContext->qcompress = quality/100.0; // 0-1
+    //mJpegCodecContext->qmax = 1;
+    //mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
+    mJpegCodecContext->global_quality = quality;//100.0; // 0-1
 
     Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s", 
         chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
@@ -400,8 +400,10 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
   if (!mJpegCodecContext) return false;
 
   int raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-  if (raw_fd < 0)
+  if (raw_fd < 0) {
+    Error("Fail to open %s: %s", filename.c_str(), strerror(raw_fd));
     return false;
+  }
   FILE *outfile = fdopen(raw_fd, "wb");
   if (outfile == nullptr) {
     close(raw_fd);
@@ -730,7 +732,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         (packet->image and WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str()))
        ) {
       snapshot_file_written = true;
-    } else {
+    } else if (packet->ai_frame or packet->in_frame or packet->image) {
       Warning("Fail to write snapshot");
     }
   } else {

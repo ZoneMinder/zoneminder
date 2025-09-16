@@ -800,3 +800,15 @@ int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
   zm_dump_frame(frame, "Out frame after fifo read");
   return 1;
 }
+#include <algorithm> // for std::max and std::min
+
+// Converts libjpeg quality [0-100] to ffmpeg -q:v [2-31] for MJPEG encoding
+int libjpeg_to_ffmpeg_qv(int libjpeg_quality) {
+    // Clamp libjpeg_quality to valid range
+    libjpeg_quality = std::max(0, std::min(100, libjpeg_quality));
+    // Map libjpeg 0-100 to ffmpeg 31-2
+    int ffmpeg_qv = 31 - static_cast<int>(libjpeg_quality * 29.0 / 100.0 + 0.5);
+    // Clamp ffmpeg_qv to valid range
+    ffmpeg_qv = std::max(2, std::min(31, ffmpeg_qv));
+    return ffmpeg_qv;
+}

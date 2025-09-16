@@ -65,6 +65,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 
 
   for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
+    //av_seek_frame(input_format_context, i, 0, AVSEEK_FLAG_FRAME);
 
     if (is_video_stream(input_format_context->streams[i])) {
       zm_dump_stream_format(input_format_context, i, 0, 0);
@@ -114,6 +115,7 @@ int FFmpeg_Input::Open(const char *filepath) {
         streams[i].context = nullptr;
         continue;
       }
+      break;
     } // end foreach codec_data
  
     if (!streams[i].context) {
@@ -220,26 +222,33 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       Error("Unable to allocate frame.");
       return nullptr;
     }
-    ret = zm_send_packet_receive_frame(context, frame.get(), *packet);
-    if ( ret < 0 ) {
-      Error("Unable to decode frame at frame %d: %d %s, continuing",
-            streams[packet->stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-      frame = nullptr;
-      continue;
+  
+    // Since technically sending a packet can result in multiple frames (or buffered_frames) try receive_frame first.
+    ret = avcodec_receive_frame(context, frame.get());
+    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
+    if (ret == AVERROR(EAGAIN)) {
+      // Perfectly normal
+    } else if (ret < 0) {
+      Error("Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
+      return nullptr;
     } else {
+      frameComplete = true;
       if (is_video_stream(input_format_context->streams[packet->stream_index])) {
         zm_dump_video_frame(frame.get(), "resulting video frame");
       } else {
         zm_dump_frame(frame.get(), "resulting frame");
       }
+      break;
     }
 
-    frameComplete = true;
-
-    if (is_video_stream(input_format_context->streams[packet->stream_index])) {
-      zm_dump_video_frame(frame.get(), "resulting video frame");
-    } else {
-      zm_dump_frame(frame.get(), "resulting frame");
+    ret = avcodec_send_packet(context, packet.get());
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(2, "Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
+      continue;
+    }
+    if (ret < 0) {
+      Error("Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
+      return nullptr;
     }
   } // end while !frameComplete
   return frame.get();

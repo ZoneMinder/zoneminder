@@ -318,6 +318,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if (delta > Microseconds(0)) {
       while (event_data->end_time > last_timestamp and !zm_terminate) {
         last_timestamp += delta;
+        // Prevent final frame where capture.jpg doesn't actually exist.
+        if (event_data->end_time < last_timestamp) break;
         last_id ++;
 
         auto frame = event_data->frames.emplace_back(
@@ -846,6 +848,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {
           Error("Failed getting a frame.");
+	  sendTextFrame("Failed getting frame");
           return false;
         }
 

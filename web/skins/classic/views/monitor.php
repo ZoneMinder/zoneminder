@@ -514,6 +514,7 @@ switch ($name) {
 ?>
                   <input type="text" name="newMonitor[Manufacturer]"
                     placeholder="enter new manufacturer name"
+                    autocomplete="one-time-code"
                     value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
                     data-on-input-this="Manufacturer_onchange"
                   />
@@ -531,9 +532,10 @@ switch ($name) {
 ?>
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
+                    autocomplete="one-time-code"
                     value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
                     data-on-input-this="Model_onchange"
-                  />
+                    />
               </li>
 <?php 
       $Servers = ZM\Server::find(NULL, array('order'=>'lower(Name)'));
@@ -556,12 +558,19 @@ switch ($name) {
                 <label><?php echo translate('SourceType') ?></label>
                 <?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?>
               </li>
+<?php
+      $groups_dropdown = ZM\Group::get_dropdown_options();
+      if (count($groups_dropdown)) {
+?>
               <li class="Groups">
                 <label><?php echo translate('Groups'); ?></label>
                 <select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-                  echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
+                  echo htmlOptions($groups_dropdown, $monitor->GroupIds());
                   ?></select>
               </li>
+<?php 
+      }
+?>
               <li class="Triggers"><label><?php echo translate('Triggers') ?></label>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
@@ -620,10 +629,6 @@ switch ($name) {
             <li class="ONVIF_Event_Listener">
               <label><?php echo translate('ONVIF_Event_Listener') ?></label>
               <?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->ONVIF_Event_Listener()); ?>
-            </li>
-            <li id="function_use_Amcrest_API" class="use_Amcreat_API">
-              <label><?php echo translate('use_Amcrest_API') ?></label>
-              <?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?>
             </li>
 <?php
         break;
@@ -1061,6 +1066,10 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
+            <li id="function_use_Amcrest_API" class="use_Amcreat_API">
+              <label><?php echo translate('use_Amcrest_API') ?></label>
+              <?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?>
+            </li>
 <?php
     }
     break;
@@ -1136,13 +1145,13 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('OutputCodec') ?></label>
 <?php
 $videowriter_codecs = array(
-  '0' => translate('Auto'),
-  '27' => 'h264',
-  '173' => 'h265/hevc',
-  '167' => 'vp9',
-  '226' => 'av1',
+  'auto' => translate('Auto'),
+  'h264' => 'h264',
+  'hevc' => 'h265/hevc',
+  'vp9' => 'vp9',
+  'av1' => 'av1',
 );
-echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
+echo htmlSelect('newMonitor[OutputCodecName]', $videowriter_codecs, $monitor->OutputCodecName());
 ?>
             </li>
             <li class="Encoder">
@@ -1167,7 +1176,8 @@ $videowriter_encoders = array(
   'libsvtav1' => 'libsvtav1',
   'libaom-av1'  => 'libaom-av1',
   'av1_qsv' => 'av1_qsv',
-  'av1_vaapi' => 'av1_vaapi'
+  'av1_vaapi' => 'av1_vaapi',
+  'av1_nvenc' => 'av1_nvenc'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>

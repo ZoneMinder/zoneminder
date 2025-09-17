@@ -215,31 +215,40 @@ Debug("@Monitors");
               Warning("Event link $day_dir/$event_link does not point to valid target at $event_path");
               next;
             } 
-            if ( ! ZoneMinder::Event->find_one(Id=>$event_id) ) {
+            my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+
+            if (!$event) {
               Info("Event not found in db for event data found at $$Storage{Path}/$day_dir/$event_path with Id=$event_id");
               if ( confirm() ) {
-                my $Event = new ZoneMinder::Event();
-                $$Event{Id} = $event_id;
-                $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
-                $$Event{RelativePath} = join('/', $day_dir, $event_path);
-                $$Event{Scheme} = 'Deep';
-                $$Event{Name} = "Event $event_id recovered";
-                $$Event{StateId} = 1;
-                $Event->MonitorId( $monitor_dir );
-                $Event->StorageId( $Storage->Id() );
-                $Event->DiskSpace( undef );
-                $Event->Width( $Monitor->Width() );
-                $Event->Height( $Monitor->Height() );
-                $Event->Orientation( $Monitor->Orientation() );
-                $Event->recover_timestamps();
-                if ( $$Event{StartDateTime} ) {
-                  $Event->save({}, 1);
-                  Info("Event resurrected as " . $Event->to_string() );
+                $event = new ZoneMinder::Event();
+                $$event{Id} = $event_id;
+                $$event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
+                $$event{RelativePath} = join('/', $day_dir, $event_path);
+                $$event{Scheme} = 'Deep';
+                $$event{Name} = "Event $event_id recovered";
+                $$event{StateId} = 1;
+                $event->MonitorId( $monitor_dir );
+                $event->StorageId( $Storage->Id() );
+                $event->DiskSpace( undef );
+                $event->Width( $Monitor->Width() );
+                $event->Height( $Monitor->Height() );
+                $event->Orientation( $Monitor->Orientation() );
+                $event->recover_timestamps();
+                if ( $$event{StartDateTime} ) {
+                  $event->save({}, 1);
+                  Info("Event resurrected as " . $event->to_string() );
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
                 next;
               } # end if resurrection
+            } else {
+              $event->fix_DefaultVideo();
+              if (!$$event{EndDateTime}) {
+                if (confirm("Event found but is incomplete, shall we finish it?")) {
+                  $event->save() if $event->guess_EndDatetime();
+                }
+              }
             } # event path exists
           } # end foreach event_link
             
@@ -279,30 +288,38 @@ Debug("@Monitors");
               }
             }
 
-            if ( $event_id and ! ZoneMinder::Event->find_one(Id=>$event_id) ) {
+            my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+            if ( $event_id and !$event) {
               Info("Event not found in db for event data found at $$Storage{Path}/$monitor_dir/$day_dir/$event_dir");
               if ( confirm() ) {
-                my $Event = new ZoneMinder::Event();
-                $$Event{Id} = $event_id;
-                $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
-                $$Event{RelativePath} = join('/', $day_dir, $event_dir);
-                $$Event{Scheme} = 'Deep';
-                $$Event{Name} = "Event $event_id recovered";
-                $$Event{StateId} = 1;
-                $Event->MonitorId( $monitor_dir );
-                $Event->Width( $Monitor->Width() );
-                $Event->Height( $Monitor->Height() );
-                $Event->Orientation( $Monitor->Orientation() );
-                $Event->StorageId( $Storage->Id() );
-                $Event->DiskSpace( undef );
-                $Event->recover_timestamps();
-                if ( $$Event{StartDateTime} ) {
-                  $Event->save({}, 1);
-                  Info("Event resurrected as " . $Event->to_string() );
+                $event = new ZoneMinder::Event();
+                $$event{Id} = $event_id;
+                $$event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
+                $$event{RelativePath} = join('/', $day_dir, $event_dir);
+                $$event{Scheme} = 'Deep';
+                $$event{Name} = "Event $event_id recovered";
+                $$event{StateId} = 1;
+                $event->MonitorId( $monitor_dir );
+                $event->Width( $Monitor->Width() );
+                $event->Height( $Monitor->Height() );
+                $event->Orientation( $Monitor->Orientation() );
+                $event->StorageId( $Storage->Id() );
+                $event->DiskSpace( undef );
+                $event->recover_timestamps();
+                if ( $$event{StartDateTime} ) {
+                  $event->save({}, 1);
+                  Info("Event resurrected as " . $event->to_string() );
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
                 next;
+              }
+            } else {
+              $event->fix_DefaultVideo();
+              if (!$$event{EndDateTime}) {
+                if (confirm("Event found but is incomplete, shall we finish it?")) {
+                  $event->save() if $event->guess_EndDatetime();
+                }
               }
             } # end if event found
 
@@ -312,12 +329,12 @@ Debug("@Monitors");
             $year += 2000;
             my ( $hour, $minute, $second ) = split('/', $event_dir);
             my $StartDateTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
-            my $Event = ZoneMinder::Event->find_one(
+            $event = ZoneMinder::Event->find_one(
               MonitorId=>$monitor_dir,
               StartDateTime=>$StartDateTime,
             );
-            if ( $Event ) {
-              Debug("Found event matching starttime on monitor $monitor_dir at $StartDateTime: " . $Event->to_string());
+            if ( $event ) {
+              Debug("Found event matching starttime on monitor $monitor_dir at $StartDateTime: " . $event->to_string());
               next;
             }
 
@@ -341,29 +358,35 @@ Debug("@Monitors");
             next;
           }
 
-          my $Event = ZoneMinder::Event->find_one(Id=>$event_id);
-          if ( $Event ) {
+          my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+          if ( $event ) {
             Debug('Found event in the db, moving on.');
+            $event->fix_DefaultVideo();
+            if (!$$event{EndDateTime}) {
+              if (confirm("Event found but is incomplete, shall we finish it?")) {
+                $event->save() if $event->guess_EndDatetime();
+              }
+            }
             next;
           }
-          $Event = new ZoneMinder::Event();
-          $$Event{Id} = $event_id;
-          $$Event{Path} = join('/', $Storage->Path(), $event_dir );
-          Info("Have event $$Event{Id} at $$Event{Path}");
+          $event = new ZoneMinder::Event();
+          $$event{Id} = $event_id;
+          $$event{Path} = join('/', $Storage->Path(), $event_dir );
+          Info("Have event $$event{Id} at $$event{Path}");
           if ( confirm() ) {
-            $$Event{Scheme} = 'Medium';
-            $$Event{RelativePath} = $event_dir;
-            $$Event{Name} = "Event $event_id recovered";
-            $$Event{StateId} = 1;
-            $Event->MonitorId( $monitor_dir );
-            $Event->Width( $Monitor->Width() );
-            $Event->Height( $Monitor->Height() );
-            $Event->Orientation( $Monitor->Orientation() );
-            $Event->StorageId( $Storage->Id() );
-            $Event->recover_timestamps();
-            if ( $$Event{StartDateTime} ) {
-              $Event->save({}, 1);
-              Info("Event resurrected as " . $Event->to_string() );
+            $$event{Scheme} = 'Medium';
+            $$event{RelativePath} = $event_dir;
+            $$event{Name} = "Event $event_id recovered";
+            $$event{StateId} = 1;
+            $event->MonitorId( $monitor_dir );
+            $event->Width( $Monitor->Width() );
+            $event->Height( $Monitor->Height() );
+            $event->Orientation( $Monitor->Orientation() );
+            $event->StorageId( $Storage->Id() );
+            $event->recover_timestamps();
+            if ( $$event{StartDateTime} ) {
+              $event->save({}, 1);
+              Info("Event resurrected as " . $event->to_string() );
             } else {
               Warning("Unable to determine starttime. Not resurrecting this event.");
             }
@@ -383,30 +406,37 @@ Debug("@Monitors");
       }
       my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
       closedir(DIR);
-      foreach my $event ( @temp_events ) {
-        my $Event = ZoneMinder::Event->find_one(Id=>$event);
-        if ( $Event ) {
-          Debug("Found an event in db for $event");
+      foreach my $event_id ( @temp_events ) {
+        my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+        if ( $event ) {
+          Debug("Found an event in db for $event_id");
+          $event->fix_DefaultVideo();
+          if (!$$event{EndDateTime}) {
+            if (confirm("Event found but is incomplete, shall we finish it?")) {
+              $event->save() if $event->guess_EndDatetime();
+            }
+          }
+
           next;
         }
-        $Event = new ZoneMinder::Event();
-        $$Event{Id} = $event;
-        $$Event{Path} = join('/', $Storage->Path(), $event );
-        Info("Have event $$Event{Id} at $$Event{Path}");
+        $event = new ZoneMinder::Event();
+        $$event{Id} = $event_id;
+        $$event{Path} = join('/', $Storage->Path(), $event_id );
+        Info("Have event $$event{Id} at $$event{Path}");
         if ( confirm() ) {
-          $$Event{Scheme} = 'Shallow';
-          $$Event{Name} = "Event $event recovered";
-          $$Event{StateId} = 1;
-          #$$Event{Path} = $event_path;
-          $Event->MonitorId( $monitor_dir );
-          $Event->Width( $Monitor->Width() );
-          $Event->Height( $Monitor->Height() );
-          $Event->Orientation( $Monitor->Orientation() );
-          $Event->StorageId( $Storage->Id() );
-          $Event->recover_timestamps();
-          if ( $$Event{StartDateTime} ) {
-            $Event->save({}, 1);
-            Info("Event resurrected as " . $Event->to_string() );
+          $$event{Scheme} = 'Shallow';
+          $$event{Name} = "Event $event_id recovered";
+          $$event{StateId} = 1;
+          #$$event{Path} = $event_path;
+          $event->MonitorId( $monitor_dir );
+          $event->Width( $Monitor->Width() );
+          $event->Height( $Monitor->Height() );
+          $event->Orientation( $Monitor->Orientation() );
+          $event->StorageId( $Storage->Id() );
+          $event->recover_timestamps();
+          if ( $$event{StartDateTime} ) {
+            $event->save({}, 1);
+            Info("Event resurrected as " . $event->to_string() );
           } else {
             Warning("Unable to determine starttime. Not resurrecting this event.");
           }

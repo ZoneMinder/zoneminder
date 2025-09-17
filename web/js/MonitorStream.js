@@ -507,13 +507,11 @@ function MonitorStream(monitorData) {
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
-    if (stream.src != src) {
-      console.log("Setting to streaming: " + src);
-      stream.src = '';
-      stream.src = src;
-    }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
+
+    stream.src = src;
+    this.streamCommand(CMD_PLAY);
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
@@ -547,7 +545,9 @@ function MonitorStream(monitorData) {
           stream.src = src;
         }
       }
-      this.streamCommand(CMD_STOP);
+      if (stream.src) {
+        this.streamCommand(CMD_STOP);
+      }
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -656,7 +656,7 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && (-1 !== this.player.indexOf('zms'))) {
+    if (stream.src && (-1 !== this.activePlayer.indexOf('zms'))) {
       stream.src = '';
       // Make zms exit
       this.streamCommand(CMD_QUIT);

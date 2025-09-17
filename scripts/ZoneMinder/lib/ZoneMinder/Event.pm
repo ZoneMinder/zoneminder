@@ -782,8 +782,8 @@ sub MoveTo {
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace;
-  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace;
+  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace and $$OldStorage{Id};
+  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace and $$NewStorage{Id};
 
   $self->delete_files($OldStorage);
   return $error;
@@ -886,6 +886,38 @@ sub recover_timestamps {
   }
   $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
+
+sub guess_EndDateTime {
+  my $event = shift;
+  if (!$$event{EndDateTime}) {
+    if ($$event{Length}) {
+      my $startdatetime = Date::Parse::str2time( $_[0]{StartDateTime} );
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
+    } else {
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $_[0]{StartDateTime} )+1);
+    }
+  }
+  return $$event{EndDateTime};
+}
+
+sub fix_DefaultVideo {
+  my $event = shift;
+  if (!$$event{DefaultVideo} or $$event{DefaultVideo} eq 'incomplete.mp4' or ! -e $event->Path().'/'.$$event{DefaultVideo}) {
+    my $path = $event->Path();
+    if ( !opendir(DIR, $path) ) {
+      Error("Can't open directory '$path': $!");
+      return;
+    }
+    my @contents = readdir(DIR);
+    Debug('Have ' . @contents . ' files in '.$path);
+    closedir(DIR);
+
+    my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+    if ( @mp4_files ) {
+      $$event{DefaultVideo} = $mp4_files[0];
+    }
+  }
+} # end sub fix_DefaultVideo
 
 sub files {
 	my $self = shift;

@@ -74,7 +74,7 @@ int main(int argc, const char *argv[], char **envp) {
   int frames_to_send = -1;
   unsigned int scale = 100;
   unsigned int rate = 100;
-  double maxfps = 10.0;
+  double maxfps = 0.0;
   unsigned int bitrate = 100000;
   unsigned int ttl = 0;
   bool  analysis_frames = false;
@@ -222,10 +222,10 @@ int main(int argc, const char *argv[], char **envp) {
     }  // end if possible parameter names
   }  // end foreach parm
 
-  if ( monitor_id ) {
-    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
-  } else {
+  if ( event_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
+  } else if ( monitor_id ) {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
   }
   logInit(log_id_string);
 

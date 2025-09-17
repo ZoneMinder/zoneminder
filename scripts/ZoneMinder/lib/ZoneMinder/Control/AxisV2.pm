@@ -53,20 +53,10 @@ sub open {
 
   $self->loadMonitor();
 
-  if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
-    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
-    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-      # Has no scheme at the beginning, so won't parse as a URI
-      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-    }
-    $uri = URI->new($self->{Monitor}->{ControlAddress});
-  } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
-    $uri = URI->new($self->{Monitor}->{Path});
-    $uri->scheme('http');
-    $uri->port(80);
-    $uri->path('');
-  }
+  my $uri = $self->guess_credentials();
+  $uri = new URI() if ! $uri;;
+  # For parent get
+  $$self{BaseURL} = $uri->canonical();
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -74,14 +64,9 @@ sub open {
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 
-  my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
-  
-  $uri->userinfo(undef);
-
   my $realm = $self->{Monitor}->{ControlDevice};
 
-  $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+  $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
   my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
 
   # test auth
@@ -92,7 +77,7 @@ sub open {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
-    return;
+    return !undef;
   }
   if ($res->status_line() eq '404 Not Found') {
     #older style
@@ -113,12 +98,12 @@ sub open {
         if ( $tokens =~ /\w+="([^"]+)"/i ) {
           if ( $realm ne $1 ) {
             $realm = $1;
-            $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+            $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
             $res = $self->{ua}->get($uri->canonical().$url);
             if ( $res->is_success() ) {
               Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
               $self->{state} = 'open';
-              return;
+              return !undef;
             }
             Error('Authentication still failed after updating REALM status: '.$res->status_line);
           } else {
@@ -131,18 +116,17 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
-    # For parent get
-    $$self{BaseURL} = $uri->canonical();
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
+  return undef;
 } # end sub open
 
 sub sendCmd {
   my $self = shift;
   my $cmd = shift;
 
-  return $self->get($url);
+  return $self->get($cmd);
 }
 
 sub cameraReset {
@@ -352,12 +336,9 @@ sub moveStop {
   my $speed = 0;
   Debug('Move Stop');
   # we have to stop both pans and zooms
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
-  $self->sendCmd($cmd);
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
-  $self->sendCmd($cmd);
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed");
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouszoommove=$speed");
 }
-
 
 sub zoomRelTele {
   my $self = shift;
@@ -506,8 +487,7 @@ sub presetHome {
 
 sub reboot {
   my $self = shift;
-  $uri->path('/axis-cgi/restart.cgi');
-  my $response = $self->get($uri->canonical);
+  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
   return $response->is_success;
 }
 

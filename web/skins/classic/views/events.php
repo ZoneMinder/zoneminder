@@ -49,14 +49,14 @@ if (!$filter->Id()) {
   if (!$filter->has_term('Notes')) {
     $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
   }
-  if (!$filter->has_term('StartDateTime')) {
+  if (!$filter->has_term('StartDateTime', '>=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 
       'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeStart']) ? $_COOKIE['eventsStartDateTimeStart'] : date('Y-m-d h:i:s', time()-3600)),
       'cnj' => 'and', 'cookie'=>'eventsStartDateTimeStart'));
   }
-  if (!$filter->has_term('EndDateTime')) {
-    $filter->addTerm(array('attr' => 'EndDateTime', 'op' => '<=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsEndDateTimeEnd']) ? $_COOKIE['eventsEndDateTimeEnd'] : ''),
+  if (!$filter->has_term('StartDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeEnd']) ? $_COOKIE['eventsStartDateTimeEnd'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsEndDateTimeEnd'));
   }
   if (!$filter->has_term('Tags')) {

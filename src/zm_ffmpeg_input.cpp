@@ -142,7 +142,7 @@ int FFmpeg_Input::Open(const char *filepath) {
       return error;
     }
     zm_dump_codec(streams[i].context);
-    if (!(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
+    if (0 and !(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
       Debug(1, "Setting to default time base");
       streams[i].context->time_base.num = 1;
       streams[i].context->time_base.den = 90000;
@@ -189,7 +189,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     return nullptr;
   }
 
-
   while (!frameComplete) {
     int ret = av_read_frame(input_format_context, packet.get());
     if (ret < 0) {
@@ -208,7 +207,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     }
     ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
-    av_packet_guard pkt_guard{packet};
+    //av_packet_guard pkt_guard{packet};
 
     if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
       Debug(4, "Packet is not for our stream (%d)", packet->stream_index );

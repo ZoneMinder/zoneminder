@@ -595,7 +595,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   pre_event_count = atoi(dbrow[col]);
   col++;
-  packetqueue.setPreEventVideoPackets(pre_event_count);
+  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
   post_event_count = atoi(dbrow[col]);
@@ -683,7 +683,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
-  if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
+  //if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
 
   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : "");

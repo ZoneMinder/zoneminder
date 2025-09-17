@@ -1419,12 +1419,19 @@ button.btn.btn-view-watch:hover {
 video-stream {
   position: relative;
 }
+.monitor .status {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
 .stream-info {
+  /*
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   padding: 12px;
+  */
   display: flex;
   justify-content: space-between;
   pointer-events: none;
@@ -1435,8 +1442,10 @@ video-stream {
 }
 
 .stream-info-status, .stream-info-mode {
+  /*
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
+  */
   padding: 0.3em;
 }
 

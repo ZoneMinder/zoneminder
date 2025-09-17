@@ -385,14 +385,14 @@ Return a list of events for a specific monitor within a specific date/time range
 
 ::
 
-  http://server/zm/api/events/index/MonitorId:5/StartTime >=:2015-05-15 18:43:56/EndTime <=:2015-05-16 18:43:56.json
+  http://server/zm/api/events/index/MonitorId:5/StartDateTime >=:2015-05-15 18:43:56/EndDateTime <=:2015-05-16 18:43:56.json
 
 
 To try this in CuRL, you need to URL escape the spaces like so:
 
 ::
 
-  curl -XGET  "http://server/zm/api/events/index/MonitorId:5/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:2015-05-16%2018:43:56.json"
+  curl -XGET  "http://server/zm/api/events/index/MonitorId:5/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:2015-05-16%2018:43:56.json"
 
 
 Return a list of events for all monitors within a specified date/time range
@@ -400,7 +400,7 @@ Return a list of events for all monitors within a specified date/time range
 
 ::
 
-  curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json"
+  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:208:43:56.json"
 
 
 Return event count based on times and conditions
@@ -430,7 +430,7 @@ This returns a list of events within a time range and also sorts it by descendin
 
 ::
 
-  curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json?sort=StartTime&direction=desc"
+  curl -XGET "http://server/zm/api/events/index/StartDateTime%20>=:2015-05-15%2018:43:56/EndDateTime%20<=:208:43:56.json?sort=StartDateTime&direction=desc"
 
 
 Configuration Apis

@@ -232,7 +232,7 @@ function probeAmcrestTechnologies($ip, $username='', $password='') {
 
 function probeAmcrest($ip, $username='', $password='') {
   if (!$username) $username='admin';
-  if (!$password) $password='password';
+  if (!$password) $password='admin';
   $cameras = [];
   $url = 'rtsp://'.$username.':'.urlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
@@ -241,6 +241,7 @@ function probeAmcrest($ip, $username='', $password='') {
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
     'monitor' =>  array(
+      'Manufacturer' => 'Amcrest',
       'Type'  =>  'Ffmpeg',
       'Path' => $url,
       'Width'   =>  1920,

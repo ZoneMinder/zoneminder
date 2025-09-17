@@ -782,8 +782,8 @@ sub MoveTo {
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace;
-  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace;
+  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace and $$OldStorage{Id};
+  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace and $$NewStorage{Id};
 
   $self->delete_files($OldStorage);
   return $error;

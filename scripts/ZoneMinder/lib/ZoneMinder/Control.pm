@@ -405,6 +405,7 @@ sub guess_credentials {
   my $self = shift;
 
   require URI;
+  my $uri;
 
   # Extract the username/password host/port from ControlAddress
   if ($self->{Monitor}{ControlAddress}
@@ -414,7 +415,7 @@ sub guess_credentials {
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
     Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
-    my $uri = URI->new($self->{Monitor}->{ControlAddress});
+    $uri = URI->new($self->{Monitor}->{ControlAddress});
     $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
     $$self{host} = $uri->host();
     if ( $uri->userinfo()) {
@@ -443,7 +444,7 @@ sub guess_credentials {
       $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
       $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
     }
-    my $uri = URI->new($self->{Monitor}->{Path});
+    $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
     $uri->path('');
@@ -452,6 +453,7 @@ sub guess_credentials {
   } else {
     Debug('Unable to guess credentials');
   }
+  return $uri;
 }
 
 sub get_realm {
@@ -501,7 +503,10 @@ sub get_realm {
 sub ping {
   my $self = shift;
   my $ip = @_ ? shift : $$self{host};
-  return undef if ! $ip;
+  if (!$ip) {
+    Warning("No ip to ping. Please either pass ip or populate self{host}");
+    return undef;
+  }
 
   require Net::Ping;
   Debug("Pinging $ip");

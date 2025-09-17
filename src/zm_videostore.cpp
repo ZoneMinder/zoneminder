@@ -343,22 +343,31 @@ bool VideoStore::open() {
             av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
           }
         }
+        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_bitrate) {
+          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        } else {
+          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_bitrate) {
+            video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
+
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
+
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
-        } else {
-          video_out_ctx->level = 32;
         }
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
-        } else {
-          video_out_ctx->gop_size = 12;
         }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -367,7 +376,7 @@ bool VideoStore::open() {
         video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
         if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          video_out_ctx->bit_rate = 2000000;
+          if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
           video_out_ctx->max_b_frames = 1;
         } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
           /* just for testing, we also add B frames */
@@ -417,6 +426,7 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
+        zm_dump_codec(video_out_ctx);
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -449,6 +459,7 @@ bool VideoStore::open() {
         }
 
         if (video_out_codec) {
+          zm_dump_codec(video_out_ctx);
           break;
         }
         // We allocate and copy in newer ffmpeg, so need to free it
@@ -1296,7 +1307,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       // Need to adjust pts/dts values from codec time to stream time
       if (opkt->pts != AV_NOPTS_VALUE)
         opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-      if (opkt->dts != AV_NOPTS_VALUE and opkt->dts > 0)
+      if (opkt->dts != AV_NOPTS_VALUE)// and opkt->dts > 0)
         opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
       Debug(1, "Timebase conversions using %d/%d -> %d/%d",
             video_out_ctx->time_base.num,

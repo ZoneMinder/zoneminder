@@ -307,6 +307,7 @@ bool VideoStore::open() {
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         //} else if (!video_out_ctx->gop_size) {
           //video_out_ctx->gop_size = 12;
         }

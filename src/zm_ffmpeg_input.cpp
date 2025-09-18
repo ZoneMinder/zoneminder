@@ -98,10 +98,13 @@ int FFmpeg_Input::Open(const char *filepath) {
 
       streams[i].context = avcodec_alloc_context3(streams[i].codec);
       avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+
       if (setup_hwaccel(streams[i].context,
-            chosen_codec_data, hw_device_ctx, "", input_format_context->streams[i]->codecpar->width,
+            chosen_codec_data, hw_device_ctx, "",
+            input_format_context->streams[i]->codecpar->width,
             input_format_context->streams[i]->codecpar->height
             )) {
+        Warning("Failed to setup hw_accel");
         continue;
       }
 
@@ -111,7 +114,8 @@ int FFmpeg_Input::Open(const char *filepath) {
       if (error < 0) {
         Error("Could not open input codec (error '%s')",
             av_make_error_string(error).c_str());
-        avcodec_free_context(&streams[i].context);
+
+        avcodec_free_context(&(streams[i].context));
         streams[i].context = nullptr;
         continue;
       }
@@ -119,6 +123,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     } // end foreach codec_data
  
     if (!streams[i].context) {
+      Debug(1, "Failed with known codecs, trying harder");
       if ((streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
         Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
         streams[i].context = avcodec_alloc_context3(streams[i].codec);
@@ -142,7 +147,7 @@ int FFmpeg_Input::Open(const char *filepath) {
       return error;
     }
     zm_dump_codec(streams[i].context);
-    if (!(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
+    if (0 and !(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
       Debug(1, "Setting to default time base");
       streams[i].context->time_base.num = 1;
       streams[i].context->time_base.den = 90000;
@@ -189,9 +194,35 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     return nullptr;
   }
 
+  AVCodecContext *context = streams[stream_id].context;
 
   while (!frameComplete) {
-    int ret = av_read_frame(input_format_context, packet.get());
+
+    frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!frame) {
+      Error("Unable to allocate frame.");
+      return nullptr;
+    }
+
+    // Since technically sending a packet can result in multiple frames (or buffered_frames) try receive_frame first.
+    int ret = avcodec_receive_frame(context, frame.get());
+    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
+    if (ret == AVERROR(EAGAIN)) {
+      // Perfectly normal
+    } else if (ret < 0) {
+      Error("Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
+      return nullptr;
+    } else {
+      frameComplete = true;
+      if (is_video_stream(input_format_context->streams[packet->stream_index])) {
+        zm_dump_video_frame(frame.get(), "resulting video frame");
+      } else {
+        zm_dump_frame(frame.get(), "resulting frame");
+      }
+      break;
+    }
+
+    ret = av_read_frame(input_format_context, packet.get());
     if (ret < 0) {
       if (
         // Check if EOF.
@@ -208,37 +239,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     }
     ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
-    av_packet_guard pkt_guard{packet};
+    //av_packet_guard pkt_guard{packet};
 
     if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
       Debug(4, "Packet is not for our stream (%d)", packet->stream_index );
       continue;
-    }
-
-    AVCodecContext *context = streams[packet->stream_index].context;
-
-    frame = av_frame_ptr{zm_av_frame_alloc()};
-    if (!frame) {
-      Error("Unable to allocate frame.");
-      return nullptr;
-    }
-  
-    // Since technically sending a packet can result in multiple frames (or buffered_frames) try receive_frame first.
-    ret = avcodec_receive_frame(context, frame.get());
-    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
-    if (ret == AVERROR(EAGAIN)) {
-      // Perfectly normal
-    } else if (ret < 0) {
-      Error("Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
-      return nullptr;
-    } else {
-      frameComplete = true;
-      if (is_video_stream(input_format_context->streams[packet->stream_index])) {
-        zm_dump_video_frame(frame.get(), "resulting video frame");
-      } else {
-        zm_dump_frame(frame.get(), "resulting frame");
-      }
-      break;
     }
 
     ret = avcodec_send_packet(context, packet.get());

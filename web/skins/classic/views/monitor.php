@@ -1093,7 +1093,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
-        $models = [];
+        $models = ['none'=>[]];
         foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
           $model = basename($model);
           $extension = pathinfo($model, PATHINFO_EXTENSION);
@@ -1114,6 +1114,9 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             $models['quadra'][$model] = $model;
           } else {
             ZM\Debug("Unkown extension in model $model");
+          }
+          if ($monitor->ObjectDetection() == 'none') {
+            $models['none'][$model] = $model;
           }
         }
           echo htmlSelect('newMonitor[ObjectDetectionModel]', $models[$monitor->ObjectDetection()], $monitor->ObjectDetectionModel());

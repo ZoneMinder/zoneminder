@@ -269,9 +269,9 @@ bool VideoStore::open() {
         Warning("Did not find encoder matching %s. Trying without.", wanted_encoder.c_str());
         codec_data = get_encoder_data(wanted_codec, "");
       }
-      if (!codec_data.size() and wanted_codec) {
-        Warning("Did not find encoder matching codec %d. Trying without.", wanted_codec);
-        codec_data = get_encoder_data(0, "");
+      if (!codec_data.size() and (!wanted_codec.empty() and wanted_codec != "auto")) {
+        Warning("Did not find encoder matching codec %s. Trying without.", wanted_codec.c_str());
+        codec_data = get_encoder_data("", "");
       }
 
       for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
@@ -313,7 +313,7 @@ bool VideoStore::open() {
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
-        video_out_ctx->pix_fmt = chosen_codec_data->sw_pix_fmt;
+        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
         video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
@@ -342,7 +342,7 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-        if (0 and setup_hwaccel(video_out_ctx,
+        if (setup_hwaccel(video_out_ctx,
               chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
           continue;
         }
@@ -1116,7 +1116,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
-    AVFrame *frame = nullptr;
+    av_frame_ptr frame(av_frame_alloc());
 
     if (!zm_packet->out_frame) {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
@@ -1136,11 +1136,14 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
            ) {
-          zm_packet->image->PopulateFrame(zm_packet->out_frame.get());
+          zm_packet->image->PopulateFrame(frame.get());
         } else {
+          zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+
           swscale.Convert(
               zm_packet->image,
-              zm_packet->out_frame->buf[0]->data,
+              frame->buf[0]->data,
               zm_packet->codec_imgsize,
               zm_packet->image->AVPixFormat(),
               chosen_codec_data->sw_pix_fmt,
@@ -1148,10 +1151,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               video_out_ctx->height
               );
         }
-      } else if (!zm_packet->in_frame) {
-        Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
-        return 0;
-      } else {
+      } else if (zm_packet->in_frame) {
         if (
             zm_packet->in_frame->width == video_out_ctx->width
             and
@@ -1159,16 +1159,17 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          frame = zm_packet->in_frame.get();
+          av_frame_ref(frame.get(), zm_packet->in_frame.get());
         } else {
-          frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          if (!frame) {
-            Error("Unable to allocate a frame");
-            return 0;
-          }
+          zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+          av_frame_ref(frame.get(), zm_packet->out_frame.get());
           // Have in_frame.... may need to convert it to out_frame
-          swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
+          swscale.Convert(zm_packet->in_frame.get(), frame.get());
+          av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
         }
+      } else {
+        Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
+        return 0;
       } // end if no in_frame
     } // end if no out_frame
 
@@ -1187,12 +1188,12 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Outof ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame.get(), 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
 
-      frame = hw_frame.get();
+      frame = std::move(hw_frame);
     }  // end if hwaccel
 #endif
 
@@ -1263,7 +1264,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
     do {
-      int ret = avcodec_send_frame(video_out_ctx, frame);
+      int ret = avcodec_send_frame(video_out_ctx, frame.get());
       if (ret < 0) {
         if (AVERROR(EAGAIN) != ret) {
           Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());

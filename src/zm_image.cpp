@@ -301,7 +301,7 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  av_frame_ptr dest_frame{av_frame_alloc()};
   if (!dest_frame) {
     Error("Unable to allocate destination frame");
     return false;

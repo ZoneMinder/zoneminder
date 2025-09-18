@@ -938,14 +938,14 @@ bool VideoStore::setup_resampler() {
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
-    if (!(in_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+    if (!(in_frame = av_frame_ptr{av_frame_alloc()})) {
       Error("Could not allocate in frame");
       return false;
     }
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(out_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+  if (!(out_frame = av_frame_ptr{av_frame_alloc()})) {
     Error("Could not allocate out frame");
     return false;
   }
@@ -1137,7 +1137,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
            ) {
           zm_packet->image->PopulateFrame(frame.get());
+          Debug(2, "populating");
         } else {
+          Debug(2, "converting");
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
           av_frame_ref(frame.get(), zm_packet->out_frame.get());
 
@@ -1176,7 +1178,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
       int ret;
-      hw_frame = av_frame_ptr{zm_av_frame_alloc()};
+      hw_frame = av_frame_ptr{av_frame_alloc()};
       if (!hw_frame) {
         return AVERROR(ENOMEM);
       }
@@ -1197,7 +1199,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end if hwaccel
 #endif
 
-    if (monitor->WallClockTimestamps() or !(zm_packet->in_frame || zm_packet->packet)) {
+    if (1 or (monitor->WallClockTimestamps() or !(zm_packet->in_frame || zm_packet->packet))) {
       if (video_first_pts == AV_NOPTS_VALUE) {
         video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
         Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",

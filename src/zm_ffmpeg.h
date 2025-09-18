@@ -250,8 +250,6 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #define zm_av_packet_unref(packet) av_packet_unref(packet)
 #define zm_av_packet_ref(dst, src) av_packet_ref(dst, src)
 
-#define zm_av_frame_alloc() av_frame_alloc()
-
 int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt);
 enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat );
 

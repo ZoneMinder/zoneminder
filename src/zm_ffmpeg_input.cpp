@@ -174,7 +174,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
     AVCodecContext *context = streams[packet->stream_index].context;
 
-    frame = av_frame_ptr{zm_av_frame_alloc()};
+    frame = av_frame_ptr{av_frame_alloc()};
     if (!frame) {
       Error("Unable to allocate frame.");
       return nullptr;

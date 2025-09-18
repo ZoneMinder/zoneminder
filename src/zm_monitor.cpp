@@ -3399,7 +3399,7 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding != DECODING_NONE) {
-    if (!dest_frame) dest_frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!dest_frame) dest_frame = av_frame_ptr{av_frame_alloc()};
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");

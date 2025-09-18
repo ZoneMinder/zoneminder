@@ -78,7 +78,7 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 };
 
-std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_encoder) {
+std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, const std::string &wanted_encoder) {
   std::list<const CodecData*> results;
 
   for (unsigned int i = 0; i < sizeof(enc_codecs) / sizeof(*enc_codecs); i++) {
@@ -89,12 +89,11 @@ std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string
         continue;
       }
     }
-    if (wanted_codec and (enc_codecs[i].codec_id != wanted_codec)) {
-      Debug(4, "Not the right codec id %d %s != %d %s for %s",
-          chosen_codec_data->codec_id,
-          avcodec_get_name(chosen_codec_data->codec_id),
-          wanted_codec,
-          avcodec_get_name((AVCodecID)wanted_codec),
+
+    if ((!wanted_codec.empty() and wanted_codec != "auto") and (enc_codecs[i].codec_codec != wanted_codec)) {
+      Debug(4, "Not the right codec id %s != %s for %s",
+          chosen_codec_data->codec_codec,
+          wanted_codec.c_str(),
           chosen_codec_data->codec_name
           );
       continue;
@@ -114,7 +113,7 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 
   for (unsigned int i = 0; i < sizeof(dec_codecs) / sizeof(*dec_codecs); i++) {
     const CodecData *chosen_codec_data = &dec_codecs[i];
-    if (wanted_decoder != "" and wanted_decoder != "auto") {
+    if (!wanted_decoder.empty() and wanted_decoder != "auto") {
       if (wanted_decoder != chosen_codec_data->codec_name) {
         Debug(1, "Not the right codec name %s != %s", chosen_codec_data->codec_name, wanted_decoder.c_str());
         continue;

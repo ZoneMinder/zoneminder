@@ -22,6 +22,7 @@
 
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_logger.h"
 
 #include <list>
 #include <memory>
@@ -326,7 +327,7 @@ struct CodecData {
   const char *hwdevice_default;
   const char *options_defaults;
 };
-std::list<const CodecData*> get_encoder_data(int wanted_codec, const std::string &wanted_coder) ;
+std::list<const CodecData*> get_encoder_data(const std::string & wanted_codec, const std::string &wanted_coder) ;
 std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 

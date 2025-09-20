@@ -560,8 +560,10 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  //if (navbar_type == 'left' && !form) {
-  if (!form) {
+  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
+    form = param;
+  }
+  if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
@@ -1963,7 +1965,7 @@ function resetSelectElement(el) {
   if (currentView == 'events') {
     filterEvents(clickedElement = selectElement);
   } else {
-    submitThisForm();
+    submitThisForm(this.closest('form'));
   }
 }
 

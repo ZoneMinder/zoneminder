@@ -1175,17 +1175,17 @@ bool Monitor::connect() {
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
-      RTSP2Web_Manager->add_to_RTSP2Web();
+      //RTSP2Web_Manager->add_to_RTSP2Web();
     }
 
     if (Go2RTC_enabled) {
       Go2RTC_Manager = new Go2RTCManager(this);
-      Go2RTC_Manager->add_to_Go2RTC();
+      //Go2RTC_Manager->add_to_Go2RTC();
     }
 
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
-      Janus_Manager->add_to_janus();
+      //Janus_Manager->add_to_janus();
     }
 
     //ONVIF and Amcrest Setup
@@ -1913,7 +1913,7 @@ bool Monitor::Poll() {
     }
   }  // end if Amcrest or not
 
-  if (RTSP2Web_enabled and RTSP2Web_Manager) {
+  if (RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
       Debug(1, "Trying to add stream to RTSP2Web");
@@ -1921,13 +1921,13 @@ bool Monitor::Poll() {
     }
   }
 
-  if (Go2RTC_enabled and Go2RTC_Manager) {
+  if (Go2RTC_Manager) {
     if (Go2RTC_Manager->check_Go2RTC() == 0) {
       Go2RTC_Manager->add_to_Go2RTC();
     }
   }
 
-  if (janus_enabled and Janus_Manager) {
+  if (Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }
@@ -3521,19 +3521,19 @@ int Monitor::Close() {
   }
 
   // RTSP2Web teardown
-  if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
+  if (RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
   }
 
   // Go2RTC teardown
-  if (Go2RTC_enabled and (purpose == CAPTURE) and Go2RTC_Manager) {
+  if (Go2RTC_Manager) {
     delete Go2RTC_Manager;
     Go2RTC_Manager = nullptr;
   }
 
   // Janus Teardown
-  if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
+  if (Janus_Manager) {
     delete Janus_Manager;
     Janus_Manager = nullptr;
   }

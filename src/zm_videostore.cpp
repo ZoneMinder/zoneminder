@@ -292,6 +292,18 @@ bool VideoStore::open() {
             av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
           }
         }
+        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_bitrate) {
+          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
+        } else {
+          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          if (opts_bitrate) {
+            video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
+            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
+
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = chosen_codec_data->codec_id;
@@ -334,8 +346,8 @@ bool VideoStore::open() {
         video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
         if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
-          //video_out_ctx->bit_rate = 2000000;
-          //video_out_ctx->max_b_frames = 1;
+          if (!video_out_ctx->bit_rate) video_out_ctx->bit_rate = 2000000;
+          video_out_ctx->max_b_frames = 1;
         } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -362,6 +374,7 @@ bool VideoStore::open() {
           av_opt_set(video_out_ctx->priv_data, "xcoder-params", xcoder_params->value, 0);
         }
 
+        zm_dump_codec(video_out_ctx);
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -1349,7 +1362,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       // Need to adjust pts/dts values from codec time to stream time
       if (opkt->pts != AV_NOPTS_VALUE)
         opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
-      if (opkt->dts != AV_NOPTS_VALUE and opkt->dts > 0)
+      if (opkt->dts != AV_NOPTS_VALUE)// and opkt->dts > 0)
         opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
       Debug(1, "Timebase conversions using %d/%d -> %d/%d",
             video_out_ctx->time_base.num,

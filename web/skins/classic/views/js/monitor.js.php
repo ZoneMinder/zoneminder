@@ -189,16 +189,7 @@ function validateForm(form) {
     }
   }
 
-  /* because of success here, we will submit the form. Before we do that,
-   * convert all password fields to hidden fields so that
-   * browsers don't offer to save them
-   */
-
-  for (let i=0; i < form.elements.length; i++) {
-    if (form.elements[i].type == 'password') {
-      form.elements[i].type = 'hidden';
-    }
-  }
+  /* because of success here, we will submit the form. */
   return true;
 }
 

@@ -324,6 +324,7 @@ Monitor::Monitor() :
   RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
+  Go2RTC_Manager(nullptr),
   onvif(nullptr),
   red_val(0),
   green_val(0),

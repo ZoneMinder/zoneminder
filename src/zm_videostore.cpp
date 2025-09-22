@@ -323,6 +323,7 @@ bool VideoStore::open() {
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding

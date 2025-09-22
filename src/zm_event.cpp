@@ -988,7 +988,7 @@ void Event::Run() {
       videoStore = nullptr;
       if (!(save_jpegs & 1)) {
         save_jpegs |= 1; // Turn on jpeg storage
-        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d, DefaultVideo=NULL WHERE Id=%" PRIu64, save_jpegs, id));
+        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d, DefaultVideo='' WHERE Id=%" PRIu64, save_jpegs, id));
       }
     } else {
       const AVCodec *encoder = videoStore->get_video_encoder();

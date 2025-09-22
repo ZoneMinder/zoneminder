@@ -1,4 +1,4 @@
-name: Create packages
+name: Create packages AARCH64
 
 on:
   push:

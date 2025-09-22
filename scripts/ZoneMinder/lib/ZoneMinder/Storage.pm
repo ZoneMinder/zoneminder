@@ -175,7 +175,7 @@ sub delete_path {
     ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
     ($path) = ($path =~ /^(.*)$/); # De-taint
     if (!$Config{ZM_PATH_RM}) {
-      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
+      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$Config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
       $Config{ZM_PATH_RM} = '/bin/rm';
     }
     my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";

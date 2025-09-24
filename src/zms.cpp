@@ -146,10 +146,21 @@ int main(int argc, const char *argv[], char **envp) {
         source = ZMS_MONITOR;
       }
     } else if ( !strcmp(name, "mode") ) {
-      mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
-      mode = !strcmp(value, "raw")?ZMS_RAW:mode;
-      mode = !strcmp(value, "zip")?ZMS_ZIP:mode;
-      mode = !strcmp(value, "single")?ZMS_SINGLE:mode;
+      if (!strcmp(value, "jpeg")) {
+        mode = ZMS_JPEG;
+      } else if (!strcmp(value, "single")) {
+        mode = ZMS_SINGLE;
+      } else if (!strcmp(value, "raw")) {
+        mode = ZMS_RAW;
+      } else if (!strcmp(value, "zip")) {
+        mode = ZMS_ZIP;
+      } else if (!strcmp(value, "mpeg")) {
+        mode = ZMS_MPEG;
+      } else if (!strcmp(value, "paused")) {
+        mode = ZMS_JPEG;
+      } else {
+        Error("Unsupported value for mode");
+      }
     } else if ( !strcmp(name, "format") ) {
       strncpy(format, value, sizeof(format)-1);
     } else if ( !strcmp(name, "monitor") ) {

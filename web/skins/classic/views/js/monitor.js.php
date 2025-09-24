@@ -3,6 +3,8 @@ const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
 
 <?php
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 if (ZM_OPT_CONTROL and canView('Control')) {
 ?>
 const controlOptions = new Object();

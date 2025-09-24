@@ -1247,7 +1247,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="FunctionGo2RTCEnabled">
               <label><?php echo translate('Go2RTC Live Stream') ?></label>
-              <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?>/>
+              <input type="checkbox" name="newMonitor[Go2RTCEnabled]" value="1"<?php echo $monitor->Go2RTCEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>
 <?php
   if ( isset($OLANG['FUNCTION_GO2RTC_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_GO2RTC_ENABLED']['Help'].'</div>';
@@ -1256,16 +1256,12 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="FunctionRTSP2WebEnabled">
               <label><?php echo translate('RTSP2Web Live Stream') ?></label>
-              <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?>/>
+              <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>
 <?php
   if ( isset($OLANG['FUNCTION_RTSP2WEB_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_RTSP2WEB_ENABLED']['Help'].'</div>';
   }
 ?>
-            </li>
-            <li id="RTSP2WebType">
-              <label><?php echo translate('RTSP2Web Type') ?></label>
-              <?php echo htmlSelect('newMonitor[RTSP2WebType]', $RTSP2WebTypes, $monitor->RTSP2WebType()); ?>
             </li>
             <li id="RTSP2WebStream">
               <label><?php echo translate('Stream source') ?> </label>
@@ -1273,7 +1269,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>
-              <input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
+              <input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?> on_click="update_players"/>
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
@@ -1329,6 +1325,24 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
                 echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
 ?>
               
+            </li>
+            <li id="DefaultPlayer">
+              <label><?php echo translate('Default Player') ?></label>
+<?php 
+  $players = [
+    ''=>translate('Auto'),
+    'zms'=>'ZMS MJPEG',
+    'go2rtc' => 'Go2RTC Auto',
+    'go2rtc_webrtc' => 'Go2RTC WEBRTC',
+    'go2rtc_mse' => 'Go2RTC MSE',
+    'go2rtc_hls' => 'Go2RTC HLS',
+    'rtsp2web_webrtc' => 'RTSP2Web WEBRTC',
+    'rtsp2web_mse' => 'RTSP2Web MSE',
+    'rtsp2web_hls' => 'RTSP2Web HLS',
+    'janus' => 'Janus'
+  ];
+
+echo htmlSelect('newMonitor[DefaultPlayer]', $players, $monitor->DefaultPlayer()); ?>
             </li>
             <li>
               <label><?php echo translate('DefaultRate') ?></label>

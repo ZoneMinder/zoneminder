@@ -700,7 +700,7 @@ function update_players() {
     return;
   }
   const form = dropdown[0].form;
-  const selected_value = dropdown.val();
+  const selected_value = dropdown.val() || '';
   const go2rtc_enabled = form.elements['newMonitor[Go2RTCEnabled]'] && form.elements['newMonitor[Go2RTCEnabled]'].checked;
   const rtsp2web_enabled = form.elements['newMonitor[RTSP2WebEnabled]'] && form.elements['newMonitor[RTSP2WebEnabled]'].checked;
   const janus_enabled = form.elements['newMonitor[JanusEnabled]'] && form.elements['newMonitor[JanusEnabled]'].checked;
@@ -722,6 +722,7 @@ function update_players() {
   //dropdown.chosen("destroy");
   //dropdown.chosen();
   dropdown.val(selected_value);
+  if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
 }
 
 function populate_models(ManufacturerId) {

@@ -798,7 +798,7 @@ include('_monitor_source_nvsocket.php');
             <input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" />
           </li>
           <li class="User"><label><?php echo translate('Username') ?></label>
-            <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
+            <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" autocomplete="source_username"/>
           </li>
           <li class="Pass">
             <label><?php echo translate('Password') ?></label>

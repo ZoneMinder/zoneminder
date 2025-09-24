@@ -227,7 +227,7 @@ class Monitor extends ZM_Object {
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
-    'RTSP2WebType'   => 'HLS',
+    'DefaultPlayer' => '',
     'RTSP2WebStream'   => 'Primary',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),

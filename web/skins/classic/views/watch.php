@@ -319,7 +319,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_mse'] = 'RTSP2Web MSE';
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $players['janus'] = 'Janus';
-              $player = ''; # Auto
+              $player = validHtmlStr($monitor->DefaultPlayer());
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {

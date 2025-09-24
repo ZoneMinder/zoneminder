@@ -12,7 +12,8 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
-UPDATE Monitors SET DefaultPlayer='rtsp2web_webrtc' where RTSP2WebType='RTC' and DefaultPlayer IS NULL;
-UPDATE Monitors SET DefaultPlayer='rtsp2web_mse' where RTSP2WebType='MSE' and DefaultPlayer IS NULL;
-UPDATE Monitors SET DefaultPlayer='rtsp2web_hls' where RTSP2WebType='HLS' and DefaultPlayer IS NULL;
+UPDATE Monitors SET DefaultPlayer='rtsp2web_webrtc' WHERE RTSP2WebType='RTC' and DefaultPlayer IS NULL;
+UPDATE Monitors SET DefaultPlayer='rtsp2web_mse' WHERE RTSP2WebType='MSE' and DefaultPlayer IS NULL;
+UPDATE Monitors SET DefaultPlayer='rtsp2web_hls' WHERE RTSP2WebType='HLS' and DefaultPlayer IS NULL;
+UPDATE Monitors SET DefaultPlayer='' WHERE DefaultPlayer IS NULL;
 

@@ -334,7 +334,7 @@ function MonitorStream(monitorData) {
     }
     this.streamListenerBind = streamListener.bind(null, this);
 
-    console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));
+    console.log('start', this.Go2RTCEnabled, this.player);
 
     $j('#volumeControls').hide();
 

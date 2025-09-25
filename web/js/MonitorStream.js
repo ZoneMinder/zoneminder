@@ -365,7 +365,7 @@ function MonitorStream(monitorData) {
         }
         const video_el = document.querySelector('video');
         if (video_el) {
-          video.addEventListener('play', (e) => {
+          video_el.addEventListener('play', (e) => {
             this.createVolumeSlider();
           }, this);
         }

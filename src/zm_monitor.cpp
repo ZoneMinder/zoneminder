@@ -199,6 +199,8 @@ Monitor::Monitor() :
   user(),
   pass(),
   //path
+  onvif_event_listener(false),
+  use_Amcrest_API(false),
   //device
   palette(0),
   channel(0),
@@ -1189,18 +1191,16 @@ bool Monitor::connect() {
       //Janus_Manager->add_to_janus();
     }
 
-    //ONVIF and Amcrest Setup
-    //For now, only support one event type per camera, so share some state.
+    if (use_Amcrest_API) {
+      Amcrest_Manager = new AmcrestAPI(this);
+    }
+
     if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         Event_Poller_Closes_Event = true;
       }
-      if (use_Amcrest_API) {
-        Amcrest_Manager = new AmcrestAPI(this);
-      } else { //using GSOAP
-        onvif = new ONVIF(this);
-      }  // end if Armcrest or GSOAP
+      onvif = new ONVIF(this);
     } else {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup

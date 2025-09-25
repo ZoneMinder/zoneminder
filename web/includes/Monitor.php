@@ -230,6 +230,7 @@ class Monitor extends ZM_Object {
     'DefaultPlayer' => '',
     'RTSP2WebStream'   => 'Primary',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
+    //'ZMSEnabled'   => array('type'=>'integer','default'=>1),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',

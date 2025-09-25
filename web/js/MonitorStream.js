@@ -13,7 +13,7 @@ function MonitorStream(monitorData) {
   this.width = monitorData.width;
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
-  this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.RTSP2WebType = null;
   this.RTSP2WebStream = monitorData.RTSP2WebStream;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
@@ -83,7 +83,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.player = '';
+  this.player = monitorData.DefaultPlayer;
   this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
@@ -438,7 +438,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
-        if (this.RTSP2WebType == 'HLS') {
+        if (-1 !== this.player.indexOf('hls')) {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
           /*
@@ -456,14 +456,14 @@ function MonitorStream(monitorData) {
             stream.src = hlsUrl.href;
           }
           this.activePlayer = 'rtsp2web_hls';
-        } else if (this.RTSP2WebType == 'MSE') {
+        } else if (-1 !== this.player.indexOf('mse')) {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
           this.activePlayer = 'rtsp2web_mse';
-        } else if (this.RTSP2WebType == 'WebRTC') {
+        } else if (-1 !== this.player.indexOf('webrtc')) {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
@@ -473,7 +473,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
+        this.updateStreamInfo(players ? players[this.player] : 'RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -574,7 +574,7 @@ function MonitorStream(monitorData) {
         this.hls.destroy();
         this.hls = null;
       }
-      if (this.RTSP2WebType == 'MSE') {
+      if (-1 !== this.activePlayer.indexOf('mse')) {
         this.stopMse();
       }
     } else if (-1 !== this.activePlayer.indexOf('janus')) {
@@ -1259,7 +1259,7 @@ function MonitorStream(monitorData) {
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       // We correct the lag from real time. Relevant for long viewing and network problems.
-      if (this.RTSP2WebType == 'MSE') {
+      if (-1 !== this.activePlayer.indexOf('mse')) {
         const videoEl = document.getElementById("liveStream" + this.id);
         if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
           const videoElCurrentTime = videoEl.currentTime; // Current time of playback
@@ -1295,7 +1295,7 @@ function MonitorStream(monitorData) {
           console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
           this.restart(this.currentChannelStream);
         }
-      } else if (this.RTSP2WebType == 'WebRTC') {
+      } else if (-1 !== this.player.indexOf('webrtc')) {
         if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
           console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
           this.restart(this.currentChannelStream);

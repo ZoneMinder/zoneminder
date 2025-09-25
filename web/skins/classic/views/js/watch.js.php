@@ -44,7 +44,7 @@ monitorData[monitorData.length] = {
   'height':<?php echo $m->ViewHeight() ?>,
   'Restream':<?php echo $m->Janus_Use_RTSP_Restream() ?>,
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
-  'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
+  'DefaultPlayer':'<?php echo $m->DefaultPlayer() ?>',
   'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
   'SecondPath':'<?php echo $m->SecondPath() ?>',
@@ -98,6 +98,8 @@ foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, ar
   $label = $labels[$row['Preset']] = $row['Label'];
   echo 'labels['. validInt($row['Preset']) .'] = \''.validJsStr($label).'\';'.PHP_EOL;
 }
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 ?>
 var deleteString = "<?php echo translate('Delete') ?>";
 var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";

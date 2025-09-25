@@ -232,7 +232,7 @@ class Monitor extends ZM_Object {
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
-    'RTSP2WebType'   => 'HLS',
+    'DefaultPlayer' => '',
     'RTSP2WebStream'   => 'Primary',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
@@ -1156,6 +1156,8 @@ class Monitor extends ZM_Object {
                 </div>
                 <div class="zoompan">';
 
+    $player = isset($options['player']) ? $options['player'] : $this->DefaultPlayer();
+
     if ($this->Type() == 'WebSite') {
       $html .= getWebSiteUrl(
         'liveStream'.$this->Id(), $this->Path(),
@@ -1173,6 +1175,20 @@ class Monitor extends ZM_Object {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
+    } else if ($player == 'zms') {
+      if ( $options['mode'] == 'stream' and canStream() ) {
+        $options['mode'] = 'jpeg';
+        $streamSrc = $this->getStreamSrc($options);
+        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+      } else if ( $options['mode'] == 'single' and canStream() ) {
+        $streamSrc = $this->getStreamSrc($options);
+        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+      } else if ( $options['mode'] == 'paused' and canStream() ) {
+        $streamSrc = $this->getStreamSrc($options);
+        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+      } else {
+        Debug("What mode or canStream? ".$options['mode']." ".canStream());
+      }
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').

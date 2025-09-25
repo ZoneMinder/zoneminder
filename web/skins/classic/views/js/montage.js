@@ -1095,11 +1095,14 @@ function checkEndMonitorsPlaced() {
 
     if (!movableMonitorData[id].stop) {
       //Monitor is still moving
-      const objWidth = document.getElementById('liveStream'+monitors[i].id).clientWidth;
-      if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
-        movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
-      } else {
-        movableMonitorData[id].width = objWidth;
+      const stream = document.getElementById('liveStream'+monitors[i].id);
+      if (stream) {
+        const objWidth = stream.clientWidth;
+        if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
+          movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+        } else {
+          movableMonitorData[id].width = objWidth;
+        }
       }
     }
   }

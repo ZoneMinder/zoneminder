@@ -73,7 +73,6 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
-  'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
   'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,

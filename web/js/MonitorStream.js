@@ -264,7 +264,12 @@ function MonitorStream(monitorData) {
         //const ratio = realWidth / realHeight;
         //const imgWidth = $j(stream)[0].offsetWidth + 4; // including border
         stream.style.width = '100%';
-        $j(stream).closest('.monitorStream')[0].style.overflow = 'hidden';
+        const monitorStream = $j(stream).closest('.monitorStream');
+        if (monitorStream.length) {
+          monitorStream[0].style.overflow = 'hidden';
+        } else {
+          console.log('monitorstream not found. Should not happen.');
+        }
       }
     }
     let streamQuality = 0;

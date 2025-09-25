@@ -1171,17 +1171,9 @@ class Monitor extends ZM_Object {
     } else if ($player == 'zms') {
       if ( $options['mode'] == 'stream' and canStream() ) {
         $options['mode'] = 'jpeg';
-        $streamSrc = $this->getStreamSrc($options);
-        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
-      } else if ( $options['mode'] == 'single' and canStream() ) {
-        $streamSrc = $this->getStreamSrc($options);
-        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
-      } else if ( $options['mode'] == 'paused' and canStream() ) {
-        $streamSrc = $this->getStreamSrc($options);
-        $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
-      } else {
-        Debug("What mode or canStream? ".$options['mode']." ".canStream());
       }
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').

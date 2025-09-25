@@ -76,7 +76,7 @@ class MxAccl {
           sw_scale_ctx(nullptr),
           lck_(mutex_, std::defer_lock)
           {
-            scaled_frame = av_frame_ptr(zm_av_frame_alloc());
+            scaled_frame = av_frame_ptr(av_frame_alloc());
             scaled_frame->format = AV_PIX_FMT_RGB24;
           };
         ~Job() {

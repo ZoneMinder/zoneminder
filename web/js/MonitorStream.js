@@ -1146,14 +1146,14 @@ function MonitorStream(monitorData) {
       // Try to reload the image stream.
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
-        let src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        let src = (-1==stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : '&rand='+Math.floor((Math.random() * 1000000));
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
         // Maybe updated auth
         if (src != stream.src) {
           stream.src = '';
           stream.src = src;
         } else {
-          console.log("Failed to update rand on stream src");
+          console.log("Failed to update rand on stream src", stream.src);
         }
       }
     } // end if Ok or not

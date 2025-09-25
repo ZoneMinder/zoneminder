@@ -54,7 +54,7 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   use_hwframe(p_use_hwframe),
   filt_cnt(0)
 {
-  scaled_frame = av_frame_ptr{zm_av_frame_alloc()};
+  scaled_frame = av_frame_ptr{av_frame_alloc()};
   scaled_frame->width  = model_width;
   scaled_frame->height = model_height;
   scaled_frame->format = AV_PIX_FMT_RGB24;

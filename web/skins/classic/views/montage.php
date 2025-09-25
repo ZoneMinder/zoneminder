@@ -370,20 +370,27 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
+    $browser_width = 1920;
+    if (isset($_COOKIE['zmBrowserSizes'])) {
+      $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
+      $browser_width = validInt($zmBrowserSizes['innerWidth']);
+      if (!$browser_width) $browser_width = 1920;
+      
+    }
     if (!$scale and ($layout->Name() != 'Auto')) {
       if ($layout_is_preset) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
             if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
         }
-      } else {
-        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
-        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
+    } else {
+      # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+      $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
+      if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
     }
     echo $monitor->getStreamHTML($monitor_options);
   }

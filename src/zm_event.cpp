@@ -160,7 +160,7 @@ Event::Event(
 }
 
 int Event::OpenJpegCodec(const Image *image) {
-  av_frame_ptr frame(zm_av_frame_alloc());
+  av_frame_ptr frame(av_frame_alloc());
   image->PopulateFrame(frame.get());
   return OpenJpegCodec(frame.get());
 }
@@ -263,7 +263,7 @@ int Event::OpenJpegCodec(AVFrame *frame) {
     }
   }
 #if 1
-  output_frame = av_frame_ptr{zm_av_frame_alloc()}; // The assignment here will destruct any previous allocation
+  output_frame = av_frame_ptr{av_frame_alloc()}; // The assignment here will destruct any previous allocation
   output_frame->width  = mJpegCodecContext->width;
   output_frame->height = mJpegCodecContext->height;
   output_frame->format = AV_PIX_FMT_YUVJ420P;
@@ -421,7 +421,7 @@ bool Event::WriteJpeg(AVFrame *in_frame, const std::string &filename) {
       );
 
 #if 0
-  av_frame_ptr out_frame = av_frame_ptr{zm_av_frame_alloc()};
+  av_frame_ptr out_frame = av_frame_ptr{av_frame_alloc()};
   out_frame->width  = mJpegCodecContext->width;
   out_frame->height = mJpegCodecContext->height;
   out_frame->format = AV_PIX_FMT_YUVJ420P;

@@ -1567,10 +1567,10 @@ bool Image::WriteJpeg(const std::string &filename,
   }
 
 
-  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+  av_frame_ptr frame = av_frame_ptr{av_frame_alloc()};
 
   if ( p_jpegswscontext ) {
-    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
+    av_frame_ptr temp_frame = av_frame_ptr{av_frame_alloc()};
     PopulateFrame(temp_frame.get());
     Debug(1, "Have sws context, converting from %dx%d %s", temp_frame->width, temp_frame->height, av_get_pix_fmt_name(static_cast<AVPixelFormat>(temp_frame->format)));
 
@@ -1876,11 +1876,11 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, AVCodecContext
 
   //std::unique_lock<std::mutex> lck(jpeg_mutex);
 
-  av_frame_ptr send_frame = av_frame_ptr{zm_av_frame_alloc()};
+  av_frame_ptr send_frame = av_frame_ptr{av_frame_alloc()};
   AVPacket *pkt;
 
   if ( p_jpegswscontext ) {
-    av_frame_ptr img_frame = av_frame_ptr{zm_av_frame_alloc()};
+    av_frame_ptr img_frame = av_frame_ptr{av_frame_alloc()};
     PopulateFrame(img_frame.get());
 
     send_frame->width  = p_jpegcodeccontext->width;

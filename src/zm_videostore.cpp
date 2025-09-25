@@ -292,17 +292,6 @@ bool VideoStore::open() {
             av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
           }
         }
-        const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        if (opts_bitrate) {
-          video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-          av_dict_set(&opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
-        } else {
-          opts_bitrate = av_dict_get(opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
-          if (opts_bitrate) {
-            video_out_ctx->bit_rate = std::stoul(opts_bitrate->value);
-            av_dict_set(&opts, "bit_rate", nullptr, AV_DICT_MATCH_CASE);
-          }
-        }
 
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
@@ -320,8 +309,6 @@ bool VideoStore::open() {
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
           av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
-        //} else if (!video_out_ctx->gop_size) {
-          //video_out_ctx->gop_size = 12;
         }
         //zm_dump_codec(video_out_ctx);
         const AVDictionaryEntry *opts_bitrate = av_dict_get(opts, "bitrate", nullptr, AV_DICT_MATCH_CASE);
@@ -504,6 +491,15 @@ bool VideoStore::open() {
         } // end if audio_out_ctx
       } // end if audio_out_stream
     } // end if is AAC
+
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
+
+    // We will assume that subsequent stream allocations will increase the index
+    max_stream_index = audio_out_stream->index;
+    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+    reorder_queues[audio_out_stream->index] = {};
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -960,14 +956,14 @@ bool VideoStore::setup_resampler() {
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
-    if (!(in_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+    if (!(in_frame = av_frame_ptr{av_frame_alloc()})) {
       Error("Could not allocate in frame");
       return false;
     }
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(out_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+  if (!(out_frame = av_frame_ptr{av_frame_alloc()})) {
     Error("Could not allocate out frame");
     return false;
   }
@@ -1080,6 +1076,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
     Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
     return -1;
   }
+  Debug(1, "Queue for %d", stream_index);
   auto &queue = reorder_queues[stream_index];
   Debug(1, "Queue size for %d is %zu", stream_index, queue.size());
 
@@ -1227,7 +1224,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     if (video_out_ctx->hw_frames_ctx and (static_cast<AVPixelFormat>(frame->format) != video_out_ctx->pix_fmt)) {
       zm_dump_frame(frame.get(), "using hwframe, src is");
       int ret;
-      av_frame_ptr hw_frame = av_frame_ptr{zm_av_frame_alloc()};
+      av_frame_ptr hw_frame = av_frame_ptr{av_frame_alloc()};
       if (!hw_frame) {
         return AVERROR(ENOMEM);
       }
@@ -1485,7 +1482,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
                            audio_out_stream->time_base);
 
       write_packet(opkt.get(), audio_out_stream);
-      zm_av_packet_unref(opkt.get());
+      av_packet_unref(opkt.get());
 
       if (zm_resample_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
         break;
@@ -1505,8 +1502,8 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(opkt.get(), audio_out_stream);
 
-    zm_av_packet_unref(opkt.get());
-    //zm_av_packet_unref(zm_packet->packet.get());
+    av_packet_unref(opkt.get());
+    //av_packet_unref(zm_packet->packet.get());
   }  // end if encoding or copying
   //ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
 

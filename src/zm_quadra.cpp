@@ -15,7 +15,7 @@ Quadra::Quadra() :
   hwdl_filter(nullptr),
   drawbox_filter_ctx(nullptr)
 {
-  //scaled_frame = av_frame_ptr{zm_av_frame_alloc()};
+  //scaled_frame = av_frame_ptr{av_frame_alloc()};
   //scaled_frame->width  = model_width;
   //scaled_frame->height = model_height;
   //scaled_frame->format = AV_PIX_FMT_RGB24;

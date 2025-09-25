@@ -106,7 +106,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   packet = av_packet_ptr{av_packet_alloc()};
 
   Error("Packet copy");
-  if (zm_av_packet_ref(packet.get(), p.packet.get()) < 0) {
+  if (av_packet_ref(packet.get(), p.packet.get()) < 0) {
     Error("error refing packet");
   }
 }
@@ -306,7 +306,7 @@ Image *ZMPacket::get_y_image() {
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
-  if (zm_av_packet_ref(packet.get(), p) < 0) {
+  if (av_packet_ref(packet.get(), p) < 0) {
     Error("error refing packet");
   }
 
@@ -331,7 +331,7 @@ int ZMPacket::get_hw_device_id() const {
 
 AVFrame *ZMPacket::get_ai_frame() {
   if (!ai_frame) {
-    ai_frame = av_frame_ptr{zm_av_frame_alloc()};
+    ai_frame = av_frame_ptr{av_frame_alloc()};
     if (!ai_frame) {
       Error("Unable to allocate a frame");
       return nullptr;
@@ -342,7 +342,7 @@ AVFrame *ZMPacket::get_ai_frame() {
 
 AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
   if (!out_frame) {
-    out_frame = av_frame_ptr{zm_av_frame_alloc()};
+    out_frame = av_frame_ptr{av_frame_alloc()};
     if (!out_frame) {
       Error("Unable to allocate a frame");
       return nullptr;

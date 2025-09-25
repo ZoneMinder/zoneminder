@@ -258,13 +258,12 @@ int setup_hwaccel(
   codec_ctx->get_format = get_hw_format;
   codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
-if (1) {
   AVBufferRef *hw_frames_ref;
   AVHWFramesContext *frames_ctx = nullptr;
 
   if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
     Error("Failed to create hwaccel frame context.");
-    return -1;;
+    return -1;
   }
   frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
   frames_ctx->format    = codec_data->hw_pix_fmt;
@@ -284,10 +283,9 @@ if (1) {
     }
   }
   av_buffer_unref(&hw_frames_ref);
-}
   av_buffer_unref(&hw_device_ctx);
-  return 0;
 #endif
+  return 0;
 } // end setup_hwaccel
 
 

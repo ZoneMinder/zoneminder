@@ -1984,7 +1984,7 @@ bool Monitor::Analyse() {
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener) {
-        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
+        if (onvif and onvif->isAlarmed()) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
@@ -1998,6 +1998,16 @@ bool Monitor::Analyse() {
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif
+
+      if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {
+        score += 9;
+        Debug(4, "Triggered on AMCREST");
+        Event::StringSet noteSet;
+        noteSet.insert("AMCREST");
+        Amcrest_Manager->setNotes(noteSet);
+        noteSetMap[MOTION_CAUSE] = noteSet;
+        cause += "AMCREST";
+      }
 
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {

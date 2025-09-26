@@ -1577,10 +1577,6 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
   }
   if ( $basename == 'montage' ) {
-    echo '<script src="skins/'.$skin.'/assets/gridstack-11.1.2/dist/gridstack-all.js"></script>';
-
-    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));

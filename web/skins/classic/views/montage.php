@@ -242,7 +242,7 @@ if ($monitorCount <= 3) {
 $AutoLayoutName = $default_layout;
 
 xhtmlHeadersStart(__FILE__, translate('Montage'));
-echo output_link_if_exists(array('/assets/gridstack-11.1.2/dist/gridstack.css', '/assets/gridstack-11.1.2/dist/gridstack-extra.css'));
+echo output_link(array('/assets/gridstack-11.1.2/dist/gridstack.css', '/assets/gridstack-11.1.2/dist/gridstack-extra.css'));
 xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();

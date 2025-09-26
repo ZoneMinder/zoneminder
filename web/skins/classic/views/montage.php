@@ -375,7 +375,6 @@ foreach ($monitors as $monitor) {
       $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
       $browser_width = validInt($zmBrowserSizes['innerWidth']);
       if (!$browser_width) $browser_width = 1920;
-      
     }
     if (!$scale and ($layout->Name() != 'Auto')) {
       if ($layout_is_preset) {
@@ -391,6 +390,7 @@ foreach ($monitors as $monitor) {
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
       $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+      if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
     echo $monitor->getStreamHTML($monitor_options);
   }

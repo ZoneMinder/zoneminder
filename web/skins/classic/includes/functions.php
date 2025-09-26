@@ -388,6 +388,14 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
+function output_link($files) {
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.getSkinFile($file).'" type="text/css"/>';
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
 function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();

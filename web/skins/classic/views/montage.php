@@ -326,7 +326,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?></label>
+            <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>

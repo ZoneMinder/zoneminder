@@ -2348,14 +2348,13 @@ bool Monitor::Analyse() {
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
                 if (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
-                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        snap->image_index,
                        event->Id(),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                       static_cast<int64>(Seconds(section_length).count()));
+                       static_cast<int64>(Seconds(section_length).count())
+                       );
                   closeEvent();
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
@@ -3049,6 +3048,14 @@ Event * Monitor::openEvent(
     delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
     event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
+    float start_duration = FPSeconds(snap->timestamp - starting_packet->timestamp).count();
+    Debug(1, "Event duration at start: %.2f", start_duration);
+    if (start_duration >= Seconds(min_section_length).count()) {
+      Warning("Starting keyframe packet is more than %" PRId64 " seconds ago.  Keyframe interval must be larger than that. "
+          "Either increase min_section_length or decrease keyframe interval. Automatically increasing min_section_length to %d seconds",
+          static_cast<int64>(Seconds(min_section_length).count()), static_cast<int>(ceil(start_duration)));
+      min_section_length = Seconds(static_cast<int>(ceil(start_duration)) + 1);
+    }
     SetVideoWriterStartTime(starting_packet->timestamp);
   } else {
     ZM_DUMP_PACKET(snap->packet, "First packet from alarm");

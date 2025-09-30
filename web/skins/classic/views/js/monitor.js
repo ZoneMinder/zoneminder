@@ -648,13 +648,16 @@ function update_estimated_ram_use() {
 function updateMarker() {
   const latitude = document.getElementById('newMonitor[Latitude]').value;
   const longitude = document.getElementById('newMonitor[Longitude]').value;
-  console.log("Updating marker at ", latitude, longitude);
-  const latlng = new L.LatLng(latitude, longitude);
-  marker.setLatLng(latlng);
-  map.setView(latlng, 8, {animation: true});
-  setTimeout(function() {
-    map.invalidateSize(true);
-  }, 100);
+  if (typeof L !== 'undefined') {
+    const latlng = new L.LatLng(latitude, longitude);
+    marker.setLatLng(latlng);
+    map.setView(latlng, 8, {animation: true});
+    setTimeout(function() {
+      map.invalidateSize(true);
+    }, 100);
+  } else {
+    console.log('You must install leaflet');
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {

@@ -1107,9 +1107,6 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
 
 int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   av_packet_guard pkt_guard;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  av_frame_ptr hw_frame;
-#endif
 
   frame_count += 1;
 
@@ -1119,7 +1116,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     av_frame_ptr frame(av_frame_alloc());
 
-    if (!zm_packet->out_frame) {
+    if (zm_packet->out_frame) {
+      av_frame_ref(frame.get(), zm_packet->out_frame.get());
+    } else {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
             chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
@@ -1179,7 +1178,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
       int ret;
-      hw_frame = av_frame_ptr{av_frame_alloc()};
+      av_frame_ptr hw_frame = av_frame_ptr{av_frame_alloc()};
       if (!hw_frame) {
         return AVERROR(ENOMEM);
       }
@@ -1267,11 +1266,14 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
     do {
+      zm_dump_frame(frame.get(), "sending frame");
       int ret = avcodec_send_frame(video_out_ctx, frame.get());
       if (ret < 0) {
         if (AVERROR(EAGAIN) != ret) {
           Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
           return ret;
+        } else {
+          Debug(3, "Got EAGAIN");
         }
       } else {
         break;

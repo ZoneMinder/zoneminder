@@ -388,6 +388,14 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
+function output_link($files) {
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.getSkinFile($file).'" type="text/css"/>';
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
 function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();
@@ -1577,10 +1585,6 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
   }
   if ( $basename == 'montage' ) {
-    echo '<script src="skins/'.$skin.'/assets/gridstack-11.1.2/dist/gridstack-all.js"></script>';
-
-    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));

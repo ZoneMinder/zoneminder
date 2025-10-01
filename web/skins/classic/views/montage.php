@@ -242,7 +242,7 @@ if ($monitorCount <= 3) {
 $AutoLayoutName = $default_layout;
 
 xhtmlHeadersStart(__FILE__, translate('Montage'));
-echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+echo output_link(array('/assets/gridstack-11.1.2/dist/gridstack.css', '/assets/gridstack-11.1.2/dist/gridstack-extra.css'));
 xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -326,7 +326,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?></label>
+            <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
@@ -375,7 +375,6 @@ foreach ($monitors as $monitor) {
       $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
       $browser_width = validInt($zmBrowserSizes['innerWidth']);
       if (!$browser_width) $browser_width = 1920;
-      
     }
     if (!$scale and ($layout->Name() != 'Auto')) {
       if ($layout_is_preset) {
@@ -391,6 +390,7 @@ foreach ($monitors as $monitor) {
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
       $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+      if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
     echo $monitor->getStreamHTML($monitor_options);
   }
@@ -428,5 +428,8 @@ foreach ($monitors as $monitor) {
   </div>
 </div>
 <?php
+  echo '<script src="skins/'.$skin.'/assets/gridstack-11.1.2/dist/gridstack-all.js"></script>';
+  echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  echo output_script_if_exists(array('js/panzoom.js'));
   echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
   xhtmlFooter() ?>

@@ -34,7 +34,6 @@
 
 .monitorStream {
   position: relative;
-  #overflow: auto;
   display: grid;
 }
 
@@ -44,7 +43,6 @@
 }
 
 .monitorStream, .monitor {
-  #height: 100%;
 }
 
 #monitors .monitorStatus {

@@ -119,11 +119,14 @@ echo getNavBarHTML();
     </div>
   </div>
 <?php
-if ($monitor->JanusEnabled()) {
+if (defined('ZM_JANUS_PATH') and ZM_JANUS_PATH) {
 ?>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
 <?php
+}
+if (defined('ZM_GO2RTC_PATH') and ZM_GO2RTC_PATH) {
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
 }
 ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>

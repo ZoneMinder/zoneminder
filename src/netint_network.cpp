@@ -133,7 +133,7 @@ void ni_cleanup_network_context(NiNetworkContext *network_ctx, bool hwframe)
 
 int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         bool hwframe, int devid, int keep_alive_timeout, int scale_format,
-        int scale_width, int scale_height, const char *nbg_file)
+        unsigned int scale_width, unsigned int scale_height, const char *nbg_file)
 {
     int ret;
 

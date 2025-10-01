@@ -46,11 +46,17 @@ if ($zmuOutput) {
         <table id="contentTable" class="major">
           <tbody>
 <?php
-$ctls = shell_exec('v4l2-ctl -d '.$monitor->Device().' --list-ctrls');
-
+if (!$monitor->Device()) {
+  ZM\Warning("Please populate monitor Device");
+} else if (!file_exists($monitor->Device())) {
+  ZM\Warning($monitor->Device() . " not found.  Will not be able to get ctrls from it.");
+} else {
+  $ctls = shell_exec('v4l2-ctl -d '.escapeshellarg($monitor->Device()).' --list-ctrls');
+  ZM\Debug("CTLS $ctls");
+}
 if (!$ctls) {
-ZM\Warning('Guessing v4l ctrls.  We need v4l2-ctl please install it');
-$ctls = '
+  ZM\Warning('Guessing v4l ctrls.  We need v4l2-ctl please install it');
+  $ctls = '
                      brightness 0x00980900 (int)    : min=-10 max=10 step=1 default=0 value=8
                        contrast 0x00980901 (int)    : min=0 max=20 step=1 default=10 value=12
                      saturation 0x00980902 (int)    : min=0 max=10 step=1 default=7 value=6

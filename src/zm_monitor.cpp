@@ -175,6 +175,8 @@ Monitor::Monitor() :
   user(),
   pass(),
   //path
+  onvif_event_listener(false),
+  use_Amcrest_API(false),
   //device
   palette(0),
   channel(0),
@@ -1172,20 +1174,18 @@ bool Monitor::connect() {
       //Janus_Manager->add_to_janus();
     }
 
-    // ONVIF and Amcrest Setup
-    // For now, only support one event type per camera, so share some state.
-    if (onvif_event_listener) {  //
+    if (use_Amcrest_API) {
+      Amcrest_Manager = new AmcrestAPI(this);
+    }
+
+    if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
       if (onvif_options.find("closes_event") !=
           std::string::npos) {  // Option to indicate that ONVIF will send a
                                 // close event message
         Event_Poller_Closes_Event = true;
       }
-      if (use_Amcrest_API) {
-        Amcrest_Manager = new AmcrestAPI(this);
-      } else {  // using GSOAP
-        onvif = new ONVIF(this);
-      }  // end if Armcrest or GSOAP
+      onvif = new ONVIF(this);
     } else {
       Debug(1, "Not Starting ONVIF");
     }  // End ONVIF Setup
@@ -2000,7 +2000,7 @@ int Monitor::Analyse() {
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener) {
-        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
+        if (onvif and onvif->isAlarmed()) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
@@ -2014,6 +2014,16 @@ int Monitor::Analyse() {
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif
+
+      if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {
+        score += 9;
+        Debug(4, "Triggered on AMCREST");
+        Event::StringSet noteSet;
+        noteSet.insert("AMCREST");
+        Amcrest_Manager->setNotes(noteSet);
+        noteSetMap[MOTION_CAUSE] = noteSet;
+        cause += "AMCREST";
+      }
 
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
@@ -2353,14 +2363,13 @@ int Monitor::Analyse() {
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
                 if (std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
-                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        packet->image_index,
                        event->Id(),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp - event->StartTime()).count()),
-                       static_cast<int64>(Seconds(section_length).count()));
+                       static_cast<int64>(Seconds(section_length).count())
+                       );
                   closeEvent();
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
@@ -3800,14 +3809,21 @@ Event * Monitor::openEvent(
       *analysis_it,
       (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
       );
-  auto packet = *(*start_it);
-  auto av_packet = packet->av_packet();
-
+  auto starting_packet = *(*start_it);
+  auto av_packet = starting_packet->av_packet();
   ZM_DUMP_PACKET(av_packet, "start packet");
 
-  auto starting_packet = *start_it;
-  event = new Event(this, start_it, (*starting_packet)->timestamp, cause, noteSetMap);
-  SetVideoWriterStartTime((*starting_packet)->timestamp);
+  event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
+  SetVideoWriterStartTime(starting_packet->timestamp);
+
+  float start_duration = FPSeconds(packet_lock->packet_->timestamp - starting_packet->timestamp).count();
+  Debug(1, "Event duration at start: %.2f", start_duration);
+  if (start_duration >= Seconds(min_section_length).count()) {
+    Warning("Starting keyframe packet is more than %" PRId64 " seconds ago.  Keyframe interval must be larger than that. "
+        "Either increase min_section_length or decrease keyframe interval. Automatically increasing min_section_length to %d seconds",
+        static_cast<int64>(Seconds(min_section_length).count()), static_cast<int>(ceil(start_duration)));
+    min_section_length = Seconds(static_cast<int>(ceil(start_duration)) + 1);
+  }
 
   shared_data->last_event_id = event->Id();
   strncpy(shared_data->alarm_cause, cause.c_str(),

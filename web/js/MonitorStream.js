@@ -265,7 +265,12 @@ function MonitorStream(monitorData) {
         //const ratio = realWidth / realHeight;
         //const imgWidth = $j(stream)[0].offsetWidth + 4; // including border
         stream.style.width = '100%';
-        $j(stream).closest('.monitorStream')[0].style.overflow = 'hidden';
+        const monitorStream = $j(stream).closest('.monitorStream');
+        if (monitorStream.length) {
+          monitorStream[0].style.overflow = 'hidden';
+        } else {
+          console.log('monitorstream not found. Should not happen.');
+        }
       }
     }
     let streamQuality = 0;
@@ -364,9 +369,12 @@ function MonitorStream(monitorData) {
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
-        document.querySelector('video').addEventListener('play', (e) => {
-          this.createVolumeSlider();
-        }, this);
+        const video_el = document.querySelector('video');
+        if (video_el) {
+          video_el.addEventListener('play', (e) => {
+            this.createVolumeSlider();
+          }, this);
+        }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -1146,7 +1154,7 @@ function MonitorStream(monitorData) {
       // Try to reload the image stream.
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
-        let src = (-1==stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : '&rand='+Math.floor((Math.random() * 1000000));
+        let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : '&rand='+Math.floor((Math.random() * 1000000));
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
         // Maybe updated auth
         if (src != stream.src) {

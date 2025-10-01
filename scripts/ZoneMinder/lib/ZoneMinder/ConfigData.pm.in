@@ -447,11 +447,10 @@ our @options = (
   },
   {
     name        => 'ZM_GO2RTC_PATH',
-    default     => 'http://127.0.0.1:1984/api',
+    default     => '',
     description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
-    install, including username and password. If left blank, this
-    will default to http://127.0.0.1:1984/api
+    install, including username and password.
     `,
     type        => $types{string},
     category    => 'system',

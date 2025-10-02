@@ -53,6 +53,7 @@ input.large {
   overflow-x: auto;
   overflow-y: hidden;
   padding-top: 15px;
+  display: flex;
 }
 
 #options {
@@ -128,6 +129,7 @@ input[name="newStorage[Url]"] {
 form {
 /*  display: flex;*/
 /*  flex-direction: column;*/
+  width: 100%;
   height: 100%;
 /*  padding-top: 2rem; */
 }
@@ -183,4 +185,19 @@ body.sticky .wrapper-scroll-table {
   height: calc(100% - var(--height-block-before-table));
   overflow-x: hidden; 
   overflow-y: auto; 
+}
+body.sticky .bootstrap-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+body.sticky .fixed-table-container {
+  overflow-y: auto;
+}
+
+body.sticky #controlTable thead {
+    position: sticky;
+    top: 0;
+    box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }

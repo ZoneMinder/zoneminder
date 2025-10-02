@@ -74,4 +74,6 @@ foreach( $controls as $control ) {
     </div> <!--#controlCaps-->
   </div><!--#content-->
 </div><!-- #page -->
-<script src="skins/<?php echo $skin ?>/views/js/controlcaps.js" nonce="<?php echo $cspNonce ?>"></script>
+<?php
+echo output_script(array('views/js/controlcaps.js'));
+?>

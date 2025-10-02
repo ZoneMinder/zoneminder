@@ -60,14 +60,28 @@ function initPageControlCaps() {
   'check-all.bs.table uncheck-all.bs.table',
   function() {
     selections = tableControlCaps.bootstrapTable('getSelections');
+    var totalRows = tableControlCaps.bootstrapTable('getData').length;
 
     addNewBtnControlCaps.prop('disabled', (selections.length || !canEdit.Control));
-    editBtnControlCaps.prop('disabled', !((selections.length == 1) && canEdit.Control));
+    // Enable edit button if exactly 1 item is selected
+    // Special handling: if there's only 1 row total and the check-all checkbox is checked, treat it as 1 selection
+    var editEnabled = (selections.length == 1 && canEdit.Control) || 
+                      (totalRows == 1 && selections.length >= totalRows && canEdit.Control);
+    editBtnControlCaps.prop('disabled', !editEnabled);
     deleteBtnControlCaps.prop('disabled', !(selections.length && canEdit.Control));
   });
 
   // Init the bootstrap-table
   tableControlCaps.bootstrapTable({icons: icons});
+
+  // Update button states after initialization
+  var selections = tableControlCaps.bootstrapTable('getSelections');
+  var totalRows = tableControlCaps.bootstrapTable('getData').length;
+  addNewBtnControlCaps.prop('disabled', (selections.length || !canEdit.Control));
+  var editEnabled = (selections.length == 1 && canEdit.Control) || 
+                    (totalRows == 1 && selections.length >= totalRows && canEdit.Control);
+  editBtnControlCaps.prop('disabled', !editEnabled);
+  deleteBtnControlCaps.prop('disabled', !(selections.length && canEdit.Control));
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

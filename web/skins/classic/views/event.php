@@ -432,6 +432,18 @@ if ($video_tag) {
           </div><!-- class="row" -->
         </div><!-- class="container-fluid" -->
         <div id="EventData" class="EventData">
+
+<?php
+if ($Event->DefaultVideo()) {
+  $filePath = $Event->Path().'/'.$Event->DefaultVideo();
+  if (file_exists($filePath)) {
+    //exec('/usr/local/bin/ffprobe '.$filePath. ' 2>&1', $output);
+    ZM\Debug(print_r($output, true));
+    //echo implode('<br/>',$output);
+
+  }
+}
+    ?>
         <?php
 if (0) { // Need to do this in ajax.
           $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);

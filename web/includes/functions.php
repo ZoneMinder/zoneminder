@@ -369,10 +369,16 @@ function getEventDefaultVideoPath($event) {
 
 function deletePath( $path ) {
   ZM\Debug('Deleting '.$path);
-  if ( is_dir($path) ) {
-    system(escapeshellcmd('rm -rf '.$path));
-  } else if ( file_exists($path) ) {
-    unlink($path);
+  if (is_link($path)) {
+    if (!unlink($path)) ZM\Debug("Failed to unlink $path");
+  } else if (is_dir($path)) {
+    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
+      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    }
+  } else if (file_exists($path)) {
+    if (!unlink($path)) ZM\Debug("Failed to delete $path");
+  } else {
+    ZM\Warning("Path $path does not exist in deletePath()");
   }
 }
 

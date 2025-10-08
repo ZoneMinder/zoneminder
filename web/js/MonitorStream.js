@@ -512,7 +512,7 @@ function MonitorStream(monitorData) {
     if (-1 != stream.src.indexOf('mode=paused')) {
       this.streamCommand(CMD_PLAY);
     } else {
-      let src = this.url_to_stream.replace(/mode=single/i, 'mode=jpeg');
+      let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
       if (-1 == src.search('auth')) {
         src += '&'+auth_relay;
       } else {

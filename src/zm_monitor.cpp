@@ -3044,7 +3044,7 @@ Event * Monitor::openEvent(
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
-    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
+    auto starting_packet = starting_packet_lock->packet_;
     delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
     event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);

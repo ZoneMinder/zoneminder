@@ -33,7 +33,7 @@ function MonitorStream(monitorData) {
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
   this.server_id = monitorData.server_id;
-  this.scale = 100;
+  this.scale = monitorData.scale ? parseInt(monitorData.scale) : 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
   this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
@@ -195,7 +195,7 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.log("setScale", stream);
+    console.log("setScale", stream, newscale, width, height, param);
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -277,6 +277,7 @@ function MonitorStream(monitorData) {
       streamQuality = param.streamQuality;
       newscale += parseInt(newscale/100*streamQuality);
     }
+    this.scale = newscale;
     this.setStreamScale(newscale, streamQuality);
   }; // setScale
 
@@ -506,20 +507,22 @@ function MonitorStream(monitorData) {
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
-    if (-1 == src.search('auth')) {
-      src += '&'+auth_relay;
-    } else {
-      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-    }
-    if (-1 == src.search('connkey')) {
-      src += '&connkey='+this.connKey;
-    }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
-
-    stream.src = src;
-    this.streamCommand(CMD_PLAY);
+    if (-1 != stream.src.indexOf('mode=paused')) {
+      this.streamCommand(CMD_PLAY);
+    } else {
+      let src = this.url_to_stream.replace(/mode=single/i, 'mode=jpeg');
+      if (-1 == src.search('auth')) {
+        src += '&'+auth_relay;
+      } else {
+        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+      }
+      if (-1 == src.search('connkey')) {
+        src += '&connkey='+this.connKey;
+      }
+      stream.src = src;
+    } // end if paused or not
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
@@ -1082,9 +1085,10 @@ function MonitorStream(monitorData) {
             $j('#level'+this.id).addClass('hidden');
             if (this.onplay) this.onplay();
           } // end if paused or delayed
+
           if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
             if (this.status.scale != 0) {
-              console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+              console.log("Stream not scaled, re-applying want:", this.scale, "current:", this.status.scale);
               this.streamCommand({command: CMD_SCALE, scale: this.scale});
             }
           }

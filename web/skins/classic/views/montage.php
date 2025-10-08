@@ -370,6 +370,7 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
+    $monitor_options['connkey'] = $monitor->connKey();
     $browser_width = 1920;
     if (isset($_COOKIE['zmBrowserSizes'])) {
       $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
@@ -391,6 +392,7 @@ foreach ($monitors as $monitor) {
       $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
+      $monitor->initial_scale($monitor_options['scale']);
     }
     echo $monitor->getStreamHTML($monitor_options);
   }

@@ -349,6 +349,7 @@ class Monitor extends ZM_Object {
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
     'StartupDelay' => 0,
+    'initial_scale' => array('default'=>100, 'do_not_update'=>1),
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -879,6 +880,7 @@ class Monitor extends ZM_Object {
     }
     return $this->Groups;
   }
+
   function connKey($new='') {
     if ($new)
       $this->connKey = $new;

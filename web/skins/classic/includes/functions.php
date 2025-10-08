@@ -452,7 +452,7 @@ function output_script($files, $cache_bust=true, $must_exist=true) {
 }
 
 function output_script_if_exists($files, $cache_bust=true) {
-  return output_script($files, $cash_bust, false);
+  return output_script($files, $cache_bust, false);
 }
 
 function output_cache_busted_stylesheet_links($files) {

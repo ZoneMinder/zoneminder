@@ -915,7 +915,7 @@ void Event::Run() {
     // Try another
     Warning("Failed creating event dir at %s", storage->Path());
 
-    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u AND `Enabled`=true", storage->Id());
     if (monitor->ServerId())
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 

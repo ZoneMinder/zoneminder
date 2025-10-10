@@ -1433,7 +1433,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
-        Warning( "Starting video first_dts will become %" PRId64, ipkt->dts);
+        Debug(1, "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;
       }
       opkt->dts = ipkt->dts - video_first_dts;

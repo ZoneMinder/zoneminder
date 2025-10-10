@@ -494,7 +494,7 @@ class Monitor extends ZM_Object {
 
   public function __call($fn, array $args) {
     if (count($args)) {
-      if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {
+      if (is_array($this->defaults[$fn]) and isset($this->defaults[$fn]['type']) and $this->defaults[$fn]['type'] == 'set') {
         $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];

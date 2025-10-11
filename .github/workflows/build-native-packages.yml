@@ -21,14 +21,14 @@ jobs:
       image: ${{ matrix.distro }}
     steps:
       name: Prep apt
-        run:
+        run: |
           set -eux
           if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src' /etc/apt/sources.list; then
             sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> /etc/apt/sources.list
           fi
           apt-get update
       name: Install build tools
-        run:
+        run: |
           set -eux
           apt install -y --no-install-recommends \
             git ca-certificates gnupg lsb-release tzdata \
@@ -41,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0
       name: Import GPG key (Debian)
-        run:
+        run: |
           set -eux
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
@@ -53,21 +53,21 @@ jobs:
           chmod 600 ~/.gnupg/*
           export GPG_TTY=$(tty || true)
       name: Install build-deps from debian/control
-        run:
+        run: |
           set -eux
           mk-build-deps -ir -t "apt-get -y --no-install-recommends" debian/control
       name: Build (signed)
         env:
           DEB_BUILD_OPTIONS: "parallel=$(nproc)"
           # gpg picks passphrase from environment via loopback
-        run:
+        run: |
           set -eux
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
           dpkg-buildpackage -k"$DEB_SIGN_KEYID" -b
       name: Collect .deb artifacts (incl. signed metadata & public key)
-        run:
+        run: |
           set -eux
           mkdir -p artifacts/deb
           shopt -s nullglob
@@ -102,7 +102,7 @@ jobs:
       image: ${{ matrix.distro }}
     steps:
       name: Install build tools
-        run:
+        run: |
           set -eux
           if command -v dnf >/dev/null; then PM=dnf; else PM=yum; fi
           $PM -y install git rpm-build make gcc gcc-c++ cmake pkgconfig ccache which \
@@ -112,7 +112,7 @@ jobs:
         with:
           fetch-depth: 0
       name: Import GPG key (RPM)
-        run:
+        run: |
           set -eux
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
@@ -129,19 +129,19 @@ jobs:
 %__gpg_sign_cmd %{__gpg} gpg --batch --no-verbose --no-armor --pinentry-mode loopback --passphrase %{?__gpg_passphrase} -u "%{_gpg_name}" -sbo %{__signature_filename} %{__plaintext_filename}
 EOF
       name: Prepare rpmbuild tree & source
-        run:
+        run: |
           set -eux
           mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           VERSION="${GITHUB_REF_NAME:-dev}"
           git archive --format=tar --prefix=zoneminder-${VERSION}/ HEAD | gzip -9 > rpmbuild/SOURCES/zoneminder-${VERSION}.tar.gz
           cp packaging/zoneminder.spec rpmbuild/SPECS/zoneminder.spec
       name: Install BuildRequires
-        run:
+        run: |
           set -eux
           if command -v dnf >/dev/null; then PM=dnf; else PM=yum; fi
           $PM -y builddep rpmbuild/SPECS/zoneminder.spec || true
       name: Build RPMs
-        run:
+        run: |
           set -eux
           rpmbuild -ba rpmbuild/SPECS/zoneminder.spec \
             --define "_topdir $(pwd)/rpmbuild" \
@@ -149,13 +149,13 @@ EOF
       name: Sign RPMs
         env:
           __gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        run:
+        run: |
           set -eux
           find rpmbuild/RPMS -name "*.rpm" -print0 | xargs -0 -n1 -I{} rpmsign --addsign {}
           # quick verify (non-fatal if gpg keyring missing pub)
           rpm -Kv rpmbuild/RPMS/*/*.rpm || true
       name: Collect .rpm artifacts (incl. public key)
-        run:
+        run: |
           set -eux
           mkdir -p artifacts/rpm
           find rpmbuild/RPMS -name "*.rpm" -exec cp -v {} artifacts/rpm/ \;

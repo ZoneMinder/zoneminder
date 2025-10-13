@@ -21,11 +21,11 @@ jobs:
           - os: ubuntu
             dist: jammy
             arch: x86_64
-          - os: debian
-            dist: bookworm
+          - os: ubuntu
+            dist: noble
             arch: x86_64
           - os: debian
-            dist: trixie
+            dist: bookworm
             arch: x86_64
           - os: debian
             dist: bullseye
@@ -36,11 +36,11 @@ jobs:
           - os: ubuntu
             dist: jammy
             arch: aarch64
-          - os: debian
-            dist: bookworm
+          - os: ubuntu
+            dist: noble
             arch: aarch64
           - os: debian
-            dist: trixie
+            dist: bookworm
             arch: aarch64
     runs-on: ubuntu-latest
 

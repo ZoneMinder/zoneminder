@@ -97,7 +97,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
 
         if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          if (prev_packet->packet->dts >= add_packet->packet->dts) {
+          if (prev_packet->packet->dts > add_packet->packet->dts) {
             Debug(1, "Have out of order packets");
             ZM_DUMP_PACKET(prev_packet->packet, "queued_packet");
             ZM_DUMP_PACKET(add_packet->packet, "add_packet");
@@ -108,7 +108,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         rit++;
       }  // end while
     }
-    
+
     if (!max_keyframe_interval_ and add_packet->keyframe and (video_stream_id==add_packet->packet->stream_index)) {
       auto rit = pktQueue.rbegin();
       int packet_count = 0;
@@ -219,13 +219,13 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
 void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // Only do queueCleaning if we are adding a video keyframe, so that we guarantee that there is one.
-  // No good.  Have to satisfy two conditions: 
+  // No good.  Have to satisfy two conditions:
   // 1. packetqueue starts with a video keyframe
   // 2. Have minimum # of video packets
   // 3. No packets can be locked
   // 4. No iterator can point to one of the packets
   //
-  // So start at the beginning, counting video packets until the next keyframe.  
+  // So start at the beginning, counting video packets until the next keyframe.
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
   //
   // One assumption that we can make is that there will be packets in the queue. Because we call it while holding a locked packet
@@ -237,7 +237,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
         add_packet->keyframe
         and
         (packet_counts[video_stream_id] > pre_event_video_packet_count)
-        and 
+        and
         *(pktQueue.begin()) != add_packet
         )
      ) {
@@ -307,7 +307,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     delete lp;
     return;
   }  // end if first packet not locked
- 
+
   if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
     Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
         video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);

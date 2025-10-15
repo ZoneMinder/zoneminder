@@ -1,4 +1,5 @@
 name: build-native-packages-signed
+
 on:
   push:
     tags: ["v*"]
@@ -6,9 +7,10 @@ on:
 permissions:
   contents: write
 env:
-  GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-  GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
+  GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+  GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY_B64: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY_B64 }}
+
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
@@ -19,27 +21,38 @@ jobs:
         distro: ["debian:13", "debian:12", "ubuntu:22.04", "ubuntu:24.04"]
     container:
       image: ${{ matrix.distro }}
+
     steps:
-name: Prep apt
-        run:
+      - name: Prep apt
+        run: |
           set -eux
-          if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src' /etc/apt/sources.list; then
-            sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> /etc/apt/sources.list
+          if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src'\
+            /etc/apt/sources.list; then
+            sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> \
+              /etc/apt/sources.list
           fi
           apt-get update
-name: Install build tools
-        run:
+      - name: Install build tools
+        run: |
           set -eux
-          apt-get install -y --no-install-recommends \
+          apt install -y --no-install-recommends \
             git ca-certificates gnupg lsb-release tzdata \
             build-essential devscripts debhelper equivs fakeroot \
             cmake pkg-config ccache
-name: Checkout
-        uses: actions/checkout@v4
+          apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
+            libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
+            libswresample-dev libswscale-dev libbz2-dev libjpeg-turbo8-dev \
+            libturbojpeg0-dev default-libmysqlclient-dev \
+            libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
+            libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \
+            libmosquittopp-dev
+
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-name: Import GPG key (Debian)
-        run:
+      - name: Import GPG key (Debian)
+        run: |
           set -eux
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
@@ -50,22 +63,23 @@ name: Import GPG key (Debian)
           gpg --batch --armor --export "$GPG_KEY_ID" > public.asc
           chmod 600 ~/.gnupg/*
           export GPG_TTY=$(tty || true)
-name: Install build-deps from debian/control
-        run:
+      - name: Install build-deps from debian/control
+        run: |
           set -eux
-          mk-build-deps -ir -t "apt-get -y --no-install-recommends" debian/control
-name: Build (signed)
+          mk-build-deps -ir -t "apt-get -y --no-install-recommends" \
+            debian/control
+      - name: Build (signed)
         env:
           DEB_BUILD_OPTIONS: "parallel=$(nproc)"
           # gpg picks passphrase from environment via loopback
-        run:
+        run: |
           set -eux
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
           dpkg-buildpackage -k"$DEB_SIGN_KEYID" -b
-name: Collect .deb artifacts (incl. signed metadata & public key)
-        run:
+      - name: Collect .deb artifacts (incl. signed metadata & public key)
+        run: |
           set -eux
           mkdir -p artifacts/deb
           shopt -s nullglob
@@ -74,96 +88,32 @@ name: Collect .deb artifacts (incl. signed metadata & public key)
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true
-name: Upload .deb artifacts
+      - name: Upload .deb artifacts
         uses: actions/upload-artifact@v4
         with:
           name: debian-${{ matrix.distro }}
           path: artifacts/deb
-  build-rpm:
-    name: Build & sign .rpm (${{ matrix.distro }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        distro: ["rockylinux:9", "fedora:40"]
-    container:
-      image: ${{ matrix.distro }}
-    steps:
-name: Install build tools
-        run:
-          set -eux
-          if command -v dnf >/dev/null; then PM=dnf; else PM=yum; fi
-          $PM -y install git rpm-build make gcc gcc-c++ cmake pkgconfig ccache which \
-            redhat-rpm-config gnupg2 rpm-sign
-name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-name: Import GPG key (RPM)
-        run:
-          set -eux
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "$GPG_PRIVATE_KEY_B64" | base64 -d > /tmp/priv.asc
-          gpg --batch --import /tmp/priv.asc
-          gpg --batch --yes --edit-key "$GPG_KEY_ID" trust quit <<< "5\ny"
-          gpg --batch --armor --export "$GPG_KEY_ID" > public.asc
-          printf '%%_signature gpg\n'            >> ~/.rpmmacros
-          printf '%%_gpg_name %s\n' "$GPG_KEY_ID" >> ~/.rpmmacros
-          # custom sign cmd with loopback pinentry; rpmsign passes files via macros
-          cat >> ~/.rpmmacros <<'EOF'
-%__gpg /usr/bin/gpg
-%__gpg_sign_cmd %{__gpg} gpg --batch --no-verbose --no-armor --pinentry-mode loopback --passphrase %{?__gpg_passphrase} -u "%{_gpg_name}" -sbo %{__signature_filename} %{__plaintext_filename}
-EOF
-name: Prepare rpmbuild tree & source
-        run:
-          set -eux
-          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
-          VERSION="${GITHUB_REF_NAME:-dev}"
-          git archive --format=tar --prefix=zoneminder-${VERSION}/ HEAD | gzip -9 > rpmbuild/SOURCES/zoneminder-${VERSION}.tar.gz
-          cp packaging/zoneminder.spec rpmbuild/SPECS/zoneminder.spec
-name: Install BuildRequires
-        run:
-          set -eux
-          if command -v dnf >/dev/null; then PM=dnf; else PM=yum; fi
-          $PM -y builddep rpmbuild/SPECS/zoneminder.spec || true
-name: Build RPMs
-        run:
-          set -eux
-          rpmbuild -ba rpmbuild/SPECS/zoneminder.spec \
-            --define "_topdir $(pwd)/rpmbuild" \
-            --define "version ${GITHUB_REF_NAME:-dev}"
-name: Sign RPMs
+      - name: Publish to ZMREPO
+        uses: easingthemes/ssh-deploy@main
         env:
-          __gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        run:
-          set -eux
-          find rpmbuild/RPMS -name "*.rpm" -print0 | xargs -0 -n1 -I{} rpmsign --addsign {}
-          # quick verify (non-fatal if gpg keyring missing pub)
-          rpm -Kv rpmbuild/RPMS/*/*.rpm || true
-name: Collect .rpm artifacts (incl. public key)
-        run:
-          set -eux
-          mkdir -p artifacts/rpm
-          find rpmbuild/RPMS -name "*.rpm" -exec cp -v {} artifacts/rpm/ \;
-          cp -v public.asc artifacts/rpm/
-name: Upload .rpm artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: rpm-${{ matrix.distro }}
-          path: artifacts/rpm
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: artifacts/deb/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/master/mini-dinstall/incoming/
+
   release:
     name: Create GitHub Release (on tag)
-    needs: [build-debian, build-rpm]
+    needs: build-debian
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
         with:
           path: dist
-name: Create release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/**/*

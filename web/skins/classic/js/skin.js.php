@@ -151,10 +151,7 @@ if ($user) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;
       } else if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
         echo 'const '. $name . ' = '.$c['Value'].';'.PHP_EOL;
-      } else if (isset($c['Type']) and $c['Type'] == 'string') {
-        echo 'const '. $name . ' = '.json_encode($c['Value']).';'.PHP_EOL;
       } else {
-        ZM\Debug(print_r($c['Value'], true));
         echo 'const '. $name . ' = '.json_encode($c['Value']).';'.PHP_EOL;
       }
     }

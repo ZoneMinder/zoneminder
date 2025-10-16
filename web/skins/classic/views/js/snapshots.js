@@ -42,17 +42,17 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0
   })
-    .done(function(data) {
-      ajax = null;
-      var rows = processRows(data.rows);
-      // rearrange the result into what bootstrap-table expects
-      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
-    })
-    .fail(function(jqXHR) {
-      ajax = null;
-      logAjaxFail(jqXHR);
-      table.bootstrapTable('refresh');
-    });
+      .done(function(data) {
+        ajax = null;
+        var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(function(jqXHR) {
+        ajax = null;
+        logAjaxFail(jqXHR);
+        table.bootstrapTable('refresh');
+      });
 }
 
 function processRows(rows) {

@@ -41,7 +41,7 @@ jobs:
             cmake pkg-config ccache
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
-            libswresample-dev libswscale-dev libbz2-dev libjpeg-turbo8-dev \
+            libswresample-dev libswscale-dev libbz2-dev \
             libturbojpeg0-dev default-libmysqlclient-dev \
             libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
             libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \

@@ -60,7 +60,7 @@ jobs:
           echo "$GPG_PRIVATE_KEY_B64" | base64 -d > /tmp/priv.asc
           gpg --batch --import /tmp/priv.asc
           gpg --batch --yes --edit-key "$GPG_KEY_ID" trust quit <<< "5\ny"
-          gpg --batch --armor --export "$GPG_KEY_ID" > public.asc
+          gpg --batch --armor --export "$GPG_KEY_ID" --output public.asc
           chmod 600 ~/.gnupg/*
           export GPG_TTY=$(tty || true)
       - name: Install build-deps from debian/control

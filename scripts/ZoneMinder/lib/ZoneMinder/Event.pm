@@ -419,7 +419,7 @@ sub delete {
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
 
     my $storage = $event->Storage();
-    if ($event->DiskSpace()) {
+    if ($event->DiskSpace() and $storage->Id()) {
       $storage->lock_and_load();
       $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
     }

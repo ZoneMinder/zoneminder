@@ -6,7 +6,7 @@ export declare interface AbrComponentAPI extends ComponentAPI {
     resetEstimator(abrEwmaDefaultEstimate: number): any;
 }
 
-export declare class AbrController implements AbrComponentAPI {
+export declare class AbrController extends Logger implements AbrComponentAPI {
     protected hls: Hls;
     private lastLevelLoadSec;
     private lastLoadedFragLevel;
@@ -19,6 +19,8 @@ export declare class AbrController implements AbrComponentAPI {
     private fragCurrent;
     private partCurrent;
     private bitrateTestDelay;
+    private rebufferNotice;
+    private supportedCache;
     bwEstimator: EwmaBandWidthEstimator;
     constructor(hls: Hls);
     resetEstimator(abrEwmaDefaultEstimate?: number): void;
@@ -48,6 +50,7 @@ export declare class AbrController implements AbrComponentAPI {
     private getBwEstimate;
     private findBestLevel;
     set nextAutoLevel(nextLevel: number);
+    protected deriveNextAutoLevel(nextLevel: number): number;
 }
 
 export declare type ABRControllerConfig = {
@@ -67,22 +70,50 @@ export declare type ABRControllerConfig = {
     maxLoadingDelay: number;
 };
 
+export declare type AssetListJSON = {
+    ASSETS: Array<{
+        URI: string;
+        DURATION: string;
+    }>;
+};
+
+export declare interface AssetListLoadedData {
+    event: InterstitialEventWithAssetList;
+    assetListResponse: AssetListJSON;
+    networkDetails: any;
+}
+
+export declare interface AssetListLoadingData {
+    event: InterstitialEventWithAssetList;
+}
+
+export declare type AttachMediaSourceData = {
+    media: HTMLMediaElement;
+    mediaSource: MediaSource | null;
+    tracks: SourceBufferTrackSet;
+};
+
 export declare class AttrList {
     [key: string]: any;
-    constructor(attrs: string | Record<string, any>);
+    constructor(attrs: string | Record<string, any>, parsed?: Pick<ParsedMultivariantPlaylist | LevelDetails, 'variableList' | 'hasVariableRefs' | 'playlistParsingError'>);
     get clientAttrs(): string[];
     decimalInteger(attrName: string): number;
-    hexadecimalInteger(attrName: string): Uint8Array | null;
+    hexadecimalInteger(attrName: string): Uint8Array<ArrayBuffer> | null;
     hexadecimalIntegerAsNumber(attrName: string): number;
     decimalFloatingPoint(attrName: string): number;
     optionalFloat(attrName: string, defaultValue: number): number;
     enumeratedString(attrName: string): string | undefined;
+    enumeratedStringList<T extends {
+        [key: string]: boolean;
+    }>(attrName: string, dict: T): {
+        [key in keyof T]: boolean;
+    };
     bool(attrName: string): boolean;
     decimalResolution(attrName: string): {
         width: number;
         height: number;
     } | undefined;
-    static parseAttrList(input: string): Record<string, any>;
+    static parseAttrList(input: string, parsed?: Pick<ParsedMultivariantPlaylist | LevelDetails, 'variableList' | 'hasVariableRefs' | 'playlistParsingError'>): Record<string, string>;
 }
 
 export declare type AudioPlaylistType = 'AUDIO';
@@ -99,9 +130,9 @@ export declare type AudioSelectionOption = {
 };
 
 export declare class AudioStreamController extends BaseStreamController implements NetworkComponentAPI {
-    private videoBuffer;
-    private videoTrackCC;
-    private waitingVideoCC;
+    private mainAnchor;
+    private mainFragLoading;
+    private audioOnly;
     private bufferedTrack;
     private switchingTrack;
     private trackId;
@@ -112,28 +143,30 @@ export declare class AudioStreamController extends BaseStreamController implemen
     private cachedTrackLoadedData;
     constructor(hls: Hls, fragmentTracker: FragmentTracker, keyLoader: KeyLoader);
     protected onHandlerDestroying(): void;
-    private _registerListeners;
-    private _unregisterListeners;
-    onInitPtsFound(event: Events.INIT_PTS_FOUND, { frag, id, initPTS, timescale }: InitPTSFoundData): void;
-    startLoad(startPosition: number): void;
+    private resetItem;
+    protected registerListeners(): void;
+    protected unregisterListeners(): void;
+    onInitPtsFound(event: Events.INIT_PTS_FOUND, { frag, id, initPTS, timescale, trackId }: InitPTSFoundData): void;
+    protected getLoadPosition(): number;
+    private syncWithAnchor;
+    startLoad(startPosition: number, skipSeekToStartPosition?: boolean): void;
     doTick(): void;
-    clearWaitingFragment(): void;
     protected resetLoadingState(): void;
     protected onTickEnd(): void;
     private doTickIdle;
-    protected getMaxBufferLength(mainBufferLength?: number): number;
-    onMediaDetaching(): void;
-    onAudioTracksUpdated(event: Events.AUDIO_TRACKS_UPDATED, { audioTracks }: AudioTracksUpdatedData): void;
-    onAudioTrackSwitching(event: Events.AUDIO_TRACK_SWITCHING, data: AudioTrackSwitchingData): void;
-    onManifestLoading(): void;
-    onLevelLoaded(event: Events.LEVEL_LOADED, data: LevelLoadedData): void;
-    onAudioTrackLoaded(event: Events.AUDIO_TRACK_LOADED, data: TrackLoadedData): void;
+    protected onMediaDetaching(event: Events.MEDIA_DETACHING, data: MediaDetachingData): void;
+    private onAudioTracksUpdated;
+    private onAudioTrackSwitching;
+    protected onManifestLoading(): void;
+    private onLevelLoaded;
+    private onAudioTrackLoaded;
     _handleFragmentLoadProgress(data: FragLoadedData): void;
     protected _handleFragmentLoadComplete(fragLoadedData: FragLoadedData): void;
-    onBufferReset(): void;
-    onBufferCreated(event: Events.BUFFER_CREATED, data: BufferCreatedData): void;
-    onFragBuffered(event: Events.FRAG_BUFFERED, data: FragBufferedData): void;
-    private onError;
+    private onBufferReset;
+    private onBufferCreated;
+    private onFragLoading;
+    private onFragBuffered;
+    protected onError(event: Events.ERROR, data: ErrorData): void;
     private onBufferFlushing;
     private onBufferFlushed;
     private _handleTransmuxComplete;
@@ -169,6 +202,7 @@ export declare class AudioTrackController extends BasePlaylistController {
     private setAudioTrack;
     private findTrackId;
     protected loadPlaylist(hlsUrlParameters?: HlsUrlParameters): void;
+    protected loadingPlaylist(audioTrack: MediaPlaylist, hlsUrlParameters: HlsUrlParameters | undefined): void;
 }
 
 export declare interface AudioTrackLoadedData extends TrackLoadedData {
@@ -184,27 +218,40 @@ export declare interface AudioTrackSwitchedData extends MediaPlaylist {
 export declare interface AudioTrackSwitchingData extends MediaPlaylist {
 }
 
+export declare interface AudioTrackUpdatedData {
+    details: LevelDetails;
+    id: number;
+    groupId: string;
+}
+
 export declare interface BackBufferData {
     bufferEnd: number;
 }
 
-export declare class BasePlaylistController implements NetworkComponentAPI {
+declare type Base = {
+    url: string;
+};
+
+export declare type BaseData = {
+    url: string;
+};
+
+export declare class BasePlaylistController extends Logger implements NetworkComponentAPI {
     protected hls: Hls;
-    protected timer: number;
-    protected requestScheduled: number;
     protected canLoad: boolean;
-    protected log: (msg: any) => void;
-    protected warn: (msg: any) => void;
+    private timer;
     constructor(hls: Hls, logPrefix: string);
     destroy(): void;
-    protected clearTimer(): void;
+    private clearTimer;
     startLoad(): void;
     stopLoad(): void;
     protected switchParams(playlistUri: string, previous: LevelDetails | undefined, current: LevelDetails | undefined): HlsUrlParameters | undefined;
     protected loadPlaylist(hlsUrlParameters?: HlsUrlParameters): void;
-    protected shouldLoadPlaylist(playlist: Level | MediaPlaylist | null | undefined): boolean;
-    protected shouldReloadPlaylist(playlist: Level | MediaPlaylist | null | undefined): boolean;
+    protected loadingPlaylist(playlist: Level | MediaPlaylist, hlsUrlParameters?: HlsUrlParameters): void;
+    protected shouldLoadPlaylist(playlist: Level | MediaPlaylist | null | undefined): playlist is Level | MediaPlaylist;
+    protected getUrlWithDirectives(uri: string, hlsUrlParameters: HlsUrlParameters | undefined): string;
     protected playlistLoaded(index: number, data: LevelLoadedData | AudioTrackLoadedData | TrackLoadedData, previousDetails?: LevelDetails): void;
+    protected scheduleLoading(levelOrTrack: Level | MediaPlaylist, deliveryDirectives?: HlsUrlParameters, updatedDetails?: LevelDetails): void;
     private getDeliveryDirectives;
     protected checkRetry(errorEvent: ErrorData): boolean;
 }
@@ -212,25 +259,34 @@ export declare class BasePlaylistController implements NetworkComponentAPI {
 export declare class BaseSegment {
     private _byteRange;
     private _url;
-    readonly baseurl: string;
+    private _stats;
+    private _streams;
+    readonly base: Base;
     relurl?: string;
-    elementaryStreams: ElementaryStreams;
-    constructor(baseurl: string);
+    constructor(base: Base | string);
     setByteRange(value: string, previous?: BaseSegment): void;
+    get baseurl(): string;
     get byteRange(): [number, number] | [];
     get byteRangeStartOffset(): number | undefined;
     get byteRangeEndOffset(): number | undefined;
+    get elementaryStreams(): ElementaryStreams;
+    set elementaryStreams(value: ElementaryStreams);
+    get hasStats(): boolean;
+    get hasStreams(): boolean;
+    get stats(): LoadStats;
+    set stats(value: LoadStats);
     get url(): string;
     set url(value: string);
+    clearElementaryStreamInfo(): void;
 }
 
 export declare class BaseStreamController extends TaskLoop implements NetworkComponentAPI {
     protected hls: Hls;
-    protected fragPrevious: Fragment | null;
+    protected fragPrevious: MediaFragment | null;
     protected fragCurrent: Fragment | null;
     protected fragmentTracker: FragmentTracker;
     protected transmuxer: TransmuxerInterface | null;
-    protected _state: string;
+    protected _state: (typeof State)[keyof typeof State];
     protected playlistType: PlaylistLevelType;
     protected media: HTMLMediaElement | null;
     protected mediaBuffer: Bufferable | null;
@@ -240,7 +296,6 @@ export declare class BaseStreamController extends TaskLoop implements NetworkCom
     protected nextLoadPosition: number;
     protected startPosition: number;
     protected startTimeOffset: number | null;
-    protected loadedmetadata: boolean;
     protected retryDate: number;
     protected levels: Array<Level> | null;
     protected fragmentLoader: FragmentLoader;
@@ -248,66 +303,74 @@ export declare class BaseStreamController extends TaskLoop implements NetworkCom
     protected levelLastLoaded: Level | null;
     protected startFragRequested: boolean;
     protected decrypter: Decrypter;
-    protected initPTS: RationalTimestamp[];
+    protected initPTS: TimestampOffset[];
     protected buffering: boolean;
-    protected onvseeking: EventListener | null;
-    protected onvended: EventListener | null;
-    private readonly logPrefix;
-    protected log: (msg: any) => void;
-    protected warn: (msg: any) => void;
+    protected loadingParts: boolean;
+    private loopSn?;
     constructor(hls: Hls, fragmentTracker: FragmentTracker, keyLoader: KeyLoader, logPrefix: string, playlistType: PlaylistLevelType);
+    protected registerListeners(): void;
+    protected unregisterListeners(): void;
     protected doTick(): void;
     protected onTickEnd(): void;
     startLoad(startPosition: number): void;
     stopLoad(): void;
+    get startPositionValue(): number;
+    get bufferingEnabled(): boolean;
     pauseBuffering(): void;
     resumeBuffering(): void;
+    get inFlightFrag(): InFlightData;
     protected _streamEnded(bufferInfo: BufferInfo, levelDetails: LevelDetails): boolean;
-    protected getLevelDetails(): LevelDetails | undefined;
+    getLevelDetails(): LevelDetails | undefined;
+    protected get timelineOffset(): number;
     protected onMediaAttached(event: Events.MEDIA_ATTACHED, data: MediaAttachedData): void;
-    protected onMediaDetaching(): void;
-    protected onMediaSeeking(): void;
-    protected onMediaEnded(): void;
+    protected onMediaDetaching(event: Events.MEDIA_DETACHING, data: MediaDetachingData): void;
+    protected onManifestLoading(): void;
+    protected onError(event: Events.ERROR, data: ErrorData): void;
+    protected onMediaSeeking: () => void;
+    protected onMediaEnded: () => void;
     protected onManifestLoaded(event: Events.MANIFEST_LOADED, data: ManifestLoadedData): void;
     protected onHandlerDestroying(): void;
     protected onHandlerDestroyed(): void;
-    protected loadFragment(frag: Fragment, level: Level, targetBufferTime: number): void;
+    protected loadFragment(frag: MediaFragment, level: Level, targetBufferTime: number): void;
     private _loadFragForPlayback;
     protected clearTrackerIfNeeded(frag: Fragment): void;
     protected checkLiveUpdate(details: LevelDetails): void;
+    protected waitForLive(levelInfo: Level): boolean | undefined;
     protected flushMainBuffer(startOffset: number, endOffset: number, type?: SourceBufferName | null): void;
-    protected _loadInitSegment(frag: Fragment, level: Level): void;
+    protected _loadInitSegment(fragment: Fragment, level: Level): void;
     private completeInitSegmentLoad;
+    protected unhandledEncryptionError(initSegment: InitSegmentData, frag: Fragment): boolean;
     protected fragContextChanged(frag: Fragment | null): boolean;
     protected fragBufferedComplete(frag: Fragment, part: Part | null): void;
-    protected seekToStartPos(): void;
     protected _handleFragmentLoadComplete(fragLoadedEndData: PartsLoadedData): void;
     protected _handleFragmentLoadProgress(frag: PartsLoadedData | FragLoadedData): void;
     protected _doFragLoad(frag: Fragment, level: Level, targetBufferTime?: number | null, progressCallback?: FragmentLoadProgressCallback): Promise<PartsLoadedData | FragLoadedData | null>;
     private doFragPartsLoad;
     private handleFragLoadError;
     protected _handleTransmuxerFlush(chunkMeta: ChunkMetadata): void;
+    private shouldLoadParts;
     protected getCurrentContext(chunkMeta: ChunkMetadata): {
-        frag: Fragment;
+        frag: MediaFragment;
         part: Part | null;
         level: Level;
     } | null;
     protected bufferFragmentData(data: RemuxedTrack, frag: Fragment, part: Part | null, chunkMeta: ChunkMetadata, noBacktracking?: boolean): void;
     protected flushBufferGap(frag: Fragment): void;
     protected getFwdBufferInfo(bufferable: Bufferable | null, type: PlaylistLevelType): BufferInfo | null;
-    protected getFwdBufferInfoAtPos(bufferable: Bufferable | null, pos: number, type: PlaylistLevelType): BufferInfo | null;
+    protected getFwdBufferInfoAtPos(bufferable: Bufferable | null, pos: number, type: PlaylistLevelType, maxBufferHole: number): BufferInfo | null;
     protected getMaxBufferLength(levelBitrate?: number): number;
     protected reduceMaxBufferLength(threshold: number, fragDuration: number): boolean;
     protected getAppendedFrag(position: number, playlistType?: PlaylistLevelType): Fragment | null;
     protected getNextFragment(pos: number, levelDetails: LevelDetails): Fragment | null;
     protected isLoopLoading(frag: Fragment, targetBufferTime: number): boolean;
     protected getNextFragmentLoopLoading(frag: Fragment, levelDetails: LevelDetails, bufferInfo: BufferInfo, playlistType: PlaylistLevelType, maxBufLen: number): Fragment | null;
+    protected get primaryPrefetch(): boolean;
+    protected filterReplacedPrimary(frag: MediaFragment | null, details: LevelDetails | undefined): MediaFragment | null;
     mapToInitFragWhenRequired(frag: Fragment | null): typeof frag;
     getNextPart(partList: Part[], frag: Fragment, targetBufferTime: number): number;
     private loadedEndOfParts;
-    protected getInitialLiveFragment(levelDetails: LevelDetails, fragments: Array<Fragment>): Fragment | null;
-    protected getFragmentAtPosition(bufferEnd: number, end: number, levelDetails: LevelDetails): Fragment | null;
-    protected synchronizeToLiveEdge(levelDetails: LevelDetails): void;
+    protected getInitialLiveFragment(levelDetails: LevelDetails): MediaFragment | null;
+    protected getFragmentAtPosition(bufferEnd: number, end: number, levelDetails: LevelDetails): MediaFragment | null;
     protected alignPlaylists(details: LevelDetails, previousDetails: LevelDetails | undefined, switchDetails: LevelDetails | undefined): number;
     protected waitForCdnTuneIn(details: LevelDetails): boolean | 0;
     protected setStartPosition(details: LevelDetails, sliding: number): void;
@@ -315,21 +378,42 @@ export declare class BaseStreamController extends TaskLoop implements NetworkCom
     private handleFragLoadAborted;
     protected resetFragmentLoading(frag: Fragment): void;
     protected onFragmentOrKeyLoadError(filterType: PlaylistLevelType, data: ErrorData): void;
+    protected checkRetryDate(): void;
     protected reduceLengthAndFlushBuffer(data: ErrorData): boolean;
     protected resetFragmentErrors(filterType: PlaylistLevelType): void;
     protected afterBufferFlushed(media: Bufferable, bufferType: SourceBufferName, playlistType: PlaylistLevelType): void;
     protected resetLoadingState(): void;
-    protected resetStartWhenNotLoaded(level: Level | null): void;
-    protected resetWhenMissingContext(chunkMeta: ChunkMetadata): void;
+    private resetStartWhenNotLoaded;
+    protected resetWhenMissingContext(chunkMeta: ChunkMetadata | Fragment): void;
     protected removeUnbufferedFrags(start?: number): void;
     private updateLevelTiming;
+    private playlistLabel;
+    private fragInfo;
+    private treatAsGap;
     protected resetTransmuxer(): void;
     protected recoverWorkerError(data: ErrorData): void;
-    set state(nextState: string);
-    get state(): string;
+    set state(nextState: (typeof State)[keyof typeof State]);
+    get state(): (typeof State)[keyof typeof State];
 }
 
-declare type Bufferable = {
+export declare interface BaseTrack {
+    id: 'audio' | 'main';
+    container: string;
+    codec?: string;
+    supplemental?: string;
+    encrypted?: boolean;
+    levelCodec?: string;
+    pendingCodec?: string;
+    metadata?: {
+        channelCount?: number;
+        width?: number;
+        height?: number;
+    };
+}
+
+export declare type BaseTrackSet = Partial<Record<SourceBufferName, BaseTrack>>;
+
+export declare type Bufferable = {
     buffered: TimeRanges;
 };
 
@@ -347,84 +431,114 @@ export declare interface BufferAppendingData {
     frag: Fragment;
     part: Part | null;
     chunkMeta: ChunkMetadata;
+    offset?: number | undefined;
     parent: PlaylistLevelType;
-    data: Uint8Array;
+    data: Uint8Array<ArrayBuffer>;
 }
 
 export declare interface BufferCodecsData {
-    video?: Track;
-    audio?: Track;
+    video?: ParsedTrack;
+    audio?: ParsedTrack;
+    audiovideo?: ParsedTrack;
+    tracks?: BaseTrackSet;
 }
 
-export declare class BufferController implements ComponentAPI {
+export declare class BufferController extends Logger implements ComponentAPI {
+    private hls;
+    private fragmentTracker;
     private details;
     private _objectUrl;
     private operationQueue;
-    private listeners;
-    private hls;
-    bufferCodecEventsExpected: number;
-    private _bufferCodecEventsTotal;
-    media: HTMLMediaElement | null;
-    mediaSource: MediaSource | null;
+    private bufferCodecEventsTotal;
+    private media;
+    private mediaSource;
     private lastMpegAudioChunk;
+    private blockedAudioAppend;
+    private lastVideoAppendEnd;
     private appendSource;
-    appendErrors: {
-        audio: number;
-        video: number;
-        audiovideo: number;
-    };
-    tracks: TrackSet;
-    pendingTracks: TrackSet;
-    sourceBuffer: SourceBuffers;
-    protected log: (msg: any) => void;
-    protected warn: (msg: any, obj?: any) => void;
-    protected error: (msg: any, obj?: any) => void;
-    constructor(hls: Hls);
+    private transferData?;
+    private overrides?;
+    private appendErrors;
+    private tracks;
+    private sourceBuffers;
+    constructor(hls: Hls, fragmentTracker: FragmentTracker);
     hasSourceTypes(): boolean;
     destroy(): void;
-    protected registerListeners(): void;
-    protected unregisterListeners(): void;
-    private _initSourceBuffer;
+    private registerListeners;
+    private unregisterListeners;
+    transferMedia(): AttachMediaSourceData | null;
+    private initTracks;
     private onManifestLoading;
-    protected onManifestParsed(event: Events.MANIFEST_PARSED, data: ManifestParsedData): void;
-    protected onMediaAttaching(event: Events.MEDIA_ATTACHING, data: MediaAttachingData): void;
+    private onManifestParsed;
+    private onMediaAttaching;
+    private assignMediaSource;
+    private attachTransferred;
+    private get mediaSourceOpenOrEnded();
     private _onEndStreaming;
     private _onStartStreaming;
-    protected onMediaDetaching(): void;
-    protected onBufferReset(): void;
+    private onMediaDetaching;
+    private onBufferReset;
     private resetBuffer;
-    protected onBufferCodecs(event: Events.BUFFER_CODECS, data: BufferCodecsData): void;
-    protected appendChangeType(type: any, mimeType: any): void;
-    protected onBufferAppending(event: Events.BUFFER_APPENDING, eventData: BufferAppendingData): void;
-    protected onBufferFlushing(event: Events.BUFFER_FLUSHING, data: BufferFlushingData): void;
-    protected onFragParsed(event: Events.FRAG_PARSED, data: FragParsedData): void;
+    private removeBuffer;
+    private resetQueue;
+    private onBufferCodecs;
+    get sourceBufferTracks(): BaseTrackSet;
+    private appendChangeType;
+    private blockAudio;
+    private unblockAudio;
+    private onBufferAppending;
+    private getFlushOp;
+    private onBufferFlushing;
+    private onFragParsed;
     private onFragChanged;
-    protected onBufferEos(event: Events.BUFFER_EOS, data: BufferEOSData): void;
-    protected onLevelUpdated(event: Events.LEVEL_UPDATED, { details }: LevelUpdatedData): void;
-    trimBuffers(): void;
-    flushBackBuffer(currentTime: number, targetDuration: number, targetBackBufferPosition: number): void;
-    flushFrontBuffer(currentTime: number, targetDuration: number, targetFrontBufferPosition: number): void;
+    get bufferedToEnd(): boolean;
+    private onBufferEos;
+    private tracksEnded;
+    private onLevelUpdated;
+    private updateDuration;
+    private onError;
+    private resetAppendErrors;
+    private trimBuffers;
+    private flushBackBuffer;
+    private flushFrontBuffer;
     /**
      * Update Media Source duration to current level duration or override to Infinity if configuration parameter
      * 'liveDurationInfinity` is set to `true`
      * More details: https://github.com/video-dev/hls.js/issues/355
      */
-    private updateMediaElementDuration;
-    updateSeekableRange(levelDetails: any): void;
-    protected checkPendingTracks(): void;
-    protected createSourceBuffers(tracks: TrackSet): void;
+    private getDurationAndRange;
+    private updateMediaSource;
+    private get tracksReady();
+    private checkPendingTracks;
+    private bufferCreated;
+    private createSourceBuffers;
+    private getTrackCodec;
+    private trackSourceBuffer;
     private _onMediaSourceOpen;
     private _onMediaSourceClose;
     private _onMediaSourceEnded;
     private _onMediaEmptied;
     private get mediaSrc();
-    private _onSBUpdateStart;
-    private _onSBUpdateEnd;
-    private _onSBUpdateError;
+    private onSBUpdateStart;
+    private onSBUpdateEnd;
+    private onSBUpdateError;
+    private updateTimestampOffset;
     private removeExecutor;
     private appendExecutor;
+    private blockUntilOpen;
+    private isUpdating;
+    private isQueued;
+    private isPending;
     private blockBuffers;
-    private getSourceBufferTypes;
+    private stepOperationQueue;
+    private append;
+    private appendBlocker;
+    private currentOp;
+    private executeNext;
+    private shiftAndExecuteNext;
+    private get pendingTrackCount();
+    private get sourceBufferCount();
+    private get sourceBufferTypes();
     private addBufferListener;
     private removeBufferListeners;
 }
@@ -441,8 +555,14 @@ export declare type BufferControllerConfig = {
 };
 
 export declare interface BufferCreatedData {
-    tracks: TrackSet;
+    tracks: BufferCreatedTrackSet;
 }
+
+export declare interface BufferCreatedTrack extends BaseTrack {
+    buffer: ExtendedSourceBuffer;
+}
+
+export declare type BufferCreatedTrackSet = Partial<Record<SourceBufferName, BufferCreatedTrack>>;
 
 export declare interface BufferEOSData {
     type?: SourceBufferName;
@@ -464,6 +584,20 @@ export declare type BufferInfo = {
     start: number;
     end: number;
     nextStart?: number;
+    buffered?: BufferTimeRange[];
+    bufferedIndex: number;
+};
+
+/**
+ * Provides methods dealing with buffer length retrieval for example.
+ *
+ * In general, a helper around HTML5 MediaElement TimeRanges gathered from `buffered` property.
+ *
+ * Also @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/buffered
+ */
+export declare type BufferTimeRange = {
+    start: number;
+    end: number;
 };
 
 export declare class CapLevelController implements ComponentAPI {
@@ -509,7 +643,7 @@ export declare type CapLevelControllerConfig = {
  * Keep a CEA-608 screen of 32x15 styled characters
  * @constructor
  */
-declare class CaptionScreen {
+export declare class CaptionScreen {
     rows: Row[];
     currRow: number;
     nrRollUpRows: number | null;
@@ -605,6 +739,8 @@ export declare class CMCDController implements ComponentAPI {
      * Apply CMCD data to a segment request
      */
     private applyFragmentData;
+    private getNextFrag;
+    private getNextPart;
     /**
      * The CMCD object type.
      */
@@ -634,17 +770,23 @@ export declare type CMCDControllerConfig = {
     includeKeys?: string[];
 };
 
+export declare interface CodecsParsed {
+    audioCodec?: string;
+    videoCodec?: string;
+    textCodec?: string;
+    unknownCodecs?: string[];
+}
+
 export declare interface ComponentAPI {
     destroy(): void;
 }
 
-export declare class ContentSteeringController implements NetworkComponentAPI {
+export declare class ContentSteeringController extends Logger implements NetworkComponentAPI {
     private readonly hls;
-    private log;
     private loader;
     private uri;
     private pathwayId;
-    private pathwayPriority;
+    private _pathwayPriority;
     private timeToLoad;
     private reloadTimer;
     private updated;
@@ -657,6 +799,9 @@ export declare class ContentSteeringController implements NetworkComponentAPI {
     constructor(hls: Hls);
     private registerListeners;
     private unregisterListeners;
+    pathways(): string[];
+    get pathwayPriority(): string[] | null;
+    set pathwayPriority(pathwayPriority: string[]);
     startLoad(): void;
     stopLoad(): void;
     clearTimeout(): void;
@@ -680,6 +825,8 @@ export declare type ContentSteeringOptions = {
     pathwayId: string;
 };
 
+export declare const Cues: CuesInterface;
+
 export declare interface CuesInterface {
     newCue(track: TextTrack | null, startTime: number, endTime: number, captionScreen: CaptionScreen): VTTCue[];
 }
@@ -692,34 +839,47 @@ export declare interface CuesParsedData {
 
 export declare class DateRange {
     attr: AttrList;
+    tagAnchor: MediaFragmentRef | null;
+    tagOrder: number;
     private _startDate;
     private _endDate?;
+    private _dateAtEnd?;
+    private _cue?;
     private _badValueForSameId?;
-    constructor(dateRangeAttr: AttrList, dateRangeWithSameId?: DateRange);
+    constructor(dateRangeAttr: AttrList, dateRangeWithSameId?: DateRange | undefined, tagCount?: number);
     get id(): string;
     get class(): string;
+    get cue(): DateRangeCue;
+    get startTime(): number;
     get startDate(): Date;
     get endDate(): Date | null;
     get duration(): number | null;
     get plannedDuration(): number | null;
     get endOnNext(): boolean;
+    get isInterstitial(): boolean;
     get isValid(): boolean;
 }
 
-declare interface DecryptData {
+export declare type DateRangeCue = {
+    pre: boolean;
+    post: boolean;
+    once: boolean;
+};
+
+export declare interface DecryptData {
     uri: string;
     method: string;
     keyFormat: string;
     keyFormatVersions: number[];
-    iv: Uint8Array | null;
-    key: Uint8Array | null;
-    keyId: Uint8Array | null;
-    pssh: Uint8Array | null;
+    iv: Uint8Array<ArrayBuffer> | null;
+    key: Uint8Array<ArrayBuffer> | null;
+    keyId: Uint8Array<ArrayBuffer> | null;
+    pssh: Uint8Array<ArrayBuffer> | null;
     encrypted: boolean;
     isCommonEncryption: boolean;
 }
 
-declare class Decrypter {
+export declare class Decrypter {
     private logEnabled;
     private removePKCS7Padding;
     private subtle;
@@ -730,22 +890,28 @@ declare class Decrypter {
     private currentIV;
     private currentResult;
     private useSoftware;
+    private enableSoftwareAES;
     constructor(config: HlsConfig, { removePKCS7Padding }?: {
         removePKCS7Padding?: boolean | undefined;
     });
     destroy(): void;
     isSync(): boolean;
-    flush(): Uint8Array | null;
+    flush(): Uint8Array<ArrayBuffer> | null;
     reset(): void;
-    decrypt(data: Uint8Array | ArrayBuffer, key: ArrayBuffer, iv: ArrayBuffer): Promise<ArrayBuffer>;
-    softwareDecrypt(data: Uint8Array, key: ArrayBuffer, iv: ArrayBuffer): ArrayBuffer | null;
-    webCryptoDecrypt(data: Uint8Array, key: ArrayBuffer, iv: ArrayBuffer): Promise<ArrayBuffer>;
+    decrypt(data: Uint8Array | ArrayBuffer, key: ArrayBuffer, iv: ArrayBuffer, aesMode: DecrypterAesMode): Promise<ArrayBuffer>;
+    softwareDecrypt(data: Uint8Array, key: ArrayBuffer, iv: ArrayBuffer, aesMode: DecrypterAesMode): ArrayBuffer | null;
+    webCryptoDecrypt(data: Uint8Array<ArrayBuffer>, key: ArrayBuffer, iv: ArrayBuffer, aesMode: DecrypterAesMode): Promise<ArrayBuffer>;
     private onWebCryptoError;
     private getValidChunk;
     private logOnce;
 }
 
-declare type DRMSystemConfiguration = {
+export declare const enum DecrypterAesMode {
+    cbc = 0,
+    ctr = 1
+}
+
+export declare type DRMSystemConfiguration = {
     licenseUrl: string;
     serverCertificateUrl?: string;
     generateRequest?: (this: Hls, initDataType: string, initData: ArrayBuffer | null, keyContext: MediaKeySessionContext) => {
@@ -790,7 +956,7 @@ export declare const enum ElementaryStreamTypes {
  * @class
  * @constructor
  */
-export declare class EMEController implements ComponentAPI {
+export declare class EMEController extends Logger implements ComponentAPI {
     static CDMCleanupPromise: Promise<void> | void;
     private readonly hls;
     private readonly config;
@@ -800,11 +966,9 @@ export declare class EMEController implements ComponentAPI {
     private _requestLicenseFailureCount;
     private mediaKeySessions;
     private keyIdToKeySessionPromise;
+    private mediaKeys;
     private setMediaKeysQueue;
-    private debug;
-    private log;
-    private warn;
-    private error;
+    private bannedKeyIds;
     constructor(hls: Hls);
     destroy(): void;
     private registerListeners;
@@ -817,10 +981,13 @@ export declare class EMEController implements ComponentAPI {
     private getMediaKeysPromise;
     private createMediaKeySessionContext;
     private renewKeySession;
-    private getKeyIdString;
     private updateKeySession;
+    getSelectedKeySystemFormats(): KeySystemFormats[];
+    getKeySystemAccess(keySystemsToAttempt: KeySystems[]): Promise<void>;
+    selectKeySystem(keySystemsToAttempt: KeySystems[]): Promise<KeySystemFormats>;
     selectKeySystemFormat(frag: Fragment): Promise<KeySystemFormats>;
     private getKeyFormatPromise;
+    getKeyStatus(decryptdata: LevelKey): MediaKeyStatus | undefined;
     loadKey(data: KeyLoadedData): Promise<MediaKeySessionContext>;
     private throwIfDestroyed;
     private handleError;
@@ -830,15 +997,17 @@ export declare class EMEController implements ComponentAPI {
     private onWaitingForKey;
     private attemptSetMediaKeys;
     private generateRequestWithPreferredKeySession;
-    private onKeyStatusChange;
+    private getKeyStatuses;
     private fetchServerCertificate;
     private setMediaKeysServerCertificate;
     private renewLicense;
     private unpackPlayReadyKeyMessage;
     private setupLicenseXHR;
     private requestLicense;
+    private onDestroying;
     private onMediaAttached;
     private onMediaDetached;
+    private _clear;
     private onManifestLoading;
     private onManifestLoaded;
     private removeSession;
@@ -849,25 +1018,23 @@ export declare type EMEControllerConfig = {
     licenseResponseCallback?: (this: Hls, xhr: XMLHttpRequest, url: string, keyContext: MediaKeySessionContext) => ArrayBuffer;
     emeEnabled: boolean;
     widevineLicenseUrl?: string;
-    drmSystems: DRMSystemsConfiguration;
-    drmSystemOptions: DRMSystemOptions;
+    drmSystems: DRMSystemsConfiguration | undefined;
+    drmSystemOptions: DRMSystemOptions | undefined;
     requestMediaKeySystemAccessFunc: MediaKeyFunc | null;
+    requireKeySystemAccessOnStart: boolean;
 };
 
 export declare const enum ErrorActionFlags {
     None = 0,
     MoveAllAlternatesMatchingHost = 1,
     MoveAllAlternatesMatchingHDCP = 2,
-    SwitchToSDR = 4
+    MoveAllAlternatesMatchingKey = 4,
+    SwitchToSDR = 8
 }
 
-export declare class ErrorController implements NetworkComponentAPI {
+export declare class ErrorController extends Logger implements NetworkComponentAPI {
     private readonly hls;
     private playlistError;
-    private penalizedRenditions;
-    private log;
-    private warn;
-    private error;
     constructor(hls: Hls);
     private registerListeners;
     private unregisterListeners;
@@ -875,10 +1042,11 @@ export declare class ErrorController implements NetworkComponentAPI {
     startLoad(startPosition: number): void;
     stopLoad(): void;
     private getVariantLevelIndex;
+    private getVariantIndex;
+    private variantHasKey;
     private onManifestLoading;
     private onLevelUpdated;
     private onError;
-    private keySystemError;
     private getPlaylistRetryOrSwitchAction;
     private getFragRetryOrSwitchAction;
     private getLevelSwitchAction;
@@ -894,9 +1062,11 @@ export declare interface ErrorData {
     fatal: boolean;
     errorAction?: IErrorAction;
     buffer?: number;
+    bufferInfo?: BufferInfo;
     bytes?: number;
     chunkMeta?: ChunkMetadata;
     context?: PlaylistLoaderContext;
+    decryptdata?: LevelKey;
     event?: keyof HlsListeners | 'demuxerWorker';
     frag?: Fragment;
     part?: Part | null;
@@ -904,6 +1074,9 @@ export declare interface ErrorData {
     levelRetry?: boolean;
     loader?: Loader<LoaderContext>;
     networkDetails?: any;
+    stalled?: {
+        start: number;
+    };
     stats?: LoaderStats;
     mimeType?: string;
     reason?: string;
@@ -911,6 +1084,7 @@ export declare interface ErrorData {
     url?: string;
     parent?: PlaylistLevelType;
     sourceBufferName?: SourceBufferName;
+    interstitial?: InterstitialEvent;
     /**
      * @deprecated Use ErrorData.error
      */
@@ -930,6 +1104,9 @@ export declare enum ErrorDetails {
     KEY_SYSTEM_SESSION_UPDATE_FAILED = "keySystemSessionUpdateFailed",
     KEY_SYSTEM_STATUS_OUTPUT_RESTRICTED = "keySystemStatusOutputRestricted",
     KEY_SYSTEM_STATUS_INTERNAL_ERROR = "keySystemStatusInternalError",
+    KEY_SYSTEM_DESTROY_MEDIA_KEYS_ERROR = "keySystemDestroyMediaKeysError",
+    KEY_SYSTEM_DESTROY_CLOSE_SESSION_ERROR = "keySystemDestroyCloseSessionError",
+    KEY_SYSTEM_DESTROY_REMOVE_SESSION_ERROR = "keySystemDestroyRemoveSessionError",
     MANIFEST_LOAD_ERROR = "manifestLoadError",
     MANIFEST_LOAD_TIMEOUT = "manifestLoadTimeOut",
     MANIFEST_PARSING_ERROR = "manifestParsingError",
@@ -959,8 +1136,13 @@ export declare enum ErrorDetails {
     BUFFER_FULL_ERROR = "bufferFullError",
     BUFFER_SEEK_OVER_HOLE = "bufferSeekOverHole",
     BUFFER_NUDGE_ON_STALL = "bufferNudgeOnStall",
+    ASSET_LIST_LOAD_ERROR = "assetListLoadError",
+    ASSET_LIST_LOAD_TIMEOUT = "assetListLoadTimeout",
+    ASSET_LIST_PARSING_ERROR = "assetListParsingError",
+    INTERSTITIAL_ASSET_ITEM_ERROR = "interstitialAssetItemError",
     INTERNAL_EXCEPTION = "internalException",
     INTERNAL_ABORTED = "aborted",
+    ATTACH_MEDIA_ERROR = "attachMediaError",
     UNKNOWN = "unknown"
 }
 
@@ -977,12 +1159,15 @@ export declare enum Events {
     MEDIA_ATTACHED = "hlsMediaAttached",
     MEDIA_DETACHING = "hlsMediaDetaching",
     MEDIA_DETACHED = "hlsMediaDetached",
+    MEDIA_ENDED = "hlsMediaEnded",
+    STALL_RESOLVED = "hlsStallResolved",
     BUFFER_RESET = "hlsBufferReset",
     BUFFER_CODECS = "hlsBufferCodecs",
     BUFFER_CREATED = "hlsBufferCreated",
     BUFFER_APPENDING = "hlsBufferAppending",
     BUFFER_APPENDED = "hlsBufferAppended",
     BUFFER_EOS = "hlsBufferEos",
+    BUFFERED_TO_END = "hlsBufferedToEnd",
     BUFFER_FLUSHING = "hlsBufferFlushing",
     BUFFER_FLUSHED = "hlsBufferFlushed",
     MANIFEST_LOADING = "hlsManifestLoading",
@@ -1000,11 +1185,13 @@ export declare enum Events {
     AUDIO_TRACK_SWITCHED = "hlsAudioTrackSwitched",
     AUDIO_TRACK_LOADING = "hlsAudioTrackLoading",
     AUDIO_TRACK_LOADED = "hlsAudioTrackLoaded",
+    AUDIO_TRACK_UPDATED = "hlsAudioTrackUpdated",
     SUBTITLE_TRACKS_UPDATED = "hlsSubtitleTracksUpdated",
     SUBTITLE_TRACKS_CLEARED = "hlsSubtitleTracksCleared",
     SUBTITLE_TRACK_SWITCH = "hlsSubtitleTrackSwitch",
     SUBTITLE_TRACK_LOADING = "hlsSubtitleTrackLoading",
     SUBTITLE_TRACK_LOADED = "hlsSubtitleTrackLoaded",
+    SUBTITLE_TRACK_UPDATED = "hlsSubtitleTrackUpdated",
     SUBTITLE_FRAG_PROCESSED = "hlsSubtitleFragProcessed",
     CUES_PARSED = "hlsCuesParsed",
     NON_NATIVE_TEXT_TRACKS_FOUND = "hlsNonNativeTextTracksFound",
@@ -1028,10 +1215,23 @@ export declare enum Events {
     KEY_LOADED = "hlsKeyLoaded",
     LIVE_BACK_BUFFER_REACHED = "hlsLiveBackBufferReached",
     BACK_BUFFER_REACHED = "hlsBackBufferReached",
-    STEERING_MANIFEST_LOADED = "hlsSteeringManifestLoaded"
+    STEERING_MANIFEST_LOADED = "hlsSteeringManifestLoaded",
+    ASSET_LIST_LOADING = "hlsAssetListLoading",
+    ASSET_LIST_LOADED = "hlsAssetListLoaded",
+    INTERSTITIALS_UPDATED = "hlsInterstitialsUpdated",
+    INTERSTITIALS_BUFFERED_TO_BOUNDARY = "hlsInterstitialsBufferedToBoundary",
+    INTERSTITIAL_ASSET_PLAYER_CREATED = "hlsInterstitialAssetPlayerCreated",
+    INTERSTITIAL_STARTED = "hlsInterstitialStarted",
+    INTERSTITIAL_ASSET_STARTED = "hlsInterstitialAssetStarted",
+    INTERSTITIAL_ASSET_ENDED = "hlsInterstitialAssetEnded",
+    INTERSTITIAL_ASSET_ERROR = "hlsInterstitialAssetError",
+    INTERSTITIAL_ENDED = "hlsInterstitialEnded",
+    INTERSTITIALS_PRIMARY_RESUMED = "hlsInterstitialsPrimaryResumed",
+    PLAYOUT_LIMIT_REACHED = "hlsPlayoutLimitReached",
+    EVENT_CUE_ENTER = "hlsEventCueEnter"
 }
 
-declare class EwmaBandWidthEstimator {
+export declare class EwmaBandWidthEstimator {
     private defaultEstimate_;
     private minWeight_;
     private minDelayMs_;
@@ -1046,14 +1246,34 @@ declare class EwmaBandWidthEstimator {
     canEstimate(): boolean;
     getEstimate(): number;
     getEstimateTTFB(): number;
+    get defaultEstimate(): number;
     destroy(): void;
 }
 
-declare type ExtendedSourceBuffer = SourceBuffer & {
-    ended?: boolean;
-    ending?: boolean;
-    changeType?: (type: string) => void;
+export declare type ExtendedSourceBuffer = SourceBuffer & {
+    onbufferedchange?: ((this: SourceBuffer, ev: Event) => any) | null;
 };
+
+export declare class FetchLoader implements Loader<LoaderContext> {
+    private fetchSetup;
+    private requestTimeout?;
+    private request;
+    private response;
+    private controller;
+    context: LoaderContext | null;
+    private config;
+    private callbacks;
+    stats: LoaderStats;
+    private loader;
+    constructor(config: HlsConfig);
+    destroy(): void;
+    abortInternal(): void;
+    abort(): void;
+    load(context: LoaderContext, config: LoaderConfiguration, callbacks: LoaderCallbacks<LoaderContext>): void;
+    getCacheAge(): number | null;
+    getResponseHeader(name: string): string | null;
+    private loadProgressively;
+}
 
 export declare class FPSController implements ComponentAPI {
     private hls;
@@ -1070,6 +1290,7 @@ export declare class FPSController implements ComponentAPI {
     protected unregisterListeners(): void;
     destroy(): void;
     protected onMediaAttaching(event: Events.MEDIA_ATTACHING, data: MediaAttachingData): void;
+    private onMediaDetaching;
     checkFPS(video: HTMLVideoElement, decodedFrames: number, droppedFrames: number): void;
     checkFPSInterval(): void;
 }
@@ -1124,7 +1345,7 @@ export declare interface FragLoadEmergencyAbortedData {
     stats: LoaderStats;
 }
 
-declare interface FragLoadFailResult extends ErrorData {
+export declare interface FragLoadFailResult extends ErrorData {
     frag: Fragment;
     part?: Part;
     response?: {
@@ -1147,13 +1368,15 @@ export declare interface FragLoadingData {
  */
 export declare class Fragment extends BaseSegment {
     private _decryptdata;
+    private _programDateTime;
+    private _ref;
+    private _bitrate?;
     rawProgramDateTime: string | null;
-    programDateTime: number | null;
     tagList: Array<string[]>;
     duration: number;
     sn: number | 'initSegment';
     levelkeys?: {
-        [key: string]: LevelKey;
+        [key: string]: LevelKey | undefined;
     };
     readonly type: PlaylistLevelType;
     loader: Loader<FragmentLoaderContext> | null;
@@ -1162,13 +1385,13 @@ export declare class Fragment extends BaseSegment {
     cc: number;
     startPTS?: number;
     endPTS?: number;
-    startDTS: number;
-    endDTS: number;
+    startDTS?: number;
+    endDTS?: number;
     start: number;
+    playlistOffset: number;
     deltaPTS?: number;
     maxStartPTS?: number;
     minEndPTS?: number;
-    stats: LoadStats;
     data?: Uint8Array;
     bitrateTest: boolean;
     title: string | null;
@@ -1176,18 +1399,26 @@ export declare class Fragment extends BaseSegment {
     endList?: boolean;
     gap?: boolean;
     urlId: number;
-    constructor(type: PlaylistLevelType, baseurl: string);
+    constructor(type: PlaylistLevelType, base: Base | string);
+    get byteLength(): number | null;
+    get bitrate(): number | null;
+    set bitrate(value: number);
     get decryptdata(): LevelKey | null;
     get end(): number;
     get endProgramDateTime(): number | null;
     get encrypted(): boolean;
+    get programDateTime(): number | null;
+    set programDateTime(value: number | null);
+    get ref(): MediaFragmentRef | null;
+    addStart(value: number): void;
+    setStart(value: number): void;
+    setDuration(value: number): void;
     setKeyFormat(keyFormat: KeySystemFormats): void;
     abortRequests(): void;
     setElementaryStreamInfo(type: ElementaryStreamTypes, startPTS: number, endPTS: number, startDTS: number, endDTS: number, partial?: boolean): void;
-    clearElementaryStreamInfo(): void;
 }
 
-declare class FragmentLoader {
+export declare class FragmentLoader {
     private readonly config;
     private loader;
     private partLoadTimeout;
@@ -1220,16 +1451,16 @@ export declare interface FragmentLoaderContext extends LoaderContext {
     resetIV?: boolean;
 }
 
-declare type FragmentLoadProgressCallback = (result: FragLoadedData | PartsLoadedData) => void;
+export declare type FragmentLoadProgressCallback = (result: FragLoadedData | PartsLoadedData) => void;
 
-declare const enum FragmentState {
+export declare const enum FragmentState {
     NOT_LOADED = "NOT_LOADED",
     APPENDING = "APPENDING",
     PARTIAL = "PARTIAL",
     OK = "OK"
 }
 
-declare class FragmentTracker implements ComponentAPI {
+export declare class FragmentTracker implements ComponentAPI {
     private activePartLists;
     private endListFragments;
     private fragments;
@@ -1245,38 +1476,41 @@ declare class FragmentTracker implements ComponentAPI {
      * Return a Fragment or Part with an appended range that matches the position and levelType
      * Otherwise, return null
      */
-    getAppendedFrag(position: number, levelType: PlaylistLevelType): Fragment | Part | null;
+    getAppendedFrag(position: number, levelType: PlaylistLevelType): MediaFragment | Part | null;
     /**
      * Return a buffered Fragment that matches the position and levelType.
      * A buffered Fragment is one whose loading, parsing and appending is done (completed or "partial" meaning aborted).
      * If not found any Fragment, return null
      */
-    getBufferedFrag(position: number, levelType: PlaylistLevelType): Fragment | null;
+    getBufferedFrag(position: number, levelType: PlaylistLevelType): MediaFragment | null;
+    getFragAtPos(position: number, levelType: PlaylistLevelType, buffered?: boolean): MediaFragment | null;
     /**
      * Partial fragments effected by coded frame eviction will be removed
      * The browser will unload parts of the buffer to free up memory for new buffer data
      * Fragments will need to be reloaded when the buffer is freed up, removing partial fragments will allow them to reload(since there might be parts that are still playable)
      */
-    detectEvictedFragments(elementaryStream: SourceBufferName, timeRange: TimeRanges, playlistType: PlaylistLevelType, appendedPart?: Part | null): void;
+    detectEvictedFragments(elementaryStream: SourceBufferName, timeRange: TimeRanges, playlistType: PlaylistLevelType, appendedPart?: Part | null, removeAppending?: boolean): void;
     /**
      * Checks if the fragment passed in is loaded in the buffer properly
      * Partially loaded fragments will be registered as a partial fragment
      */
     detectPartialFragments(data: FragBufferedData): void;
     private removeParts;
-    fragBuffered(frag: Fragment, force?: true): void;
+    fragBuffered(frag: MediaFragment, force?: true): void;
     private getBufferedTimes;
     /**
      * Gets the partial fragment for a certain time
      */
-    getPartialFragment(time: number): Fragment | null;
+    getPartialFragment(time: number): MediaFragment | null;
     isEndListAppended(type: PlaylistLevelType): boolean;
     getState(fragment: Fragment): FragmentState;
     private isTimeBuffered;
+    private onManifestLoading;
     private onFragLoaded;
     private onBufferAppended;
     private onFragBuffered;
     private hasFragment;
+    hasFragments(type?: PlaylistLevelType): boolean;
     hasParts(type: PlaylistLevelType): boolean;
     removeFragmentsInRange(start: number, end: number, playlistType: PlaylistLevelType, withGapOnly?: boolean, unbufferedOnly?: boolean): void;
     removeFragment(fragment: Fragment): void;
@@ -1305,9 +1539,17 @@ export declare interface FragParsingUserdataData {
     samples: UserdataSample[];
 }
 
+export declare type GapControllerConfig = {
+    detectStallWithCurrentTimeMs: number;
+    highBufferWatchdogPeriod: number;
+    nudgeOffset: number;
+    nudgeMaxRetry: number;
+    nudgeOnVideoHole: boolean;
+};
+
 export declare type HdcpLevel = (typeof HdcpLevels)[number];
 
-declare const HdcpLevels: readonly ["NONE", "TYPE-0", "TYPE-1", null];
+export declare const HdcpLevels: readonly ["NONE", "TYPE-0", "TYPE-1", null];
 
 /**
  * The `Hls` class is the core of the HLS.js library used to instantiate player instances.
@@ -1323,9 +1565,12 @@ declare class Hls implements HlsEventEmitter {
      * The configuration object provided on player instantiation.
      */
     readonly userConfig: Partial<HlsConfig>;
+    /**
+     * The logger functions used by this player instance, configured on player instantiation.
+     */
+    readonly logger: ILogger;
     private coreComponents;
     private networkControllers;
-    private started;
     private _emitter;
     private _autoLevelCapping;
     private _maxHdcpLevel;
@@ -1335,13 +1580,19 @@ declare class Hls implements HlsEventEmitter {
     private latencyController;
     private levelController;
     private streamController;
-    private audioTrackController;
-    private subtitleTrackController;
-    private emeController;
-    private cmcdController;
+    private audioStreamController?;
+    private subtititleStreamController?;
+    private audioTrackController?;
+    private subtitleTrackController?;
+    private interstitialsController?;
+    private gapController;
+    private emeController?;
+    private cmcdController?;
     private _media;
-    private url;
+    private _url;
+    private _sessionId?;
     private triggeringException?;
+    private started;
     /**
      * Get the video-dev/hls.js package version.
      */
@@ -1359,6 +1610,7 @@ declare class Hls implements HlsEventEmitter {
      */
     static getMediaSource(): typeof MediaSource | undefined;
     static get Events(): typeof Events;
+    static get MetadataSchema(): typeof MetadataSchema;
     static get ErrorTypes(): typeof ErrorTypes;
     static get ErrorDetails(): typeof ErrorDetails;
     /**
@@ -1390,15 +1642,31 @@ declare class Hls implements HlsEventEmitter {
     /**
      * Attaches Hls.js to a media element
      */
-    attachMedia(media: HTMLMediaElement): void;
+    attachMedia(data: HTMLMediaElement | MediaAttachingData): void;
     /**
      * Detach Hls.js from the media
      */
     detachMedia(): void;
     /**
+     * Detach HTMLMediaElement, MediaSource, and SourceBuffers without reset, for attaching to another instance
+     */
+    transferMedia(): AttachMediaSourceData | null;
+    /**
      * Set the source URL. Can be relative or absolute.
      */
     loadSource(url: string): void;
+    /**
+     * Gets the currently loaded URL
+     */
+    get url(): string | null;
+    /**
+     * Whether or not enough has been buffered to seek to start position or use `media.currentTime` to determine next load position
+     */
+    get hasEnoughToStart(): boolean;
+    /**
+     * Get the startPosition set on startLoad(position) or on autostart with config.startPosition
+     */
+    get startPosition(): number;
     /**
      * Start loading data from the stream source.
      * Depending on default config, client starts loading automatically when a source is set.
@@ -1406,11 +1674,19 @@ declare class Hls implements HlsEventEmitter {
      * @param startPosition - Set the start position to stream from.
      * Defaults to -1 (None: starts from earliest point)
      */
-    startLoad(startPosition?: number): void;
+    startLoad(startPosition?: number, skipSeekToStartPosition?: boolean): void;
     /**
      * Stop loading of any stream data.
      */
     stopLoad(): void;
+    /**
+     * Returns whether loading, toggled with `startLoad()` and `stopLoad()`, is active or not`.
+     */
+    get loadingEnabled(): boolean;
+    /**
+     * Returns state of fragment loading toggled by calling `pauseBuffering()` and `resumeBuffering()`.
+     */
+    get bufferingEnabled(): boolean;
     /**
      * Resumes stream controller segment loading after `pauseBuffering` has been called.
      */
@@ -1420,6 +1696,7 @@ declare class Hls implements HlsEventEmitter {
      * This allows for media buffering to be paused without interupting playlist loading.
      */
     pauseBuffering(): void;
+    get inFlightFragments(): InFlightFragments;
     /**
      * Swap through possible audio codecs in the stream (for example to switch from stereo to 5.1)
      */
@@ -1433,9 +1710,21 @@ declare class Hls implements HlsEventEmitter {
     recoverMediaError(): void;
     removeLevel(levelIndex: number): void;
     /**
+     * @returns a UUID for this player instance
+     */
+    get sessionId(): string;
+    /**
      * @returns an array of levels (variants) sorted by HDCP-LEVEL, RESOLUTION (height), FRAME-RATE, CODECS, VIDEO-RANGE, and BANDWIDTH
      */
     get levels(): Level[];
+    /**
+     * @returns LevelDetails of last loaded level (variant) or `null` prior to loading a media playlist.
+     */
+    get latestLevelDetails(): LevelDetails | null;
+    /**
+     * @returns Level object of selected level (variant) or `null` prior to selecting a level or once the level is removed.
+     */
+    get loadLevelObj(): Level | null;
     /**
      * Index of quality level (variant) currently played
      */
@@ -1516,6 +1805,7 @@ declare class Hls implements HlsEventEmitter {
      */
     get bandwidthEstimate(): number;
     set bandwidthEstimate(abrEwmaDefaultEstimate: number);
+    get abrEwmaDefaultEstimate(): number;
     /**
      * get time to first byte estimate
      * @type {number}
@@ -1561,6 +1851,7 @@ declare class Hls implements HlsEventEmitter {
      */
     get playingDate(): Date | null;
     get mainForwardBufferInfo(): BufferInfo | null;
+    get maxBufferLength(): number;
     /**
      * Find and select the best matching audio track, making a level switch when a Group change is necessary.
      * Updates `hls.config.audioPreference`. Returns the selected track, or null when no matching track is found.
@@ -1574,11 +1865,11 @@ declare class Hls implements HlsEventEmitter {
     /**
      * Get the complete list of audio tracks across all media groups
      */
-    get allAudioTracks(): Array<MediaPlaylist>;
+    get allAudioTracks(): MediaPlaylist[];
     /**
      * Get the list of selectable audio tracks
      */
-    get audioTracks(): Array<MediaPlaylist>;
+    get audioTracks(): MediaPlaylist[];
     /**
      * index of the selected audio track (index in audio track lists)
      */
@@ -1590,11 +1881,11 @@ declare class Hls implements HlsEventEmitter {
     /**
      * get the complete list of subtitle tracks across all media groups
      */
-    get allSubtitleTracks(): Array<MediaPlaylist>;
+    get allSubtitleTracks(): MediaPlaylist[];
     /**
      * get alternate subtitle tracks list from playlist
      */
-    get subtitleTracks(): Array<MediaPlaylist>;
+    get subtitleTracks(): MediaPlaylist[];
     /**
      * index of the selected subtitle track (index in subtitle track lists)
      */
@@ -1640,6 +1931,7 @@ declare class Hls implements HlsEventEmitter {
      * target distance from the edge as calculated by the latency controller
      */
     get targetLatency(): number | null;
+    set targetLatency(latency: number);
     /**
      * the rate at which the edge of the current live playlist is advancing or 1 if there is none
      */
@@ -1648,8 +1940,73 @@ declare class Hls implements HlsEventEmitter {
      * set to true when startLoad is called before MANIFEST_PARSED event
      */
     get forceStartLoad(): boolean;
+    /**
+     * ContentSteering pathways getter
+     */
+    get pathways(): string[];
+    /**
+     * ContentSteering pathwayPriority getter/setter
+     */
+    get pathwayPriority(): string[] | null;
+    set pathwayPriority(pathwayPriority: string[]);
+    /**
+     * returns true when all SourceBuffers are buffered to the end
+     */
+    get bufferedToEnd(): boolean;
+    /**
+     * returns Interstitials Program Manager
+     */
+    get interstitialsManager(): InterstitialsManager | null;
+    /**
+     * returns mediaCapabilities.decodingInfo for a variant/rendition
+     */
+    getMediaDecodingInfo(level: Level, audioTracks?: MediaPlaylist[]): Promise<MediaDecodingInfo>;
 }
 export default Hls;
+
+export declare class HlsAssetPlayer {
+    hls: Hls | null;
+    interstitial: InterstitialEvent;
+    readonly assetItem: InterstitialAssetItem;
+    tracks: Partial<BufferCodecsData> | null;
+    private hasDetails;
+    private mediaAttached;
+    private _currentTime?;
+    private _bufferedEosTime?;
+    constructor(HlsPlayerClass: typeof Hls, userConfig: HlsAssetPlayerConfig, interstitial: InterstitialEvent, assetItem: InterstitialAssetItem);
+    get appendInPlace(): boolean;
+    loadSource(): void;
+    bufferedInPlaceToEnd(media?: HTMLMediaElement | null): boolean;
+    private checkPlayout;
+    private reachedPlayout;
+    get destroyed(): boolean;
+    get assetId(): InterstitialAssetId;
+    get interstitialId(): InterstitialId;
+    get media(): HTMLMediaElement | null;
+    get bufferedEnd(): number;
+    get currentTime(): number;
+    get duration(): number;
+    get remaining(): number;
+    get startOffset(): number;
+    get timelineOffset(): number;
+    set timelineOffset(value: number);
+    private getAssetTime;
+    private removeMediaListeners;
+    private bufferSnapShot;
+    destroy(): void;
+    attachMedia(data: HTMLMediaElement | MediaAttachingData): void;
+    detachMedia(): void;
+    resumeBuffering(): void;
+    pauseBuffering(): void;
+    transferMedia(): AttachMediaSourceData | null;
+    resetDetails(): void;
+    on<E extends keyof HlsListeners, Context = undefined>(event: E, listener: HlsListeners[E], context?: Context): void;
+    once<E extends keyof HlsListeners, Context = undefined>(event: E, listener: HlsListeners[E], context?: Context): void;
+    off<E extends keyof HlsListeners, Context = undefined>(event: E, listener: HlsListeners[E], context?: Context): void;
+    toString(): string;
+}
+
+export declare type HlsAssetPlayerConfig = Partial<HlsConfig> & Required<Pick<HlsConfig, 'assetPlayerId' | 'primarySessionId'>>;
 
 export declare interface HlsChunkPerformanceTiming extends HlsPerformanceTiming {
     executeStart: number;
@@ -1663,13 +2020,17 @@ export declare type HlsConfig = {
     enableSoftwareAES: boolean;
     minAutoBitrate: number;
     ignoreDevicePixelRatio: boolean;
+    maxDevicePixelRatio: number;
     preferManagedMediaSource: boolean;
+    preserveManualLevelOnError: boolean;
+    timelineOffset?: number;
+    ignorePlaylistParsingErrors: boolean;
     loader: {
         new (confg: HlsConfig): Loader<LoaderContext>;
     };
     fLoader?: FragmentLoaderConstructor;
     pLoader?: PlaylistLoaderConstructor;
-    fetchSetup?: (context: LoaderContext, initParams: any) => Request;
+    fetchSetup?: (context: LoaderContext, initParams: any) => Promise<Request> | Request;
     xhrSetup?: (xhr: XMLHttpRequest, url: string) => Promise<void> | void;
     audioStreamController?: typeof AudioStreamController;
     audioTrackController?: typeof AudioTrackController;
@@ -1680,6 +2041,11 @@ export declare type HlsConfig = {
     cmcd?: CMCDControllerConfig;
     cmcdController?: typeof CMCDController;
     contentSteeringController?: typeof ContentSteeringController;
+    interstitialsController?: typeof InterstitialsController;
+    enableInterstitialPlayback: boolean;
+    interstitialAppendInPlace: boolean;
+    interstitialLiveLookAhead: number;
+    assetPlayerId?: string;
     useMediaCapabilities: boolean;
     abrController: typeof AbrController;
     bufferController: typeof BufferController;
@@ -1688,7 +2054,8 @@ export declare type HlsConfig = {
     fpsController: typeof FPSController;
     progressive: boolean;
     lowLatencyMode: boolean;
-} & ABRControllerConfig & BufferControllerConfig & CapLevelControllerConfig & EMEControllerConfig & FPSControllerConfig & LevelControllerConfig & MP4RemuxerConfig & StreamControllerConfig & SelectionPreferences & LatencyControllerConfig & MetadataControllerConfig & TimelineControllerConfig & TSDemuxerConfig & HlsLoadPolicies & FragmentLoaderConfig & PlaylistLoaderConfig;
+    primarySessionId?: string;
+} & ABRControllerConfig & BufferControllerConfig & CapLevelControllerConfig & EMEControllerConfig & FPSControllerConfig & GapControllerConfig & LevelControllerConfig & MP4RemuxerConfig & StreamControllerConfig & SelectionPreferences & LatencyControllerConfig & MetadataControllerConfig & TimelineControllerConfig & TSDemuxerConfig & HlsLoadPolicies & FragmentLoaderConfig & PlaylistLoaderConfig;
 
 export declare interface HlsEventEmitter {
     on<E extends keyof HlsListeners, Context = undefined>(event: E, listener: HlsListeners[E], context?: Context): void;
@@ -1706,14 +2073,17 @@ export declare interface HlsEventEmitter {
 export declare interface HlsListeners {
     [Events.MEDIA_ATTACHING]: (event: Events.MEDIA_ATTACHING, data: MediaAttachingData) => void;
     [Events.MEDIA_ATTACHED]: (event: Events.MEDIA_ATTACHED, data: MediaAttachedData) => void;
-    [Events.MEDIA_DETACHING]: (event: Events.MEDIA_DETACHING) => void;
-    [Events.MEDIA_DETACHED]: (event: Events.MEDIA_DETACHED) => void;
+    [Events.MEDIA_DETACHING]: (event: Events.MEDIA_DETACHING, data: MediaDetachingData) => void;
+    [Events.MEDIA_DETACHED]: (event: Events.MEDIA_DETACHED, data: MediaDetachedData) => void;
+    [Events.MEDIA_ENDED]: (event: Events.MEDIA_ENDED, data: MediaEndedData) => void;
+    [Events.STALL_RESOLVED]: (event: Events.STALL_RESOLVED, data: {}) => void;
     [Events.BUFFER_RESET]: (event: Events.BUFFER_RESET) => void;
     [Events.BUFFER_CODECS]: (event: Events.BUFFER_CODECS, data: BufferCodecsData) => void;
     [Events.BUFFER_CREATED]: (event: Events.BUFFER_CREATED, data: BufferCreatedData) => void;
     [Events.BUFFER_APPENDING]: (event: Events.BUFFER_APPENDING, data: BufferAppendingData) => void;
     [Events.BUFFER_APPENDED]: (event: Events.BUFFER_APPENDED, data: BufferAppendedData) => void;
     [Events.BUFFER_EOS]: (event: Events.BUFFER_EOS, data: BufferEOSData) => void;
+    [Events.BUFFERED_TO_END]: (event: Events.BUFFERED_TO_END) => void;
     [Events.BUFFER_FLUSHING]: (event: Events.BUFFER_FLUSHING, data: BufferFlushingData) => void;
     [Events.BUFFER_FLUSHED]: (event: Events.BUFFER_FLUSHED, data: BufferFlushedData) => void;
     [Events.MANIFEST_LOADING]: (event: Events.MANIFEST_LOADING, data: ManifestLoadingData) => void;
@@ -1731,11 +2101,13 @@ export declare interface HlsListeners {
     [Events.AUDIO_TRACK_SWITCHED]: (event: Events.AUDIO_TRACK_SWITCHED, data: AudioTrackSwitchedData) => void;
     [Events.AUDIO_TRACK_LOADING]: (event: Events.AUDIO_TRACK_LOADING, data: TrackLoadingData) => void;
     [Events.AUDIO_TRACK_LOADED]: (event: Events.AUDIO_TRACK_LOADED, data: AudioTrackLoadedData) => void;
+    [Events.AUDIO_TRACK_UPDATED]: (event: Events.AUDIO_TRACK_UPDATED, data: AudioTrackUpdatedData) => void;
     [Events.SUBTITLE_TRACKS_UPDATED]: (event: Events.SUBTITLE_TRACKS_UPDATED, data: SubtitleTracksUpdatedData) => void;
     [Events.SUBTITLE_TRACKS_CLEARED]: (event: Events.SUBTITLE_TRACKS_CLEARED) => void;
     [Events.SUBTITLE_TRACK_SWITCH]: (event: Events.SUBTITLE_TRACK_SWITCH, data: SubtitleTrackSwitchData) => void;
     [Events.SUBTITLE_TRACK_LOADING]: (event: Events.SUBTITLE_TRACK_LOADING, data: TrackLoadingData) => void;
     [Events.SUBTITLE_TRACK_LOADED]: (event: Events.SUBTITLE_TRACK_LOADED, data: SubtitleTrackLoadedData) => void;
+    [Events.SUBTITLE_TRACK_UPDATED]: (event: Events.SUBTITLE_TRACK_UPDATED, data: SubtitleTrackUpdatedData) => void;
     [Events.SUBTITLE_FRAG_PROCESSED]: (event: Events.SUBTITLE_FRAG_PROCESSED, data: SubtitleFragProcessedData) => void;
     [Events.CUES_PARSED]: (event: Events.CUES_PARSED, data: CuesParsedData) => void;
     [Events.NON_NATIVE_TEXT_TRACKS_FOUND]: (event: Events.NON_NATIVE_TEXT_TRACKS_FOUND, data: NonNativeTextTracksData) => void;
@@ -1760,6 +2132,19 @@ export declare interface HlsListeners {
     [Events.LIVE_BACK_BUFFER_REACHED]: (event: Events.LIVE_BACK_BUFFER_REACHED, data: LiveBackBufferData) => void;
     [Events.BACK_BUFFER_REACHED]: (event: Events.BACK_BUFFER_REACHED, data: BackBufferData) => void;
     [Events.STEERING_MANIFEST_LOADED]: (event: Events.STEERING_MANIFEST_LOADED, data: SteeringManifestLoadedData) => void;
+    [Events.ASSET_LIST_LOADING]: (event: Events.ASSET_LIST_LOADING, data: AssetListLoadingData) => void;
+    [Events.ASSET_LIST_LOADED]: (event: Events.ASSET_LIST_LOADED, data: AssetListLoadedData) => void;
+    [Events.INTERSTITIALS_UPDATED]: (event: Events.INTERSTITIALS_UPDATED, data: InterstitialsUpdatedData) => void;
+    [Events.INTERSTITIALS_BUFFERED_TO_BOUNDARY]: (event: Events.INTERSTITIALS_BUFFERED_TO_BOUNDARY, data: InterstitialsBufferedToBoundaryData) => void;
+    [Events.INTERSTITIAL_ASSET_PLAYER_CREATED]: (event: Events.INTERSTITIAL_ASSET_PLAYER_CREATED, data: InterstitialAssetPlayerCreatedData) => void;
+    [Events.INTERSTITIAL_STARTED]: (event: Events.INTERSTITIAL_STARTED, data: InterstitialStartedData) => void;
+    [Events.INTERSTITIAL_ASSET_STARTED]: (event: Events.INTERSTITIAL_ASSET_STARTED, data: InterstitialAssetStartedData) => void;
+    [Events.INTERSTITIAL_ASSET_ENDED]: (event: Events.INTERSTITIAL_ASSET_ENDED, data: InterstitialAssetEndedData) => void;
+    [Events.INTERSTITIAL_ASSET_ERROR]: (event: Events.INTERSTITIAL_ASSET_ERROR, data: InterstitialAssetErrorData) => void;
+    [Events.INTERSTITIAL_ENDED]: (event: Events.INTERSTITIAL_ENDED, data: InterstitialEndedData) => void;
+    [Events.INTERSTITIALS_PRIMARY_RESUMED]: (event: Events.INTERSTITIALS_PRIMARY_RESUMED, data: InterstitialsPrimaryResumed) => void;
+    [Events.PLAYOUT_LIMIT_REACHED]: (event: Events.PLAYOUT_LIMIT_REACHED, data: {}) => void;
+    [Events.EVENT_CUE_ENTER]: (event: Events.EVENT_CUE_ENTER, data: {}) => void;
 }
 
 export declare type HlsLoadPolicies = {
@@ -1769,6 +2154,7 @@ export declare type HlsLoadPolicies = {
     playlistLoadPolicy: LoadPolicy;
     manifestLoadPolicy: LoadPolicy;
     steeringManifestLoadPolicy: LoadPolicy;
+    interstitialAssetListLoadPolicy: LoadPolicy;
 };
 
 export declare interface HlsPerformanceTiming {
@@ -1804,7 +2190,7 @@ export declare type IErrorAction = {
     resolved?: boolean;
 };
 
-declare interface ILogFunction {
+export declare interface ILogFunction {
     (message?: any, ...optionalParams: any[]): void;
 }
 
@@ -1817,17 +2203,337 @@ export declare interface ILogger {
     error: ILogFunction;
 }
 
+export declare type InFlightData = {
+    frag: Fragment | null;
+    state: (typeof State)[keyof typeof State];
+};
+
+export declare type InFlightFragments = {
+    [PlaylistLevelType.MAIN]: InFlightData;
+    [PlaylistLevelType.AUDIO]?: InFlightData;
+    [PlaylistLevelType.SUBTITLE]?: InFlightData;
+};
+
 export declare interface InitPTSFoundData {
-    id: string;
-    frag: Fragment;
+    id: PlaylistLevelType;
+    frag: MediaFragment;
     initPTS: number;
     timescale: number;
+    trackId: number;
 }
 
-declare interface InitSegmentData {
+export declare interface InitSegmentData {
     tracks?: TrackSet;
     initPTS: number | undefined;
     timescale: number | undefined;
+    trackId: number | undefined;
+}
+
+export declare interface InterstitialAssetEndedData {
+    asset: InterstitialAssetItem;
+    assetListIndex: number;
+    event: InterstitialEvent;
+    schedule: InterstitialScheduleItem[];
+    scheduleIndex: number;
+    player: HlsAssetPlayer;
+}
+
+export declare type InterstitialAssetErrorData = {
+    asset: InterstitialAssetItem | null;
+    assetListIndex: number;
+    event: InterstitialEvent | null;
+    schedule: InterstitialScheduleItem[] | null;
+    scheduleIndex: number;
+    player: HlsAssetPlayer | null;
+} & ErrorData;
+
+export declare type InterstitialAssetId = string;
+
+export declare type InterstitialAssetItem = {
+    parentIdentifier: InterstitialId;
+    identifier: InterstitialAssetId;
+    duration: number | null;
+    startOffset: number;
+    timelineStart: number;
+    uri: string;
+    error?: Error;
+};
+
+export declare interface InterstitialAssetPlayerCreatedData {
+    asset: InterstitialAssetItem;
+    assetListIndex: number;
+    assetListResponse?: AssetListJSON;
+    event: InterstitialEvent;
+    player: HlsAssetPlayer;
+}
+
+export declare interface InterstitialAssetStartedData {
+    asset: InterstitialAssetItem;
+    assetListIndex: number;
+    event: InterstitialEvent;
+    schedule: InterstitialScheduleItem[];
+    scheduleIndex: number;
+    player: HlsAssetPlayer;
+}
+
+export declare interface InterstitialEndedData {
+    event: InterstitialEvent;
+    schedule: InterstitialScheduleItem[];
+    scheduleIndex: number;
+}
+
+export declare class InterstitialEvent {
+    private base;
+    private _duration;
+    private _timelineStart;
+    private appendInPlaceDisabled?;
+    appendInPlaceStarted?: boolean;
+    dateRange: DateRange;
+    hasPlayed: boolean;
+    cumulativeDuration: number;
+    resumeOffset: number;
+    playoutLimit: number;
+    restrictions: PlaybackRestrictions;
+    snapOptions: SnapOptions;
+    assetList: InterstitialAssetItem[];
+    assetListLoader?: Loader<LoaderContext>;
+    assetListResponse: AssetListJSON | null;
+    resumeAnchor?: MediaFragmentRef;
+    error?: Error;
+    resetOnResume?: boolean;
+    constructor(dateRange: DateRange, base: BaseData);
+    setDateRange(dateRange: DateRange): void;
+    reset(): void;
+    isAssetPastPlayoutLimit(assetIndex: number): boolean;
+    findAssetIndex(asset: InterstitialAssetItem): number;
+    get identifier(): InterstitialId;
+    get startDate(): Date;
+    get startTime(): number;
+    get startOffset(): number;
+    get startIsAligned(): boolean;
+    get resumptionOffset(): number;
+    get resumeTime(): number;
+    get appendInPlace(): boolean;
+    set appendInPlace(value: boolean);
+    get timelineStart(): number;
+    set timelineStart(value: number);
+    get duration(): number;
+    set duration(value: number);
+    get cue(): DateRangeCue;
+    get timelineOccupancy(): TimelineOccupancy;
+    get supplementsPrimary(): boolean;
+    get contentMayVary(): boolean;
+    get assetUrl(): string | undefined;
+    get assetListUrl(): string | undefined;
+    get baseUrl(): string;
+    get assetListLoaded(): boolean;
+    toString(): string;
+}
+
+export declare interface InterstitialEventWithAssetList extends InterstitialEvent {
+    assetListUrl: string;
+}
+
+export declare type InterstitialId = string;
+
+export declare interface InterstitialPlayer {
+    bufferedEnd: number;
+    currentTime: number;
+    duration: number;
+    assetPlayers: (HlsAssetPlayer | null)[];
+    playingIndex: number;
+    scheduleItem: InterstitialScheduleEventItem | null;
+}
+
+export declare interface InterstitialsBufferedToBoundaryData {
+    events: InterstitialEvent[];
+    schedule: InterstitialScheduleItem[];
+    bufferingIndex: number;
+    playingIndex: number;
+}
+
+export declare type InterstitialScheduleDurations = {
+    primary: number;
+    playout: number;
+    integrated: number;
+};
+
+export declare type InterstitialScheduleEventItem = {
+    event: InterstitialEvent;
+    start: number;
+    end: number;
+    playout: {
+        start: number;
+        end: number;
+    };
+    integrated: {
+        start: number;
+        end: number;
+    };
+};
+
+export declare type InterstitialScheduleItem = InterstitialScheduleEventItem | InterstitialSchedulePrimaryItem;
+
+export declare type InterstitialSchedulePrimaryItem = {
+    nextEvent: InterstitialEvent | null;
+    previousEvent: InterstitialEvent | null;
+    event?: undefined;
+    start: number;
+    end: number;
+    playout: {
+        start: number;
+        end: number;
+    };
+    integrated: {
+        start: number;
+        end: number;
+    };
+};
+
+export declare class InterstitialsController extends Logger implements NetworkComponentAPI {
+    private readonly HlsPlayerClass;
+    private readonly hls;
+    private readonly assetListLoader;
+    private mediaSelection;
+    private altSelection;
+    private media;
+    private detachedData;
+    private requiredTracks;
+    private manager;
+    private playerQueue;
+    private bufferedPos;
+    private timelinePos;
+    private schedule;
+    private playingItem;
+    private bufferingItem;
+    private waitingItem;
+    private endedItem;
+    private playingAsset;
+    private endedAsset;
+    private bufferingAsset;
+    private shouldPlay;
+    constructor(hls: Hls, HlsPlayerClass: typeof Hls);
+    private registerListeners;
+    private unregisterListeners;
+    startLoad(): void;
+    stopLoad(): void;
+    resumeBuffering(): void;
+    pauseBuffering(): void;
+    destroy(): void;
+    private onDestroying;
+    private removeMediaListeners;
+    private onMediaAttaching;
+    private onMediaAttached;
+    private clearScheduleState;
+    private onMediaDetaching;
+    get interstitialsManager(): InterstitialsManager | null;
+    private get effectivePlayingItem();
+    private get effectivePlayingAsset();
+    private get playingLastItem();
+    private get playbackStarted();
+    private get currentTime();
+    private get primaryMedia();
+    private isInterstitial;
+    private retreiveMediaSource;
+    private transferMediaFromPlayer;
+    private transferMediaTo;
+    private onPlay;
+    private onPause;
+    private onSeeking;
+    private onInterstitialCueEnter;
+    private onTimeupdate;
+    private checkStart;
+    private advanceAssetBuffering;
+    private advanceAfterAssetEnded;
+    private setScheduleToAssetAtTime;
+    private setSchedulePosition;
+    private advanceSchedule;
+    private get playbackDisabled();
+    private get primaryDetails();
+    private get primaryLive();
+    private resumePrimary;
+    private getPrimaryResumption;
+    private isAssetBuffered;
+    private attachPrimary;
+    private startLoadingPrimaryAt;
+    private onManifestLoading;
+    private onLevelUpdated;
+    private onAudioTrackUpdated;
+    private onSubtitleTrackUpdated;
+    private onAudioTrackSwitching;
+    private onSubtitleTrackSwitch;
+    private onBufferCodecs;
+    private onBufferAppended;
+    private onBufferFlushed;
+    private onBufferedToEnd;
+    private onMediaEnded;
+    private onScheduleUpdate;
+    private updateItem;
+    private trimInPlace;
+    private itemsMatch;
+    private eventItemsMatch;
+    private findItemIndex;
+    private updateSchedule;
+    private checkBuffer;
+    private updateBufferedPos;
+    private assetsBuffered;
+    private setBufferingItem;
+    private bufferedToItem;
+    private preloadPrimary;
+    private bufferedToEvent;
+    private preloadAssets;
+    private flushFrontBuffer;
+    private getAssetPlayerQueueIndex;
+    private getAssetPlayer;
+    private getBufferingPlayer;
+    private createAsset;
+    private createAssetPlayer;
+    private clearInterstitial;
+    private resetAssetPlayer;
+    private clearAssetPlayer;
+    private emptyPlayerQueue;
+    private startAssetPlayer;
+    private bufferAssetPlayer;
+    private handleInPlaceStall;
+    private advanceInPlace;
+    private handleAssetItemError;
+    private primaryFallback;
+    private onAssetListLoaded;
+    private onError;
+}
+
+export declare interface InterstitialsManager {
+    events: InterstitialEvent[];
+    schedule: InterstitialScheduleItem[];
+    interstitialPlayer: InterstitialPlayer | null;
+    playerQueue: HlsAssetPlayer[];
+    bufferingAsset: InterstitialAssetItem | null;
+    bufferingItem: InterstitialScheduleItem | null;
+    bufferingIndex: number;
+    playingAsset: InterstitialAssetItem | null;
+    playingItem: InterstitialScheduleItem | null;
+    playingIndex: number;
+    primary: PlayheadTimes;
+    integrated: PlayheadTimes;
+    skip: () => void;
+}
+
+export declare interface InterstitialsPrimaryResumed {
+    schedule: InterstitialScheduleItem[];
+    scheduleIndex: number;
+}
+
+export declare interface InterstitialStartedData {
+    event: InterstitialEvent;
+    schedule: InterstitialScheduleItem[];
+    scheduleIndex: number;
+}
+
+export declare interface InterstitialsUpdatedData {
+    events: InterstitialEvent[];
+    schedule: InterstitialScheduleItem[];
+    durations: InterstitialScheduleDurations;
+    removedIds: string[];
 }
 
 export declare interface KeyLoadedData {
@@ -1835,13 +2541,11 @@ export declare interface KeyLoadedData {
     keyInfo: KeyLoaderInfo;
 }
 
-declare class KeyLoader implements ComponentAPI {
+export declare class KeyLoader extends Logger implements ComponentAPI {
     private readonly config;
-    keyUriToKeyInfo: {
-        [keyuri: string]: KeyLoaderInfo;
-    };
+    private keyIdToKeyInfo;
     emeController: EMEController | null;
-    constructor(config: HlsConfig);
+    constructor(config: HlsConfig, logger: ILogger);
     abort(type?: PlaylistLevelType): void;
     detach(): void;
     destroy(): void;
@@ -1851,7 +2555,7 @@ declare class KeyLoader implements ComponentAPI {
         code: number;
         text: string;
     }): LoadError;
-    loadClear(loadingFrag: Fragment, encryptedFragments: Fragment[]): void | Promise<void>;
+    loadClear(loadingFrag: Fragment, encryptedFragments: Fragment[], startFragRequested: boolean): null | Promise<void>;
     load(frag: Fragment): Promise<KeyLoadedData>;
     loadInternal(frag: Fragment, keySystemFormat?: KeySystemFormats): Promise<KeyLoadedData>;
     loadKeyEME(keyInfo: KeyLoaderInfo, frag: Fragment): Promise<KeyLoadedData>;
@@ -1859,12 +2563,12 @@ declare class KeyLoader implements ComponentAPI {
     private resetLoader;
 }
 
-declare interface KeyLoaderContext extends LoaderContext {
+export declare interface KeyLoaderContext extends LoaderContext {
     keyInfo: KeyLoaderInfo;
     frag: Fragment;
 }
 
-declare interface KeyLoaderInfo {
+export declare interface KeyLoaderInfo {
     decryptdata: LevelKey;
     keyLoadPromise: Promise<KeyLoadedData> | null;
     loader: Loader<KeyLoaderContext> | null;
@@ -1898,6 +2602,7 @@ export declare type LatencyControllerConfig = {
     liveSyncDuration?: number;
     liveMaxLatencyDuration?: number;
     maxLiveSyncPlaybackRate: number;
+    liveSyncOnStallIncrease: number;
 };
 
 export declare class Level {
@@ -1910,6 +2615,7 @@ export declare class Level {
     readonly height: number;
     readonly id: number;
     readonly name: string;
+    readonly supplemental: CodecsParsed | undefined;
     readonly videoCodec: string | undefined;
     readonly width: number;
     details?: LevelDetails;
@@ -1981,16 +2687,17 @@ export declare class LevelDetails {
     averagetargetduration?: number;
     endCC: number;
     endSN: number;
-    fragments: Fragment[];
-    fragmentHint?: Fragment;
+    fragments: MediaFragment[];
+    fragmentHint?: MediaFragment;
     partList: Part[] | null;
-    dateRanges: Record<string, DateRange>;
+    dateRanges: Record<string, DateRange | undefined>;
+    dateRangeTagCount: number;
     live: boolean;
+    requestScheduled: number;
     ageHeader: number;
     advancedDateTime?: number;
     updated: boolean;
     advanced: boolean;
-    availabilityDelay?: number;
     misses: number;
     startCC: number;
     startSN: number;
@@ -2021,17 +2728,22 @@ export declare class LevelDetails {
     playlistParsingError: Error | null;
     variableList: VariableMap | null;
     hasVariableRefs: boolean;
+    appliedTimelineOffset?: number;
     constructor(baseUrl: string);
     reloaded(previous: LevelDetails | undefined): void;
+    hasKey(levelKey: LevelKey): boolean;
     get hasProgramDateTime(): boolean;
     get levelTargetDuration(): number;
     get drift(): number;
     get edge(): number;
     get partEnd(): number;
     get fragmentEnd(): number;
+    get fragmentStart(): number;
     get age(): number;
     get lastPartIndex(): number;
+    get maxPartIndex(): number;
     get lastPartSn(): number;
+    get expired(): boolean;
 }
 
 export declare class LevelKey implements DecryptData {
@@ -2041,45 +2753,49 @@ export declare class LevelKey implements DecryptData {
     readonly keyFormatVersions: number[];
     readonly encrypted: boolean;
     readonly isCommonEncryption: boolean;
-    iv: Uint8Array | null;
-    key: Uint8Array | null;
-    keyId: Uint8Array | null;
-    pssh: Uint8Array | null;
+    iv: Uint8Array<ArrayBuffer> | null;
+    key: Uint8Array<ArrayBuffer> | null;
+    keyId: Uint8Array<ArrayBuffer> | null;
+    pssh: Uint8Array<ArrayBuffer> | null;
     static clearKeyUriToKeyIdMap(): void;
-    constructor(method: string, uri: string, format: string, formatversions?: number[], iv?: Uint8Array | null);
+    static setKeyIdForUri(uri: string, keyId: Uint8Array<ArrayBuffer>): void;
+    constructor(method: string, uri: string, format: string, formatversions?: number[], iv?: Uint8Array<ArrayBuffer> | null, keyId?: string);
+    matches(key: LevelKey): boolean;
     isSupported(): boolean;
-    getDecryptData(sn: number | 'initSegment'): LevelKey | null;
+    getDecryptData(sn: number | 'initSegment', levelKeys?: {
+        [key: string]: LevelKey | undefined;
+    }): LevelKey | null;
 }
 
 export declare interface LevelLoadedData {
     details: LevelDetails;
     id: number;
     level: number;
+    levelInfo: Level;
     networkDetails: any;
     stats: LoaderStats;
     deliveryDirectives: HlsUrlParameters | null;
+    withoutMultiVariant?: boolean;
 }
 
 export declare interface LevelLoadingData {
     id: number;
     level: number;
+    levelInfo: Level;
     pathwayId: string | undefined;
     url: string;
     deliveryDirectives: HlsUrlParameters | null;
 }
 
-export declare interface LevelParsed {
+export declare interface LevelParsed extends CodecsParsed {
     attrs: LevelAttributes;
-    audioCodec?: string;
     bitrate: number;
     details?: LevelDetails;
     height?: number;
     id?: number;
     name: string;
-    textCodec?: string;
-    unknownCodecs?: string[];
+    supplemental?: CodecsParsed;
     url: string;
-    videoCodec?: string;
     width?: number;
 }
 
@@ -2226,7 +2942,7 @@ export declare interface LoaderResponse {
     text?: string;
 }
 
-declare class LoadError extends Error {
+export declare class LoadError extends Error {
     readonly data: FragLoadFailResult;
     constructor(data: FragLoadFailResult);
 }
@@ -2257,6 +2973,37 @@ export declare class LoadStats implements LoaderStats {
     loading: HlsProgressivePerformanceTiming;
     parsing: HlsPerformanceTiming;
     buffering: HlsProgressivePerformanceTiming;
+}
+
+export declare class Logger implements ILogger {
+    trace: ILogFunction;
+    debug: ILogFunction;
+    log: ILogFunction;
+    warn: ILogFunction;
+    info: ILogFunction;
+    error: ILogFunction;
+    constructor(label: string, logger: ILogger);
+}
+
+export declare class M3U8Parser {
+    static findGroup(groups: ({
+        id?: string;
+        audioCodec?: string;
+    } | {
+        id?: string;
+        textCodec?: string;
+    })[], mediaGroupId: string): {
+        id?: string;
+        audioCodec?: string;
+    } | {
+        id?: string;
+        textCodec?: string;
+    } | undefined;
+    static resolve(url: any, baseUrl: any): string;
+    static isMediaPlaylist(str: string): boolean;
+    static parseMasterPlaylist(string: string, baseurl: string): ParsedMultivariantPlaylist;
+    static parseMasterPlaylistMedia(string: string, baseurl: string, parsed: ParsedMultivariantPlaylist): ParsedMultivariantMediaOptions;
+    static parseLevelPlaylist(string: string, baseurl: string, id: number, type: PlaylistLevelType, levelUrlId: number, multivariantVariableList: VariableMap | null): LevelDetails;
 }
 
 export declare type MainPlaylistType = AudioPlaylistType | 'VIDEO';
@@ -2293,7 +3040,7 @@ export declare interface ManifestParsedData {
     altAudio: boolean;
 }
 
-declare interface MaxAutoLevelUpdatedData {
+export declare interface MaxAutoLevelUpdatedData {
     autoLevelCapping: number;
     levels: Level[] | null;
     maxAutoLevel: number;
@@ -2308,6 +3055,9 @@ export declare interface MediaAttachedData {
 
 export declare interface MediaAttachingData {
     media: HTMLMediaElement;
+    mediaSource?: MediaSource | null;
+    tracks?: SourceBufferTrackSet;
+    overrides?: MediaOverrides;
 }
 
 export declare interface MediaAttributes extends AttrList {
@@ -2334,6 +3084,31 @@ export declare type MediaDecodingInfo = {
     error?: Error;
 };
 
+export declare interface MediaDetachedData {
+    transferMedia?: AttachMediaSourceData | null;
+}
+
+export declare interface MediaDetachingData {
+    transferMedia?: AttachMediaSourceData | null;
+}
+
+export declare interface MediaEndedData {
+    stalled: boolean;
+}
+
+export declare interface MediaFragment extends Fragment {
+    sn: number;
+    ref: MediaFragmentRef;
+}
+
+declare type MediaFragmentRef = {
+    base: Base;
+    start: number;
+    duration: number;
+    sn: number;
+    programDateTime: number | null;
+};
+
 export declare type MediaKeyFunc = (keySystem: KeySystems, supportedConfigurations: MediaKeySystemConfiguration[]) => Promise<MediaKeySystemAccess>;
 
 export declare interface MediaKeySessionContext {
@@ -2341,11 +3116,20 @@ export declare interface MediaKeySessionContext {
     mediaKeys: MediaKeys;
     decryptdata: LevelKey;
     mediaKeysSession: MediaKeySession;
-    keyStatus: MediaKeyStatus;
+    keyStatus?: MediaKeyStatus;
+    keyStatusTimeouts?: {
+        [keyId: string]: number;
+    };
     licenseXhr?: XMLHttpRequest;
     _onmessage?: (this: MediaKeySession, ev: MediaKeyMessageEvent) => any;
     _onkeystatuseschange?: (this: MediaKeySession, ev: Event) => any;
 }
+
+export declare type MediaOverrides = {
+    duration?: number;
+    endOfStream?: boolean;
+    cueRemoval?: boolean;
+};
 
 export declare interface MediaPlaylist {
     attrs: MediaAttributes;
@@ -2377,6 +3161,7 @@ export declare type MediaPlaylistType = MainPlaylistType | SubtitlePlaylistType;
 export declare type MetadataControllerConfig = {
     enableDateRangeMetadataCues: boolean;
     enableEmsgMetadataCues: boolean;
+    enableEmsgKLVMetadata: boolean;
     enableID3MetadataCues: boolean;
 };
 
@@ -2389,10 +3174,11 @@ export declare interface MetadataSample {
     type: MetadataSchema;
 }
 
-export declare const enum MetadataSchema {
+export declare enum MetadataSchema {
     audioId3 = "org.id3",
     dateRange = "com.apple.quicktime.HLS",
-    emsg = "https://aomedia.org/emsg/ID3"
+    emsg = "https://aomedia.org/emsg/ID3",
+    misbklv = "urn:misb:KLV:bin:1910.1"
 }
 
 export declare type MP4RemuxerConfig = {
@@ -2401,7 +3187,7 @@ export declare type MP4RemuxerConfig = {
 };
 
 export declare interface NetworkComponentAPI extends ComponentAPI {
-    startLoad(startPosition: number): void;
+    startLoad(startPosition: number, skipSeekToStartPosition?: boolean): void;
     stopLoad(): void;
     pauseBuffering?(): void;
     resumeBuffering?(): void;
@@ -2437,6 +3223,27 @@ declare interface PACData {
     italics: boolean;
 }
 
+declare type ParsedMultivariantMediaOptions = {
+    AUDIO?: MediaPlaylist[];
+    SUBTITLES?: MediaPlaylist[];
+    'CLOSED-CAPTIONS'?: MediaPlaylist[];
+};
+
+export declare type ParsedMultivariantPlaylist = {
+    contentSteering: ContentSteeringOptions | null;
+    levels: LevelParsed[];
+    playlistParsingError: Error | null;
+    sessionData: Record<string, AttrList> | null;
+    sessionKeys: LevelKey[] | null;
+    startTimeOffset: number | null;
+    variableList: VariableMap | null;
+    hasVariableRefs: boolean;
+};
+
+export declare interface ParsedTrack extends BaseTrack {
+    initSegment?: Uint8Array;
+}
+
 /**
  * Object representing parsed data from an HLS Partial Segment. Found in {@link hls.js#LevelDetails.partList}.
  */
@@ -2446,16 +3253,15 @@ export declare class Part extends BaseSegment {
     readonly gap: boolean;
     readonly independent: boolean;
     readonly relurl: string;
-    readonly fragment: Fragment;
+    readonly fragment: MediaFragment;
     readonly index: number;
-    stats: LoadStats;
-    constructor(partAttrs: AttrList, frag: Fragment, baseurl: string, index: number, previous?: Part);
+    constructor(partAttrs: AttrList, frag: MediaFragment, base: Base | string, index: number, previous?: Part);
     get start(): number;
     get end(): number;
     get loaded(): boolean;
 }
 
-declare interface PartsLoadedData {
+export declare interface PartsLoadedData {
     frag: Fragment;
     part: Part | null;
     partsLoaded?: FragLoadedData[];
@@ -2487,6 +3293,18 @@ declare type PenStyles = {
     italics: boolean;
     background: string;
     flash: boolean;
+};
+
+export declare type PlaybackRestrictions = {
+    skip: boolean;
+    jump: boolean;
+};
+
+export declare type PlayheadTimes = {
+    bufferedEnd: number;
+    currentTime: number;
+    duration: number;
+    seekableStart: number;
 };
 
 export declare const enum PlaylistContextType {
@@ -2528,20 +3346,21 @@ export declare interface PlaylistLoaderContext extends LoaderContext {
     pathwayId?: string;
     levelDetails?: LevelDetails;
     deliveryDirectives: HlsUrlParameters | null;
+    levelOrTrack: Level | MediaPlaylist | null;
 }
 
-declare type RationalTimestamp = {
+export declare type RationalTimestamp = {
     baseTime: number;
     timescale: number;
 };
 
-declare interface RemuxedMetadata {
+export declare interface RemuxedMetadata {
     samples: MetadataSample[];
 }
 
-declare interface RemuxedTrack {
-    data1: Uint8Array;
-    data2?: Uint8Array;
+export declare interface RemuxedTrack {
+    data1: Uint8Array<ArrayBuffer>;
+    data2?: Uint8Array<ArrayBuffer>;
     startPTS: number;
     endPTS: number;
     startDTS: number;
@@ -2556,13 +3375,14 @@ declare interface RemuxedTrack {
     transferredData1?: ArrayBuffer;
     transferredData2?: ArrayBuffer;
     dropped?: number;
+    encrypted?: boolean;
 }
 
-declare interface RemuxedUserdata {
+export declare interface RemuxedUserdata {
     samples: UserdataSample[];
 }
 
-declare interface RemuxerResult {
+export declare interface RemuxerResult {
     audio?: RemuxedTrack;
     video?: RemuxedTrack;
     text?: RemuxedUserdata;
@@ -2619,9 +3439,41 @@ export declare type SelectionPreferences = {
     subtitlePreference?: SubtitleSelectionOption;
 };
 
+export declare type SnapOptions = {
+    out: boolean;
+    in: boolean;
+};
+
+export declare interface SourceBufferListener {
+    event: string;
+    listener: EventListener;
+}
+
 export declare type SourceBufferName = 'video' | 'audio' | 'audiovideo';
 
-declare type SourceBuffers = Partial<Record<SourceBufferName, ExtendedSourceBuffer>>;
+export declare interface SourceBufferTrack extends BaseTrack {
+    buffer?: ExtendedSourceBuffer;
+    listeners: SourceBufferListener[];
+    ending?: boolean;
+    ended?: boolean;
+}
+
+export declare type SourceBufferTrackSet = Partial<Record<SourceBufferName, SourceBufferTrack>>;
+
+export declare const State: {
+    STOPPED: string;
+    IDLE: string;
+    KEY_LOADING: string;
+    FRAG_LOADING: string;
+    FRAG_LOADING_WAITING_RETRY: string;
+    WAITING_TRACK: string;
+    PARSING: string;
+    PARSED: string;
+    ENDED: string;
+    ERROR: string;
+    WAITING_INIT_PTS: string;
+    WAITING_LEVEL: string;
+};
 
 export declare type SteeringManifest = {
     VERSION: 1;
@@ -2636,26 +3488,24 @@ export declare interface SteeringManifestLoadedData {
     url: string;
 }
 
-declare class StreamController extends BaseStreamController implements NetworkComponentAPI {
+export declare class StreamController extends BaseStreamController implements NetworkComponentAPI {
     private audioCodecSwap;
-    private gapController;
     private level;
     private _forceStartLoad;
+    private _hasEnoughToStart;
     private altAudio;
     private audioOnly;
     private fragPlaying;
-    private onvplaying;
-    private onvseeked;
     private fragLastKbps;
     private couldBacktrack;
     private backtrackFragment;
     private audioCodecSwitch;
     private videoBuffer;
     constructor(hls: Hls, fragmentTracker: FragmentTracker, keyLoader: KeyLoader);
-    private _registerListeners;
-    protected _unregisterListeners(): void;
+    protected registerListeners(): void;
+    protected unregisterListeners(): void;
     protected onHandlerDestroying(): void;
-    startLoad(startPosition: number): void;
+    startLoad(startPosition: number, skipSeekToStartPosition?: boolean): void;
     stopLoad(): void;
     protected doTick(): void;
     protected onTickEnd(): void;
@@ -2674,20 +3524,21 @@ declare class StreamController extends BaseStreamController implements NetworkCo
     private abortCurrentFrag;
     protected flushMainBuffer(startOffset: number, endOffset: number): void;
     protected onMediaAttached(event: Events.MEDIA_ATTACHED, data: MediaAttachedData): void;
-    protected onMediaDetaching(): void;
+    protected onMediaDetaching(event: Events.MEDIA_DETACHING, data: MediaDetachingData): void;
     private onMediaPlaying;
     private onMediaSeeked;
-    private onManifestLoading;
+    protected onManifestLoading(): void;
     private onManifestParsed;
     private onLevelLoading;
     private onLevelLoaded;
+    private synchronizeToLiveEdge;
     protected _handleFragmentLoadProgress(data: FragLoadedData): void;
     private onAudioTrackSwitching;
     private onAudioTrackSwitched;
     private onBufferCreated;
     private onFragBuffered;
-    private onError;
-    private checkBuffer;
+    get hasEnoughToStart(): boolean;
+    protected onError(event: Events.ERROR, data: ErrorData): void;
     private onFragLoadEmergencyAborted;
     private onBufferFlushed;
     private onLevelsUpdated;
@@ -2699,15 +3550,17 @@ declare class StreamController extends BaseStreamController implements NetworkCo
     private _getAudioCodec;
     private _loadBitrateTestFrag;
     private _handleTransmuxComplete;
+    private logMuxedErr;
     private _bufferInitSegment;
     getMainFwdBufferInfo(): BufferInfo | null;
+    get maxBufferLength(): number;
     private backtrack;
     private checkFragmentChanged;
     get nextLevel(): number;
     get currentFrag(): Fragment | null;
     get currentProgramDateTime(): Date | null;
     get currentLevel(): number;
-    get nextBufferedFrag(): Fragment | null;
+    get nextBufferedFrag(): MediaFragment | null;
     get forceStartLoad(): boolean;
 }
 
@@ -2719,13 +3572,12 @@ export declare type StreamControllerConfig = {
     maxBufferLength: number;
     maxBufferSize: number;
     maxBufferHole: number;
-    highBufferWatchdogPeriod: number;
-    nudgeOffset: number;
-    nudgeMaxRetry: number;
     maxFragLookUpTolerance: number;
     maxMaxBufferLength: number;
     startFragPrefetch: boolean;
     testBandwidth: boolean;
+    liveSyncMode?: 'edge' | 'buffered';
+    startOnSegmentBoundary: boolean;
 };
 
 /**
@@ -2743,11 +3595,6 @@ declare class StyledUnicodeChar {
     isEmpty(): boolean;
 }
 
-declare interface SubtitleFragProcessed {
-    success: boolean;
-    frag: Fragment;
-}
-
 export declare interface SubtitleFragProcessedData {
     success: boolean;
     frag: Fragment;
@@ -2757,6 +3604,7 @@ export declare interface SubtitleFragProcessedData {
 export declare type SubtitlePlaylistType = 'SUBTITLES' | 'CLOSED-CAPTIONS';
 
 export declare type SubtitleSelectionOption = {
+    id?: number;
     lang?: string;
     assocLang?: string;
     characteristics?: string;
@@ -2772,22 +3620,20 @@ export declare class SubtitleStreamController extends BaseStreamController imple
     private mainDetails;
     constructor(hls: Hls, fragmentTracker: FragmentTracker, keyLoader: KeyLoader);
     protected onHandlerDestroying(): void;
-    private _registerListeners;
-    private _unregisterListeners;
-    startLoad(startPosition: number): void;
-    onManifestLoading(): void;
-    onMediaDetaching(): void;
-    onLevelLoaded(event: Events.LEVEL_LOADED, data: LevelLoadedData): void;
-    onSubtitleFragProcessed(event: Events.SUBTITLE_FRAG_PROCESSED, data: SubtitleFragProcessed): void;
-    onBufferFlushing(event: Events.BUFFER_FLUSHING, data: BufferFlushingData): void;
-    onFragBuffered(event: Events.FRAG_BUFFERED, data: FragBufferedData): void;
-    onError(event: Events.ERROR, data: ErrorData): void;
-    onSubtitleTracksUpdated(event: Events.SUBTITLE_TRACKS_UPDATED, { subtitleTracks }: SubtitleTracksUpdatedData): void;
-    onSubtitleTrackSwitch(event: Events.SUBTITLE_TRACK_SWITCH, data: TrackSwitchedData): void;
-    onSubtitleTrackLoaded(event: Events.SUBTITLE_TRACK_LOADED, data: TrackLoadedData): void;
+    protected registerListeners(): void;
+    protected unregisterListeners(): void;
+    startLoad(startPosition: number, skipSeekToStartPosition?: boolean): void;
+    protected onManifestLoading(): void;
+    protected onMediaDetaching(event: Events.MEDIA_DETACHING, data: MediaDetachingData): void;
+    private onLevelLoaded;
+    private onSubtitleFragProcessed;
+    private onBufferFlushing;
+    protected onError(event: Events.ERROR, data: ErrorData): void;
+    private onSubtitleTracksUpdated;
+    private onSubtitleTrackSwitch;
+    private onSubtitleTrackLoaded;
     _handleFragmentLoadComplete(fragLoadedData: FragLoadedData): void;
     doTick(): void;
-    protected getMaxBufferLength(mainBufferLength?: number): number;
     protected loadFragment(frag: Fragment, level: Level, targetBufferTime: number): void;
     get mediaBufferTimeRanges(): Bufferable;
 }
@@ -2801,10 +3647,10 @@ export declare class SubtitleTrackController extends BasePlaylistController {
     private currentTrack;
     private selectDefaultTrack;
     private queuedDefaultTrack;
-    private asyncPollTrackChange;
     private useTextTrackPolling;
     private subtitlePollingInterval;
     private _subtitleDisplay;
+    private asyncPollTrackChange;
     constructor(hls: Hls);
     destroy(): void;
     get subtitleDisplay(): boolean;
@@ -2813,7 +3659,7 @@ export declare class SubtitleTrackController extends BasePlaylistController {
     private unregisterListeners;
     protected onMediaAttached(event: Events.MEDIA_ATTACHED, data: MediaAttachedData): void;
     private pollTrackChange;
-    protected onMediaDetaching(): void;
+    protected onMediaDetaching(event: Events.MEDIA_DETACHING, data: MediaDetachingData): void;
     protected onManifestLoading(): void;
     protected onManifestParsed(event: Events.MANIFEST_PARSED, data: ManifestParsedData): void;
     protected onSubtitleTrackLoaded(event: Events.SUBTITLE_TRACK_LOADED, data: TrackLoadedData): void;
@@ -2831,6 +3677,7 @@ export declare class SubtitleTrackController extends BasePlaylistController {
     set subtitleTrack(newId: number);
     setSubtitleOption(subtitleOption: MediaPlaylist | SubtitleSelectionOption | undefined): MediaPlaylist | null;
     protected loadPlaylist(hlsUrlParameters?: HlsUrlParameters): void;
+    protected loadingPlaylist(currentTrack: MediaPlaylist, hlsUrlParameters: HlsUrlParameters | undefined): void;
     /**
      * Disables the old subtitleTrack and sets current mode on the next subtitleTrack.
      * This operates on the DOM textTracks.
@@ -2858,6 +3705,12 @@ export declare interface SubtitleTrackSwitchData {
     groupId?: string;
     type?: MediaPlaylistType | 'main';
     url?: string;
+}
+
+export declare interface SubtitleTrackUpdatedData {
+    details: LevelDetails;
+    id: number;
+    groupId: string;
 }
 
 /**
@@ -2889,12 +3742,12 @@ export declare interface SubtitleTrackSwitchData {
  * we are limiting the task execution per call stack to exactly one, but scheduling/post-poning further
  * task processing on the next main loop iteration (also known as "next tick" in the Node/JS runtime lingo).
  */
-declare class TaskLoop {
+export declare class TaskLoop extends Logger {
     private readonly _boundTick;
     private _tickTimer;
     private _tickInterval;
     private _tickCallCount;
-    constructor();
+    constructor(label: string, logger: ILogger);
     destroy(): void;
     protected onHandlerDestroying(): void;
     protected onHandlerDestroyed(): void;
@@ -2993,14 +3846,18 @@ export declare type TimelineControllerConfig = {
     renderTextTracksNatively: boolean;
 };
 
-export declare interface Track {
-    id: 'audio' | 'main';
+export declare enum TimelineOccupancy {
+    Point = 0,
+    Range = 1
+}
+
+export declare type TimestampOffset = RationalTimestamp & {
+    trackId: number;
+};
+
+export declare interface Track extends BaseTrack {
     buffer?: SourceBuffer;
-    container: string;
-    codec?: string;
     initSegment?: Uint8Array;
-    levelCodec?: string;
-    metadata?: any;
 }
 
 export declare interface TrackLoadedData {
@@ -3010,11 +3867,13 @@ export declare interface TrackLoadedData {
     networkDetails: any;
     stats: LoaderStats;
     deliveryDirectives: HlsUrlParameters | null;
+    track: MediaPlaylist;
 }
 
 export declare interface TrackLoadingData {
     id: number;
     groupId: string;
+    track: MediaPlaylist;
     url: string;
     deliveryDirectives: HlsUrlParameters | null;
 }
@@ -3025,36 +3884,34 @@ export declare interface TrackSet {
     audiovideo?: Track;
 }
 
-declare interface TrackSwitchedData {
-    id: number;
-}
-
-declare class TransmuxerInterface {
+export declare class TransmuxerInterface {
     error: Error | null;
     private hls;
     private id;
+    private instanceNo;
     private observer;
     private frag;
     private part;
     private useWorker;
     private workerContext;
-    private onwmsg?;
     private transmuxer;
     private onTransmuxComplete;
     private onFlush;
     constructor(hls: Hls, id: PlaylistLevelType, onTransmuxComplete: (transmuxResult: TransmuxerResult) => void, onFlush: (chunkMeta: ChunkMetadata) => void);
-    resetWorker(): void;
+    reset(): void;
+    private terminateWorker;
     destroy(): void;
-    push(data: ArrayBuffer, initSegmentData: Uint8Array | undefined, audioCodec: string | undefined, videoCodec: string | undefined, frag: Fragment, part: Part | null, duration: number, accurateTimeOffset: boolean, chunkMeta: ChunkMetadata, defaultInitPTS?: RationalTimestamp): void;
+    push(data: ArrayBuffer, initSegmentData: Uint8Array | undefined, audioCodec: string | undefined, videoCodec: string | undefined, frag: MediaFragment, part: Part | null, duration: number, accurateTimeOffset: boolean, chunkMeta: ChunkMetadata, defaultInitPTS?: TimestampOffset): void;
     flush(chunkMeta: ChunkMetadata): void;
     private transmuxerError;
     private handleFlushResult;
     private onWorkerMessage;
+    private onWorkerError;
     private configureTransmuxer;
     private handleTransmuxComplete;
 }
 
-declare interface TransmuxerResult {
+export declare interface TransmuxerResult {
     remuxResult: RemuxerResult;
     chunkMeta: ChunkMetadata;
 }
@@ -3097,13 +3954,39 @@ declare const enum VerboseLevel {
     DATA = 3
 }
 
-declare type VideoRange = (typeof VideoRangeValues)[number];
+export declare type VideoRange = (typeof VideoRangeValues)[number];
 
-declare const VideoRangeValues: readonly ["SDR", "PQ", "HLG"];
+export declare const VideoRangeValues: readonly ["SDR", "PQ", "HLG"];
 
 export declare type VideoSelectionOption = {
     preferHDR?: boolean;
     allowedVideoRanges?: Array<VideoRange>;
+    videoCodec?: string;
 };
+
+export declare class XhrLoader implements Loader<LoaderContext> {
+    private xhrSetup;
+    private requestTimeout?;
+    private retryTimeout?;
+    private retryDelay;
+    private config;
+    private callbacks;
+    context: LoaderContext | null;
+    private loader;
+    stats: LoaderStats;
+    constructor(config: HlsConfig);
+    destroy(): void;
+    abortInternal(): void;
+    abort(): void;
+    load(context: LoaderContext, config: LoaderConfiguration, callbacks: LoaderCallbacks<LoaderContext>): void;
+    loadInternal(): void;
+    openAndSendXhr(xhr: XMLHttpRequest, context: LoaderContext, config: LoaderConfiguration): void;
+    readystatechange(): void;
+    loadtimeout(): void;
+    retry(retryConfig: RetryConfig): void;
+    loadprogress(event: ProgressEvent): void;
+    getCacheAge(): number | null;
+    getResponseHeader(name: string): string | null;
+}
 
 export { }

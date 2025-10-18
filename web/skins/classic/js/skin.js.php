@@ -147,13 +147,12 @@ if ($user) {
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
     if (!$c['Private']) {
-      $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
-      $value = preg_replace('/\'/', '\\\\\'', $value);
-      if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
-        echo 'const '. $name . ' = '.$value.';'.PHP_EOL;
+      if (empty($c['Value'])) {
+        echo 'const '. $name . ' = \'\';'.PHP_EOL;
+      } else if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
+        echo 'const '. $name . ' = '.$c['Value'].';'.PHP_EOL;
       } else {
-        $value = html_entity_decode(validJsStr($value));
-        echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
+        echo 'const '. $name . ' = '.json_encode($c['Value']).';'.PHP_EOL;
       }
     }
   }

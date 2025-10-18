@@ -67,7 +67,7 @@ function manageDelConfirmModalBtns() {
 // Returns the event id's of the selected rows
 function getIdSelections() {
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
-    return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
+    return strip_html(row.Id); // strip the html from the element before sending
   });
 }
 

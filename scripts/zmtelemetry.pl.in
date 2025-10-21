@@ -50,13 +50,17 @@ my $show = 0;
 # Interval between version checks
 my $interval;
 my $version;
+my $dry_run = 0;
+my $verbose;
 
 GetOptions(
-  force     => \$force,
-  help      => \$help,
-  show      => \$show,
-  interval  => \$interval,
-  version   => \$version
+  force   => \$force,
+  help    => \$help,
+  show    => \$show,
+  interval=> \$interval,
+  version => \$version,
+  verbose => \$verbose,
+  dry_run => \$dry_run,
 );
 
 if ($version) {
@@ -76,7 +80,7 @@ if ($show) {
   collectData($dbh, \%telemetry);
   my $result = jsonEncode(\%telemetry);
   print($result);
-  exit(0);
+  exit(0) if $dry_run;
 }
 
 if (!defined $interval) {

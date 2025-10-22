@@ -1356,7 +1356,9 @@ function monitorsSetScale(id=null) {
       var currentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var currentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id; });
+      var currentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
     } else {
       //Stream is missing
       return;

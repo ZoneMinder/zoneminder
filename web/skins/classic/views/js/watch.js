@@ -1114,8 +1114,6 @@ function initPage() {
       if (monitorStream) monitorStream.kill();
     };
   });
-
-  manageRTSP2WebChannelStream();
 } // initPage
 
 function watchFullscreen() {

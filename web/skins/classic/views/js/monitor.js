@@ -840,7 +840,7 @@ function ControlList_onClick() {
 
 function ObjectDetection_onChange(od_select) {
   const od = od_select.value;
-  if (od ==  'none') {
+  if (od == 'none') {
     // Hide other options
     $j('#ObjectDetectionModel').hide();
     $j('#ObjectDetectionObjectThreshold').hide();
@@ -857,7 +857,7 @@ function ObjectDetection_onChange(od_select) {
 
     od_model_select.innerHTML = '';
     for (const [key, value] of Object.entries(od_models[od])) {
-      let opt = document.createElement('option');
+      const opt = document.createElement('option');
       opt.value = key; // the index
       opt.innerHTML = value;
       od_model_select.append(opt);

@@ -230,9 +230,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   event_data->n_frames = mysql_num_rows(result);
   if (event_data->frame_count < event_data->n_frames) {
-    event_data->frame_count = event_data->n_frames;
     Warning("Event %" PRId64 " has more frames in the Frames table (%d) than in the Event record (%d)",
             event_data->event_id, event_data->n_frames, event_data->frame_count);
+    event_data->frame_count = event_data->n_frames;
   }
   event_data->frames.clear();
   event_data->frames.reserve(event_data->frame_count);

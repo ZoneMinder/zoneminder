@@ -501,7 +501,7 @@ class Monitor extends ZM_Object {
 
   public function __call($fn, array $args) {
     if (count($args)) {
-      if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {
+      if (is_array($this->defaults[$fn]) and isset($this->defaults[$fn]['type']) and $this->defaults[$fn]['type'] == 'set') {
         $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];
@@ -550,7 +550,7 @@ class Monitor extends ZM_Object {
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {
-    $streamSrc = $this->Server()->UrlToZMS(ZM_MIN_STREAMING_PORT ? ZM_MIN_STREAMING_PORT+(int)($this->{'Id'}/5)+1 : null);
+    $streamSrc = $this->Server()->UrlToZMS(ZM_MIN_STREAMING_PORT ? ZM_MIN_STREAMING_PORT+$this->{'Id'} : null);
 
     $args['monitor'] = $this->{'Id'};
 

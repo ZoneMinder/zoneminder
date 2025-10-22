@@ -968,13 +968,24 @@ function stateStuff(action, runState, newState) {
   });
 }
 
+function strip_html(string) {
+  return string.replace(/<[^>]+>/g, '');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
-  console.log("Request Failed: " + textStatus + ", " + error);
-  if ( ! jqxhr.responseText ) {
+  if (jqxhr.statusText == 'abort') {
+    console.log('request aborted');
+    return;
+  }
+  if (!jqxhr.responseText) {
     console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
-  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
+  console.log("Request Failed: " + textStatus + ", " + error);
+  // Icon: Why strip html and whitespace?  We are just debugging it... it might get sent back to be logged in db etc.. but...
+  // we might lose a lot of content here.
+  //var responseText = strip_html(jqxhr.responseText).trim(); // strip any html or whitespace from the response
+  const responseText = jqxhr.responseText;
   if ( responseText ) console.log("Response Text: " + responseText);
 }
 

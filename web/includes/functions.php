@@ -2502,7 +2502,7 @@ function check_datetime($x) {
 function getHomeView() {
   global $user;
   global $skin;
-  if ($user and $user->HomeView()) {
+  if ($user and is_object($user) and $user->HomeView()) {
     $view = detaintPath($user->HomeView());
     if (preg_match('/^(\w+)([\w&=]*)$/', $view, $matches)) {
       $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$matches[1].'.php';

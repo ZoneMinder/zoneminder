@@ -77,7 +77,7 @@ function MonitorStream(monitorData) {
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdQuery.bind(this);
+      this.streamCmdQuery.bind(this); // This is to get an instant status update
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
@@ -510,6 +510,7 @@ function MonitorStream(monitorData) {
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
     if (-1 != stream.src.indexOf('mode=paused')) {
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
       let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
@@ -1152,6 +1153,13 @@ function MonitorStream(monitorData) {
           }
         } // end if have a new auth hash
       } // end if has state
+
+      if (!this.streamCmdTimer) {
+        // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
+        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
+        this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      }
+
     } else {
       if (!this.started) return;
       console.error(respObj.message);

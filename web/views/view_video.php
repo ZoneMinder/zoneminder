@@ -41,13 +41,13 @@ $Event = null;
 
 if ( ! empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
-  $path = $Event->Path().'/'.$Event->DefaultVideo();
+  $path = (mb_substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
   if (!empty($_REQUEST['file'])) {
     $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
   } else {
-    $path = $Event->Path().'/'.$Event->DefaultVideo();
+    $path = (mb_substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
   }
 } else {
   $errorText = 'No video path';

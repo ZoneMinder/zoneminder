@@ -522,7 +522,17 @@ function MonitorStream(monitorData) {
       if (-1 == src.search('connkey')) {
         src += '&connkey='+this.connKey;
       }
-      stream.src = src;
+      if (-1 == src.search('scale=')) {
+        src += '&scale='+this.scale;
+      }
+      if (-1 == src.search('mode=')) {
+        src += '&mode=jpeg';
+      }
+      console.log("Setting src.src", stream.src, src);
+      if (stream.src != src) {
+        stream.src = '';
+        stream.src = src;
+      }
     } // end if paused or not
     this.started = true;
     this.streamListenerBind();

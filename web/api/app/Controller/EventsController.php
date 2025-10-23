@@ -170,6 +170,11 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    $EventObj = new ZM\Event($event['Event']);
+    if (!$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
 
     # Get the previous and next events for any monitor
     $this->Event->id = $id;
@@ -179,8 +184,6 @@ class EventsController extends AppController {
 
     $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
     $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
-
-    $EventObj = new ZM\Event($id);
     $event['Event']['FileSystemPath'] = $EventObj->Path();
 
     # Also get the previous and next events for the same monitor

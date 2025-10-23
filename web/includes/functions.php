@@ -2485,7 +2485,13 @@ function output_file($path, $chunkSize=1024) {
 
 function array_to_hash_by_key($key, $array) {
   $results = array();
-  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  foreach ($array as $a) { 
+    if (is_array($a)) {
+      $results[$a[$key]] = $a;
+    } else {
+      $results[$a->$key()] = $a;
+    }
+  }
   return $results;
 }
 

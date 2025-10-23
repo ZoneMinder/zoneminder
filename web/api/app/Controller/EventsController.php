@@ -66,6 +66,29 @@ class EventsController extends AppController {
         }
       }
       $conditions = $this->FilterComponent->buildFilter($named_params);
+      foreach ($conditions as $k=>$v) {
+        if ( 0 === strpos($k, 'DateTime') ) {
+          $new_start = preg_replace('/DateTime/', 'StartDateTime', $k);
+          $new_end = preg_replace('/DateTime/', 'EndDateTime', $k);
+          if (isset($conditions['OR'])) {
+            $conditions['AND'] = [
+              ['OR' => $conditions['OR']],
+              [
+                [$new_start => $conditions[$k]],
+                [$new_end => $conditions[$k]]
+              ]
+            ];
+            unset($conditions['OR']);
+          } else {
+            $conditions['OR'] = [
+              [$new_start => $conditions[$k]],
+              [$new_end => $conditions[$k]]
+            ];
+          }
+          unset($conditions[$k]);
+        }
+      } // end foreach condition
+
     } else {
       $conditions = $this->FilterComponent->buildFilter($_REQUEST);
     }

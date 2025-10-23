@@ -298,6 +298,11 @@ int Image::PopulateFrame(AVFrame *frame) const {
 
 bool Image::Assign(const AVFrame *frame) {
   /* Assume the dimensions etc are correct. FIXME */
+  if (!frame) {
+    Error("Null frame passed to Image::Assign");
+    return false;
+  }
+  zm_dump_video_frame(frame, "source frame in Image::Assign");
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();

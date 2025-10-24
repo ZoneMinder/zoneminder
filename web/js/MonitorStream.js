@@ -1169,7 +1169,6 @@ function MonitorStream(monitorData) {
         console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
         this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
-
     } else {
       if (!this.started) return;
       console.error(respObj.message);

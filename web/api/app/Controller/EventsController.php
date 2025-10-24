@@ -168,9 +168,9 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
 
-    if ( $allowedMonitors ) {
+    if ( count($allowedMonitors) ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';

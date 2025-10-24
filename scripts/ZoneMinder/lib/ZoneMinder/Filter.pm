@@ -298,7 +298,7 @@ sub Sql {
                 }
                 $value = "to_days( '$value' )";
               }
-            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime')) {
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {

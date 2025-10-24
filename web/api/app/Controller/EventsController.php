@@ -137,9 +137,9 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : [];
 
-    if ( $allowedMonitors ) {
+    if ( count($allowedMonitors) ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';

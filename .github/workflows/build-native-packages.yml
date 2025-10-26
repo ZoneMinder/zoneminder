@@ -36,7 +36,7 @@ jobs:
         run: |
           set -eux
           apt install -y --no-install-recommends \
-            git ca-certificates gnupg lsb-release tzdata \
+            git ca-certificates gnupg lsb-release \
             build-essential devscripts debhelper equivs fakeroot \
             cmake pkg-config ccache
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
@@ -51,13 +51,15 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
+
       - name: Install build-deps from debian/control
         run: |
           set -eux

@@ -78,7 +78,7 @@ function MonitorStream(monitorData) {
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdQuery.bind(this);
+      this.streamCmdQuery.bind(this); // This is to get an instant status update
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
@@ -511,6 +511,7 @@ function MonitorStream(monitorData) {
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
     if (-1 != stream.src.indexOf('mode=paused')) {
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
       let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
@@ -522,7 +523,17 @@ function MonitorStream(monitorData) {
       if (-1 == src.search('connkey')) {
         src += '&connkey='+this.connKey;
       }
-      stream.src = src;
+      if (-1 == src.search('scale=')) {
+        src += '&scale='+this.scale;
+      }
+      if (-1 == src.search('mode=')) {
+        src += '&mode=jpeg';
+      }
+      console.log("Setting src.src", stream.src, src);
+      if (stream.src != src) {
+        stream.src = '';
+        stream.src = src;
+      }
     } // end if paused or not
     this.started = true;
     this.streamListenerBind();
@@ -961,7 +972,8 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (ZM_WEB_SOUND_ON_ALARM !== '0') {
+      console.log(ZM_WEB_SOUND_ON_ALARM);
+      if (parseInt(ZM_WEB_SOUND_ON_ALARM) == 1) {
         console.log('Attempting to play alarm sound');
         if (ZM_DIR_SOUNDS != '' && ZM_WEB_ALARM_SOUND != '') {
           const sound = new Audio(ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND);
@@ -1152,6 +1164,12 @@ function MonitorStream(monitorData) {
           }
         } // end if have a new auth hash
       } // end if has state
+
+      if (!this.streamCmdTimer) {
+        // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
+        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
+        this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      }
     } else {
       if (!this.started) return;
       console.error(respObj.message);

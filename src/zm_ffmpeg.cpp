@@ -450,7 +450,7 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
 }
 
 const std::string get_codecpar_string(const AVCodecParameters *par) {
-  return stringtf("codec_type %d %s codec_id %d %s codec_tag %" PRIu32
+  return stringtf("codec_type %d %s codec_id %d %s codec_tag %c%c%c%c"
         " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
         " extradata:%d:%s profile %d level %d field order %d color_range %d"
         " color_primaries %d color_trc %d color_space %d location %d video_delay %d",
@@ -458,7 +458,10 @@ const std::string get_codecpar_string(const AVCodecParameters *par) {
         av_get_media_type_string(par->codec_type),
         static_cast<int>(par->codec_id),
         avcodec_get_name(par->codec_id),
-        par->codec_tag,
+        (char)(par->codec_tag& 0xFF),
+        (char)((par->codec_tag >> 8) & 0xFF),
+        (char)((par->codec_tag >> 16) & 0xFF),
+        (char)((par->codec_tag >> 24) & 0xFF),
         par->width,
         par->height,
         par->bit_rate,
@@ -487,12 +490,16 @@ const std::string get_codecpar_string(const AVCodecParameters *par) {
 }
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s width %d height %d timebase %d/%d format %s profile %d level %d "
+  Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s tag %c%c%c%c width %d height %d timebase %d/%d format %s profile %d level %d "
         "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " qcompress %f extradata:%d:%s",
         codec->codec_type,
         av_get_media_type_string(codec->codec_type),
         codec->codec_id,
         avcodec_get_name(codec->codec_id),
+        (char)(codec->codec_tag& 0xFF),
+        (char)((codec->codec_tag >> 8) & 0xFF),
+        (char)((codec->codec_tag >> 16) & 0xFF),
+        (char)((codec->codec_tag >> 24) & 0xFF),
         codec->width,
         codec->height,
         codec->time_base.num,

@@ -826,6 +826,14 @@ $OLANG = array(
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
 	),
+  'OPTIONS_ENCODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_ENCODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
   'OPTIONS_ENCODER_PARAMETERS' => array(
     'Help' => '
     Parameters passed to the encoding codec. name=value separated by either , or newline.~~

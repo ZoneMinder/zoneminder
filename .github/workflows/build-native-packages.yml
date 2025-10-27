@@ -36,7 +36,7 @@ jobs:
         run: |
           set -eux
           apt install -y --no-install-recommends \
-            git ca-certificates gnupg lsb-release tzdata \
+            git ca-certificates gnupg lsb-release \
             build-essential devscripts debhelper equivs fakeroot \
             cmake pkg-config ccache
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
@@ -51,18 +51,15 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Import GPG key (Debian)
-        run: |
-          set -eux
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "$GPG_PRIVATE_KEY_B64" | base64 -d > /tmp/priv.asc
-          gpg --batch --import /tmp/priv.asc
-          gpg --batch --yes --edit-key "$GPG_KEY_ID" trust quit <<< "5\ny"
-          gpg --batch --armor --export "$GPG_KEY_ID" --output public.asc
-          chmod 600 ~/.gnupg/*
-          export GPG_TTY=$(tty || true)
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
       - name: Install build-deps from debian/control
         run: |
           set -eux
@@ -110,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: dist
       - name: Create release

@@ -392,8 +392,8 @@ foreach ($monitors as $monitor) {
       $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
-      $monitor->initial_scale($monitor_options['scale']);
     }
+    $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor

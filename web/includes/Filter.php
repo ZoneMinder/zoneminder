@@ -460,6 +460,22 @@ class Filter extends ZM_Object {
         case 'FilterServerId':
           $sqlValue .= ZM_SERVER_ID;
           break;
+        case 'CurrentDateTime':
+          $sqlValue = 'NOW()';
+          $dtAttr = true;
+          break;
+        case 'CurrentDate':
+          $sqlValue = 'to_days(NOW())';
+          $dtAttr = true;
+          break;
+        case 'CurrentTime':
+          $sqlValue = 'extract(hour_second FROM NOW())';
+          $dtAttr = true;
+          break;
+        case 'CurrentWeekday':
+          $sqlValue = 'weekday(NOW())';
+          $dtAttr = true;
+          break;
         case 'DateTime':
         case 'StartDateTime':
           $sqlValue = 'E.StartDateTime';
@@ -806,6 +822,10 @@ class Filter extends ZM_Object {
         'DiskPercent' => translate('AttrDiskPercent'),
         #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
         'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'CurrentDateTime' => translate('Current DateTime'),
+        'CurrentDate' => translate('Current Date'),
+        'CurrentTime' => translate('Current Time'),
+        'CurrentWeekday' => translate('Current Weekday'),
         'DateTime'    => translate('Date Time'),
         'EndDateTime'    => translate('AttrEndDateTime'),
         'EndDate'        => translate('AttrEndDate'),
@@ -1126,7 +1146,7 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = explode(',', $term['val']);
+          $selected = empty($term['val']) ? [] : json_decode($term['val']);
           // echo '<pre>selected: '; print_r($selected); echo '</pre>';
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;
@@ -1136,7 +1156,7 @@ class Filter extends ZM_Object {
             $options['data-cookie'] = $term['cookie'];
 
             if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
+              $selected = json_decode($_COOKIE[$term['cookie']]);
           }
           // These echo statements print these variables at the top of the view.
           // echo '<pre>availableTags: '; print_r($availableTags); echo '</pre>';

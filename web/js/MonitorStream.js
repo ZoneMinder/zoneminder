@@ -972,7 +972,8 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (ZM_WEB_SOUND_ON_ALARM !== '0') {
+      console.log(ZM_WEB_SOUND_ON_ALARM);
+      if (parseInt(ZM_WEB_SOUND_ON_ALARM) == 1) {
         console.log('Attempting to play alarm sound');
         if (ZM_DIR_SOUNDS != '' && ZM_WEB_ALARM_SOUND != '') {
           const sound = new Audio(ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND);

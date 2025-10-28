@@ -31,6 +31,10 @@ jobs:
             sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> \
               /etc/apt/sources.list
           fi
+          sed -i 's/^Types: deb$/Types: deb deb-src/g' \
+          /etc/apt/sources.list.d/debian.sources
+          sed -i 's/^Types: deb$/Types: deb deb-src/g' \
+          /etc/apt/sources.list.d/ubuntu.sources
           apt-get update
       - name: Install build tools
         run: |

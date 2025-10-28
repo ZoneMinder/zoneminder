@@ -51,7 +51,7 @@ jobs:
           apt install -y --no-install-recommends \
             git ca-certificates gnupg lsb-release \
             build-essential devscripts debhelper equivs fakeroot \
-            cmake pkg-config ccache curl bash rsync
+            cmake pkg-config ccache curl bash rsync openssh-client
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \

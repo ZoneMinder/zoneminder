@@ -101,7 +101,6 @@ jobs:
         run: |
           set -eux
           mkdir -p artifacts/deb
-          shopt -s nullglob
           mv ../*.deb ../*.buildinfo ../*.changes artifacts/deb/ || true
           cp -v public.asc artifacts/deb/
           # quick verify signatures (non-fatal)

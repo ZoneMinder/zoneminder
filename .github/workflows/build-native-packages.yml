@@ -13,7 +13,7 @@ env:
   DEBEMAIL: "info@zoneminder.com"
   DEBFULLNAME: "Github CI"
   TZ: America/New_York
-
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   build-debian:

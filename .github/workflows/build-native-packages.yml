@@ -12,6 +12,7 @@ env:
   GPG_PRIVATE_KEY_B64: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY_B64 }}
   DEBEMAIL: "info@zoneminder.com"
   DEBFULLNAME: "Github CI"
+  TZ: America/New_York
 
 
 jobs:

@@ -79,7 +79,8 @@ jobs:
           DEB_BUILD_OPTIONS: "parallel=$(nproc)"
           # gpg picks passphrase from environment via loopback
         run: |
-          set -eux
+          git submodule init
+          git submodule update --init --recursive
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"

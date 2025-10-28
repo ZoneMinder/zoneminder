@@ -89,7 +89,7 @@ jobs:
           #git config --global --add safe.directory /__w/zoneminder/zoneminder
           #git submodule init
           #git submodule update --init --recursive
-          curl https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase

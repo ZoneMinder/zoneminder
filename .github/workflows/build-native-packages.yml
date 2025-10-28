@@ -108,7 +108,6 @@ jobs:
       - name: Upload .deb artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: debian-${{ matrix.distro }}
           path: artifacts/deb
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

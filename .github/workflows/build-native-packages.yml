@@ -82,14 +82,20 @@ jobs:
           DEB_BUILD_OPTIONS: "parallel=$(nproc)"
           # gpg picks passphrase from environment via loopback
         run: |
-          ls -lR
-          git config --global --add safe.directory /__w/zoneminder/zoneminder
-          git submodule init
-          git submodule update --init --recursive
+          cd ../
+          ls -l
+          mv zoneminder ZoneMinder_ZoneMinder.git
+          #git config --global --add safe.directory /__w/zoneminder/zoneminder
+          #git submodule init
+          #git submodule update --init --recursive
+          curl https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          chmod +x do_debian_package.sh
+
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
-          utils/do_debian_package.sh -t binary
+          echo "Running do_debian_package.sh -t binary"
+          ./do_debian_package.sh -s=CURRENT -t binary -i=0
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |
           set -eux

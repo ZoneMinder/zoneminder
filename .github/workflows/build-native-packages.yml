@@ -10,6 +10,9 @@ env:
   GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
   GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_B64: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY_B64 }}
+  DEBEMAIL: "info@zoneminder.com
+  DEBFULLNAME: "Github CI"
+
 
 jobs:
   build-debian:

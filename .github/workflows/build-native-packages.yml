@@ -84,7 +84,8 @@ jobs:
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
-          dpkg-buildpackage -k"$DEB_SIGN_KEYID" -b
+          ls
+          utils/do_debian_package.sh -t binary
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |
           set -eux

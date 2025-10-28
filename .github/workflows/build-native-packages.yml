@@ -50,7 +50,7 @@ jobs:
           apt install -y --no-install-recommends \
             git ca-certificates gnupg lsb-release \
             build-essential devscripts debhelper equivs fakeroot \
-            cmake pkg-config ccache curl
+            cmake pkg-config ccache curl bash
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \
@@ -95,7 +95,7 @@ jobs:
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
-          ld -l /bin/bash
+          ls -l /bin/bash
           ./do_debian_package.sh -s=CURRENT -t binary 
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |

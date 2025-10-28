@@ -102,7 +102,6 @@ jobs:
           set -eux
           mkdir -p artifacts/deb
           mv ../*.deb ../*.buildinfo ../*.changes artifacts/deb/ || true
-          cp -v public.asc artifacts/deb/
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true

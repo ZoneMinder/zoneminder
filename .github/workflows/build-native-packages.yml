@@ -96,7 +96,7 @@ jobs:
           export GPG_TTY=$(tty || true)
           export DEB_SIGN_KEYID="$GPG_KEY_ID"
           ls -l /bin/bash
-          ./do_debian_package.sh -s=CURRENT -t binary 
+          ./do_debian_package.sh -s=CURRENT -t=binary 
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |
           set -eux

@@ -71,6 +71,7 @@ jobs:
       - name: Install build-deps from debian/control
         run: |
           set -eux
+          ln -sf distros/ubuntu2004 debian
           mk-build-deps -ir -t "apt-get -y --no-install-recommends" \
             debian/control
       - name: Build (signed)

@@ -640,6 +640,9 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+.btn-term-remove-all button {
+  padding: 4px 10px;
+}
 
 .btn-normal,
 .btn-normal:link {
@@ -921,7 +924,10 @@ a.flip {
   clear: both;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   position: relative;
   background-color: #FFFFFF;
 }
@@ -1411,11 +1417,6 @@ button.btn.btn-view-watch:hover {
 video-stream {
   position: relative;
 }
-.monitor .status {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-}
 .stream-info {
   /*
   position: absolute;
@@ -1437,8 +1438,8 @@ video-stream {
   /*
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
-  */
   padding: 0.3em;
+  */
 }
 
 /* +++ This block should always be located at the end! */

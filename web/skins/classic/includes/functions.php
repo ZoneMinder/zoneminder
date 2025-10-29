@@ -103,8 +103,8 @@ echo output_cache_busted_stylesheet_links(array(
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-    'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
-    'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+    'assets/bootstrap-table-1.24.1/bootstrap-table.min.css',
+    'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
     'css/base/skin.css',
     'css/base/views/'.$basename.'.css',
   ), true);
@@ -388,6 +388,14 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
+function output_link($files) {
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.getSkinFile($file).'" type="text/css"/>';
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
 function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();
@@ -415,26 +423,36 @@ function output_link_if_exists($files, $cache_bust=true, $param=false) {
   return implode(PHP_EOL, $html);
 }
 
-function output_script_if_exists($files, $cache_bust=true) {
+function output_script($files, $cache_bust=true, $must_exist=true) {
   global $skin;
   $html = array();
   foreach ( $files as $file ) {
+    $found = false;
     if ( file_exists('skins/'.$skin.'/'.$file) ) {
+      $found = true;
       if ( $cache_bust ) {
         $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
       } else {
         $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
       }
     } else if ( file_exists($file) ) {
+      $found = true;
       if ( $cache_bust ) {
         $html[] = '<script src="'.cache_bust($file).'"></script>';
       } else {
         $html[] = '<script src="'.$file.'"></script>';
       }
     }
+    if (!$found and $must_exist) {
+      ZM\Error("Script $file not found");
+    }
   }
   $html[] = ''; // So we ge a trailing \n
   return implode(PHP_EOL, $html);
+}
+
+function output_script_if_exists($files, $cache_bust=true) {
+  return output_script($files, $cache_bust, false);
 }
 
 function output_cache_busted_stylesheet_links($files) {
@@ -1577,9 +1595,6 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
   }
   if ( $basename == 'montage' ) {
-    echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
-    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));
@@ -1587,14 +1602,14 @@ function xhtmlFooter() {
 
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
-  'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.23.5/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.23.5/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.23.5/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
-  'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
+  'assets/bootstrap-table-1.24.1/bootstrap-table.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/export/bootstrap-table-export.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/cookie/bootstrap-table-cookie.js',
+  'assets/bootstrap-table-1.24.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',

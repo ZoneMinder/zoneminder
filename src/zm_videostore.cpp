@@ -32,46 +32,6 @@ extern "C" {
 
 #include <string>
 
-/*
-      AVCodecID codec_id;
-      const char *codec_codec;
-      const char *codec_name;
-      enum AVPixelFormat sw_pix_fmt;
-      enum AVPixelFormat hw_pix_fmt;
-      AVHWDeviceType hwdevice_type;
-      const char *hwdevice_default
-      */
-
-VideoStore::CodecData VideoStore::codec_data[] = {
-#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-
-  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr },
-  { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr },
-  { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr },
-
-  { AV_CODEC_ID_AV1, "av1", "av1_nvenc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr },
-#else
-  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
-  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
-  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, nullptr },
-  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, nullptr },
-#endif
-};
-
 VideoStore::VideoStore(
   const char *filename_in,
   const char *format_in,
@@ -268,6 +228,8 @@ bool VideoStore::open() {
           video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
           video_out_ctx->qmin = video_in_ctx->qmin;
           video_out_ctx->qmax = video_in_ctx->qmax;
+          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+          //video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
 
           if (!av_dict_get(opts, "crf", nullptr, AV_DICT_MATCH_CASE)) {
             if (av_dict_set(&opts, "crf", "23", 0)<0)
@@ -275,10 +237,7 @@ bool VideoStore::open() {
           }
 
           if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-            Warning("Can't open video codec (%s) %s",
-                    video_out_codec->name,
-                    av_make_error_string(ret).c_str()
-                   );
+            Warning("Can't open video codec (%s) %s", video_out_codec->name, av_make_error_string(ret).c_str());
             video_out_codec = nullptr;
           }
         }  // end if video_out_codec
@@ -305,25 +264,21 @@ bool VideoStore::open() {
       }
       std::string wanted_encoder = monitor->Encoder();
 
-      for (unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++) {
-        chosen_codec_data = &codec_data[i];
-        if (wanted_encoder != "" and wanted_encoder != "auto") {
-          if (wanted_encoder != codec_data[i].codec_name) {
-            Debug(1, "Not the right codec name %s != %s", codec_data[i].codec_name, wanted_encoder.c_str());
-            continue;
-          }
-        }
-        if ((!wanted_codec.empty() and wanted_codec != "auto") and (codec_data[i].codec_codec != wanted_codec)) {
-          Debug(1, "Not the right codec %s != %s", codec_data[i].codec_codec, wanted_codec.c_str());
-          continue;
-        }
+      std::list<const CodecData *>codec_data = get_encoder_data(wanted_codec, wanted_encoder);
+      if (!codec_data.size() and !wanted_encoder.empty()) {
+        Warning("Did not find encoder matching %s. Trying without.", wanted_encoder.c_str());
+        codec_data = get_encoder_data(wanted_codec, "");
+      }
+      if (!codec_data.size() and (!wanted_codec.empty() and wanted_codec != "auto")) {
+        Warning("Did not find encoder matching codec %s. Trying without.", wanted_codec.c_str());
+        codec_data = get_encoder_data("", "");
+      }
 
-        video_out_codec = avcodec_find_encoder_by_name(codec_data[i].codec_name);
-        if (!video_out_codec) {
-          Debug(1, "Didn't find encoder for %s", codec_data[i].codec_name);
-          continue;
-        }
-        Debug(1, "Found video codec for %s", codec_data[i].codec_name);
+      for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+        chosen_codec_data = *it;
+        Debug(1, "Found video codec for %s", chosen_codec_data->codec_name);
+
+        video_out_codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
         video_out_ctx = avcodec_alloc_context3(video_out_codec);
         if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -357,10 +312,10 @@ bool VideoStore::open() {
 
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
-        video_out_ctx->codec_id = codec_data[i].codec_id;
-        video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
-        Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
-
+        video_out_ctx->codec_id = chosen_codec_data->codec_id;
+        video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt;
+        video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+        Debug(1, "Setting pix fmt to %d %s", video_out_ctx->pix_fmt, av_get_pix_fmt_name(video_out_ctx->pix_fmt));
         const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
@@ -368,6 +323,7 @@ bool VideoStore::open() {
         const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         if (opts_gop_size) {
           video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+          av_dict_set(&opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
         }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -387,44 +343,10 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-        if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
-          ret = av_hwdevice_ctx_create(&hw_device_ctx,
-                                       codec_data[i].hwdevice_type,
-                                       monitor->EncoderHWAccelDevice().empty() ? codec_data[i].hwdevice_default : monitor->EncoderHWAccelDevice().c_str(),
-                                       nullptr, 0);
-          if (0>ret) {
-            Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
-            continue;
-          }
-
-          AVBufferRef *hw_frames_ref;
-          AVHWFramesContext *frames_ctx = nullptr;
-
-          if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
-            Error("Failed to create hwaccel frame context.");
-            continue;
-          }
-          frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
-          frames_ctx->format    = codec_data[i].hw_pix_fmt;
-          frames_ctx->sw_format = codec_data[i].sw_pix_fmt;
-          frames_ctx->width     = monitor->Width();
-          frames_ctx->height    = monitor->Height();
-          frames_ctx->initial_pool_size = 20;
-          if ((ret = av_hwframe_ctx_init(hw_frames_ref)) < 0) {
-            Error("Failed to initialize hwaccel frame context."
-                  "Error code: %s", av_err2str(ret));
-            av_buffer_unref(&hw_frames_ref);
-          } else {
-            video_out_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ref);
-            if (!video_out_ctx->hw_frames_ctx) {
-              Error("Failed to allocate hw_frames_ctx");
-            }
-          }
-          av_buffer_unref(&hw_frames_ref);
-          av_buffer_unref(&hw_device_ctx);
-        }  // end if hwdevice_type != NONE
-#endif
+        if (setup_hwaccel(video_out_ctx,
+              chosen_codec_data, hw_device_ctx, monitor->EncoderHWAccelDevice(), monitor->Width(), monitor->Height())) {
+          continue;
+        }
 
         zm_dump_codec(video_out_ctx);
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
@@ -448,16 +370,6 @@ bool VideoStore::open() {
         }
         av_dict_free(&opts);
 
-        // Reload it for next attempt and/or avformat open
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg output options '%s'", options.c_str());
-        } else {
-          if (reorder_queue_size) {
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          }
-        }
-
         if (video_out_codec) {
           zm_dump_codec(video_out_ctx);
           break;
@@ -470,7 +382,7 @@ bool VideoStore::open() {
       }  // end foreach codec
 
       if (!video_out_codec) {
-        Error("Can't open video codec!");
+        Error("Can't open any video codecs!");
         return false;
       }  // end if can't open codec
       Debug(2, "Success opening codec");
@@ -494,7 +406,7 @@ bool VideoStore::open() {
   if (audio_in_stream) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
 
-    if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC) {
+    if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC or CODEC(audio_in_stream)->codec_tag != 0) {
       audio_out_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");
@@ -572,6 +484,15 @@ bool VideoStore::open() {
         } // end if audio_out_ctx
       } // end if audio_out_stream
     } // end if is AAC
+
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+      audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    }
+
+    // We will assume that subsequent stream allocations will increase the index
+    max_stream_index = audio_out_stream->index;
+    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
+    reorder_queues[audio_out_stream->index] = {};
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -1018,14 +939,14 @@ bool VideoStore::setup_resampler() {
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
-    if (!(in_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+    if (!(in_frame = av_frame_ptr{av_frame_alloc()})) {
       Error("Could not allocate in frame");
       return false;
     }
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(out_frame = av_frame_ptr{zm_av_frame_alloc()})) {
+  if (!(out_frame = av_frame_ptr{av_frame_alloc()})) {
     Error("Could not allocate out frame");
     return false;
   }
@@ -1138,6 +1059,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
     Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
     return -1;
   }
+  Debug(1, "Queue for %d", stream_index);
   auto &queue = reorder_queues[stream_index];
   Debug(1, "Queue size for %d is %zu", stream_index, queue.size());
 
@@ -1185,9 +1107,6 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
 
 int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   av_packet_guard pkt_guard;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  av_frame_ptr hw_frame;
-#endif
 
   frame_count += 1;
 
@@ -1195,46 +1114,71 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
-    if (!zm_packet->out_frame) {
+    av_frame_ptr frame(av_frame_alloc());
+
+    if (zm_packet->out_frame) {
+      av_frame_ref(frame.get(), zm_packet->out_frame.get());
+    } else {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
             chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
             chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
             video_out_ctx->width, video_out_ctx->height
            );
-      AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-      if (!out_frame) {
-        Error("Unable to allocate a frame");
-        return 0;
-      }
 
       if (zm_packet->image) {
         Debug(2, "Have an image, convert it");
         //Go straight to out frame
-        swscale.Convert(
-          zm_packet->image,
-          zm_packet->out_frame->buf[0]->data,
-          zm_packet->codec_imgsize,
-          zm_packet->image->AVPixFormat(),
-          chosen_codec_data->sw_pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height
-        );
-      } else if (!zm_packet->in_frame) {
+        if (
+            zm_packet->image->Width() == static_cast<unsigned int>(video_out_ctx->width)
+            and
+            zm_packet->image->Height() == static_cast<unsigned int>(video_out_ctx->height)
+            and
+            zm_packet->image->AVPixFormat() == chosen_codec_data->sw_pix_fmt
+           ) {
+          zm_packet->image->PopulateFrame(frame.get());
+          Debug(2, "populating");
+        } else {
+          Debug(2, "converting");
+          zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+
+          swscale.Convert(
+              zm_packet->image,
+              frame->buf[0]->data,
+              zm_packet->codec_imgsize,
+              zm_packet->image->AVPixFormat(),
+              chosen_codec_data->sw_pix_fmt,
+              video_out_ctx->width,
+              video_out_ctx->height
+              );
+        }
+      } else if (zm_packet->in_frame) {
+        if (
+            zm_packet->in_frame->width == video_out_ctx->width
+            and
+            zm_packet->in_frame->height == video_out_ctx->height
+            and
+            static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
+           ) {
+          av_frame_ref(frame.get(), zm_packet->in_frame.get());
+        } else {
+          zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
+          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+          // Have in_frame.... may need to convert it to out_frame
+          swscale.Convert(zm_packet->in_frame.get(), frame.get());
+          av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
+        }
+      } else {
         Error("Have neither in_frame or image in packet %d!", zm_packet->image_index);
         return 0;
-      } else {
-        // Have in_frame.... may need to convert it to out_frame
-        swscale.Convert(zm_packet->in_frame.get(), zm_packet->out_frame.get());
       } // end if no in_frame
     } // end if no out_frame
-
-    AVFrame *frame = zm_packet->out_frame.get();
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
       int ret;
-      hw_frame = av_frame_ptr{zm_av_frame_alloc()};
+      av_frame_ptr hw_frame = av_frame_ptr{av_frame_alloc()};
       if (!hw_frame) {
         return AVERROR(ENOMEM);
       }
@@ -1246,35 +1190,28 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Error("Outof ram!");
         return 0;
       }
-      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame, 0)) < 0) {
+      if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame.get(), 0)) < 0) {
         Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
         return ret;
       }
 
-      frame = hw_frame.get();
+      frame = std::move(hw_frame);
     }  // end if hwaccel
 #endif
 
-    //zm_packet->out_frame->coded_picture_number = frame_count;
-    //zm_packet->out_frame->display_picture_number = frame_count;
-    //zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
-    // Do this to allow the encoder to choose whether to use I/P/B frame
-    //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    //zm_packet->out_frame->key_frame = zm_packet->keyframe;
-    //frame->pkt_duration = 0;
-
-    if (video_first_pts == AV_NOPTS_VALUE) {
-      video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
-      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
+    if (1 or (monitor->WallClockTimestamps() or !(zm_packet->in_frame || zm_packet->packet))) {
+      if (video_first_pts == AV_NOPTS_VALUE) {
+        video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+        Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
             video_first_pts,
             FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
 
-      frame->pts = 0;
-    } else {
-      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
-                                zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
-      frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
-      Debug(2,
+        frame->pts = 0;
+      } else {
+        Microseconds useconds = std::chrono::duration_cast<Microseconds>(
+            zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
+        frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
+        Debug(2,
             "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->timestamp(%" PRIi64 " - first %" PRId64 " us %" PRId64 " ) @ %d/%d",
             frame_count,
             frame->pts,
@@ -1283,16 +1220,60 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(useconds).count()),
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den);
+      }
+    } else {
+      if (zm_packet->in_frame) {
+        if (video_first_pts == AV_NOPTS_VALUE) {
+          video_first_pts = zm_packet->in_frame->pts;
+          Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
+          frame->pts = 0;
+        } else {
+          frame->pts = av_rescale_q(zm_packet->in_frame->pts - video_first_pts, video_in_stream->time_base, video_out_ctx->time_base);
+          Debug(2,
+              "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
+              frame_count,
+              frame->pts,
+              zm_packet->in_frame->pts,
+              video_first_pts,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
+              video_out_ctx->time_base.num,
+              video_out_ctx->time_base.den);
+        }
+      } else if (zm_packet->packet) {
+        if (video_first_pts == AV_NOPTS_VALUE) {
+          video_first_pts = zm_packet->packet->pts;
+          Debug(2, "No video_first_pts, set to (%" PRId64 ")", video_first_pts);
+          frame->pts = 0;
+        } else {
+          frame->pts = av_rescale_q(zm_packet->packet->pts-video_first_pts, video_in_stream->time_base, video_out_ctx->time_base);
+          Debug(2,
+              "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->in_frame(%" PRIi64 " - first %" PRId64 " ) @ %d/%d=>%d/%d",
+              frame_count,
+              frame->pts,
+              zm_packet->packet->pts,
+              video_first_pts,
+              video_in_stream->time_base.num,
+              video_in_stream->time_base.den,
+              video_out_ctx->time_base.num,
+              video_out_ctx->time_base.den);
+        }
+      } else {
+        Error("No pts from any source.");
+      }
     }
 
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
     do {
-      int ret = avcodec_send_frame(video_out_ctx, frame);
+      zm_dump_frame(frame.get(), "sending frame");
+      int ret = avcodec_send_frame(video_out_ctx, frame.get());
       if (ret < 0) {
         if (AVERROR(EAGAIN) != ret) {
           Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
           return ret;
+        } else {
+          Debug(3, "Got EAGAIN");
         }
       } else {
         break;
@@ -1300,7 +1281,16 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     } while (!zm_terminate);
 
     // EAGAIN can mean that we need to send another frame, so don't loop on it.
-    while (0 == avcodec_receive_packet(video_out_ctx, opkt.get())) {
+    while (!zm_terminate) {
+      int ret = avcodec_receive_packet(video_out_ctx, opkt.get());
+      if (ret < 0) {
+        if (ret != AVERROR(EAGAIN)) {
+          Error("Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
+        } else {
+          Debug(1, "Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
+        }
+        return ret;
+      }
       pkt_guard.acquire(opkt);
       ZM_DUMP_PACKET(opkt, "packet returned by codec");
 
@@ -1317,9 +1307,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       ZM_DUMP_PACKET(opkt, "packet returned by codec after timebase conversions");
 
       if (video_last_pts != AV_NOPTS_VALUE) {
-         opkt->duration = opkt->pts - video_last_pts;
-         Debug(1, "Duration %" PRId64 " from pts %" PRId64 " - last %" PRId64, opkt->duration, opkt->pts, video_last_pts);
-         if (opkt->duration < 0) opkt->duration = 0;
+        opkt->duration = opkt->pts - video_last_pts;
+        Debug(1, "Duration %" PRId64 " from pts %" PRId64 " - last %" PRId64, opkt->duration, opkt->pts, video_last_pts);
+        if (opkt->duration < 0) opkt->duration = 0;
       }
       video_last_pts = opkt->pts;
       write_packet(opkt.get(), video_out_stream);
@@ -1360,7 +1350,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
   }  // end if codec matches
-
 
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )

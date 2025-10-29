@@ -3,6 +3,8 @@ const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
 
 <?php
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 if (ZM_OPT_CONTROL and canView('Control')) {
 ?>
 const controlOptions = new Object();
@@ -188,16 +190,7 @@ function validateForm(form) {
     }
   }
 
-  /* because of success here, we will submit the form. Before we do that,
-   * convert all password fields to hidden fields so that
-   * browsers don't offer to save them
-   */
-
-  for (let i=0; i < form.elements.length; i++) {
-    if (form.elements[i].type == 'password') {
-      form.elements[i].type = 'hidden';
-    }
-  }
+  /* because of success here, we will submit the form. */
   return true;
 }
 

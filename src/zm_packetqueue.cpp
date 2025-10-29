@@ -110,7 +110,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
 
-    if (video_stream_id==add_packet->packet->stream_index) {
+    if (video_stream_id == add_packet->packet->stream_index) {
       if (!add_packet->keyframe) {
         frames_since_last_keyframe_ ++;
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
@@ -118,6 +118,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
         }
       } else {
+        if ( !max_keyframe_interval_) max_keyframe_interval_ = 1;
         frames_since_last_keyframe_ = 0;
       }
     }

@@ -1,18 +1,18 @@
 #!/bin/bash
 
 if [ "$1" == "clean" ]; then
-
-read -p "Do you really want to delete existing packages? [y/N]"
-[[ $REPLY == [yY] ]] && { rm -fr zoneminder*.build zoneminder*.changes zoneminder*.deb; echo "Existing package files deleted";  } || { echo "Packages have NOT been deleted"; }
-exit;
-
+  read -p "Do you really want to delete existing packages? [y/N]"
+  [[ $REPLY == [yY] ]] && { rm -fr zoneminder*.build zoneminder*.changes zoneminder*.deb; echo "Existing package files deleted";  } || { echo "Packages have NOT been deleted"; }
+  exit;
 fi
 
 DEBUILD=`which debuild`;
 
 if [ "$DEBUILD" == "" ]; then
   echo "You must install the devscripts package.  Try sudo apt-get install devscripts";
-  exit;
+  exit 1;
+else
+  echo "Found debuild at ${DEBUILD}"
 fi
 
 for i in "$@"
@@ -131,7 +131,7 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   fi
 else
   echo "release dir already exists. Please remove it."
-  exit 0;
+  exit 1;
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
@@ -147,7 +147,7 @@ if [ "$SNAPSHOT" == "stable" ]; then
     fi
     if [ "$BRANCH" == "" ]; then
       echo "Unable to determine latest stable branch!"
-      exit 0;
+      exit 1;
     fi
     echo "Latest stable branch is $BRANCH";
   fi;
@@ -169,7 +169,6 @@ else
     fi;
   fi;
 fi;
-
 
 echo "git checkout $BRANCH"
 git checkout $BRANCH

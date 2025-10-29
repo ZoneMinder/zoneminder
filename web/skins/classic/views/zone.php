@@ -322,6 +322,9 @@ if ($monitor->JanusEnabled()) {
   <script src="/javascript/janus/janus.js"></script>
 <?php
 }
+if ($monitor->Go2RTCEnabled()) {
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
+}
 ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -12,7 +12,7 @@ function MonitorStream(monitorData) {
   this.width = monitorData.width;
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
-  this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.RTSP2WebType = null;
   this.RTSP2WebStream = monitorData.RTSP2WebStream;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
@@ -33,7 +33,7 @@ function MonitorStream(monitorData) {
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
   this.server_id = monitorData.server_id;
-  this.scale = 100;
+  this.scale = monitorData.scale ? parseInt(monitorData.scale) : 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
   this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
@@ -77,12 +77,12 @@ function MonitorStream(monitorData) {
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdQuery.bind(this);
+      this.streamCmdQuery.bind(this); // This is to get an instant status update
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
 
-  this.player = '';
+  this.player = monitorData.DefaultPlayer;
   this.activePlayer = ''; // Variants: go2rtc, janus, rtsp2web_hls, rtsp2web_mse, rtsp2web_webrtc, zms. Relevant for this.player = ''/Auto
   this.setPlayer = function(p) {
     if (-1 != p.indexOf('go2rtc')) {
@@ -195,7 +195,7 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.log("setScale", stream);
+    console.log("setScale", stream, newscale, width, height, param);
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -264,7 +264,12 @@ function MonitorStream(monitorData) {
         //const ratio = realWidth / realHeight;
         //const imgWidth = $j(stream)[0].offsetWidth + 4; // including border
         stream.style.width = '100%';
-        $j(stream).closest('.monitorStream')[0].style.overflow = 'hidden';
+        const monitorStream = $j(stream).closest('.monitorStream');
+        if (monitorStream.length) {
+          monitorStream[0].style.overflow = 'hidden';
+        } else {
+          console.log('monitorstream not found. Should not happen.');
+        }
       }
     }
     let streamQuality = 0;
@@ -272,6 +277,7 @@ function MonitorStream(monitorData) {
       streamQuality = param.streamQuality;
       newscale += parseInt(newscale/100*streamQuality);
     }
+    this.scale = newscale;
     this.setStreamScale(newscale, streamQuality);
   }; // setScale
 
@@ -334,7 +340,7 @@ function MonitorStream(monitorData) {
     }
     this.streamListenerBind = streamListener.bind(null, this);
 
-    console.log('start', this.Go2RTCEnabled, (!this.player), (-1 != this.player.indexOf('go2rtc')), ((!this.player) || (-1 != this.player.indexOf('go2rtc'))));
+    console.log('start', this.Go2RTCEnabled, this.player);
 
     $j('#volumeControls').hide();
 
@@ -363,9 +369,12 @@ function MonitorStream(monitorData) {
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
-        document.querySelector('video').addEventListener('play', (e) => {
-          this.createVolumeSlider();
-        }, this);
+        const video_el = document.querySelector('video');
+        if (video_el) {
+          video_el.addEventListener('play', (e) => {
+            this.createVolumeSlider();
+          }, this);
+        }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -437,7 +446,7 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
-        if (this.RTSP2WebType == 'HLS') {
+        if (-1 !== this.player.indexOf('hls')) {
           const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
           /*
@@ -455,14 +464,14 @@ function MonitorStream(monitorData) {
             stream.src = hlsUrl.href;
           }
           this.activePlayer = 'rtsp2web_hls';
-        } else if (this.RTSP2WebType == 'MSE') {
+        } else if (-1 !== this.player.indexOf('mse')) {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
           this.activePlayer = 'rtsp2web_mse';
-        } else if (this.RTSP2WebType == 'WebRTC') {
+        } else if (-1 !== this.player.indexOf('webrtc')) {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
@@ -472,7 +481,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo('RTSP2Web ' + this.RTSP2WebType);
+        this.updateStreamInfo(players ? players[this.player] : 'RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -498,20 +507,33 @@ function MonitorStream(monitorData) {
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
-    if (-1 == src.search('auth')) {
-      src += '&'+auth_relay;
-    } else {
-      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-    }
-    if (-1 == src.search('connkey')) {
-      src += '&connkey='+this.connKey;
-    }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
-
-    stream.src = src;
-    this.streamCommand(CMD_PLAY);
+    if (-1 != stream.src.indexOf('mode=paused')) {
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCommand(CMD_PLAY);
+    } else {
+      let src = this.url_to_zms.replace(/mode=single/i, 'mode=jpeg');
+      if (-1 == src.search('auth')) {
+        src += '&'+auth_relay;
+      } else {
+        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+      }
+      if (-1 == src.search('connkey')) {
+        src += '&connkey='+this.connKey;
+      }
+      if (-1 == src.search('scale=')) {
+        src += '&scale='+this.scale;
+      }
+      if (-1 == src.search('mode=')) {
+        src += '&mode=jpeg';
+      }
+      console.log("Setting src.src", stream.src, src);
+      if (stream.src != src) {
+        stream.src = '';
+        stream.src = src;
+      }
+    } // end if paused or not
     this.started = true;
     this.streamListenerBind();
     this.activePlayer = 'zms';
@@ -573,7 +595,7 @@ function MonitorStream(monitorData) {
         this.hls.destroy();
         this.hls = null;
       }
-      if (this.RTSP2WebType == 'MSE') {
+      if (-1 !== this.activePlayer.indexOf('mse')) {
         this.stopMse();
       }
     } else if (-1 !== this.activePlayer.indexOf('janus')) {
@@ -950,7 +972,8 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (ZM_WEB_SOUND_ON_ALARM !== '0') {
+      console.log(ZM_WEB_SOUND_ON_ALARM);
+      if (parseInt(ZM_WEB_SOUND_ON_ALARM) == 1) {
         console.log('Attempting to play alarm sound');
         if (ZM_DIR_SOUNDS != '' && ZM_WEB_ALARM_SOUND != '') {
           const sound = new Audio(ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND);
@@ -1074,9 +1097,10 @@ function MonitorStream(monitorData) {
             $j('#level'+this.id).addClass('hidden');
             if (this.onplay) this.onplay();
           } // end if paused or delayed
+
           if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
             if (this.status.scale != 0) {
-              console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+              console.log("Stream not scaled, re-applying want:", this.scale, "current:", this.status.scale);
               this.streamCommand({command: CMD_SCALE, scale: this.scale});
             }
           }
@@ -1140,20 +1164,27 @@ function MonitorStream(monitorData) {
           }
         } // end if have a new auth hash
       } // end if has state
+
+      if (!this.streamCmdTimer) {
+        // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
+        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
+        this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      }
     } else {
       if (!this.started) return;
       console.error(respObj.message);
       // Try to reload the image stream.
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
-        let src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        // Instead of changing rand, perhaps we should be changing connKey.
+        let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
         // Maybe updated auth
         if (src != stream.src) {
           stream.src = '';
           stream.src = src;
         } else {
-          console.log("Failed to update rand on stream src");
+          console.log("Failed to update rand on stream src", stream.src);
         }
       }
     } // end if Ok or not
@@ -1259,7 +1290,7 @@ function MonitorStream(monitorData) {
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       // We correct the lag from real time. Relevant for long viewing and network problems.
-      if (this.RTSP2WebType == 'MSE') {
+      if (-1 !== this.activePlayer.indexOf('mse')) {
         const videoEl = document.getElementById("liveStream" + this.id);
         if (this.wsMSE && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
           const videoElCurrentTime = videoEl.currentTime; // Current time of playback
@@ -1295,7 +1326,7 @@ function MonitorStream(monitorData) {
           console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id}`);
           this.restart(this.currentChannelStream);
         }
-      } else if (this.RTSP2WebType == 'WebRTC') {
+      } else if (-1 !== this.player.indexOf('webrtc')) {
         if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
           console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`);
           this.restart(this.currentChannelStream);

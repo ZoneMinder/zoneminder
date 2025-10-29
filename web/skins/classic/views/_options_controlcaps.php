@@ -1,20 +1,23 @@
 <?php
 $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
 ?>
-<div class="row">
-  <div class="col">
-    <div id="contentButtons">
-      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      <button id="addNewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('AddNewControl') ?>" data-on-click-this="addNewControl" data-url="?view=controlcap"><i class="fa fa-plus"></i></button>
-      <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('EditControl') ?>" data-on-click-this="editControl" data-url="?view=controlcap&cid=" disabled><i class="fa fa-pencil"></i></button>
-      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
-    </div>
-  </div> <!-- .col -->
-</div> <!-- .row -->
-<div class="wrapper-scroll-table">
-  <div class="row">
-    <div class="col">
+<div id="page">
+  <div id="content" class="container-fluid">
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+    <div id="toolbar" class="container-fluid">
+      <div class="row">
+        <div class="col">
+          <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+          <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+          <button id="addNewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('AddNewControl') ?>" data-on-click-this="addNewControl" data-url="?view=controlcap"><i class="fa fa-plus"></i></button>
+          <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('EditControl') ?>" data-on-click-this="editControl" data-url="?view=controlcap&cid=" disabled><i class="fa fa-pencil"></i></button>
+          <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+        </div> <!-- .col-->
+      </div> <!-- .row-->
+    </div> <!-- #toolbar -->
+
+    <div id="controlCaps" class="table-responsive">
+      <!-- Table styling handled by bootstrap-tables -->
       <table id="controlTable" class="table-sm table-borderless"
         data-locale="<?php echo i18n() ?>"
         data-search="true"
@@ -27,8 +30,11 @@ $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
         data-buttons-class="btn btn-normal"
         data-toolbar="#toolbar"
         data-show-columns="true"
+        data-mobile-responsive="true"
+        data-min-width="562"
+        class="table-sm table-borderless table"
       >
-        <thead>
+        <thead class="thead-highlight">
           <tr>
             <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
             <th class="colId" data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
@@ -65,7 +71,9 @@ foreach( $controls as $control ) {
 ?>
         </tbody>
       </table>
-    </div> <!-- .col -->
-  </div> <!-- .row -->
-</div> <!-- .wrapper-scroll-table -->
-<script src="skins/<?php echo $skin ?>/views/js/controlcaps.js" nonce="<?php echo $cspNonce ?>"></script>
+    </div> <!--#controlCaps-->
+  </div><!--#content-->
+</div><!-- #page -->
+<?php
+echo output_script(array('views/js/controlcaps.js'));
+?>

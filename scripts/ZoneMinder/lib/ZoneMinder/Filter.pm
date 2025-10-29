@@ -186,6 +186,12 @@ sub Sql {
         } elsif ( $term->{attr} eq 'FilterServerId' ) {
           $self->{Sql} .= (defined($Config{ZM_SERVER_ID}) ? $Config{ZM_SERVER_ID}: '0').' /* ZM_SERVER_ID */';
           # StartTime options
+        } elsif ( $term->{attr} eq 'CurrentDateTime' ) {
+          $self->{Sql} .= 'NOW()';
+        } elsif ( $term->{attr} eq 'CurrentTime' ) {
+          $self->{Sql} .= 'extract( hour_second from NOW())';
+        } elsif ( $term->{attr} eq 'CurrentDate' ) {
+          $self->{Sql} .= 'to_days(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
         } elsif ( $term->{attr} eq 'Date' ) {
@@ -268,7 +274,7 @@ sub Sql {
                 $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
               }
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
+            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' or $term->{attr} eq 'CurrentDateTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
@@ -279,7 +285,7 @@ sub Sql {
                 }
                 $value = "'$value'";
               }
-            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
@@ -292,7 +298,7 @@ sub Sql {
                 }
                 $value = "to_days( '$value' )";
               }
-            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {

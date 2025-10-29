@@ -345,8 +345,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     _wsnt__RenewResponse wsnt__RenewResponse;
     PullPointSubscriptionBindingProxy proxyEvent;
     void set_credentials(struct soap *soap);
-    std::unordered_map<std::string, std::string> alarms;
 #endif
+    std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;
    public:
     explicit ONVIF(Monitor *parent_);
@@ -363,7 +363,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
 
   class AmcrestAPI {
-   protected:
+   private:
     Monitor *parent;
     bool alarmed;
     bool healthy;
@@ -374,9 +374,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;
     std::mutex   response_mutex;
 
+    void SetNoteSet(Event::StringSet &noteSet);
    public:
     explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
@@ -385,6 +387,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int start();
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
+    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
   };
 
   class RTSP2WebManager {

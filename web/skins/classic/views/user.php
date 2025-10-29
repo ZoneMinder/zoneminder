@@ -117,11 +117,11 @@ echo getNavBarHTML();
 <?php
     $homeview_options = [
       'console'=>translate('Console'),
-      'events'=>'Events',
-      'map'   =>  'Map',
-      'montage'=>'Montage',
-      'montagereview'=>'Montage Review',
-      'watch' => 'Watch',
+      'events'=> translate('Events'),
+      'map'   =>  translate('Map'),
+      'montage'=> translate('Montage'),
+      'montagereview'=> translate('Montage Review'),
+      'watch' => translate('Watch'),
     ];
 echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView());
 ?></td>

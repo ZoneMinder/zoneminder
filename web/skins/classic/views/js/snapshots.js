@@ -73,7 +73,8 @@ function getIdSelections() {
   var table = $j('#snapshotTable');
 
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
-    return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
+    // row.Id looks like <a href="?view=snapshot&amp;id=70">70</a> but sadly is not a dom element.
+    return strip_html(row.Id); // strip the html from the element before sending
   });
 }
 
@@ -289,7 +290,7 @@ function initPage() {
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
-}
+} // initPage
 
 $j(document).ready(function() {
   initPage();

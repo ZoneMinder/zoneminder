@@ -342,6 +342,7 @@ function initPage() {
 
   const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
   if (janusEnabled) {
+    janusEnabled.onclick = update_players;
     if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
@@ -376,45 +377,34 @@ function initPage() {
 
   //Manage the RTSP2Web settings div
   const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
-  if (RTSP2WebEnabled) {
-    if (RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebType").hidden = false;
+  const Go2RTCEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  if (Go2RTCEnabled) Go2RTCEnabled.onclick = update_players;
+  if (RTSP2WebEnabled) RTSP2WebEnabled.onclick = update_players;
+
+  if (RTSP2WebEnabled || Go2RTCEnabled) {
+    if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
       document.getElementById("RTSP2WebStream").hidden = false;
     } else {
-      document.getElementById("RTSP2WebType").hidden = true;
       document.getElementById("RTSP2WebStream").hidden = true;
     }
 
-    RTSP2WebEnabled.addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("RTSP2WebType").hidden = false;
+    Go2RTCEnabled.addEventListener('change', function() {
+      if (this.checked || RTSP2WebEnabled.checked) {
         document.getElementById("RTSP2WebStream").hidden = false;
       } else {
-        document.getElementById("RTSP2WebType").hidden = true;
+        document.getElementById("RTSP2WebStream").hidden = true;
+      }
+    });
+
+    RTSP2WebEnabled.addEventListener('change', function() {
+      if (this.checked || Go2RTCEnabled.checked) {
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
         document.getElementById("RTSP2WebStream").hidden = true;
       }
     });
   }
-
-  // Amcrest API controller
-  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
-  if (ONVIF_Event_Listener) {
-    if (ONVIF_Event_Listener[0].checked) {
-      document.getElementById("function_use_Amcrest_API").hidden = false;
-    } else {
-      document.getElementById("function_use_Amcrest_API").hidden = true;
-    }
-    ONVIF_Event_Listener[0].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = false;
-      }
-    });
-    ONVIF_Event_Listener[1].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = true;
-      }
-    });
-  }
+  update_players();
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
@@ -480,7 +470,7 @@ function initPage() {
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
 
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 } // end function initPage()
 
 function saveMonitorData(href = '') {
@@ -622,7 +612,8 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value) &&
+  if (parseInt(max_image_buffer_count.value)
+    &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {
     if (this.id == 'newMonitor[PreEventCount]') {
@@ -658,13 +649,16 @@ function update_estimated_ram_use() {
 function updateMarker() {
   const latitude = document.getElementById('newMonitor[Latitude]').value;
   const longitude = document.getElementById('newMonitor[Longitude]').value;
-  console.log("Updating marker at ", latitude, longitude);
-  const latlng = new L.LatLng(latitude, longitude);
-  marker.setLatLng(latlng);
-  map.setView(latlng, 8, {animation: true});
-  setTimeout(function() {
-    map.invalidateSize(true);
-  }, 100);
+  if (typeof L !== 'undefined') {
+    const latlng = new L.LatLng(latitude, longitude);
+    marker.setLatLng(latlng);
+    map.setView(latlng, 8, {animation: true});
+    setTimeout(function() {
+      map.invalidateSize(true);
+    }, 100);
+  } else {
+    console.log('You must install leaflet');
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {
@@ -701,6 +695,38 @@ function SecondPath_onChange(e) {
     $j('#AnalysingSource').hide();
     $j('#RecordingSource').hide();
   }
+}
+
+function update_players() {
+  const dropdown = $j('[name="newMonitor[DefaultPlayer]"]');
+  if (!dropdown.length) {
+    console.log("No element found for DefaultPlayer");
+    return;
+  }
+  const form = dropdown[0].form;
+  const selected_value = dropdown.val() || '';
+  const go2rtc_enabled = form.elements['newMonitor[Go2RTCEnabled]'] && form.elements['newMonitor[Go2RTCEnabled]'].checked;
+  const rtsp2web_enabled = form.elements['newMonitor[RTSP2WebEnabled]'] && form.elements['newMonitor[RTSP2WebEnabled]'].checked;
+  const janus_enabled = form.elements['newMonitor[JanusEnabled]'] && form.elements['newMonitor[JanusEnabled]'].checked;
+
+  dropdown.empty();
+  $j.each(players, function(key, entry) {
+    if (
+      ((-1 != key.indexOf('go2rtc')) && !go2rtc_enabled)
+      ||
+      ((-1 != key.indexOf('rtsp2web')) && !rtsp2web_enabled)
+      ||
+      ((-1 != key.indexOf('janus')) && !janus_enabled)
+    ) {
+      console.log("not adding ", key, go2rtc_enabled, rtsp2web_enabled, janus_enabled);
+    } else {
+      dropdown.append($j('<option></option>').attr('value', key).text(entry));
+    }
+  });
+  //dropdown.chosen("destroy");
+  //dropdown.chosen();
+  dropdown.val(selected_value);
+  if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
 }
 
 function populate_models(ManufacturerId) {
@@ -797,6 +823,21 @@ function devices_onchange(devices) {
   } else {
     device.style['display'] = 'inline';
   }
+}
+function ControlId_onChange(ddm) {
+  const ControlEditButton = document.getElementById('ControlEditButton');
+  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+}
+
+function ControlEdit_onClick() {
+  const ControlId = document.getElementById('ControlId');
+  if (ControlId) {
+    window.location = '?view=controlcap&cid='+ControlId.value;
+  }
+}
+
+function ControlList_onClick() {
+  window.location = '?view=options&tab=control';
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

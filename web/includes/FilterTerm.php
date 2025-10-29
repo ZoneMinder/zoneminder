@@ -132,6 +132,7 @@ class FilterTerm {
           $value = dbEscape($value);
         }
         break;
+      case 'CurrentDateTime':
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
@@ -140,6 +141,7 @@ class FilterTerm {
         } else if ( $value_upper != 'NULL' )
           $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
+      case 'CurrentDate':
       case 'Date':
       case 'StartDate':
       case 'EndDate':
@@ -149,6 +151,7 @@ class FilterTerm {
           $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
+      case 'CurrentTime':
       case 'Time':
       case 'StartTime':
       case 'EndTime':
@@ -243,8 +246,16 @@ class FilterTerm {
     case 'StorageServerId':
       return 'S.ServerId';
     case 'FilterServerId':
-      return 'ZM_SERVER_ID:'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
+      return '/* ZM_SERVER_ID:*/'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
+    case 'CurrentDateTime':
+      return 'NOW()';
+    case 'CurrentDate':
+      return 'to_days(NOW())';
+    case 'CurrentTime':
+      return 'extract(hour_second FROM NOW())';
+    case 'CurrentWeekday':
+      return 'weekday(NOW()';
     case 'DateTime':
       return 'E.StartDateTime';
     case 'Date':
@@ -504,6 +515,10 @@ class FilterTerm {
       'MonitorServerId',
       'StorageServerId',
       'FilterServerId',
+      'CurrentDateTime',
+      'CurrentDate',
+      'CurrentTime',
+      'CurrentWeekday',
       'DateTime',
       'Date',
       'Time',
@@ -547,6 +562,10 @@ class FilterTerm {
       if (!(is_integer($this->val) or ctype_digit($this->val))) 
         return false;
       return true;
+    case 'CurrentDate' :
+    case 'CurrentTime' :
+    case 'CurrentDateTime' :
+    case 'CurrentWeekday' :
     case 'EndDate' :
     case 'StartDate' :
     case 'EndDateTime' :
@@ -554,6 +573,7 @@ class FilterTerm {
       if (!$this->val)
         return false;
       break;
+    case 'Id' :
     case 'Archived' :
     case 'Tags' :
     case 'Monitor' :
@@ -563,6 +583,10 @@ class FilterTerm {
     case 'Group' :
     case 'Notes' :
       if ($this->val === '')
+        return false;
+      else if ($this->val === '[]')
+        return false;
+      else if (is_array($this->val) and !count($this->val))
         return false;
       break;
     }

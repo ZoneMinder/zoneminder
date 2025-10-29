@@ -57,3 +57,6 @@ input[type=range]::-ms-tooltip {
 #minTime, #maxTime {
 margin: 0 4px;
 }
+#monitors canvas {
+  background: black;
+}

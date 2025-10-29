@@ -345,8 +345,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     _wsnt__RenewResponse wsnt__RenewResponse;
     PullPointSubscriptionBindingProxy proxyEvent;
     void set_credentials(struct soap *soap);
-    std::unordered_map<std::string, std::string> alarms;
 #endif
+    std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;
    public:
     explicit ONVIF(Monitor *parent_);
@@ -363,15 +363,22 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
 
   class AmcrestAPI {
-   protected:
+   private:
     Monitor *parent;
     bool alarmed;
     bool healthy;
-    std::string amcrest_response;
+    std::string last_topic;
+    std::string last_value;
+
+    std::string response;
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    std::unordered_map<std::string, std::string> alarms;
+    std::mutex   alarms_mutex;
+    std::mutex   response_mutex;
 
+    void SetNoteSet(Event::StringSet &noteSet);
    public:
     explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
@@ -380,6 +387,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int start();
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
+    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
   };
 
   class RTSP2WebManager {
@@ -393,6 +401,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
+    std::string rtsp_restream_path;
     std::string rtsp_path;
     std::string rtsp_second_path;
 
@@ -408,7 +417,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   class Go2RTCManager {
     protected:
       Monitor *parent;
-      CURL *curl = nullptr;
       // helper class for CURL
       struct transfer {
         const char *buf;
@@ -417,9 +425,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       };
       static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
       static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+      std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
       std::string Go2RTC_endpoint;
+      std::string rtsp_restream_path;
       std::string rtsp_username;
       std::string rtsp_password;
       std::string rtsp_path;
@@ -535,7 +545,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             colours;
   VideoWriter     videowriter;
   std::string     encoderparams;
-  int             output_codec;
+  std::string     output_codec;
   std::string     encoder;
   std::string     encoder_hwaccel_name;
   std::string     encoder_hwaccel_device;
@@ -845,7 +855,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
   const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
-  int OutputCodec() const { return output_codec; }
+  const std::string &OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
 

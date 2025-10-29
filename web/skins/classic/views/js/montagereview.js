@@ -1,11 +1,37 @@
 "use strict";
 
-
-var LOADING = 1;
+var LOADING = true; // Default to true as initial state
 
 var ajax = null;
 var wait_for_events_interval = null;
 
+var minStartDateTimeElement = null;
+var maxStartDateTimeElement = null;
+
+var labelpx;
+var labbottom; // This is positioning same as row labels below, but from bottom so 1-position
+var labfont;
+
+var sliderX = 0;
+const sliderWidth = 10;
+const sliderLineWidth = 1;
+var sliderHeight = 0;
+const scruboutput = document.getElementById('scruboutput');
+const scrubleft = document.getElementById('scrubleft');
+const scrubright = document.getElementById('scrubright');
+
+// Populated by initPage with jquery
+var dateTimeDiv;
+var speedDiv;
+var timeLineDiv;
+var liveButton;
+var zoomIn;
+var zoomOut;
+var panLeft;
+var panRight;
+var downloadVideo;
+var scaleDiv;
+var fit;
 
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
@@ -100,8 +126,8 @@ function findFrameByTime(arr, time, debug=false) {
     return false;
   }
   const keys = Object.keys(arr);
-  let start=0;
-  let end=keys.length-1;
+  let start = 0;
+  let end = keys.length-1;
 
   //console.log(keys);
   //console.log(keys[start]);
@@ -181,18 +207,20 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
+  /*
   if (!events_by_monitor_id[monId] || !events_by_monitor_id[monId].length) {
     // Need to load them?
     console.log("No events_by_monitor_id for " + monId);
     return;
   }
 
-  if (!events_for_monitor[monId] || !events_for_monitor[monId].length) {
-    events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
-    if (!events_for_monitor[monId].length) {
-      //console.log("No events for monitor " + monId);
-      return;
-    }
+  */
+  if ((!(monId in events_for_monitor)) || !events_for_monitor[monId].length) {
+    //events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
+    //if (!events_for_monitor[monId].length) {
+    //console.log("No events for monitor " + monId);
+    return;
+    //}
   }
 
   let Event = findEventByTime(events_for_monitor[monId], time, false);
@@ -211,20 +239,24 @@ function getFrame(monId, time, last_Frame) {
     }
     if (Event) {
       console.log("Failed to find event for ", time, " but found it using linear search");
-      for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
-        const event_id = events_for_monitor[monId][i].Id;
-        const e = events[event_id];
-        if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
-          console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
-          break;
-        } else {
-          console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+      if (!findEventByTime(events_for_monitor[monId], time, true)) {
+        for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
+          const event_id = events_for_monitor[monId][i].Id;
+          const e = events[event_id];
+          if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
+            console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+            break;
+          } else {
+            console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+            currentSpeed=0;
+          }
         }
       }
     }
   }
   if (!Event) {
-    console.log('No event found for ' + time + ' ' + secs2inputstr(time) + ' on monitor ' + monId);
+    //console.log('No event found for ' + time + ' ' + secs2inputstr(time) + ' on monitor ' + monId, events_for_monitor[monId]);
+    writeText( monId, "No event" );
     return;
   }
 
@@ -339,19 +371,24 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+    return server.PathToZMS + '?' +
+    //mode=jpeg
+     "mode=single"+
+      "&event=" + Frame.EventId + '&frame='+frame_id +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +
+      "&monitor=" + monId +
       "&frames=1" +
       "&rate=" + 100*speeds[speedIndex] +
-      '&' + auth_relay;
+      (auth_relay ? '&' + auth_relay : '');
   } // end found Frame
   return '';
 } // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
+  console.log("imagedone", obj, monId, success);
   if (success) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
@@ -393,8 +430,6 @@ function writeText(monId, text) {
   if (monId) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
-    //canvasCtx.fillStyle="white";
-    //canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
     var textSize = canvasObj.width * 0.15;
     canvasCtx.font = '600 ' + textSize.toString() + "px Arial";
     canvasCtx.fillStyle = 'white';
@@ -410,14 +445,19 @@ function loadImage2Monitor(monId, url) {
   if ( monitorLoading[monId] && (monitorImageObject[monId].src != url) ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
     monitorLoadingStageURL[monId] = url; // we don't care if we are overriting, it means it didn't change fast enough
+    console.log("staging", monitorLoading[monId], monitorImageObject[monId].src, url);
   } else {
-    if ( monitorImageObject[monId].src == url ) return; // do nothing if it's the same
+    if ( monitorImageObject[monId].src == url ) {
+      console.log("No change in url");
+      return; // do nothing if it's the same
+    }
     if ( url == 'no data' ) {
       writeText(monId, 'No Event');
     } else {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
+      console.log("Loading", monitorImageObject[monId], url);
       monitorImageObject[monId].src = url; // starts a load but doesn't refresh yet, wait until ready
     }
   }
@@ -426,7 +466,7 @@ function loadImage2Monitor(monId, url) {
 function timerFire() {
   // See if we need to reschedule
   if ( ( currentDisplayInterval != timerInterval ) || ( currentSpeed == 0 ) ) {
-    console.log("Turn off interrupts timerInterfave", timerInterval, currentDisplayInterval, currentSpeed);
+    console.log("Turn off interrupts timerInterval", timerInterval, 'display interval:', currentDisplayInterval, 'speed', currentSpeed);
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerObj = null;
@@ -434,19 +474,23 @@ function timerFire() {
   }
 
   if (liveMode) {
-    outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
+    //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     if (speedIndex) setSpeed(0);
-    outputUpdate(currentTimeSecs);
+    //outputUpdate(currentTimeSecs);
   } else if (playSecsPerInterval || (currentTimeSecs==minTimeSecs)) {
-    outputUpdate(playSecsPerInterval + currentTimeSecs);
+    currentTimeSecs = playSecsPerInterval + currentTimeSecs;
+    //outputUpdate(playSecsPerInterval + currentTimeSecs);
+  } else {
+    console.log("Not updating");
   }
+  outputUpdate(currentTimeSecs);
 
   if ((currentSpeed > 0 || liveMode != 0) && !timerObj) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   } else {
-    console.log("timefire", "CurrentSpeed", currentSpeed, "liveMode", liveMode, timerObj);
+    console.log("timefire", "CurrentSpeed", currentSpeed, "liveMode", liveMode, 'timerObj', timerObj);
   }
 } // end function timerFire()
 
@@ -460,122 +504,169 @@ function drawSliderOnGraph(val) {
     val = Math.floor( Date.now() / 1000);
   }
 
-  var sliderWidth=10;
-  var sliderLineWidth=1;
-  var sliderHeight=cHeight;
-  // Set some sizes
-  var labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * timeLabelsFractOfRow / (numMonitors+1)) ) );
-  var labbottom = parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px"; // This is positioning same as row labels below, but from bottom so 1-position
-  var labfont = labelpx + "px"; // set this like below row labels
+  // If we have data already saved first restore it from LAST time
+  if ( typeof underSlider !== 'undefined' ) {
+    ctx.putImageData(underSlider, sliderX, 0, 0, 0, sliderWidth, sliderHeight);
+    underSlider = undefined;
+  }
 
   // if we have no data to display don't do the slider itself
-  let sliderX = parseInt((val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
+  sliderX = parseInt((val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
   if ( sliderX < 0 ) sliderX = 0;
   if ( sliderX + sliderWidth > cWidth ) sliderX = cWidth-sliderWidth-1;
 
-  // If we have data already saved first restore it from LAST time
-
-  if ( typeof underSlider !== 'undefined' ) {
-    ctx.putImageData(underSlider, underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
-    underSlider = undefined;
-  }
-  if ( liveMode == 0 ) {
+  if ( liveMode == 1 ) {
+    scruboutput.innerHTML = 'Live Feed @ ' + (1000 / currentDisplayInterval).toFixed(1) + ' fps';
+    scruboutput.style.color = 'red';
+  } else { //if (!liveMode) {
     // we get rid of the slider if we switch to live (since it may not be in the "right" place)
     // Now save where we are putting it THIS time
     underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
+    ctx.globalAlpha = 1;
     // And add in the slider'
     ctx.lineWidth = sliderLineWidth;
     ctx.strokeStyle = 'yellow';
     // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
     ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
-    underSliderX = sliderX;
+
+    scruboutput.innerHTML = secs2dbstr(val);
+    scruboutput.style.color = 'yellow'; // make it different from left and right so we know which is which
   }
-  var o = document.getElementById('scruboutput');
-  if ( liveMode == 1 ) {
-    o.innerHTML = 'Live Feed @ ' + (1000 / currentDisplayInterval).toFixed(1) + ' fps';
-    o.style.color = 'red';
-  } else {
-    o.innerHTML = secs2dbstr(val);
-    o.style.color = 'white';
-  }
-  o.style.position = 'absolute';
-  o.style.bottom = labbottom;
-  o.style.font = labfont;
   // try to get length and then when we get too close to the right switch to the left
-  var len = o.offsetWidth;
+  var len = scruboutput.offsetWidth;
+
   const x = (sliderX > cWidth/2) ? sliderX - len - 10 : sliderX + 10;
-  o.style.left = x.toString() + "px";
+  scruboutput.style.left = x.toString() + "px";
 
   // This displays (or not) the left/right limits depending on how close the slider is.
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
   // If this starts to collide increase some of the extra space
 
-  o = document.getElementById('scrubleft');
-  if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
-    len = o.offsetWidth;
-  }
   // If the slider will overlay part of this suppress (this is the left side)
   if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
-    o.style.display = "none";
+    scrubleft.style.display = "none";
   } else {
-    o.style.display = "inline";
-    o.style.display = "inline-flex"; // safari won't take this but will just ignore
+    scrubleft.style.display = "inline";
+    scrubleft.style.display = "inline-flex"; // safari won't take this but will just ignore
   }
 
-  o = document.getElementById('scrubright');
   if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
-    o.style.display = "none";
+    scrubright.style.display = "none";
   } else {
-    o.style.display = "inline";
-    o.style.display = "inline-flex";
+    scrubright.style.display = "inline";
+    scrubright.style.display = "inline-flex";
   }
-}
+} // end function drawSliderOnGraph(val)
 
 function drawFrameOnGraph(frame) {
-  if (!frame.Score) return;
+  if (!frame.Score) {
+    return;
+  }
+  const MonitorId = parseInt(events[frame.EventId].MonitorId);
+
   // Now put in scored frames (if any)
   const x1 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
   let x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
   if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
-  ctx.fillStyle=monitorColour[Event.MonitorId];
-  //ctx.fillStyle = '#ff0000';
+  ctx.fillStyle = monitorColour[MonitorId];
   ctx.globalAlpha = 0.4 + 0.6 * (1 - frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
-  const MonitorId = events[frame.EventId].MonitorId;
   ctx.fillRect(x1, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight-2);
-  //console.log("Drew frame from ", x1, MonitorId, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight);
+  //console.log("Drew frame from", x1, MonitorId, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight, monitorColour[MonitorId]);
 }
 
-function drawEventOnGraph(Event) {
+function drawEventOnGraph(zm_event) {
+  if (!zm_event.StartTimeSecs) {
+    console.log("No time data in event", zm_event);
+    return;
+  }
+
   // round low end down
-  const x1 = parseInt((Event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
-  if (!Event.EndTimeSecs) Event.EndTimeSecs = maxTimeSecs;
+  const x1 = parseInt((zm_event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
+  if (!zm_event.EndTimeSecs) zm_event.EndTimeSecs = maxTimeSecs;
   // round high end up to be sure consecutive ones connect
-  const x2 = parseInt((Event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
-  if (!monitorColour[Event.MonitorId]) {
-    console.log("No colour for ", Event.MonitorId, monitorColour);
+  const x2 = parseInt((zm_event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 );
+  if (!monitorColour[zm_event.MonitorId]) {
+    console.log("No colour for ", zm_event.MonitorId, monitorColour, zm_event);
     ctx.fillStyle = '#43bcf2';
   } else {
-    ctx.fillStyle = monitorColour[Event.MonitorId];
+    ctx.fillStyle = monitorColour[zm_event.MonitorId];
   }
   ctx.globalAlpha = 0.2; // light color for background
   // Erase any overlap so it doesn't look artificially darker
-  ctx.clearRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
-  ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight-2);
+  ctx.clearRect(x1, monitorIndex[zm_event.MonitorId]*rowHeight, x2-x1, rowHeight);
+  ctx.fillRect(x1, monitorIndex[zm_event.MonitorId]*rowHeight, x2-x1, rowHeight-2);
   //outputUpdate(currentTimeSecs);
   //console.log("Drew event from ", x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
 }
 
 function drawGraph() {
   underSlider = undefined; // flag we don't have a slider cached
-  const divWidth = document.getElementById('timelinediv').clientWidth;
-  canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
-  cHeight = parseInt(window.innerHeight * 0.10); // 10%
-  if (cHeight < numMonitors * 20) { //Minimum 20px per monitor maybe it should be 10px per monitor?
-    cHeight = numMonitors * 20;
-  }
-  canvas.height = cHeight;
 
+  // timelinediv starts off 100% of browser, but it's container can be smaller
+  const divWidth = Math.min(timeLineDiv.width(), timeLineDiv.parent().width() );
+
+  canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
+  canvas.height = cHeight = Math.max(parseInt(window.innerHeight * 0.10) /* 10% */, numMonitors * 20);
+
+  /* Clear timeline */
+  if (0) {
+    ctx.fillStyle = '#000000';
+    ctx.globalAlpha = 1;
+    ctx.fillRect(0, 0, cWidth, cHeight);
+  }
+
+  rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
+  sliderHeight = cHeight;
+
+  labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * timeLabelsFractOfRow / (numMonitors+1)) ) );
+  labbottom = parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px"; // This is positioning same as row labels below, but from bottom so 1-position
+  labfont = labelpx + "px"; // set this like below row labels
+
+  // if we have no data to display don't do the slider itself
+  let sliderX = parseInt((currentTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
+  if ( sliderX < 0 ) sliderX = 0;
+  if ( sliderX + sliderWidth > cWidth ) sliderX = cWidth-sliderWidth-1;
+
+  scruboutput.style.position = 'absolute';
+  scruboutput.style.bottom = labbottom;
+  scruboutput.style.font = labfont;
+  var len = scruboutput.offsetWidth;
+  console.log('sruboutput.offsetWidth', len);
+
+  // This displays (or not) the left/right limits depending on how close the slider is.
+  // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
+  // If this starts to collide increase some of the extra space
+
+  const scrubleft = document.getElementById('scrubleft');
+  scrubleft.innerHTML = secs2dbstr(minTimeSecs);
+  scrubleft.style.position = 'absolute';
+  scrubleft.style.bottom = labbottom;
+  scrubleft.style.font = labfont;
+  scrubleft.style.left = '5px';
+  if ( len + 10 > sliderX || cWidth < len * 4 ) {
+    // that last check is for very narrow browsers
+    scrubleft.style.display = "none";
+  } else {
+    scrubleft.style.display = "inline";
+    scrubleft.style.display = "inline-flex"; // safari won't take this but will just ignore
+  }
+
+  const scrubright = document.getElementById('scrubright');
+  scrubright.innerHTML = secs2dbstr(maxTimeSecs);
+  scrubright.style.position = 'absolute';
+  scrubright.style.bottom = labbottom;
+  scrubright.style.font = labfont;
+  scrubright.style.right = "5px";
+
+  if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
+    scrubright.style.display = "none";
+  } else {
+    scrubright.style.display = "inline";
+    scrubright.style.display = "inline-flex";
+  }
+
+  /* Maybe this should be done in loadEvents and be per monitor
   if (events && ( Object.keys(events).length == 0 ) ) {
     ctx.font = "40px Georgia";
     ctx.globalAlpha = 1;
@@ -583,25 +674,25 @@ function drawGraph() {
     const t = LOADING ? "Loading events" : "No events found.";
     var l = ctx.measureText(t).width;
     ctx.fillText(t, (cWidth - l)/2, cHeight-10);
+    console.log("No events, returning");
     return;
   }
+  */
 
-  rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
-  // Note that this may be a sparse array
-
-  // Should we clear the canvas?
 
   // first fill in the bars for the events (not alarms)
   // At first, no events loaded, that's ok, later, we will have some events, should only draw those in the time range.
   for (const event_id in events) {
-    const Event = events[event_id];
-    drawEventOnGraph(Event);
-    if (Event.FramesById) {
-      for (const frame_id in Event.FramesById ) {
-        const Frame = Event.FramesById[frame_id];
-        if (!Frame.Score) continue;
-        drawFrameOnGraph(Frame);
+    const zm_event = events[event_id];
+    drawEventOnGraph(zm_event);
+    if (zm_event.FramesById) {
+      for (const frame_id in zm_event.FramesById ) {
+        const frame = zm_event.FramesById[frame_id];
+        if (!frame.Score) continue;
+        drawFrameOnGraph(frame);
       } // end foreach frame
+    } else {
+      console.log("No FramesById", zm_event);
     }
   } // end foreach Event
 
@@ -612,24 +703,13 @@ function drawGraph() {
     ctx.fillStyle = "white";
     // This should roughly center font in row
     ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
+    console.log("Drawing ", monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
 
   drawSliderOnGraph(currentTimeSecs);
 } // end function drawGraph
 
 function redrawScreen() {
-  var dateTimeDiv = $j('#DateTimeDiv');
-  var speedDiv = $j('#SpeedDiv');
-  var timeLineDiv = $j('#timelinediv');
-  var liveButton = $j('#liveButton');
-  var zoomIn = $j('#zoomin');
-  var zoomOut = $j('#zoomout');
-  var panLeft = $j('#panleft');
-  var panRight = $j('#panright');
-  var downloadVideo = $j('#downloadVideo');
-  var scaleDiv = $j('#ScaleDiv');
-  var fit = $j('#fit');
-
   if (liveMode == 1) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
     dateTimeDiv.hide();
@@ -680,8 +760,7 @@ function redrawScreen() {
     fit.text('fit');
     setScale(currentScale);
   }
-  outputUpdate(currentTimeSecs);
-  timerFire(); // force a fire in case it's not timing
+  timerFire(); // force a fire in case it's not timing. timerFirst will call outputUpdate
 } // end function redrawScreen
 
 function outputUpdate(time) {
@@ -692,6 +771,7 @@ function outputUpdate(time) {
     }
   }
   currentTimeSecs = time;
+  console.log('outputUpdate', time);
   drawSliderOnGraph(time);
 }
 
@@ -1000,83 +1080,65 @@ function clickMonitor(event) {
 }
 
 function changeFilters(e) {
-  console.log(e, this);
-  // Need to update minTimeSecs and maxTimeSecs
+  // May Need to update minTimeSecs and maxTimeSecs
+  // Also, if StartDateTime <= or >= are changed, limit max duration to 24h
 
-  let minMoment;
-  let maxMoment;
+  if (minStartDateTimeElement && maxStartDateTimeElement) {
+    let minStartDateTime = DateTime.fromFormat(minStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
+    let maxStartDateTime = DateTime.fromFormat(maxStartDateTimeElement.value, 'yyyy-MM-dd HH:mm:ss', {zone: ZM_TIMEZONE});
 
-  const matches = this.name.match(/^filter\[Query\]\[terms\]\[(\d+)\]\[val\]$/);
-  console.log(matches);
-  if (matches && matches.length) {
-    const name = 'filter[Query][terms]['+matches[1]+'][attr]';
-
-    const attr = this.form.elements[name];
-    if (attr && (attr.value == 'StartDateTime')) {
-      const val = this;
-      const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
-      if (op.value == '>=') {
-        minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-        if (!minMoment.isValid()) {
-          alert("Date start is not valid." + val.value);
-          return;
+    if (this === minStartDateTimeElement) {
+      if (minStartDateTime > maxStartDateTime) {
+        maxStartDateTime = minStartDateTime.plus({hours: 1}); // Maybe leave a gap?
+        maxStartDateTimeElement.value = minStartDateTimeElement.value;
+      } else {
+        const diff = maxStartDateTime.diff(minStartDateTime, 'seconds').toObject();
+        if (diff.seconds > 86400) { // 1 day
+          maxStartDateTime = minStartDateTime.plus({days: 1});
+          maxStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
         }
-      } else if (op == '<=') {
-        maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-        if (!maxMoment.isValid()) maxMoment = moment();
+      }
+    } else if (this === maxStartDateTimeElement) {
+      if (minStartDateTime > maxStartDateTime) {
+        minStartDateTime = maxStartDateTime; // Maybe leave a gap?
+        minStartDateTimeElement.value = maxStartDateTimeElement.value;
+      } else {
+        const diff = minStartDateTime.diff(maxStartDateTime).toObject();
+        if (diff.milliseconds > 86400*1000) { // 1 day
+          minStartDateTime = maxStartDateTime.plus({days: -1});
+          minStartDateTimeElement.value = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
+        }
       }
     } else {
-      console.log("No attr", attr);
-    }
-  } else {
-    const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
-    $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
-      const matches = this.name.match(regexp);
-      console.log('looking at', this, matches);
-      if (matches && matches.length) {
-        const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
-        if (val) {
-          const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
-          if (op.value == '>=') {
-            minMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-            if (!minMoment.isValid()) {
-              alert("Date start is not valid." + val.value);
-              return;
-            }
-          } else if (op == '<=') {
-            maxMoment = moment(val.value, 'YYYY-MM-DD HH:mm:ss');
-            if (!maxMoment.isValid()) maxMoment = moment();
-          }
-        } else {
-          console.log("no val ", matches);
-        }
-      } else {
-        console.log("No matches for ", this.name);
-      }
-    });
-  } // end if a datetime or something else
-  if (minMoment) {
-    minTimeSecs = minMoment.unix();
-    console.log("Set minMoment to ", minTimeSecs);
+      console.log("Not changed min/max", this, minStartDateTimeElement, maxStartDateTimeElement);
+    } // end if a datetime or something else
+
+    minTime = minStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
+    minTimeSecs = minStartDateTime.valueOf()/1000;
+    maxTime = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
+    maxTimeSecs = maxStartDateTime.valueOf()/1000;
+    rangeTimeSecs = maxTimeSecs - minTimeSecs;
+    // On any change, jump to beginning ? No...
     if (currentTimeSecs < minTimeSecs) {
-      console.log("Adjusting currentTimeSecs", currentTimeSecs, minTimeSecs);
+      console.log("currentTimeSecs < minTimeSecs setting to ", minTimeSecs, minTime);
       currentTimeSecs = minTimeSecs;
+    } else if (currentTimeSecs > maxTimeSecs) {
+      console.log("currentTimeSecs > maxTimeSecs setting to ", maxTimeSecs, maxTime);
+      currentTimeSecs = minTimeSecs; // Not sure about this one.
     }
   } else {
-    console.log("No minMoment");
+    console.log("Don't have min/max date elements");
   }
 
-  if (maxMoment) {
-    maxTimeSecs = maxMoment.unix();
-    console.log(currentTimeSecs, minTimeSecs, maxTimeSecs);
-    if (currentTimeSecs > maxTimeSecs) currentTimeSecs = maxTimeSecs;
-  } else {
-    console.log("No maxMoment");
+  for (var key in events) {
+    delete events[key];
   }
-
+  for (var key in events_for_monitor) {
+    events_for_monitor[key] = [];
+  }
+  LOADING = true;
   // Reloading can take a while, so stop interrupts to reduce load
-  clearInterval(timerObj);
-  timerObj = null;
+  timerObj = clearInterval(timerObj);
 
   drawGraph(); // Will use new values
   loadEventData();
@@ -1110,6 +1172,7 @@ function loadEventData(e) {
           const op_name = 'filter[Query][terms]['+found[1]+'][op]';
           const op = this.form.elements[op_name];
           if (attr) {
+            if (attr.value==='Monitor') attr.value='MonitorId';
             url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(val);
           } else {
             console.log('No attr for '+attr_name);
@@ -1136,26 +1199,44 @@ function loadEventData(e) {
     console.log("Event data ", data);
 
     if (data.events.length) {
+      // event_list is solely for sending to loadFrames
       const event_list = {};
       for (let i=0, len = data.events.length; i<len; i++) {
         const ev = data.events[i].Event;
-        events[parseInt(ev.Id)] = ev;
-        if (!events_by_monitor_id[ev.MonitorId]) {
-          events_by_monitor_id[ev.MonitorId] = []; // just event ids
+        ev.Id = parseInt(ev.Id);
+        ev.MonitorId = parseInt(ev.MonitorId);
+        event_list[ev.Id] = events[ev.Id] = ev;
+
+        if ((!(ev.MonitorId in events_for_monitor)) || !events_for_monitor[ev.MonitorId]) {
           events_for_monitor[ev.MonitorId] = []; // id=>event
         }
-        events_by_monitor_id[ev.MonitorId].push(ev.Id);
+        //events_by_monitor_id[ev.MonitorId].push(ev.Id);
         events_for_monitor[ev.MonitorId].push(ev);
-        drawEventOnGraph(ev);
-        event_list[ev.Id] = ev;
-        events[ev.id] = ev;
+        //drawEventOnGraph(ev);
       }
-      loadFrames(event_list);
+      loadFrames(event_list).then(function() {
+        console.log("have ffaremes, drawing graph");
+        drawGraph();
+        /*
+        // HACK to refresh monitor names over event data
+        for (let i=0; i < numMonitors; i++) {
+          // Apparently we have to set these each time before calling fillText
+          ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "white";
+          // This should roughly center font in row
+          ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
+        }
+        //underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
+        */
+      });
+    } else {
+      console.log("No events in data?");
     }
   } // end function receive_events
 
+  //FIXME ajax gets overwrritten by subsequent monitor
   if (ajax) ajax.abort();
-  LOADING = false;
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
@@ -1169,8 +1250,6 @@ function loadEventData(e) {
         error: function(jqXHR) {
           ajax = null;
           console.log("error", jqXHR);
-          //logAjaxFail(jqXHR);
-          //$j('#eventTable').bootstrapTable('refresh');
         }
       });
     } // end foreach monitor
@@ -1185,15 +1264,26 @@ function loadEventData(e) {
       error: function(jqXHR) {
         ajax = null;
         console.log("error", jqXHR);
-        //logAjaxFail(jqXHR);
-        //$j('#eventTable').bootstrapTable('refresh');
       }
     });
   }
+  LOADING = false;
   return;
 } // end function loadEventData
 
 function initPage() {
+  dateTimeDiv = $j('#DateTimeDiv');
+  speedDiv = $j('#SpeedDiv');
+  timeLineDiv = $j('#timelinediv');
+  liveButton = $j('#liveButton');
+  zoomIn = $j('#zoomin');
+  zoomOut = $j('#zoomout');
+  panLeft = $j('#panleft');
+  panRight = $j('#panright');
+  downloadVideo = $j('#downloadVideo');
+  scaleDiv = $j('#ScaleDiv');
+  fit = $j('#fit');
+
   if (!liveMode) {
     canvas = document.getElementById('timeline');
 
@@ -1207,17 +1297,23 @@ function initPage() {
 
     // draw an empty timeline
     drawGraph();
+  } else {
+    console.log("Live mode");
   }
 
   for (let i = 0, len = monitorPtr.length; i < len; i += 1) {
+    getMinMaxStartDateTimeElements();
+
     const monId = monitorPtr[i];
     if (!monId) continue;
-    monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
+    const canvasObj = monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
       continue;
     }
+    console.log("Setting up imagedone for ", monId);
     monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
+
     const imageObject = monitorImageObject[monId] = new Image();
     imageObject.monId = monId;
     imageObject.onload = function() {
@@ -1226,8 +1322,10 @@ function initPage() {
     imageObject.onerror = function() {
       imagedone(this, this.monId, false);
     };
-    if (liveMode) loadImage2Monitor(monId, monitorImageURL[monId]);
-    monitorCanvasObj[monId].addEventListener('click', clickMonitor, false);
+    if (liveMode) {
+      loadImage2Monitor(monId, monitorImageURL[monId]);
+    }
+    canvasObj.addEventListener('click', clickMonitor, false);
   } // end foreach monitor
 
   setSpeed(speedIndex);
@@ -1235,7 +1333,7 @@ function initPage() {
   //setLive(liveMode);  // will redraw
   loadEventData();
   wait_for_events();
-  redrawScreen();
+  redrawScreen(); // calls drawGraph
 
   $j('#scaleslider').bind('change', function() {
     setScale(this.value);
@@ -1260,7 +1358,7 @@ function initPage() {
     this.form.submit();
   });
 
-  if (useOldMenuView) {
+  if (navbar_type != 'left') {
     // If new menu is used, then Datepicker initialization occurs in main "skin.js"
     // Reinitialization is not allowed because the 'Destroy' method is missing.
     initDatepickerMontageReviewPage();
@@ -1288,6 +1386,7 @@ function wait_for_events() {
   } else {
     clearInterval(wait_for_events_interval);
     wait_for_events_interval = null;
+    console.log("Have events, starting time");
     timerFire();
   }
 }
@@ -1319,7 +1418,7 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
 
-/* Expects and Object, not an array, of EventId=>Event mappings. */
+/* Expects an Object, not an array, of EventId=>Event mappings. */
 function loadFrames(zm_events) {
   return new Promise(function(resolve, reject) {
     const url = Servers[serverId].urlToApi()+'/frames/index';
@@ -1329,16 +1428,22 @@ function loadFrames(zm_events) {
 
     while (ids.length) {
       const event_id = ids.shift();
-      const zm_event = zm_events[event_id];
-      if (zm_events.FramesById) continue;
+      {
+        const zm_event = zm_events[event_id];
+        if (zm_event.FramesById) {
+          console.log('already loaded FramesById', zm_event);
+          continue;
+        }
+        zm_event.FramesById = []; //Signal that we are loading them
+      }
+      query += '/EventId:'+event_id;
 
-      query += '/EventId:'+zm_event.Id;
       if ((!ids.length) || (query.length > 1000)) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
+            console.log(data);
             if (data && data.frames && data.frames.length) {
-              zm_event.FramesById = [];
               let last_frame = null;
 
               for (let i=0, len=data.frames.length; i<len; i++) {
@@ -1363,13 +1468,13 @@ function loadFrames(zm_events) {
                 }
                 last_frame = frame;
 
-                if (!zm_event.FramesById) zm_event.FramesById = [];
+                //if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
+                //drawFrameOnGraph(frame);
               } // end foreach frame
             } else {
               console.log("No frames in data", data);
             } // end if there are frames
-            drawGraph();
             resolve();
           },
           error: function() {
@@ -1383,3 +1488,33 @@ function loadFrames(zm_events) {
   } // end Promise
   );
 } // end function loadFrames(Event)
+
+function getMinMaxStartDateTimeElements() {
+  const regexp = /^filter\[Query\]\[terms\]\[(\d+)\]\[attr\]$/;
+  $j('#fieldsTable input[value="StartDateTime"]').each(function(index) {
+    const matches = this.name.match(regexp);
+    if (matches && matches.length) {
+      const val = this.form.elements['filter[Query][terms]['+matches[1]+'][val]'];
+      if (val) {
+        const op = this.form.elements['filter[Query][terms]['+matches[1]+'][op]'];
+        if (op.value == '>=') {
+          minStartDateTimeElement = val;
+        } else if (op.value == '<=') {
+          maxStartDateTimeElement = val;
+        } else {
+          console.log('unknown op', op.value);
+        }
+      } else {
+        console.log("no val ", matches);
+      }
+    } else {
+      console.log("No matches for ", this.name);
+    }
+  });
+  if (!(minStartDateTimeElement && maxStartDateTimeElement)) {
+    console.log("Didn't find a min/max StartDateTime");
+  }
+  if (minStartDateTimeElement == maxStartDateTimeElement) {
+    console.log("Have same a min/max StartDateTime");
+  }
+}

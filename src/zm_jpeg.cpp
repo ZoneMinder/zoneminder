@@ -84,7 +84,7 @@ extern "C" {
     struct jpeg_destination_mgr pub; /* public fields */
 
     JOCTET *outbuffer;    /* target buffer */
-    int   *outbuffer_size;
+    size_t   *outbuffer_size;
     JOCTET *buffer;    /* start of buffer */
   } mem_destination_mgr;
 
@@ -170,7 +170,7 @@ extern "C" {
    * for closing it after finishing compression.
    */
 
-  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size) {
+  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, size_t *outbuffer_size) {
     mem_dest_ptr dest;
 
     /* The destination object is made permanent so that multiple JPEG images
@@ -335,7 +335,7 @@ extern "C" {
    * for closing it after finishing decompression.
    */
 
-  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size) {
+  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, size_t inbuffer_size) {
     mem_src_ptr src;
 
     /* The source object and input buffer are made permanent so that a series
@@ -353,7 +353,7 @@ extern "C" {
       src->inbuffer_size_hwm = inbuffer_size;
     } else {
       src = (mem_src_ptr) cinfo->src;
-      if ( src->inbuffer_size_hwm < inbuffer_size ) {
+      if ( static_cast<size_t>(src->inbuffer_size_hwm) < inbuffer_size ) {
         src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
         src->inbuffer_size_hwm = inbuffer_size;
       }

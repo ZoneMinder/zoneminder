@@ -363,6 +363,9 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
+list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
+
+
 # libjwt
 if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
   find_package(LibJWT REQUIRED COMPONENTS ${ZM_CRYPTO_BACKEND})
@@ -591,7 +594,13 @@ if(HAVE_LIBPCRE AND HAVE_PCRE_H)
   set(ZM_PCRE 1)
 endif()
 
-find_package(nlohmann_json)
+find_package(nlohmann_json CONFIG)
+if(nlohmann_json_FOUND)
+  set(ZM_HAS_NLOHMANN_JSON 1)
+else()
+  set(ZM_HAS_NLOHMANN_JSON 0)
+  message(AUTHOR_WARNING "nlohmann_json headers weren't found - AI results will not be available")
+endif()
 
 # Check for mmap and enable in all components
 set(ZM_MEM_MAPPED 0)

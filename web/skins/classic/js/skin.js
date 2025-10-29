@@ -560,18 +560,21 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (navbar_type == 'left') {
+  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
+    form = param;
+  }
+  if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.querySelector('form[name="monitorForm"]');
       // We get a filter
-      filter = document.querySelector('#fbpanel');
+      filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.querySelector('#filters_form');
+      form = document.getElementById('filters_form');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
-      form = document.querySelector('#montagereview_form');
-      filter = document.querySelector('#filterMontagereview');
+      form = document.getElementById('montagereview_form');
+      filter = document.getElementById('filterMontagereview');
     } else if (currentView == 'watch') {
       form = document.querySelector('#wrapperFilter form');
     }
@@ -965,13 +968,24 @@ function stateStuff(action, runState, newState) {
   });
 }
 
+function strip_html(string) {
+  return string.replace(/<[^>]+>/g, '');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
-  console.log("Request Failed: " + textStatus + ", " + error);
-  if ( ! jqxhr.responseText ) {
+  if (jqxhr.statusText == 'abort') {
+    console.log('request aborted');
+    return;
+  }
+  if (!jqxhr.responseText) {
     console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
-  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
+  console.log("Request Failed: " + textStatus + ", " + error);
+  // Icon: Why strip html and whitespace?  We are just debugging it... it might get sent back to be logged in db etc.. but...
+  // we might lose a lot of content here.
+  //var responseText = strip_html(jqxhr.responseText).trim(); // strip any html or whitespace from the response
+  const responseText = jqxhr.responseText;
   if ( responseText ) console.log("Response Text: " + responseText);
 }
 
@@ -1081,7 +1095,7 @@ function manageShutdownBtns(element) {
 }
 
 /* Controls the availability of options for selection*/
-function manageRTSP2WebChannelStream() {
+function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
@@ -1093,7 +1107,11 @@ function manageRTSP2WebChannelStream() {
     }
     select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
-    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    // Local source doesn't have second path
+    const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
+    if (SecondPathInput) {
+      secondPath_ = SecondPathInput.value;
+    }
     select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
   }
   if (select) {
@@ -1114,7 +1132,7 @@ function thumbnail_onmouseover(event) {
   const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
   img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' ) {
+  if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
     const zoomHeight = rect.height * 5; // scale factor defined in css
     if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
@@ -1135,7 +1153,7 @@ function thumbnail_onmouseout(event) {
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
-  if ( currentView == 'console' ) {
+  if ( currentView == 'console' || currentView == 'monitor' ) {
     img.style.transformOrigin = '';
   }
 }
@@ -1262,14 +1280,14 @@ function applyChosen(selector = '') {
   var [obj_1, obj_2, obj_3] = '';
   destroyChosen(selector);
   if (typeof selector === 'string') {
-    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector + '.chosen.chosen-full-width');
-    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+    obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width').not('.hidden, .hidden-shift');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width').not('.hidden, .hidden-shift');
   } else {
     if (!$j(selector).hasClass('chosen')) return;
-    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
-    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
-    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+    obj_1 = $j(selector).not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).not('.hidden, .hidden-shift').hasClass('chosen-auto-width') ? $j(selector) : '';
   }
   if (obj_1) {
     obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
@@ -1283,7 +1301,7 @@ function applyChosen(selector = '') {
 }
 
 function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
+  return parseInt(String(str).replace(/\D/g, ''));
 }
 
 function thisClickOnStreamObject(clickObj) {
@@ -1295,7 +1313,11 @@ function thisClickOnStreamObject(clickObj) {
     } else if (clickObj.id.indexOf('videoobj') != -1) {
       return document.getElementById('eventVideo');
     } else return false;
-  } else return false;
+  } else {
+    // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
+    if (clickObj.closest('video-stream')) return true;
+  };
+  return false;
 }
 
 /* For mobile device Not implemented yet. */
@@ -1457,7 +1479,7 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
-  if (matches.length) {
+  if (matches && matches.length) {
     const video = document.createElement('video');
     if (matches[1] == 'av1') matches[1] = 'avc1';
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
@@ -1470,6 +1492,8 @@ function canPlayCodec(filename) {
     }
     console.log("cannot play "+matches[1]);
     return false;
+  } else {
+    console.log("Failed to match re on ", filename);
   }
   return false;
 }
@@ -1717,7 +1741,7 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
 /* Handling <input> change */
 function handleChangeInputTag(evt) {
   // Managing availability of channel stream selection
-  manageRTSP2WebChannelStream();
+  manageChannelStream();
 }
 
 /* Handling a mouse click */
@@ -1784,6 +1808,14 @@ function handleKeydownGeneral(evt) {
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
   if (navbar_type == 'left' && key == 'Enter') {
     if (SIDEBAR_MAIN_EXTRUDER.contains(target)) {
+      if (target.getAttribute('data-on-change')) {
+        return;
+      } else {
+        const chosenContainer = target.closest('.chosen-container');
+        if (chosenContainer && chosenContainer.previousElementSibling.getAttribute('data-on-change') == 'submitThisForm') {
+          return;
+        }
+      }
       submitThisForm();
     }
   }
@@ -1946,7 +1978,7 @@ function resetSelectElement(el) {
   if (currentView == 'events') {
     filterEvents(clickedElement = selectElement);
   } else {
-    submitThisForm();
+    submitThisForm(this.closest('form'));
   }
 }
 
@@ -2074,6 +2106,21 @@ function initPageGeneral() {
       });
     }
     //event.returnValue = '';
+  });
+
+  document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+    el.addEventListener("click", function clickControlMute(event) {
+      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
+      if (!mid) return;
+      if (currentView == 'watch') {
+        monitorStream.controlMute('switch');
+      } else if (currentView == 'montage') {
+        const currentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === mid;
+        });
+        currentMonitor.controlMute('switch');
+      }
+    });
   });
 }
 

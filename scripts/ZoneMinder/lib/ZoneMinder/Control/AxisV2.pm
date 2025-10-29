@@ -46,26 +46,17 @@ use Time::HiRes qw( usleep );
 use URI;
 
 our $uri;
+my $use_optics;
 
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
 
-  if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
-    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
-    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-      # Has no scheme at the beginning, so won't parse as a URI
-      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-    }
-    $uri = URI->new($self->{Monitor}->{ControlAddress});
-  } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
-    $uri = URI->new($self->{Monitor}->{Path});
-    $uri->scheme('http');
-    $uri->port(80);
-    $uri->path('');
-  }
+  my $uri = $self->guess_credentials();
+  $uri = new URI() if ! $uri;;
+  # For parent get
+  $$self{BaseURL} = $uri->canonical();
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -73,14 +64,9 @@ sub open {
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 
-  my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
-  
-  $uri->userinfo(undef);
-
   my $realm = $self->{Monitor}->{ControlDevice};
 
-  $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+  $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
   my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
 
   # test auth
@@ -91,7 +77,7 @@ sub open {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
-    return;
+    return !undef;
   }
   if ($res->status_line() eq '404 Not Found') {
     #older style
@@ -112,12 +98,12 @@ sub open {
         if ( $tokens =~ /\w+="([^"]+)"/i ) {
           if ( $realm ne $1 ) {
             $realm = $1;
-            $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+            $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
             $res = $self->{ua}->get($uri->canonical().$url);
             if ( $res->is_success() ) {
               Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
               $self->{state} = 'open';
-              return;
+              return !undef;
             }
             Error('Authentication still failed after updating REALM status: '.$res->status_line);
           } else {
@@ -133,25 +119,14 @@ sub open {
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
+  return undef;
 } # end sub open
 
 sub sendCmd {
   my $self = shift;
   my $cmd = shift;
 
-  $self->printMsg($cmd, 'Tx');
-
-  my $url = $uri->canonical().$cmd;
-  my $res = $self->{ua}->get($url);
-
-  if ( $res->is_success ) {
-    Debug('sndCmd command: '.$url.' content: '.$res->content);
-    return !undef;
-  }
-
-  Error("Error cmd $url failed: '".$res->status_line()."'");
-
-  return undef;
+  return $self->get($cmd);
 }
 
 sub cameraReset {
@@ -361,12 +336,9 @@ sub moveStop {
   my $speed = 0;
   Debug('Move Stop');
   # we have to stop both pans and zooms
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
-  $self->sendCmd($cmd);
-  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
-  $self->sendCmd($cmd);
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed");
+  $self->sendCmd("/axis-cgi/com/ptz.cgi?continuouszoommove=$speed");
 }
-
 
 sub zoomRelTele {
   my $self = shift;
@@ -390,17 +362,46 @@ sub focusRelNear {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'step');
-  Debug('Focus Near');
-  my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
-  $self->sendCmd($cmd);
+  Debug('Focus Rel Near');
+   if ($use_optics) {
+    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=-minstep";
+    $self->sendCmd($cmd);
+  } else {
+    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
+    my $res = $self->sendCmd($cmd);
+    if ($res->content ne 'ok') {
+      $use_optics = 1;
+      $self->focusRelNear($self, $params);
+    }
+  }
 }
 
 sub focusRelFar {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'step');
-  Debug('Focus Far');
-  my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
+  Debug('FocusRelFar');
+  if ($use_optics) {
+    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=minstep";
+    $self->sendCmd($cmd);
+  } else {
+    my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
+    my $res = $self->sendCmd($cmd);
+    if ($res->content ne 'ok') {
+      $use_optics = 1;
+      $self->focusRelNear($self, $params);
+    }
+  }
+}
+
+sub focusAbs {
+  # Takes a value 0-1 in small decimal incremements
+  my $self = shift;
+  my $params = shift;
+  my $step = $self->getParam($params, 'step');
+  # step comes in as an integer, needs to be 0-1
+  Debug('Focus Abs');
+  my $cmd = "/axis-cgi/opticssetup.cgi.cgi?afocus=$step";
   $self->sendCmd($cmd);
 }
 
@@ -482,6 +483,12 @@ sub presetHome {
   Debug('Home Preset');
   my $cmd = '/axis-cgi/com/ptz.cgi?move=home';
   $self->sendCmd($cmd);
+}
+
+sub reboot {
+  my $self = shift;
+  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
+  return $response->is_success;
 }
 
 1;

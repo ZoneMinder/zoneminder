@@ -48,6 +48,7 @@ class EventsController extends AppController {
       $mon_options = '';
     }
 
+    $this->FilterComponent = $this->Components->load('Filter');
     $named_params = $this->request->params['named'];
     if ($named_params) {
       # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
@@ -64,10 +65,32 @@ class EventsController extends AppController {
           unset($named_params[$k]);
         }
       }
-      $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($named_params);
+      foreach ($conditions as $k=>$v) {
+        if ( 0 === strpos($k, 'DateTime') ) {
+          $new_start = preg_replace('/DateTime/', 'StartDateTime', $k);
+          $new_end = preg_replace('/DateTime/', 'EndDateTime', $k);
+          if (isset($conditions['OR'])) {
+            $conditions['AND'] = [
+              ['OR' => $conditions['OR']],
+              [
+                [$new_start => $conditions[$k]],
+                [$new_end => $conditions[$k]]
+              ]
+            ];
+            unset($conditions['OR']);
+          } else {
+            $conditions['OR'] = [
+              [$new_start => $conditions[$k]],
+              [$new_end => $conditions[$k]]
+            ];
+          }
+          unset($conditions[$k]);
+        }
+      } // end foreach condition
+
     } else {
-      $conditions = array();
+      $conditions = $this->FilterComponent->buildFilter($_REQUEST);
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -108,8 +131,9 @@ class EventsController extends AppController {
 
     foreach ( $events as $key => $value ) {
       $EventObj = new ZM\Event($value['Event']);
-      $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
-      $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
+      if ($EventObj->MaxScoreFrameId() == NULL) {
+        $events[$key]['Event']['MaxScoreFrameId'] = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+      }
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
     }
 
@@ -146,6 +170,11 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
+    $EventObj = new ZM\Event($event['Event']);
+    if (!$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
 
     # Get the previous and next events for any monitor
     $this->Event->id = $id;
@@ -155,8 +184,6 @@ class EventsController extends AppController {
 
     $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
     $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
-
-    $EventObj = new ZM\Event($id);
     $event['Event']['FileSystemPath'] = $EventObj->Path();
 
     # Also get the previous and next events for the same monitor

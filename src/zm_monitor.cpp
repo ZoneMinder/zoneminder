@@ -94,7 +94,7 @@ std::string load_monitor_sql =
   "`Deinterlacing`, "
   "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
-  "`OutputCodec`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
+  "`OutputCodecName`, `Encoder`, `EncoderHWAccelName`, `EncoderHWAccelDevice`, `OutputContainer`, "
   "`RecordAudio`, WallClockTimestamps,"
   "`Brightness`, `Contrast`, `Hue`, `Colour`, "
   "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
@@ -199,6 +199,8 @@ Monitor::Monitor() :
   user(),
   pass(),
   //path
+  onvif_event_listener(false),
+  use_Amcrest_API(false),
   //device
   palette(0),
   channel(0),
@@ -220,7 +222,7 @@ Monitor::Monitor() :
   colours(0),
   videowriter(DISABLED),
   encoderparams(""),
-  output_codec(0),
+  output_codec(""),
   encoder(""),
   encoder_hwaccel_name(""),
   encoder_hwaccel_device(""),
@@ -322,6 +324,7 @@ Monitor::Monitor() :
   linked_monitors(nullptr),
   Event_Poller_Closes_Event(false),
   RTSP2Web_Manager(nullptr),
+  Go2RTC_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
   onvif(nullptr),
@@ -359,7 +362,7 @@ Monitor::Monitor() :
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
    "SaveJPEGs, VideoWriter, EncoderParameters,"
-   "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
+   "OutputCodecName, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
@@ -550,8 +553,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
-  /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
-  output_codec = dbrow[col] ? atoi(dbrow[col]) : 0;
+  /*"`OutputCodecName`, `Encoder`, `OutputContainer`, " */
+  output_codec = dbrow[col] ? dbrow[col] : "auto";
   col++;
   encoder = dbrow[col] ? dbrow[col] : "";
   col++;
@@ -595,7 +598,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   pre_event_count = atoi(dbrow[col]);
   col++;
-  packetqueue.setPreEventVideoPackets(pre_event_count);
+  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
   post_event_count = atoi(dbrow[col]);
@@ -683,7 +686,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
-  if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
+  //if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
 
   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : "");
@@ -1175,31 +1178,29 @@ bool Monitor::connect() {
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
-      RTSP2Web_Manager->add_to_RTSP2Web();
+      //RTSP2Web_Manager->add_to_RTSP2Web();
     }
 
     if (Go2RTC_enabled) {
       Go2RTC_Manager = new Go2RTCManager(this);
-      Go2RTC_Manager->add_to_Go2RTC();
+      //Go2RTC_Manager->add_to_Go2RTC();
     }
 
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
-      Janus_Manager->add_to_janus();
+      //Janus_Manager->add_to_janus();
     }
 
-    //ONVIF and Amcrest Setup
-    //For now, only support one event type per camera, so share some state.
+    if (use_Amcrest_API) {
+      Amcrest_Manager = new AmcrestAPI(this);
+    }
+
     if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         Event_Poller_Closes_Event = true;
       }
-      if (use_Amcrest_API) {
-        Amcrest_Manager = new AmcrestAPI(this);
-      } else { //using GSOAP
-        onvif = new ONVIF(this);
-      }  // end if Armcrest or GSOAP
+      onvif = new ONVIF(this);
     } else {
       Debug(1, "Not Starting ONVIF");
     }  //End ONVIF Setup
@@ -1913,7 +1914,7 @@ bool Monitor::Poll() {
     }
   }  // end if Amcrest or not
 
-  if (RTSP2Web_enabled and RTSP2Web_Manager) {
+  if (RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
       Debug(1, "Trying to add stream to RTSP2Web");
@@ -1921,13 +1922,13 @@ bool Monitor::Poll() {
     }
   }
 
-  if (Go2RTC_enabled and Go2RTC_Manager) {
+  if (Go2RTC_Manager) {
     if (Go2RTC_Manager->check_Go2RTC() == 0) {
       Go2RTC_Manager->add_to_Go2RTC();
     }
   }
 
-  if (janus_enabled and Janus_Manager) {
+  if (Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }
@@ -1983,7 +1984,7 @@ bool Monitor::Analyse() {
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener) {
-        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
+        if (onvif and onvif->isAlarmed()) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
@@ -1997,6 +1998,16 @@ bool Monitor::Analyse() {
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif
+
+      if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {
+        score += 9;
+        Debug(4, "Triggered on AMCREST");
+        Event::StringSet noteSet;
+        noteSet.insert("AMCREST");
+        Amcrest_Manager->setNotes(noteSet);
+        noteSetMap[MOTION_CAUSE] = noteSet;
+        cause += "AMCREST";
+      }
 
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
@@ -2337,14 +2348,13 @@ bool Monitor::Analyse() {
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
                 if (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
-                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        snap->image_index,
                        event->Id(),
                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                       static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                       static_cast<int64>(Seconds(section_length).count()));
+                       static_cast<int64>(Seconds(section_length).count())
+                       );
                   closeEvent();
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
@@ -3034,10 +3044,18 @@ Event * Monitor::openEvent(
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
-    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
+    auto starting_packet = starting_packet_lock->packet_;
     delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
     event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
+    float start_duration = FPSeconds(snap->timestamp - starting_packet->timestamp).count();
+    Debug(1, "Event duration at start: %.2f", start_duration);
+    if (start_duration >= Seconds(min_section_length).count()) {
+      Warning("Starting keyframe packet is more than %" PRId64 " seconds ago.  Keyframe interval must be larger than that. "
+          "Either increase min_section_length or decrease keyframe interval. Automatically increasing min_section_length to %d seconds",
+          static_cast<int64>(Seconds(min_section_length).count()), static_cast<int>(ceil(start_duration)));
+      min_section_length = Seconds(static_cast<int>(ceil(start_duration)) + 1);
+    }
     SetVideoWriterStartTime(starting_packet->timestamp);
   } else {
     ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
@@ -3399,7 +3417,7 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding != DECODING_NONE) {
-    if (!dest_frame) dest_frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!dest_frame) dest_frame = av_frame_ptr{av_frame_alloc()};
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");
@@ -3521,19 +3539,19 @@ int Monitor::Close() {
   }
 
   // RTSP2Web teardown
-  if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
+  if (RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
   }
 
   // Go2RTC teardown
-  if (Go2RTC_enabled and (purpose == CAPTURE) and Go2RTC_Manager) {
+  if (Go2RTC_Manager) {
     delete Go2RTC_Manager;
     Go2RTC_Manager = nullptr;
   }
 
   // Janus Teardown
-  if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
+  if (Janus_Manager) {
     delete Janus_Manager;
     Janus_Manager = nullptr;
   }

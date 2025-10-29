@@ -1,3 +1,7 @@
+.layout-main .sidebar-main .sidebar-layout {
+  z-index: 20;
+}
+
 .layout-main .sidebar-main a.text-success:focus,
 .layout-main .sidebar-main a.text-success:hover { /* FIX bootstrap on a dark background*/
   color: #007bff !important;

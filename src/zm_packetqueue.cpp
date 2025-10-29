@@ -35,7 +35,9 @@ PacketQueue::PacketQueue():
   keep_keyframes(false),
   warned_count(0),
   has_out_of_order_packets_(false),
-  max_keyframe_interval_(0) {
+  max_keyframe_interval_(0),
+  frames_since_last_keyframe_(0)
+{
 }
 
 /* Assumes queue is empty when adding streams
@@ -108,6 +110,21 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
 
+    if (video_stream_id == add_packet->packet->stream_index) {
+      if (!add_packet->keyframe) {
+        frames_since_last_keyframe_ ++;
+        if (frames_since_last_keyframe_ > max_keyframe_interval_) {
+          max_keyframe_interval_ = frames_since_last_keyframe_; 
+          Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
+        }
+      } else {
+        if ( !max_keyframe_interval_) max_keyframe_interval_ = 1;
+        frames_since_last_keyframe_ = 0;
+      }
+    }
+
+#if 0
+    // FIXME: This is pointless if we are encoding. Need to do something in ffmpeg_camera to more efficiently count keyframe
     if (!max_keyframe_interval_ and add_packet->keyframe and (video_stream_id==add_packet->packet->stream_index)) {
       auto rit = pktQueue.rbegin();
       int packet_count = 0;
@@ -122,6 +139,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       Debug(1, "Have keyframe interval: %d", packet_count);
       max_keyframe_interval_ = packet_count;
     }
+#endif
 
     pktQueue.push_back(add_packet);
 
@@ -171,7 +189,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           if (warned_count < 2) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
-            Warning("Found locked packet when trying to free up video packets. This means that decoding is not keeping up.");
+            Warning("Found locked packet %d when trying to free up video packets.", zm_packet->image_index);
           }
           ++it;
           break;
@@ -265,20 +283,26 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     if ((*it)->packet->stream_index == video_stream_id)
       ++tail_count;
   }
-  Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
+  Debug(1, "Tail count is %d, queue size is %zu, video_packets %d", tail_count, pktQueue.size(), packet_counts[video_stream_id]);
 
   if (!keep_keyframes) {
+    int packets_removed = 0;
+    Debug(3, "Not keeping keyframes");
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
       ZMLockedPacket lp(zm_packet);
-      if (!lp.trylock()) break;
+      if (!lp.trylock()) {
+        Debug(1, "Failed locking packet %d", zm_packet->image_index);
+        break;
+      }
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Debug(1, "Found iterator at beginning of queue.");
         break;
       }
 
+      packets_removed ++;
       pktQueue.pop_front();
       int stream_index = zm_packet->packet ? zm_packet->packet->stream_index : 0;
       packet_counts[stream_index] -= 1;
@@ -291,6 +315,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pre_event_video_packet_count,
             pktQueue.size());
     } // end while
+    Debug(3, "Done removing %d packets from queue. packet_counts %d >? pre_event %d + tail %d = %d",
+        packets_removed, packet_counts[video_stream_id], pre_event_video_packet_count, tail_count, pre_event_video_packet_count + tail_count);
     return;
   }
 
@@ -506,8 +532,7 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
         Error("Null p?!");
         return nullptr;
       }
-      Debug(3, "get_packet using it %p locking index %d",
-            std::addressof(*it), p->image_index);
+      Debug(4, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
 
       lp = new ZMLockedPacket(p);
       if (lp->trylock()) {

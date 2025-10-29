@@ -128,6 +128,7 @@ sub open {
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   $BASE_URL = $PROTOCOL.$ADDRESS;
+  $$self{host} = $ADDRESS; # For use with ping
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -229,17 +230,6 @@ sub set_config {
 sub reboot {
   my $self = shift;
   $self->get($BASE_URL.'/goform/config?cmd=reboot');
-}
-
-sub ping {
-  return -1 if ! $ADDRESS;
-
-  require Net::Ping;
-
-  my $p = Net::Ping->new();
-  my $rv = $p->ping($ADDRESS);
-  $p->close();
-  return $rv;
 }
 
 1;

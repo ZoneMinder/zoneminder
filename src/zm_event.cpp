@@ -62,6 +62,7 @@ Event::Event(
   alarm_frame_written(false),
   tot_score(0),
   max_score(-1),
+  max_score_frame_id(0),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),
@@ -167,7 +168,7 @@ Event::~Event() {
     videoStore = nullptr;
     int result = rename(video_incomplete_path.c_str(), video_path.c_str());
     if (result != 0) {
-      Error("Failed renaming %s to %s", video_incomplete_path.c_str(), video_path.c_str());
+      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(result));
       // So that we don't update the event record
       video_file = video_incomplete_file;
     }
@@ -200,11 +201,11 @@ Event::~Event() {
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
-      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
       video_file.c_str(), // defaults to ""
       video_size,
       id);
@@ -212,11 +213,11 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
-        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
         video_file.c_str(), // defaults to ""
         video_size,
         id);
@@ -337,6 +338,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet);
   }
+#if HAS_NLOHMANN_JSON
   if (packet->detections.size()) {
     std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames, packet->detections.dump().c_str());
     dbQueue.push(std::move(sql));
@@ -374,6 +376,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   } else {
     Debug(3, "Detections is empty.");
   } // end if detections
+#endif
 
   end_time = packet->timestamp;
 } // end void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
@@ -516,6 +519,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
   if (score > max_score) {
     max_score = score;
+    max_score_frame_id = frames;
   }
 
   if (db_frame) {
@@ -543,13 +547,14 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       last_db_frame = frames;
 
       std::string sql = stringtf(
-                          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+                          "UPDATE Events SET Length=%.2f, Frames=%d, AlarmFrames=%d, TotScore=%d, AvgScore=%d, MaxScore=%d, MaxScoreFrameId=%d WHERE Id=%" PRIu64,
                           FPSeconds(delta_time).count(),
                           frames,
                           alarm_frames,
                           tot_score,
                           static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
                           max_score,
+                          max_score_frame_id,
                           id);
       dbQueue.push(std::move(sql));
     } else {

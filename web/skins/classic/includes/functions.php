@@ -78,12 +78,12 @@ echo output_script_if_exists(array(
   <script nonce="<?php echo $cspNonce; ?>">
     const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
     fontMaterialIcons.load(null, 30000).then(function() {
-      console.log("Material Icons is loaded");
+      //console.log("Material Icons is loaded");
       var _style_ = document.createElement('style');
       _style_.innerHTML = `.material-icons {display: inline-block !important;}`;
        document.querySelector('head').prepend(_style_);
     }, function() {
-      console.log("Material Icons is NOT loaded");
+      console.log("Material Icons is NOT loaded after 30s");
     });
   </script>
 <?php
@@ -94,36 +94,28 @@ echo output_cache_busted_stylesheet_links(array(
   'css/bootstrap.min.css',
 ));
 
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-), true);
-
-if ( $basename == 'montage' ) {
-  echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
-}
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
-  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-  'css/base/skin.css',
-  'css/base/views/'.$basename.'.css',
-), true);
-
-if ( $css != 'base' )
+  echo output_link_if_exists(array('js/noUiSlider-15.8.1/dist/nouislider.min.css?'), false, $param = ['global', 'stylesheet', '  type="text/css"/']);
   echo output_link_if_exists(array(
-    'css/'.$css.'/skin.css',
-    'css/'.$css.'/views/'.$basename.'.css',
-    'css/'.$css.'/jquery-ui-theme.css',
-  ));
+    'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+    'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+    'assets/bootstrap-table-1.24.1/bootstrap-table.min.css',
+    'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+    'css/base/skin.css',
+    'css/base/views/'.$basename.'.css',
+  ), true);
+
+  if ( $css != 'base' ) {
+    echo output_link_if_exists(array(
+      'css/'.$css.'/skin.css',
+      'css/'.$css.'/views/'.$basename.'.css',
+      'css/'.$css.'/jquery-ui-theme.css',
+    ));
+  }
 
   global $navbar_type;
   if ($navbar_type == 'left') {
@@ -396,6 +388,14 @@ function getNavBarHTML() {
   return ob_get_clean();
 }
 
+function output_link($files) {
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.getSkinFile($file).'" type="text/css"/>';
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
 function output_link_if_exists($files, $cache_bust=true, $param=false) {
   global $skin;
   $html = array();
@@ -423,26 +423,36 @@ function output_link_if_exists($files, $cache_bust=true, $param=false) {
   return implode(PHP_EOL, $html);
 }
 
-function output_script_if_exists($files, $cache_bust=true) {
+function output_script($files, $cache_bust=true, $must_exist=true) {
   global $skin;
   $html = array();
   foreach ( $files as $file ) {
+    $found = false;
     if ( file_exists('skins/'.$skin.'/'.$file) ) {
+      $found = true;
       if ( $cache_bust ) {
         $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
       } else {
         $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
       }
     } else if ( file_exists($file) ) {
+      $found = true;
       if ( $cache_bust ) {
         $html[] = '<script src="'.cache_bust($file).'"></script>';
       } else {
         $html[] = '<script src="'.$file.'"></script>';
       }
     }
+    if (!$found and $must_exist) {
+      ZM\Error("Script $file not found");
+    }
   }
   $html[] = ''; // So we ge a trailing \n
   return implode(PHP_EOL, $html);
+}
+
+function output_script_if_exists($files, $cache_bust=true) {
+  return output_script($files, $cache_bust, false);
 }
 
 function output_cache_busted_stylesheet_links($files) {
@@ -686,9 +696,11 @@ function getCpuUsageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
   global $thisServer;
-  if ($thisServer and $thisServer->Id()) {
-    $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+  if ($thisServer) {
+    $thisServer->ReadStats();
+
+    $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;
@@ -965,43 +977,41 @@ function getConsoleHTML($forLeftBar = false) {
 
 // Returns the html representing the Options menu item
 function getOptionsHTML($forLeftBar = false) {
+  global $zmMenu;
   $result = '';
-  
+
+  // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
+  $zmMenu::buildSubMenuOptions($categoryDisplayOrder = [
+    'display',
+    'system',
+    'auth',
+    'config',
+    'dnsmasq',
+    'API',
+    'servers',
+    'storage',
+    'web',
+    'images',
+    'logging',
+    'network',
+    'mail',
+    'upload',
+    'x10',
+    'highband',
+    'medband',
+    'lowband',
+    'users',
+    'groups',
+    'control',
+    'privacy',
+    'MQTT',
+    'telemetry',
+    'version'
+  ]);
+
   if ( canView('System') ) {
     if ($forLeftBar) {
-      // Copied from web/skins/classic/views/options.php
-      // When using the old top menu, the list of options pages is still generated in the views/options.php file.
       global $view;
-
-      $tabs = array();
-      if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
-      $tabs['display'] = translate('Display');
-      $tabs['system'] = translate('System');
-      $tabs['auth'] = translate('Authentication');
-      $tabs['config'] = translate('Config');
-      if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
-        $tabs['dnsmasq'] = translate('DHCP');
-      }
-      $tabs['API'] = translate('API');
-      $tabs['servers'] = translate('Servers');
-      $tabs['storage'] = translate('Storage');
-      $tabs['web'] = translate('Web');
-      $tabs['images'] = translate('Images');
-      $tabs['logging'] = translate('Logging');
-      $tabs['network'] = translate('Network');
-      $tabs['mail'] = translate('Email');
-      $tabs['upload'] = translate('Upload');
-      $tabs['x10'] = translate('X10');
-      $tabs['highband'] = translate('HighBW');
-      $tabs['medband'] = translate('MediumBW');
-      $tabs['lowband'] = translate('LowBW');
-      $tabs['users'] = translate('Users');
-      $tabs['groups'] = translate('Groups');
-      $tabs['control'] = translate('Control');
-      $tabs['privacy'] = translate('Privacy');
-      $tabs['MQTT'] = translate('MQTT');
-      $tabs['telemetry'] = translate('Telemetry');
-      $tabs['version'] = translate('Versions');
 
       $view_ = 'options';
       //$tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
@@ -1011,7 +1021,7 @@ function getOptionsHTML($forLeftBar = false) {
       <div class="sub-menu-list">
         <ul>
       ';
-      foreach ($tabs as $name=>$value) {
+      foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
             <a href="?view='.$view_.'&amp;tab='.$name.'">
@@ -1585,9 +1595,6 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
   }
   if ( $basename == 'montage' ) {
-    echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
-    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
     echo output_script_if_exists(array('js/panzoom.js'));
@@ -1595,15 +1602,16 @@ function xhtmlFooter() {
 
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
-  'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.23.5/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.23.5/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.23.5/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
-  'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
+  'assets/bootstrap-table-1.24.1/bootstrap-table.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/export/bootstrap-table-export.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/cookie/bootstrap-table-cookie.js',
+  'assets/bootstrap-table-1.24.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'assets/bootstrap-table-1.24.1/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
+  'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
@@ -1637,4 +1645,63 @@ function xhtmlFooter() {
 </html>
 <?php
 } // end xhtmlFooter
+
+class ZM_Menu {
+  public static $submenuOptionsItems = [];
+
+  public function __construct(string $typeMenu, array $menuItems) {
+
+  }
+
+  private static function addCategoryToOptionsMenu(array $categoriesOptionsInDB, array $categoryDisplayOrder) {
+    foreach ($categoryDisplayOrder as $cat) {
+      $key = array_search(strtolower($cat), array_map('strtolower', $categoriesOptionsInDB));
+      $added = false;
+      if ($cat == 'display' && (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))) {
+        $added = true;
+      } else if ($cat == 'dnsmasq' && (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF)) {
+        $added = true;
+      } else {
+        $added = true;
+      }
+      if ($added) {
+        self::$submenuOptionsItems[$cat] = translate(mb_ucfirst(($cat == 'version') ? 'Versions' : $cat));
+        unset($categoriesOptionsInDB[$key]);
+      }
+    }
+
+    // If not all categories from the database were added (according to the sorted array $categoryDisplayOrder), then add the categories to the end of the "Options" menu
+    if (count($categoriesOptionsInDB)) {
+      foreach ($categoriesOptionsInDB as $cat) {
+        if (!in_array(strtolower($cat), ['dynamic', 'hidden'], $strict = false)) // Prohibited categories
+          self::$submenuOptionsItems[$cat] = translate(mb_ucfirst($cat));
+      }
+    }
+  }
+  
+  public static function buildSubMenuOptions($categoryDisplayOrder) {
+    $categoriesOptionsInDB = [];
+    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $сategory_row ) {
+      array_push($categoriesOptionsInDB, $сategory_row['Category']);
+    }
+    self::addCategoryToOptionsMenu($categoriesOptionsInDB, $categoryDisplayOrder);
+  }
+}
+
+if (!function_exists('mb_ucfirst')) { // Available in PHP >= 8.4
+  function mb_ucfirst($str, $encoding='UTF-8') {
+    if (extension_loaded('mbstring')) {
+      $result = mb_strtoupper(mb_substr($str, 0, 1, $encoding)) . mb_substr($str, 1, null, $encoding);
+    } else {
+      $result = (ucfirst($str));
+    }
+    return $result;
+  }
+}
+
+// $typeMenu we are not using it yet. From now on we will specify either 'leftMenu' or 'topMenu'
+// $menuItems we are not using it yet. These are main menu items with the ability to be customized by the user.
+$zmMenu = new ZM_Menu($typeMenu = '', $menuItems = [
+
+]);
 ?>

@@ -124,7 +124,7 @@ function getIdSelections() {
   const table = $j('#eventTable');
 
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
-    return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
+    return strip_html(row.Id); // strip the html from the element before sending
   });
 }
 
@@ -508,7 +508,7 @@ function initPage() {
     });
 
     const thumb_ndx = $j('#eventTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
+      return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });

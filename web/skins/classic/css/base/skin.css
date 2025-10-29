@@ -924,7 +924,7 @@ a.flip {
   clear: both;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;

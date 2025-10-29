@@ -51,7 +51,7 @@ jobs:
           apt install -y --no-install-recommends \
             git ca-certificates gnupg lsb-release \
             build-essential devscripts debhelper equivs fakeroot \
-            cmake pkg-config ccache curl bash
+            cmake pkg-config ccache curl bash rsync openssh-client
           apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
             libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
             libswresample-dev libswscale-dev libbz2-dev \
@@ -105,10 +105,18 @@ jobs:
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true
+      - name: Sanitize Artifact name
+        id: prep_artifact_name
+        run: |
+          # Use `sed` to replace invalid characters with a hyphen
+          sanitized_distro_name=$(echo -n "${{ matrix.distro }}" | sed -e 's/[;\\\/:<>"|*?]/_/g' -e 's/__*/_/g')
+          echo "artifact_name=binary-${sanitized_distro_name}" >> $GITHUB_ENV
+
       - name: Upload .deb artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           path: artifacts/deb
+          name: ${{ env.artifact_name }}
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:

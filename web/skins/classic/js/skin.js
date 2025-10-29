@@ -1479,7 +1479,7 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
-  if (matches.length) {
+  if (matches && matches.length) {
     const video = document.createElement('video');
     if (matches[1] == 'av1') matches[1] = 'avc1';
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
@@ -1492,6 +1492,8 @@ function canPlayCodec(filename) {
     }
     console.log("cannot play "+matches[1]);
     return false;
+  } else {
+    console.log("Failed to match re on ", filename);
   }
   return false;
 }

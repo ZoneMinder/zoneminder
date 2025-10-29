@@ -56,6 +56,7 @@ jobs:
           platforms: arm64
       - name: Run packpack
         env:
+          DEBIAN_FRONTEND: noninteractive
           SMPFLAGS: -j4
           OS: ${{ matrix.os_dist.os }}
           DIST: ${{ matrix.os_dist.dist }}

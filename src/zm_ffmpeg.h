@@ -472,7 +472,7 @@ bool is_audio_context(const AVCodec *);
 int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
 
 int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
-int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
+int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket *packet);
 
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 

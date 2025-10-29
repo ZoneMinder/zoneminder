@@ -602,31 +602,28 @@ void VideoStore::flush_codecs() {
 #endif
         )) {
     // Put encoder into flushing mode
-    if (0 > avcodec_send_frame(video_out_ctx, nullptr)) {
-      Error("Failure sending null to flush codec");
-    } else {
-      while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
-
+    while (0 > zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt.get())) {
       av_packet_guard pkt_guard{pkt};
       av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
-        if (pkt->duration <= 0) {
-          if (video_last_pts != AV_NOPTS_VALUE) {
-            pkt->duration = pkt->pts - video_last_pts;
-            Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-                pkt->pts,
-                video_last_pts,
-                pkt->pts - video_last_pts,
-                pkt->duration
-                );
-            if (pkt->duration <= 0) {
-              pkt->duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
-            }
-          } else {
+      if (pkt->duration <= 0) {
+        if (video_last_pts != AV_NOPTS_VALUE) {
+          pkt->duration = pkt->pts - video_last_pts;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+          Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+              pkt->pts,
+              video_last_pts,
+              pkt->pts - video_last_pts,
+              pkt->duration
+              );
+#endif
+          if (pkt->duration <= 0) {
             pkt->duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
           }
+        } else {
+          pkt->duration = av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
         }
-        video_last_pts = pkt->pts;
       }
+      video_last_pts = pkt->pts;
       write_packet(pkt.get(), video_out_stream);
     } // while have buffered frames
     Debug(1, "Done writing buffered video.");
@@ -646,7 +643,7 @@ void VideoStore::flush_codecs() {
       if (zm_add_samples_to_fifo(fifo, out_frame)) {
         // Should probably set the frame size to what is reported FIXME
         if (zm_get_samples_from_fifo(fifo, out_frame)) {
-          if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *pkt) > 0) {
+          if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt.get()) > 0) {
             av_packet_guard pkt_guard{pkt};
             av_packet_rescale_ts(pkt.get(),
                 audio_out_ctx->time_base,
@@ -667,7 +664,7 @@ void VideoStore::flush_codecs() {
 
       // SHould probably set the frame size to what is reported FIXME
       if (av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size)) {
-        if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *pkt)) {
+        if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt.get())) {
           av_packet_guard pkt_guard{pkt};
           pkt->stream_index = audio_out_stream->index;
 
@@ -1329,7 +1326,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             video_out_ctx->time_base.den);
     }
 
-    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
+    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, opkt.get());
     if (ret <= 0) {
       if (ret < 0) {
         Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
@@ -1413,6 +1410,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     
     if (video_last_pts != AV_NOPTS_VALUE) {
       opkt->duration = opkt->pts - video_last_pts;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       Debug(2, "duration calc: pts %" PRId64 " - last_pts %" PRId64 " = %" PRId64 ,
           opkt->pts,
           video_last_pts,
@@ -1420,6 +1418,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           );
     } else {
       Debug(2, "Setting duration to %" PRId64 " dts is %" PRId64 " pts is %" PRId64, opkt->duration, opkt->dts, opkt->pts);
+#endif
     }
 
     video_last_pts = opkt->pts;
@@ -1492,7 +1491,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
       zm_dump_frame(out_frame, "Out frame after resample");
 
-      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *opkt) <= 0)
+      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, opkt.get()) <= 0)
         break;
 
       // Scale the PTS of the outgoing packet to be the correct time base

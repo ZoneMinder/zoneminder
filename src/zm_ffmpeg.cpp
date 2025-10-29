@@ -559,7 +559,7 @@ int zm_send_packet_receive_frame(
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success
  */
-int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
+int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket *packet) {
   int ret;
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if (( (ret = avcodec_send_frame(ctx, frame)) < 0 ) and frame) {
@@ -568,7 +568,7 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
       return ret;
     }
 
-    if ((ret = avcodec_receive_packet(ctx, &packet)) < 0) {
+    if ((ret = avcodec_receive_packet(ctx, packet)) < 0) {
       if (AVERROR(EAGAIN) == ret) {
         // The codec may need more samples than it has, perfectly valid
         Debug(2, "Codec not ready to give us a packet");
@@ -578,21 +578,25 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
-      zm_av_packet_unref(&packet);
+      zm_av_packet_unref(packet);
       return ret;
     }
   #else
     int data_present;
-    if ((ret = avcodec_encode_audio2(
-            ctx, &packet, frame, &data_present)) < 0) {
+    if (is_video_context(ctx)) {
+      ret = avcodec_encode_video2(ctx, packet, frame, &data_present);
+    } else {
+      ret = avcodec_encode_audio2(ctx, packet, frame, &data_present);
+    }
+    if (ret < 0) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&packet);
+      zm_av_packet_unref(packet);
       return ret;
     }
     if (!data_present) {
       Debug(2, "Not ready to out a frame yet.");
-      zm_av_packet_unref(&packet);
+      zm_av_packet_unref(packet);
       return 0;
     }
   #endif

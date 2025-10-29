@@ -445,7 +445,7 @@ if(MYSQLCLIENT_LIBRARIES)
     message(FATAL_ERROR "ZoneMinder requires MySQL headers - check that MySQL development packages are installed")
   endif()
 else()
-  message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
+  message(FATAL_ERROR "ZoneMinder requires the mysqlclient library, but it was not found on your system")
 endif()
 
 set(PATH_FFMPEG "")

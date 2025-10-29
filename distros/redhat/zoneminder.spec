@@ -10,6 +10,8 @@
 
 # RtspServer is configured as a git submodule
 %global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
+# CxxUrl is configured as a git submodule
+%global CxxUrl_version     v0.3
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -18,7 +20,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.70
+Version: 1.37.73
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -37,6 +39,7 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
+Source3: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxUrl-%{CxxUrl_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
@@ -202,6 +205,10 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 gzip -dc %{_sourcedir}/RtspServer-%{rtspserver_commit}.tar.gz | tar -xvvf -
 rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
+
+gzip -dc %{_sourcedir}/CxxUrl-%{CxxUrl_version}.tar.gz | tar -xvvf -
+rm -rf ./dep/CxxUrl
+mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes

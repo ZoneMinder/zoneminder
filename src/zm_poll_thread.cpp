@@ -1,8 +1,8 @@
 #include "zm_poll_thread.h"
 
+#include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_time.h"
 
 PollThread::PollThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {

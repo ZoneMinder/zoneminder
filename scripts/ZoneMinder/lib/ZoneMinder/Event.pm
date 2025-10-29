@@ -419,7 +419,10 @@ sub delete {
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
 
     my $storage = $event->Storage();
-    $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()}) if $event->DiskSpace();
+    if ($event->DiskSpace() and $storage->Id()) {
+      $storage->lock_and_load();
+      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
+    }
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -782,8 +785,14 @@ sub MoveTo {
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
-  $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace}) if $old_diskspace and $$OldStorage{Id};
-  $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace}) if $new_diskspace and $$NewStorage{Id};
+  if ($old_diskspace and $$OldStorage{Id}) {
+    $OldStorage->lock_and_load();
+    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
+  }
+  if ($new_diskspace and $$NewStorage{Id}) {
+    $NewStorage->lock_and_load();
+    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
+  }
 
   $self->delete_files($OldStorage);
   return $error;

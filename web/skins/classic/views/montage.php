@@ -242,7 +242,7 @@ if ($monitorCount <= 3) {
 $AutoLayoutName = $default_layout;
 
 xhtmlHeadersStart(__FILE__, translate('Montage'));
-echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+echo output_link(array('/assets/gridstack-11.1.2/dist/gridstack.css', '/assets/gridstack-11.1.2/dist/gridstack-extra.css'));
 xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -326,7 +326,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?></label>
+            <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
@@ -370,21 +370,30 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
+    $monitor_options['connkey'] = $monitor->connKey();
+    $browser_width = 1920;
+    if (isset($_COOKIE['zmBrowserSizes'])) {
+      $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
+      $browser_width = validInt($zmBrowserSizes['innerWidth']);
+      if (!$browser_width) $browser_width = 1920;
+    }
     if (!$scale and ($layout->Name() != 'Auto')) {
       if ($layout_is_preset) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
             if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
         }
-      } else {
-        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
-        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
+    } else {
+      # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+      $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
+      if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+      if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
+    $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor
@@ -397,7 +406,7 @@ foreach ($monitors as $monitor) {
   <script src="/javascript/janus/janus.js"></script>
 <?php } ?>
 <?php if ($need_hls) { ?>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 
@@ -421,5 +430,8 @@ foreach ($monitors as $monitor) {
   </div>
 </div>
 <?php
+  echo '<script src="skins/'.$skin.'/assets/gridstack-11.1.2/dist/gridstack-all.js"></script>';
+  echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  echo output_script_if_exists(array('js/panzoom.js'));
   echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
   xhtmlFooter() ?>

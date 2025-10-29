@@ -560,6 +560,9 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
+  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
+    form = param;
+  }
   if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
@@ -965,13 +968,24 @@ function stateStuff(action, runState, newState) {
   });
 }
 
+function strip_html(string) {
+  return string.replace(/<[^>]+>/g, '');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
-  console.log("Request Failed: " + textStatus + ", " + error);
-  if ( ! jqxhr.responseText ) {
+  if (jqxhr.statusText == 'abort') {
+    console.log('request aborted');
+    return;
+  }
+  if (!jqxhr.responseText) {
     console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
-  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
+  console.log("Request Failed: " + textStatus + ", " + error);
+  // Icon: Why strip html and whitespace?  We are just debugging it... it might get sent back to be logged in db etc.. but...
+  // we might lose a lot of content here.
+  //var responseText = strip_html(jqxhr.responseText).trim(); // strip any html or whitespace from the response
+  const responseText = jqxhr.responseText;
   if ( responseText ) console.log("Response Text: " + responseText);
 }
 
@@ -1465,7 +1479,7 @@ function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
 function canPlayCodec(filename) {
   const re = /\.(\w+)\.(\w+)$/i;
   const matches = re.exec(filename);
-  if (matches.length) {
+  if (matches && matches.length) {
     const video = document.createElement('video');
     if (matches[1] == 'av1') matches[1] = 'avc1';
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
@@ -1478,6 +1492,8 @@ function canPlayCodec(filename) {
     }
     console.log("cannot play "+matches[1]);
     return false;
+  } else {
+    console.log("Failed to match re on ", filename);
   }
   return false;
 }
@@ -1962,7 +1978,7 @@ function resetSelectElement(el) {
   if (currentView == 'events') {
     filterEvents(clickedElement = selectElement);
   } else {
-    submitThisForm();
+    submitThisForm(this.closest('form'));
   }
 }
 

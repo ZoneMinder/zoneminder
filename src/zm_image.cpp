@@ -255,6 +255,10 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   this->Assign(frame);
 }
 
+Image::Image(const AVFrame *frame) {
+  AssignDirect(frame);
+}
+
 static void dont_free(void *opaque, uint8_t *data) {
 }
 
@@ -294,10 +298,15 @@ int Image::PopulateFrame(AVFrame *frame) const {
 
 bool Image::Assign(const AVFrame *frame) {
   /* Assume the dimensions etc are correct. FIXME */
+  if (!frame) {
+    Error("Null frame passed to Image::Assign");
+    return false;
+  }
+  zm_dump_video_frame(frame, "source frame in Image::Assign");
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  av_frame_ptr dest_frame{av_frame_alloc()};
   if (!dest_frame) {
     Error("Unable to allocate destination frame");
     return false;
@@ -648,6 +657,27 @@ uint8_t* Image::WriteBuffer(
 
   return buffer;
 }
+
+void Image::AssignDirect(const AVFrame *frame) {
+  width = frame->width;
+  height = frame->height;
+  buffer = frame->data[0];
+  linesize = frame->linesize[0];
+  allocation = size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 32);
+  switch(static_cast<AVPixelFormat>(frame->format)) {
+    case  AV_PIX_FMT_RGBA:
+      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+      colours = ZM_COLOUR_RGB32;
+      break;
+    case  AV_PIX_FMT_YUV420P:
+      colours = ZM_COLOUR_GRAY8;
+    default:
+      break;
+  }
+  buffertype = ZM_BUFTYPE_DONTFREE;
+  pixels = width * height;
+}
+
 
 /* Assign an existing buffer to the image instead of copying from a source buffer.
    The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.
@@ -5354,4 +5384,38 @@ AVPixelFormat Image::AVPixFormat() const {
   }
 }
 
-
+AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
+  switch (new_pixelformat) {
+    case AV_PIX_FMT_YUVJ420P:
+      colours = ZM_COLOUR_YUVJ420P;
+      subpixelorder = ZM_SUBPIX_ORDER_YUVJ420P;
+      break;
+    case AV_PIX_FMT_YUV420P:
+      colours = ZM_COLOUR_YUV420P;
+      subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
+      break;
+    case AV_PIX_FMT_RGBA:
+      colours = ZM_COLOUR_RGB32;
+      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+      break;
+    case AV_PIX_FMT_BGR24:
+      colours = ZM_COLOUR_RGB24;
+      subpixelorder = ZM_SUBPIX_ORDER_BGR;
+      break;
+    case AV_PIX_FMT_RGB24:
+      colours = ZM_COLOUR_RGB24;
+      subpixelorder = ZM_SUBPIX_ORDER_RGB;
+      break;
+    case AV_PIX_FMT_GRAY8:
+      colours = ZM_COLOUR_GRAY8;
+      subpixelorder = ZM_SUBPIX_ORDER_NONE;
+      break;
+    default:
+      Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
+  }
+  Debug(4, "Old size: %d, old pixelformat %d", size, imagePixFormat);
+  size = av_image_get_buffer_size(new_pixelformat, width, height, 32);
+  Debug(4, "New size: %d new pixelformat %d", size, new_pixelformat);
+  linesize = FFALIGN(av_image_get_linesize(new_pixelformat, width, 0), 32);
+  return imagePixFormat = new_pixelformat;
+}

@@ -685,12 +685,14 @@ function drawGraph() {
   for (const event_id in events) {
     const zm_event = events[event_id];
     drawEventOnGraph(zm_event);
-    if (Event.FramesById) {
+    if (zm_event.FramesById) {
       for (const frame_id in zm_event.FramesById ) {
-        const Frame = zm_event.FramesById[frame_id];
-        if (!Frame.Score) continue;
-        drawFrameOnGraph(Frame);
+        const frame = zm_event.FramesById[frame_id];
+        if (!frame.Score) continue;
+        drawFrameOnGraph(frame);
       } // end foreach frame
+    } else {
+      console.log("No FramesById", zm_event);
     }
   } // end foreach Event
 
@@ -1203,16 +1205,17 @@ function loadEventData(e) {
         const ev = data.events[i].Event;
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
-        events[ev.Id] = ev;
+        event_list[ev.Id] = events[ev.Id] = ev;
+
         if ((!(ev.MonitorId in events_for_monitor)) || !events_for_monitor[ev.MonitorId]) {
           events_for_monitor[ev.MonitorId] = []; // id=>event
         }
         //events_by_monitor_id[ev.MonitorId].push(ev.Id);
         events_for_monitor[ev.MonitorId].push(ev);
-        drawEventOnGraph(ev);
-        event_list[ev.Id] = events[ev.id] = ev;
+        //drawEventOnGraph(ev);
       }
       loadFrames(event_list).then(function() {
+        console.log("have ffaremes, drawing graph");
         drawGraph();
         /*
         // HACK to refresh monitor names over event data
@@ -1425,16 +1428,22 @@ function loadFrames(zm_events) {
 
     while (ids.length) {
       const event_id = ids.shift();
-      const zm_event = zm_events[event_id];
-      if (zm_events.FramesById) continue;
+      {
+        const zm_event = zm_events[event_id];
+        if (zm_event.FramesById) {
+          console.log('already loaded FramesById', zm_event);
+          continue;
+        }
+        zm_event.FramesById = []; //Signal that we are loading them
+      }
+      query += '/EventId:'+event_id;
 
-      query += '/EventId:'+zm_event.Id;
       if ((!ids.length) || (query.length > 1000)) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
+            console.log(data);
             if (data && data.frames && data.frames.length) {
-              zm_event.FramesById = [];
               let last_frame = null;
 
               for (let i=0, len=data.frames.length; i<len; i++) {
@@ -1459,9 +1468,9 @@ function loadFrames(zm_events) {
                 }
                 last_frame = frame;
 
-                if (!zm_event.FramesById) zm_event.FramesById = [];
+                //if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
-                drawFrameOnGraph(frame);
+                //drawFrameOnGraph(frame);
               } // end foreach frame
             } else {
               console.log("No frames in data", data);

@@ -71,7 +71,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   decoded(false) {
   packet = av_packet_ptr{av_packet_alloc()};
 
-  if (zm_av_packet_ref(packet.get(), p.packet.get()) < 0) {
+  if (av_packet_ref(packet.get(), p.packet.get()) < 0) {
     Error("error refing packet");
   }
 }
@@ -101,7 +101,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   if (in_frame) {
     Error("Already have a frame?");
   } else {
-    in_frame = av_frame_ptr{zm_av_frame_alloc()};
+    in_frame = av_frame_ptr{av_frame_alloc()};
   }
 
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
@@ -157,13 +157,13 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       }  // end if target_format not set
 #endif
 
-      av_frame_ptr new_frame{zm_av_frame_alloc()};
+      av_frame_ptr new_frame{av_frame_alloc()};
 #if 0
       if ( target_format == AV_PIX_FMT_RGB0 ) {
         if ( image ) {
           if ( 0 > image->PopulateFrame(new_frame) ) {
             delete new_frame;
-            new_frame = zm_av_frame_alloc();
+            new_frame = av_frame_alloc();
             delete image;
             image = nullptr;
             new_frame->format = target_format;
@@ -243,7 +243,7 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
 
 AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
   if (!out_frame) {
-    out_frame = av_frame_ptr{zm_av_frame_alloc()};
+    out_frame = av_frame_ptr{av_frame_alloc()};
     if (!out_frame) {
       Error("Unable to allocate a frame");
       return nullptr;

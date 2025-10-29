@@ -447,11 +447,10 @@ our @options = (
   },
   {
     name        => 'ZM_GO2RTC_PATH',
-    default     => 'http://127.0.0.1:1984/api',
+    default     => '',
     description => 'URL for Go2RTC API.',
     help        => q`This value points to the location of the Go2RTC API
-    install, including username and password. If left blank, this
-    will default to http://127.0.0.1:1984/api
+    install, including username and password.
     `,
     type        => $types{string},
     category    => 'system',
@@ -1680,7 +1679,7 @@ our @options = (
   },
   {
     name        => 'ZM_HOME_URL',
-    default     => 'http://zoneminder.com',
+    default     => 'https://zoneminder.com',
     description => 'The url used in the home/logo area of the navigation bar.',
     help        => q`
       By default this takes you to the zoneminder.com website,
@@ -2741,7 +2740,7 @@ our @options = (
   },
   {
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
-    default     => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5',
+    default     => 'https://telemetry.zoneminder.com/index.php',
     description => 'URL that ZoneMinder will send usage data to',
     help        => '',
     type        => $types{url},

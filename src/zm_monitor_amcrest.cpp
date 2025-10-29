@@ -194,3 +194,15 @@ size_t Monitor::AmcrestAPI::WriteCallback(
   //Debug(1, "AMCREST callback %s", (char *)contents);
   return size * nmemb;
 }
+
+void Monitor::AmcrestAPI::SetNoteSet(Event::StringSet &noteSet) {
+  std::unique_lock<std::mutex> lck(alarms_mutex);
+  if (alarms.empty()) return;
+
+  std::string note = "";
+  for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+    note = it->first + "/" + it->second;
+    noteSet.insert(note);
+  }
+}
+

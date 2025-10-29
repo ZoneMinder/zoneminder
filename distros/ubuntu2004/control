@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
               ,cmake
-              ,libavdevice-dev
               ,libavcodec-dev
+              ,libavdevice-dev
               ,libavformat-dev
               ,libavutil-dev
               ,libswresample-dev
@@ -34,9 +34,8 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
               ,libjson-perl
-              ,libjson-xs-perl
               ,libldap-common
-              ,uuid-runtime
+              ,libuuid1, uuid-runtime
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 

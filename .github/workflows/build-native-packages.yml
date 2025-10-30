@@ -101,6 +101,7 @@ jobs:
         run: |
           set -eux
           mkdir -p artifacts/deb
+          ls -l ../
           mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true

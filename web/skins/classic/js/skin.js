@@ -1494,6 +1494,8 @@ function canPlayCodec(filename) {
     }
     console.log("cannot play "+matches[1]);
     return false;
+  } else {
+    console.log("Failed to match re on ", filename);
   }
   return false;
 }

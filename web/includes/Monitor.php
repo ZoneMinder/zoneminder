@@ -1047,6 +1047,10 @@ class Monitor extends ZM_Object {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+      <div class="stream-info">
+          <div class="stream-info-status"></div>
+          <div class="stream-info-mode"></div>
+      </div>
 <span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
@@ -1215,16 +1219,8 @@ class Monitor extends ZM_Object {
     } # end if showZones
     $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
-    $html .= '<div class="status">';
-    $html .= '
-      <div class="stream-info">
-          <div class="stream-info-status"></div>
-          <div class="stream-info-mode"></div>
-      </div>
-      '.PHP_EOL;
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
-      $html .= '</div><!--state-->';
     }
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;

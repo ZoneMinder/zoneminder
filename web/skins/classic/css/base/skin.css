@@ -717,10 +717,16 @@ input[type=submit]:disabled,
   .navbar-nav {
     flex-direction: row;
   }
-  .navbar-nav .nav-link {
+  .navbar-nav .nav-link,
+  #getHeaderFlipHTML a,
+  {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+}
+#getHeaderFlipHTML a {
+  display: block;
+  padding: .5rem 1rem;
 }
 
 .navbar-btn {

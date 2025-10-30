@@ -648,7 +648,7 @@ function initPage() {
   document.addEventListener("fullscreenchange", fullscreenchanged);
 
   // If you click on the navigation links, shut down streaming so the browser can process it
-  document.querySelectorAll('#main-header-nav a').forEach(function(el) {
+  document.querySelectorAll('#main-header-nav a.nav-link').forEach(function(el) {
     el.onclick = function() {
       for (let i = 0, length = monitors.length; i < length; i++) {
         if (monitors[i]) monitors[i].kill();

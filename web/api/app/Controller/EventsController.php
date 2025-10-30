@@ -66,6 +66,7 @@ class EventsController extends AppController {
         }
       }
       $conditions = $this->FilterComponent->buildFilter($named_params);
+      #ZM\Debug(print_r($conditions, true));
       foreach ($conditions as $k=>$v) {
         if ( 0 === strpos($k, 'DateTime') ) {
           $new_start = preg_replace('/DateTime/', 'StartDateTime', $k);
@@ -75,19 +76,29 @@ class EventsController extends AppController {
               ['OR' => $conditions['OR']],
               [
                 [$new_start => $conditions[$k]],
-                [$new_end => $conditions[$k]]
+                  ['OR'=>[
+                    $new_end => $conditions[$k],
+                    'EndDateTime IS NULL',
+                  ]
+                ]
               ]
             ];
             unset($conditions['OR']);
           } else {
             $conditions['OR'] = [
               [$new_start => $conditions[$k]],
-              [$new_end => $conditions[$k]]
+              [
+                'OR'=>[
+                    $new_end => $conditions[$k],
+                    'EndDateTime IS NULL',
+                ]
+              ]
             ];
           }
           unset($conditions[$k]);
         }
       } // end foreach condition
+      #ZM\Debug(print_r($conditions, true));
 
     } else {
       $conditions = $this->FilterComponent->buildFilter($_REQUEST);
@@ -127,6 +138,7 @@ class EventsController extends AppController {
     } else {
       $events = $this->Event->find('all', $settings);
     }
+    #ZM\Debug(print_r($this->Event->getDataSource()->getLog(false, false), true));
     // For each event, get the frameID which has the largest score also add FS path
 
     foreach ( $events as $key => $value ) {

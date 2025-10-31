@@ -19,7 +19,6 @@ env:
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:

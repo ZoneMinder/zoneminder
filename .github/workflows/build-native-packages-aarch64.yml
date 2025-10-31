@@ -15,6 +15,7 @@ env:
   TZ: America/New_York
   DEBIAN_FRONTEND: noninteractive
   DEBSIGN_KEYID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+  SMPFLAGS: -j10
 
 jobs:
   build-debian:

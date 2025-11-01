@@ -740,6 +740,49 @@ void LocalCamera::Initialise() {
     if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
       Fatal("Video device does not support streaming i/o");
 
+    struct v4l2_input input;
+    v4l2_std_id stdId;
+
+    memset(&input, 0, sizeof(input));
+    input.index = channel;
+
+    if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
+      Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+    }
+
+    v4l2_standard enum_standard = {};
+    int standardIndex = 0;
+    do {
+      memset(&enum_standard, 0, sizeof(enum_standard));
+      enum_standard.index = standardIndex;
+
+      if (vidioctl(vid_fd, VIDIOC_ENUMSTD, &enum_standard) < 0) {
+        if (errno == EINVAL || errno == ENODATA || errno == ENOTTY) {
+          Debug(6, "Done enumerating standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+          standardIndex = -1;
+          break;
+        } else {
+          Error("Failed to enumerate standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+        }
+      }
+    } while ( standardIndex++ >= 0 );
+
+    if (standardIndex != -1) {
+      if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
+        Error("Device does not support video standard %lld", standard);
+      }
+
+      if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
+        Error("Failed to get video standard: %d %s", errno, strerror(errno));
+      }
+      if (stdId != standard) {
+        stdId = standard;
+        if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
+          Error("Failed to set video standard %lld: %d %s", standard, errno, strerror(errno));
+        }
+      }
+    } // end if standardIndex != -1 meaning the device does support standard
+
     Debug(3, "Setting up video format");
 
     memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
@@ -923,6 +966,7 @@ void LocalCamera::Initialise() {
       //vid_buf.memory = V4L2_MEMORY_MMAP;
       vid_buf.memory = v4l2_data.reqbufs.memory;
       vid_buf.index = i;
+      Debug(1, "buf_type for %d  %d =? %d, memory %d =? %d", i, vid_buf.type, V4L2_BUF_TYPE_VIDEO_CAPTURE, vid_buf.memory, V4L2_MEMORY_MMAP);
 
       if ( vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0 )
         Fatal("Unable to query video buffer: %s", strerror(errno));
@@ -962,12 +1006,6 @@ void LocalCamera::Initialise() {
 #endif
 #endif // HAVE_LIBSWSCALE
     } // end foreach request buf
-
-    Debug(3, "Configuring video source");
-
-    if ( vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0 ) {
-      Fatal("Failed to set camera source %d: %s", channel, strerror(errno));
-    }
 
     Contrast(contrast);
     Brightness(brightness);
@@ -2001,12 +2039,41 @@ int LocalCamera::Contrast( int p_contrast ) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
-  if ( !device_prime )
+  if (!device_prime)
     return 1;
 
+  if (primed) {
+    Debug(1, "Calling PrimeCapture while already primed...");
+    return 1;
+  }
   Debug(2, "Priming capture");
 #if ZM_HAS_V4L2
   if ( v4l_version == 2 ) {
+
+    // *** VERIFY FORMAT HASN'T CHANGED ***
+    struct v4l2_format current_fmt;
+    memset(&current_fmt, 0, sizeof(current_fmt));
+    current_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+    if (vidioctl(vid_fd, VIDIOC_G_FMT, &current_fmt) < 0) {
+      Error("Failed to get current format: %s", strerror(errno));
+    } else {
+      Debug(1, "Format at PrimeCapture: %dx%d, format=0x%x, bytesperline=%d, sizeimage=%d",
+          current_fmt.fmt.pix. width, current_fmt.fmt. pix.height,
+          current_fmt.fmt.pix. pixelformat, current_fmt. fmt.pix.bytesperline,
+          current_fmt. fmt.pix.sizeimage);
+      Debug(1, "Expected format: %dx%d, format=0x%x, bytesperline=%d, sizeimage=%d",
+          v4l2_data.fmt.fmt. pix.width, v4l2_data.fmt.fmt. pix.height,
+          v4l2_data.fmt. fmt.pix.pixelformat, v4l2_data. fmt.fmt.pix.bytesperline,
+          v4l2_data.fmt.fmt.pix.sizeimage);
+
+      if (current_fmt.fmt.pix.sizeimage != v4l2_data.fmt.fmt.pix.sizeimage) {
+        Error("FORMAT MISMATCH! Current sizeimage %d != expected %d",
+            current_fmt.fmt.pix.sizeimage, v4l2_data.fmt.fmt.pix. sizeimage);
+      }
+    }
+    // *** END DIAGNOSTIC ***
+
     Debug(3, "Queueing (%d) buffers", v4l2_data.reqbufs.count);
     for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ ) {
       struct v4l2_buffer vid_buf;
@@ -2049,6 +2116,7 @@ int LocalCamera::PrimeCapture() {
   }
 #endif // ZM_HAS_V4L1
 
+  primed = true;
   return 1;
 } // end LocalCamera::PrimeCapture
 
@@ -2094,7 +2162,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Debug(5, "Captured a frame");
 
         v4l2_data.bufptr = &vid_buf;
-        capture_frame = v4l2_data.bufptr->index;
+        capture_frame = vid_buf.index;
         bytes += vid_buf.bytesused;
 
         if ( --captures_per_frame ) {
@@ -2105,11 +2173,10 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         }
       } // while captures_per_frame
 
-      Debug(3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel);
-
       buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
       buffer_bytesused = v4l2_data.bufptr->bytesused;
       bytes += buffer_bytesused;
+      Debug(3, "Captured frame %d/%d from channel %d bytes %d", capture_frame, v4l2_data.bufptr->sequence, channel, buffer_bytesused);
 
       if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height) ) {
         Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
@@ -2149,6 +2216,70 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
     }
 #endif // ZM_HAS_V4L1
+
+  } /* prime capture */    
+
+  if (!zm_packet->image) {
+    Debug(4, "Allocating image %dx%d", width, height);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
+  }
+
+  if (conversion_type != 0) {
+    Debug(3, "Performing format conversion %d", conversion_type);
+
+    /* Request a writeable buffer of the target image */
+    uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
+    if (directbuffer == nullptr) {
+      Error("Failed requesting writeable buffer for the captured image.");
+      return -1;
+    }
+#if HAVE_LIBSWSCALE
+    if (conversion_type == 1) {
+      Debug(4, "Calling sws_scale to perform the conversion %d %dx%d", imagePixFormat, width, height );
+      /* Use swscale to convert the image directly into the shared memory */
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+      av_image_fill_arrays(tmpPicture->data,
+          tmpPicture->linesize, directbuffer,
+          imagePixFormat, width, height, 1);
+#else
+      avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
+          imagePixFormat, width, height );
+#endif
+      sws_scale(
+          imgConversionContext,
+          capturePictures[capture_frame]->data,
+          capturePictures[capture_frame]->linesize,
+          0,
+          height,
+          tmpPicture->data,
+          tmpPicture->linesize
+          );
+    } else
+#endif  
+    if ( conversion_type == 2 ) {
+      Debug(9, "Calling the conversion function");
+      /* Call the image conversion function and convert directly into the shared memory */
+      (*conversion_fptr)(buffer, directbuffer, pixels);
+    } else if ( conversion_type == 3 ) {
+      // Need to store the jpeg data too
+      Debug(9, "Decoding the JPEG image");
+      /* JPEG decoding */
+      zm_packet->image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
+    }
+
+  } else {
+    Debug(3, "No format conversion performed. Assigning the image");
+
+    /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
+    zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  } // end if doing conversion or not
+
+  zm_packet->packet->stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
+  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet->keyframe = 1;
+
+  if ( channel_prime ) {
 #if ZM_HAS_V4L2
     if ( v4l_version == 2 ) {
       if ( channel_count > 1 ) {
@@ -2208,68 +2339,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       v4l1_data.active_frame = (v4l1_data.active_frame+1)%v4l1_data.frames.frames;
     }
 #endif // ZM_HAS_V4L1
-
-  } /* prime capture */    
-
-  if (!zm_packet->image) {
-    Debug(4, "Allocating image");
-    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
-
-  if (conversion_type != 0) {
-    Debug(3, "Performing format conversion %d", conversion_type);
-
-    /* Request a writeable buffer of the target image */
-    uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-    if (directbuffer == nullptr) {
-      Error("Failed requesting writeable buffer for the captured image.");
-      return -1;
-    }
-#if HAVE_LIBSWSCALE
-    if (conversion_type == 1) {
-      Debug(9, "Calling sws_scale to perform the conversion");
-      /* Use swscale to convert the image directly into the shared memory */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-      av_image_fill_arrays(tmpPicture->data,
-          tmpPicture->linesize, directbuffer,
-          imagePixFormat, width, height, 1);
-#else
-      avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
-          imagePixFormat, width, height );
-#endif
-      sws_scale(
-          imgConversionContext,
-          capturePictures[capture_frame]->data,
-          capturePictures[capture_frame]->linesize,
-          0,
-          height,
-          tmpPicture->data,
-          tmpPicture->linesize
-          );
-    } else
-#endif  
-    if ( conversion_type == 2 ) {
-      Debug(9, "Calling the conversion function");
-      /* Call the image conversion function and convert directly into the shared memory */
-      (*conversion_fptr)(buffer, directbuffer, pixels);
-    } else if ( conversion_type == 3 ) {
-      // Need to store the jpeg data too
-      Debug(9, "Decoding the JPEG image");
-      /* JPEG decoding */
-      zm_packet->image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
-    }
-
-  } else {
-    Debug(3, "No format conversion performed. Assigning the image");
-
-    /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
-    zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
-  } // end if doing conversion or not
-
-  zm_packet->packet->stream_index = mVideoStreamId;
-  zm_packet->stream = mVideoStream;
-  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet->keyframe = 1;
   return 1;
 } // end int LocalCamera::Capture()
 

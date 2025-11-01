@@ -812,6 +812,7 @@ void LocalCamera::Initialise() {
         , v4l2_data.fmt.fmt.pix.priv
         );
 
+#if 0
     if (
         (v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
         or
@@ -821,6 +822,7 @@ void LocalCamera::Initialise() {
         or
         (v4l2_data.fmt.fmt.pix.pixelformat != palette)
        ) {
+#endif
       v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
       v4l2_data.fmt.fmt.pix.width = width;
       v4l2_data.fmt.fmt.pix.height = height;
@@ -878,7 +880,7 @@ void LocalCamera::Initialise() {
       if (v4l2_data.fmt.fmt.pix.height != height) {
         Warning("Failed to set requested height");
       }
-    } // end if not already in the righ tformat.
+    //} // end if not already in the righ tformat.
 
     /* Buggy driver paranoia. */
     unsigned int min;

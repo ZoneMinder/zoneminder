@@ -315,11 +315,11 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
+  const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height + 'px';
+    objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
 }

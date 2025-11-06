@@ -219,7 +219,7 @@ sub LinkPath {
             '.'.$$event{Id}
             );
       } elsif ( $$event{Path} ) {
-        if ( ( $event->RelativePath() =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+        if ( ( $event->RelativePath() =~ /^(\d+\/\d{2}\/\d{2}\/\d{2})/ ) ) {
           $$event{LinkPath} = $1.'/.'.$$event{Id};
         } else {
           Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");

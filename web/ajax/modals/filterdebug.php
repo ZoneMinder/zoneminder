@@ -40,7 +40,7 @@
   $sql .= $filter->sql();
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
   $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
-  #$sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
+  $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 
 
   echo preg_replace('/\n/', '<br/>', $sql);

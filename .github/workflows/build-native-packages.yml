@@ -1,0 +1,114 @@
+name: build-native-packages-signed
+
+on:
+  push:
+    branches: [ release-1.36 ]
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+  GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY_B64: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY_B64 }}
+  DEBEMAIL: "info@zoneminder.com"
+  DEBFULLNAME: "Github CI"
+  TZ: America/New_York
+  DEBIAN_FRONTEND: noninteractive
+  DEBSIGN_KEYID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+
+jobs:
+  build-debian:
+    name: Build & sign .deb (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: ["debian:13", "debian:12", "ubuntu:22.04", "ubuntu:24.04"]
+    container:
+      image: ${{ matrix.distro }}
+
+    steps:
+      - name: Prep apt
+        run: |
+          set -eux
+          if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src'\
+            /etc/apt/sources.list; then
+            sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> \
+              /etc/apt/sources.list
+          fi
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/g' \
+            /etc/apt/sources.list.d/debian.sources
+          fi
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/g' \
+            /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          apt-get update
+      - name: Install build tools
+        run: |
+          set -eux
+          apt install -y --no-install-recommends \
+            git ca-certificates gnupg lsb-release \
+            build-essential devscripts debhelper equivs fakeroot \
+            cmake pkg-config ccache curl bash rsync openssh-client
+          apt install -y debhelper sphinx-doc dh-linktree dh-apache2 cmake \
+            libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev \
+            libswresample-dev libswscale-dev libbz2-dev \
+            libturbojpeg0-dev default-libmysqlclient-dev \
+            libpolkit-gobject-1-dev libv4l-dev libvlc-dev libssl-dev \
+            libvncserver-dev libjwt-gnutls-dev libgsoap-dev gsoap \
+            libmosquittopp-dev
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+          git_user_signingkey: false
+          git_commit_gpgsign: false
+
+      - name: Install build-deps from debian/control
+        run: |
+          set -eux
+          ln -sf distros/ubuntu2004 debian
+          mk-build-deps -ir -t "apt-get -y --no-install-recommends" \
+            debian/control
+      - name: Build (signed)
+        env:
+          DEB_BUILD_OPTIONS: "parallel=$(nproc)"
+          # gpg picks passphrase from environment via loopback
+        run: |
+          cd ../
+          ln -sf zoneminder ZoneMinder_ZoneMinder.git
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          chmod +x do_debian_package.sh
+
+          # Tell gpg to use loopback + passphrase
+          export GPG_TTY=$(tty || true)
+          ls -l /bin/bash
+          ./do_debian_package.sh -s=CURRENT -b=release-1.36 -t=binary 
+      - name: Collect .deb artifacts (incl. signed metadata & public key)
+        run: |
+          set -eux
+          mkdir -p artifacts/deb
+          ls -l ../
+          mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
+          # quick verify signatures (non-fatal)
+          gpg --verify artifacts/deb/*.changes || true
+          gpg --verify artifacts/deb/*.buildinfo || true
+
+      - name: Publish to ZMREPO
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: artifacts/deb/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/proposed/mini-dinstall/incoming/

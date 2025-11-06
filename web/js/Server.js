@@ -46,7 +46,7 @@ var Server = function() {
       value: function urlToApi() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : '')) + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
-       }
+      }
     },
     {
       key: 'getFromApi',

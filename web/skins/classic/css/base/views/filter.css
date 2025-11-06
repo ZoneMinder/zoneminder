@@ -85,3 +85,12 @@ min-width: 500px;
   clear: both;
   visibility: hidden;
 }
+#filterdebugModal .modal-dialog {
+  width: 80%;
+  max-width: 80%;
+  height: 100%;
+}
+#filterdebugModal table th {
+  text-align: left;
+  border-bottom: 1px solid #7f7fb2;
+}

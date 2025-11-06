@@ -338,6 +338,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 
 %postun
 %systemd_postun_with_restart %{name}.service
+%systemd_postun_with_restart php-fpm.service
 
 %files
 # nothing

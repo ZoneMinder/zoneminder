@@ -11,7 +11,7 @@
 # RtspServer is configured as a git submodule
 %global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
 # CxxUrl is configured as a git submodule
-%global CxxUrl_version     v0.3.1
+%global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key

@@ -315,11 +315,11 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
+  const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height + 'px';
+    objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
 }
@@ -648,7 +648,7 @@ function initPage() {
   document.addEventListener("fullscreenchange", fullscreenchanged);
 
   // If you click on the navigation links, shut down streaming so the browser can process it
-  document.querySelectorAll('#main-header-nav a').forEach(function(el) {
+  document.querySelectorAll('#main-header-nav a.nav-link').forEach(function(el) {
     el.onclick = function() {
       for (let i = 0, length = monitors.length; i < length; i++) {
         if (monitors[i]) monitors[i].kill();
@@ -835,20 +835,20 @@ function initGridStack(grid=null) {
 function addEvents(grid, id) {
   //let g = (id !== undefined ? 'grid' + id + ' ' : '');
   grid.on('resizestop', function(event, el) {
-        //const width = parseInt(el.getAttribute('gs-w')) || 0;
-        // or all values...
-        const node = el.gridstackNode; // {x, y, width, height, id, ....}
-        //let rec = el.getBoundingClientRect();
-        //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
+    //const width = parseInt(el.getAttribute('gs-w')) || 0;
+    // or all values...
+    const node = el.gridstackNode; // {x, y, width, height, id, ....}
+    //let rec = el.getBoundingClientRect();
+    //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
 
-        const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === currentMonitorId;
-        });
-        //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
-        setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
-        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
-      });
+    const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
+    const currentMonitor = monitors.find((o) => {
+      return parseInt(o["id"]) === currentMonitorId;
+    });
+    //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+    setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
+    currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
+  });
 }
 
 function panZoomIn(el) {
@@ -1073,7 +1073,7 @@ document.onvisibilitychange = () => {
 // This is to stop the streams in a nicer way (no broken image) and hopefully faster.
 window.onbeforeunload = function(e) {
   console.log('unload');
-/*
+  /*
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();

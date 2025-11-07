@@ -1,4 +1,4 @@
-name: build-native-packages-signed
+name: build-native-packages-signed-aarch64
 
 on:
   push:
@@ -15,15 +15,17 @@ env:
   TZ: America/New_York
   DEBIAN_FRONTEND: noninteractive
   DEBSIGN_KEYID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+  SMPFLAGS: -j10
 
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         distro: ["debian:13", "debian:12", "ubuntu:22.04", "ubuntu:24.04"]
+    runs-on: self-hosted
+
     container:
       image: ${{ matrix.distro }}
 
@@ -31,6 +33,8 @@ jobs:
       - name: Prep apt
         run: |
           set -eux
+          echo "Acquire::HTTP::Proxy \"http://192.168.9.129:3142\";" > /etc/apt/apt.conf.d/01proxy
+
           if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src'\
             /etc/apt/sources.list; then
             sed -n 's/^deb /deb-src /p' /etc/apt/sources.list >> \
@@ -85,9 +89,10 @@ jobs:
           # gpg picks passphrase from environment via loopback
         run: |
           cd ../
-          ls -l
           ln -sf zoneminder ZoneMinder_ZoneMinder.git
-          #git config --global --add safe.directory /__w/zoneminder/zoneminder
+          # Needed because we are running as root
+          git config --global --add safe.directory /__w/zoneminder/zoneminder
+          git config --global --add safe.directory /__w/zoneminder/ZoneMinder_ZoneMinder.git/.git
           #git submodule init
           #git submodule update --init --recursive
           curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
@@ -101,7 +106,6 @@ jobs:
         run: |
           set -eux
           mkdir -p artifacts/deb
-          ls -l ../
           mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true

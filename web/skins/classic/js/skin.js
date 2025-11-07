@@ -1100,14 +1100,18 @@ function manageChannelStream() {
   let secondPath_ = null;
   let restream = null;
   if (currentView == 'watch') {
-    const monitor = monitorData.find((o) => {
-      return parseInt(o["id"]) === monitorId;
-    });
-    if (monitor) {
-      secondPath_ = monitor['SecondPath'];
-      restream = monitor['Restream'];
+    if (typeof monitorData !== 'undefined') {
+      const monitor = monitorData.find((o) => {
+        return parseInt(o["id"]) === monitorId;
+      });
+      if (monitor) {
+        secondPath_ = monitor['SecondPath'];
+        restream = monitor['Restream'];
+      }
+      select = document.querySelector('select[name="streamChannel"]');
+    } else {
+      console.error("No monitorData in watch view");
     }
-    select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');

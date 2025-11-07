@@ -282,6 +282,9 @@ if (!defined('ZM_SERVER_ID')) {
   }
 } else {
   $thisServer = ZM\Server::find_one(['Id'=>ZM_SERVER_ID]); // Should be cached
+  if(!$thisServer) {
+    error_log('No server found for ZM_SERVER_ID '+ZM_SERVER_ID);
+  }
 }
 
 if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )

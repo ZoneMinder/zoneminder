@@ -338,7 +338,7 @@ sub get {
     Error('No url specified in get');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $response = $self->{ua}->get($url);
   Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
   return $response;
@@ -351,7 +351,7 @@ sub put {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(PUT => $url);
   my $content = shift;
   if ( defined($content) ) {
@@ -373,7 +373,7 @@ sub post {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(POST => $url);
   my $content = shift;
   if ( defined($content) ) {
@@ -430,6 +430,8 @@ sub guess_credentials {
       $$self{port} = $2 ? $2 : $$self{port};
     }
     $$self{uri} = $uri;
+    $$self{BaseURL} = $uri->scheme()."://$$self{host}:$$self{port}";
+    $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
@@ -440,9 +442,12 @@ sub guess_credentials {
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
       $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
       $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
-    } else {
-      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
-      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
+    }
+
+    if (!($$self{username} or $$self{password})) {
+      Debug("Still no username/password. Setting to ".join('/', $self->{Monitor}->{User}, $self->{Monitor}->{Pass}));
+      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
     }
     $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
@@ -450,6 +455,10 @@ sub guess_credentials {
     $uri->path('');
     $$self{host} = $uri->host();
     $$self{uri} = $uri;
+    $$self{port} = $uri->port();
+    $$self{BaseURL} = $uri->scheme().'://'.$$self{host}.($$self{port} ? ':'.$$self{port}:'');
+    Debug("Have base url $$self{BaseURL} with credentials $$self{username}/$$self{password}");
+    $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } else {
     Debug('Unable to guess credentials');
   }
@@ -472,7 +481,7 @@ sub get_realm {
         my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
         my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
         if ( $tokens{realm} ) {
-          if ( $$self{realm} ne $tokens{realm} ) {
+          if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
             Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
             $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});

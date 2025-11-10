@@ -768,7 +768,7 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitors when closing or hiding page
       for (let i = 0, length = monitorData.length; i < length; i++) {
-        monitors[i].kill();
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {

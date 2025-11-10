@@ -259,7 +259,11 @@ function limitArea(field) {
   if ( document.zoneForm.elements['newZone[Units]'].value == 'Percent' ) {
     maxValue = 100;
   }
-  limitRange(field, minValue, maxValue);
+  if (maxValue > 0) {
+    limitRange(field, minValue, maxValue);
+  } else {
+    console.error("No value for area");
+  }
 }
 
 function highlightOn(index) {

@@ -509,7 +509,10 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
-    if (-1 != stream.src.indexOf('mode=paused')) {
+    if (this.activePlayer == 'zms') {
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCommand(CMD_PLAY);
+    } else if (-1 != stream.src.indexOf('mode=paused')) {
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
@@ -547,7 +550,7 @@ function MonitorStream(monitorData) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
     }
-    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
@@ -780,7 +783,7 @@ function MonitorStream(monitorData) {
   };
 
   this.onpause = function() {
-    console.log('onpause');
+    console.log('onpause doing nothing');
   };
   this.setup_onpause = function(func) {
     this.onpause = func;
@@ -1166,7 +1169,7 @@ function MonitorStream(monitorData) {
 
       if (!this.streamCmdTimer) {
         // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
-        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
+        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
         this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
     } else {

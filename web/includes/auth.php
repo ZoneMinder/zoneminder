@@ -390,7 +390,11 @@ function get_auth_relay() {
       // password probably needs to be escaped
       return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
-      return 'username='.$_SESSION['username'];
+      if (isset($_SESSION['username'])) {
+        return 'username='.$_SESSION['username'];
+      } else {
+        ZM\Warning("ZM_AUTH_RELAY==none but there is no username in session.");
+      }
     } else {
       ZM\Error('Unknown value for ZM_AUTH_RELAY ' . ZM_AUTH_RELAY);
     }

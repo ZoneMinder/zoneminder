@@ -182,7 +182,7 @@ function applyPreset() {
     form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
 
     applyCheckMethod();
-    form.elements['newZone[TempArea]'].value = 100;
+    form.elements['newZone[Area]'].value = 100;
   }
 }
 
@@ -214,7 +214,7 @@ function applyZoneUnits() {
 
   var form = document.zoneForm;
   if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[TempArea]'].value = area;
+    form.elements['newZone[Area]'].value = area;
     toPixels(form.elements['newZone[MinAlarmPixels]'], area);
     toPixels(form.elements['newZone[MaxAlarmPixels]'], area);
     toPixels(form.elements['newZone[MinFilterPixels]'], area);
@@ -222,7 +222,7 @@ function applyZoneUnits() {
     toPixels(form.elements['newZone[MinBlobPixels]'], area);
     toPixels(form.elements['newZone[MaxBlobPixels]'], area);
   } else {
-    form.elements['newZone[TempArea]'].value = Math.round(area/monitorArea * 100);
+    form.elements['newZone[Area]'].value = Math.round(area/monitorArea * 100);
     toPercent(form.elements['newZone[MinAlarmPixels]'], area);
     toPercent(form.elements['newZone[MaxAlarmPixels]'], area);
     toPercent(form.elements['newZone[MinFilterPixels]'], area);
@@ -386,13 +386,12 @@ function limitPointValue(point, loVal, hiVal) {
 
 function updateArea( ) {
   const area = Polygon_calcArea(zone['Points']);
-  zone.Area = area;
   const form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
+    form.elements['newZone[Area]'].value = Math.round( area/monitorArea*100 );
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[TempArea]'].value = area;
+    form.elements['newZone[Area]'].value = area;
   } else {
     alert('Unknown units: ' + form.elements['newZone[Units]'].value);
   }

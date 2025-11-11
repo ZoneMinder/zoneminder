@@ -196,6 +196,10 @@ function MonitorStream(monitorData) {
       return;
     }
     console.log("setScale", stream, newscale, width, height, param);
+    if (height == '0px') {
+      console.error("Don't want to set 0px height. Reverting to auto");
+      height = 'auto';
+    }
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -252,7 +256,7 @@ function MonitorStream(monitorData) {
     }
     if (param.resizeImg) {
       if (stream.style.width) stream.style.width = '100%';
-      if (height && height != '0px') stream.style.height = height;
+      if (height && (height != '0px')) stream.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
         stream.style.width = 'auto';

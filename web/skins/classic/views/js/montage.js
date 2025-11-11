@@ -324,10 +324,6 @@ function setRatioForMonitor(objStream, id=null) {
   }
 }
 
-function toGrid(value) { //Not used
-/*  return Math.round(value / 80) * 80;*/
-}
-
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;

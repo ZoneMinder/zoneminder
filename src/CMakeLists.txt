@@ -176,6 +176,7 @@ target_link_libraries(zm
     FFMPEG::swscale
     libbcrypt::bcrypt
     RtspServer::RtspServer
+    chmike::CxxUrl
     martinmoene::span-lite
     ${ZM_BIN_LIBS}
   PRIVATE

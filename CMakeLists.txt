@@ -404,7 +404,7 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-set(CxxUrl_BUILD_STATIC_LIBS "OFF")
+set(CxxUrl_BUILD_SHARED_LIBS "OFF")
 list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
 
 # libjwt

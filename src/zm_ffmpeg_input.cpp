@@ -365,7 +365,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
       }
       if (!get_frame(stream_id)) {
         Warning("Got no frame. returning nothing");
-        return frame.get();
+        return nullptr;
       }
     }
     return frame.get();

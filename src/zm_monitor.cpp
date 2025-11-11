@@ -417,6 +417,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
     objectdetection = OBJECT_DETECTION_MX_ACCL;
   } else if (od == "quadra") {
     objectdetection = OBJECT_DETECTION_QUADRA;
+  } else if (od == "uvicorn") {
+    objectdetection = OBJECT_DETECTION_UVICORN;
   } else if (od == "speedai") {
     objectdetection = OBJECT_DETECTION_SPEEDAI;
   } else {

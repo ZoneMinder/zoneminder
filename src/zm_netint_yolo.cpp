@@ -54,10 +54,6 @@ Quadra_Yolo::Quadra_Yolo(Monitor *p_monitor, bool p_use_hwframe) :
   use_hwframe(p_use_hwframe),
   filt_cnt(0)
 {
-  scaled_frame = av_frame_ptr{av_frame_alloc()};
-  scaled_frame->width  = model_width;
-  scaled_frame->height = model_height;
-  scaled_frame->format = AV_PIX_FMT_RGB24;
   obj_thresh = monitor->ObjectDetection_Object_Threshold();
   nms_thresh = monitor->ObjectDetection_NMS_Threshold();
 }
@@ -92,31 +88,27 @@ bool Quadra_Yolo::setup(
   dec_ctx = decoder_ctx;
 
   if (std::string::npos != nbg_file.find("yolov4")) {
-    model = &yolov4;
     model_name = std::string("yolov4");
   } else if (std::string::npos != nbg_file.find("yolov5")) {
-    model = &yolov5;
-    model_width = model_height = 640;
     model_name = std::string("yolov5");
   } else if (std::string::npos != nbg_file.find("yolov8")) {
+    model_name = std::string("yolov8");
+  }
+
+  if (model_name == "yolov4") {
+    model = &yolov4;
+    model_width = 416;
+    model_height = 416;
+  } else if (model_name == "yolov5") {
+    model = &yolov5;
+    model_width = model_height = 640;
+  } else if (model_name == "yolov8") {
     model = &yolov8;
     model_width = 640;
     model_height = 352;
-    model_name = std::string("yolov8");
   } else {
-    if (model_name == "yolov4") {
-      model = &yolov4;
-    } else if (model_name == "yolov5") {
-      model = &yolov5;
-      model_width = model_height = 640;
-    } else if (model_name == "yolov8") {
-      model = &yolov8;
-      model_width = 640;
-      model_height = 352;
-    } else {
-      Error("Unsupported yolo model");
-      return false;
-    }
+    Error("Unsupported yolo model");
+    return false;
   }
 
   //std::string device = monitor->DecoderHWAccelDevice();
@@ -157,6 +149,7 @@ bool Quadra_Yolo::setup(
   }
 
   if (use_hwframe == false) {
+    scaled_frame = av_frame_ptr{av_frame_alloc()};
     scaled_frame->width  = model_width;
     scaled_frame->height = model_height;
     scaled_frame->format = AV_PIX_FMT_RGB24;
@@ -208,19 +201,11 @@ int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet) {
 
   ret = ni_set_network_input(network_ctx, use_hwframe, &ai_input_frame, nullptr, avframe->width, avframe->height, &net_frame, true);
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
-    Error("Error while feeding the ai");
+    Error("Quadra: Error while feeding the ai");
     return -1;
   }
   return (ret == NIERROR(EAGAIN)) ? 0 : 1;
 } // int Quadra_Yolo::send_packet(std::shared_ptr<ZMPacket> in_packet)
-
-/* in_packet and out_packet maybe be th same*/
-int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet) {
-  int ret = send_packet(in_packet);
-  if (ret <= 0) return ret;
-
-  return ret = receive_detection(out_packet);
-} // end int Quadra_Yolo::detect(std::shared_ptr<ZMPacket> in_packet, std::shared_ptr<ZMPacket> out_packet)
 
 /* NetInt says if an image goes in, one will come out, so we can assume that 
  * out_packet corresponds to the image that the results are against.
@@ -230,19 +215,19 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
   /* pull filtered frames from the filtergraph */
   int ret = ni_get_network_output(network_ctx, use_hwframe, &net_frame, true /* blockable */, true /*convert*/, model_ctx->out_tensor);
   SystemTimePoint endtime = std::chrono::system_clock::now();
-  Debug(1, "*** AI inference took %.2f seconds ***",FPSeconds(endtime-starttime).count());
+  Debug(1, "Quadra: *** AI inference took %.2f seconds ***",FPSeconds(endtime-starttime).count());
   if (ret != 0 && ret != NIERROR(EAGAIN)) {
-    Error("Error when getting output %d", ret);
+    Error("Quadra: Error when getting output %d", ret);
     return -1;
   } else if (ret != NIERROR(EAGAIN)) {
     AVFrame *avframe = (use_hwframe and packet->hw_frame) ? packet->hw_frame.get() : packet->in_frame.get();
-    Debug(1, "receive_detection hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
+    Debug(1, "Quadra: receive_detection hw_frame %p, data %p ai_frame_number %d", avframe, avframe->data, aiframe_number);
     ret = ni_read_roi(avframe, aiframe_number);
     if (ret < 0) {
-      Error("read roi failed");
+      Error("Quadra: read roi failed");
       return -1;
     } else if (ret == 0) {
-      Debug(1, "ni_read_roi == 0");
+      Debug(1, "Quadra: ni_read_roi == 0");
       return 1;
     }
     aiframe_number++;
@@ -250,7 +235,7 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
     // Allocates out_frame
     ret = process_roi(avframe, &out_frame);
     if (ret < 0) {
-      Error("cannot draw roi");
+      Error("Quadra: cannot draw roi");
       return -1;
     }
     packet->set_ai_frame(out_frame);
@@ -266,7 +251,7 @@ int Quadra_Yolo::receive_detection(std::shared_ptr<ZMPacket> packet) {
 int Quadra_Yolo::ni_recreate_ai_frame(ni_frame_t *ni_frame, AVFrame *avframe) {
   uint8_t *p_data = ni_frame->p_data[0];
 
-  Debug(1,
+  Debug(3,
       "linesize %d/%d/%d, data %p/%p/%p, pixel %dx%d",
       avframe->linesize[0], avframe->linesize[1], avframe->linesize[2],
       avframe->data[0], avframe->data[1], avframe->data[2], avframe->width,

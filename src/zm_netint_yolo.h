@@ -25,8 +25,8 @@ class Monitor;
 class Quadra_Yolo {
   private:
     Monitor *monitor;
-    int model_width = 640;
-    int model_height = 640;
+    int model_width;
+    int model_height;
     int model_format;
     float obj_thresh = 0.25;
     float nms_thresh = 0.45;

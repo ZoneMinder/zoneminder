@@ -7,6 +7,9 @@ function MonitorStream(monitorData) {
   this.name = monitorData.name;
   this.started = false;
   this.connKey = monitorData.connKey;
+  this.genConnKey = function() {
+    return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', { minimumIntegerDigits: 6, useGrouping: false});
+  };
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
@@ -673,6 +676,7 @@ function MonitorStream(monitorData) {
   };
 
   this.kill = function() {
+    console.log("kill");
     /* kill should actually remove the zms process.  Resulting in a broken image on screen. */
     if (janus && streaming[this.id]) {
       streaming[this.id].detach();
@@ -686,10 +690,10 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && (-1 !== this.activePlayer.indexOf('zms'))) {
-      stream.src = '';
-      // Make zms exit
+    if (stream.src && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+      // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
+      stream.src = '';
     }
     // Kill and stop share a lot of the same code... so just call stop
     this.stop();
@@ -1186,13 +1190,10 @@ function MonitorStream(monitorData) {
         // Instead of changing rand, perhaps we should be changing connKey.
         let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-        // Maybe updated auth
-        if (src != stream.src) {
-          stream.src = '';
-          stream.src = src;
-        } else {
-          console.log("Failed to update rand on stream src", stream.src);
-        }
+        this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
+        src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
+        stream.src = '';
+        stream.src = src;
       }
     } // end if Ok or not
   };

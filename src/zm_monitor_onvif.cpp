@@ -265,7 +265,7 @@ void Monitor::ONVIF::WaitForMessage() {
 
               Info("ONVIF Got Motion Alarm! topic:%s value:%s", last_topic.c_str(), last_value.c_str());
               // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
-              if (last_value.find("false") == 0) {
+              if (last_value.find("false") == 0 || last_value == "0") {
                 Info("Triggered off ONVIF");
                 alarms.erase(last_topic);
                 Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());

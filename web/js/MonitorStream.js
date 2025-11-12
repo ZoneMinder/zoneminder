@@ -197,6 +197,10 @@ function MonitorStream(monitorData) {
       return;
     }
     console.log("setScale", stream, newscale, width, height, param);
+    if (height == '0px') {
+      console.error("Don't want to set 0px height. Reverting to auto");
+      height = 'auto';
+    }
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -253,7 +257,7 @@ function MonitorStream(monitorData) {
     }
     if (param.resizeImg) {
       if (stream.style.width) stream.style.width = '100%';
-      if (height && height != '0px') stream.style.height = height;
+      if (height && (height != '0px')) stream.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
         stream.style.width = 'auto';
@@ -342,6 +346,8 @@ function MonitorStream(monitorData) {
     console.log('streamChannel', streamChannel);
     this.streamListenerBind = streamListener.bind(null, this);
 
+    console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player);
+
     $j('#volumeControls').hide();
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
@@ -420,6 +426,7 @@ function MonitorStream(monitorData) {
       return;
     }
 
+    // FIXME auto mode doesn't work properly here. Ideally it would try each until one succeeds
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
@@ -472,7 +479,7 @@ function MonitorStream(monitorData) {
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
           this.activePlayer = 'rtsp2web_mse';
-        } else if (-1 !== this.player.indexOf('webrtc')) {
+        } else if (!this.player || (-1 !== this.player.indexOf('webrtc'))) {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
@@ -482,7 +489,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo(players ? players[this.player] : 'RTSP2Web ' + this.RTSP2WebType);
+        this.updateStreamInfo(players ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");

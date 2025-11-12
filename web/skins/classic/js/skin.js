@@ -1487,10 +1487,16 @@ function canPlayCodec(filename) {
   const matches = re.exec(filename);
   if (matches && matches.length) {
     const video = document.createElement('video');
-    if (matches[1] == 'av1') matches[1] = 'avc1';
+    if (matches[1] == 'av1') matches[1] = 'av01';
+    else if (matches[1] == 'h264') matches[1] = 'avc1';
+    else if (matches[1] == 'hevc') matches[1] = 'hvc1';
+    else {
+      console.log('matches didnt match'+matches[1]);
+    }
+
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
-      console.log("can play "+matches[1]);
+      console.log("can probably play "+matches[1]);
       return true;
     } else if (can == "maybe") {
       console.log("can maybe play "+matches[1]);

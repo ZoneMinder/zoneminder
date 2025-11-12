@@ -324,10 +324,6 @@ function setRatioForMonitor(objStream, id=null) {
   }
 }
 
-function toGrid(value) { //Not used
-/*  return Math.round(value / 80) * 80;*/
-}
-
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;
@@ -634,6 +630,7 @@ function initPage() {
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const monitor = monitors[i] = new MonitorStream(monitorData[i]);
+    monitor.controlMute('on'); // Default to no audio. User can toggle audio for individual streams manually
     monitor.setGridStack(objGridStack);
     //Create a Ratio array for each monitor
     const r = monitor.width / monitor.height;

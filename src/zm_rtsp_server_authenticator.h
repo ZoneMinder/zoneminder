@@ -33,6 +33,13 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
 
     std::string queryString = url.substr(found+1, std::string::npos);
 
+    size_t last_slash = url.rfind("?", found);
+    if (last_slash == std::string::npos) {
+      Debug(1, "Not able to find /");
+    }
+    std::string stream_name = url.substr(last_slash+1, found);
+    Debug(1, "Stream name %s", stream_name.c_str());
+
 #if 0
     found = suffix_string.find("/");
     if ( found != std::string::npos )

@@ -2,8 +2,7 @@ name: build-native-packages-signed
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
+    branches: [ master ]
 permissions:
   contents: write
 env:

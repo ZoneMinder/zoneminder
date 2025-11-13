@@ -8,7 +8,7 @@ function MonitorStream(monitorData) {
   this.started = false;
   this.connKey = monitorData.connKey;
   this.genConnKey = function() {
-    return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', { minimumIntegerDigits: 6, useGrouping: false});
+    return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', {minimumIntegerDigits: 6, useGrouping: false});
   };
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;

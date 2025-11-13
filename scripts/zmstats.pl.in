@@ -59,7 +59,8 @@ while (!$zm_terminate) {
   my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
 
   if ($server->Id()) {
-    $server->load(); # get fresh other values
+    my $in_transaction = ZoneMinder::Database::start_transaction($dbh);
+    $server->lock_and_load(); # get fresh other values
     if ($_=$server->save({
           CpuLoad=>$cpuload[0],
           TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
@@ -67,6 +68,7 @@ while (!$zm_terminate) {
         })) {
       Error('Failed Updating status of Server record for Id='.$server->Id().': '.$dbh->errstr());
     }
+    ZoneMinder::Database::end_transaction($dbh, $in_transaction); 
   }
 
   zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuNicePercent, CpuSystemPercent, CpuIdlePercent, CpuUsagePercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?,?,?,?)',

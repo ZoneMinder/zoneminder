@@ -491,10 +491,11 @@ function startMonitors() {
 }
 
 function stopMonitors() { //Not working yet.
+  console.log("stop monitoirs");
   for (let i = 0, length = monitors.length; i < length; i++) {
     //monitors[i].stop();
-    //monitors[i].kill();
-    monitors[i].streamCommand(CMD_QUIT);
+    monitors[i].kill();
+    //monitors[i].streamCommand(CMD_QUIT);
   }
   monitors.length = 0;
 }
@@ -1047,8 +1048,9 @@ document.onvisibilitychange = () => {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitors when closing or hiding page
+      //closing should kill, hiding should stop
       for (let i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].kill();
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {

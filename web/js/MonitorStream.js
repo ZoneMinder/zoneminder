@@ -6,6 +6,7 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
   this.started = false;
+  this.muted = false;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
@@ -428,7 +429,7 @@ function MonitorStream(monitorData) {
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
           new_stream.setAttribute("autoplay", "");
-          new_stream.setAttribute("muted", "");
+          new_stream.setAttribute("muted", this.muted);
           new_stream.setAttribute("playsinline", "");
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
@@ -803,7 +804,7 @@ function MonitorStream(monitorData) {
     return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+mid);
   };
 
-  this.getAudioStraem = function(mid) {
+  this.getAudioStream = function(mid) {
     /*
     Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
     RTSP2Web uses <video id='liveStreamXX'></video>
@@ -828,6 +829,7 @@ function MonitorStream(monitorData) {
       }
       volumeSlider.noUiSlider.set(audioStream.volume * 100);
     }
+    // FIXME what if we are on montage?
     setCookie('zmWatchMuted', audioStream.muted);
     setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
     volumeSlider.setAttribute('data-muted', audioStream.muted);
@@ -838,7 +840,7 @@ function MonitorStream(monitorData) {
     const mid = this.id;
     const volumeSlider = this.getVolumeSlider(mid);
     const iconMute = this.getIconMute(mid);
-    const audioStream = this.getAudioStraem(mid);
+    const audioStream = this.getAudioStream(mid);
     if (!volumeSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
     if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
@@ -911,7 +913,7 @@ function MonitorStream(monitorData) {
   this.controlMute = function(mode = 'switch') {
     const mid = this.id;
     const volumeSlider = this.getVolumeSlider(mid);
-    const audioStream = this.getAudioStraem(mid);
+    const audioStream = this.getAudioStream(mid);
     const iconMute = this.getIconMute(mid);
     if (!audioStream || !iconMute) return;
     if (mode=='switch') {

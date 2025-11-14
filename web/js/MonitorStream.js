@@ -924,25 +924,25 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider(mid);
     const audioStream = this.getAudioStream(mid);
     const iconMute = this.getIconMute(mid);
-    if (!audioStream || !iconMute) return;
+    if (!iconMute) return;
+
     if (mode=='switch') {
-      if (audioStream.muted) {
-        audioStream.muted = false;
-        iconMute.innerHTML = 'volume_up';
-        volumeSlider.classList.add('noUi-mute');
-        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
-      } else {
-        audioStream.muted = true;
-        iconMute.innerHTML = 'volume_off';
-        volumeSlider.classList.remove('noUi-mute');
-      }
+      this.muted = !this.muted;
     } else if (mode=='on') {
-      audioStream.muted = true;
-      iconMute.innerHTML = 'volume_off';
-      volumeSlider.classList.add('noUi-mute');
+      this.muted = false;
     } else if (mode=='off') {
-      audioStream.muted = false;
+      this.muted = true;
+    } else {
+      console.log("Invalid value for mode", mode);
+    }
+
+    if (audioStream) audioStream.muted = this.muted;
+    if (!this.muted) {
       iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.add('noUi-mute');
+      if (audioStream) audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+    } else {
+      iconMute.innerHTML = 'volume_off';
       volumeSlider.classList.remove('noUi-mute');
     }
   };

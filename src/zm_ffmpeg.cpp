@@ -605,10 +605,11 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket *
 
 void zm_free_codec(AVCodecContext **ctx) {
   if (*ctx) {
-    avcodec_close(*ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(ctx);
+#else
+    avcodec_close(*ctx);
 #endif
     *ctx = NULL;
   } // end if 

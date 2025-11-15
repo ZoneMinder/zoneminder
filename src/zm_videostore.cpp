@@ -751,9 +751,12 @@ VideoStore::~VideoStore() {
   if (video_out_stream) {
     video_in_ctx = nullptr;
 
-    avcodec_close(video_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     Debug(3, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
+#else
+    avcodec_close(video_out_ctx);
+#endif
     if (hw_device_ctx) {
       Debug(3, "Freeing hw_device_ctx");
       av_buffer_unref(&hw_device_ctx);
@@ -770,9 +773,10 @@ VideoStore::~VideoStore() {
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");
-      avcodec_close(audio_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&audio_out_ctx);
+#else
+      avcodec_close(audio_out_ctx);
 #endif
     }
 

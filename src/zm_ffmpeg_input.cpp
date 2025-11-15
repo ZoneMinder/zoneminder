@@ -143,10 +143,11 @@ int FFmpeg_Input::Open(const char *filepath) {
 int FFmpeg_Input::Close( ) {
   if (streams) {
     for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
-      avcodec_close(streams[i].context);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&streams[i].context);
       streams[i].context = nullptr;
+#else
+      avcodec_close(streams[i].context);
 #endif
     }
     delete[] streams;

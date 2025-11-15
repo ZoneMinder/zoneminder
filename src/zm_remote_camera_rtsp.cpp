@@ -84,7 +84,11 @@ RemoteCameraRtsp::RemoteCameraRtsp(
 RemoteCameraRtsp::~RemoteCameraRtsp() {
 
   if ( mVideoCodecContext ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+     avcodec_free_context(&mVideoCodecContext);
+#else
      avcodec_close(mVideoCodecContext);
+#endif
      mVideoCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
   }
   // Is allocated in RTSPThread and is free there as well

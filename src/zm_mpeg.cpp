@@ -498,7 +498,11 @@ VideoStream::~VideoStream( ) {
 	}
 	/* close each codec */
 	if ( ost ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+		avcodec_free_context ( &codec_context );
+#else
 		avcodec_close( codec_context );
+#endif
 		av_free( opicture->data[0] );
 		av_frame_free( &opicture );
 		if ( tmp_opicture ) {

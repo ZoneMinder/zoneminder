@@ -1239,7 +1239,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         return 0;
       }
       if ((ret = av_hwframe_transfer_data(hw_frame.get(), frame.get(), 0)) < 0) {
-        Error("Error while transferring frame data to surface: %s.", av_err2str(ret));
+        Error("Error while transferring frame data to surface: %d %s.", ret, av_err2str(ret));
         return ret;
       }
       ret = av_frame_copy_props( hw_frame.get(), frame.get());
@@ -1428,8 +1428,6 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   av_packet_ref(opkt.get(), ipkt);
   ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after ref");
 
-  // Altering the input packet is kinda sketchy
-
   if (monitor->WallClockTimestamps()) {
     int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
     // Convert to in_stream tb
@@ -1496,7 +1494,8 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   } else {
     if (audio_first_dts != AV_NOPTS_VALUE) {
       ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "before pts adjustment");
-      Debug(1, "Adjusting pts/dts by %" PRId64, audio_first_dts);
+      Debug(1, "Adjusting pts:%" PRId64 " dts:%" PRId64 " by %" PRId64,
+          opkt->pts, opkt->dts, audio_first_dts);
       opkt->pts = opkt->pts - audio_first_dts;
       opkt->dts = opkt->dts - audio_first_dts;
     }

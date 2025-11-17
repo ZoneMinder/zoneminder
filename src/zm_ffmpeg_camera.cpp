@@ -595,16 +595,18 @@ int FfmpegCamera::Close() {
   mCanCapture = false;
 
   if ( mVideoCodecContext ) {
-    avcodec_close(mVideoCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mVideoCodecContext);
+#else
+    avcodec_close(mVideoCodecContext);
 #endif
     mVideoCodecContext = nullptr;  // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
-    avcodec_close(mAudioCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mAudioCodecContext);
+#else
+    avcodec_close(mAudioCodecContext);
 #endif
     mAudioCodecContext = nullptr;  // Freed by av_close_input_file
   }

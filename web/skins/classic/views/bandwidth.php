@@ -33,8 +33,9 @@ if ( $user && !empty($user->MaxBandwidth()) ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Bandwidth'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Bandwidth') ?></h2>
@@ -52,5 +53,4 @@ xhtmlHeaders(__FILE__, translate('Bandwidth'));
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -1,0 +1,26 @@
+name: Process Linting Results
+description: Add a comment to a pull request with when `git diff` present and save the changes as an artifact so they can be applied manually
+inputs:
+  linter_name:
+    description: The name of the tool to credit in the comment
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: git add --update
+      shell: bash
+    - id: stage
+      #continue-on-error: true
+      uses: Thalhammer/patch-generator-action@v2
+      
+    # Unfortunately the previous action reports a failure so nothing else can run
+    # partially a limitation on composite actions since `continue-on-error` is not
+    # yet supported
+    - if: steps.stage.outputs.result == 'dirty'
+      uses: actions-ecosystem/action-create-comment@v1
+      with:
+        github_token: ${{ github.token }}
+        body: |
+          Hello, @${{ github.actor }}! `${{ inputs.linter_name }}` had some concerns :scream:
+    - run: exit $(git status -uno -s | wc -l)
+      shell: bash

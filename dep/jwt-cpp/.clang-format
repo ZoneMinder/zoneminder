@@ -1,0 +1,22 @@
+BasedOnStyle: LLVM
+BreakBeforeBraces: Attach
+
+ColumnLimit: 120 # Match GitHub UI
+
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+AccessModifierOffset: -4
+ContinuationIndentWidth: 4
+NamespaceIndentation: All
+IndentCaseLabels: false
+
+PointerAlignment: Left
+AlwaysBreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortBlocksOnASingleLine: Always
+
+FixNamespaceComments: true
+ReflowComments: false

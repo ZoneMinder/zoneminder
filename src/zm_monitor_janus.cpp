@@ -21,9 +21,9 @@
 #include "zm_monitor.h"
 #include "zm_server.h"
 #include "zm_time.h"
+#include "zm_user.h"
 #include <regex>
 
-std::string escape_json_string(std::string input);
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -59,36 +59,12 @@ void Monitor::JanusManager::load_from_monitor() {
     }
     rtsp_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     if (ZM_OPT_USE_AUTH) {
-      SystemTimePoint now = std::chrono::system_clock::now();
-      time_t now_t = std::chrono::system_clock::to_time_t(now);
-      tm now_tm = {};
-      localtime_r(&now_t, &now_tm);
       if (parent->janus_rtsp_user) {
-        std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
-                          " FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
-
-        MYSQL_RES *result = zmDbFetch(sql);
-        if (result) {
-          MYSQL_ROW dbrow = mysql_fetch_row(result);
-
-          std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
-                                          config.auth_hash_secret,
-                                          dbrow[1],  // username
-                                          dbrow[2],  // password
-                                          (config.auth_hash_ips ? "127.0.0.1" : ""),
-                                          now_tm.tm_hour,
-                                          now_tm.tm_mday,
-                                          now_tm.tm_mon,
-                                          now_tm.tm_year);
-          Debug(1, "Creating auth_key '%s'", auth_key.c_str());
-
-          zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
-          mysql_free_result(result);
-          rtsp_path += "?auth=" + ByteArrayToHexString(md5_digest);
-        } else {
-          Warning("No user selected for RTSP_Server authentication!");
-        }
+        User *rtsp_user = User::find(parent->janus_rtsp_user);
+        std::string auth_key = rtsp_user->getAuthHash();
+        rtsp_path += "?auth=" + auth_key;
+      } else {
+        Warning("No user selected for RTSP_Server authentication!");
       }
     }
   } else {
@@ -348,14 +324,3 @@ int Monitor::JanusManager::get_janus_handle() {
   return 1;
 } //get_janus_handle
 
-std::string escape_json_string( std::string input ) {
-  std::string tmp;
-  tmp = regex_replace(input, std::regex("\n"), "\\n");
-  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
-  return tmp;
-}

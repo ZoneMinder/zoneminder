@@ -44,7 +44,7 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: object-src 'self'; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+      header("Content-Security-Policy: object-src 'self'; worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -362,10 +362,16 @@ function getEventDefaultVideoPath($event) {
 
 function deletePath( $path ) {
   ZM\Debug('Deleting '.$path);
-  if (is_dir($path)) {
-    system(escapeshellcmd('rm -rf '.$path));
+  if (is_link($path)) {
+    if (!unlink($path)) ZM\Debug("Failed to unlink $path");
+  } else if (is_dir($path)) {
+    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
+      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    }
   } else if (file_exists($path)) {
-    unlink($path);
+    if (!unlink($path)) ZM\Debug("Failed to delete $path");
+  } else {
+    ZM\Warning("Path $path does not exist in deletePath()");
   }
 }
 
@@ -977,7 +983,11 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
     case 'FramesScore' :
       $sortColumn = 'F.Score';
       break;
+    case 'Notes' :
+      $sortColumn = 'E.Notes';
+      break;
     default:
+      ZM\Warning("Unsupported sort field ".$_REQUEST['sort_field']);
       $sortColumn = 'E.StartDateTime';
       break;
   }
@@ -1006,6 +1016,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 
   $Filter = ZM\Filter::parse($filter, $querySep);
 
+  if (isset($filter['Id']))
+    $filter['Id'] = validCardinal($filter['Id']);
   $filter['sql'] = $Filter->sql();
   $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
@@ -1882,6 +1894,16 @@ function generateConnKey() {
   return rand(1, 999999);
 }
 
+function detaintPathAllowAbsolute($path) {
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
+  // Remove any absolute paths, or relative ones that want to go up
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
+  return $path;
+}
+
 function detaintPath($path) {
 
   // Strip out :// because php:// is a way to inject code apparently
@@ -2463,7 +2485,13 @@ function output_file($path, $chunkSize=1024) {
 
 function array_to_hash_by_key($key, $array) {
   $results = array();
-  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  foreach ($array as $a) { 
+    if (is_array($a)) {
+      $results[$a[$key]] = $a;
+    } else {
+      $results[$a->$key()] = $a;
+    }
+  }
   return $results;
 }
 
@@ -2474,22 +2502,30 @@ function check_datetime($x) {
 function getHomeView() {
   global $user;
   global $skin;
-  if ($user and $user->HomeView()) {
+  if ($user and is_object($user) and $user->HomeView()) {
     $view = detaintPath($user->HomeView());
-    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
-    if (file_exists($path)) {
-      return $view;
+    if (preg_match('/^(\w+)([\w&=]*)$/', $view, $matches)) {
+      $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$matches[1].'.php';
+      if (file_exists($path)) {
+        return $view;
+      } else {
+        ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not exist at '.$path);
+      }
     } else {
-      ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not exist at '.$path);
+      ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not match regexp');
     }
   }
   if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
     $view = detaintPath(ZM_WEB_HOMEVIEW);
-    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
-    if (file_exists($path)) {
-      return $view;
+    if (preg_match('/^(\w+)([\w&=]*)$/', $view, $matches)) {
+      $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$matches[1].'.php';
+      if (file_exists($path)) {
+        return $view;
+      } else {
+        ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+      }
     } else {
-      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not match regexp');
     }
   }
   return 'console';

@@ -26,13 +26,13 @@ if ( !canView('Control') ) {
 $params = array();
 $groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-  $groupSql = ' AND (m.Id IN (SELECT MonitorID FROM Groups_Monitors WHERE GroupId = :groupid))';
+  $groupSql = ' AND (Monitors.Id IN (SELECT MonitorID FROM Groups_Monitors WHERE GroupId = :groupid))';
   $params[':groupid'] = $_REQUEST['group'];
 }
 
 $mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
-$sql = "SELECT m.* FROM Monitors m WHERE m.`Function` != 'None' AND m.`Controllable` = 1$groupSql ORDER BY `Sequence`";
+$sql = "SELECT * FROM Monitors WHERE `Capturing` != 'None' AND `Controllable` = 1$groupSql ORDER BY `Sequence`";
 $mids = array();
 foreach ( dbFetchAll($sql, false, $params) as $row ) {
   if ( !visibleMonitor($row['Id']) ) {
@@ -51,8 +51,9 @@ $monitor = new ZM\Monitor($mid);
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Control'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
@@ -72,5 +73,4 @@ xhtmlHeaders(__FILE__, translate('Control'));
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

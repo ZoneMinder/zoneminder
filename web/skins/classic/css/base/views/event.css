@@ -43,6 +43,7 @@
   border-radius: 0;
   z-index: 11;
   font-size: 8px;
+  overflow:hidden;
 }
 
 #alarmCues span.alarmCue {
@@ -112,9 +113,15 @@ height: 100%;
 }
 
 #videoFeed {
-    display: inline-block;
+    /*display: inline-block;*/
+    display: inline-grid;
     position: relative;
     text-align: center;
+}
+
+#videoFeed .button_zoom,
+[id^="videoFeedStream"] {
+  grid-area: 1/1;
 }
 
 #monitorStatus {
@@ -135,6 +142,7 @@ height: 100%;
 }
 
 #monitorStatus #monitorState {
+  display: inline;
 }
 
 #dvrControls {
@@ -342,8 +350,8 @@ svg.zones {
   border-left: 2px solid blue;
   margin-top: -1.25em;
 }
-.video-js .vjs-text-track-display {
-  display: none;
+.video-js .vjs-text-track-display, .video-js .vjs-big-play-button {
+  display: none !important;
 }
 /*
 .EventData {
@@ -353,4 +361,13 @@ svg.zones {
 #frames img {
   float: left;
   z-index: 1000;
+}
+
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
+  display: none;
+}
+
+/*Video.js override*/
+.vjs-tech {
+  pointer-events: auto;
 }

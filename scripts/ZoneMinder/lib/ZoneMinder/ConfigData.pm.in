@@ -287,7 +287,7 @@ our @options = (
       limited by their defined permissions.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_TYPE',
@@ -311,7 +311,7 @@ our @options = (
       pattern     => qr|^([br])|i,
       format      => q( $1 =~ /^b/ ? 'builtin' : 'remote' )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
@@ -323,7 +323,7 @@ our @options = (
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_RELAY',
@@ -348,7 +348,7 @@ our @options = (
       pattern     => qr|^([hpn])|i,
       format      => q( ($1 =~ /^h/) ? 'hashed' : ($1 =~ /^p/ ? 'plain' : 'none' ) )
     },
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_SECRET',
@@ -367,7 +367,7 @@ our @options = (
     ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
@@ -390,7 +390,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_TTL',
@@ -405,7 +405,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{integer},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
@@ -431,7 +431,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_RTSP2WEB_PATH',
@@ -442,6 +442,16 @@ our @options = (
       will default to demo:demo@127.0.0.1:8083
       port 8083.
       `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_GO2RTC_PATH',
+    default     => '',
+    description => 'URL for Go2RTC API.',
+    help        => q`This value points to the location of the Go2RTC API
+    install, including username and password.
+    `,
     type        => $types{string},
     category    => 'system',
   },
@@ -497,7 +507,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'api',
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
@@ -508,7 +518,7 @@ our @options = (
       Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
@@ -545,7 +555,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_AUTH', value=>'yes'}
                    ],
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SITEKEY',
@@ -560,7 +570,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_GOOG_RECAPTCHA_SECRETKEY',
@@ -576,7 +586,7 @@ our @options = (
                    ],
     type        => $types{string},
     private     => 1,
-    category    => 'system',
+    category    => 'auth',
   },
   {
     name        =>  'ZM_OPT_USE_GEOLOCATION',
@@ -1175,6 +1185,32 @@ our @options = (
     },
     category    => 'logging',
   },
+   {
+    name        => 'ZM_LOG_LEVEL_TERM',
+    default     => '-1',
+    description => 'Save logging output to stdout',
+    help        => q`
+      ZoneMinder logging is now more integrated between
+      components and allows you to specify the destination for
+      logging output and the individual levels for each. This option
+      lets you control the level of logging output that goes to the
+      terminal stdout. This really only affects ZoneMinder binaries,
+      not so much the web php scripts. This is generally only useful
+      for debugging purposes.
+      This option controls the maximum level
+      of logging that will be written, so Info includes Warnings and
+      Errors etc. To disable entirely, set this option to None.
+      If you want debug
+      you will also need to set a level and component below
+      `,
+    type        => {
+      db_type     => 'integer',
+      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      pattern     => qr|^(\d+)$|,
+      format      => q( $1 )
+    },
+    category    => 'logging',
+  },
   {
     name        => 'ZM_LOG_LEVEL_FILE',
     default     => '1',
@@ -1596,10 +1632,17 @@ our @options = (
       `,
     type        => {
       db_type     => 'string',
-      hint        => 'normal|collapsed',
+      hint        => 'normal|collapsed|left',
       pattern     => qr|^([nc])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_NAVBAR_LINKS',
+    default     => '',
+    description => 'Additional Links to put in navbar.  Should be a comma separated list of HTML a tags.',
+    type        => $types{string},
     category    => 'web',
   },
   {
@@ -1636,7 +1679,7 @@ our @options = (
   },
   {
     name        => 'ZM_HOME_URL',
-    default     => 'http://zoneminder.com',
+    default     => 'https://zoneminder.com',
     description => 'The url used in the home/logo area of the navigation bar.',
     help        => q`
       By default this takes you to the zoneminder.com website,
@@ -1693,22 +1736,6 @@ our @options = (
       overhead as it will call du on the event directory.  In practice
       this overhead is fairly small but may be noticeable on IO-constrained
       systems.
-      `,
-    type        => $types{boolean},
-    category    => 'web',
-  },
-  {
-    name        => 'ZM_WEB_RESIZE_CONSOLE',
-    default     => 'yes',
-    description => 'Should the console window resize itself to fit',
-    help        => q`
-      Traditionally the main ZoneMinder web console window has
-      resized itself to shrink to a size small enough to list only
-      the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyone's
-      tastes, especially if opened in a tab in browsers which support
-      this kind if layout. Switch this option off to have the console
-      window size left to the users preference
       `,
     type        => $types{boolean},
     category    => 'web',
@@ -2713,7 +2740,7 @@ our @options = (
   },
   {
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
-    default     => 'https://zmanon:2b2d0b4skps@telemetry.zoneminder.com/zmtelemetry/testing5',
+    default     => 'https://telemetry.zoneminder.com/index.php',
     description => 'URL that ZoneMinder will send usage data to',
     help        => '',
     type        => $types{url},
@@ -2806,11 +2833,11 @@ our @options = (
   {
     name        => 'ZM_WEB_LIST_THUMBS',
     default     => 'yes',
-    description => 'Display mini-thumbnails of event images in event lists',
+    description => 'Display mini-thumbnails of event images in event lists and on console',
     help        => q`
-      Ordinarily the event lists just display text details of the
-      events to save space and time. By switching this option on you
-      can also display small thumbnails to help you identify events
+      Originally the event lists and console just displayed text details of the
+      events and monitors to save space and time. By switching this option on you
+      can also display small thumbnails to help you identify events or cameras
       of interest. The size of these thumbnails is controlled by the
       following two options.
       `,
@@ -2820,10 +2847,10 @@ our @options = (
   {
     name        => 'ZM_WEB_LIST_THUMB_WIDTH',
     default     => '48',
-    description => 'The width of the thumbnails that appear in the event lists',
+    description => 'The width of the thumbnails that appear in the event lists and on console',
     help        => q`
       This options controls the width of the thumbnail images that
-      appear in the event lists. It should be fairly small to fit in
+      appear in the event lists and on the console. It should be fairly small to fit in
       with the rest of the table. If you prefer you can specify a
       height instead in the next option but you should only use one
       of the width or height and the other option should be set to

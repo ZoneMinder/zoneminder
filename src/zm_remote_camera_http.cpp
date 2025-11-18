@@ -131,15 +131,15 @@ void RemoteCameraHttp::Initialise() {
 #if HAVE_LIBPCRE
   if ( method == REGEXP ) {
     if ( !header_expr )
-      header_expr = new RegExpr("^(.+?\r?\n\r?\n)", PCRE_DOTALL);
+      header_expr = new RegExpr("^(.+?\r?\n\r?\n)", PCRE2_DOTALL);
     if ( !status_expr )
-      status_expr = new RegExpr("^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS);
+      status_expr = new RegExpr("^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE2_CASELESS);
     if ( !connection_expr )
-      connection_expr = new RegExpr("Connection: ?(.+?)\r?\n", PCRE_CASELESS);
+      connection_expr = new RegExpr("Connection: ?(.+?)\r?\n", PCRE2_CASELESS);
     if ( !content_length_expr )
-      content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS);
+      content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS);
     if ( !content_type_expr )
-      content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS);
+      content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE2_CASELESS);
   }
 #endif
 } // end void RemoteCameraHttp::Initialise()
@@ -465,7 +465,7 @@ int RemoteCameraHttp::GetResponse() {
         if ( !subheader_expr ) {
           char subheader_pattern[256] = "";
           snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
-          subheader_expr = new RegExpr( subheader_pattern, PCRE_DOTALL );
+          subheader_expr = new RegExpr( subheader_pattern, PCRE2_DOTALL );
         }
         if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 ) {
           subheader = subheader_expr->MatchString( 1 );
@@ -473,14 +473,14 @@ int RemoteCameraHttp::GetResponse() {
           Debug( 4, "Captured subheader (%d bytes):'%s'", subheader_len, subheader );
 
           if ( !subcontent_length_expr )
-            subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
+            subcontent_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE2_CASELESS );
           if ( subcontent_length_expr->Match( subheader, subheader_len ) == 2 ) {
             content_length = atoi( subcontent_length_expr->MatchString( 1 ) );
             Debug( 3, "Got subcontent length '%d'", content_length );
           }
 
           if ( !subcontent_type_expr )
-            subcontent_type_expr = new RegExpr( "Content-type: ?(.+?)\r?\n", PCRE_CASELESS );
+            subcontent_type_expr = new RegExpr( "Content-type: ?(.+?)\r?\n", PCRE2_CASELESS );
           if ( subcontent_type_expr->Match( subheader, subheader_len ) == 2 ) {
             content_type = subcontent_type_expr->MatchString( 1 );
             Debug( 3, "Got subcontent type '%s'", content_type );
@@ -545,7 +545,7 @@ int RemoteCameraHttp::GetResponse() {
               if (!content_expr) {
                 char content_pattern[256] = "";
                 snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary);
-                content_expr = new RegExpr(content_pattern, PCRE_DOTALL);
+                content_expr = new RegExpr(content_pattern, PCRE2_DOTALL);
               }
               if (content_expr->Match( buffer, buffer.size()) == 2) {
                 content_length = content_expr->MatchLength( 1 );

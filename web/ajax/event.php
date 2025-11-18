@@ -215,14 +215,11 @@ if ( canEdit('Events') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'removetag' :
-    $tagId = $_REQUEST['tid'];
+    $tagId = validCardinal($_REQUEST['tid']);
     dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
-    $sql = "SELECT * FROM Events_Tags WHERE TagId = $tagId";
-    $rowCount = dbNumRows($sql);
+    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
     if ($rowCount < 1) {
-      $sql = 'DELETE FROM Tags WHERE Id = ?';
-      $values = array($_REQUEST['tid']);
-      $response = dbNumRows($sql, $values);
+      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
       ajaxResponse(array('response'=>$response));
     }
     ajaxResponse();

@@ -16,6 +16,7 @@ extern "C"  {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #include <libavutil/hwcontext.h>
 #endif
+#include "libavutil/buffer.h"
 }
 
 class Monitor;
@@ -25,19 +26,7 @@ class PacketQueue;
 class VideoStore {
  private:
 
-  struct CodecData {
-    const AVCodecID codec_id;
-    const char *codec_codec;
-    const char *codec_name;
-    const enum AVPixelFormat sw_pix_fmt;
-    const enum AVPixelFormat hw_pix_fmt;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-    const AVHWDeviceType hwdevice_type;
-#endif
-  };
-
-  static struct CodecData codec_data[];
-  CodecData *chosen_codec_data;
+  const CodecData *chosen_codec_data;
 
   Monitor *monitor;
   AVOutputFormat *out_format;
@@ -86,6 +75,7 @@ class VideoStore {
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
   int64_t *next_dts;
   std::map<int, int64_t> last_dts;
+  std::map<int, int64_t> last_duration;
   int64_t audio_next_pts;
 
   int max_stream_index;
@@ -108,11 +98,11 @@ class VideoStore {
   ~VideoStore();
   bool  open();
 
-  void write_video_packet(AVPacket &pkt);
-  void write_audio_packet(AVPacket &pkt);
-  int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-  int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-  int writePacket(const std::shared_ptr<ZMPacket> &pkt);
+  void write_video_packet(AVPacket pkt);
+  void write_audio_packet(AVPacket pkt);
+  int writeVideoFramePacket(const std::shared_ptr<ZMPacket> pkt);
+  int writeAudioFramePacket(const std::shared_ptr<ZMPacket> pkt);
+  int writePacket(const std::shared_ptr<ZMPacket> pkt);
   int write_packets(PacketQueue &queue);
   void flush_codecs();
   const char *get_codec() {

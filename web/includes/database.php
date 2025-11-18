@@ -398,4 +398,36 @@ function db_supports_feature($feature) {
     ZM\Warning("Unknown feature requested $feature");
   }
 }
+
+function dbInsert($table, $fieldArray) {
+  $query = 'INSERT INTO `' . $table . '` SET ';
+  $fields = [];
+  $conditions = [];
+  $values = [];
+  foreach ($fieldArray as $fieldName => $fieldValue) {
+    $fields[] = '`' . $fieldName.'`=?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(', ', $fields);
+  return dbQuery($query, $values);
+}
+
+function dbUpdate($table, $fieldArray, $conditionArray) {
+  $query = 'UPDATE `' . $table . '` SET ';
+  $fields = [];
+  $conditions = [];
+  $values = [];
+  foreach ($fieldArray as $fieldName => $fieldValue) {
+    $fields[] = '`' . $fieldName.'`=?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(', ', $fields);
+  $query .= ' WHERE ';
+  foreach ($conditionArray as $fieldName => $fieldValue) {
+    $conditions[] = '`' . $fieldName . '` = ?';
+    $values[] = $fieldValue;
+  }
+  $query .= implode(' AND ', $conditions);
+  return dbQuery($query, $values);
+}
 ?>

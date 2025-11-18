@@ -281,8 +281,7 @@ MAIN: while( $loop ) {
               next;
             }
             #Event path is hour/minute/sec
-            my $event_path = readlink($event_link);
-            $event_path = '' if ! defined($event_path);
+            my $event_path = readlink($event_link) // '';
             Debug("Checking link $event_link points to: $event_path");
 
             if ( !($event_path and -e $event_path) ) {
@@ -329,8 +328,6 @@ MAIN: while( $loop ) {
 							} # end if event found
 
 							if ( ! $Event->SaveJPEGs() ) {
-								my $saveJPegs = ( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 );
-
 								if ( $Event->SaveJPEGs(
 										( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 )
 										) ) {
@@ -841,9 +838,11 @@ FROM `Frames` WHERE `EventId`=?';
     unlink( split( /;/, $untainted_old_files ) );
   }
 
-  # Now delete any old swap files
-  ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
-  File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  eval {
+    # Now delete any old swap files
+    ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
+    File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  };
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

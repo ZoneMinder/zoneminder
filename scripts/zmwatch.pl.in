@@ -127,7 +127,9 @@ while (!$zm_terminate) {
     if (!$capture_time) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
-      if (($now - $startup_time) > $Config{ZM_WATCH_MAX_DELAY}) {
+      my $startup_elapsed = $now - $startup_time;
+      if ($startup_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+        Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
           if ($control and $control->CanReboot() and $control->open()) {

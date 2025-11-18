@@ -139,6 +139,9 @@ function queryRequest() {
     if ($where) $where .= ' AND ';
     $where .= 'Component = ?';
     $query['values'][] = $_REQUEST['Component'];
+    zm_session_start();
+    $_SESSION['zmLogComponent'] = $_REQUEST['Component'];
+    session_write_close();
   }
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
@@ -192,7 +195,7 @@ function queryRequest() {
 
     $row['Server'] = $Server ? $Server->Name() : '';
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', $row['Message']);
+    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', htmlspecialchars($row['Message']));
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }

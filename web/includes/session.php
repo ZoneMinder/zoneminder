@@ -1,6 +1,9 @@
 <?php
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
+  if (!isset($options['path'])) {
+    $options['path'] = '/';
+  }
   if (!isset($options['expires'])) {
     $options['expires'] = time()+3600*24*30*12*10; // 10 years?!
   }

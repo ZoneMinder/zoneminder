@@ -76,7 +76,7 @@ if (isset($_REQUEST['sort'])) {
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
-if (isset($_REQUEST['offset'])) {
+if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
   if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
     ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
   } else {
@@ -87,7 +87,7 @@ if (isset($_REQUEST['offset'])) {
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
-if (isset($_REQUEST['limit'])) {
+if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
   if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
   } else {
@@ -222,7 +222,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
   LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
-  GROUP BY E.Id 
+  GROUP BY E.Id, Monitor
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
   if ((int)($filter->limit()) and !$has_post_sql_conditions) {
@@ -335,7 +335,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['Tags'] = validHtmlStr($row['Tags']);
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
-    $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
+    $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $returned_rows[] = $row;
   } # end foreach row matching search

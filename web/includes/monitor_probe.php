@@ -232,7 +232,7 @@ function probeAmcrestTechnologies($ip, $username='', $password='') {
 
 function probeAmcrest($ip, $username='', $password='') {
   if (!$username) $username='admin';
-  if (!$password) $password='password';
+  if (!$password) $password='admin';
   $cameras = [];
   $url = 'rtsp://'.$username.':'.urlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
@@ -241,6 +241,7 @@ function probeAmcrest($ip, $username='', $password='') {
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
     'monitor' =>  array(
+      'Manufacturer' => 'Amcrest',
       'Type'  =>  'Ffmpeg',
       'Path' => $url,
       'Width'   =>  1920,
@@ -835,7 +836,7 @@ function probeNetwork() {
           $cameras[$mac] = call_user_func('probe'.$macBase['type'], $ip, $username, $password);
         }
       } else {
-        ZM\Debug("No probe function for ${macBase['type']}");
+        ZM\Debug("No probe function for {$macBase['type']}");
         $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
       }
     } else {
@@ -879,7 +880,7 @@ function probeNetwork() {
             }
           } else {
             $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
-            ZM\Debug("No probe function for ${macBase['type']} ${macBase['vendor']}");
+            ZM\Debug("No probe function for {$macBase['type']} {$macBase['vendor']}");
           }
         } else {
           ZM\Debug("No match for $macRoot");

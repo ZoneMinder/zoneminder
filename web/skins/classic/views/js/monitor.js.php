@@ -1,7 +1,10 @@
 const hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
+const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
 
 <?php
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 if (ZM_OPT_CONTROL and canView('Control')) {
 ?>
 const controlOptions = new Object();
@@ -109,11 +112,11 @@ function validateForm(form) {
       }
     }
 
-    if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
+    if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
-    if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
+    if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
-    if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
+    if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
     if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
       errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
@@ -143,7 +146,7 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";
     if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadStreamReplayBuffer') ?>";
-    if (form.elements['newMonitor[PreEventCount]'].value > form.elements['newMonitor[MaxImageBufferCount]'].value)
+    if (parseInt(form.elements['newMonitor[MaxImageBufferCount]'].value) && (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[MaxImageBufferCount]'].value)))
       errors[errors.length] = "<?php echo translate('BadPreEventCountMaxImageBufferCount') ?>";
 
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
@@ -187,16 +190,7 @@ function validateForm(form) {
     }
   }
 
-  /* because of success here, we will submit the form. Before we do that,
-   * convert all password fields to hidden fields so that
-   * browsers don't offer to save them
-   */
-
-  for (let i=0; i < form.elements.length; i++) {
-    if (form.elements[i].type == 'password') {
-      form.elements[i].type = 'hidden';
-    }
-  }
+  /* because of success here, we will submit the form. */
   return true;
 }
 

@@ -66,6 +66,18 @@ class HostController extends AppController {
   }
 
   function login() {
+    $ver = $this->_getVersion();
+
+    $login_array = [];
+    $login_array['version'] = $ver[0];
+    $login_array['apiversion'] = $ver[1];
+
+    if (!ZM_OPT_USE_AUTH) {
+      $login_array['_serialize'] = array_keys($login_array);
+      $this->set($login_array);
+      return;
+    }
+
     $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
     if ( !$username )
       $username = $this->request->query('username') ? $this->request->query('username') : $this->request->data('username');
@@ -79,7 +91,6 @@ class HostController extends AppController {
       throw new UnauthorizedException(__('No identity provided'));
     }
 
-    $login_array = [];
     $cred = [];
 
     if ( $username && $password ) {
@@ -109,14 +120,8 @@ class HostController extends AppController {
       ZM\Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
-    $ver = $this->_getVersion();
-    $login_array['version'] = $ver[0];
-    $login_array['apiversion'] = $ver[1];
-
     $login_array['_serialize'] = array_keys($login_array);
-
     $this->set($login_array);
-
   } // end function login()
 
   // clears out session

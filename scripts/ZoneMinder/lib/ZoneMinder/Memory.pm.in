@@ -148,11 +148,12 @@ our %mem_data = (
     size             => { type=>'uint32', seq=>$mem_seq++ },
     last_write_index => { type=>'int32', seq=>$mem_seq++ },
     last_read_index  => { type=>'int32', seq=>$mem_seq++ },
+    image_count      => { type=>'int32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
     capture_fps      => { type=>'double', seq=>$mem_seq++ },
     analysis_fps     => { type=>'double', seq=>$mem_seq++ },
     latitude         => { type=>'double', seq=>$mem_seq++ },
-    Longitude        => { type=>'double', seq=>$mem_seq++ },
+    longitude        => { type=>'double', seq=>$mem_seq++ },
     last_event       => { type=>'uint64', seq=>$mem_seq++ },
     action           => { type=>'uint32', seq=>$mem_seq++ },
     brightness       => { type=>'int32', seq=>$mem_seq++ },
@@ -286,9 +287,16 @@ sub zmMemVerify {
 
   my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
   if ($sd_size != $mem_data{shared_data}->{size}) {
-    Error('Shared data size conflict in shared_data for monitor '
-      .$monitor->{Name}.', expected '.$mem_data{shared_data}->{size}
-      .', got '.$sd_size);
+    if ($mem_data{shared_data}->{size}) {
+      Error('Shared data size conflict in shared_data for monitor '
+        .$monitor->{Name}.', expected '.$mem_data{shared_data}->{size}
+        .', got '.$sd_size);
+    } else {
+      # Means it may be starting up/reloading, not really an error
+      Debug('Shared data size conflict in shared_data for monitor '
+        .$monitor->{Name}.', expected '.$mem_data{shared_data}->{size}
+        .', got '.$sd_size);
+    }
     return undef;
   } else {
     Debug(4, 'Shared data size match for monitor '.$monitor->{Name}

@@ -213,7 +213,7 @@ bool VideoStream::OpenStream( ) {
     Debug( 1, "Opened codec" );
 
     /* allocate the encoded raw picture */
-    opicture = av_frame_ptr{zm_av_frame_alloc()};
+    opicture = av_frame_ptr{av_frame_alloc()};
     if (!opicture) {
       Error("Could not allocate opicture");
       return false;
@@ -369,7 +369,8 @@ VideoStream::~VideoStream( ) {
 
   /* close each codec */
   if ( ost ) {
-    avcodec_close( codec_context );
+    //avcodec_close( codec_context );
+    avcodec_free_context(&codec_context);
     av_free( video_outbuf );
   }
 

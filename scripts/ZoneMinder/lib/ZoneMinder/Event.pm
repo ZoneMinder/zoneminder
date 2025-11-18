@@ -222,7 +222,7 @@ sub LinkPath {
             '.'.$$event{Id}
             );
       } elsif ( $$event{Path} ) {
-        if ( ( $event->RelativePath() =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+        if ( ( $event->RelativePath() =~ /^(\d+\/\d{2}\/\d{2}\/\d{2})/ ) ) {
           $$event{LinkPath} = $1.'/.'.$$event{Id};
         } else {
           Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
@@ -403,6 +403,11 @@ sub delete {
       $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
       return;
     }
+    ZoneMinder::Database::zmDbDo('DELETE FROM Event_Data WHERE EventId=?', $$event{Id});
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      return;
+    }
     ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {
       $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
@@ -412,6 +417,12 @@ sub delete {
     # Do it individually to avoid locking up the table for new events
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+
+    my $storage = $event->Storage();
+    if ($event->DiskSpace() and $storage->Id()) {
+      $storage->lock_and_load();
+      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
+    }
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -751,18 +762,37 @@ sub MoveTo {
 
   my $error = '';
   if ((! -e $SrcPath) and -e $NewPath) {
-    Warning("Event has already been moved, just updating the event record in db.");
+    Warning("Event $$self{Id} has already been moved from $$OldStorage{Id} $SrcPath, just updating the event record in db to $$NewStorage{Id} $NewPath.");
   } else {
     $error = $self->CopyTo($NewStorage);
-    return $error if $error;
+    if ($error) {
+      $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+      return $error;
+    }
   }
+
+  my $old_diskspace = $self->DiskSpace();
+  my $new_diskspace = $self->DiskSpace(undef);
 
   # Succeeded in copying all files, so we may now update the Event.
   $self->Storage($NewStorage);
   $error .= $self->save();
   # Going to leave it to upper layer as to whether we rollback or not
-  return $error if $error;
+  if ($error) {
+    $ZoneMinder::Database::dbh->rollback() if !$was_in_transaction;
+    return $error;
+  }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+
+  # Update storage diskspace.  The triggers no longer do this. This is ... less important so do it outside the transaction
+  if ($old_diskspace and $$OldStorage{Id}) {
+    $OldStorage->lock_and_load();
+    $OldStorage->save({DiskSpace => $OldStorage->DiskSpace()-$old_diskspace});
+  }
+  if ($new_diskspace and $$NewStorage{Id}) {
+    $NewStorage->lock_and_load();
+    $NewStorage->save({DiskSpace => $NewStorage->DiskSpace()+$new_diskspace});
+  }
 
   $self->delete_files($OldStorage);
   return $error;
@@ -865,6 +895,38 @@ sub recover_timestamps {
   }
   $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
+
+sub guess_EndDateTime {
+  my $event = shift;
+  if (!$$event{EndDateTime}) {
+    if ($$event{Length}) {
+      my $startdatetime = Date::Parse::str2time( $_[0]{StartDateTime} );
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', $startdatetime + $$event{Length});
+    } else {
+      $$event{EndDateTime} = Date::Format::time2str('%Y-%m-%d %H:%M:%S', Date::Parse::str2time( $_[0]{StartDateTime} )+1);
+    }
+  }
+  return $$event{EndDateTime};
+}
+
+sub fix_DefaultVideo {
+  my $event = shift;
+  if (!$$event{DefaultVideo} or $$event{DefaultVideo} eq 'incomplete.mp4' or ! -e $event->Path().'/'.$$event{DefaultVideo}) {
+    my $path = $event->Path();
+    if ( !opendir(DIR, $path) ) {
+      Error("Can't open directory '$path': $!");
+      return;
+    }
+    my @contents = readdir(DIR);
+    Debug('Have ' . @contents . ' files in '.$path);
+    closedir(DIR);
+
+    my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
+    if ( @mp4_files ) {
+      $$event{DefaultVideo} = $mp4_files[0];
+    }
+  }
+} # end sub fix_DefaultVideo
 
 sub files {
 	my $self = shift;

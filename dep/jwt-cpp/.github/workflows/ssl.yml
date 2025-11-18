@@ -1,0 +1,110 @@
+name: SSL Compatibility CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  openssl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        openssl:
+          - { tag: "openssl-3.0.5", name: "3.0.5" }
+          - { tag: "OpenSSL_1_1_1q", name: "1.1.1q" }
+          - { tag: "OpenSSL_1_1_0i", name: "1.1.0i" } # Do not bump, there's a broken in the autoconfig script and it's not maintained
+          - { tag: "OpenSSL_1_0_2u", name: "1.0.2u" }
+          - { tag: "OpenSSL_1_0_1u", name: "1.0.1u" }
+    name: OpenSSL ${{ matrix.openssl.name }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+      - uses: ./.github/actions/install/openssl
+        with:
+          version: ${{ matrix.openssl.tag }}
+
+      - name: configure
+        run: cmake . -DJWT_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/tmp
+      - run: make
+      - name: test
+        run: ./tests/jwt-cpp-test
+
+      - if: github.event_name == 'push' && always()
+        uses: ./.github/actions/badge
+        with:
+          category: openssl
+          label: ${{ matrix.openssl.name }}
+
+  openssl-no-deprecated:
+    runs-on: ubuntu-latest
+    name: OpenSSL 3.0 No Deprecated
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+      - uses: ./.github/actions/install/openssl
+        with:
+          version: "openssl-3.0.5"
+
+      - name: configure
+        run: cmake . -DJWT_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/tmp -DCMAKE_CXX_FLAGS="-DOPENSSL_NO_DEPRECATED=1" -DCMAKE_C_FLAGS="-DOPENSSL_NO_DEPRECATED=1"
+      - run: make
+
+  libressl:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        libressl: ["3.5.3", "3.4.3", "3.3.6"]
+    name: LibreSSL ${{ matrix.libressl }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+      - uses: ./.github/actions/install/libressl
+        with:
+          version: ${{ matrix.libressl }}
+
+      - name: configure
+        run: cmake . -DJWT_BUILD_TESTS=ON -DJWT_SSL_LIBRARY:STRING=LibreSSL
+      - run: make
+      - name: test
+        run: ./tests/jwt-cpp-test
+
+      - if: github.event_name == 'push' && always()
+        uses: ./.github/actions/badge
+        with:
+          category: libressl
+          label: ${{ matrix.libressl }}
+
+  wolfssl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        wolfssl:
+          - { ref: "v5.1.1-stable", name: "5.1.1"}
+          - { ref: "v5.2.0-stable", name: "5.2.0" }
+          - { ref: "v5.3.0-stable", name: "5.3.0"}
+    name: wolfSSL ${{ matrix.wolfssl.name }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - uses: ./.github/actions/install/gtest
+      - uses: ./.github/actions/install/wolfssl
+        with:
+          version: ${{ matrix.wolfssl.ref }}
+
+      - name: configure
+        run: cmake . -DJWT_BUILD_TESTS=ON -DJWT_SSL_LIBRARY:STRING=wolfSSL
+      - run: make
+      - name: test
+        run: ./tests/jwt-cpp-test
+
+      - if: github.event_name == 'push' && always()
+        uses: ./.github/actions/badge
+        with:
+          category: wolfssl
+          label: ${{ matrix.wolfssl.name }}

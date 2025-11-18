@@ -1,0 +1,24 @@
+name: Make a Badge
+description: Creates a JSON file for use with Sheilds.io. The default is a "brightgreen" "Passing" badge
+inputs:
+  category:
+    description: The subfolder where to group the badges
+    required: true
+  label:
+    description: The label to you in the badge (this should be unqie for each badge in a category)
+    required: true
+  message:
+    description: The message you wish to have in the badge
+    required: false
+    default: "Passing"
+  color:
+    description: The color you wish the badge to be
+    required: false
+    default: "brightgreen"
+runs:
+  using: composite
+  steps:
+    - run: |
+        mkdir -p badges/${{ inputs.category }}/${{ inputs.label }}
+        echo '{ "schemaVersion": 1, "label": "${{ inputs.label }}", "message": "${{ inputs.message }}", "color": "${{ inputs.color }}" }' > badges/${{ inputs.category }}/${{ inputs.label }}/shields.json
+      shell: bash

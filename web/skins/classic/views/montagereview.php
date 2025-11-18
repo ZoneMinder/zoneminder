@@ -57,14 +57,15 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Filter.php');
-ob_start();
 include('_monitor_filters.php');
-$filter_bar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
+$selected_monitor_ids = $resultMonitorFilters['selected_monitor_ids'];
 
 $preference = ZM\User_Preference::find_one([
     'UserId'=>$user->Id(),
-    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : '')
+    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? is_array($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : $_SESSION['GroupId']: '')
 ]);
 if ($preference) {
   $monitors_by_id = array_to_hash_by_key('Id', $displayMonitors);
@@ -134,14 +135,20 @@ if (isset($_REQUEST['filter'])) {
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
+    } else if ($term['attr'] == 'DateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
+				$maxTime = $term['val'];
+			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
+				$minTime = $term['val'];
+			}
     }
   } # end foreach term
   $filter->terms($terms);
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
@@ -160,13 +167,13 @@ if (isset($_REQUEST['filter'])) {
 }
 if (!$liveMode) {
   if (!$filter->has_term('Archived')) {
-    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and'));
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
   }
-  if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and'));
+  if (!$filter->has_term('DateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
   }
-  if (!$filter->has_term('StartDateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
+  if (!$filter->has_term('DateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
@@ -211,10 +218,12 @@ $fitMode = 1;
 if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
-if (isset($_REQUEST['scale']))
-  $defaultScale = validHtmlStr($_REQUEST['scale']);
-else
+if (isset($_REQUEST['scale'])) {
+  $defaultScale = validCardinal($_REQUEST['scale']);
+  if ($defaultScale > 1.1) $defaultScale = 1.0;
+} else {
   $defaultScale = 1;
+}
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
@@ -236,7 +245,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
 
 $initialDisplayInterval = 1000;
 if (isset($_REQUEST['displayinterval']))
-  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {
@@ -271,17 +280,15 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-сontrol-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
-    echo $html;
-?>
-        <?php echo $filter_bar ?>
-<?php
+$html = '<a class="flip" href="#" 
+         data-flip-control-object="#mfbpanel" 
+         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+         data-flip-сontrol-run-after-complet-func="changeScale">
+           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+         </a>'.PHP_EOL;
+$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+echo $html;
+echo $filterbar;
 if (count($filter->terms())) {
   echo $filter->simple_widget();
 }
@@ -327,7 +334,7 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
-          <button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph"> <!-- OR run redrawScreen? -->
+<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
             <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
           </button>
         </div>

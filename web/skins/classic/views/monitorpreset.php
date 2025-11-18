@@ -27,9 +27,9 @@ $mid = isset($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('MonitorPreset') );
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
     <h2><?php echo translate('MonitorPreset') ?></h2>
     <div id="content">

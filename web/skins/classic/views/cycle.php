@@ -23,10 +23,10 @@ if ( !canView('Stream') ) {
   return;
 }
 
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $options = array();
 
@@ -126,10 +126,10 @@ session_write_close();
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));
+getBodyTopHTML();
+echo $navbar = getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo $navbar = getNavBarHTML(); ?>
     <div id="header">
       <div id="headerButtons">
 <?php if ( $options['mode'] == 'stream' ) { ?>
@@ -203,7 +203,7 @@ if ( $monitor->JanusEnabled() ) {
 <?php
 if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 ?>
-  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php
 }
 ?>

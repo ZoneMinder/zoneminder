@@ -70,13 +70,14 @@ var ZMMap = function() {
       key: 'addMonitors',
       value: function addMonitors() {
         const server = new Server(Servers[serverId]);
-        const get_monitors_promise = server.getFromApi('/monitors.json');
+        const get_monitors_promise = server.getFromApi('/monitors/index/Deleted:0.json');
         get_monitors_promise
             .then((response) => {
               return response.json();
             })
             .then((monitors) => {
               console.log(monitors);
+              if (!monitors.monitors) return;
 
               let cant_connected = 0;
               let cant_disconnected = 0;

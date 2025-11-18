@@ -9,7 +9,9 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     eab32851421ffe54fec0229c3efc44c642bc8d46
+%global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
+# CxxUrl is configured as a git submodule
+%global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -18,8 +20,8 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.60
-Release: 2%{?dist}
+Version: 1.37.73
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jQuery is under the MIT license: https://jquery.org/license/
@@ -37,16 +39,17 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
+Source4: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxUrl-%{CxxUrl_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
-BuildRequires: mariadb-connector-c-devel
+BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
-BuildRequires: pcre-devel 
+BuildRequires: pcre2-devel 
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
@@ -75,11 +78,19 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
-BuildRequires: gsoap-devel
+
+# jwt-cpp looks for nlohmann_json which is part of json-devel
+BuildRequires: json-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
+
+# Optional but needed for ONVIF and others
+BuildRequires: gnutls-devel
+BuildRequires: gsoap-devel
+BuildRequires: libvncserver-devel
+BuildRequires: mosquitto-devel
 
 # Allow existing user base to seamlessly transition to sub-packages
 Requires: %{name}-common%{?_isa} = %{version}-%{release}
@@ -125,7 +136,6 @@ Requires: perl(LWP::Protocol::https)
 Requires: perl(Module::Load::Conditional)
 Requires: ca-certificates
 Requires: zip
-Requires: gsoap
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
@@ -196,6 +206,10 @@ gzip -dc %{_sourcedir}/RtspServer-%{rtspserver_commit}.tar.gz | tar -xvvf -
 rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
+gzip -dc %{_sourcedir}/CxxUrl-%{CxxUrl_version}.tar.gz | tar -xvvf -
+rm -rf ./dep/CxxUrl
+mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
+
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
@@ -208,7 +222,8 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 %cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
+        .
 
 %cmake_build
 
@@ -223,8 +238,11 @@ desktop-file-install					\
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
-rm -rf %{buildroot}/usr/include
-rm -rf %{buildroot}/usr/cmake
+
+# Remove third-party header and cmake files that should not have been installed
+rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_prefix}/%{_lib}/cmake/CxxUrl
+rm -rf %{buildroot}%{_includedir}
 
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
@@ -235,6 +253,9 @@ ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildr
 
 # Handle the polkit file differently for web server agnostic support (see post)
 rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%check
+# Nothing to do. No tests exist.
 
 %post common
 # Initial installation
@@ -317,6 +338,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 
 %postun
 %systemd_postun_with_restart %{name}.service
+%systemd_postun_with_restart php-fpm.service
 
 %files
 # nothing
@@ -337,7 +359,8 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
-%{_datadir}/polkit-1/actions/com.zoneminder.*
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.arp-scan.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
@@ -345,6 +368,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
 %{_bindir}/zmdc.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zmfilter.pl
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
@@ -360,9 +384,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
-%{_bindir}/zmeventtool.pl
 %{_bindir}/zm_rtsp_server
 
+%{_libdir}/libCxxUrl.a
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*
@@ -417,6 +441,10 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Fri Aug 16 2024  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.34-1
+- 1.36.34 release
+- remove el7 support
+
 * Sun Nov 12 2023 Jonathan Bennett <JBennett@IncomSystems.biz> - 1.37.47
 - Specify folders to remove before packaging
 

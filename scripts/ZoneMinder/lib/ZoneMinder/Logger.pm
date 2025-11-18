@@ -145,13 +145,22 @@ our %codes = (
     );
 
 our %priorities = (
-    &DEBUG => 'debug',
-    &INFO => 'info',
-    &WARNING => 'warning',
-    &ERROR => 'err',
-    &FATAL => 'err',
-    &PANIC => 'err'
-    );
+  &DEBUG9 => 'debug',
+  &DEBUG8 => 'debug',
+  &DEBUG7 => 'debug',
+  &DEBUG6 => 'debug',
+  &DEBUG5 => 'debug',
+  &DEBUG4 => 'debug',
+  &DEBUG3 => 'debug',
+  &DEBUG2 => 'debug',
+  &DEBUG1 => 'debug',
+  &DEBUG => 'debug',
+  &INFO => 'info',
+  &WARNING => 'warning',
+  &ERROR => 'err',
+  &FATAL => 'err',
+  &PANIC => 'err'
+);
 
 our $logger;
 our $LOGFILE;
@@ -203,6 +212,7 @@ sub BEGIN {
     my %dbgConfig = (
         ZM_LOG_LEVEL_DATABASE => 0,
         ZM_LOG_LEVEL_FILE => 0,
+        ZM_LOG_LEVEL_TERM => 0,
         ZM_LOG_LEVEL_SYSLOG => 0,
         ZM_LOG_DEBUG => 0,
         ZM_LOG_DEBUG_TARGET => '',
@@ -245,7 +255,13 @@ sub initialise( @ ) {
   my $tempFileLevel = $this->{fileLevel};
   my $tempSyslogLevel = $this->{syslogLevel};
 
-  $tempTermLevel = $options{termLevel} if defined($options{termLevel});
+  if ( defined($ENV{LOG_PRINT}) ) {
+    $tempTermLevel = $ENV{LOG_PRINT} ? DEBUG : $this->{termLevel};
+  } elsif ( defined($options{termLevel}) ) {
+    $tempFileLevel = $options{termLevel};
+  } else {
+    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
+  }
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
   } else {
@@ -260,10 +276,6 @@ sub initialise( @ ) {
     $tempSyslogLevel = $options{syslogLevel};
   } else {
     $tempSyslogLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_SYSLOG};
-  }
-
-  if ( defined($ENV{LOG_PRINT}) ) {
-    $tempTermLevel = $ENV{LOG_PRINT}? DEBUG : NOLOG;
   }
 
   my $level;
@@ -307,9 +319,6 @@ sub initialise( @ ) {
   $this->{autoFlush} = $ENV{LOG_FLUSH}?1:0 if defined($ENV{LOG_FLUSH});
 
   $this->{initialised} = !undef;
-
-  # this function can get called on a previously initialized log Object, so clean any sth's
-  $this->{sth} = undef;
 
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
@@ -467,7 +476,6 @@ sub databaseLevel {
     } else {
       undef($this->{dbh});
     }
-    $this->{sth} = undef;
     $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
@@ -592,7 +600,6 @@ sub logPrint {
 
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $ZoneMinder::Database::dbh and $ZoneMinder::Database::dbh->ping() ) ) {
-        $this->{sth} = undef;
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
@@ -603,15 +610,15 @@ sub logPrint {
         $this->{databaseLevel} = $oldlevel;
       }
 
-      my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $ZoneMinder::Database::dbh->prepare_cached($sql) if ! $this->{sth};
-      if ( !$this->{sth} ) {
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
+      my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql);
+      if ( !$sth ) {
         $this->{databaseLevel} = NOLOG;
         Error("Can't prepare log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
         return;
       } 
 
-      my $res = $this->{sth}->execute(
+      my $res = $sth->execute(
         $seconds+($microseconds/1000000.0),
            $this->{id},
            ($ZoneMinder::Config::Config{ZM_SERVER_ID} ? $ZoneMinder::Config::Config{ZM_SERVER_ID} : undef),
@@ -620,6 +627,7 @@ sub logPrint {
            $codes{$level},
            $string,
            $this->{fileName},
+           $line
           );
       if ( !$res ) {
         $this->{databaseLevel} = NOLOG;
@@ -745,10 +753,6 @@ sub Fatal {
   $this->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
-  }
-  if ( $$this{sth} ) {
-    $$this{sth}->finish();
-    $$this{sth} = undef;
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
   ZoneMinder::Database::zmDbDisconnect();

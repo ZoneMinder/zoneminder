@@ -24,6 +24,8 @@
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 
@@ -72,7 +74,7 @@ int main(int argc, const char *argv[], char **envp) {
   int frames_to_send = -1;
   unsigned int scale = 100;
   unsigned int rate = 100;
-  double maxfps = 10.0;
+  double maxfps = 0.0;
   unsigned int bitrate = 100000;
   unsigned int ttl = 0;
   bool  analysis_frames = false;
@@ -144,16 +146,33 @@ int main(int argc, const char *argv[], char **envp) {
         source = ZMS_MONITOR;
       }
     } else if ( !strcmp(name, "mode") ) {
-      mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
-      mode = !strcmp(value, "raw")?ZMS_RAW:mode;
-      mode = !strcmp(value, "zip")?ZMS_ZIP:mode;
-      mode = !strcmp(value, "single")?ZMS_SINGLE:mode;
+      if (!strcmp(value, "jpeg")) {
+        mode = ZMS_JPEG;
+      } else if (!strcmp(value, "single")) {
+        mode = ZMS_SINGLE;
+      } else if (!strcmp(value, "raw")) {
+        mode = ZMS_RAW;
+      } else if (!strcmp(value, "zip")) {
+        mode = ZMS_ZIP;
+      } else if (!strcmp(value, "mpeg")) {
+        mode = ZMS_MPEG;
+      } else if (!strcmp(value, "paused")) {
+        mode = ZMS_JPEG;
+      } else {
+        Error("Unsupported value for mode");
+      }
     } else if ( !strcmp(name, "format") ) {
       strncpy(format, value, sizeof(format)-1);
     } else if ( !strcmp(name, "monitor") ) {
       monitor_id = atoi(value);
       if ( source == ZMS_UNKNOWN )
         source = ZMS_MONITOR;
+    } else if ( !strcmp(name, "datetime") ) {
+      std::tm tm = {};
+      std::stringstream ss(value);
+      ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+      auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+      event_time = std::chrono::duration_cast<FPSeconds>(tp.time_since_epoch()).count();
     } else if ( !strcmp(name, "time") ) {
       event_time = atoi(value);
     } else if ( !strcmp(name, "event") ) {
@@ -166,6 +185,10 @@ int main(int argc, const char *argv[], char **envp) {
       frames_to_send = strtoll(value, nullptr, 10);
     } else if ( !strcmp(name, "scale") ) {
       scale = atoi(value);
+      if (scale > 1600) {
+        Warning("Limiting scale to 16x");
+        scale = 1600;
+      }
     } else if ( !strcmp(name, "rate") ) {
       rate = atoi(value);
     } else if ( !strcmp(name, "maxfps") ) {
@@ -210,10 +233,10 @@ int main(int argc, const char *argv[], char **envp) {
     }  // end if possible parameter names
   }  // end foreach parm
 
-  if ( monitor_id ) {
-    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
-  } else {
+  if ( event_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
+  } else if ( monitor_id ) {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
   }
   logInit(log_id_string);
 
@@ -320,6 +343,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setFramesToSend(frames_to_send);
     if ( monitor_id && event_time ) {
       stream.setStreamStart(monitor_id, event_time);
     } else {
@@ -329,6 +353,8 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
+    } else if ( mode == ZMS_SINGLE ) {
+      stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {
       stream.setStreamFormat(format);
       stream.setStreamBitrate(bitrate);

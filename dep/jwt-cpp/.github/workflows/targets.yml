@@ -1,0 +1,75 @@
+name: Specific Targets CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+    paths:
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "include/jwt-cpp/**"
+      - "tests/cmake/**"
+      - ".github/actions/**"
+      - ".github/workflows/targets.yml"
+
+jobs:
+  gcc-4-8:
+    name: GCC 4.8
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:bionic-20230530 # 18.04
+    env:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+    steps:
+      - run: |
+          apt-get update
+          apt-get install -y g++-4.8 wget make libssl-dev
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install/cmake
+        with:
+          version: "3.26.3"
+          url: "https://cmake.org/files/v3.26/cmake-3.26.3.tar.gz"
+
+      - name: setup
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --install .
+      - name: test
+        working-directory: tests/cmake
+        run: |
+          CC=gcc-4.8 CXX=g++-4.8 cmake . -DTEST:STRING="defaults-enabled"
+          cmake --build .
+
+  gcc-12:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:jammy-20231004 # 22.04 
+    env:
+      CC: /usr/bin/gcc-12
+      CXX: /usr/bin/g++-12
+    steps:
+      - run: |
+          apt-get update
+          apt-get install -y g++-12 wget make libssl-dev
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install/cmake
+        with:
+          version: "3.26.3"
+          url: "https://cmake.org/files/v3.26/cmake-3.26.3.tar.gz"
+
+      - name: setup
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --install .
+
+      - name: test
+        working-directory: tests/cmake
+        run: |
+          CC=gcc-12 CXX=g++-12 cmake . -DCMAKE_CXX_STANDARD=20 -DTEST:STRING="defaults-enabled"
+          cmake --build .

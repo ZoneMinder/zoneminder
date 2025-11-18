@@ -55,6 +55,7 @@ AutoEmail
 EmailTo
 EmailSubject
 EmailBody
+EmailServer
 EmailFormat
 AutoMessage
 AutoExecute
@@ -185,6 +186,12 @@ sub Sql {
         } elsif ( $term->{attr} eq 'FilterServerId' ) {
           $self->{Sql} .= (defined($Config{ZM_SERVER_ID}) ? $Config{ZM_SERVER_ID}: '0').' /* ZM_SERVER_ID */';
           # StartTime options
+        } elsif ( $term->{attr} eq 'CurrentDateTime' ) {
+          $self->{Sql} .= 'NOW()';
+        } elsif ( $term->{attr} eq 'CurrentTime' ) {
+          $self->{Sql} .= 'extract( hour_second from NOW())';
+        } elsif ( $term->{attr} eq 'CurrentDate' ) {
+          $self->{Sql} .= 'to_days(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
         } elsif ( $term->{attr} eq 'Date' ) {
@@ -245,7 +252,7 @@ sub Sql {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
-              } elsif ( $temp_value eq 'NULL' ) {
+              } elsif ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
@@ -259,6 +266,7 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Name'
               || $term->{attr} eq 'Cause'
               || $term->{attr} eq 'Notes'
+              || $term->{attr} eq 'Tags'
             ) {
               if ( $term->{op} eq 'LIKE'
                 || $term->{op} eq 'NOT LIKE'
@@ -266,8 +274,8 @@ sub Sql {
                 $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
               }
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
-              if ( $temp_value eq 'NULL' ) {
+            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' or $term->{attr} eq 'CurrentDateTime') {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL($temp_value);
@@ -277,8 +285,8 @@ sub Sql {
                 }
                 $value = "'$value'";
               }
-            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
-              if ( $temp_value eq 'NULL' ) {
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
                 $value = 'to_days('.$temp_value.')';
@@ -290,8 +298,8 @@ sub Sql {
                 }
                 $value = "to_days( '$value' )";
               }
-            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
-              if ( $temp_value eq 'NULL' ) {
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL($temp_value);
@@ -317,13 +325,19 @@ sub Sql {
                 $self->{Sql} .= ' % 2 = 1';
               } elsif ( $value eq 'Even' ) {
                 $self->{Sql} .= ' % 2 = 0';
+              } elsif (uc($value) ne 'NULL') {
+                $self->{Sql} .= ' = '.$value;
               } else {
                 $self->{Sql} .= ' IS '.$value;
               }
             } elsif ( $term->{op} eq 'EXISTS' ) {
               $self->{Sql} .= ' EXISTS '.$value;
             } elsif ( $term->{op} eq 'IS NOT' ) {
-              $self->{Sql} .= ' IS NOT '.$value;
+              if (uc($value) ne 'NULL') {
+                $self->{Sql} .= ' != '.$value;
+              } else {
+                $self->{Sql} .= ' IS NOT '.$value;
+              }
             } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
               $self->{Sql} .= ' IN ('.join(',', @value_list).")";
             } elsif ( $term->{op} eq '![]' or $term->{op} eq 'NOT IN') {
@@ -332,6 +346,8 @@ sub Sql {
               $self->{Sql} .= ' LIKE '.$value;
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
+            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq '') {
+              $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
             } else {
               $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }

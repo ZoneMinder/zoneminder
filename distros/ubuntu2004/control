@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,libswscale-dev
               ,ffmpeg
               ,arp-scan
-              ,net-tools
+              ,net-tools, iproute2
               ,libbz2-dev
               ,libcurl4-gnutls-dev
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
@@ -43,9 +43,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice60|libavdevice59|libavdevice58|libavdevice57
-        ,libswscale7|libswscale6|libswscale5|libswscale4
-        ,libswresample4|libswresample3|libswresample2
+        ,libavdevice61|libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,libswscale8|libswscale7|libswscale6|libswscale5|libswscale4
+        ,libswresample5|libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
@@ -78,12 +78,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
-        ,arp-scan
+        ,arp-scan, iproute2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
-        ,libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libgsoap-2.8.135|libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
         ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm

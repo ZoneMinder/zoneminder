@@ -41,13 +41,13 @@ $Event = null;
 
 if ( ! empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
-  $path = $Event->Path().'/'.$Event->DefaultVideo();
+  $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
   if (!empty($_REQUEST['file'])) {
     $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
   } else {
-    $path = $Event->Path().'/'.$Event->DefaultVideo();
+    $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
   }
 } else {
   $errorText = 'No video path';
@@ -69,6 +69,7 @@ $size = filesize($path);
 $begin = 0;
 $end = $size-1;
 $length = $size;
+$partial = false;
 
 if ( isset($_SERVER['HTTP_RANGE']) ) {
   ZM\Debug('Using Range '.$_SERVER['HTTP_RANGE']);
@@ -79,19 +80,21 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
     }
     $length = $end - $begin + 1;
     ZM\Debug("Using Range $begin $end size: $size, length: $length");
+    $partial = true;
   }
 } # end if HTTP_RANGE
 
-header('Content-type: video/mp4');
+$path_info = pathinfo($Event->DefaultVideo());
+header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
-if ( $Event ) {
+if ($Event) {
   header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
 } else {
   header('Content-Disposition: inline;');
 }
-if ( $begin > 0 || $end < $size-1 ) {
+if ($partial) {
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");
   header("Content-Transfer-Encoding: binary\n");
@@ -102,7 +105,7 @@ if ( $begin > 0 || $end < $size-1 ) {
 
 // Apparently without these we get a few extra bytes of output at the end...
 flush();
-fseek($fh, $begin, 0);
+if ($begin) fseek($fh, $begin, 0);
 
 while ($length && (!feof($fh)) && (connection_status() == 0)) {
   $amount = min(1024*16, $length);

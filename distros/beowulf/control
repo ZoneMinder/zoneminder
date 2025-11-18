@@ -16,7 +16,7 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,libcurl4-gnutls-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
-              ,libpcre3-dev
+              ,libpcre2-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev [!hurd-any]
               ,libvlc-dev
@@ -72,7 +72,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libpcre3
+        ,libpcre2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
 Recommends: ${misc:Recommends}

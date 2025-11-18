@@ -387,11 +387,6 @@ if ( $version ) {
   my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
   $version = $detaint_version;
 
-  if ( ZM_VERSION eq $version ) {
-    print("\nDatabase already at version $version, update skipped.\n\n");
-    exit(0);
-  }
-
   my $start_zm = 0;
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {
@@ -941,7 +936,7 @@ if ( $version ) {
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+      if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
           my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
@@ -1046,7 +1041,18 @@ sub patchDB {
 
 sub migratePasswords {
   use Crypt::Eksblowfish::Bcrypt;
-  use Data::Entropy::Algorithms qw(rand_bits);
+  my $random;
+  eval {
+    require Bytes::Random::Secure;
+    $random = Bytes::Random::Secure->new( Bits        => 16*8);
+  };
+  if ($@ or !$random) {
+    eval {
+      require Data::Entropy::Algorithms;
+      $random =Data::Entropy::Algorithms::rand_bits(16*8);
+    };
+  }
+
   print("Migratings passwords, if any...\n");
   my $sql = 'SELECT * FROM `Users`';
   my $sth = $dbh->prepare_cached($sql) or die( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -1055,7 +1061,7 @@ sub migratePasswords {
     my $scheme = substr($user->{Password}, 0, 1);
     if ($scheme eq '*') {
       print('-->'.$user->{Username}." password will be migrated\n");
-      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
+      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($random);
       my $settings = '$2a$10$'.$salt;
       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
       my $new_pass_hash = '-ZM-'.$pass_hash;

@@ -75,6 +75,7 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
+    'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
@@ -116,6 +117,7 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
+    'Auth'                  => 'Authentication',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'AvgBrScore'            => 'Avg.<br/>Score',
     'BackgroundFilter'      => 'Run filter in background',
@@ -217,9 +219,11 @@ $SLANG = array(
     'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
+    'ConfirmAction'         => 'Action Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
     'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
@@ -248,6 +252,7 @@ $SLANG = array(
     'DeviceNumber'          => 'Device Number',
     'DevicePath'            => 'Device Path',
     'DisableAlarms'         => 'Disable Alarms',
+    'Dnsmasq'               => 'DHCP',
     'DonateAlready'         => 'No, I\'ve already donated',
     'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to <a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a> in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on <a href="https://forums.zoneminder.com">ZoneMinder.com</a> for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
@@ -258,6 +263,7 @@ $SLANG = array(
     'DonateRemindWeek'      => 'Not yet, remind again in 1 week',
     'DonateYes'             => 'Yes, I\'d like to donate now',
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
+    'DontSave'              => 'Do not save',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
     'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'EditControl'           => 'Edit Control',
@@ -277,6 +283,7 @@ $SLANG = array(
     'Exif'                  => 'Embed EXIF data into image',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'EventsLoading'         => 'Events are loading',
     'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
@@ -334,7 +341,7 @@ $SLANG = array(
     'HasTurboTilt'          => 'Has Turbo Tilt',
     'HasWhiteSpeed'         => 'Has White Bal. Speed',
     'HasZoomSpeed'          => 'Has Zoom Speed',
-    'HighBW'                => 'High&nbsp;B/W',
+    'Highband'              => 'High&nbsp;B/W',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
@@ -345,7 +352,8 @@ $SLANG = array(
     'ListMatches'           => 'List Matches',
     'LoggedInAs'            => 'Logged in as',
     'LoggingIn'             => 'Logging In',
-    'LowBW'                 => 'Low&nbsp;B/W',
+    'Lowband'               => 'Low&nbsp;B/W',
+    'Mail'                  => 'Email',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -370,7 +378,8 @@ $SLANG = array(
     'MaxZoomRange'          => 'Max Zoom Range',
     'MaxZoomSpeed'          => 'Max Zoom Speed',
     'MaxZoomStep'           => 'Max Zoom Step',
-    'MediumBW'              => 'Medium&nbsp;B/W',
+    'Medband'               => 'Medium&nbsp;B/W',
+    'MessageSavingDataWhenLeavingPage' => 'You are leaving the page.<br>Want to save data?',
     'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
     'MinAlarmAreaUnset'     => 'You must specify the minimum alarm pixel count',
@@ -407,6 +416,7 @@ $SLANG = array(
     'MinZoomSpeed'          => 'Min Zoom Speed',
     'MinZoomStep'           => 'Min Zoom Step',
     'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
+    'MonitorDataIsSaved'    => 'Monitor data is saved',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'MonitorPreset'         => 'Monitor Preset',
@@ -436,10 +446,12 @@ $SLANG = array(
     'NoneAvailable'         => 'None available',
     'NoSavedFilters'        => 'No Saved Filters',
     'NoStatisticsRecorded'  => 'There are no statistics recorded for this event/frame',
+    'No Tag'                => 'No Tag',
     'NumPresets'            => 'Num Presets',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
+    'OpBlank'               => 'is blank',
     'OpEq'                  => 'equal to',
     'OpGtEq'                => 'greater than or equal to',
     'OpGt'                  => 'greater than',
@@ -475,6 +487,7 @@ $SLANG = array(
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'PlayCycle'             => 'Play Cycle',
+    'PlayerDisabledInMonitorSettings'  => 'The player is disabled in the monitor settings.',
     'PleaseWait'            => 'Please Wait',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',
@@ -549,6 +562,7 @@ $SLANG = array(
     'RunStats'              => 'Run Stats Process',
     'RunTrigger'            => 'Run Trigger Process',
     'RunEventNotification'  => 'Run Event Notification Process',
+    'SaveAndClose'          => 'Save and close',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
     'SaveJPEGs'             => 'Save JPEGs',
@@ -600,6 +614,7 @@ $SLANG = array(
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
     'TimeStamp'             => 'Time Stamp',
+    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
@@ -677,7 +692,8 @@ $SLANG = array(
     'he_il' => 'Hebrew',
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
-
+    'no_nb' => 'Norwegian',
+  'option:router' => 'Gateway',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -810,6 +826,14 @@ $OLANG = array(
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
 	),
+  'OPTIONS_ENCODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_ENCODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
   'OPTIONS_ENCODER_PARAMETERS' => array(
     'Help' => '
     Parameters passed to the encoding codec. name=value separated by either , or newline.~~
@@ -822,6 +846,10 @@ $OLANG = array(
     for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
     ',
   ),
+  'OPTIONS_RECORDAUDIO' => array(
+    'Help' => '
+    Whether to store the audio stream when saving an event.'
+    ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

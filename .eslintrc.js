@@ -24,6 +24,7 @@ module.exports = {
     "camelcase": "off",
     "comma-dangle": "off",
     "guard-for-in": "off",
+    "operator-linebreak": "off",
     "max-len": "off",
     "new-cap": ["error", {
       capIsNewExceptions: ["Error", "Warning", "Debug", "Polygon_calcArea", "Play", "Stop", "Panzoom"],

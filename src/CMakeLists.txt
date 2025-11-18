@@ -20,6 +20,7 @@ set(ZM_BIN_SRC_FILES
   zm_logger.cpp
   zm_event.cpp
   zm_eventstream.cpp
+  zm_event_tag.cpp
   zm_exception.cpp
   zm_fifo.cpp
   zm_fifo_debug.cpp
@@ -36,8 +37,10 @@ set(ZM_BIN_SRC_FILES
   zm_monitor.cpp
   zm_monitor_monitorlink.cpp
   zm_monitor_rtsp2web.cpp
+  zm_monitor_go2rtc.cpp
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
+  zm_monitor_onvif.cpp
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
@@ -70,6 +73,7 @@ set(ZM_BIN_SRC_FILES
   zm_signal.cpp
   zm_stream.cpp
   zm_swscale.cpp
+  zm_tag.cpp
   zm_time.cpp
   zm_uri.cpp
   zm_user.cpp
@@ -164,11 +168,15 @@ target_link_libraries(zm
   PRIVATE
     zm-core-interface)
 
+set(GSOAP_LIBRARIES ${GSOAP_CXX_LIBRARIES})
+if(HAVE_LIBOPENSSL)
+  set(GSOAP_LIBRARIES ${GSOAP_SSL_CXX_LIBRARIES})
+endif()
+
 if(GSOAP_FOUND)
   target_link_libraries(zm
     PUBLIC
-      ${GSOAP_CXX_LIBRARIES}
-      ${GSOAP_SSL_CXX_LIBRARIES}
+      ${GSOAP_LIBRARIES}
       ${OPENSSL_SSL_LIBRARY}
       ${OPENSSL_CRYPTO_LIBRARY})
 endif()

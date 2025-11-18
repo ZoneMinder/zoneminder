@@ -1,0 +1,15 @@
+name: Install GTest
+description: Install and setup GTest for linking and building test application
+runs:
+  using: composite
+  steps:
+    - run: sudo apt-get install libgtest-dev lcov
+      shell: bash
+    - run: (cd /usr/src/gtest && sudo `which cmake` .)
+      shell: bash
+    - run: sudo make -j $(nproc) -C /usr/src/gtest
+      shell: bash
+    - run: sudo ln -s /usr/src/gtest/libgtest.a /usr/lib/libgtest.a
+      shell: bash
+    - run: sudo ln -s /usr/src/gtest/libgtest_main.a /usr/lib/libgtest_main.a
+      shell: bash

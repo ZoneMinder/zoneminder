@@ -54,6 +54,7 @@
 $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE Deleted!=1 AND ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
 foreach (ZM\Server::find() as $Server) {
   $svr_opt = 'class="serverCol" data-sid="'.$Server->Id().'"';
+  $Server->ReadStats();
   ?>
               <tr>
                 <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>

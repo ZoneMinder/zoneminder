@@ -38,7 +38,8 @@ $fid = 0;
 if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
-  $fid = validInt($_REQUEST['filter']['Id']);
+  # $_REQUEST['filter']['Id'] get used later in populating filter object, so need to sanitise it
+  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
@@ -86,20 +87,14 @@ $attrTypes = ZM\Filter::attrTypes();
 
 $opTypes = ZM\Filter::opTypes();
 $tags_opTypes = ZM\Filter::tags_opTypes();
-$is_isnot_opTypes = array(
-  'IS'  => translate('OpIs'),
-  'IS NOT'  => translate('OpIsNot'),
-);
+$is_isnot_opTypes = ZM\Filter::is_isnot_opTypes();
 
 $archiveTypes = array(
   '0' => translate('ArchUnarchived'),
   '1' => translate('ArchArchived')
 );
 
-$booleanValues = array(
-  'false' => translate('False'),
-  'true' => translate('True')
-);
+$booleanValues = ZM\Filter::booleanValues();
 
 $focusWindow = true;
 
@@ -137,7 +132,7 @@ foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
   }
 }
 
-$availableTags = array();
+$availableTags = array(''=>translate('No Tag'));
 foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
   $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
 }
@@ -318,7 +313,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="filter[ExecuteInterval]"><?php echo translate('Execute Interval') ?></label>
-              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /><?php echo translate('seconds'); ?>
+              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" /> <?php echo translate('seconds'); ?>
             </p>
             <p>
               <label for="filter[Concurrent]"><?php echo translate('ConcurrentFilter') ?></label>
@@ -351,6 +346,10 @@ if ( ZM_OPT_EMAIL ) {
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
 </label>
+              </p>
+              <p>
+                <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
               </p>
               
             </div>

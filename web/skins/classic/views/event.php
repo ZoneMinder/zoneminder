@@ -52,15 +52,29 @@ if ($rate > 1600) {
   zm_setcookie('zmEventRate', $rate);
 }
 
+// $scaleSelected - temporarily to adapt the new algorithm, because $scale can only be a numeric value!
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
+  $scaleSelected = $_REQUEST['scale'];
 } else if (isset($_COOKIE['zmEventScale'.$Event->MonitorId()])) {
   $scale = validInt($_COOKIE['zmEventScale'.$Event->MonitorId()]);
+  $scaleSelected = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
   $scale = validInt($monitor->DefaultScale());
+  $scaleSelected = $monitor->DefaultScale();
 }
-if (!validInt($scale) and $scale != '0') {
-  $scale = '0';
+//if (!validInt($scale) and $scale != '0') {
+//  $scale = '0';
+//}
+$scale = '10'; // temporarily to adapt the new algorithm, not used in new calculations!
+
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
 
 $showZones = false;
@@ -136,7 +150,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') | ((false !== strpos($Event->DefaultVideo(), 'h264')) & ($codec === 'auto'));
+$video_tag = ($codec == 'MP4') || 
+  ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
@@ -202,7 +217,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
-        <a href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
+        <a id="montageReviewBtn" href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
 <?php
   if (canView('System')) { ?>
     <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
@@ -212,7 +227,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
       </div>
       
-      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
+      <h2 id="eventTitle"><?php echo translate('Event').' '.$Event->Id() ?></h2>
       
       <div class="d-flex flex-row">
         <div id="replayControl">
@@ -221,7 +236,11 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+        </div>
+          <div id="streamQualityControl"<?php echo $video_tag ? ' style="display: none;"':'' ?>>
+          <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
@@ -298,6 +317,17 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
               <div id="eventVideo">
               <!-- VIDEO CONTENT -->
                 <div id="videoFeed">
+                  <div id="button_zoom<?php echo $Event->MonitorId()?>" class="button_zoom hidden">
+                    <button id="btn-zoom-in<?php echo $Event->MonitorId()?>" class="btn btn-zoom-in hidden" data-on-click="panZoomIn" title="<?php echo translate('Zoom IN')?>"><span class="material-icons md-36">add</span></button>
+                    <button id="btn-zoom-out<?php echo $Event->MonitorId()?>" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="<?php echo translate('Zoom OUT')?>"><span class="material-icons md-36">remove</span></button>
+                    <div class="block-button-center">
+                      <button id="btn-fullscreen<?php echo $Event->MonitorId()?>" class="btn btn-fullscreen" title="<?php echo translate('Open full screen')?>"><span class="material-icons md-30">fullscreen</span></button>
+                      <button id="btn-view-watch'<?php echo $Event->MonitorId()?>" class="btn btn-view-watch" title="<?php echo translate('Open watch page')?>"><span class="material-icons md-30">open_in_new</span></button>
+                      <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
+                    </div>
+                  </div>
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                    <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
 ?>
@@ -312,39 +342,34 @@ if ($video_tag) {
                           function($r){return $r >= 0 ? true : false;}
                         ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
                   >
-                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
-                  <div id="progressBar" style="width: 100%;">
-                    <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-                    <div id="indicator" style="display: none;"></div>
-                  </div><!--progressBar-->
 <?php
 } else {
-if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
-  outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
-} else {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
-  if (!canStreamNative()) {
-    echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
-  }
-  outputImageStream('evtStream', $streamSrc,
-    ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
-    ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
-    validHtmlStr($Event->Name()));
-} // end if stream method
-?>
-                  <div id="progressBar" style="width: 100%;">
-                    <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-                    <div id="indicator" style="display: none;"></div>
-                  </div><!--progressBar-->
-<?php
+  if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
+    outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
+  } else {
+    $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
+    if (!canStreamNative()) {
+      echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
+    }
+    outputImageStream('evtStream', $streamSrc,
+      ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
+      ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
+      validHtmlStr($Event->Name()));
+  } // end if stream method
 } /*end if !DefaultVideo*/
 ?>
+                    </div><!--".zoompan"-->
+                  </div><!--"#videoFeedStream"-->
+                  <div id="progressBar" style="width: 100%;">
+                    <div id="alarmCues" style="width: 100%;"></div>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <div id="indicator" style="display: none;"></div>
+                  </div><!--progressBar-->
                   <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {
@@ -379,9 +404,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
                   <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
                   <i class="material-icons md-18">fast_forward</i>
                   </button>
-                  <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+                  <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
                   <i class="material-icons md-18">zoom_out</i>
-                  </button>
+                  </button>-->
                   <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
                   <i class="material-icons md-18">fullscreen</i>
                   </button>
@@ -398,6 +423,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 ?>
                   <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+<?php if (!$video_tag) { ?>
+                  <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
+<?php } ?>
                 </div>
               </div><!--eventVideo-->
             </div><!--wrapperEventVideo-->

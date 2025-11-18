@@ -66,7 +66,7 @@ if ( $action == 'delete' ) {
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
     } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
-      $newValue = preg_replace('/\r\n/', '\n', $_REQUEST['newConfig'][$config['Name']]);
+      $newValue = preg_replace("/\r\n/", "\n", $_REQUEST['newConfig'][$config['Name']]);
     }
 
     if (isset($newValue) && ($newValue != $config['Value'])) {
@@ -120,6 +120,10 @@ if ( $action == 'delete' ) {
         if ($name == 'dhcp-host') {
           foreach ($value as $mac=>$ip) {
             $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
+          }
+        } else if ($name == 'dhcp-option') {
+          foreach ($value as $option_name=>$option_value) {
+            $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
           }
         } else if (
             ($name == 'bind-interfaces')

@@ -23,7 +23,7 @@ function exportEvents(
   $export_root,
   $exportFormat,
   $exportCompressed,
-  $exportStructure = false,
+  $exportStructure = false
 ) {
 
   if (!(canView('Events') or canView('Snapshots'))) {

@@ -434,7 +434,7 @@ LocalCamera::LocalCamera(
 
   /* Initialize swscale stuff */
   if (capture and (conversion_type == 1)) {
-    tmpPicture = av_frame_ptr{zm_av_frame_alloc()};
+    tmpPicture = av_frame_ptr{av_frame_alloc()};
 
     if (!tmpPicture)
       Fatal("Could not allocate temporary picture");
@@ -676,7 +676,7 @@ void LocalCamera::Initialise() {
       Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
 
-    capturePictures[i] = av_frame_ptr{zm_av_frame_alloc()};
+    capturePictures[i] = av_frame_ptr{av_frame_alloc()};
 
     if (!capturePictures[i])
       Fatal("Could not allocate picture");

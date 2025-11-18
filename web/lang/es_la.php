@@ -353,7 +353,7 @@ $SLANG = array(
     'HasWhiteSpeed'        => 'Soporta Velocidad White Bal.',
     'HasZoomSpeed'         => 'Soporta Velocidad Zoom',
     'High'                 => 'Alto A.B.',
-    'HighBW'               => 'Alto&nbsp;A/B',
+    'Highband'               => 'Alto&nbsp;A/B',
     'Home'                 => 'Inicio',
     'Hostname'             => 'Nombre Host',               // Added - 2018-08-30
     'Hour'                 => 'Hora',
@@ -391,7 +391,7 @@ $SLANG = array(
     'Logout'               => 'Salir',
     'Logs'                 => 'Logs',                   // Added - 2011-06-17
     'Low'                  => 'Bajo A.B.',
-    'LowBW'                => 'Bajo&nbsp;A/B',
+    'Lowband'                => 'Bajo&nbsp;A/B',
     'Main'                 => 'Principal',
     'Man'                  => 'Manual',
     'Manual'               => 'Manual',
@@ -422,7 +422,7 @@ $SLANG = array(
     'MaxZoomStep'          => 'Paso Max Zoom',
     'MaximumFPS'           => 'FPS Máximo',
     'Medium'               => 'Medio A.B.',
-    'MediumBW'             => 'Medio&nbsp;A/B',
+    'Medband'             => 'Medio&nbsp;A/B',
     'Message'              => 'Mensaje',                // Added - 2011-06-16      
     'MinAlarmAreaLtMax'    => 'Area min de alarma debe ser menor que la max',
     'MinAlarmAreaUnset'    => 'Debe especificar la cuenta min de pixeles de alarma',
@@ -1204,7 +1204,6 @@ $OLANG = array(
 	'WEB_M_VIDEO_MAXFPS' => array ( 'Prompt'=>'Cuál debe ser la velocidad de cuadro máxima para la transmisión de video'),
 	'WEB_NAVBAR_TYPE' => array ( 'Prompt'=>'Estilo de la barra de navegación de la consola web'),
 	'WEB_POPUP_ON_ALARM' => array ( 'Prompt'=>'Debe la ventana del monitor pasar a primer plano si ocurre una alarma'),
-	'WEB_RESIZE_CONSOLE' => array ( 'Prompt'=>'Debe la ventana de la consola cambiar de tamaño para ajustarse al monitor'),
 	'WEB_SOUND_ON_ALARM' => array ( 'Prompt'=>'Debería la ventana del monitor reproducir un sonido si ocurre una alarma'),
 	'WEB_TITLE' => array ( 'Prompt'=>'Mostrar el título si el sitio hace referencia a sí mismo.'),
 	'WEB_TITLE_PREFIX' => array ( 'Prompt'=>'El prefijo del título que se muestra en cada ventana'),

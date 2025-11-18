@@ -49,6 +49,7 @@ class PacketQueue {
   int warned_count;
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
+  int frames_since_last_keyframe_;
 
  public:
   PacketQueue();
@@ -77,6 +78,7 @@ class PacketQueue {
   bool increment_it(packetqueue_iterator *it);
   bool increment_it(packetqueue_iterator *it, int stream_id);
   ZMLockedPacket *get_packet(packetqueue_iterator *);
+  ZMLockedPacket *get_packet_no_wait(packetqueue_iterator *);
   ZMLockedPacket *get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
   packetqueue_iterator *get_stream_it(int stream_id);
@@ -86,10 +88,12 @@ class PacketQueue {
     packetqueue_iterator snapshot_it,
     unsigned int pre_event_count
   );
-  bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet);
+  bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet);
   void unlock(ZMLockedPacket *lp);
   void notify_all();
   void wait();
+ private:
+  packetqueue_iterator deletePacket(packetqueue_iterator it);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

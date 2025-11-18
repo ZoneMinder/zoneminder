@@ -145,9 +145,9 @@ if ( isset($_REQUEST['Control']) ) {
 }
 
 xhtmlHeaders(__FILE__, translate('ControlCap').' - '.$Control['Name']);
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page" class="container-fluid">
     <div class="row flex-nowrap">
       <nav> <!-- BEGIN PILL LIST -->

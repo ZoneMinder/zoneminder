@@ -1,0 +1,123 @@
+name: Lint CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        files:
+        - "include/jwt-cpp/*.h"
+        - "include/jwt-cpp/traits/**/*.h"
+        - "tests/*.cpp"
+        - "tests/**/*.cpp"
+        - "example/*.cpp"
+        - "example/**/*.cpp"
+    steps:
+      - run: |
+          sudo apt-get install clang-format-14
+          shopt -s globstar
+      - uses: actions/checkout@v3
+      - run: clang-format-14 -i ${{ matrix.files }}
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: clang-format
+
+  cmake-format:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        files: ["**/CMakeLists.txt", "cmake/code-coverage.cmake"]
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - run: pip install cmakelang
+      - run: shopt -s globstar
+      - uses: actions/checkout@v3
+      - run: cmake-format -i ${{ matrix.files }}
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: cmake-format
+
+  clang-tidy:
+    runs-on: ubuntu-20.04
+    steps:
+      - run: sudo apt-get install clang-tidy
+      - uses: lukka/get-cmake@latest
+      - uses: actions/checkout@v3
+      - name: configure
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-fix"
+      - name: run
+        working-directory: build
+        run: make
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: clang-tidy
+
+  render-defaults:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        traits:
+          - { name: "boost_json", library: "Boost.JSON", url: "https://github.com/boostorg/json", disable_pico: true }
+          - { name: "danielaparker_jsoncons", library: "jsoncons", url: "https://github.com/danielaparker/jsoncons", disable_pico: true }
+          - { name: "kazuho_picojson", library: "picojson", url: "https://github.com/kazuho/picojson", disable_pico: false }
+          - { name: "nlohmann_json", library: "JSON for Modern C++", url: "https://github.com/nlohmann/json", disable_pico: true }
+    name: render-defaults (${{ matrix.traits.name }})
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/render/defaults
+        with:
+          traits_name: ${{ matrix.traits.name }}
+          library_name: ${{ matrix.traits.library }}
+          library_url: ${{ matrix.traits.url }}
+          disable_default_traits: ${{ matrix.traits.disable_pico }}
+      - run: git add include/jwt-cpp/traits/*
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: render-defaults
+
+  render-tests:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        traits:
+          # - { name: "boost_json", suite: "BoostJsonTest" } # Currently needs work arounds for API limitations
+          - { name: "danielaparker_jsoncons", suite: "JsonconsTest" }
+          # - { name: "kazuho_picojson", suite: "PicoJsonTest" } # Currently the default everything tests against this!
+          - { name: "nlohmann_json", suite: "NlohmannTest" }
+    name: render-tests (${{ matrix.traits.name }})
+    steps:
+      - uses: actions/checkout@v3
+      - run: shopt -s globstar
+      - uses: ./.github/actions/render/tests
+        with:
+          traits_name: ${{ matrix.traits.name }}
+          test_suite_name: ${{ matrix.traits.suite }}
+      - run: clang-format -i tests/**/*.cpp
+      - run: git add tests/traits/*
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: render-tests
+
+  line-ending:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: git add --renormalize .
+      - uses: ./.github/actions/process-linting-results
+        with:
+          linter_name: line-ending

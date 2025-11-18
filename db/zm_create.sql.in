@@ -203,6 +203,7 @@ CREATE TABLE `Events` (
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
+  `MaxScoreFrameId` int(10) unsigned default NULL,
   `Archived` tinyint(3) unsigned NOT NULL default '0',
   `Videoed` tinyint(3) unsigned NOT NULL default '0',
   `Uploaded` tinyint(3) unsigned NOT NULL default '0',
@@ -309,6 +310,7 @@ CREATE TABLE `Filters` (
 	`EmailTo`				TEXT,
 	`EmailSubject`	TEXT,
 	`EmailBody`			TEXT,
+	`EmailServer`			TEXT,
 	`EmailFormat`		enum('Individual','Summary') NOT NULL default 'Individual',
   `AutoMessage` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
@@ -481,7 +483,7 @@ CREATE TABLE `MonitorPresets` (
   `ControlDevice` varchar(255) default NULL,
   `ControlAddress` varchar(255) default NULL,
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
-  `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `DefaultScale` CHAR(6) NOT NULL default '0',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -511,6 +513,9 @@ CREATE TABLE `Monitors` (
   `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
   `RTSP2WebEnabled` BOOLEAN NOT NULL default false,
   `RTSP2WebType` enum('HLS','MSE','WebRTC') NOT NULL default 'WebRTC',
+  `DefaultPlayer` VARCHAR(64),
+  `RTSP2WebStream` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary',
+  `Go2RTCEnabled` BOOLEAN NOT NULL default false,
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',
@@ -555,10 +560,14 @@ CREATE TABLE `Monitors` (
   `DecoderHWAccelDevice`  varchar(255),
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
-  `OutputCodec` int(10) unsigned NOT NULL default 0,
+  `OutputCodec` int(10) unsigned NOT NULL default 0, /* Deprecated */
+  `OutputCodecName` varchar(32) NOT NULL default 'auto',
   `Encoder`     varchar(32),
+  `EncoderHWAccelName`  varchar(64),
+  `EncoderHWAccelDevice`  varchar(255),
   `OutputContainer` enum('auto','mp4','mkv','webm'),
   `EncoderParameters` TEXT,
+  `WallClockTimestamps` TINYINT NOT NULL DEFAULT '0',
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
   `RecordingSource`  enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary',
   `RTSPDescribe` tinyint(1) unsigned,
@@ -602,7 +611,7 @@ CREATE TABLE `Monitors` (
   `ReturnDelay` smallint(5) unsigned,
   `ModectDuringPTZ` tinyint(3) unsigned NOT NULL default '0',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
-  `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `DefaultScale` CHAR(6) NOT NULL default '0',
   `DefaultCodec` enum('auto','MP4','MJPEG') NOT NULL default 'auto',
   `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
@@ -1191,16 +1200,17 @@ CREATE TABLE MontageLayouts (
   PRIMARY KEY (`Id`)
 );
 
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('Freeform', '{ "default":{"float":"left","left":"0px","right":"0px","top":"0px","bottom":"0px","width":"auto"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', '{ "default":{"float":"left", "width":"50%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{"float":"left", "width":"33%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"25%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"20%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('6 Wide', '{ "default":{"float":"left", "width":"16.6%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('7 Wide', '{ "default":{"float":"left", "width":"14.2%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('8 Wide', '{ "default":{"float":"left", "width":"12.5%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('9 Wide', '{ "default":{"float":"left", "width":"11.1%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('10 Wide', '{ "default":{"float":"left", "width":"10%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('Auto', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('1 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('6 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('8 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('12 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('16 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('24 Wide', NULL );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('48 Wide', NULL );
 
 CREATE TABLE Sessions (
   id char(32) not null,

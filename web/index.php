@@ -32,7 +32,6 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
 }
 ZM\Debug(print_r($_REQUEST, true));
 
-
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or
@@ -47,9 +46,6 @@ define('ZM_BASE_PROTOCOL', $protocol);
 // Absolute URL's are unnecessary and break compatibility with reverse proxies 
 // define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 
-// Use relative URL's instead
-define('ZM_BASE_URL', '');
-
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   ZM\Debug('OPTIONS Method, only doing CORS');
@@ -58,7 +54,12 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-if ( isset($_GET['skin']) ) {
+require_once('includes/session.php');
+zm_session_start();
+
+if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
+  $skin = ZM_FORCE_SKIN_DEFAULT;
+} else if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
 } else if ( isset($_COOKIE['zmSkin']) ) {
   $skin = $_COOKIE['zmSkin'];
@@ -76,7 +77,9 @@ if (!is_dir('skins/'.$skin) ) {
   }
 }
 global $css;
-if ( isset($_GET['css']) ) {
+if (defined('ZM_FORCE_CSS_DEFAULT')) {
+  $css = ZM_FORCE_CSS_DEFAULT;
+} else if ( isset($_GET['css']) ) {
   $css = $_GET['css'];
 } else if ( isset($_COOKIE['zmCSS']) ) {
   $css = $_COOKIE['zmCSS'];
@@ -85,7 +88,6 @@ if ( isset($_GET['css']) ) {
 } else {
   $css = 'classic';
 }
-
 if (!is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
   if (count($css_skins)) {
@@ -105,6 +107,47 @@ if (!is_dir("skins/$skin/css/$css")) {
   }
 }
 
+global $navbar_type;
+$navbar_type = isset($_SESSION['navbar_type']) ? $_SESSION['navbar_type'] : '';
+$valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
+
+if (isset($_REQUEST['navbar_type'])) {
+  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+    $navbar_type = $_REQUEST['navbar_type'];
+  } else {
+    ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
+  }
+}
+
+# Cookie overrides session
+if (isset($_COOKIE['navbar_type'])) {
+  if (isset($valid_navbar_types[$_COOKIE['navbar_type']])) {
+    $navbar_type = $_COOKIE['navbar_type'];
+  } else {
+    ZM\Error('Invalid navbar_type '.$_COOKIE['navbar_type'].' specified');
+  }
+}
+
+if (!$navbar_type and defined('ZM_WEB_NAVBAR_TYPE')) {
+  if (isset($valid_navbar_types[ZM_WEB_NAVBAR_TYPE])) {
+    $navbar_type = ZM_WEB_NAVBAR_TYPE;
+  } else {
+    ZM\Error('Invalid navbar_type '.ZM_WEB_NAVBAR_TYPE. ' in options');
+  }
+}
+
+if (defined('ZM_FORCE_NAVBAR_TYPE')) {
+  if (isset($valid_navbar_types[ZM_FORCE_NAVBAR_TYPE])) {
+    $navbar_type = ZM_FORCE_NAVBAR_TYPE;
+  } else {
+    ZM\Error('Invalid navbar_type '.ZM_FORCE_NAVBAR_TYPE. ' forced');
+  }
+}
+
+if (!isset($valid_navbar_types[$navbar_type])) {
+  $navbar_type = 'normal';
+}
+
 define('ZM_BASE_PATH', dirname($_SERVER['REQUEST_URI']));
 define('ZM_SKIN_PATH', "skins/$skin");
 define('ZM_SKIN_NAME', $skin);
@@ -114,8 +157,6 @@ if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
-require_once('includes/session.php');
-zm_session_start();
 if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
@@ -135,6 +176,7 @@ if (
   $_SESSION['css'] = $css;
   zm_setcookie('zmCSS', $css);
 }
+$_SESSION['navbar_type'] = $navbar_type;
 
 # Add Cross domain access headers
 CORSHeaders();
@@ -207,13 +249,16 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
     exit;
   }
   $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  $redirect = '?view=login';
   zm_session_start();
   $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
   session_write_close();
+  ZM\Debug("Redirecting to $redirect");
+  header('Location: '.$redirect);
+  return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
+  $redirect = '?view=privacy';
   $request = null;
 }
 
@@ -246,8 +291,16 @@ if ( $request ) {
   return;
 }
 
+if (!$view) {
+  ZM\Debug(1, "Empty view, defaulting to home view");
+  $view = getHomeView();
+  header('Location: ?view='.$view);
+  return;
+}
+
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));
+
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
   CSPHeaders($view, $cspNonce);

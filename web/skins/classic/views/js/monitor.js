@@ -1,6 +1,7 @@
 
 var map = null;
 var marker = null;
+var sourceFormMonitor = null;
 
 function updateMonitorDimensions(element) {
   var form = element.form;
@@ -136,6 +137,9 @@ function initPage() {
       }
     };
   });
+  document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
+    el.onchange = window['devices_onchange'].bind(el, el);
+  });
   document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
     el.oninput = window['updateMonitorDimensions'].bind(el, el);
   });
@@ -167,8 +171,10 @@ function initPage() {
     el.onchange = function() {
       if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
+        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
+        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }
@@ -270,12 +276,73 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
+  var sourceFormMonitor = $j('#contentForm').serialize();
+  // Manage the ZONES Button
+  document.getElementById("zones-tab").addEventListener("click", function onZonesClick(evt) {
+    if ($j('#contentForm').serialize() !== sourceFormMonitor) {
+      evt.preventDefault();
+      const data = {
+        request: "modal",
+        modal: "saveconfirm",
+        key: messageSavingDataWhenLeavingPage
+      };
+
+      if (!document.getElementById('saveConfirm')) {
+        // Load the save confirmation modal into the DOM
+        $j.getJSON(thisUrl, data)
+            .done(function(data) {
+              insertModalHtml('saveConfirm', data.html);
+              manageSaveConfirmModalBtns();
+              $j('#saveConfirm').modal('show');
+            })
+            .fail(function(jqXHR) {
+              console.log('error getting saveconfirm', jqXHR);
+              logAjaxFail(jqXHR);
+            });
+        return;
+      } else {
+        document.getElementById('saveConfirmBtn').disabled = false; // re-enable the button
+        $j('#saveConfirm').modal('show');
+      }
+    } else {
+      const href = '?view=zones&mid='+mid;
+      window.location.assign(href);
+    }
+  });
+
+  // Manage the SAVE CONFIRMATION modal button
+  function manageSaveConfirmModalBtns() {
+    const href = '?view=zones&mid='+mid;
+    document.getElementById('saveConfirmBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      document.getElementById('saveConfirmBtn').disabled = true; // prevent double click
+      evt.preventDefault();
+      saveMonitorData(href);
+    });
+
+    // Manage the Don't SAVE modal button
+    document.getElementById('dontSaveBtn').addEventListener('click', function onSaveConfirmClick(evt) {
+      evt.preventDefault();
+      window.location.assign(href);
+    });
+
+    // Manage the CANCEL modal button
+    document.getElementById('saveCancelBtn').addEventListener('click', function onSaveCancelClick(evt) {
+      $j('#saveConfirm').modal('hide');
+    });
+  }
+
+  // Manage the SAVE Button
+  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+    saveMonitorData();
+  });
+
   const form = document.getElementById('contentForm');
 
   //manage the Janus settings div
 
   const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
   if (janusEnabled) {
+    janusEnabled.onclick = update_players;
     if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
@@ -303,33 +370,41 @@ function initPage() {
     });
 
     const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream.length) {
-      Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
-      console.log("Setup Janus_RTSP_Restream.onclick");
-    } else {
-      console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+    if (Janus_Use_RTSP_Restream) {
+      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
     }
   }
 
-  // Amcrest API controller
-  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
-  if (ONVIF_Event_Listener) {
-    if (ONVIF_Event_Listener[0].checked) {
-      document.getElementById("function_use_Amcrest_API").hidden = false;
+  //Manage the RTSP2Web settings div
+  const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+  const Go2RTCEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  if (Go2RTCEnabled) Go2RTCEnabled.onclick = update_players;
+  if (RTSP2WebEnabled) RTSP2WebEnabled.onclick = update_players;
+
+  if (RTSP2WebEnabled || Go2RTCEnabled) {
+    if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
+      document.getElementById("RTSP2WebStream").hidden = false;
     } else {
-      document.getElementById("function_use_Amcrest_API").hidden = true;
+      document.getElementById("RTSP2WebStream").hidden = true;
     }
-    ONVIF_Event_Listener[0].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = false;
+
+    Go2RTCEnabled.addEventListener('change', function() {
+      if (this.checked || RTSP2WebEnabled.checked) {
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebStream").hidden = true;
       }
     });
-    ONVIF_Event_Listener[1].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = true;
+
+    RTSP2WebEnabled.addEventListener('change', function() {
+      if (this.checked || Go2RTCEnabled.checked) {
+        document.getElementById("RTSP2WebStream").hidden = false;
+      } else {
+        document.getElementById("RTSP2WebStream").hidden = true;
       }
     });
   }
+  update_players();
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
@@ -391,7 +466,34 @@ function initPage() {
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
+
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
+
+  manageChannelStream();
 } // end function initPage()
+
+function saveMonitorData(href = '') {
+  const alertBlock = $j("#alertSaveMonitorData");
+  const form_data = $j("#contentForm").serializeArray();
+  alertBlock.fadeIn({duration: 'fast'});
+  form_data.push({name: "action", value: "save"});
+  $j.ajax({
+    type: "POST",
+    url: "?view=monitor",
+    data: form_data,
+    success: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      if (href) window.location.assign(href);
+      //document.getElementById('zones-tab').classList.remove("disabled");
+    },
+    error: function() {
+      alertBlock.fadeOut({duration: 'fast'});
+      alert('An error occurred while saving data.'); /* Proper formatting required! */
+    }
+  });
+  $j('#saveConfirm').modal('hide');
+}
 
 function ll2dms(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
@@ -510,15 +612,16 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  console.log(pre_event_count.value ,'>', max_image_buffer_count.value, this);
-  if (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value)) {
-    if (this.id=='newMonitor[PreEventCount]') {
-      max_image_buffer_count.value=pre_event_count.value;
+  if (parseInt(max_image_buffer_count.value)
+    &&
+    (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
+  ) {
+    if (this.id == 'newMonitor[PreEventCount]') {
+      max_image_buffer_count.value = pre_event_count.value;
     } else {
       pre_event_count.value = max_image_buffer_count.value;
     }
   }
-      
   update_estimated_ram_use();
 }
 function update_estimated_ram_use() {
@@ -546,13 +649,16 @@ function update_estimated_ram_use() {
 function updateMarker() {
   const latitude = document.getElementById('newMonitor[Latitude]').value;
   const longitude = document.getElementById('newMonitor[Longitude]').value;
-  console.log("Updating marker at ", latitude, longitude);
-  const latlng = new L.LatLng(latitude, longitude);
-  marker.setLatLng(latlng);
-  map.setView(latlng, 8, {animation: true});
-  setTimeout(function() {
-    map.invalidateSize(true);
-  }, 100);
+  if (typeof L !== 'undefined') {
+    const latlng = new L.LatLng(latitude, longitude);
+    marker.setLatLng(latlng);
+    map.setView(latlng, 8, {animation: true});
+    setTimeout(function() {
+      map.invalidateSize(true);
+    }, 100);
+  } else {
+    console.log('You must install leaflet');
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {
@@ -589,6 +695,38 @@ function SecondPath_onChange(e) {
     $j('#AnalysingSource').hide();
     $j('#RecordingSource').hide();
   }
+}
+
+function update_players() {
+  const dropdown = $j('[name="newMonitor[DefaultPlayer]"]');
+  if (!dropdown.length) {
+    console.log("No element found for DefaultPlayer");
+    return;
+  }
+  const form = dropdown[0].form;
+  const selected_value = dropdown.val() || '';
+  const go2rtc_enabled = form.elements['newMonitor[Go2RTCEnabled]'] && form.elements['newMonitor[Go2RTCEnabled]'].checked;
+  const rtsp2web_enabled = form.elements['newMonitor[RTSP2WebEnabled]'] && form.elements['newMonitor[RTSP2WebEnabled]'].checked;
+  const janus_enabled = form.elements['newMonitor[JanusEnabled]'] && form.elements['newMonitor[JanusEnabled]'].checked;
+
+  dropdown.empty();
+  $j.each(players, function(key, entry) {
+    if (
+      ((-1 != key.indexOf('go2rtc')) && !go2rtc_enabled)
+      ||
+      ((-1 != key.indexOf('rtsp2web')) && !rtsp2web_enabled)
+      ||
+      ((-1 != key.indexOf('janus')) && !janus_enabled)
+    ) {
+      console.log("not adding ", key, go2rtc_enabled, rtsp2web_enabled, janus_enabled);
+    } else {
+      dropdown.append($j('<option></option>').attr('value', key).text(entry));
+    }
+  });
+  //dropdown.chosen("destroy");
+  //dropdown.chosen();
+  dropdown.val(selected_value);
+  if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
 }
 
 function populate_models(ManufacturerId) {
@@ -674,6 +812,32 @@ function Model_onchange(input) {
 
 function updateLinkedMonitorsUI() {
   expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+}
+
+function devices_onchange(devices) {
+  const selected = $j(devices).val();
+  const device = devices.form.elements['newMonitor[Device]'];
+  if (selected !== '') {
+    device.value = selected;
+    device.style['display'] = 'none';
+  } else {
+    device.style['display'] = 'inline';
+  }
+}
+function ControlId_onChange(ddm) {
+  const ControlEditButton = document.getElementById('ControlEditButton');
+  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+}
+
+function ControlEdit_onClick() {
+  const ControlId = document.getElementById('ControlId');
+  if (ControlId) {
+    window.location = '?view=controlcap&cid='+ControlId.value;
+  }
+}
+
+function ControlList_onClick() {
+  window.location = '?view=options&tab=control';
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

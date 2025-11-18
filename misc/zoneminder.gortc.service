@@ -1,0 +1,20 @@
+[Unit]
+Description=go2rtc for use with ZoneMinder
+After=network.target
+
+[Service]
+# Does not have to be www-data.  Could also be an unprivileged user
+User=root
+Type=simple
+#Where ever you put go2rtc
+WorkingDirectory=/opt/go2rtc
+# This first entry will get overwritten when you add streams and can get wiped out.  Place the permanent config in the second file
+ExecStart=/opt/go2rtc/go2rtc_linux_arm64 -c go2rtc.yaml -c /etc/zm/go2rtc.yaml
+Restart=always
+RestartSec=10
+Environment=TZ=:/etc/localtime
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target
+

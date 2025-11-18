@@ -30,16 +30,18 @@ const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
+const navbar_type = '<?php echo $navbar_type ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
 const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
+const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
    try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
-const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
+const thisUrl = '<?php echo preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 const skinPath = '<?php echo ZM_SKIN_PATH ?>';
 const serverId = <?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '0' ?>;
 const Servers = [];
@@ -96,10 +98,7 @@ const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
-var user = <?php
-
-echo $user ? json_encode($user->expose(['Password'])) : '{}';
-?>;
+var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
 const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
@@ -107,7 +106,9 @@ const STATE_IDLE = <?php echo STATE_IDLE ?>;
 const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
 const STATE_ALARM = <?php echo STATE_ALARM ?>;
 const STATE_ALERT = <?php echo STATE_ALERT ?>;
-const STATE_TAPE = <?php echo STATE_TAPE ?>;
+
+const ANALYSING_NONE = <?php echo ANALYSING_NONE ?>;
+const ANALYSING_ALWAYS = <?php echo ANALYSING_ALWAYS ?>;
 
 const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
 const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
@@ -138,21 +139,20 @@ stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
 stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
 stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 <?php
 global $user;
 if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
-  global $config;
-  foreach ($config as $name=>$c) {
+  global $zm_config;
+  foreach ($zm_config as $name=>$c) {
     if (!$c['Private']) {
-      $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
-      $value = preg_replace('/\'/', '\\\\\'', $value);
-      if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
-        echo 'const '. $name . ' = '.$value.';'.PHP_EOL;
+      if (empty($c['Value'])) {
+        echo 'const '. $name . ' = \'\';'.PHP_EOL;
+      } else if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {
+        echo 'const '. $name . ' = '.$c['Value'].';'.PHP_EOL;
       } else {
-        echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
+        echo 'const '. $name . ' = '.json_encode($c['Value']).';'.PHP_EOL;
       }
     }
   }

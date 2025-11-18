@@ -118,7 +118,7 @@ commonprep () {
         fi
     fi
 
-    RTSPVER="eab32851421ffe54fec0229c3efc44c642bc8d46"
+    RTSPVER="055d81fe1293429e496b19104a9ed3360755a440"
     if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
         echo "Found existing RtspServer ${RTSPVER} tarball..."
     else
@@ -126,6 +126,18 @@ commonprep () {
         curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: RtspServer tarball retrieval failed..."
+            exit 1
+        fi
+    fi
+
+    CxxUrlVER="v0.3"
+    if [ -e "build/CxxUrl-${CxxUrlVER}.tar.gz" ]; then
+        echo "Found existing CxxUrl tarball..."
+    else
+        echo "Retrieving CxxUrl ${CxxUrlVER} submodule..."
+        curl -L https://github.com/chmike/CxxUrl/archive/refs/tags/${CxxUrlVER}.tar.gz > build/CxxUrl-${CxxUrlVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: CxxUrl tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -156,6 +168,14 @@ movecrud () {
         tar -xzf build/RtspServer-${RTSPVER}.tar.gz
         rmdir dep/RtspServer
         mv -f RtspServer-${RTSPVER} dep/RtspServer
+    fi
+    if [ -e "dep/CxxUrl/CMakeLists.txt" ]; then
+        echo "CxxUrl already installed..."
+    else
+        echo "Unpacking CxxUrl..."
+        tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
+        rmdir dep/CssUrl
+        mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
     fi
 }
 
@@ -381,7 +401,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ] || [ "${DIST}" == "bookworm" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "noble" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ] || [ "${DIST}" == "bookworm" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian
@@ -393,7 +413,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   execpackpack
 
   # Try to install and run the newly built zoneminder package
-  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "bionic" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "jammy" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
       echo "Begin Deb package installation..."
       install_deb
   fi

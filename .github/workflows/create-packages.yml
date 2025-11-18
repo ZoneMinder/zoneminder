@@ -21,6 +21,9 @@ jobs:
           - os: ubuntu
             dist: jammy
             arch: x86_64
+          - os: ubuntu
+            dist: noble
+            arch: x86_64
           - os: debian
             dist: bookworm
             arch: x86_64
@@ -39,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: '0'
           submodules: recursive

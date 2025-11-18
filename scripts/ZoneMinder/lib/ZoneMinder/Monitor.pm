@@ -292,7 +292,7 @@ $fields{model} = undef;
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
-    Importance => 0,
+    Importance => q`'Normal'`,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,
     );
@@ -438,6 +438,7 @@ sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
   return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
+  ZoneMinder::Logger::Debug(1, "capturing: $$self{Capturing} analysing: $$self{Analysing}");
   my $count = 50;
   while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
@@ -467,7 +468,7 @@ sub Control {
         }
         require Module::Load::Conditional;
         if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$Protocol => undef})) {
-          Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
+          Error("Monitor $$self{Id} $$self{Name} Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
           return undef;
         }
         $Control = $Control->clone(); # Because this object is not per monitor specific
@@ -587,7 +588,7 @@ sub model {
   
   if (@_) {
     my $new = shift;
-    if ($new ne $$self{Model}->Name()) {
+    if ((!$$self{Model}) or ($new ne $$self{Model}->Name())) {
       $$self{Model} = ZoneMinder::Model->find_one(Name=>$new);
       if (!$$self{Model}) {
         $$self{Model} = new ZoneMinder::Model();

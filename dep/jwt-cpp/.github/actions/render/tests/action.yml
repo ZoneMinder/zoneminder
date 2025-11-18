@@ -1,0 +1,39 @@
+name: "Render `TraitsTests.cpp` Template"
+description: "Generate the `TraitsTests.cpp` header file for a JSON library"
+inputs:
+  traits_name:
+    description: "Name of the traits structure to be used. Typically in the format `author_repository` or equivilant"
+    required: true
+  test_suite_name:
+    description: "Name of the JSON library."
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 14
+    - run: npm install mustache
+      shell: bash
+    - uses: actions/github-script@v6
+      env:
+        TRAITS_NAME: ${{ inputs.traits_name }}
+        SUITE_NAME: ${{ inputs.test_suite_name }}
+      with:
+        script: |
+          const mustache = require('mustache')
+          const path = require('path')
+          const fs = require('fs')
+
+          const { TRAITS_NAME, SUITE_NAME } = process.env
+          console.log(`Rendering ${TRAITS_NAME}!`)
+
+          const template = fs.readFileSync(path.join('tests', 'traits', 'TraitsTest.cpp.mustache'), 'utf8')
+          const content = mustache.render(template, {
+              traits_name: TRAITS_NAME,
+              traits_dir: TRAITS_NAME.replace('_', '-'),
+              test_suite_name: SUITE_NAME,
+          })
+          const outputDir = path.join('tests', 'traits')
+          fs.mkdirSync(outputDir, { recursive: true })
+          fs.writeFileSync(path.join(outputDir, `${SUITE_NAME}.cpp`), content)

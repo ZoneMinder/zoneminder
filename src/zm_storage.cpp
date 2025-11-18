@@ -52,6 +52,11 @@ Storage::Storage(MYSQL_ROW &dbrow) {
   } else {
     scheme = SHALLOW;
   }
+  size_t length = strlen(path);
+  while (length and *(path+length-1) == '/') {
+    *(path+length-1) = 0;
+    length = strlen(path);
+  }
 }
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */

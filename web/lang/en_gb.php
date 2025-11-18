@@ -117,6 +117,7 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
+    'Auth'                  => 'Authentication',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'AvgBrScore'            => 'Avg.<br/>Score',
     'BackgroundFilter'      => 'Run filter in background',
@@ -251,6 +252,7 @@ $SLANG = array(
     'DeviceNumber'          => 'Device Number',
     'DevicePath'            => 'Device Path',
     'DisableAlarms'         => 'Disable Alarms',
+    'Dnsmasq'               => 'DHCP',
     'DonateAlready'         => 'No, I\'ve already donated',
     'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to <a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a> in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on <a href="https://forums.zoneminder.com">ZoneMinder.com</a> for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
@@ -339,7 +341,7 @@ $SLANG = array(
     'HasTurboTilt'          => 'Has Turbo Tilt',
     'HasWhiteSpeed'         => 'Has White Bal. Speed',
     'HasZoomSpeed'          => 'Has Zoom Speed',
-    'HighBW'                => 'High&nbsp;B/W',
+    'Highband'              => 'High&nbsp;B/W',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
@@ -350,7 +352,8 @@ $SLANG = array(
     'ListMatches'           => 'List Matches',
     'LoggedInAs'            => 'Logged in as',
     'LoggingIn'             => 'Logging In',
-    'LowBW'                 => 'Low&nbsp;B/W',
+    'Lowband'               => 'Low&nbsp;B/W',
+    'Mail'                  => 'Email',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -375,7 +378,7 @@ $SLANG = array(
     'MaxZoomRange'          => 'Max Zoom Range',
     'MaxZoomSpeed'          => 'Max Zoom Speed',
     'MaxZoomStep'           => 'Max Zoom Step',
-    'MediumBW'              => 'Medium&nbsp;B/W',
+    'Medband'               => 'Medium&nbsp;B/W',
     'MessageSavingDataWhenLeavingPage' => 'You are leaving the page.<br>Want to save data?',
     'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
@@ -484,6 +487,7 @@ $SLANG = array(
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'PlayCycle'             => 'Play Cycle',
+    'PlayerDisabledInMonitorSettings'  => 'The player is disabled in the monitor settings.',
     'PleaseWait'            => 'Please Wait',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',
@@ -689,7 +693,7 @@ $SLANG = array(
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
     'no_nb' => 'Norwegian',
-
+  'option:router' => 'Gateway',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -822,6 +826,14 @@ $OLANG = array(
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
 	),
+  'OPTIONS_ENCODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_ENCODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
   'OPTIONS_ENCODER_PARAMETERS' => array(
     'Help' => '
     Parameters passed to the encoding codec. name=value separated by either , or newline.~~
@@ -834,6 +846,10 @@ $OLANG = array(
     for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
     ',
   ),
+  'OPTIONS_RECORDAUDIO' => array(
+    'Help' => '
+    Whether to store the audio stream when saving an event.'
+    ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

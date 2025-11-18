@@ -10,6 +10,8 @@
 
 # RtspServer is configured as a git submodule
 %global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
+# CxxUrl is configured as a git submodule
+%global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -18,7 +20,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.66
+Version: 1.37.73
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -37,6 +39,7 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
+Source4: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxUrl-%{CxxUrl_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
@@ -46,7 +49,7 @@ BuildRequires: polkit-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
-BuildRequires: pcre-devel 
+BuildRequires: pcre2-devel 
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
@@ -203,6 +206,10 @@ gzip -dc %{_sourcedir}/RtspServer-%{rtspserver_commit}.tar.gz | tar -xvvf -
 rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
+gzip -dc %{_sourcedir}/CxxUrl-%{CxxUrl_version}.tar.gz | tar -xvvf -
+rm -rf ./dep/CxxUrl
+mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
+
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
@@ -234,6 +241,7 @@ find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist
 
 # Remove third-party header and cmake files that should not have been installed
 rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_prefix}/%{_lib}/cmake/CxxUrl
 rm -rf %{buildroot}%{_includedir}
 
 # Recursively change shebang in all relevant scripts and set execute permission
@@ -245,6 +253,9 @@ ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildr
 
 # Handle the polkit file differently for web server agnostic support (see post)
 rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%check
+# Nothing to do. No tests exist.
 
 %post common
 # Initial installation
@@ -327,6 +338,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 
 %postun
 %systemd_postun_with_restart %{name}.service
+%systemd_postun_with_restart php-fpm.service
 
 %files
 # nothing
@@ -374,6 +386,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmrecover.pl
 %{_bindir}/zm_rtsp_server
 
+%{_libdir}/libCxxUrl.a
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*

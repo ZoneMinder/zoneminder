@@ -338,7 +338,7 @@ sub get {
     Error('No url specified in get');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $response = $self->{ua}->get($url);
   Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
   return $response;
@@ -351,7 +351,7 @@ sub put {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(PUT => $url);
   my $content = shift;
   if ( defined($content) ) {
@@ -366,6 +366,28 @@ sub put {
   return $res;
 } # end sub put
 
+sub post {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in put');
+    return;
+  }
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  my $req = HTTP::Request->new(POST => $url);
+  my $content = shift;
+  if ( defined($content) ) {
+    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
+    $req->content($content);
+  }
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success) {
+    Error($res->status_line);
+  } # end unless res->is_success
+  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  return $res;
+} # end sub post
+
 sub printMsg {
   my $self = shift;
   my $msg = shift;
@@ -377,6 +399,70 @@ sub printMsg {
 sub credentials {
   my $self = shift;
   @$self{'username', 'password'} = @_;
+}
+
+sub guess_credentials {
+  my $self = shift;
+
+  require URI;
+  my $uri;
+
+  # Extract the username/password host/port from ControlAddress
+  if ($self->{Monitor}{ControlAddress}
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+  ) {
+    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    $uri = URI->new($self->{Monitor}->{ControlAddress});
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $$self{host} = $uri->host();
+    if ( $uri->userinfo()) {
+      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
+    }
+    # Check if it is a host and port or just a host
+    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
+      $$self{host} = $1;
+      $$self{port} = $2 ? $2 : $$self{port};
+    }
+    $$self{uri} = $uri;
+    $$self{BaseURL} = $uri->scheme()."://$$self{host}:$$self{port}";
+    $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+  } elsif ($self->{Monitor}{Path}) {
+    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
+      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
+      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
+    } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
+      $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
+    }
+
+    if (!($$self{username} or $$self{password})) {
+      Debug("Still no username/password. Setting to ".join('/', $self->{Monitor}->{User}, $self->{Monitor}->{Pass}));
+      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
+    }
+    $uri = URI->new($self->{Monitor}->{Path});
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path('');
+    $$self{host} = $uri->host();
+    $$self{uri} = $uri;
+    $$self{port} = $uri->port();
+    $$self{BaseURL} = $uri->scheme().'://'.$$self{host}.($$self{port} ? ':'.$$self{port}:'');
+    Debug("Have base url $$self{BaseURL} with credentials $$self{username}/$$self{password}");
+    $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+  } else {
+    Debug('Unable to guess credentials');
+  }
+  return $uri;
 }
 
 sub get_realm {
@@ -395,7 +481,7 @@ sub get_realm {
         my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
         my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
         if ( $tokens{realm} ) {
-          if ( $$self{realm} ne $tokens{realm} ) {
+          if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
             Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
             $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
@@ -426,7 +512,10 @@ sub get_realm {
 sub ping {
   my $self = shift;
   my $ip = @_ ? shift : $$self{host};
-  return undef if ! $ip;
+  if (!$ip) {
+    Warning("No ip to ping. Please either pass ip or populate self{host}");
+    return undef;
+  }
 
   require Net::Ping;
   Debug("Pinging $ip");

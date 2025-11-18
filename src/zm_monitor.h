@@ -345,8 +345,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     _wsnt__RenewResponse wsnt__RenewResponse;
     PullPointSubscriptionBindingProxy proxyEvent;
     void set_credentials(struct soap *soap);
-    std::unordered_map<std::string, std::string> alarms;
 #endif
+    std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;
    public:
     explicit ONVIF(Monitor *parent_);
@@ -363,15 +363,22 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
 
   class AmcrestAPI {
-   protected:
+   private:
     Monitor *parent;
     bool alarmed;
     bool healthy;
-    std::string amcrest_response;
+    std::string last_topic;
+    std::string last_value;
+
+    std::string response;
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    std::unordered_map<std::string, std::string> alarms;
+    std::mutex   alarms_mutex;
+    std::mutex   response_mutex;
 
+    void SetNoteSet(Event::StringSet &noteSet);
    public:
     explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
@@ -380,6 +387,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int start();
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
+    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
   };
 
   class RTSP2WebManager {
@@ -393,6 +401,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
+    std::string rtsp_restream_path;
     std::string rtsp_path;
     std::string rtsp_second_path;
 
@@ -403,6 +412,36 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int add_to_RTSP2Web();
     int check_RTSP2Web();
     int remove_from_RTSP2Web();
+  };
+
+  class Go2RTCManager {
+    protected:
+      Monitor *parent;
+      // helper class for CURL
+      struct transfer {
+        const char *buf;
+        size_t total;
+        size_t uploaded;
+      };
+      static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+      static size_t ReadCallback(char *ptr, size_t size, size_t nmemb, void *data);
+      std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
+      bool Go2RTC_Healthy;
+      bool Use_RTSP_Restream;
+      std::string Go2RTC_endpoint;
+      std::string rtsp_restream_path;
+      std::string rtsp_username;
+      std::string rtsp_password;
+      std::string rtsp_path;
+      std::string rtsp_second_path;
+
+    public:
+      explicit Go2RTCManager(Monitor *parent_);
+      ~Go2RTCManager();
+      void load_from_monitor();
+      int add_to_Go2RTC();
+      int check_Go2RTC();
+      int remove_from_Go2RTC();
   };
 
   class JanusManager {
@@ -455,6 +494,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   RTSP2WebStreamOption RTSP2Web_stream;      // Whether we use the primary or secondary URL for the stream
+  bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -505,8 +545,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             colours;
   VideoWriter     videowriter;
   std::string     encoderparams;
-  int             output_codec;
+  std::string     output_codec;
   std::string     encoder;
+  std::string     encoder_hwaccel_name;
+  std::string     encoder_hwaccel_device;
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
@@ -656,6 +698,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool Event_Poller_Closes_Event;
 
   RTSP2WebManager *RTSP2Web_Manager;
+  Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
   ONVIF *onvif;
@@ -720,6 +763,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return decoding;
   }
   const std::string &DecoderName() const { return decoder_name; }
+  const std::string &DecoderHWAccelName() const { return decoder_hwaccel_name; }
+  const std::string &DecoderHWAccelDevice() const { return decoder_hwaccel_device; }
   bool JanusEnabled() {
     return janus_enabled;
   }
@@ -808,7 +853,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
-  int OutputCodec() const { return output_codec; }
+  const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
+  const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
+  const std::string &OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
 

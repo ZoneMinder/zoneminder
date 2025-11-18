@@ -143,7 +143,8 @@ class Image {
   Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
   explicit Image(const Image &p_image);
-  explicit Image(const AVFrame *frame, int p_width=-1, int p_height=-1);
+  explicit Image(const AVFrame *frame, int p_width, int p_height);
+  explicit Image(const AVFrame *frame);
 
   ~Image();
 
@@ -162,11 +163,17 @@ class Image {
   inline unsigned int Height() const { return height; }
   inline unsigned int Pixels() const { return pixels; }
   inline unsigned int Colours() const { return colours; }
+  inline unsigned int Colours(unsigned int p_colours ) {
+    colours = p_colours;
+    return colours;
+  }
   inline unsigned int SubpixelOrder() const { return subpixelorder; }
+  inline unsigned int SubpixelOrder(unsigned int p_subpixelorder) { return subpixelorder=p_subpixelorder; }
   inline unsigned int Size() const { return size; }
   std::string Filename() const { return filename_; }
 
   AVPixelFormat AVPixFormat() const;
+  AVPixelFormat AVPixFormat(AVPixelFormat);
 
   inline uint8_t* Buffer() { return buffer; }
   inline const uint8_t* Buffer() const { return buffer; }
@@ -206,6 +213,7 @@ class Image {
     uint8_t *new_buffer,
     const size_t buffer_size,
     const int p_buffertype);
+  void AssignDirect(const AVFrame *frame);
 
   int PopulateFrame(AVFrame *frame) const;
 
@@ -237,7 +245,7 @@ class Image {
                  bool on_blocking_abort) const;
 
   bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
-  bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
+  bool EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_override=0) const;
 
 #if HAVE_ZLIB_H
   bool Unzip(const Bytef *inbuffer, unsigned long inbuffer_size);

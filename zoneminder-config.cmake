@@ -47,6 +47,7 @@
 /* Few ZM options that are needed by the source code */
 #cmakedefine ZM_MEM_MAPPED 1
 #cmakedefine ZM_HAS_V4L2 1
+#cmakedefine ZM_HAS_NLOHMANN_JSON 1
 
 /* Its safe to assume that signal return type is void. This is a fix for zm_signal.h */
 #define RETSIGTYPE void

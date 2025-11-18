@@ -135,14 +135,20 @@ if (isset($_REQUEST['filter'])) {
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
+    } else if ($term['attr'] == 'DateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
+				$maxTime = $term['val'];
+			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
+				$minTime = $term['val'];
+			}
     }
   } # end foreach term
   $filter->terms($terms);
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
@@ -161,13 +167,13 @@ if (isset($_REQUEST['filter'])) {
 }
 if (!$liveMode) {
   if (!$filter->has_term('Archived')) {
-    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and'));
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
   }
-  if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and'));
+  if (!$filter->has_term('DateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
   }
-  if (!$filter->has_term('StartDateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
+  if (!$filter->has_term('DateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',

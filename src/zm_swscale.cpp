@@ -31,13 +31,13 @@ SWScale::SWScale() :
 }
 
 bool SWScale::init() {
-  input_avframe = av_frame_ptr{zm_av_frame_alloc()};
+  input_avframe = av_frame_ptr{av_frame_alloc()};
   if (!input_avframe) {
     Error("Failed allocating AVFrame for the input");
     return false;
   }
 
-  output_avframe = av_frame_ptr{zm_av_frame_alloc()};
+  output_avframe = av_frame_ptr{av_frame_alloc()};
   if (!output_avframe) {
     Error("Failed allocating AVFrame for the output");
     return false;

@@ -83,12 +83,12 @@ min-width: 500px;
 min-width: 500px;
 }
 form {
-  border-bottom: 1px solid #3498db;
+  border-bottom: 1px solid var(--colorBorder);
 }
 #ActionsAndOptions {
   padding-top: 5px;
-  border-top: 1px solid #3498db;
-  border-bottom: 1px solid #3498db;
+  border-top: 1px solid var(--colorBorder);
+  border-bottom: 1px solid var(--colorBorder);
 }
 #ActionsAndOptions fieldset {
   border: none;
@@ -105,4 +105,13 @@ form {
 body.sticky #content {
   overflow-y: auto;
   overflow-x: auto;
+}
+#filterdebugModal .modal-dialog {
+  width: 80%;
+  max-width: 80%;
+  height: 100%;
+}
+#filterdebugModal table th {
+  text-align: left;
+  border-bottom: 1px solid #7f7fb2;
 }

@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,libswscale-dev
               ,ffmpeg
               ,arp-scan
-              ,net-tools
+              ,net-tools, iproute2
               ,libbz2-dev
               ,libcurl4-gnutls-dev
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
@@ -78,7 +78,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
-        ,arp-scan
+        ,arp-scan, iproute2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0

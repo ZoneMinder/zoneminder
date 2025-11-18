@@ -137,17 +137,18 @@ MYSQL_RES *zmDbFetch(const std::string &query) {
     return nullptr;
   }
 
-  int rc = mysql_query(&dbconn, query.c_str());
 
+  int rc = mysql_query(&dbconn, query.c_str());
   if (rc) {
-    Debug(1, "Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, mysql_error(&dbconn));
+    std::string reason = mysql_error(&dbconn); // store for later because it will get clobbered by second attempt
+    Debug(1, "Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, reason.c_str());
     if (mysql_ping(&dbconn) and zmDbReconnect()) {
       rc = mysql_query(&dbconn, query.c_str());
     }
-  }
-  if (rc) {
-    Error("Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, mysql_error(&dbconn));
-    return nullptr;
+    if (rc) {
+      Error("Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, reason.c_str());
+      return nullptr;
+    }
   }
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if (!result) {
@@ -231,14 +232,16 @@ int zmDbDoInsert(const std::string &query) {
     return 0;
   int rc;
   while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    std::string reason = mysql_error(&dbconn);
     if (mysql_ping(&dbconn)) {
       if (!zmDbReconnect()) sleep(1);
     } else {
-      Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+      Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
       if ((mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT))
         return 0;
     }
   }
+  // Might not be an int... FIXME
   int id = mysql_insert_id(&dbconn);
   Debug(2, "Success running sql insert %s. Resulting id is %d", query.c_str(), id);
   return id;

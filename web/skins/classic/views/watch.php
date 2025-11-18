@@ -103,16 +103,12 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = false;
-$hasHLS = false;
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
   }
-  if ( $m->RTSP2WebEnabled() and $m->RTSP2WebType == "HLS") {
-    $hasHLS = true;
-  }
-  if ($hasPtzControls && $hasHLS) {
+  if ($hasPtzControls) {
     break;
   }
 }
@@ -179,7 +175,6 @@ if ( !isset($scales[$scale])) {
 $options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 $streamQualitySelected = '0';
-# TODO input validation on streamquality
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
 } else if (isset($_COOKIE['zmStreamQuality'])) {
@@ -187,6 +182,17 @@ if (isset($_REQUEST['streamQuality'])) {
 } else if (isset($_SESSION['zmStreamQuality']) ) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
+$streamQualitySelected = validHtmlStr($streamQualitySelected);
+
+$streamChannelSelected = $monitor->RTSP2WebStream();
+if (isset($_REQUEST['streamChannel'])) {
+  $streamChannelSelected = $_REQUEST['streamChannel'];
+} else if (isset($_COOKIE['zmStreamChannel'])) {
+  $streamChannelSelected = $_COOKIE['zmStreamChannel'];
+} else if (isset($_SESSION['zmStreamChannel']) ) {
+  $streamChannelSelected = $_SESSION['zmStreamChannel'];
+}
+$streamChannelSelected = validHtmlStr($streamChannelSelected);
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
@@ -213,18 +219,6 @@ if (
   $options['scale'] = 0;
 }
 
-function getStreamModeMonitor($monitor) {
-  if ($monitor->JanusEnabled()) {
-    $streamMode = 'janus';
-  } else if ($monitor->RTSP2WebEnabled()) {
-    $streamMode = $monitor->RTSP2WebType();
-  } else {
-    $streamMode = getStreamMode();
-  }
-  return $streamMode;
-}
-
-$streamMode = getStreamModeMonitor($monitor);
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 getBodyTopHTML();
@@ -277,6 +271,14 @@ echo getNavBarHTML() ?>
 >
             <span class="material-icons md-18">open_with</span>
         </button>
+      </div>
+      <div class="form-check control-use-old-zoom-pan">
+        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
+        <label class="form-check-label" for="use-old-zoom-pan">
+          <?php echo translate('Use old ZoomPan') ?>
+        </label>
+      </div>
+      <div id="sizeControl">
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
           <?php
@@ -291,17 +293,9 @@ $maxfps_options = array(''=>translate('Unlimited'),
   '15' => '15 '.translate('FPS'),
   '20' => '20 '.translate('FPS'),
 );
-echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'chosen']);
 ?>
         </span>
-      </div>
-      <div class="form-check control-use-old-zoom-pan">
-        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
-        <label class="form-check-label" for="use-old-zoom-pan">
-          <?php echo translate('Use old ZoomPan') ?>
-        </label>
-      </div>
-      <div id="sizeControl">
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
           <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
@@ -309,10 +303,32 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel'));
-              echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
+              echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen'));
           ?>
         </span>
+        <span id="playerControl">
+          <label for="player"><?php echo translate('Player') ?></label>
+<?php 
+              $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
+              $players['go2rtc'] = 'Go2RTC Auto';
+              $players['go2rtc_webrtc'] = 'Go2RTC WEBRTC';
+              $players['go2rtc_mse'] = 'Go2RTC MSE';
+              $players['go2rtc_hls'] = 'Go2RTC HLS';
+              $players['rtsp2web_webrtc'] = 'RTSP2Web WEBRTC';
+              $players['rtsp2web_mse'] = 'RTSP2Web MSE';
+              $players['rtsp2web_hls'] = 'RTSP2Web HLS';
+              $players['janus'] = 'Janus';
+              $player = validHtmlStr($monitor->DefaultPlayer());
+              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+                $player = validHtmlStr($_REQUEST['player']);
+              } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
+                $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
+              }
+              echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
+?>
+        </span>
+
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -405,13 +421,13 @@ echo $monitor->getStreamHTML($options);
               <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
               <i class="material-icons md-18">chevron_left</i>
               </button>
-              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
-              <i class="material-icons md-18">pause</i>
-              </button>
               <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop">
               <i class="material-icons md-18">stop</i>
               </button>
-              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
+              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="active" data-on-click-true="streamCmdPause">
+              <i class="material-icons md-18">pause</i>
+              </button>
+              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="hidden" disabled="disabled" data-on-click-true="streamCmdPlay">
               <i class="material-icons md-18">play_arrow</i>
               </button>
               <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
@@ -430,6 +446,18 @@ echo $monitor->getStreamHTML($options);
             </button>
             <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?> 
             </button>
+<?php 
+$volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
+  (isset($_COOKIE['zmWatchVolume']) ? validInt($_COOKIE['zmWatchVolume']) : 50);
+# 'true' is the only true value for muted. Anything else is false.
+$muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
+  ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
+ZM\Debug("Muted $muted");
+?>
+            <span id="volumeControls" class="volume">
+              <div id="volumeSlider" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </span>
           </div>
         </div><!-- id="wrapperMonitor" -->
 
@@ -502,17 +530,13 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
-<?php
-if ($hasHLS) {
-?>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
-<?php
-}
-?>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php
   } else {
     echo "There are no monitors to display\n";
   }
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
   echo '<script src="'.cache_bust('js/MonitorStream.js') .'"></script>'.PHP_EOL;
+
   xhtmlFooter();
 ?>

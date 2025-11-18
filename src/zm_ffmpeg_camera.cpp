@@ -391,8 +391,7 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  // Find first video stream present
-  // The one we want Might not be the first
+  // Find first video stream present, the one we want Might not be the first
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
@@ -408,13 +407,13 @@ int FfmpegCamera::OpenFfmpeg() {
         mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
-	if (stream->codecpar->width == width and stream->codecpar->height == height) {
-		Debug(1, "Choosing alternate video stream because it matches our resolution.");
-		mVideoStreamId = i;
-		mVideoStream = stream;
-	} else {
-		stream->discard = AVDISCARD_ALL;
-	}
+        if (stream->codecpar->width == width and stream->codecpar->height == height) {
+          Debug(1, "Choosing alternate video stream because it matches our resolution.");
+          mVideoStreamId = i;
+          mVideoStream = stream;
+        } else {
+          stream->discard = AVDISCARD_ALL;
+        }
       }
     } else if (is_audio_stream(stream)) {
       if (mAudioStreamId == -1) {
@@ -446,9 +445,9 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if (!mVideoCodec) {
+    // Try and get the codec from the codec context
     mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
     if (!mVideoCodec) {
-      // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
       return -1;
     }
@@ -555,6 +554,12 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+    if (entry) {
+      mVideoCodecContext->thread_count = std::stoul(entry->value);
+      Debug(1, "Setting codec thread_count to %d", mVideoCodecContext->thread_count);
+      av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+    }
     // reorder_queue is for avformat not codec
     av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);

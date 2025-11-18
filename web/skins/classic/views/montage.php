@@ -77,12 +77,18 @@ $presetLayoutsNames = array( //Order matters!
   '6 Wide',
   '8 Wide',
   '12 Wide',
-  '16 Wide'
+  '16 Wide',
+  '24 Wide',
+  '48 Wide'
 );
 
 /* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
+  /* IMPORTANT! 
+  * Before GridStack integration, instead of the layer name "Auto", we used "Freeform" in the DB.
+  * Before deleting this check, you need to replace "Freeform" with "Auto" in the DB of already installed ZM !!!
+  */
   if ($l->Name() == 'Freeform') $l->Name('Auto');
   $layoutsByName[$l->Name()] = $l;
 }
@@ -235,12 +241,14 @@ if ($monitorCount <= 3) {
 
 $AutoLayoutName = $default_layout;
 
-xhtmlHeaders(__FILE__, translate('Montage'));
+xhtmlHeadersStart(__FILE__, translate('Montage'));
+echo output_link(array('/assets/gridstack-12.3.3/dist/gridstack.css', '/assets/gridstack-12.3.3/dist/gridstack-extra.css'));
+xhtmlHeadersEnd(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="header">
+  <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
@@ -269,7 +277,7 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get">
+      <form method="get" id="filters_form">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>
@@ -303,22 +311,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </span>
           <span id="streamQualityControl">
             <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
-            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality', 'class'=>'chosen')); ?>
           </span>
-          <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
-            <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, 'auto'/*$options['width']*/, array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
-          </span>
-          <span id="heightControl" class="hidden"> <!-- OLD version, requires removal -->
-            <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, 'auto'/*$options['height']*/, array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
-          </span>
-          <span id="scaleControl" class="hidden"> <!-- OLD version, requires removal -->
-            <label><?php echo translate('Scale') ?></label>
-            <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
-          </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?></label>
+            <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
@@ -341,7 +337,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           </button>
         </form>
       </div>
-    </div>
+    </div><!--header-->
   </div>
   <div id="content">
     <div id="monitors" class="grid-stack hidden-shift">
@@ -362,21 +358,31 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
+    $monitor_options['connkey'] = $monitor->connKey();
+    $browser_width = 1920;
+    if (isset($_COOKIE['zmBrowserSizes'])) {
+      $zmBrowserSizes =  jsonDecode($_COOKIE['zmBrowserSizes']);
+      $browser_width = validInt($zmBrowserSizes['innerWidth']);
+      if (!$browser_width) $browser_width = 1920;
+    }
     if (!$scale and ($layout->Name() != 'Auto')) {
       if ($layout_is_preset) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
-            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
+            if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
+            else if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
         }
-      } else {
-        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
-        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
+    } else {
+      # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+      $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
+      if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+      else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
+    $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor
@@ -389,7 +395,7 @@ foreach ($monitors as $monitor) {
   <script src="/javascript/janus/janus.js"></script>
 <?php } ?>
 <?php if ($need_hls) { ?>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 
@@ -412,4 +418,9 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
-<?php xhtmlFooter() ?>
+<?php
+  echo '<script src="skins/'.$skin.'/assets/gridstack-12.3.3/dist/gridstack-all.js"></script>';
+  echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  echo output_script_if_exists(array('js/panzoom.js'));
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
+  xhtmlFooter() ?>

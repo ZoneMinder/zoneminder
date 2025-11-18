@@ -24,8 +24,10 @@ if ( isset($_REQUEST['mid']) ) {
   $mids[] = validInt($_REQUEST['mid']);
 } else if ( isset($_REQUEST['mids']) ) {
   $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
+} else if ($user->unviewableMonitorIds()) {
+  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')', 'Id', $user->viewableMonitorIds());
 } else {
-  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false'.($user->unviewableMonitorIds() ? ' AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')' : ''), 'Id', $user->viewableMonitorIds());
+  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false', 'Id');
 }
 
 if ( !($mids and count($mids)) ) {
@@ -117,11 +119,14 @@ echo getNavBarHTML();
     </div>
   </div>
 <?php
-if ($monitor->JanusEnabled()) {
+if (defined('ZM_JANUS_PATH') and ZM_JANUS_PATH) {
 ?>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
 <?php
+}
+if (defined('ZM_GO2RTC_PATH') and ZM_GO2RTC_PATH) {
+  echo '<script type="module" src="js/video-stream.js"></script>'.PHP_EOL;
 }
 ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>

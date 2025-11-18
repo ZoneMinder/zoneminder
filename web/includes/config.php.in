@@ -27,7 +27,7 @@ define( 'ZM_CONFIG_SUBDIR', '@ZM_CONFIG_SUBDIR@' ); // Path to config subfolder
 define( 'ZM_VERSION', '@VERSION@' );               // Version
 define( 'ZM_DIR_TEMP', '@ZM_TMPDIR@' );
 define( 'ZM_DIR_CACHE', '@ZM_CACHEDIR@' );
-global $configvals;
+global $zm_configvals;
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
@@ -40,8 +40,8 @@ if ( file_exists($localConfigFile) && filesize($localConfigFile) > 0 ) {
 }
 
 # Process name, value pairs from the main config file first
-$configvals = process_configfile($configFile);
-if (!$configvals) $configvals = [];
+$zm_configvals = process_configfile($configFile);
+if (!$zm_configvals) $zm_configvals = [];
 
 # Search for user created config files. If one or more are found then
 # update our config value array with those values
@@ -51,7 +51,7 @@ if ( is_dir($configSubFolder) ) {
     foreach ( glob($configSubFolder.'/*.conf') as $filename ) {
       //error_log("processing $filename");
       $newconfigvals = process_configfile($filename);
-      if ($newconfigvals) $configvals = array_replace($configvals, $newconfigvals);
+      if ($newconfigvals) $zm_configvals = array_replace($zm_configvals, $newconfigvals);
     }
   } else {
     error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
@@ -62,7 +62,7 @@ if ( is_dir($configSubFolder) ) {
 
 # Now that our array our finalized, define each key => value
 # pair in the array as a constant
-foreach ( $configvals as $key => $value ) {
+foreach ( $zm_configvals as $key => $value ) {
   define($key, $value);
 }
 
@@ -229,7 +229,7 @@ $GLOBALS['defaultUser'] = array(
 );
 
 function loadConfig( $defineConsts=true ) {
-  global $config;
+  global $zm_config;
   global $dbConn;
 
   $config = array();
@@ -238,18 +238,18 @@ function loadConfig( $defineConsts=true ) {
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
-    $config[$row['Name']] = $row;
+    $zm_config[$row['Name']] = $row;
 
     if ( $defineConsts ) {
       # Values in conf.d files override db so check if already defined and update value
       if ( ! defined($row['Name']) ) {
         define($row['Name'], $row['Value']);
       } else {
-        $config[$row['Name']]['Value'] = constant($row['Name']);
+        $zm_config[$row['Name']]['Value'] = constant($row['Name']);
       }
     }
   }
-  return $config;
+  return $zm_config;
 } # end function loadConfig
 
 require_once('Server.php');
@@ -282,6 +282,9 @@ if (!defined('ZM_SERVER_ID')) {
   }
 } else {
   $thisServer = ZM\Server::find_one(['Id'=>ZM_SERVER_ID]); // Should be cached
+  if(!$thisServer) {
+    error_log('No server found for ZM_SERVER_ID '+ZM_SERVER_ID);
+  }
 }
 
 if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )

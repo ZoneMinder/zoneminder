@@ -108,7 +108,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_STOP :
     Debug(1, "Got STOP command");
-    paused = false;
+    paused = true;
     delayed = false;
     break;
   case CMD_FASTFWD :
@@ -400,7 +400,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   } else {
     reserveTempImgBuffer(send_image->Size());
 
-    int img_buffer_size = 0;
+    size_t img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
     switch (type) {
@@ -429,7 +429,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       return false;
     }
     if (
-      (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+      (0 > fprintf(stdout, "Content-Length: %zu\r\nX-Timestamp: %.6f\r\n\r\n",
                    img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
       ||
       (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
@@ -914,7 +914,7 @@ void MonitorStream::runStream() {
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {
-  int img_buffer_size = 0;
+  size_t img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
@@ -947,7 +947,7 @@ void MonitorStream::SingleImage(int scale) {
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 
   fprintf(stdout,
-          "Content-Length: %d\r\n"
+          "Content-Length: %zu\r\n"
           "Content-Type: image/jpeg\r\n\r\n",
           img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);

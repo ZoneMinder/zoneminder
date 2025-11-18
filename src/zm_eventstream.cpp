@@ -28,6 +28,8 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
+#include <filesystem>
+
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif
@@ -230,9 +232,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   event_data->n_frames = mysql_num_rows(result);
   if (event_data->frame_count < event_data->n_frames) {
-    event_data->frame_count = event_data->n_frames;
     Warning("Event %" PRId64 " has more frames in the Frames table (%d) than in the Event record (%d)",
             event_data->event_id, event_data->n_frames, event_data->frame_count);
+    event_data->frame_count = event_data->n_frames;
   }
   event_data->frames.clear();
   event_data->frames.reserve(event_data->frame_count);
@@ -306,7 +308,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_timestamp = event_data->start_time;
       event_data->frame_count ++;
     } else {
-      Debug(1, "EIther no endtime or no duration, frame_count %d, last_id %d", event_data->frame_count, last_id);
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / %d - %d", 
               FPSeconds(event_data->end_time.time_since_epoch()).count(),
@@ -319,6 +320,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if (delta > Microseconds(0)) {
       while (event_data->end_time > last_timestamp and !zm_terminate) {
         last_timestamp += delta;
+        // Prevent final frame where capture.jpg doesn't actually exist.
+        if (event_data->end_time < last_timestamp) break;
         last_id ++;
 
         auto frame = event_data->frames.emplace_back(
@@ -847,6 +850,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {
           Error("Failed getting a frame.");
+	  sendTextFrame("Failed getting frame");
           return false;
         }
 
@@ -884,7 +888,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
       Image *send_image = prepareImage(image);
       reserveTempImgBuffer(send_image->Size());
-      int img_buffer_size = 0;
+      size_t img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
       if (type != STREAM_SINGLE)

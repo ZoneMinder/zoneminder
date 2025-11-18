@@ -588,7 +588,7 @@ sub model {
   
   if (@_) {
     my $new = shift;
-    if ($new ne $$self{Model}->Name()) {
+    if ((!$$self{Model}) or ($new ne $$self{Model}->Name())) {
       $$self{Model} = ZoneMinder::Model->find_one(Name=>$new);
       if (!$$self{Model}) {
         $$self{Model} = new ZoneMinder::Model();

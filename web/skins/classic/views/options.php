@@ -25,36 +25,6 @@ if (!canView('System')) {
 
 $canEdit = canEdit('System');
 
-$tabs = array();
-if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
-$tabs['skins'] = translate('Display');
-$tabs['system'] = translate('System');
-$tabs['auth'] = translate('Authentication');
-$tabs['config'] = translate('Config');
-if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
-  $tabs['dnsmasq'] = translate('DHCP');
-}
-$tabs['API'] = translate('API');
-$tabs['servers'] = translate('Servers');
-$tabs['storage'] = translate('Storage');
-$tabs['web'] = translate('Web');
-$tabs['images'] = translate('Images');
-$tabs['logging'] = translate('Logging');
-$tabs['network'] = translate('Network');
-$tabs['mail'] = translate('Email');
-$tabs['upload'] = translate('Upload');
-$tabs['x10'] = translate('X10');
-$tabs['highband'] = translate('HighBW');
-$tabs['medband'] = translate('MediumBW');
-$tabs['lowband'] = translate('LowBW');
-$tabs['users'] = translate('Users');
-$tabs['groups'] = translate('Groups');
-$tabs['control'] = translate('Control');
-$tabs['privacy'] = translate('Privacy');
-$tabs['MQTT'] = translate('MQTT');
-$tabs['telemetry'] = translate('Telemetry');
-$tabs['version'] = translate('Versions');
-
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
 
 $focusWindow = true;
@@ -68,7 +38,7 @@ echo getNavBarHTML();
       <nav id="sidebar">
         <ul class="nav nav-pills flex-column">
 <?php
-foreach ($tabs as $name=>$value) {
+foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
   echo '<li class="nav-item form-control-sm mb-2 '.$name.'"><a class="nav-link'.($tab == $name ? ' active' : '').'" href="?view='.$view.'&amp;tab='.$name.'">'.$value.'</a></li>'.PHP_EOL;
 }
 ?>
@@ -76,7 +46,7 @@ foreach ($tabs as $name=>$value) {
       </nav>
       <div id="optionsContainer" class="col">
 <?php 
-if ($tab == 'skins') {
+if ($tab == 'display') {
 ?>
           <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -114,6 +84,23 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 ?>
                 </select>
                 <span class="form-text"><?php echo translate('CSSDescription'); ?></span>
+              </div>
+            </div>
+            <div class="form-group row">
+            <label for="navbar_type" class="col-sm-3 col-form-label"><?php echo translate('Navbar Type') ?></label>
+              <div class="col-sm-6">
+                <label for="navbar_type_normal">
+                  <input type="radio" name="navbar_type" value="normal" id="navbar_type_normal" <?php echo $navbar_type == 'normal' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Normal') ?>
+                </label> 
+                <label for="navbar_type_collapsed">
+                  <input type="radio" name="navbar_type" value="collapsed" id="navbar_type_collapsed" <?php echo $navbar_type == 'collapsed' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Collapsed') ?>
+                </label> 
+                <label for="navbar_type_left">
+                  <input type="radio" name="navbar_type" value="left" id="navbar_type_left" <?php echo $navbar_type == 'left' ? 'checked="checked"' : '' ?>/>
+                  <?php echo translate('Left') ?>
+                </label> 
               </div>
             </div>
           </form>

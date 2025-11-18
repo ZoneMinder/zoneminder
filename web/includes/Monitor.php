@@ -227,8 +227,9 @@ class Monitor extends ZM_Object {
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
-    'RTSP2WebType'   => 'HLS',
+    'DefaultPlayer' => '',
     'RTSP2WebStream'   => 'Primary',
+    'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -274,8 +275,10 @@ class Monitor extends ZM_Object {
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
-    'OutputCodec' =>  '0',
+    'OutputCodecName' =>  'auto',
     'Encoder'     =>  'auto',
+    'EncoderHWAccelName'  =>  null,
+    'EncoderHWAccelDevice'  =>  null,
     'OutputContainer' => null,
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
@@ -304,7 +307,7 @@ class Monitor extends ZM_Object {
     'EventCloseMode'    => 'system',
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
-    'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2 ],
+    'AnalysisFPSLimit'  =>  [ 'default'=>null, 'initial_default'=>2, 'type'=>'float' ],
     'AnalysisUpdateDelay'  =>  0,
     'MaxFPS' => null,
     'AlarmMaxFPS' => null,
@@ -341,6 +344,7 @@ class Monitor extends ZM_Object {
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
     'StartupDelay' => 0,
+    'initial_scale' => array('default'=>100, 'do_not_update'=>1),
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -492,7 +496,7 @@ class Monitor extends ZM_Object {
 
   public function __call($fn, array $args) {
     if (count($args)) {
-      if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {
+      if (is_array($this->defaults[$fn]) and isset($this->defaults[$fn]['type']) and $this->defaults[$fn]['type'] == 'set') {
         $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];
@@ -541,10 +545,7 @@ class Monitor extends ZM_Object {
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {
-    $streamSrc = $this->Server()->UrlToZMS(
-      ZM_MIN_STREAMING_PORT ?
-      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
-      null);
+    $streamSrc = $this->Server()->UrlToZMS(ZM_MIN_STREAMING_PORT ? ZM_MIN_STREAMING_PORT+$this->{'Id'} : null);
 
     $args['monitor'] = $this->{'Id'};
 
@@ -874,6 +875,7 @@ class Monitor extends ZM_Object {
     }
     return $this->Groups;
   }
+
   function connKey($new='') {
     if ($new)
       $this->connKey = $new;
@@ -1036,9 +1038,14 @@ class Monitor extends ZM_Object {
     }
     return $this->{'Manufacturer'};
   }
+
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+      <div class="stream-info">
+          <div class="stream-info-status"></div>
+          <div class="stream-info-mode"></div>
+      </div>
 <span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
@@ -1147,6 +1154,8 @@ class Monitor extends ZM_Object {
                 </div>
                 <div class="zoompan">';
 
+    $player = isset($options['player']) ? $options['player'] : $this->DefaultPlayer();
+
     if ($this->Type() == 'WebSite') {
       $html .= getWebSiteUrl(
         'liveStream'.$this->Id(), $this->Path(),
@@ -1164,7 +1173,13 @@ class Monitor extends ZM_Object {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH)) {
+    } else if ($player == 'zms') {
+      if ( $options['mode'] == 'stream' and canStream() ) {
+        $options['mode'] = 'jpeg';
+      }
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';
@@ -1402,5 +1417,11 @@ class Monitor extends ZM_Object {
     if (!$this->connect()) return false;
     return $this->shared_read('SharedData', 'last_event');
   }
+
+  public function getStreamMode() {
+    $streamMode = getStreamMode(); # from includs/functions.php
+    return $streamMode;
+  }
+
 } // end class Monitor
 ?>

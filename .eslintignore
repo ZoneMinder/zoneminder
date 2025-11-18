@@ -1,9 +1,12 @@
 *.min.js
+eslint.config.js
 
 # libraries
 web/api/lib
 web/includes/csrf/
 web/js/videojs.zoomrotate.js
+web/js/video-stream.js
+web/js/video-rtc.js
 web/js/fontfaceobserver.standalone.js
 web/skins/classic/js/bootstrap-4.5.0.js
 web/skins/classic/js/bootstrap.bundle.min.js
@@ -18,7 +21,8 @@ web/skins/classic/js/video.js
 web/skins/classic/assets
 web/js/janus.js
 web/js/ajaxQueue.js
-web/js/hls-1.5.20/
+web/js/hls-1.6.13/
+web/js/noUiSlider-15.8.1/
 web/js/dms.js
 
 # Cannot be parsed as JS

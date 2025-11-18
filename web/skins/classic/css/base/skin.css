@@ -26,6 +26,10 @@
   --sliderBG: #C1C1C1;
   --alarmBG: #FFC0C0;
   --alarmText: inherit;
+  --backgroundMediumDark: #485460;
+  --colorLink: #3498db;
+  --colorBackgroundButtons: #3498db;
+  --colorBorder: #3498db;
 }
 
 html,
@@ -86,6 +90,10 @@ th {
 }
 */
 
+table thead {
+  z-index: 10;
+}
+
 .thead-highlight {
   background-color:#dfe4ea;
 }
@@ -104,7 +112,7 @@ a {
 
 a.optionhelp,
 a:link {
-    color: #3498db;
+    color: var(--colorLink);
     text-decoration: none;
 }
 
@@ -191,8 +199,8 @@ hr {
     height: 1px;
     width: 100%;
     border: 0;
-    color: #3498db;
-    background-color: #3498db;
+    color: var(--colorLink);
+    background-color: var(--colorBackgroundButtons);
 }
 
 /*
@@ -620,9 +628,9 @@ input[type=button],
 input[type=submit],
 .btn-primary,
 .btn-primary:link {
-    background-color: #3498db;
+    background-color: var(--colorBackgroundButtons);
     color: #fff;
-    border-color: #3498db;
+    border-color: var(--colorBorder);
     text-transform: uppercase;
     font-weight: 200;
     padding: 7px 10px 5px 10px;
@@ -632,12 +640,15 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+.btn-term-remove-all button {
+  padding: 4px 10px;
+}
 
 .btn-normal,
 .btn-normal:link {
     color: #fff;
-    background-color: #3498db;
-    border: 1px solid #3498db;
+    background-color: var(--colorBackgroundButtons);
+    border: 1px solid var(--colorBorder);
 }
 
 button:hover,
@@ -664,7 +675,7 @@ input[type=submit]:disabled,
   padding: 0;
   display: flex;
   justify-content: space-between;
-	background-color:#485460 !important;
+  background-color: var(--backgroundMediumDark) !important;
 }
 
 #navbar-container > nav {
@@ -684,20 +695,20 @@ input[type=submit]:disabled,
 
 .navbar {
   padding: 0 0 0 0px;
-	margin-bottom: 0 !important;
-	border-radius: 0;
-	background-color:#485460 !important;
-	color: #0fbcf9;
-	border:none;
+  margin-bottom: 0 !important;
+  border-radius: 0;
+  background-color: var(--backgroundMediumDark) !important;
+  color: #0fbcf9;
+  border:none;
 }
 
 .navbar-brand {
   margin-left: 15px;
-	font-weight: normal;
-	font-size: 30px;
+  font-weight: normal;
+  font-size: 30px;
 }
 .navbar-brand a {
-color:#ffa801;
+  color:#ffa801;
 }
 @media (max-width: 600px){
   .navbar-brand {
@@ -706,10 +717,16 @@ color:#ffa801;
   .navbar-nav {
     flex-direction: row;
   }
-  .navbar-nav .nav-link {
+  .navbar-nav .nav-link,
+  #getHeaderFlipHTML a,
+  {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+}
+#getHeaderFlipHTML a {
+  display: block;
+  padding: .5rem 1rem;
 }
 
 .navbar-btn {
@@ -827,11 +844,11 @@ li.search-choice {
 #dropdown_storage+div,
 #dropdown_reminder+div,
 #dropdown_bandwidth+div {
-  background-color:#485460;
+  background-color: var(--backgroundMediumDark);
 }
 
 #framesTable td:hover {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .zoom,
@@ -913,7 +930,10 @@ a.flip {
   clear: both;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   position: relative;
   background-color: #FFFFFF;
 }
@@ -1205,6 +1225,227 @@ button.btn.btn-view-watch:hover {
     right: 10px;
     min-width: 200px;
   }
+}
+
+/* +++ Style for <input> +++ */
+@supports (-webkit-appearance: none) or (-moz-appearance: none) {
+  input[type='checkbox'], input[type='radio'] {
+    --active: #3498db;
+    --active-inner: #eee;
+    --focus: 2px rgba(39, 94, 254, 0.3);
+    --border: #3498db;
+    --border-hover: #3498db;
+    --background: #eee;
+    --disabled: #F6F8FF;
+    --disabled-inner: #E1E6F9;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    /*height: 21px;*/
+    height: 18px;
+    outline: none;
+    display: inline-block;
+    vertical-align: top;
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+    border: 1px solid var(--bc, var(--border));
+    background: var(--b, var(--background));
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+  }
+  input[type='checkbox']:after, input[type='radio']:after {
+    content: '';
+    display: block;
+    left: 0;
+    top: 0;
+    position: absolute;
+    transition: transform var(--d-t, 0.3s) var(--d-t-e, ease), opacity var(--d-o, 0.2s);
+  }
+  input[type='checkbox']:checked, input[type='radio']:checked {
+    --b: var(--active);
+    --bc: var(--active);
+    --d-o: 0.3s;
+    --d-t: 0.6s;
+    --d-t-e: cubic-bezier(0.2, 0.85, 0.32, 1.2);
+  }
+  input[type='checkbox']:disabled, input[type='radio']:disabled {
+    --b: var(--disabled);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+  input[type='checkbox']:disabled:checked, input[type='radio']:disabled:checked {
+    --b: var(--disabled-inner);
+    --bc: var(--border);
+  }
+  input[type='checkbox']:disabled + label, input[type='radio']:disabled + label {
+    cursor: not-allowed;
+  }
+  input[type='checkbox']:hover:not(:checked):not(:disabled), input[type='radio']:hover:not(:checked):not(:disabled) {
+    --bc: var(--border-hover);
+  }
+  input[type='checkbox']:focus, input[type='radio']:focus {
+    box-shadow: 0 0 0 var(--focus);
+  }
+  input[type='checkbox']:not(.input-switch), input[type='radio']:not(.input-switch) {
+    /*width: 21px;*/
+    width: 18px;
+  }
+  input[type='checkbox']:not(.input-switch):after, input[type='radio']:not(.input-switch):after {
+    opacity: var(--o, 0);
+  }
+  input[type='checkbox']:not(.input-switch):checked, input[type='radio']:not(.input-switch):checked {
+    --o: 1;
+  }
+  input[type='checkbox'] + label, input[type='radio'] + label {
+    font-size: 14px;
+    line-height: 21px;
+    display: inline-block;
+    vertical-align: top;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  input[type='checkbox']:not(.input-switch) {
+    border-radius: .2rem;
+  }
+  input[type='checkbox']:not(.input-switch):after {
+    width: 5px;
+    height: 9px;
+    border: 2px solid var(--active-inner);
+    border-top: 0;
+    border-left: 0;
+    /*left: 7px;*/
+    left: 6px;
+    /*top: 4px;*/
+    top: 2px;
+    transform: rotate(var(--r, 20deg));
+  }
+  input[type='checkbox']:not(.input-switch):checked {
+    --r: 43deg;
+  }
+  input[type='checkbox'].input-switch {
+    width: 38px;
+    border-radius: 11px;
+  }
+  input[type='checkbox'].input-switch:after {
+    left: 2px;
+    top: 2px;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    background: var(--ab, var(--border));
+    transform: translateX(var(--x, 0));
+  }
+  input[type='checkbox'].input-switch:checked {
+    --ab: var(--active-inner);
+    --x: 17px;
+  }
+  input[type='checkbox'].input-switch:disabled:not(:checked):after {
+    opacity: 0.6;
+  }
+  input[type='radio'] {
+    border-radius: 50%;
+  }
+  input[type='radio']:after {
+    position: static;
+    /*width: 19px;*/
+    width: 16px;
+    /*height: 19px;*/
+    height: 16px;
+    border-radius: 50%;
+    background: var(--active-inner);
+    opacity: 0;
+    transform: scale(var(--s, 0.7));
+  }
+  input[type='radio']:checked {
+    --s: 0.5;
+  }
+}
+/* --- Style for <input> --- */
+
+/* +++ Volume сontrol +++ */
+.audio-control-mute {
+  position: relative;
+  cursor: pointer;
+  color: var(--colorBackgroundButtons);
+  /*color: #DDD;
+  float: right;
+  right: 3px;
+  margin: 5px;*/
+}
+
+.volumeSlider {
+  position: relative;
+  width: 80px;
+  display: inline-block;
+  margin: 0 10px 0 10px;
+  /*float: right;
+  right: 15px;
+  margin-top: 10px;*/
+}
+
+.noUi-target {
+  /*border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+}
+
+.noUi-base, .noUi-touch-area {
+  cursor: pointer;
+}
+
+.noUi-base .noUi-connect {
+  background: var(--colorBackgroundButtons);
+}
+
+.noUi-mute .noUi-connect {
+  background: #ccc;
+}
+
+.noUi-round {
+  height: 10px;
+}
+
+.noUi-handle:before, .noUi-handle:after {
+  height: 5px;
+}
+
+.noUi-round .noUi-connects {
+  /*background: #c0392b;*/
+}
+
+.noUi-round .noUi-handle {
+  height: 18px;
+  width: 18px;
+  top: -5px;
+  right: -9px; /* half the width */
+  border-radius: 9px;
+}
+/* --- Volume сontrol --- */
+
+video-stream {
+  position: relative;
+}
+.stream-info {
+  /*
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  */
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.stream-info-status:empty, .stream-info-mode:empty {
+  padding:0;
+}
+
+.stream-info-status, .stream-info-mode {
+  /*
+  background-color: rgba(0,0,0,0.3);
+  color: #dddddd;
+  padding: 0.3em;
+  */
 }
 
 /* +++ This block should always be located at the end! */

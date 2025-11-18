@@ -25,6 +25,7 @@
 extern "C" {
 
 #define MAX_JPEG_ERRS 25
+#define MAX_JPEG_ERR_MULT 10   /* ratio of acceptable frame errors without a fatal error */
 
   static int jpeg_err_count = 0;
 
@@ -43,8 +44,10 @@ extern "C" {
     zmerr->pub.format_message(cinfo, buffer);
 
     Error("%s", buffer);
-    if (++jpeg_err_count == MAX_JPEG_ERRS) {
-      Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count);
+
+    jpeg_err_count += MAX_JPEG_ERR_MULT;
+    if (jpeg_err_count >= ( MAX_JPEG_ERRS * MAX_JPEG_ERR_MULT )) {
+      Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count / MAX_JPEG_ERR_MULT);
     }
 
     longjmp(zmerr->setjmp_buffer, 1);
@@ -81,7 +84,7 @@ extern "C" {
     struct jpeg_destination_mgr pub; /* public fields */
 
     JOCTET *outbuffer;    /* target buffer */
-    int   *outbuffer_size;
+    size_t   *outbuffer_size;
     JOCTET *buffer;    /* start of buffer */
   } mem_destination_mgr;
 
@@ -167,7 +170,7 @@ extern "C" {
    * for closing it after finishing compression.
    */
 
-  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size) {
+  void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, size_t *outbuffer_size) {
     mem_dest_ptr dest;
 
     /* The destination object is made permanent so that multiple JPEG images
@@ -332,7 +335,7 @@ extern "C" {
    * for closing it after finishing decompression.
    */
 
-  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size) {
+  void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, size_t inbuffer_size) {
     mem_src_ptr src;
 
     /* The source object and input buffer are made permanent so that a series
@@ -350,7 +353,7 @@ extern "C" {
       src->inbuffer_size_hwm = inbuffer_size;
     } else {
       src = (mem_src_ptr) cinfo->src;
-      if ( src->inbuffer_size_hwm < inbuffer_size ) {
+      if ( static_cast<size_t>(src->inbuffer_size_hwm) < inbuffer_size ) {
         src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
         src->inbuffer_size_hwm = inbuffer_size;
       }
@@ -366,6 +369,9 @@ extern "C" {
     src->inbuffer_size = inbuffer_size;
     src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
     src->pub.next_input_byte = nullptr; /* until buffer loaded */
+
+    /* Decrement the error count slowly when processing ok otherwise occasional frame errors build up to a zmc exit */
+    if (jpeg_err_count > 0) jpeg_err_count--; else jpeg_err_count = 0;
   }
 
   void zm_use_std_huff_tables(j_decompress_ptr cinfo) {

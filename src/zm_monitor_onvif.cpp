@@ -105,7 +105,14 @@ void Monitor::ONVIF::start() {
 
       if (rc != SOAP_OK) {
         const char *detail = soap_fault_detail(soap);
-        Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
+        if (rc > 8) {
+          Error("ONVIF Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(),
+              rc, soap_fault_string(soap), detail ? detail : "null");
+        } else {
+          Error("ONVIF Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+              rc, SOAP_STRINGS[rc].c_str(),
+              soap_fault_string(soap), detail ? detail : "null");
+        }
 
         std::stringstream ss;
         std::ostream *old_stream = soap->os;
@@ -200,11 +207,10 @@ void Monitor::ONVIF::WaitForMessage() {
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
-      Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
-          result, soap_fault_string(soap), detail ? detail : "null");
 
       if (result != SOAP_EOF) { //Ignore the timeout error
-        Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
+        Error("Failed to get ONVIF messages! result=%d soap_fault_string=%s detail=%s",
+            result, soap_fault_string(soap), (detail ? detail : "null"));
 
         std::ostream *old_stream = soap->os;
         std::stringstream ss;
@@ -217,6 +223,8 @@ void Monitor::ONVIF::WaitForMessage() {
 
         // healthy = false;
       } else {
+        Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
+            result, soap_fault_string(soap), detail ? detail : "null");
         // EOF
         std::unique_lock<std::mutex> lck(alarms_mutex);
 
@@ -228,7 +236,7 @@ void Monitor::ONVIF::WaitForMessage() {
         }
       }
     } else {
-      Debug(1, "ONVIF polling : Got Good Response! %i", result);
+      Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
 
@@ -241,7 +249,6 @@ void Monitor::ONVIF::WaitForMessage() {
 
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr) &&
-              (parent->onvif_alarm_txt.empty() || std::strstr(msg->Topic->__any.text, parent->onvif_alarm_txt.c_str())) &&
               (msg->Message.__any.elts != nullptr) &&
               (msg->Message.__any.elts->next != nullptr) &&
               (msg->Message.__any.elts->next->elts != nullptr) &&
@@ -249,40 +256,46 @@ void Monitor::ONVIF::WaitForMessage() {
               (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
               (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
              ) {
-            last_topic = msg->Topic->__any.text;
-            last_value = msg->Message.__any.elts->next->elts->atts->next->text;
-            Info("ONVIF Got Motion Alarm! %s %s", last_topic.c_str(), last_value.c_str());
-            // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
-            if (last_value.find("false") == 0) {
-              Info("Triggered off ONVIF");
-              alarms.erase(last_topic);
-              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
-              if (alarms.empty()) {
-                alarmed = false;
-              }
-              if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-                parent->Event_Poller_Closes_Event = true;
-                Info("Setting ClosesEvent");
-              }
-            } else {
-              // Event Start
-              Info("Triggered Start on ONVIF");
-              if (alarms.count(last_topic) == 0) {
-                alarms[last_topic] = last_value;
-                if (!alarmed) {
-                  Info("Triggered Start Event on ONVIF");
-                  alarmed = true;
+            std::string topic = msg->Topic->__any.text;
+            std::string value = msg->Message.__any.elts->next->elts->atts->next->text;
+
+            Debug(1, "ONVIF Got Motion Alarm! %s %s", last_topic.c_str(), last_value.c_str());
+            if (parent->onvif_alarm_txt.empty() || std::strstr(topic.c_str(), parent->onvif_alarm_txt.c_str())) {
+              last_topic = topic;
+              last_value = value;
+
+              Info("ONVIF Got Motion Alarm! topic:%s value:%s", last_topic.c_str(), last_value.c_str());
+              // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
+              if (last_value.find("false") == 0 || last_value == "0") {
+                Info("Triggered off ONVIF");
+                alarms.erase(last_topic);
+                Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
+                if (alarms.empty()) {
+                  alarmed = false;
+                }
+                if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
+                  parent->Event_Poller_Closes_Event = true;
+                  Info("Setting ClosesEvent");
                 }
               } else {
+                // Event Start
+                Info("Triggered Start on ONVIF");
+                if (alarms.count(last_topic) == 0) {
+                  alarms[last_topic] = last_value;
+                  if (!alarmed) {
+                    Info("Triggered Start Event on ONVIF");
+                    alarmed = true;
+                  }
+                } else {
 
+                }
               }
+              Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+            } else {
+              Debug(1, "ONVIF Got a message that didn't match onvif_alarm_txt. %s != %s", topic.c_str(), parent->onvif_alarm_txt.c_str());
             }
-            Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
           } else {
-            Debug(1, "ONVIF Got a message that we couldn't parse.  onvif_alarm_txt is %s", parent->onvif_alarm_txt.c_str());
-            if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr)) {
-              Debug(1, "text was %s", msg->Topic->__any.text);
-            }
+            Debug(1, "ONVIF Got a message that we couldn't parse.  %s", ((msg->Topic && msg->Topic->__any.text) ? msg->Topic->__any.text : "null"));
           }
         }  // end foreach msg
       } // end scope for lock
@@ -326,7 +339,10 @@ void Monitor::ONVIF::WaitForMessage() {
 void Monitor::ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, "Time", 10);
-  soap_wsse_add_UsernameTokenDigest(soap, "Auth", parent->onvif_username.c_str(), parent->onvif_password.c_str());
+  soap_wsse_add_UsernameTokenDigest(soap, "Auth", 
+      (parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str()),
+      (parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str())
+      );
 }
 
 //GSOAP boilerplate

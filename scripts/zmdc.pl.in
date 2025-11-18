@@ -162,6 +162,9 @@ if (!$server_up) {
     use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
     my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
     my @cpuload = $server->CpuLoad();
+    my $in_transaction = ZoneMinder::Database::start_transaction($dbh);
+    $server->lock_and_load(); # get fresh other values
+
     if ($_=$server->save({Status=>'NotRunning',
           CpuLoad=>$cpuload[0],
           TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
@@ -169,6 +172,8 @@ if (!$server_up) {
         })) {
       Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
+
+    ZoneMinder::Database::end_transaction($dbh, $in_transaction); 
   }
 # Server is not up.  Some commands can still be handled
   if ( $command eq 'logrot' ) {
@@ -323,6 +328,9 @@ sub run {
         }
         last if $zm_terminate;
 
+        my $in_transaction = ZoneMinder::Database::start_transaction($dbh);
+        $server->lock_and_load(); # get fresh other values
+
         my @cpuload = $server->CpuLoad();
         my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
         if ($_=$server->save({Status=>'Running',
@@ -331,6 +339,7 @@ sub run {
             })) {
           Error('Failed Updating status of Server record to Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
         }
+        ZoneMinder::Database::end_transaction($dbh, $in_transaction); 
       }
       $secs_count += 1;
     }
@@ -396,11 +405,15 @@ sub run {
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
   if ($Config{ZM_SERVER_ID}) {
+
     $dbh = zmDbConnect() if ! ($dbh and $dbh->ping());
     my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+    my $in_transaction = ZoneMinder::Database::start_transaction($dbh);
+    $server->lock_and_load(); # get fresh other values
     if ($_=$server->save({Status=>'NotRunning'})) {
       Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
+    ZoneMinder::Database::end_transaction($dbh, $in_transaction); 
   }
   shutdownAll();
 }

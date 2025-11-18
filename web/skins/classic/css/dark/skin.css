@@ -25,6 +25,7 @@
   --scrollbarBG: #CFD8DC;
   --sliderBG: #95AFC0;
   --alarmBG: #352424;
+  --backgroundMediumDark: #485460;
 }
 
 body {
@@ -243,10 +244,10 @@ li.search-choice {
     background-image: none !important;
 }
 
-.chosen-container-multi .chosen-choices {
-  border-color: var(--gray);
-}
-
+.table-bordered, 
+.chosen-container-single .chosen-single,
+.chosen-container-multi .chosen-choices,
+.chosen-container-multi .chosen-choices li.search-choice,
 .chosen-container-active .chosen-choices {
   border-color: var(--gray);
 }
@@ -259,6 +260,10 @@ li.search-choice {
 
 .chosen-container-active .chosen-choices li.search-field input[type=text] {
   color: inherit !important;
+}
+
+.chosen-container .chosen-results li.disabled-result {
+  color: #888;
 }
 /* end chosen override */
 
@@ -290,7 +295,7 @@ ul.nav.nav-pills.flex-column {
   background:#444444;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
   background-color: #222222;
 }
 

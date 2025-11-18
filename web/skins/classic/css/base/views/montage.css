@@ -20,6 +20,7 @@
 
 #monitors .grid-stack-item .imageFeed img ,
 #monitors .grid-stack-item .imageFeed video ,
+#monitors .grid-stack-item .imageFeed video-stream ,
 #monitors .grid-stack-item .imageFeed svg {
   border: none;
   display: inline-block;
@@ -33,7 +34,6 @@
 
 .monitorStream {
   position: relative;
-  #overflow: auto;
   display: grid;
 }
 
@@ -43,7 +43,6 @@
 }
 
 .monitorStream, .monitor {
-  #height: 100%;
 }
 
 #monitors .monitorStatus {

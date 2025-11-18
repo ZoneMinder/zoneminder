@@ -49,6 +49,7 @@ class PacketQueue {
   int warned_count;
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
+  int frames_since_last_keyframe_;
 
  public:
   PacketQueue();

@@ -1,0 +1,6 @@
+Source: https://github.com/azouaoui-med/pro-sidebar-template
+Since the source has not changed since the beginning of 2023, IgorA100 decided to make small local changes to the code.
+Make all changes ONLY to files in the ./src folder
+Then build with the ./build.sh command
+The ./dist folder will contain the minimized files for PRODUCT mode
+The ./dist_dev folder will contain the files for DEVELOP mode

@@ -127,36 +127,72 @@ bool User::canAccess(int monitor_id) {
   return (monitors != PERM_NONE);
 }
 
-// Function to load a user from username and password
-// Please note that in auth relay mode = none, password is NULL
-User *zmLoadUser(const std::string &username, const std::string &password) {
+User *User::find(const std::string &username) {
   std::string escaped_username = zmDbEscapeString(username);
 
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
                              " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
                              escaped_username.c_str());
-
   MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    return nullptr;
-
-  if ( mysql_num_rows(result) == 1 ) {
+  if (result && mysql_num_rows(result) == 1 ) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
+    mysql_free_result(result);
+    return user;
+  }
+  return nullptr;
+}
 
-    if (
+User *User::find(int id) {
+  std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
+                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+                             " FROM `Users` WHERE `Id` = %d AND `Enabled` = 1",
+                             id);
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (result && mysql_num_rows(result) == 1 ) {
+    MYSQL_ROW dbrow = mysql_fetch_row(result);
+    User *user = new User(dbrow);
+    mysql_free_result(result);
+    return user;
+  }
+  return nullptr;
+}
+
+std::string User::getAuthHash() {
+  SystemTimePoint now = std::chrono::system_clock::now();
+  time_t now_t = std::chrono::system_clock::to_time_t(now);
+  tm now_tm = {};
+  localtime_r(&now_t, &now_tm);
+  std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
+      config.auth_hash_secret,
+      username,
+      password,
+      (config.auth_hash_ips ? "127.0.0.1" : ""),
+      now_tm.tm_hour,
+      now_tm.tm_mday,
+      now_tm.tm_mon,
+      now_tm.tm_year);
+  Debug(1, "Creating auth_key '%s'", auth_key.c_str());
+
+  zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
+  return ByteArrayToHexString(md5_digest);
+}
+
+// Function to load a user from username and password
+// Please note that in auth relay mode = none, password is NULL
+User *zmLoadUser(const std::string &username, const std::string &password) {
+  User *user = User::find(username);
+  if (!user) return nullptr;
+
+  if (
       (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
       ||
       verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
-      mysql_free_result(result);
-      Debug(1, "Authenticated user '%s'", user->getUsername());
-      return user;
-    }
-    delete user;
-  }  // end if 1 result from db
-  mysql_free_result(result);
-
+    Debug(1, "Authenticated user '%s'", user->getUsername());
+    return user;
+  }
+  delete user;
   Warning("Unable to authenticate user %s", username.c_str());
   return nullptr;
 }  // end User *zmLoadUser(const char *username, const char *password)

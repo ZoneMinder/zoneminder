@@ -99,6 +99,7 @@ if ($action == 'save') {
       'Deleted' => 0,
       'DecodingEnabled' => 0,
       'RTSP2WebEnabled' => 0,
+      'Go2RTCEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Janus_Use_RTSP_Restream' => 0,
@@ -296,7 +297,7 @@ if ($action == 'save') {
 
     $saferName = basename($newMonitor['Name']);
     $link_path = $Storage->Path().'/'.$saferName;
-    if (!@symlink($mid, $link_path)) {
+    if (($saferName != $newMonitor['Name']) and !@symlink($mid, $link_path)) {
       if (!(file_exists($link_path) and is_link($link_path))) {
         ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
       }

@@ -323,7 +323,7 @@ function editableMonitor($mid) {
   if (isset($monitor_permissions[$mid]) and 
     ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View')
   ) {
-    ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
+    //ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
     return false;
   }
 
@@ -334,13 +334,13 @@ function editableMonitor($mid) {
   # If denied view in any group, then can't view it.
   foreach ($group_permissions as $permission) {
     $perm_value = $permission->MonitorPermission($mid);
-    ZM\Debug("Have group permission $perm_value");
+    //ZM\Debug("Have group permission $perm_value");
     if ($perm_value == 'Edit') {
       return true;
     }
   }
 
-  ZM\Debug("Monitors permission is ".$user->Monitors());
+  #ZM\Debug("Monitors permission is ".$user->Monitors());
   return (($user->Monitors() == 'Edit') || ($user->Monitors() == 'Create'));
 }
 
@@ -390,7 +390,11 @@ function get_auth_relay() {
       // password probably needs to be escaped
       return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
-      return 'username='.$_SESSION['username'];
+      if (isset($_SESSION['username'])) {
+        return 'username='.$_SESSION['username'];
+      } else {
+        ZM\Warning("ZM_AUTH_RELAY==none but there is no username in session.");
+      }
     } else {
       ZM\Error('Unknown value for ZM_AUTH_RELAY ' . ZM_AUTH_RELAY);
     }

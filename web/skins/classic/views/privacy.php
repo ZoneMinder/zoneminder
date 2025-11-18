@@ -31,8 +31,9 @@ $options = array(
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Privacy'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Privacy') ?></h2>

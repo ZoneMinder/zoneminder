@@ -76,12 +76,12 @@ override_dh_auto_install:
 	# remove extra-license-file:
 	$(RM) -v $(CURDIR)/debian/tmp/usr/share/zoneminder/www/api/lib/Cake/LICENSE.txt
 
-override_dh_fixperms:
-	dh_fixperms
+#override_dh_fixperms:
+	#dh_fixperms
 	#
 	# As requested by the Debian Webapps Policy Manual §3.2.1
-	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
-	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	#chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	#chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 
 override_dh_installinit:
 	dh_installinit --no-start

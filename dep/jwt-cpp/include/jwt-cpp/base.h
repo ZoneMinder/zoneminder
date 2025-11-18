@@ -39,7 +39,7 @@ namespace jwt {
 				return data;
 			}
 			static const std::string& fill() {
-				static std::string fill{"="};
+				static const std::string fill{"="};
 				return fill;
 			}
 		};
@@ -62,7 +62,7 @@ namespace jwt {
 				return data;
 			}
 			static const std::string& fill() {
-				static std::string fill{"%3d"};
+				static const std::string fill{"%3d"};
 				return fill;
 			}
 		};
@@ -82,8 +82,8 @@ namespace jwt {
 						 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '_'}};
 					return data;
 				}
-				static const std::initializer_list<std::string>& fill() {
-					static std::initializer_list<std::string> fill{"%3D", "%3d"};
+				static const std::vector<std::string>& fill() {
+					static const std::vector<std::string> fill{"%3D", "%3d"};
 					return fill;
 				}
 			};

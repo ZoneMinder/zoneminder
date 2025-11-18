@@ -212,7 +212,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -440,6 +440,11 @@ switch ( $_REQUEST['layout'] ) {
   case 'json' :
     {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
+      if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+        $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+        $response['auth'] = $auth_hash;
+        $response['auth_relay'] = get_auth_relay();
+      }
       if ( isset($_REQUEST['loopback']) )
         $response['loopback'] = validJsStr($_REQUEST['loopback']);
         #ZM\Warning(print_r($response, true));
@@ -504,40 +509,29 @@ function getNearEvents() {
   $filter_sql = $filter->sql();
 
   # When listing, it may make sense to list them in descending order.
-  # But when viewing Prev should timewise earlier and Next should be after.
+  # But when viewing Prev should be timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
 
   $sql = '
-  SELECT 
-    E.Id 
-      AS Id, 
-    E.StartDateTime 
-      AS StartDateTime 
-  FROM Events 
-    AS E 
-  INNER JOIN Monitors 
-    AS M 
-    ON E.MonitorId = M.Id 
-  LEFT JOIN Events_Tags 
-    AS ET 
-    ON E.Id = ET.EventId 
-  LEFT JOIN Tags 
-    AS T 
-    ON T.Id = ET.TagId 
-  WHERE '.$sortColumn.' 
+  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+  FROM Events AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId
+  WHERE E.Id != ? AND '.$sortColumn.'
   '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql .= ' AND E.StartDateTime <= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -546,34 +540,23 @@ function getNearEvents() {
   $prevEvent = dbFetchNext($result);
 
   $sql = '
-  SELECT 
-    E.Id 
-      AS Id, 
-    E.StartDateTime 
-      AS StartDateTime 
-  FROM Events 
-    AS E 
-  INNER JOIN Monitors 
-    AS M 
-    ON E.MonitorId = M.Id 
-  LEFT JOIN Events_Tags 
-    AS ET 
-    ON E.Id = ET.EventId 
-  LEFT JOIN Tags 
-    AS T 
-    ON T.Id = ET.TagId 
-  WHERE '.$sortColumn.' 
+  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+  FROM Events AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId
+  WHERE E.Id != ? AND '.$sortColumn.'
   '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .= ' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql .= ' AND E.StartDateTime >= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

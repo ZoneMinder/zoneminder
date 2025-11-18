@@ -47,9 +47,6 @@ define('ZM_BASE_PROTOCOL', $protocol);
 // Absolute URL's are unnecessary and break compatibility with reverse proxies 
 // define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );
 
-// Use relative URL's instead
-define('ZM_BASE_URL', '');
-
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   ZM\Debug('OPTIONS Method, only doing CORS');
@@ -58,7 +55,9 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-if ( isset($_GET['skin']) ) {
+if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
+  $skin = ZM_FORCE_SKIN_DEFAULT;
+} else if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
 } else if ( isset($_COOKIE['zmSkin']) ) {
   $skin = $_COOKIE['zmSkin'];
@@ -76,7 +75,9 @@ if (!is_dir('skins/'.$skin) ) {
   }
 }
 global $css;
-if ( isset($_GET['css']) ) {
+if (defined('ZM_FORCE_CSS_DEFAULT')) {
+  $css = ZM_FORCE_CSS_DEFAULT;
+} else if ( isset($_GET['css']) ) {
   $css = $_GET['css'];
 } else if ( isset($_COOKIE['zmCSS']) ) {
   $css = $_COOKIE['zmCSS'];
@@ -207,13 +208,16 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
     exit;
   }
   $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  $redirect = '?view=login';
   zm_session_start();
   $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
   session_write_close();
+  ZM\Debug("Redirecting to $redirect");
+  header('Location: '.$redirect);
+  return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
+  $redirect = '?view=privacy';
   $request = null;
 }
 
@@ -246,8 +250,16 @@ if ( $request ) {
   return;
 }
 
+if (!$view) {
+  ZM\Debug(1, "Empty view, defaulting to home view");
+  $view = getHomeView();
+  header('Location: ?view='.$view);
+  return;
+}
+
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));
+
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
   CSPHeaders($view, $cspNonce);

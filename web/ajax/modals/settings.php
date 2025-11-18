@@ -1,12 +1,19 @@
 <?php
-if (!canView('Control')) return;
+if (!canView('Control')) {
+  return;
+}
 
 $mid = validCardinal($_REQUEST['mid']);
-if (!$mid) return;
+if (!$mid) {
+  ZM\Warning('Invalid mid '.$_REQUEST['mid']. ' != '.$mid);
+  return;
+}
 
 $monitor = ZM\Monitor::find_one(array('Id'=>$mid));
-if (!$monitor) return;
-
+if (!$monitor) {
+  ZM\Warning("Monitor $mid not found.");
+  return;
+}
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($mid).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
 if ($zmuOutput) {

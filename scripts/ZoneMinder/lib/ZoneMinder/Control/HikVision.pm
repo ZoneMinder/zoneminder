@@ -39,7 +39,7 @@ our @ISA = qw(ZoneMinder::Control);
 #
 # Set the following:
 # ControlAddress: username:password@camera_webaddress:port
-# ControlDevice: IP Camera Model
+# ControlDevice: IP Camera Model or Device 1
 #
 # ==========================================================================
 
@@ -51,27 +51,24 @@ use LWP::UserAgent;
 use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
+use Data::Dumper;
+#use Crypt::Mode::CBC;
+#use Crypt::Cipher::AES;
 
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
 my $uri;
-my ($user, $pass, $host, $port, $realm) = ();
 
-sub credentials {
-  my $self = shift;
-  ($user, $pass) = @_;
-Debug("Setting credentials to $user/$pass");
-}
 
 sub open {
   my $self = shift;
   $self->loadMonitor();
-  $port = 80;
+  $$self{port} = 80;
 
   # Create a UserAgent for the requests
-  $self->{UA} = LWP::UserAgent->new();
-  $self->{UA}->cookie_jar( {} );
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->cookie_jar( {} );
 
   # Extract the username/password host/port from ControlAddress
   if ($self->{Monitor}{ControlAddress} 
@@ -81,107 +78,68 @@ sub open {
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
     Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
-    if ($self->{Monitor}{ControlAddress} =~ /^([^:]+):([^@]+)@(.+)/ ) { # user:pass@host...
-      $user = $1 if !$user;
-      $pass = $2 if !$pass;
-      $host = $3;
-    } elsif ( $self->{Monitor}{ControlAddress} =~ /^([^@]+)@(.+)/ ) { # user@host...
-      $user = $1 if !$user;
-      $host = $2;
-    } else { # Just a host
-      $host = $self->{Monitor}{ControlAddress};
+    $uri = URI->new($self->{Monitor}->{ControlAddress});
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $$self{host} = $uri->host();
+    if ( $uri->userinfo()) {
+      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
     }
     # Check if it is a host and port or just a host
-    if ( $host =~ /([^:]+):(.+)/ ) {
-      $host = $1;
-      $port = $2 ? $2 : $port;
+    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
+      $$self{host} = $1;
+      $$self{port} = $2 ? $2 : $$self{port};
     }
   } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
 Debug("Have " . $+{PASSWORD});
-      $user = $+{USERNAME} if $+{USERNAME} and !$user;
-      $pass = $+{PASSWORD} if $+{PASSWORD} and !$pass;
-      $host = $+{ADDRESS} if $+{ADDRESS};
+      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
+      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
-      $host = $+{ADDRESS} if $+{ADDRESS};
-      $user = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$user;
-      $pass = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$pass;
+      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
+      $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
     } else {
-      $user = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$user;
-      $pass = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$pass;
+      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
     }
     $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
     $uri->path('');
-    $host = $uri->host();
+    $$self{host} = $uri->host();
   } else {
     Debug('Not using credentials');
   }
   # Save the base url
-  $self->{BaseURL} = "http://$host:$port";
+  $self->{BaseURL} = "http://$$self{host}:$$self{port}";
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} =~ /^\d+$/;
+  $$self{realm} = defined($self->{Monitor}->{ControlDevice}) ? $self->{Monitor}->{ControlDevice} : '';
 
-  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice};
-  $realm = '';
-
-  if (defined($user)) {
-    Debug("Credentials: $host:$port, realm:$realm, $user, $pass");
-    $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
+  # Save and test the credentials
+  if (defined($$self{username})) {
+    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, $$self{username}, $$self{password}");
+    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } # end if defined user
 
-  my $url = $self->{BaseURL} .'/ISAPI/Streaming/channels/101';
-  my $response = $self->get($url);
-  if ($response->status_line() eq '401 Unauthorized' and defined $user) {
-    my $headers = $response->headers();
-    foreach my $k ( keys %$headers ) {
-      Debug("Initial Header $k => $$headers{$k}");
-    }
-
-    if ( $$headers{'www-authenticate'} ) {
-      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
-        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
-        Debug("Have tokens $auth $tokens");
-        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
-        if ( $tokens{realm} ) {
-          if ( $realm ne $tokens{realm} ) {
-            $realm = $tokens{realm};
-            Debug("Changing REALM to $realm");
-            $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
-            $response = $self->{UA}->get($url);
-            if ( !$response->is_success() ) {
-              Debug('Authentication still failed after updating REALM' . $response->status_line);
-              $headers = $response->headers();
-              foreach my $k ( keys %$headers ) {
-                Debug("Initial Header $k => $$headers{$k}\n");
-              }  # end foreach
-            } else {
-              last;
-            }
-          } else {
-            Error('Authentication failed, not a REALM problem');
-          }
-        } else {
-          Debug('Failed to match realm in tokens');
-        } # end if
-      } # end foreach auth header
-    } else {
-      debug('No headers line');
-    } # end if headers
-  } # end if not authen
-  if ($response->is_success()) {
+  my $url = '/ISAPI/System/deviceInfo';
+  if ($self->get_realm($url)) {
     $self->{state} = 'open';
+    return !undef;
   }
-  Debug('Response: '. $response->status_line . ' ' . $response->content);
-  return $response->is_success;
+  return undef;
 } # end sub open
 
 sub get {
   my $self = shift;
-  my $url = shift;
+  my $url = $self->{BaseURL}.shift;
   Debug("Getting $url");
-  my $response = $self->{UA}->get($url);
+  my $response = $self->{ua}->get($url);
   #Debug('Response: '. $response->status_line . ' ' . $response->content);
   return $response;
 }
@@ -191,74 +149,52 @@ sub PutCmd {
   my $cmd = shift;
   my $content = shift;
   if (!$cmd) {
-    Error("No cmd specified in PutCmd");
+    Error('No cmd specified in PutCmd');
     return;
   }
-  Debug("Put: $cmd to ".$self->{BaseURL}.(defined($content)?' content:'.$content:''));
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
   }
-  my $res = $self->{UA}->request($req);
+  my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
-    #
     # The camera timeouts connections at short intervals. When this
     # happens the user agent connects again and uses the same auth tokens.
     # The camera rejects this and asks for another token but the UserAgent
     # just gives up. Because of this I try the request again and it should
     # succeed the second time if the credentials are correct.
     #
+    # Apparently it is necessary to create a new ua
+    
     if ( $res->code == 401 ) {
-      #
-      # It has failed authentication. The odds are
-      # that the user has set some parameter incorrectly
-      # so check the realm against the ControlDevice
-      # entry and send a message if different
-      #
-      my $headers = $res->headers();
-      foreach my $k ( keys %$headers ) {
-        Debug("Initial Header $k => $$headers{$k}");
-      }
+      $self->{ua} = LWP::UserAgent->new();
+      $self->{ua}->cookie_jar( {} );
+      $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
 
-      if ( $$headers{'www-authenticate'} ) {
-        foreach my $auth ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
-          foreach (split(/\s*,\s*/, $auth)) {
-            if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-              if ($realm ne $1) {
-                $realm = $1;
-                $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
-                return PutCmd($self, $cmd, $content);
-              }
-            } else {
-              Debug('Not realm: '.$_);
-            }
-          } # end foreach auth token
-        } # end foreach auth token
-      } else {
-        Debug('No authenticate header');
+      $res = $self->{ua}->request($req);
+      if (!$res->is_success) {
+        # Check for username/password
+        if ( $self->{Monitor}{ControlAddress} =~ /.+:(.+)@.+/ ) {
+          Info('Check username/password is correct');
+        } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
+          Info('No password in Control Address. Should there be one?');
+        } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
+          Info('Password but no username in Control Address.');
+        } else {
+          Info('Missing username and password in Control Address.');
+        }
+        Error($res->status_line);
       }
-      #
-      # Check for username/password
-      #
-      if ( $self->{Monitor}{ControlAddress} =~ /.+:.+@.+/ ) {
-        Info('Check username/password is correct');
-      } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
-        Info('No password in Control Address. Should there be one?');
-      } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
-        Info('Password but no username in Control Address.');
-      } else {
-        Info('Missing username and password in Control Address.');
-      }
-      Error($res->status_line);
     } else {
       Error($res->status_line);
     }
   } else {
-    Debug('Success: ' . $res->content);
+    Debug("Success sending $cmd: ".$res->content);
   } # end unless res->is_success
+  Debug($res->content);
 } # end sub putCmd
-
+#
 # The move continuous functions all call moveVector
 # with the direction to move in. This includes zoom
 #
@@ -270,15 +206,10 @@ sub moveVector {
   my $params = shift;
   my $command;                    # The ISAPI/PTZ command
 
-  # Calculate autostop time
-  my $autostop = $self->getParam($params, 'autostop', 0);
+  my $duration = $self->duration();
 
-  my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
-  $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
-  # Change from microseconds to milliseconds or seconds to milliseconds
-  Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
   my $momentxml;
-  if ($duration) {
+  if( $duration ) {
     $momentxml = "<Momentary><duration>$duration</duration></Momentary>";
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/momentary";
   } else {
@@ -298,7 +229,6 @@ sub moveVector {
   # Send it to the camera
   $self->PutCmd($command, $xml);
 }
-
 sub zoomStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveConUp        { $_[0]->moveVector(  0,  1, 0, splice(@_,1)); }
@@ -332,6 +262,17 @@ sub presetHome {
   my $params = shift;
   $self->PutCmd("ISAPI/PTZCtrl/channels/$ChannelID/homeposition/goto");
 }
+
+sub duration() {
+  my $self = shift;
+  my $params = shift;
+  my $autostop = $self->getParam($params, 'autostop', 0);
+  my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
+  $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
+  # Change from microseconds to milliseconds or seconds to milliseconds
+  Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
+  return $duration;
+}
 #
 # Focus controls all call Focus with a +/- speed
 #
@@ -345,12 +286,11 @@ sub focusConNear {
   my $self = shift;
   my $params = shift;
 
-  # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
+  my $duration = $self->duration();
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus(-$speed);
-  if($duration) {
+  if ($duration) {
     usleep($duration);
     $self->moveStop($params);
   }
@@ -379,8 +319,7 @@ sub focusConFar {
   my $self = shift;
   my $params = shift;
 
-  # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
+  my $duration = $self->duration();
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
@@ -424,8 +363,7 @@ sub irisConClose {
   my $self = shift;
   my $params = shift;
 
-  # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
+  my $duration = $self->duration();
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris(-$speed);
@@ -460,8 +398,7 @@ sub irisConOpen {
   my $self = shift;
   my $params = shift;
 
-  # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
+  my $duration = $self->duration();
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
@@ -502,11 +439,33 @@ sub reboot {
 }
 
 my %config_types = (
+    'ISAPI/System/deviceInfo' => {
+    },
     'ISAPI/System/time' => {
     },
     'ISAPI/System/time/ntpServers' => {
     },
+    'ISAPI/System/Network/interfaces' => {
+    },
+    'ISAPI/System/logServer' => {
+    },
+    'ISAPI/Streaming/channels/1' => {
+      Video => {
+        videoResolutionWidth => { value=>1920 },
+        videoResolutionHeight => { value=>1080 },
+        maxFrameRate => { value=>1000}, # appears to be fps * 100
+        keyframeInterval => {value=>5000},
+      }
+    },
     'ISAPI/Streaming/channels/101' => {
+      Video => {
+        videoResolutionWidth => { value=>1920 },
+        videoResolutionHeight => { value=>1080 },
+        maxFrameRate => { value=>1000}, # appears to be fps * 100
+        keyframeInterval => {value=>5000},
+      }
+    },
+    'ISAPI/Streaming/channels/102' => {
       Video => {
         videoResolutionWidth => { value=>1920 },
         videoResolutionHeight => { value=>1080 },
@@ -517,6 +476,14 @@ my %config_types = (
     'ISAPI/System/Video/inputs/channels/1/overlays' => {
     },
     'ISAPI/System/Video/inputs/channels/101/overlays' => {
+    },
+    'ISAPI/System/Video/inputs/channels/1/motionDetectionExt' => {
+    },
+    'ISAPI/System/Network/Integrate' => {
+    },
+    'ISAPI/Security/ONVIF/users' => {
+    },
+    'ISAPI/Security/users' => {
     },
   );
 
@@ -583,7 +550,7 @@ sub get_config {
   my $self = shift;
   my %config;
   foreach my $category ( @_ ? @_ : keys %config_types ) {
-    my $response = $self->get($self->{BaseURL}.'/'.$category);
+    my $response = $self->get('/'.$category);
     Debug($response->content);
     my $dom = XML::LibXML->load_xml(string => $response->content);
     if (!$dom) {
@@ -609,11 +576,11 @@ sub set_config {
     }
     Debug("Applying $category");
 
-    my $response = $self->get($self->{BaseURL}.'/'.$category);
+    my $response = $self->get('/'.$category);
     my $dom = XML::LibXML->load_xml(string => $response->content);
     if (!$dom) {
       Error('No document from :'.$response->content());
-      return;
+      return undef;
     }
     my $xml = $dom->documentElement();
     xml_apply_updates($xml, $$diff{$category});
@@ -621,69 +588,35 @@ sub set_config {
     Debug($xml->toString());
     $req->content($xml->toString());
 
-    $response = $self->{UA}->request($req);
-    Debug( 'status:'.$response->status_line );
-    Debug($response->content);
+    $response = $self->{ua}->request($req);
+    if (!$response->is_success()) {
+	    Error('status:'.$response->status_line);
+	    Debug($response->content);
+	    return undef;
+    } else {
+	    Debug('status:'.$response->status_line);
+	    Debug($response->content);
+    }
   }
+  return !undef;
 }
 
-sub ping {
-  return -1 if ! $host;
-
-  require Net::Ping;
-
-  my $p = Net::Ping->new();
-  my $rv = $p->ping($host);
-  $p->close();
-  return $rv;
-}
 
 sub probe {
-  my ($ip, $user, $pass) = @_;
+  my ($ip, $username, $password) = @_;
 
   my $self = new ZoneMinder::Control::HikVision();
+  $self->set_credentials($username, $password);
   # Create a UserAgent for the requests
-  $self->{UA} = LWP::UserAgent->new();
-  $self->{UA}->cookie_jar( {} );
-  my $realm;
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->cookie_jar( {} );
 
-  foreach my $port ( '80','443' ) {
-    my $url = 'http://'.$user.':'.$pass.'@'.$ip.':'.$port.'/ISAPI/Streaming/channels/101';
-    Debug("Probing $url");
-    my $response = $self->get($url);
-    if ($response->status_line() eq '401 Unauthorized' and defined $user) {
-      my $headers = $response->headers();
-      foreach my $k ( keys %$headers ) {
-        Debug("Initial Header $k => $$headers{$k}");
-      }
-
-      if ( $$headers{'www-authenticate'} ) {
-        my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
-        if ($tokens{realm}) {
-          $realm = $tokens{realm};
-          Debug('Changing REALM to '.$tokens{realm});
-          $self->{UA}->credentials("$ip:$port", $tokens{realm}, $user, $pass);
-          $response = $self->{UA}->get($url);
-          if (!$response->is_success()) {
-            Error('Authentication still failed after updating REALM' . $response->status_line);
-          }
-          $headers = $response->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}\n");
-          }  # end foreach
-        } else {
-          Debug('Failed to match realm in tokens');
-        } # end if
-      } else {
-        Debug('No headers line');
-      } # end if headers
-    } # end if not authen
-    Debug('Response: '. $response->status_line . ' ' . $response->content);
-    if ($response->is_success) {
+  foreach ( '80','443' ) {
+    $$self{port} = $_;
+    if ($self->get_realm('/ISAPI/Streaming/channels/101')) {
       return {
-        url => 'http://'.$user.':'.$pass.'@'.$ip.':'.$port.'/h264',
-        realm => $realm,
+        url => 'http://'.$$self{username}.':'.$$self{password}.'@'.$ip.':'.$$self{port}.'/h264',
+        realm => $$self{realm},
       };
     }
   } # end foreach port
@@ -691,6 +624,71 @@ sub probe {
 }
 
 sub profiles {
+}
+
+sub rtsp_url {
+  my ($self, $ip) = @_;
+  return 'rtsp://'.$ip.'/Streaming/Channels/101';
+}
+
+my %latest_firmware = (
+  'I918L' => {
+    latest_version=>'V5.7.1',
+    build=>20211130,
+    url=>'https://download.annke.com/firmware/4K_IPC/C800_5.7.1_211130.zip'
+  },
+  'DS-2CD2126G2-I' => {
+    'latest_version'=>'V5.7.0',
+    build=>240507,
+    url=>'https://assets.hikvision.com/prd/public/all/files/202405/1715716961127/Firmware__V5.7.0_240507_S3000573675.zip',
+    file=>'Firmware__V5.7.0_240507_S3000573675.zip',
+  },
+  'DS-2CD2046G2-I' => {
+    'latest_version'=>'V5.7.18',
+    build=>240826,
+    url=>'https://assets.hikvision.com/prd/public/all/files/202409/Firmware__V5.7.18_240826_S3000597013.zip',
+    file=>'Firmware__V5.7.18_240826_S3000597013.zip',
+  },
+  'DS-2CD2146G2-I' => {
+    'latest_version'=>'V5.7.18',
+    build=>240826,
+    url=>'https://assets.hikvision.com/prd/public/all/files/202409/Firmware__V5.7.18_240826_S3000597013.zip',
+    file=>'Firmware__V5.7.18_240826_S3000597013.zip',
+  },
+  'DS-2CD2142FWD-I' => {
+    latest_version=>'V5.5.82',
+    build=>190909,
+    file=>'IPC_R6_EN_STD_5.5.82_190909.zip',
+    url=>'https://www.hikvisioneurope.com/eu/portal/portal/Technical%20Materials/00%20%20Network%20Camera/00%20%20Product%20Firmware/R6%20platform%20%282X22FWD%2C%202X42FWD%2C%202X52%2C64X4FWD%2C1X31%2C1X41%29/V5.5.82_Build190909/IPC_R6_EN_STD_5.5.82_190909.zip',
+  },
+);
+
+sub check_firmware {
+  my $self = shift;
+  my $config = $self->get_config('ISAPI/System/deviceInfo');
+  print Dumper($config);
+  my $model = $$config{'ISAPI/System/deviceInfo'}{model};
+  if (!$model) {
+    print "No model\n";
+    return;
+  }
+  my $firmware = $$config{'ISAPI/System/deviceInfo'}{firmwareVersion};
+  if ($latest_firmware{$model}) {
+    my %result = %{$latest_firmware{$model}};
+    $result{current_version} = $firmware;
+    $result{current_build} = $$config{'ISAPI/System/deviceInfo'}{firmwareReleasedDate};
+    $result{update_available} = ($firmware lt $result{latest_version});
+    return %result;
+  } else {
+    Debug("We don't have a listing for latest firmware for ($model)");
+  }
+  return;
+}
+
+sub update_firmware {
+  my $self = shift;
+  my $firmware = shift;
+  my $response = $self->put('/ISAPI/System/updateFirmware', $firmware);
 }
 
 1;

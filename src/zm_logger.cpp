@@ -130,6 +130,8 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
+  else
+    tempTerminalLevel = config.log_level_term >= DEBUG1 ? DEBUG9 : config.log_level_term;
 
   // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why? icon: because log_level_database only goes up to debug.
   Level tempDatabaseLevel;
@@ -156,7 +158,6 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   if ( (envPtr = getTargettedEnv("LOG_LEVEL")) )
     tempLevel = atoi(envPtr);
-
   if ( (envPtr = getTargettedEnv("LOG_LEVEL_TERM")) )
     tempTerminalLevel = atoi(envPtr);
   if ( (envPtr = getTargettedEnv("LOG_LEVEL_DATABASE")) )
@@ -533,8 +534,6 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
-    } else {
-      puts("Db is closed");
     }
   }  // end if level <= mDatabaseLevel
 

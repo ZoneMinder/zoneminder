@@ -19,6 +19,11 @@
 // 
 
 function xhtmlHeaders($file, $title) {
+  xhtmlHeadersStart($file, $title);
+  xhtmlHeadersEnd();
+}
+
+function xhtmlHeadersStart($file, $title) {
   ob_start();
 
   global $css;
@@ -34,54 +39,6 @@ function xhtmlHeaders($file, $title) {
 
   $basename = basename($file, '.php');
 
-  function output_link_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( getSkinFile($file) ) {
-        if ( $cache_bust ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
-        } else  {
-        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  function output_script_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( file_exists('skins/'.$skin.'/'.$file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
-        } else {
-          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
-        }
-      } else if ( file_exists($file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust($file).'"></script>';
-        } else {
-          $html[] = '<script src="'.$file.'"></script>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  
-  function output_cache_busted_stylesheet_links($files) {
-    $html = array();
-    foreach ( $files as $file ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
-    }
-    if ( ! count($html) ) {
-      ZM\Warning("No files found for $files");
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,7 +48,12 @@ function xhtmlHeaders($file, $title) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX) . ' - ' . validHtmlStr($title) ?></title>
 <?php
-if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
+if (defined('ZM_WEB_FAVICON')) {
+  echo '
+  <link rel="icon" type="image/ico" href="'.ZM_WEB_FAVICON.'"/>
+  <link rel="shortcut icon" href="'.ZM_WEB_FAVICON.'"/>
+';
+} else if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   echo "
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
@@ -102,18 +64,34 @@ if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
 ';
 }
+
+echo output_link_if_exists(array('fonts/material-icons.woff2'), false, $param = ['global', 'preload', '  as="font" type="font/woff2" crossorigin']);
+//echo output_link_if_exists(array('fonts/material-icons.woff'), false, $param = ['global', 'preload', '  as="font" type="font/woff" crossorigin']);
+echo output_link_if_exists(array('css/base/material-icons.css'), false);
+echo output_link_if_exists(array('fonts/fontawesome-webfont.woff2?v=4.7.0'), false, $param = ['global', 'preload font', '  as="font" type="font/woff2" crossorigin']);
+echo output_script_if_exists(array(
+  'js/fontfaceobserver.standalone.js',
+));
+
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+    const fontMaterialIcons = new FontFaceObserver("Material Icons", {weight: 400});
+    fontMaterialIcons.load(null, 30000).then(function() {
+      console.log("Material Icons is loaded");
+      var _style_ = document.createElement('style');
+      _style_.innerHTML = `.material-icons {display: inline-block !important;}`;
+       document.querySelector('head').prepend(_style_);
+    }, function() {
+      console.log("Material Icons is NOT loaded");
+    });
+  </script>
+<?php
+
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
 ));
-
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-), true);
 
 if ( $basename == 'montage' ) {
   echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
@@ -124,6 +102,10 @@ if ( $basename == 'montage' ) {
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
 echo output_link_if_exists(array(
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+  'js/bootstrap-table-1.23.5/bootstrap-table.min.css',
+  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
 ), true);
@@ -134,8 +116,7 @@ if ( $css != 'base' )
     'css/'.$css.'/views/'.$basename.'.css',
     'css/'.$css.'/jquery-ui-theme.css',
   ));
-?>
-<?php
+
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
@@ -155,10 +136,12 @@ if ( $css != 'base' )
   if ($viewCssPhpFile) require_once($viewCssPhpFile);
 ?>
   </style>
-
-</head>
 <?php
   echo ob_get_clean();
+} // end function xhtmlHeadersStart( $file, $title )
+
+function xhtmlHeadersEnd() {
+  echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
@@ -198,6 +181,67 @@ function getNavBarHTML() {
   }
 
   return ob_get_clean();
+}
+
+function output_link_if_exists($files, $cache_bust=true, $param=false) {
+  global $skin;
+  $html = array();
+  if ($param) {
+    $global_file = $param[0]; // The file is global or from a skin
+    $rel = '"'.$param[1].'"';
+    $suffix = $param[2];
+  } else {
+    $global_file = false;
+    $rel = '"stylesheet"';
+    $suffix = ' type="text/css"';
+  }
+  foreach ( $files as $file ) {
+    // The file name can be for example "fontawesome-webfont.woff2?v=4.7.0". We need to select what is before the "?"
+    $file_ = ($global_file && file_exists(explode('?', $file)[0])) ? $file : getSkinFile($file);
+    if ($file_) {
+      if ( $cache_bust ) {
+        $html[] = '<link rel='.$rel.' href="'.cache_bust($file_).'" '.$suffix.'/>';
+      } else  {
+        $html[] = '<link rel='.$rel.' href="'.$file_.'" '.$suffix.'/>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_script_if_exists($files, $cache_bust=true) {
+  global $skin;
+  $html = array();
+  foreach ( $files as $file ) {
+    if ( file_exists('skins/'.$skin.'/'.$file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+      } else {
+        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+      }
+    } else if ( file_exists($file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust($file).'"></script>';
+      } else {
+        $html[] = '<script src="'.$file.'"></script>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_cache_busted_stylesheet_links($files) {
+  $html = array();
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+  }
+  if ( ! count($html) ) {
+    ZM\Warning("No files found for $files");
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
 }
 
 //
@@ -438,7 +482,7 @@ function getDbConHTML() {
   $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -492,7 +536,7 @@ function getStorageHTML() {
     $result .= '</div>'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -527,7 +571,7 @@ function getRamHTML() {
     } # end if SwapTotal
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -632,7 +676,7 @@ function getZMVersionHTML() {
   $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
   $result .= $content;
   $result .= '</li>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -658,11 +702,11 @@ function getNavBrandHTML() {
 function getConsoleHTML() {
   global $user;
   $result = '';
-  
+
   if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -673,7 +717,7 @@ function getOptionsHTML() {
   if ( canView('System') ) {
     $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -695,7 +739,7 @@ function getLogHTML() {
 // Returns the html representing the log icon
 function getLogIconHTML() {
   $result = '';
-  
+
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
@@ -705,18 +749,18 @@ function getLogIconHTML() {
         '</li>'.PHP_EOL;
     }
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the X10 Devices menu item
 function getDevicesHTML() {
   $result = '';
-  
+
   if ( ZM_OPT_X10 && canView('Devices') ) {
     $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -750,7 +794,7 @@ function getCycleHTML($view) {
     $class = $view == 'cycle' ? ' selected' : '';
     $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -758,12 +802,12 @@ function getCycleHTML($view) {
 function getMontageHTML($view) {
   global $user;
   $result = '';
-  
+
   if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -790,42 +834,42 @@ function getMontageReviewHTML($view) {
     $class = $view == 'montagereview' ? ' selected' : '';
     $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Montage menu item
 function getSnapshotsHTML($view) {
   $result = '';
-  
+
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 function getReportsHTML($view) {
   $result = '';
-  
+
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
     $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
   $result = '';
-  
+
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
     $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -931,7 +975,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
     $result .= '</thead>'.PHP_EOL;
 
     $result .= '<tbody>'.PHP_EOL;
-    
+
     if ( count($stats) ) {
       foreach ( $stats as $stat ) {
         $result .= '<tr>'.PHP_EOL;
@@ -950,16 +994,18 @@ function getStatsTableHTML($eid, $fid, $row='') {
           
           $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
           $result .= '<td class="colScore">' .$stat['Score']. '</td>'.PHP_EOL;
+        $result .= '</tr>'.PHP_EOL;
       }
     } else {
       $result .= '<tr>'.PHP_EOL;
+        //IMPORTANT! There is a problem with Bootstrap here. The class is being moved from <th> and "colspan" is not being applied
         $result .= '<td class="rowNoStats" colspan="9">' .translate('NoStatisticsRecorded'). '</td>'.PHP_EOL;
       $result .= '</tr>'.PHP_EOL;
     }
 
     $result .= '</tbody>'.PHP_EOL;
   $result .= '</table>'.PHP_EOL;
-  
+
   return $result;
 }
 
@@ -980,6 +1026,7 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
+
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
@@ -992,20 +1039,22 @@ function xhtmlFooter() {
   if ( $basename == 'montage' ) {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   }
 
   echo output_script_if_exists(array(
-  'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
-  'js/bootstrap-table-1.22.3/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.22.3/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.23.5/bootstrap-table.min.js',
+  'js/bootstrap-table-1.23.5/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.23.5/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.23.5/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.23.5/extensions/cookie/bootstrap-table-cookie.js',
+  'js/bootstrap-table-1.23.5/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.23.5/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.23.5/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

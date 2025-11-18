@@ -835,7 +835,7 @@ function probeNetwork() {
           $cameras[$mac] = call_user_func('probe'.$macBase['type'], $ip, $username, $password);
         }
       } else {
-        ZM\Debug("No probe function for ${macBase['type']}");
+        ZM\Debug("No probe function for {$macBase['type']}");
         $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
       }
     } else {
@@ -879,7 +879,7 @@ function probeNetwork() {
             }
           } else {
             $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
-            ZM\Debug("No probe function for ${macBase['type']} ${macBase['vendor']}");
+            ZM\Debug("No probe function for {$macBase['type']} {$macBase['vendor']}");
           }
         } else {
           ZM\Debug("No match for $macRoot");

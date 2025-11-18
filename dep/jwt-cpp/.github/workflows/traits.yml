@@ -1,0 +1,79 @@
+name: Traits CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  traits:
+    name: Traits (${{ matrix.target.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { name: "danielaparker-jsoncons", tag: "0.168.7", version: "v0.168.7" }
+          - { name: "boost-json", tag: "1.78.0", version: "v1.80.0" }
+          - { name: "nlohmann-json", tag: "3.11.2", version: "v3.11.2" }
+          - { name: "kazuho-picojson", tag: "111c9be5188f7350c2eac9ddaedd8cca3d7bf394", version: "111c9be" }
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lukka/get-cmake@latest
+      - name: setup
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DJWT_BUILD_EXAMPLES=OFF
+          sudo cmake --install .
+
+      # Install the JSON library
+      - if: matrix.target.name == 'danielaparker-jsoncons'
+        uses: ./.github/actions/install/danielaparker-jsoncons
+        with:
+          version: ${{matrix.target.tag}}
+
+      - if: matrix.target.name == 'boost-json'
+        uses: ./.github/actions/install/boost-json
+        with:
+          version: ${{matrix.target.tag}}
+
+      - if: matrix.target.name == 'nlohmann-json'
+        uses: ./.github/actions/install/nlohmann-json
+        with:
+          version: ${{matrix.target.tag}}
+
+      - if: matrix.target.name == 'kazuho-picojson'
+        run: rm -rf include/picojson
+      - if: matrix.target.name == 'kazuho-picojson'
+        uses: ./.github/actions/install/kazuho-picojson
+        with:
+          version: ${{matrix.target.tag}}
+
+      - name: test
+        working-directory: example/traits
+        run: |
+          cmake . -DCMAKE_FIND_DEBUG_MODE=1
+          cmake --build . --target ${{ matrix.target.name }}
+          ./${{ matrix.target.name }}
+
+      - name: badge success
+        if: github.event_name == 'push' && success()
+        uses: ./.github/actions/badge/write
+        with:
+          category: traits
+          label: ${{ matrix.target.name }}
+          message: ${{ matrix.target.version }}
+          color: lightblue # turquoise
+      - name: badge failure
+        if: github.event_name == 'push' && !success()
+        uses: ./.github/actions/badge/write
+        with:
+          category: traits
+          label: ${{ matrix.target.name }}
+          message: ${{ matrix.target.version }}
+          color: orange
+      - if: github.event_name == 'push' && always()
+        uses: ./.github/actions/badge/publish
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

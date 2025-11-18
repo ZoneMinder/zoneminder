@@ -29,10 +29,6 @@ foreach ( getSkinIncludes('includes/config.php') as $includeFile )
 foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
   require_once $includeFile;
 
-if ( empty($view) ) {
-  $view = isset($user)?'console':'login';
-}
-
 if ( isset($user) ) {
   // Bandwidth Limiter
   if ($user->MaxBandwidth()) {

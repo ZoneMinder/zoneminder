@@ -481,8 +481,8 @@ Why do I only see black screens with a timestamp when monitoring my camera?
 In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by ``zmu -d <device_path> -q -v``.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
 
 
-How do I repair the MySQL Database?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How do I repair the MySQL/MariaDB Database?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 There is two ways to go about this. In most cases you can run from the command prompt ->
 ``mysqlcheck --all-databases --auto-repair -p your_database_password -u your_databse_user``
 
@@ -491,9 +491,9 @@ If that does not work then you will have to make sure that ZoneMinder is stopped
 ``myisamchk --silent --force --fast --update-state -O key_buffer=64M -O sort_buffer=64M -O read_buffer=1M -O write_buffer=1M /var/lib/mysql/*/*.MYI``
 
 
-How do I repair the MySQL Database when the cli fails?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In Ubuntu, the commands listed above do not seem to work.  However, actually doing it by hand from within MySQL does.  (But that is beyond the scope of this document)  But that got me thinking...  And phpmyadmin does work.  Bring up a terminal.
+How do I repair the MySQL/MariaDB Database when the cli fails?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In Ubuntu, the commands listed above do not seem to work.  However, actually doing it by hand from within MySQL/MariaDB does.  (But that is beyond the scope of this document)  But that got me thinking...  And phpmyadmin does work.  Bring up a terminal.
 ``sudo apt-get install phpmyadmin``
 
 Now go to ``http://zoneminder_IP/`` and stop the ZM service.  Continue to ``http://zoneminder_IP/phpmyadmin`` and select the zoneminder database.  Select and tables marked 'in use' and pick the action 'repare' to fix.  Restart the zoneminder service from the web browser.  Remove or disable the phpmyadmin tool, as it is not always the most secure thing around, and opens your database wide to any skilled hacker.
@@ -508,8 +508,8 @@ Any time you update a major version that ZoneMinder depends on, you need to reco
 Zoneminder doesn't start automatically on boot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Check the list for log entries like "zmfix[766]: ERR [Can't connect to server: Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (2)] ". 
-What can happen is that zoneminder is started too quickly after Mysql and tries to contact the database server before it's ready. Zoneminder gets no answer and aborts. 
-August 2010 - Ubuntu upgrades seem to be leaving several systems in this state. One way around this is to add a delay to the zoneminder startup script allowing Mysql to finish starting. 
+What can happen is that zoneminder is started too quickly after MySQL/MariaDB and tries to contact the database server before it's ready. Zoneminder gets no answer and aborts. 
+August 2010 - Ubuntu upgrades seem to be leaving several systems in this state. One way around this is to add a delay to the zoneminder startup script allowing MySQL/MariaDB to finish starting. 
 "Simply adding 'sleep 15' in the line above 'zmfix -a' in the /etc/init.d/zoneminder file fixed my ZoneMinder startup problems!" - credit to Pada.
 
 Remote Path setup for Panasonic and other Camera

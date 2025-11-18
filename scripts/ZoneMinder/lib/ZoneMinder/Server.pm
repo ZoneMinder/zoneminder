@@ -128,20 +128,35 @@ sub CpuUsage {
   } else {
     # Get CPU utilization percentages
     my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;
-    my ($user, $system, $nice, $idle) = split(/ /, $top_output);
-    $user =~ s/[^\d\.]//g;
-    $system =~ s/[^\d\.]//g;
-    $nice =~ s/[^\d\.]//g;
-    $idle =~ s/[^\d\.]//g;
-    if (!$user) {
-      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
-      $user = 0;
-    }
-    if (!$system) {
-      ZoneMinder::Logger::Warning("Failed getting system_utilization from $top_output");
-      $system = 0;
-    }
-    return ($user, $nice, $system, $idle, $user + $system);
+    if ($top_output and ($top_output =~ /\d/)) {
+      my ($user, $system, $nice, $idle) = split(/ /, $top_output);
+      $user =~ s/[^\d\.]//g;
+      $system =~ s/[^\d\.]//g;
+      $nice =~ s/[^\d\.]//g;
+      $idle =~ s/[^\d\.]//g;
+      if (!$user) {
+        ZoneMinder::Logger::Warning("Failed getting user_utilization from ($top_output)");
+        $user = 0;
+      }
+      if (!$system) {
+        ZoneMinder::Logger::Warning("Failed getting system_utilization from $top_output");
+        $system = 0;
+      }
+      return ($user, $nice, $system, $idle, $user + $system);
+    } else {
+      $top_output = `top -b -n 1`;
+      my ($user, $system, $nice, $idle) = (0, 0, 0, 0);
+      foreach my $line (split(/\n/, $top_output)) {
+        #OpenBSD
+        if ($line =~ /^CPU\d+ states:  ([\d\.]+)% user,  ([\d\.]+)% nice,  %([\d\.]+) sys,  ([\d\.]+)% spin,  ([\d\.]+)% intr, ([\d\.]+)% idle$/) {
+          $user = $user ? $user : ($user + $1)/2;
+          $nice = $nice ? $nice : ($nice + $2)/2;
+          $system = $system ? $system : ($system + $3)/2;
+          $idle = $idle ? $idle : ($idle + $6)/2;
+        } # end if line match
+      } # end foreach
+      return ($user, $nice, $system, $idle, $user + $system);
+    } # end if BSD
   }
 } # end sub CpuUsage
 

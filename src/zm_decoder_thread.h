@@ -16,6 +16,7 @@ class DecoderThread {
 
   void Start();
   void Stop();
+  void Join();
 
  private:
   void Run();

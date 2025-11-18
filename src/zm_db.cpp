@@ -196,14 +196,13 @@ int zmDbDo(const std::string &query) {
   if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
-  while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
-    Logger *logger = Logger::fetch();
-    Logger::Level oldLevel = logger->databaseLevel();
-    logger->databaseLevel(Logger::NOLOG);
+  Logger *logger = Logger::fetch();
+  Logger::Level oldLevel = logger->databaseLevel();
+  logger->databaseLevel(Logger::NOLOG);
 
+  while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
     std::string reason = mysql_error(&dbconn);
     Debug(1, "Failed running sql query %s, thread_id: %lu, %d %s", query.c_str(), db_thread_id, rc, reason.c_str());
-    logger->databaseLevel(oldLevel);
 
     if (mysql_ping(&dbconn)) {
       // Was a connection error
@@ -222,6 +221,7 @@ int zmDbDo(const std::string &query) {
   }
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
+  logger->databaseLevel(oldLevel);
   return 1;
 }
 

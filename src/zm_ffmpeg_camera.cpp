@@ -188,7 +188,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
-  int64_t lastPTS;
+  int64_t lastPTS = -1;
 
   if ( mSecondFormatContext and
        (
@@ -213,8 +213,9 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }
@@ -235,17 +236,19 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }
-    if ( packet->stream_index == mAudioStreamId) {
-      lastPTS = mLastAudioPTS;
-    } else if ( packet->stream_index == mVideoStreamId) {
+
+    if ( packet->stream_index == mVideoStreamId) {
       lastPTS = mLastVideoPTS;
+    } else if (packet->stream_index == mAudioStreamId) {
+      lastPTS = mLastAudioPTS;
     } else {
-      Debug(1, "Have packet which isn't for video or audio stream.");
+      Debug(1, "Have packet (%d) which isn't for video (%d) or audio stream (%d).", packet->stream_index, mVideoStreamId, mAudioStreamId);
       return 0;
     }
   }
@@ -258,12 +261,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       // 32-bit wrap around?
       Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
       return -1;
-    } else if (packet->pts - lastPTS < -20*stream->time_base.den) {
-      // -20 is for 20 seconds. Avigilon cameras seem to jump around by about 36 constantly
-      double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
-      double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
-      logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 40seconds",
-                pts_time, last_pts_time, pts_time - last_pts_time);
+    } else if (packet->pts - lastPTS < -10*stream->time_base.den) {
+      if (!monitor->WallClockTimestamps()) {
+        // -10 is for 10 seconds. Avigilon cameras seem to jump around by about 36 constantly
+        double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 10seconds",
+                  pts_time, last_pts_time, pts_time - last_pts_time);
+      }
       if (error_count > 5)
         return -1;
       error_count += 1;
@@ -286,7 +291,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         mFirstVideoPTS = packet->pts;
 
       mLastVideoPTS = packet->pts - mFirstVideoPTS;
-    } else {
+    } else if (stream == mAudioStream) {
       if (mFirstAudioPTS == AV_NOPTS_VALUE)
         mFirstAudioPTS = packet->pts;
 
@@ -391,7 +396,8 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
-    const AVStream *stream = mFormatContext->streams[i];
+    AVStream *stream = mFormatContext->streams[i];
+    zm_dump_stream_format(mFormatContext, i, 0, 0);
     if (is_video_stream(stream)) {
       if (!(stream->codecpar->width && stream->codecpar->height)) {
         Warning("No width and height in video stream. Trying again");
@@ -399,9 +405,16 @@ int FfmpegCamera::OpenFfmpeg() {
       }
       if (mVideoStreamId == -1) {
         mVideoStreamId = i;
-        mVideoStream = mFormatContext->streams[i];
+        mVideoStream = stream;
       } else {
         Debug(2, "Have another video stream.");
+	if (stream->codecpar->width == width and stream->codecpar->height == height) {
+		Debug(1, "Choosing alternate video stream because it matches our resolution.");
+		mVideoStreamId = i;
+		mVideoStream = stream;
+	} else {
+		stream->discard = AVDISCARD_ALL;
+	}
       }
     } else if (is_audio_stream(stream)) {
       if (mAudioStreamId == -1) {
@@ -410,6 +423,8 @@ int FfmpegCamera::OpenFfmpeg() {
       } else {
         Debug(2, "Have another audio stream.");
       }
+    } else {
+	    Debug(1, "Unknown stream type for stream %d", i);
     }
   }  // end foreach stream
 
@@ -540,6 +555,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    // reorder_queue is for avformat not codec
+    av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
   }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
@@ -603,14 +621,14 @@ int FfmpegCamera::Close() {
   mLastAudioPTS = 0;
 
   if (mVideoCodecContext) {
-    avcodec_close(mVideoCodecContext);
+    //avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = nullptr;
   }
 
   if (mAudioCodecContext and !mSecondInput) {
     // If second input, then these will get freed in FFmpeg_Input's destructor
-    avcodec_close(mAudioCodecContext);
+    //avcodec_close(mAudioCodecContext);
     avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = nullptr;
   }

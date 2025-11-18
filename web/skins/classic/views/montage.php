@@ -51,18 +51,18 @@ $heights = array(
   '1080px' => '1080px',
 );
 
-$monitorStatusPositon = array( 
+$monitorStatusPosition = array( 
   'insideImgBottom'  => translate('Inside bottom'),
   'outsideImgBottom' => translate('Outside bottom'),
   'hidden' => translate('Hidden'),
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositonSelected = 'outsideImgBottom';
-if (isset($_REQUEST['monitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
-} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
+$monitorStatusPositionSelected = 'outsideImgBottom';
+if (isset($_REQUEST['monitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
+} else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
@@ -80,7 +80,7 @@ $presetLayoutsNames = array( //Order matters!
   '16 Wide'
 );
 
-/* Create an array "Name"=>layouts to make it easier to find IDs by name*/
+/* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
   if ($l->Name() == 'Freeform') $l->Name('Auto');
@@ -91,29 +91,30 @@ foreach ($layouts as $l) {
  * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
  */
 foreach ($presetLayoutsNames as $name) {
-  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in BD (rare case during update process)
+  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in DB (rare case during update process)
     $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
 }
 
 /* Add custom Layouts & assign objects instead of names for preset Layouts */
-foreach ( $layouts as $l ) {
+foreach ($layouts as $l) {
   $layoutsById[$l->Id()] = $l;
 }
-ZM\Debug(print_r($layoutsById, true));
 
 zm_session_start();
 
 $layout_id = 0;
-if ( isset($_COOKIE['zmMontageLayout']) ) {
+if (isset($_REQUEST['zmMontageLayout'])) {
+  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_REQUEST['zmMontageLayout']);
+} else if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+} else if ( isset($_SESSION['zmMontageLayout']) ) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {
   $layout_id = $layoutsByName['Auto']->Id();
 }
 $layout = $layoutsById[$layout_id];
-
+$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();
 
@@ -163,12 +164,29 @@ scaleControl is no longer used!
 */
 }
 
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
+}
+
+if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+} else if (isset($_COOKIE['zmMontageRate'])) {
+  $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
+} else {
+  $options['maxfps'] = ''; // unlimited
+}
+
 session_write_close();
 
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $need_hls = false;
 $need_janus = false;
@@ -225,7 +243,7 @@ echo getNavBarHTML();
     <div id="header">
 <?php
     $html = '<a class="flip" href="#" 
-             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-control-object="#mfbpanel" 
              data-flip-сontrol-run-after-func="applyChosen" 
              data-flip-сontrol-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
@@ -260,13 +278,32 @@ if (canView('System')) {
           <input type="hidden" name="object" value="MontageLayout"/>
           <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
-          <span id="monitorStatusPositonControl">
+          <span id="monitorStatusPositionControl">
             <label><?php echo translate('Monitor status position') ?></label>
-            <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('monitorStatusPosition', $monitorStatusPosition, $monitorStatusPositionSelected, array('id'=>'monitorStatusPosition', 'data-on-change'=>'changeMonitorStatusPosition', 'class'=>'chosen')); ?>
+          </span>
+          <span id="rateControl">
+            <label for="changeRate"><?php echo translate('Rate') ?>:</label>
+            <?php
+$maxfps_options = array(''=>translate('Unlimited'),
+  '0.10' => '1/10' .translate('FPS'),
+  '0.50' => '1/2' .translate('FPS'),
+  '1' => '1 '.translate('FPS'),
+  '2' => '2 '.translate('FPS'),
+  '5' => '5 '.translate('FPS'),
+  '10' => '10 '.translate('FPS'),
+  '20' => '20 '.translate('FPS'),
+);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'changeRate', 'data-on-change'=>'changeMonitorRate', 'class'=>'chosen'));
+?>
           </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
             <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+          </span>
+          <span id="streamQualityControl">
+            <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
           </span>
           <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>
@@ -288,7 +325,7 @@ if (canView('System')) {
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
           <button type="button" id="btnDeleteLayout" class="btn btn-danger" value="Delete" data-on-click-this="delete_layout" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete layout') ?>" disabled><i class="material-icons md-18">delete</i></button>
           <span id="SaveLayout" style="display:none;">
-            <input type="text" name="Name" placeholder="Enter new name for layout if desired" autocomplete="off"/>
+            <input type="text" name="Name" placeholder="<?php echo translate('Enter new name for layout if desired') ?>" autocomplete="off"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
@@ -325,12 +362,19 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
-    if (!$scale and $layout->Name() != 'Auto') {
-      if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
-        if ($matches[1]) {
-          $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
-          if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+    if (!$scale and ($layout->Name() != 'Auto')) {
+      if ($layout_is_preset) {
+        # We know the # of columns so can figure out a proper scale
+        if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
+          if ($matches[1]) {
+            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+          }
         }
+      } else {
+        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
+        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
     }
     echo $monitor->getStreamHTML($monitor_options);
@@ -345,7 +389,7 @@ foreach ($monitors as $monitor) {
   <script src="/javascript/janus/janus.js"></script>
 <?php } ?>
 <?php if ($need_hls) { ?>
-  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 

@@ -27,5 +27,6 @@
     "000b82": { "type": "Grandstream", "control": "Grandstream", "vendor": "Grandstream Networks Inc"},
     "fcecda": { "type": "Ubiquiti",  "control": "", "vendor": "Ubiquiti Networks Inc." },
     "001f92": { "type": "Avigilon",  "control": "", "vendor": "Avigilon Corporation" },
-    "001885": { "type": "Avigilon",  "control": "", "vendor": "Avigilon Corporation" }
+    "001885": { "type": "Avigilon",  "control": "", "vendor": "Avigilon Corporation" },
+    "f0a731": { "type": "TP-Link",  "control": "", "vendor": "TP-LINK TECHNOLOGIES CO.,LTD." }
 }

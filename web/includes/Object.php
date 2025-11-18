@@ -325,14 +325,7 @@ class ZM_Object {
     return $changes;
   } # end public function changes
 
-  public function save($new_values = null) {
-    $class = get_class($this);
-    $table = $class::$table;
-
-    if ($new_values) {
-      $this->set($new_values);
-    }
-
+  public function apply_defaults() {
     # Set defaults.  Note that we only replace "" with null, not other values
     # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
     foreach ( $this->defaults as $field => $default ) {
@@ -343,8 +336,31 @@ class ZM_Object {
         } else {
           $this->$field = $default;
         }
+      } else {
+        Debug("Property $field exists ".$this->$field);
       }
     } # end foreach default
+  }
+
+  public function apply_initial_defaults() {
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if (is_array($default) and isset($default['initial_default'])) {
+        $this->$field = $default['initial_default'];
+      }
+    } # end foreach default
+  }
+
+  public function save($new_values = null) {
+    $class = get_class($this);
+    $table = $class::$table;
+
+    if ($new_values) {
+      $this->set($new_values);
+    }
+
+    $this->apply_defaults();
 
     $fields = array_filter(
       $this->defaults,
@@ -362,7 +378,7 @@ class ZM_Object {
     if ( $this->Id() ) {
       $fields = array_keys($fields);
       $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
-      $values = array_map(function($field){ return $this->{$field};}, $fields);
+      $values = array_map(function($field){ return $this->$field;}, $fields);
       $values[] = $this->{'Id'};
       if (dbQuery($sql, $values)) return true;
     } else {

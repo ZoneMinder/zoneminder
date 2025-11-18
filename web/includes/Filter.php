@@ -30,6 +30,7 @@ class Filter extends ZM_Object {
 		'EmailSubject'		=>	'',
 		'EmailBody'				=>	'',
 		'EmailFormat'			=>	'Individual',
+    'EmailServer'     =>  '',
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoUnarchive'   =>  0,
@@ -89,9 +90,12 @@ class Filter extends ZM_Object {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
-      $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
+      if ($this->sort_field())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      if ($this->skip_locked())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
+      if ($this->limit())
+        $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
       if ( $this->Id() ) {
         $this->_querystring .= $separator.$objectname.urlencode('[Id]').'='.$this->Id();
       }
@@ -953,8 +957,8 @@ class Filter extends ZM_Object {
         }
       }
     }
-    // $availableTags = array();
-    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+    $availableTags = array(''=>translate('No Tag'));
+    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
 
@@ -1089,8 +1093,8 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < 7; $i++ ) {
       $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
     }
-    $availableTags = array();
-    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+    $availableTags = array(''=>translate('No Tag'));
+    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
 
@@ -1120,7 +1124,7 @@ class Filter extends ZM_Object {
 
         if ( $term['attr'] == 'Archived' ) {
           $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['class'=>'chosen chosen-auto-width']).PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
           $selected = explode(',', $term['val']);
@@ -1128,7 +1132,7 @@ class Filter extends ZM_Object {
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;
           }
-          $options = ['class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
+          $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
@@ -1256,7 +1260,7 @@ class Filter extends ZM_Object {
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Notes' ) {
-          $attrs = ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
+          $attrs = ['id'=>'filterNotes', 'class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
           $selected = explode(',', $term['val']);
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;
@@ -1269,6 +1273,8 @@ class Filter extends ZM_Object {
           }
           $options = [
             'Motion' => 'Motion',
+            'ONVIF' => 'ONVIF',
+            'Linked' => 'Linked',
             'detected' => 'Any Object',
             'aplr' => 'Any license plate',
             'person'=>'Person',

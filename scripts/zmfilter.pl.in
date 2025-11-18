@@ -119,23 +119,7 @@ if ( $Config{ZM_OPT_UPLOAD} ) {
   }
 }
 
-if ( $Config{ZM_OPT_EMAIL} ) {
-  if ( $Config{ZM_NEW_MAIL_MODULES} ) {
-    require MIME::Lite;
-    require Net::SMTP;
-  } else {
-    require MIME::Entity;
-  }
-}
 
-if ( $Config{ZM_OPT_MESSAGE} ) {
-  if ( $Config{ZM_NEW_MAIL_MODULES} ) {
-    require MIME::Lite;
-    require Net::SMTP;
-  } else {
-    require MIME::Entity;
-  }
-}
 
 $| = 1;
 
@@ -648,6 +632,7 @@ sub substituteTags {
   my $filter = shift;
   my $Event = @_ ? shift : undef;
   my $attachments_ref = shift if @_;
+  my $options = @_ ? shift : {};
 
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
@@ -658,7 +643,7 @@ sub substituteTags {
   my $Monitor = $Event->Monitor() if $Event and $need_monitor;
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
-  my $html = ($text =~ /<html/ ? !undef : undef);
+  my $html = exists $$options{html} ? $$options{html} : (($text =~ /<html/ ? !undef : undef));
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
@@ -707,6 +692,7 @@ sub substituteTags {
     $text =~ s/%EN%/$Event->{Name}/g;
     $text =~ s/%EC%/$Event->{Cause}/g;
     $text =~ s/%ED%/$Event->{Notes}/g;
+    $text =~ s/%ELOC%/$Event->{Latitude}, $Event->{Longitude}/g;
     $text =~ s/%ET%/$Event->{StartDateTime}/g;
     $text =~ s/%EVF%/$$Event{DefaultVideo}/g; # Event video filename
     $text =~ s/%EL%/$Event->{Length}/g;
@@ -913,15 +899,16 @@ sub sendSummaryEmail {
   my $subject = substituteTags($$filter{EmailSubject}, $filter);
   return 0 if !$subject;
 
+  my $html = $$filter{EmailBody} =~ /<html/ ? !undef : undef;
   my ($body_head, $summary_part, $body_tail) = split(/%SUMMARY%/m, $$filter{EmailBody});
   if (!$summary_part) {
     Error('Failed finding summary part of email body');
     return 0;
   }
   my @attachments;
-  my $body = substituteTags($body_head, $filter, undef, \@attachments);
+  my $body = substituteTags($body_head, $filter, undef, \@attachments, {html=>$html});
   foreach my $event (@events) {
-    $body .= substituteTags($summary_part, $filter, $event, \@attachments);
+    $body .= substituteTags($summary_part, $filter, $event, \@attachments, {html=>$html});
   }
   return 0 if !$body;
   $body .= $body_tail;
@@ -969,6 +956,8 @@ sub sendTheEmail {
 
   eval {
     if ($Config{ZM_NEW_MAIL_MODULES}) {
+      require MIME::Lite;
+      require Net::SMTP;
       my $total_size = 0;
       # Create the multipart container
       my $mail = MIME::Lite->new(
@@ -1033,17 +1022,18 @@ sub sendTheEmail {
         }
         if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
-          MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
+          MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
           $mail->send();
         } else {
 ### Send using SSMTP
           $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
         }
       } else {
-        MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
+        MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
         $mail->send();
       }
     } else {
+      require MIME::Entity;
       my $total_size = 0;
       my $mail = MIME::Entity->build(
         From => $Config{ZM_FROM_EMAIL},
@@ -1102,7 +1092,9 @@ sub sendTheEmail {
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
-      $mail->smtpsend(Host => $Config{ZM_EMAIL_HOST}, MailFrom => $Config{ZM_FROM_EMAIL});
+      $mail->smtpsend(
+        Host => ($$filter{EmailServer} ? $$filter{EmailServer} :$Config{ZM_EMAIL_HOST}),
+        MailFrom => $Config{ZM_FROM_EMAIL});
     }
   };
   if ( $@ ) {
@@ -1140,6 +1132,8 @@ sub sendMessage {
 
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
+      require MIME::Lite;
+      require Net::SMTP;
 ### Create the multipart container
       my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
@@ -1184,6 +1178,7 @@ sub sendMessage {
         $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
       }
     } else {
+      require MIME::Entity;
       my $mail = MIME::Entity->build(
           From => $Config{ZM_FROM_EMAIL},
           To => $Config{ZM_MESSAGE_ADDRESS},

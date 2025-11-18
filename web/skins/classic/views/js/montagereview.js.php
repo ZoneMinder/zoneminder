@@ -192,7 +192,7 @@ echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
 if ( isset($defaultCurrentTimeSecs) )
   echo 'var currentTimeSecs=parseInt('.$defaultCurrentTimeSecs.");\n";
 else
-  echo 'var currentTimeSecs=parseInt('.(($minTimeSecs + $maxTimeSecs)/2).");\n";
+  echo 'var currentTimeSecs=parseInt('.$minTimeSecs.");\n";
 
 echo 'var speeds=[';
 for ( $i=0; $i < count($speeds); $i++ )

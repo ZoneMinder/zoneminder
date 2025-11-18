@@ -192,7 +192,7 @@ function queryRequest() {
 
     $row['Server'] = $Server ? $Server->Name() : '';
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', $row['Message']);
+    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', htmlspecialchars($row['Message']));
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }

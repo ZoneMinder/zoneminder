@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_packet.h"
+#include "zm_packetqueue.h"
 #include "zm_storage.h"
 #include "zm_time.h"
 #include "zm_utils.h"
@@ -77,6 +78,8 @@ class Event {
 
   uint64_t  id;
   Monitor      *monitor;
+  PacketQueue * packetqueue;
+  packetqueue_iterator * packetqueue_it;
   SystemTimePoint start_time;
   SystemTimePoint end_time;
   std::string     cause;
@@ -106,10 +109,6 @@ class Event {
 
   void createNotes(std::string &notes);
 
-  std::queue<std::shared_ptr<ZMPacket>> packet_queue;
-  std::mutex packet_queue_mutex;
-  std::condition_variable packet_queue_condition;
-
   void Run();
 
   std::atomic<bool> terminate_;
@@ -120,9 +119,10 @@ class Event {
   static bool ValidateFrameSocket(int);
 
   Event(Monitor *p_monitor,
-        SystemTimePoint p_start_time,
-        const std::string &p_cause,
-        const StringSetMap &p_noteSetMap);
+      packetqueue_iterator * p_packetqueue_it,
+      SystemTimePoint p_start_time,
+      const std::string &p_cause,
+      const StringSetMap &p_noteSetMap);
   ~Event();
 
   uint64_t Id() const { return id; }
@@ -135,9 +135,8 @@ class Event {
   SystemTimePoint EndTime() const { return end_time; }
   TimePoint::duration Duration() const { return end_time - start_time; };
 
-  void AddPacket(const std::shared_ptr<ZMPacket> &p);
-  void AddPacket_(const std::shared_ptr<ZMPacket> &p);
-  bool WritePacket(const std::shared_ptr<ZMPacket> &p);
+  void AddPacket_(const std::shared_ptr<ZMPacket> p);
+  bool WritePacket(const std::shared_ptr<ZMPacket> p);
   bool SendFrameImage(const Image *image, bool alarm_frame=false);
   bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
 
@@ -146,11 +145,7 @@ class Event {
   void AddFrame(const std::shared_ptr<ZMPacket>&packet);
 
   void Stop() {
-    {
-      std::unique_lock<std::mutex> lck(packet_queue_mutex);
-      terminate_ = true;
-    }
-    packet_queue_condition.notify_all();
+    terminate_ = true;
   }
   bool Stopped() const { return terminate_; }
 

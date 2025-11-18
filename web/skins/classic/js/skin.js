@@ -38,6 +38,11 @@ var icons = {
   detailClose: 'fa-minus'
 };
 
+var panZoomEnabled = true; //Add it to settings in the future
+var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
+var shifted = ctrled = alted = false;
+var mainContent = document.getElementById('content');
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -306,27 +311,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
 
     // Manage visible object & control button (when pressing a button)
-    $j("[data-flip-сontrol-object]").click(function() {
+    $j("[data-flip-control-object]").click(function() {
       const _this_ = $j(this);
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
-      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
-      } else { //hidden
-        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
-      }
+      changeButtonIcon(_this_, objIconButton);
 
       const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
       const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
@@ -337,13 +327,15 @@ if ( currentView != 'none' && currentView != 'login' ) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
         });
       }
-      obj.slideToggle("fast", function() {
-        if (nameFuncAfterComplet) {
-          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
-            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
-          });
-        }
-      });
+      if (!_this_.attr('data-on-click-true')) {
+        obj.slideToggle("fast", function() {
+          if (nameFuncAfterComplet) {
+            $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+              if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+            });
+          }
+        });
+      }
       if (nameFuncAfter) {
         $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
@@ -352,51 +344,38 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+    $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
-      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+      const obj = $j(_this_.attr('data-flip-control-object'));
 
       if (obj.parent().css('display') != 'block') {
         obj.wrap('<div style="display: block"></div>');
       }
 
-      if (сookie == 'hidden') {
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+      // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
-      } else { //no cookies or opened.
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
           objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
         }
-        obj.removeClass('hidden-shift');
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        if (stateIcon == 'hidden') {
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
+        }
       }
     });
 
-    // Manage the web console filter bar minimize chevron
-    /*$j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow", function() {
-        if ($j.isFunction('changeScale')) {
-          changeScale();
-        }
-      });
-      var mfbflip = $j("#mfbflip");
-      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
-        mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up');
-      } else {
-        mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
-      }
-    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -414,6 +393,31 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
     applyChosen();
   });
+
+  /*
+  * params{visibility: null "visible" or "hidden"} - state of the panel before pressing button
+  */
+  function changeButtonIcon(pressedBtn, target, params) {
+    const visibility = (!params) ? null : params.visibility;
+    const objIconButton = pressedBtn.find("i");
+    const obj = $j(pressedBtn.attr('data-flip-control-object'));
+    if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-hidden'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'hidden');
+    } else { //hidden
+      obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-visible'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-control-object'), 'visible');
+    }
+  }
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
@@ -472,14 +476,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
+      delete data.auth;
     }
     if (data.auth_relay) {
       auth_relay = data.auth_relay;
+      delete data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
-    for (var key of Object.keys(data)) {
-      if ( key == "auth" ) continue;
-      if ( key == "auth_relay" ) continue;
+    for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
@@ -493,7 +497,12 @@ function checkStreamForErrors(funcName, streamObj) {
     Error(funcName+': stream object was null');
     return true;
   }
-  if ( streamObj.result == "Error" ) {
+  if ( streamObj.responseJSON ) {
+    if (streamObj.responseJSON.result == "Error") {
+      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      return true;
+    }
+  } else if ( streamObj.result == "Error" ) {
     Error(funcName+' stream error: '+streamObj.message);
     return true;
   }
@@ -667,8 +676,20 @@ var resizeTimer;
 
 function endOfResize(e) {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
+  resizeTimer = setTimeout(function() {
+    setCookie('zmBrowserSizes', JSON.stringify({
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      outerWidth: window.outerWidth,
+      outerHeight: window.outerHeight,
+    }));
+    if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) {
+      //Only for scaleToFit
+      changeScale();
+    }
+  }, 250);
 }
+window.onresize = endOfResize;
 
 /* scaleToFit
  *
@@ -676,16 +697,17 @@ function endOfResize(e) {
  * Uses the #content element
  * figures out where bottomEl is in the viewport
  * does calculations
+ * scaleEl is the thing to be scaled, should be a jquery object and should have height
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
-  $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  const ratio = baseWidth / baseHeight;
+  //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
   }
 
+  const ratio = baseWidth / baseHeight;
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = 0;
@@ -697,40 +719,18 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
-  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
 
-  // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
-  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
-  newWidth -= padding;
-  newHeight = newWidth / ratio;
-
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
-
-  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
+  if (newHeight < 0 || newWidth > container.width()) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth()-padding;
+    newWidth = container.width();
     newHeight = newWidth / ratio;
   }
-  console.log("newWidth = " + newWidth);
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
-  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
-  const scales = $j('#scale option').map(function() {
-    return parseInt($j(this).val());
-  }).get();
-  scales.shift(); // pop off Scale To Fit
-  let closest = null;
-  $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  if (closest) {
-    console.log("Setting to closest: " + closest + " instead of " + autoScale);
-    autoScale = closest;
-  }
-  */
+  // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
+  autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
+  console.log(`container.height=${container.height()}, newWidth=${newWidth}, newHeight=${newHeight}, container width=${container.width()}, autoScale=${autoScale}`);
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -748,7 +748,19 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
+function isJSON(str) {
+  if (typeof str !== 'string') return false;
+  try {
+    const result = JSON.parse(str);
+    const type = Object.prototype.toString.call(result);
+    return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
+  } catch (e) {
+    return false; // This is also not JSON
+  }
+};
+
 function setCookie(name, value, seconds) {
+  var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
   let expires = "";
   if (seconds) {
     const date = new Date();
@@ -758,18 +770,28 @@ function setCookie(name, value, seconds) {
     // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
+  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
 }
 
+/*
+* If JSON is stored in cookies, the function will return an array or object of values.
+*/
 function getCookie(name) {
   var nameEQ = name + "=";
+  var result = null;
   var ca = document.cookie.split(';');
   for (var i=0; i < ca.length; i++) {
+    if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    if (c.indexOf(nameEQ) == 0) {
+      result = c.substring(nameEQ.length, c.length);
+      break;
+    }
   }
-  return null;
+  if (isJSON(result)) result = JSON.parse(result);
+
+  return result;
 }
 
 function delCookie(name) {
@@ -908,8 +930,7 @@ function stateStuff(action, runState, newState) {
 function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   if ( ! jqxhr.responseText ) {
-    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
-    console.log(jqxhr);
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
   var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
@@ -1021,7 +1042,34 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
-var thumbnail_timeout;
+/* Controls the availability of options for selection*/
+function manageRTSP2WebChannelStream() {
+  let select = null;
+  let secondPath_ = null;
+  if (currentView == 'watch') {
+    const monitor = monitorData.find((o) => {
+      return parseInt(o["id"]) === monitorId;
+    });
+    if (monitor) {
+      secondPath_ = monitor['SecondPath'];
+    }
+    select = document.querySelector('select[name="streamChannel"]');
+  } else if (currentView == 'monitor') {
+    secondPath_ = document.querySelector('input[name="newMonitor[SecondPath]"]').value;
+    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+  }
+  if (select) {
+    select.querySelectorAll("option").forEach(function(el) {
+      if (el.value == 'Secondary' && !secondPath_) {
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+      }
+      applyChosen(select);
+    });
+  }
+}
+
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
@@ -1145,22 +1193,408 @@ function isMobile() {
   return result;
 }
 
-function applyChosen() {
-  const limit_search_threshold = 10;
+function destroyChosen(selector = '') {
+  if (typeof selector === 'string') {
+    $j(selector + '.chosen').chosen('destroy');
+  } else {
+    if ($j(selector).hasClass('chosen')) {
+      $j(selector).chosen('destroy');
+    }
+  }
+}
 
-  $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
-  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+function applyChosen(selector = '') {
+  const limit_search_threshold = 10;
+  var [obj_1, obj_2, obj_3] = '';
+  destroyChosen(selector);
+  if (typeof selector === 'string') {
+    obj_1 = $j(selector + '.chosen').not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector + '.chosen.chosen-full-width');
+    obj_3 = $j(selector + '.chosen.chosen-auto-width');
+  } else {
+    if (!$j(selector).hasClass('chosen')) return;
+    obj_1 = $j(selector).not('.chosen-full-width, .chosen-auto-width');
+    obj_2 = $j(selector).hasClass('chosen-full-width') ? $j(selector) : '';
+    obj_3 = $j(selector).hasClass('chosen-auto-width') ? $j(selector) : '';
+  }
+  if (obj_1) {
+    obj_1.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  }
+  if (obj_2) {
+    obj_2.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  }
+  if (obj_3) {
+    obj_3.chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+  }
 }
 
 function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-const font = new FontFaceObserver('Material Icons', {weight: 400});
-font.load().then(function() {
-  $j('.material-icons').css('display', 'inline-block');
-}, function() {
-  $j('.material-icons').css('display', 'inline-block');
-});
+function thisClickOnStreamObject(clickObj) {
+  if (clickObj.id) {
+    if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
+      return true;
+    } else if (clickObj.id.indexOf('monitorStatus') != -1) {
+      return document.getElementById('monitor'+stringToNumber(clickObj.id));
+    } else if (clickObj.id.indexOf('videoobj') != -1) {
+      return document.getElementById('eventVideo');
+    } else return false;
+  } else return false;
+}
+
+/* For mobile device Not implemented yet. */
+function thisClickOnTimeline(clickObj) {
+  return false;
+}
+
+var doubleTouchExecute = function(event, touchEvent) {
+//  if (touchEvent.target.id &&
+//    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
+  if (thisClickOnStreamObject(touchEvent.target)) {
+    doubleClickOnStream(event, touchEvent);
+  } else if (thisClickOnTimeline(touchEvent.target)) {
+    doubleTouchOnTimeline(event, touchEvent);
+  }
+};
+
+var doubleClickOnStream = function(event, touchEvent) {
+  if (shifted || ctrled || alted) {
+    console.log("Shift or Ctrl or Alt button was pressed, double-click event was not processed.");
+    return;
+  }
+  let target = null;
+  if (event.target) {// Click NOT on touch screen, use THIS
+    //Process only double clicks directly on the image, excluding clicks,
+    //for example, on zoom buttons and other elements located in the image area.
+    const fullScreenObject = thisClickOnStreamObject(event.target);
+    if (fullScreenObject === true) {
+      target = this;
+    } else if (fullScreenObject !== false) {
+      target = fullScreenObject;
+    }
+  } else {// Click on touch screen, use EVENT
+    //if (touchEvent.target.id &&
+    //  (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
+    target = event;
+    //}
+  }
+
+  if (target) {
+    if (document.fullscreenElement) {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
+        eventStats.toggle(true);
+        wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+        changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(true);
+        monitorsSetScale(monitorId);
+      }
+      closeFullscreen();
+    } else {
+      if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
+        //Event page
+        eventStats.toggle(false);
+        wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+        changeScale();
+      } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
+        //Watch page
+        sidebarView.toggle(false);
+        monitorsSetScale(monitorId);
+      }
+      openFullscreen(target);
+    }
+    if (isMobile()) {
+      setTimeout(function() {
+        //For some mobile devices resizing does not work. You need to set a delay and re-call the 'resize' event
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    }
+  }
+};
+
+var doubleTouch = function(e) {
+  if (e.touches.length === 1) {
+    if (!expiredTap) {
+      expiredTap = e.timeStamp + 300;
+    } else if (e.timeStamp <= expiredTap) {
+      // remove the default of this event ( Zoom )
+      e.preventDefault();
+      //doubleClickOnStream(this, e);
+      doubleTouchExecute(this, e);
+      // then reset the variable for other "double Touches" event
+      expiredTap = null;
+    } else {
+      // if the second touch was expired, make it as it's the first
+      expiredTap = e.timeStamp + 300;
+    }
+  }
+};
+
+function setButtonSizeOnStream() {
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"], [id = "videoobj"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
+    const w = el.offsetWidth;
+    // #videoFeedStream - on Event page
+    const monitorId = (stringToNumber(el.id)) ? stringToNumber(el.id) : stringToNumber(el.closest('[id ^= "videoFeedStream"]').id);
+    const buttonsBlock = document.getElementById('button_zoom' + monitorId);
+    if (!buttonsBlock) return;
+    const buttons = buttonsBlock.querySelectorAll(`
+      button.btn.btn-zoom-out span,
+      button.btn.btn-zoom-in span,
+      button.btn.btn-view-watch span,
+      button.btn.btn-fullscreen span,
+      button.btn.btn-edit-monitor span`
+    );
+    Array.prototype.forEach.call(buttons, (btn) => {
+      const btnWeight = (w/10 < 100) ? w/10 : 100;
+      btn.style.fontSize = btnWeight + "px";
+      btn.style.margin = -btnWeight/20 + "px";
+    });
+  });
+}
+
+/*
+* date - object type Date()
+* shift.offset - number (can be negative)
+* shift.period - (Date, Month, Day, Hour, Minute, Sec, MilliSec)
+* highPrecision - accuracy up to thousandths of a second
+*/
+function dateTimeToISOLocal(date, shift={}, highPrecision = false) {
+  var d = date;
+  if (shift.offset && shift.period) {
+    if (shift.period == 'Date') {
+      d = new Date(date.setDate(date.getDate() + shift.offset)); //Day
+    } else if (shift.period == 'Month') {
+      d = new Date(date.setMonth(date.getMonth() + shift.offset)); //Month
+    } else if (shift.period == 'Day') {
+      d = new Date(date.setHours(date.getHours() + shift.offset*24)); //24 hours
+    } else if (shift.period == 'Hour') {
+      d = new Date(date.setHours(date.getHours() + shift.offset)); //Hour
+    } else if (shift.period == 'Minute') {
+      d = new Date(date.setMinutes(date.getMinutes() + shift.offset)); //Minute
+    } else if (shift.period == 'Sec') {
+      d = new Date(date.setSeconds(date.getSeconds() + shift.offset)); //Second
+    } else if (shift.period == 'MilliSec') {
+      d = new Date(date.setMilliseconds(date.getMilliseconds() + shift.offset)); //Millisecond
+    }
+  }
+
+  //const z = n => ('0' + n).slice(-2);
+  //let off = d.getTimezoneOffset();
+  //const sign = off < 0 ? '+' : '-';
+  //off = Math.abs(off);
+  if (highPrecision) {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        .toISOString();
+  } else {
+    return new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+        .toISOString()
+        //.slice(0, -1) + sign + z(off / 60 | 0) + ':' + z(off % 60);
+        .slice(0, -1)
+        .split('.')[0].replace(/[T]/g, ' '); //Transformation from "2024-06-20T15:12:13.145" to "2024-06-20 15:12:13"
+  }
+}
+
+function canPlayCodec(filename) {
+  const re = /\.(\w+)\.(\w+)$/i;
+  const matches = re.exec(filename);
+  if (matches.length) {
+    const video = document.createElement('video');
+    if (matches[1] == 'av1') matches[1] = 'avc1';
+    const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
+    if (can == "probably") {
+      console.log("can play "+matches[1]);
+      return true;
+    } else if (can == "maybe") {
+      console.log("can maybe play "+matches[1]);
+      return true;
+    }
+    console.log("cannot play "+matches[1]);
+    return false;
+  }
+  return false;
+}
+
+/* Handling <input> change */
+function handleChangeInputTag(evt) {
+  // Managing availability of channel stream selection
+  manageRTSP2WebChannelStream();
+}
+
+function handleMouseover(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'show');
+}
+
+function handleMouseout(evt) {
+  manageVisibilityVideoPlayerControlPanel(evt, 'hide');
+}
+
+function manageVisibilityVideoPlayerControlPanel(evt, action) {
+  if (thisClickOnStreamObject(evt.target)) {
+    let video = evt.target.querySelector('video');
+    if (!video) {
+      video = evt.target.tagName == 'VIDEO' ? evt.target : null;
+    }
+    if (!video) {
+      video = evt.target.getAttribute('tagName');
+    }
+    if (video && !video.closest('#videoobj')) {
+      // We do not touch the video.js object, since it has its own controls.
+      if (action == 'hide') {
+        video.removeAttribute('controls');
+      } else if (action == 'show') {
+        video.setAttribute('controls', '');
+      }
+    }
+  }
+}
+
+/* Handle any action on the touch screen */
+function handleTouchActionGeneral(action, evt) {
+  //https://developer.mozilla.org/en-US/docs/Web/API/Touch_events
+  if (action == 'touchstart') {
+    managePanZoomButton(evt);
+  } else if (action == 'touchend') {
+  } else if (action == 'touchcancel') {
+  } else if (action == 'touchmove') {
+    //evt.preventDefault();
+  }
+}
+
+function managePanZoomButton(evt) {
+  var url = null;
+  if (panZoomEnabled) {
+    const targetId = evt.target.id;
+    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
+    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
+      // Click was outside '.imageFeed'
+      $j('[id^="button_zoom"]').addClass('hidden');
+      return;
+    } else {
+      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
+    }
+    //evt.preventDefault();
+    // We are looking for an object with an ID, because there may be another element in the button.
+    const obj = targetId ? evt.target : evt.target.parentElement;
+    if (!obj) {
+      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+      return;
+    }
+
+    if (currentView == 'watch') {
+      monitorId_ = monitorId;
+    } else if (currentView == 'montage') {
+      // On Montage page with mode==EDITING it is forbidden to use PanZoom
+      if (mode == EDITING) return;
+      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
+    } else if (currentView == 'event') {
+      monitorId_ = eventData.MonitorId;
+    }
+
+    if (obj.className.includes('btn-view-watch')) {
+      url = '?view=watch&mid='+monitorId_;
+    } else if (obj.className.includes('btn-edit-monitor')) {
+      url = '?view=monitor&mid='+monitorId_;
+    } else if (obj.className.includes('btn-fullscreen')) {
+      if (document.fullscreenElement) {
+        closeFullscreen();
+      } else {
+        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+      }
+    }
+    if (url) {
+      if (evt.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        window.location.assign(url);
+      }
+    }
+    // Zoom by mouse click
+    if (thisClickOnStreamObject(obj)) {
+      zmPanZoom.click(monitorId_);
+    }
+  }
+}
+
+function initPageGeneral() {
+  $j(document).on('keyup.global keydown.global', function(e) {
+    shifted = e.shiftKey ? e.shiftKey : e.shift;
+    ctrled = e.ctrlKey;
+    alted = e.altKey;
+  });
+
+  if (['montage', 'watch', 'devices', 'reports', 'monitorpreset', 'monitorprobe', 'onvifprobe', 'timeline'].includes(currentView)) {
+    mainContent = document.getElementById('page');
+  } else if (currentView == 'options') {
+    mainContent = document.getElementById('optionsContainer');
+  }
+  var mainContentJ = $j(mainContent);
+
+  /* Assigning global handlers!
+  ** IMPORTANT! It will not be possible to remove assigned handlers using the removeEventListener method, since the functions are anonymous
+  */
+  document.body.addEventListener('input', function(event) {
+    handleChangeInputTag(event);
+  });
+
+  document.body.addEventListener('mouseover', function(event) {
+    handleMouseover(event);
+  });
+  document.body.addEventListener('mouseout', function(event) {
+    handleMouseout(event);
+  });
+
+  // Support for touch devices.
+  ['touchstart', 'touchend', 'touchcancel', 'touchmove'].forEach(function(action) {
+    document.addEventListener(action, function(event) {
+      handleTouchActionGeneral(action, event);
+    }, {passive: false}); // false - to avoid an error "Unable to preventDefault inside passive event listener due to target being treated as passive."
+  });
+
+  // Remove the 'controls' attribute in all 'video' tags to be controlled using 'manageVisibilityVideoPlayerControlPanel'
+  setTimeout(function() {
+    // Delay required for DOM rendering
+    document.querySelectorAll("video").forEach(function removeControlsAttributeFromVideoTags(el) {
+      el.removeAttribute('controls');
+    });
+  }, 200);
+
+  // https://web.dev/articles/bfcache Firefox has a peculiar behavior of caching the previous page.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      // Do any checks and updates to the page
+      if (mainContentJ[0].clientHeight < 1) {
+        window.location.reload( true );
+      }
+    }
+  });
+
+  window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
+    //event.preventDefault();
+    /*
+    if (!useOldMenuView) {
+      closeMbExtruder(updateCookie = true);
+    }
+    */
+    if (mainContentJ) {
+      if (mainContentJ.css('display') == 'flex') {
+        // If flex-grow is set to a value > 0 then "height" will be ignored!
+        mainContentJ.css({flex: "0 1 auto"});
+      }
+
+      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+        const btnCollapse = $j('body').find('#btn-collapse');
+        if (btnCollapse) btnCollapse.css({display: "none"});
+        mainContentJ.css({display: "none"});
+      });
+    }
+    //event.returnValue = '';
+  });
+}
+
+$j( window ).on("load", initPageGeneral);

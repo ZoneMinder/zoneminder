@@ -1,0 +1,17 @@
+name: Install Boost.JSON
+description: Install Boost.JSON for building test application
+inputs:
+  version:
+    description: The desired Boost.JSON version to install
+    required: false
+    default: "1.78.0"
+runs:
+  using: composite
+  steps:
+    - run: |
+        cd /tmp
+        wget https://github.com/boostorg/json/archive/boost-${{ inputs.version }}.tar.gz
+        tar -zxf /tmp/boost-${{ inputs.version }}.tar.gz
+        cd json-boost-${{ inputs.version }}
+        sudo cp -vR include/boost /usr/local/include
+      shell: bash

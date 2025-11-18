@@ -26,8 +26,10 @@ if (!canView('System')) {
 $canEdit = canEdit('System');
 
 $tabs = array();
+if (!defined('ZM_FORCE_CSS_DEFAULT') or !defined('ZM_FORCE_SKIN_DEFAULT'))
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
+$tabs['auth'] = translate('Authentication');
 $tabs['config'] = translate('Config');
 if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
   $tabs['dnsmasq'] = translate('DHCP');
@@ -179,8 +181,14 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     ];
   } else if ($tab == 'system') {
 //    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
-    $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
-    $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
+    if (defined('ZM_FORCE_SKIN_DEFAULT'))
+      $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = ZM_FORCE_SKIN_DEFAULT;
+    else
+      $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
+    if (defined('ZM_FORCE_CSS_DEFAULT'))
+      $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = ZM_FORCE_CSS_DEFAULT;
+    else
+      $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
     $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
 
 // create new multidim array for languages (code1|translation)

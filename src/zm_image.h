@@ -207,7 +207,7 @@ class Image {
     const size_t buffer_size,
     const int p_buffertype);
 
-  int PopulateFrame(AVFrame *frame);
+  int PopulateFrame(AVFrame *frame) const;
 
   inline void CopyBuffer(const Image &image) {
     Assign(image);

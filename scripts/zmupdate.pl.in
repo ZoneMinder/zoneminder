@@ -387,11 +387,6 @@ if ( $version ) {
   my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
   $version = $detaint_version;
 
-  if ( ZM_VERSION eq $version ) {
-    print("\nDatabase already at version $version, update skipped.\n\n");
-    exit(0);
-  }
-
   my $start_zm = 0;
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {
@@ -941,7 +936,7 @@ if ( $version ) {
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+      if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
           my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );

@@ -673,10 +673,10 @@ function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Timeline'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
-  <div id="page p-0">
+  <div id="page" class="p-0">
     <div class="d-flex p-1">
       <div class="mr-auto" id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>

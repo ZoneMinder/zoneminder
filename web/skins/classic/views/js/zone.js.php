@@ -67,15 +67,18 @@ var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
 var monitorData = new Array();
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'name': '<?php echo $monitor->Name() ?>',
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
+  'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
+  'capturing': '<?php echo $monitor->Capturing() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>',
   'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };

@@ -47,17 +47,19 @@ class Server extends ZM_Object {
   public function ReadStats() {
     #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
     $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id()>1 ? $this->Id() : 0]);
-    $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
-    $this->CpuLoad = $dbStats[0]['CpuLoad'];
-    $this->CpuUserPercent = $dbStats[0]['CpuUserPercent'];
-    $this->CpuNicePercent = $dbStats[0]['CpuNicePercent'];
-    $this->CpuSystemPercent = $dbStats[0]['CpuSystemPercent'];
-    $this->CpuIdlePercent = $dbStats[0]['CpuIdlePercent'];
-    $this->CpuUsagePercent = $dbStats[0]['CpuUsagePercent'];
-    $this->TotalMem = $dbStats[0]['TotalMem'];
-    $this->FreeMem = $dbStats[0]['FreeMem'];
-    $this->TotalSwap = $dbStats[0]['TotalSwap'];
-    $this->FreeSwap = $dbStats[0]['FreeSwap'];
+    if (count($dbStats)) {
+      $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
+      $this->CpuLoad = $dbStats[0]['CpuLoad'];
+      $this->CpuUserPercent = $dbStats[0]['CpuUserPercent'];
+      $this->CpuNicePercent = $dbStats[0]['CpuNicePercent'];
+      $this->CpuSystemPercent = $dbStats[0]['CpuSystemPercent'];
+      $this->CpuIdlePercent = $dbStats[0]['CpuIdlePercent'];
+      $this->CpuUsagePercent = $dbStats[0]['CpuUsagePercent'];
+      $this->TotalMem = $dbStats[0]['TotalMem'];
+      $this->FreeMem = $dbStats[0]['FreeMem'];
+      $this->TotalSwap = $dbStats[0]['TotalSwap'];
+      $this->FreeSwap = $dbStats[0]['FreeSwap'];
+    }
   }
 
   public static function find( $parameters = array(), $options = array() ) {

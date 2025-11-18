@@ -54,6 +54,12 @@ function getStat(params) {
   $j.getJSON(thisUrl + '?view=request&request=stats&raw=true', params)
       .done(function(data) {
         $j('#frameStatsTable').empty().append('<tbody>');
+        if (data.result == "Error") {
+          console.log(`Error running getStat function: ${data.message}`);
+          statsBtn.prop('disabled', true);
+          statsBtn.prop('title', 'No statistics available for this frame');
+          return;
+        }
         if (!data.raw.length) {
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');

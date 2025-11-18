@@ -199,7 +199,7 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.log("setScale", stream, newscale, width, height, param);
+    console.trace("setScale", stream, newscale, width, height, param);
     if (height == '0px') {
       console.error("Don't want to set 0px height. Reverting to auto");
       height = 'auto';
@@ -1178,7 +1178,7 @@ function MonitorStream(monitorData) {
         } // end if have a new auth hash
       } // end if has state
 
-      if (!this.streamCmdTimer) {
+      if (this.started && !this.streamCmdTimer) {
         // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
         console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
         this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
@@ -1198,7 +1198,7 @@ function MonitorStream(monitorData) {
         stream.src = src;
       }
     } // end if Ok or not
-  };
+  }; // this.getStreamCmdResponse
 
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {

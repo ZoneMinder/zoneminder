@@ -203,7 +203,7 @@ void RtpSource::updateRtcpData(
   timeval ntpTime = zm::chrono::duration_cast<timeval>(
                       Seconds(ntpTimeSecs) + Microseconds((Microseconds::period::den * (ntpTimeFrac >> 16)) / (1 << 16)));
 
-  Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
+  Debug(5, "ntpTime: %jd.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
   if ( mBaseTimeNtp.tv_sec == 0 ) {
     mBaseTimeReal = std::chrono::system_clock::now();

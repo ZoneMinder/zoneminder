@@ -233,7 +233,7 @@ Debug("@Monitors");
                 $Event->Orientation( $Monitor->Orientation() );
                 $Event->recover_timestamps();
                 if ( $$Event{StartDateTime} ) {
-                  $Event->save({}, 1);
+                  die $_ if ($_ = $Event->save({}, 1));
                   Info("Event resurrected as " . $Event->to_string() );
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
@@ -297,7 +297,7 @@ Debug("@Monitors");
                 $Event->DiskSpace( undef );
                 $Event->recover_timestamps();
                 if ( $$Event{StartDateTime} ) {
-                  $Event->save({}, 1);
+                  die $_ if ($_ = $Event->save({}, 1));
                   Info("Event resurrected as " . $Event->to_string() );
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");

@@ -348,7 +348,7 @@ function MonitorStream(monitorData) {
     }
     this.streamListenerBind = streamListener.bind(null, this);
 
-    console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player);
+    console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
     $j('#volumeControls').hide();
 
@@ -361,6 +361,7 @@ function MonitorStream(monitorData) {
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
+        stream.setAttribute("muted", this.muted);
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;

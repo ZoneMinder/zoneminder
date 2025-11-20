@@ -202,7 +202,6 @@ foreach ($displayMonitors as &$row) {
     continue;
 
   $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   if (ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'])
     $showControl = true;

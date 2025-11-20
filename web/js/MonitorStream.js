@@ -303,10 +303,10 @@ function MonitorStream(monitorData) {
     if (newscale < 25 && streamQuality > -1) newscale = 25; // Arbitrary, lower values look bad
     if (newscale <= 0) newscale = 100;
     this.scale = newscale;
-    if (this.connKey) {
-      /* Can just tell it to scale, in fact will happen automatically on next query */
-    } else {
-      if (stream.nodeName == 'IMG') {
+    if (stream.nodeName == 'IMG' && this.started) {
+      if (this.connKey) {
+        /* Can just tell it to scale, in fact will happen automatically on next query */
+      } else {
         const oldSrc = stream.src;
         if (!oldSrc) {
           console.log('No src on img?!', stream);

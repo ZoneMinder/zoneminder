@@ -202,7 +202,6 @@ foreach ($displayMonitors as &$row) {
     continue;
 
   $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   if (ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'])
     $showControl = true;
@@ -371,15 +370,19 @@ foreach ($monitors as $monitor) {
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
             $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
-            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+            if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
+            else if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
         }
       }
     } else {
+      $divisor = count($monitors)/2;
+      if ($divisor < 2) $divisor = 2;
+
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-      $monitor_options['scale'] = intval(100*(($browser_width/4)/$monitor->Width()));
+      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/$monitor->Width()));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
-      if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
+      else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }
     $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);

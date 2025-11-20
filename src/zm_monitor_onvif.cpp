@@ -208,11 +208,10 @@ void Monitor::ONVIF::WaitForMessage() {
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
-      Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
-          result, soap_fault_string(soap), detail ? detail : "null");
 
       if (result != SOAP_EOF) { //Ignore the timeout error
-        Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
+        Error("Failed to get ONVIF messages! result=%d soap_fault_string=%s detail=%s",
+            result, soap_fault_string(soap), (detail ? detail : "null"));
 
         std::ostream *old_stream = soap->os;
         std::stringstream ss;
@@ -225,6 +224,8 @@ void Monitor::ONVIF::WaitForMessage() {
 
         healthy = false;
       } else {
+        Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
+            result, soap_fault_string(soap), detail ? detail : "null");
         // EOF
         std::unique_lock<std::mutex> lck(alarms_mutex);
 

@@ -3,6 +3,7 @@ const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorInitComplete = false;
+var resizeInterval = null;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -319,6 +320,7 @@ function setRatioForMonitor(objStream, id=null) {
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
+    console.log('good height', height, objStream);
     objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
@@ -491,10 +493,11 @@ function startMonitors() {
 }
 
 function stopMonitors() { //Not working yet.
+  console.log("stop monitoirs");
   for (let i = 0, length = monitors.length; i < length; i++) {
     //monitors[i].stop();
-    //monitors[i].kill();
-    monitors[i].streamCommand(CMD_QUIT);
+    monitors[i].kill();
+    //monitors[i].streamCommand(CMD_QUIT);
   }
   monitors.length = 0;
 }
@@ -663,7 +666,7 @@ function initPage() {
       function stopPlayback() {
         idleTimeoutTriggered = true;
         for (let i=0, length = monitors.length; i < length; i++) {
-          monitors[i].kill();
+          monitors[i].stop();
         }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -695,7 +698,7 @@ function initPage() {
     inactivityTime();
   }
 
-  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
+  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
         const img = getStream(item);
@@ -755,15 +758,17 @@ function showСontrolElementsOnStream(stream) {
 
 function on_scroll() {
   if (!monitorInitComplete || idleTimeoutTriggered) return;
+
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
+    console.log(isOut, monitor.id);
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      //monitor.stop(); // does not work without replacing SRC to stop ZMS
-      monitor.kill();
+      monitor.stop(); // does not work without replacing SRC to stop ZMS
+      //monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -792,6 +797,7 @@ function isOutOfViewport(elem) {
 };
 
 function formSubmit(form) {
+  clearInterval(resizeInterval);
   console.log("Killing streaming");
   for (let i = 0, length = monitors.length; i < length; i++) {
     if (monitors[i]) {
@@ -1046,9 +1052,10 @@ document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
-      //Stop monitors when closing or hiding page
+      //Stop monitors when hiding page
+      //closing should kill, hiding should stop/pause
       for (let i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].kill();
+        monitors[i].pause();
       }
     }, 15*1000);
   } else {

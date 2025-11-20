@@ -1487,7 +1487,8 @@ document.onvisibilitychange = () => {
         if (monitorStream.started) {
           prevStateStarted = 'played';
           //Stop only if playing or paused.
-          monitorStream.kill();
+          // We might want to continue status updates so that alarm sounds etc still happen
+          monitorStream.stop();
         } else {
           prevStateStarted = false;
         }

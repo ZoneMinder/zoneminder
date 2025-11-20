@@ -2,8 +2,7 @@ name: build-native-packages-signed-aarch64
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
+    branches: [ master ]
 permissions:
   contents: write
 env:
@@ -33,7 +32,7 @@ jobs:
       - name: Prep apt
         run: |
           set -eux
-          echo "Acquire::HTTP::Proxy \"http://192.168.9.129:3142\";" > /etc/apt/apt.conf.d/01proxy
+          echo "Acquire::HTTP::Proxy \"http://192.168.9.128:3142\";" > /etc/apt/apt.conf.d/01proxy
 
           if grep -q '^deb http' /etc/apt/sources.list && ! grep -q '^deb-src'\
             /etc/apt/sources.list; then

@@ -306,9 +306,11 @@ Event::~Event() {
   }
 
   FPSeconds delta_time = end_time - start_time;
-  Debug(2, "start_time: %.2f end_time: %.2f",
+  Debug(2, "start_time: %.2f end_time: %.2f, duration: %.2f",
         std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
-        std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count());
+        std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count(),
+        std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch() - start_time.time_since_epoch()).count()
+        );
 
   if (frame_data.size()) WriteDbFrames();
 

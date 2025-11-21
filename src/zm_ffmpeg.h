@@ -317,20 +317,18 @@ struct zm_free_av_frame {
   void operator()(AVFrame *frame) const {
    //Debug(1, "Freeing frame at %p", frame);
     //Debug(1, "Freeing frame at %p", frame->data);
-#ifdef HAVE_QUADRA
-    if (frame->data[3]) {
-        niFrameSurface1_t *fs;
 
-        fs = (niFrameSurface1_t *) frame->data[3];
-        if (fs) {
-            Debug(1, "*** Free buf id %d ref count(%d) is_writeable(%d) ***",
-              fs->ui16FrameIdx, 
-              av_buffer_get_ref_count(frame->buf[0]),
-              av_frame_is_writable(frame));
-        }
+    if (!frame) return;
+#ifdef HAVE_QUADRA
+    if (frame->data[3] and frame->hw_frames_ctx) {
+        niFrameSurface1_t *fs = (niFrameSurface1_t *) frame->data[3];
+        Debug(1, "*** Free buf id %d ref count(%d) is_writeable(%d) ***",
+            fs->ui16FrameIdx, 
+            av_buffer_get_ref_count(frame->buf[0]),
+            av_frame_is_writable(frame));
     }
 #endif
-    if (frame) av_frame_free(&frame);
+    av_frame_free(&frame);
   }
 };
 

@@ -397,8 +397,11 @@ int main(int argc, char *argv[], char **envp) {
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }
+      Debug(1, "Term log in reload");
+      dbQueue.stop();
       logTerm();
       logInit(log_id_string);
+      dbQueue.start();
 
       zm_reload = false;
     }  // end if zm_reload
@@ -418,6 +421,7 @@ int main(int argc, char *argv[], char **envp) {
   Debug(1, "terminating");
   dbQueue.stop();
   zmDbClose();
+  Debug(1, "Term log");
   logTerm();
 
   return zm_terminate ? 0 : result;

@@ -121,6 +121,7 @@ bool zmDbReconnect() {
 void zmDbClose() {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
+    dbQueue.stop();
     Debug(1, "Closing database. Connection id was %lu", db_thread_id);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
@@ -282,6 +283,10 @@ zmDbQueue::zmDbQueue() :
 
 zmDbQueue::~zmDbQueue() {
   stop();
+}
+
+void zmDbQueue::start() {
+  mThread = std::thread(&zmDbQueue::process, this);
 }
 
 void zmDbQueue::stop() {

@@ -40,6 +40,7 @@ class zmDbQueue {
   ~zmDbQueue();
   void push(std::string &&sql);
   void process();
+  void start();
   void stop();
 };
 

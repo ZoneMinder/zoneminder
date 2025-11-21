@@ -583,7 +583,7 @@ bool PacketQueue::increment_it(packetqueue_iterator *it) {
   std::lock_guard<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
   if (((*it) == pktQueue.end()) or deleting) {
-    Warning("increment_it at end!");
+    if (!deleting) Warning("increment_it at end!");
     return false;
   }
   ++(*it);
@@ -625,6 +625,8 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   iterators.push_back(it);
 
   *it = snapshot_it;
+  if (*it == pktQueue.end()) *it--; // Should make it = pktQueue.begin
+ 
   std::shared_ptr<ZMPacket> packet = *(*it);
   //ZM_DUMP_PACKET(packet->packet, "snapshot packet");
   // Step one count back pre_event_count frames as the minimum
@@ -698,6 +700,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
       *it = pktQueue.begin();
     }
     if ( deleting or zm_terminate ) {
+      // Isn't this redundant?
       free_it(it);
       delete it;
       return nullptr;

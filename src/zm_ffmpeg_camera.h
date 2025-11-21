@@ -46,32 +46,20 @@ class FfmpegCamera : public Camera {
   std::string         mMethod;
   std::string         mOptions;
 
-  std::string         encoder_options;
-  std::string         hwaccel_name;
-  std::string         hwaccel_device;
-
   std::unique_ptr<FFmpeg_Input> mSecondInput;
 
   int frameCount;
 
   _AVPIXELFORMAT      imagePixFormat;
 
-  bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  AVBufferRef *hw_device_ctx = nullptr;
-#endif
-
   // Used to store the incoming packet, it will get copied when queued.
   // We only ever need one at a time, so instead of constantly allocating
   // and freeing this structure, we will just make it a member of the object.
   //av_packet_ptr packet;
 
-  int OpenFfmpeg();
   int Close() override;
 
-  struct SwsContext   *mConvertContext;
-
-  int                 error_count;
+  int error_count;
   int stream_width;   /* What the camera is actually sending */
   int stream_height;
 
@@ -92,9 +80,7 @@ class FfmpegCamera : public Camera {
     int p_hue,
     int p_colour,
     bool p_capture,
-    bool p_record_audio,
-    const std::string &p_hwaccel_name,
-    const std::string &p_hwaccel_device
+    bool p_record_audio
   );
   ~FfmpegCamera();
 

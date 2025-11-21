@@ -65,6 +65,8 @@ Quadra_Yolo::~Quadra_Yolo() {
     ni_cleanup_network_context(network_ctx, use_hwframe);
   if (model && model_ctx) {
     model->destroy_model(model_ctx);
+    delete model_ctx;
+    model_ctx = nullptr;
   }
 
   free(last_roi);

@@ -1183,17 +1183,16 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               );
         }
       } else if (zm_packet->ai_frame) {
-        Debug(1, "Want ai_frame");
         if (zm_packet->ai_frame->width == video_out_ctx->width
             and
             zm_packet->ai_frame->height == video_out_ctx->height
             and
             static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          Debug(1, "Using ai_frame");
+          zm_dump_frame(frame.get(), "using aiframe, src is");
           av_frame_ref(frame.get(), zm_packet->ai_frame.get());
         } else {
-          Debug(1, "reating ai_frame");
+          Debug(1, "Creating ai_frame");
           av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
           //av_frame_copy_props(frame.get(), zm_packet->ai_frame.get());
 

@@ -857,8 +857,8 @@ void Monitor::LoadCamera() {
       camera = zm::make_unique<FfmpegCamera>(
           this, path, second_path, user, pass, method, options, camera_width,
           camera_height, colours, brightness, contrast, hue, colour,
-          purpose == CAPTURE, record_audio, decoder_hwaccel_name,
-          decoder_hwaccel_device);
+          purpose == CAPTURE, record_audio
+          );
       break;
     }
     case NVSOCKET: {
@@ -3551,7 +3551,8 @@ int Monitor::Decode() {
       SystemTimePoint endtime = std::chrono::system_clock::now();
       int fps = int(get_capture_fps());
       if ((fps > 0) and (endtime - starttime > Milliseconds(1000/fps))) {
-        Warning("send_packet is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interface is %d", FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval());
+        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interval is %d retval was %d",
+            packet->image_index, FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
       } else {
         Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }

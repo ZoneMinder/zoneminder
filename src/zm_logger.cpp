@@ -539,8 +539,9 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   log_mutex.unlock();
   if (level <= FATAL) {
-    logTerm();
+    mDatabaseLevel = NOLOG;
     zmDbClose();
+    logTerm();
     if (level <= PANIC) abort();
     exit(-1);
   }

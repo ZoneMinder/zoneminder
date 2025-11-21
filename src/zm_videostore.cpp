@@ -576,16 +576,17 @@ void VideoStore::flush_codecs() {
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // Put encoder into flushing mode
-    if (0 > avcodec_send_frame(video_out_ctx, nullptr)) {
-      Error("Failure sending null to flush codec");
+    int ret = avcodec_send_frame(video_out_ctx, nullptr);
+    if (0 > ret) {
+      Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
     } else {
       while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
         av_packet_guard pkt_guard{pkt};
         av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
         write_packet(pkt.get(), video_out_stream);
       } // while have buffered frames
+      Debug(1, "Done writing buffered video.");
     }
-    Debug(1, "Done writing buffered video.");
   } // end if have delay capability
 
   if (audio_out_codec) {

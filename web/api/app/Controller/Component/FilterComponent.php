@@ -64,6 +64,7 @@ class FilterComponent extends Component {
 					      );
 
   public $paramsToFilterOut = array(
+    'p', // Used in nginx api rewriting
     'sort',
     'page',
     'limit',

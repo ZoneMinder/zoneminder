@@ -374,9 +374,15 @@ sub post {
     return;
   }
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
-  my $req = HTTP::Request->new(POST => $url);
-  my $content = shift;
+  my $content = shift if @_;
+  my $headers = shift if @_;
+  my $req = HTTP::Request->new('POST', $url, $headers);
   if ( defined($content) ) {
+    if (ref $content eq 'HASH') {
+      my $uri = $$self{uri};
+      $uri->query_form(%{$content});
+      $content = $uri->query;
+    }
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content($content);
   }

@@ -200,7 +200,7 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.trace("setScale", stream, newscale, width, height, param);
+    //console.trace("setScale", stream, newscale, width, height, param);
     if (height == '0px') {
       console.error("Don't want to set 0px height. Reverting to auto");
       height = 'auto';
@@ -350,7 +350,7 @@ function MonitorStream(monitorData) {
     console.log('streamChannel', streamChannel);
     this.streamListenerBind = streamListener.bind(null, this);
 
-    console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
+    //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
     $j('#volumeControls').hide();
 
@@ -363,7 +363,7 @@ function MonitorStream(monitorData) {
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
-        stream.setAttribute("muted", this.muted);
+        stream.muted = this.muted;
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
@@ -523,9 +523,11 @@ function MonitorStream(monitorData) {
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
     if (this.activePlayer == 'zms') {
+      // Only if we were already zms streaming
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else if (-1 != stream.src.indexOf('mode=paused')) {
+      // Initial page load has zms with mode=paused
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
@@ -544,8 +546,8 @@ function MonitorStream(monitorData) {
       if (-1 == src.search('mode=')) {
         src += '&mode=jpeg';
       }
-      console.log("Setting src.src", stream.src, src);
       if (stream.src != src) {
+        //console.log("Setting src.src", stream.src, src);
         stream.src = '';
         stream.src = src;
       }
@@ -923,23 +925,29 @@ function MonitorStream(monitorData) {
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
-    const mid = this.id;
-    const volumeSlider = this.getVolumeSlider(mid);
-    const audioStream = this.getAudioStream(mid);
-    const iconMute = this.getIconMute(mid);
-    if (!iconMute) return;
-
     if (mode=='switch') {
       this.muted = !this.muted;
     } else if (mode=='on') {
-      this.muted = false;
-    } else if (mode=='off') {
       this.muted = true;
+    } else if (mode=='off') {
+      this.muted = false;
     } else {
       console.log("Invalid value for mode", mode);
     }
+    const mid = this.id;
 
-    if (audioStream) audioStream.muted = this.muted;
+    const audioStream = this.getAudioStream(mid);
+    if (audioStream) {
+      audioStream.muted = this.muted;
+      console.log("Setting muted for ", mid, " to ", this.muted, "stream value is", audioStream.muted);
+    } else {
+      console.log("No audiostream! in controlMute");
+    }
+
+    const iconMute = this.getIconMute(mid);
+    if (!iconMute) return;
+    const volumeSlider = this.getVolumeSlider(mid);
+
     if (!this.muted) {
       iconMute.innerHTML = 'volume_up';
       volumeSlider.classList.add('noUi-mute');

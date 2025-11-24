@@ -320,7 +320,7 @@ function setRatioForMonitor(objStream, id=null) {
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    console.log('good height', height, objStream);
+    //console.log('good height', height, objStream);
     objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
@@ -763,7 +763,7 @@ function on_scroll() {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
-    console.log(isOut, monitor.id);
+    //console.log(isOut, monitor.id);
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
@@ -882,6 +882,7 @@ function monitorsSetScale(id=null) {
     }
     const el = document.getElementById('liveStream'+id);
     const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
+    console.log("monitorsSetsCale", id, 'clientWidth', el.clientWidth, 'clientHeight', el.clientHeight, 'panzoomscale', panZoomScale);
     currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -1077,6 +1078,7 @@ document.onvisibilitychange = () => {
 // This is to stop the streams in a nicer way (no broken image) and hopefully faster.
 window.onbeforeunload = function(e) {
   console.log('unload');
+  clearInterval(resizeInterval);
   /*
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {

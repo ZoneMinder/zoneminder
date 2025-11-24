@@ -244,6 +244,7 @@ export class VideoRTC extends HTMLElement {
         this.video.style.display = 'block'; // fix bottom margin 4px
         this.video.style.width = '100%';
         this.video.style.height = '100%';
+        this.video.muted = this.muted;
 
         this.appendChild(this.video);
 

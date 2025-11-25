@@ -1194,14 +1194,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           av_frame_ref(frame.get(), zm_packet->ai_frame.get());
         } else {
           Debug(1, "reating ai_frame");
-          frame = av_frame_ptr(zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
-          if (!frame) {
-            Error("Unable to allocate a frame");
-            return 0;
-          }
-          av_frame_copy_props(frame.get(), zm_packet->ai_frame.get());
+          av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
+          //av_frame_copy_props(frame.get(), zm_packet->ai_frame.get());
 
-          // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->ai_frame.get(), frame.get());
         }
       } else if (zm_packet->in_frame) {
@@ -1217,8 +1212,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         Debug(1, "Scaling in_frame");
           av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
           // Have in_frame.... may need to convert it to out_frame
+          //av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
           swscale.Convert(zm_packet->in_frame.get(), frame.get());
-          av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
         }
       } // end if no in_frame
     } // end if no out_frame

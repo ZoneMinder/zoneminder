@@ -624,7 +624,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   iterators.push_back(it);
 
   *it = snapshot_it;
-  if (*it == pktQueue.end()) *it--; // Should make it = pktQueue.begin
+  if (*it == pktQueue.end()) (*it)--; // Should make it = pktQueue.begin
  
   std::shared_ptr<ZMPacket> packet = *(*it);
   //ZM_DUMP_PACKET(packet->packet, "snapshot packet");

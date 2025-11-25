@@ -63,7 +63,6 @@ int FFmpeg_Input::Open(const char *filepath) {
   streams = new stream[input_format_context->nb_streams];
   Debug(2, "Have %d streams", input_format_context->nb_streams);
 
-
   for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
     //av_seek_frame(input_format_context, i, 0, AVSEEK_FLAG_FRAME);
 
@@ -81,9 +80,11 @@ int FFmpeg_Input::Open(const char *filepath) {
         audio_stream_id = i;
       } else {
         Warning("Have another audio stream.");
+        continue;
       }
     } else {
-      Warning("Unknown stream type");
+      Debug(1, "Unknown stream type");
+      continue;
     }
 
     streams[i].frame_count = 0;

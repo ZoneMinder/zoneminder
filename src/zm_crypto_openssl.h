@@ -22,6 +22,7 @@
 
 #include "zm_crypto_generics.h"
 #include "zm_utils.h"
+
 #include <openssl/evp.h>
 
 namespace zm {
@@ -31,10 +32,10 @@ namespace openssl {
 
 typedef EVP_MD const *(*HashCreator)();
 
-template<HashAlgorithms Algorithm>
+template <HashAlgorithms Algorithm>
 struct HashAlgorithmMapper;
 
-template<>
+template <>
 struct HashAlgorithmMapper<HashAlgorithms::kMD5> {
 // TODO: Remove conditional once Jessie and CentOS 7 are deprecated
 // This is needed since GCC 4.8 is faulty (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60199)
@@ -48,7 +49,7 @@ struct HashAlgorithmMapper<HashAlgorithms::kMD5> {
 #endif
 };
 
-template<>
+template <>
 struct HashAlgorithmMapper<HashAlgorithms::kSHA1> {
 // TODO: Remove conditional once Jessie and CentOS 7 are deprecated
 // This is needed since GCC 4.8 is faulty (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60199)
@@ -62,7 +63,7 @@ struct HashAlgorithmMapper<HashAlgorithms::kSHA1> {
 #endif
 };
 
-template<HashAlgorithms Algorithm>
+template <HashAlgorithms Algorithm>
 class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm> {
  public:
   GenericHashImpl() {
@@ -98,11 +99,11 @@ class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm
   using Base = GenericHash<GenericHashImpl<Algorithm>, Algorithm>;
   using Base::digest_;
 };
-}
-}
-}
-}
+}  // namespace openssl
+}  // namespace impl
+}  // namespace crypto
+}  // namespace zm
 
-#endif // HAVE_LIBOPENSSL
+#endif  // HAVE_LIBOPENSSL
 
-#endif // ZONEMINDER_SRC_ZM_CRYPTO_OPENSSL_H_
+#endif  // ZONEMINDER_SRC_ZM_CRYPTO_OPENSSL_H_

@@ -32,14 +32,17 @@ std::string SystemTimePointToString(SystemTimePoint tp) {
   char *timePtr = &*(timeString.begin());
   tm tp_tm = {};
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
+  snprintf(timePtr,
+           timeString.capacity() - (timePtr - timeString.data()),
+           ".%06" PRIi64,
+           static_cast<int64_t>(now_frac.count()));
   return timeString;
 }
 
 std::string TimePointToString(TimePoint tp) {
-  const auto tp_dur = std::chrono::duration_cast<std::chrono::system_clock::duration>(tp - std::chrono::steady_clock::now());
-  time_t tp_sec = std::chrono::system_clock::to_time_t(
-                    std::chrono::system_clock::now() + tp_dur);
+  const auto tp_dur = std::chrono::duration_cast<std::chrono::system_clock::duration>(
+      tp - std::chrono::steady_clock::now());
+  time_t tp_sec = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() + tp_dur);
 
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
                             tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
@@ -49,7 +52,10 @@ std::string TimePointToString(TimePoint tp) {
   char *timePtr = &*(timeString.begin());
   tm tp_tm = {};
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
+  snprintf(timePtr,
+           timeString.capacity() - (timePtr - timeString.data()),
+           ".%06" PRIi64,
+           static_cast<int64_t>(now_frac.count()));
   return timeString;
 }
 

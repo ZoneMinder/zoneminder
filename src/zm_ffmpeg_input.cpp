@@ -2,6 +2,7 @@
 
 #include "zm_ffmpeg.h"
 #include "zm_logger.h"
+#include "zm_signal.h"
 
 FFmpeg_Input::FFmpeg_Input() :
   streams(nullptr),
@@ -187,18 +188,10 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     return nullptr;
   }
 
-  bool frameComplete = false;
-  av_packet_ptr packet{av_packet_alloc()};
-
-  if (!packet) {
-    Error("Unable to allocate packet.");
-    return nullptr;
-  }
 
   AVCodecContext *context = streams[stream_id].context;
 
-  while (!frameComplete) {
-
+  while (!zm_terminate) {
     frame = av_frame_ptr{av_frame_alloc()};
     if (!frame) {
       Error("Unable to allocate frame.");
@@ -212,42 +205,55 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       // Perfectly normal
     } else if (ret < 0) {
       Error("Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
-      return nullptr;
+      return nullptr; // FIXME should likely just continue, but not if we are EOF
     } else {
-      frameComplete = true;
-      if (is_video_stream(input_format_context->streams[packet->stream_index])) {
-        zm_dump_video_frame(frame.get(), "resulting video frame");
-      } else {
-        zm_dump_frame(frame.get(), "resulting frame");
-      }
-      break;
+      zm_dump_frame(frame.get(), "resulting frame");
+      return frame.get();
     }
 
-    ret = av_read_frame(input_format_context, packet.get());
-    if (ret < 0) {
-      if (
+    av_packet_ptr packet{av_packet_alloc()};
+    if (!packet) {
+      Error("Unable to allocate packet.");
+      return nullptr;
+    }
+
+    while (!zm_terminate) {
+      ret = av_read_frame(input_format_context, packet.get());
+      if (ret < 0) {
+        if (
+            // Check if EOF.
+            (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
+            // Check for Connection failure.
+            (ret == -110)
+           ) {
+          // Need to try flushing the codec. Sigh
+          Info("av_read_frame returned %s.", av_make_error_string(ret).c_str());
+          break;
+        }
+        Error("Unable to read packet from stream %d: error %d %s.", packet->stream_index, ret, av_make_error_string(ret).c_str());
+        return nullptr;
+      }
+      ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
+
+      //av_packet_guard pkt_guard{packet};
+
+      if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
+        Debug(4, "Packet is not for our stream. Want %d got %d", stream_id, packet->stream_index);
+        continue;
+      }
+      break;
+    }  // end while !got_packet
+
+    if (
         // Check if EOF.
         (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
-      ) {
-        Info("av_read_frame returned %s.", av_make_error_string(ret).c_str());
-        return nullptr;
-      }
-      Error("Unable to read packet from stream %d: error %d \"%s\".",
-            packet->stream_index, ret, av_make_error_string(ret).c_str());
-      return nullptr;
+       ) {
+      ret = avcodec_send_packet(context, nullptr); // flush
+    } else {
+      ret = avcodec_send_packet(context, packet.get());
     }
-    ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
-
-    //av_packet_guard pkt_guard{packet};
-
-    if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
-      Debug(4, "Packet is not for our stream (%d)", packet->stream_index );
-      continue;
-    }
-
-    ret = avcodec_send_packet(context, packet.get());
     if (ret == AVERROR(EAGAIN)) {
       Debug(2, "Unable to send packet %d %s", ret, av_make_error_string(ret).c_str());
       continue;
@@ -343,7 +349,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
-  if (frame->pts <= seek_target) {
+  if (frame->pts +
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+                     frame->duration
+#else
+                     frame->pkt_duration
+#endif
+      <= seek_target) {
     Debug(1, "Frame pts %" PRId64 " + duration %" PRId64 "= %" PRId64 " <=? %" PRId64,
           frame->pts,
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
@@ -352,6 +364,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
           frame->pkt_duration, frame->pts + frame->pkt_duration,
 #endif
           seek_target);
+
     while (frame && (frame->pts +
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
                      frame->duration
@@ -369,8 +382,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
         return nullptr;
       }
     }
-    return frame.get();
   }
-
-  return get_frame(stream_id);
+  return frame.get();
 }

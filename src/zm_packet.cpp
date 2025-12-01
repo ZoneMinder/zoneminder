@@ -117,9 +117,6 @@ ZMPacket::~ZMPacket() {
   if (image) delete image;
   if (y_image) delete y_image;
   if (ai_image) delete ai_image;
-  if (hw_frame) {
-    Debug(1, "Should not have hw_frame in destructor %d", image_index);
-  }
 }
 
 ssize_t ZMPacket::ram() {
@@ -196,7 +193,6 @@ int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_pack
 
   delayed_packet->in_frame = std::move(receive_frame);
   zm_dump_video_frame(delayed_packet->in_frame.get(), "got frame");
-  //delayed_packet->get_hwframe(ctx);
   return 1;
 }
 

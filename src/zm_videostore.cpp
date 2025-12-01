@@ -355,10 +355,15 @@ bool VideoStore::open() {
           Debug(1, "Try to open card %d", devid);
           av_opt_set(video_out_ctx->priv_data, "enc", std::to_string(devid).c_str(), 0);
         }
-#endif
         const AVDictionaryEntry *xcoder_params = av_dict_get(opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
         if (xcoder_params) {
           av_opt_set(video_out_ctx->priv_data, "xcoder-params", xcoder_params->value, 0);
+        }
+#endif
+        // movflags is an avformat parameter, not an avcodec
+        const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
+        if (movflags_entry) {
+          av_dict_set(&opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
         }
 
         zm_dump_codec(video_out_ctx);

@@ -769,55 +769,73 @@ void LocalCamera::Initialise() {
         , v4l2_data.fmt.fmt.pix.priv
         );
 
-    v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    v4l2_data.fmt.fmt.pix.width = width; 
-    v4l2_data.fmt.fmt.pix.height = height;
-    v4l2_data.fmt.fmt.pix.pixelformat = palette;
+    if (
+        (v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+        or
+        (v4l2_data.fmt.fmt.pix.width != width)
+        or
+        (v4l2_data.fmt.fmt.pix.height != height)
+        or
+        (v4l2_data.fmt.fmt.pix.pixelformat != palette)
+       ) {
+      v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+      v4l2_data.fmt.fmt.pix.width = width;
+      v4l2_data.fmt.fmt.pix.height = height;
+      v4l2_data.fmt.fmt.pix.pixelformat = palette;
 
-    if ( (extras & 0xff) != 0 ) {
-      v4l2_data.fmt.fmt.pix.field = (v4l2_field)(extras & 0xff);
+      usleep(100000); // 100ms delay - test if timing related
 
-      if ( vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0 ) {
-        Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
-        v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
-        if ( vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0 ) {
-          Fatal("Failed to set video format: %s", strerror(errno));
+      if ((extras & 0xff) != 0) {
+        v4l2_data.fmt.fmt.pix.field = (v4l2_field)(extras & 0xff);
+
+        if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+          Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
+          v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+          if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+            Fatal("Failed to set video format: %s", strerror(errno));
+          }
+        }
+      } else {
+        if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+          Error("Failed to set video format: %s", strerror(errno));
+          if (v4l2_data.fmt.fmt.pix.field != V4L2_FIELD_ANY) {
+            v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+            if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+              Fatal("Failed to set video format: %s", strerror(errno));
+            }
+          }
         }
       }
-    } else {        
-      if ( vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0 ) {
-        Error("Failed to set video format: %s", strerror(errno));
+
+      /* Note VIDIOC_S_FMT may change width and height. */
+      Debug(4,
+          " v4l2_data.fmt.type = %08x\n"
+          " v4l2_data.fmt.fmt.pix.width = %d\n"
+          " v4l2_data.fmt.fmt.pix.height = %d\n"
+          " v4l2_data.fmt.fmt.pix.pixelformat = %08x\n"
+          " v4l2_data.fmt.fmt.pix.field = %08x\n"
+          " v4l2_data.fmt.fmt.pix.bytesperline = %d\n"
+          " v4l2_data.fmt.fmt.pix.sizeimage = %d\n"
+          " v4l2_data.fmt.fmt.pix.colorspace = %08x\n"
+          " v4l2_data.fmt.fmt.pix.priv = %08x\n"
+          , v4l2_data.fmt.type
+          , v4l2_data.fmt.fmt.pix.width
+          , v4l2_data.fmt.fmt.pix.height
+          , v4l2_data.fmt.fmt.pix.pixelformat
+          , v4l2_data.fmt.fmt.pix.field
+          , v4l2_data.fmt.fmt.pix.bytesperline
+          , v4l2_data.fmt.fmt.pix.sizeimage
+          , v4l2_data.fmt.fmt.pix.colorspace
+          , v4l2_data.fmt.fmt.pix.priv
+          );
+
+      if (v4l2_data.fmt.fmt.pix.width != width) {
+        Warning("Failed to set requested width");
       }
-    }
-
-    /* Note VIDIOC_S_FMT may change width and height. */
-    Debug(4,
-        " v4l2_data.fmt.type = %08x\n"
-        " v4l2_data.fmt.fmt.pix.width = %d\n"
-        " v4l2_data.fmt.fmt.pix.height = %d\n"
-        " v4l2_data.fmt.fmt.pix.pixelformat = %08x\n"
-        " v4l2_data.fmt.fmt.pix.field = %08x\n"
-        " v4l2_data.fmt.fmt.pix.bytesperline = %d\n"
-        " v4l2_data.fmt.fmt.pix.sizeimage = %d\n"
-        " v4l2_data.fmt.fmt.pix.colorspace = %08x\n"
-        " v4l2_data.fmt.fmt.pix.priv = %08x\n"
-        , v4l2_data.fmt.type
-        , v4l2_data.fmt.fmt.pix.width
-        , v4l2_data.fmt.fmt.pix.height
-        , v4l2_data.fmt.fmt.pix.pixelformat
-        , v4l2_data.fmt.fmt.pix.field
-        , v4l2_data.fmt.fmt.pix.bytesperline
-        , v4l2_data.fmt.fmt.pix.sizeimage
-        , v4l2_data.fmt.fmt.pix.colorspace
-        , v4l2_data.fmt.fmt.pix.priv
-        );
-
-    if ( v4l2_data.fmt.fmt.pix.width != width ) {
-      Warning("Failed to set requested width");
-    }
-    if ( v4l2_data.fmt.fmt.pix.height != height ) {
-      Warning("Failed to set requested height");
-    }
+      if (v4l2_data.fmt.fmt.pix.height != height) {
+        Warning("Failed to set requested height");
+      }
+    } // end if not already in the righ tformat.
 
     /* Buggy driver paranoia. */
     unsigned int min;
@@ -954,28 +972,16 @@ void LocalCamera::Initialise() {
     struct v4l2_input input;
     v4l2_std_id stdId;
 
-    memset(&input, 0, sizeof(input));
-    input.index = channel;
-
-    if ( vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0 ) {
-      Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+    if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
+      Error("Failed to set camera source %d: %s", channel, strerror(errno));
     }
-
-    if ( (input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN) ) {
-      Error("Device does not support video standard %d", standard);
-    }
-
-    stdId = standard;
-    if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
-      Error("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
-    }
-
     Contrast(contrast);
     Brightness(brightness);
     Hue(hue);
     Colour(colour);
   }
 #endif // ZM_HAS_V4L2
+
 #if ZM_HAS_V4L1
   if ( v4l_version == 1 ) {
     Debug(3, "Configuring picture attributes");

@@ -501,6 +501,29 @@ void LocalCamera::Initialise() {
   if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
     Fatal("Video device does not support streaming i/o");
 
+  struct v4l2_input input;
+  v4l2_std_id stdId;
+
+  memset(&input, 0, sizeof(input));
+  input.index = channel;
+
+  if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
+    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+  }
+
+  if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
+    Error("Device does not support video standard %d", standard);
+  }
+
+  if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
+    Error("Failed to get video standard: %d %s", errno, strerror(errno));
+  }
+  if (stdId != standard) {
+    stdId = standard;
+    if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
+      Error("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
+    }
+  }
   Debug(3, "Setting up video format");
 
   memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
@@ -638,6 +661,15 @@ void LocalCamera::Initialise() {
     }
   } // end if JPEG/MJPEG
 
+  if (0) {
+  Debug(3, "Configuring video source");
+
+  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
+    Error("Failed to set camera source %d: %s", channel, strerror(errno));
+  }
+  }
+
+
   Debug(3, "Setting up request buffers");
 
   memset(&v4l2_data.reqbufs, 0, sizeof(v4l2_data.reqbufs));
@@ -709,30 +741,6 @@ void LocalCamera::Initialise() {
       1);
   } // end foreach request buf
 
-  Debug(3, "Configuring video source");
-
-  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
-    Error("Failed to set camera source %d: %s", channel, strerror(errno));
-  }
-
-  struct v4l2_input input;
-  v4l2_std_id stdId;
-
-  memset(&input, 0, sizeof(input));
-  input.index = channel;
-
-  if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
-    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
-  }
-
-  if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
-    Error("Device does not support video standard %d", standard);
-  }
-
-  stdId = standard;
-  if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
-    Error("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
-  }
 
   Contrast(contrast);
   Brightness(brightness);

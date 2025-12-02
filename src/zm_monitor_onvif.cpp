@@ -221,7 +221,7 @@ void Monitor::ONVIF::WaitForMessage() {
         soap->os = old_stream; // no longer writing to the stream
         Debug(1, "Response was %s", ss.str().c_str());
 
-        // healthy = false;
+        healthy = false;
       } else {
         Debug(1, "Result of getting ONVIF PullMessageRequest result=%d soap_fault_string=%s detail=%s",
             result, soap_fault_string(soap), detail ? detail : "null");

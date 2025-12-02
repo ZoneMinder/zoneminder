@@ -969,12 +969,6 @@ void LocalCamera::Initialise() {
       Fatal("Failed to set camera source %d: %s", channel, strerror(errno));
     }
 
-    struct v4l2_input input;
-    v4l2_std_id stdId;
-
-    if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
-      Error("Failed to set camera source %d: %s", channel, strerror(errno));
-    }
     Contrast(contrast);
     Brightness(brightness);
     Hue(hue);

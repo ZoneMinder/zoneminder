@@ -804,6 +804,9 @@ FROM `Frames` WHERE `EventId`=?';
       }
       my $frame = $selectFrameDataSth->fetchrow_hashref();
       if ( $frame ) {
+        $frame->{EndTimeStamp} = $event->{TimeStamp} if ! $frame->{EndTimeStamp};
+        $frame->{EndDateTime} = $event->{StartDateTime} if ! $frame->{EndDateTime};
+
         $res = $updateUnclosedEventsSth->execute(
            sprintf('%s%d%s',
              $Monitors{$event->{MonitorId}}->{EventPrefix},
@@ -812,14 +815,11 @@ FROM `Frames` WHERE `EventId`=?';
              ),
            $frame->{EndDateTime},
            $frame->{EndTimeStamp} - $event->{TimeStamp},
-           $frame->{Frames},
-           $frame->{AlarmFrames},
-           $frame->{TotScore},
-           $frame->{AlarmFrames}
-           ? int($frame->{TotScore} / $frame->{AlarmFrames})
-           : 0
-           ,
-           $frame->{MaxScore},
+           $frame->{Frames} // 0,
+           $frame->{AlarmFrames} // 0,
+           $frame->{TotScore} // 0,
+           $frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0,
+           $frame->{MaxScore} // 0,
            RECOVER_TEXT,
            $event->{Id}
           ) or Error('Can\'t execute: '.$updateUnclosedEventsSth->errstr());

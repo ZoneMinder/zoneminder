@@ -511,19 +511,39 @@ void LocalCamera::Initialise() {
     Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
   }
 
-  if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
-    Error("Device does not support video standard %lld", standard);
-  }
+  v4l2_standard enum_standard = {};
+  int standardIndex = 0;
+  do {
+    memset(&enum_standard, 0, sizeof(enum_standard));
+    enum_standard.index = standardIndex;
 
-  if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
-    Error("Failed to get video standard: %d %s", errno, strerror(errno));
-  }
-  if (stdId != standard) {
-    stdId = standard;
-    if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
-      Error("Failed to set video standard %lld: %d %s", standard, errno, strerror(errno));
+    if ( vidioctl(vid_fd, VIDIOC_ENUMSTD, &enum_standard) < 0 ) {
+      if ( errno == EINVAL || errno == ENODATA || errno == ENOTTY ) {
+        Debug(6, "Done enumerating standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+        standardIndex = -1;
+        break;
+      } else {
+        Error("Failed to enumerate standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+      }
     }
-  }
+  } while ( standardIndex++ >= 0 );
+
+  if (standardIndex != -1) {
+    if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
+      Error("Device does not support video standard %lld", standard);
+    }
+
+    if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
+      Error("Failed to get video standard: %d %s", errno, strerror(errno));
+    }
+    if (stdId != standard) {
+      stdId = standard;
+      if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
+        Error("Failed to set video standard %lld: %d %s", standard, errno, strerror(errno));
+      }
+    }
+  } // end if standardIndex != -1 meaning the device does support standard
+ 
   Debug(3, "Setting up video format");
 
   memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
@@ -769,7 +789,7 @@ void LocalCamera::Terminate() {
   }
 
   close(vid_fd);
-  primed = false;
+  primed = mIsPrimed = false;
 } // end LocalCamera::Terminate
 
 uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
@@ -1228,9 +1248,10 @@ int LocalCamera::Contrast(int p_contrast) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
-  if (!device_prime)
+  if (primed) {
+    Debug(1, "Calling PrimeCapture while already primed...");
     return 1;
-
+  }
 
   // *** VERIFY FORMAT HASN'T CHANGED ***
   struct v4l2_format current_fmt;
@@ -1293,6 +1314,7 @@ int LocalCamera::PrimeCapture() {
     return -1;
   }
 
+  primed = mIsPrimed = true;
   return 1;
 } // end LocalCamera::PrimeCapture
 

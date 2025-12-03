@@ -47,7 +47,7 @@ static int vidioctl(int fd, int request, void *arg) {
 }
 
 #if HAVE_LIBSWSCALE
-static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette) {
+static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
      
 #if ZM_HAS_V4L2
@@ -311,14 +311,14 @@ LocalCamera::LocalCamera(
   const Monitor *monitor,
   const std::string &p_device,
   int p_channel,
-  int p_standard,
+  v4l2_std_id p_standard,
   bool p_v4l_multi_buffer,
   unsigned int p_v4l_captures_per_frame,
   const std::string &p_method,
   int p_width,
   int p_height,
   int p_colours,
-  int p_palette,
+  unsigned int p_palette,
   int p_brightness,
   int p_contrast,
   int p_hue,
@@ -2078,7 +2078,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       static struct v4l2_buffer vid_buf;
 
       memset(&vid_buf, 0, sizeof(vid_buf));
-
       vid_buf.type = v4l2_data.fmt.type;
       vid_buf.memory = v4l2_data.reqbufs.memory;
 

@@ -1410,35 +1410,39 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     Debug(4, "Allocating image");
     zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
+  /* Request a writeable buffer of the target image */
+  uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
+  if (directbuffer == nullptr) {
+    Error("Failed requesting writeable buffer for the captured image.");
+    return -1;
+  }
+
+  zm_packet->in_frame = av_frame_ptr{av_frame_alloc()};
+  zm_packet->in_frame->width = width;
+  zm_packet->in_frame->height = height;
+  zm_packet->in_frame->format = imagePixFormat;
+
+  av_image_fill_arrays(zm_packet->in_frame->data,
+      zm_packet->in_frame->linesize, directbuffer,
+      imagePixFormat, width, height, 1);
 
   if (conversion_type != 0) {
     Debug(3, "Performing format conversion %d", conversion_type);
 
-    /* Request a writeable buffer of the target image */
-    uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-    if (directbuffer == nullptr) {
-      Error("Failed requesting writeable buffer for the captured image.");
-      return -1;
-    }
+
     if (conversion_type == 1) {
       Debug(9, "Calling sws_scale to perform the conversion");
-      /* Use swscale to convert the image directly into the shared memory */
-      av_image_fill_arrays(tmpPicture->data,
-                           tmpPicture->linesize, directbuffer,
-                           imagePixFormat, width, height, 1);
-
       sws_scale(
         imgConversionContext,
         capturePictures[capture_frame]->data,
         capturePictures[capture_frame]->linesize,
         0,
         height,
-        tmpPicture->data,
-        tmpPicture->linesize
+        zm_packet->in_frame->data,
+        zm_packet->in_frame->linesize
       );
     } else if (conversion_type == 2) {
       Debug(9, "Calling the conversion function");
-      /* Call the image conversion function and convert directly into the shared memory */
       (*conversion_fptr)(buffer, directbuffer, pixels);
     } else if ( conversion_type == 3 ) {
       // Need to store the jpeg data too
@@ -1449,7 +1453,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   } else {
     Debug(3, "No format conversion performed. Assigning the image");
 
-    /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
+    /* No conversion was performed, the image is in the V4L buffers and needs to be copied */
     zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 

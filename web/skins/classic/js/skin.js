@@ -2108,12 +2108,6 @@ function initPageGeneral() {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});
       }
-
-      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
-        const btnCollapse = $j('body').find('#btn-collapse');
-        if (btnCollapse) btnCollapse.css({display: "none"});
-        mainContentJ.css({display: "none"});
-      });
     }
     //event.returnValue = '';
   });

@@ -2808,6 +2808,7 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   partial_starttime = endtime;
   //Debug(1, "CURL: Success sending to %s, response is %s", endpoint.c_str(), response.c_str());
 
+#if ZM_HAS_NLOHMANN_JSON
   nlohmann::json detections = nlohmann::json::parse(response);
   Debug(1, "CURL detections %s", detections.dump().c_str());
   if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
@@ -2828,7 +2829,9 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     endtime = std::chrono::system_clock::now();
     Debug(1, "UVICORN took: %.3f seconds to drawboxes.", FPSeconds(endtime - partial_starttime).count());
     partial_starttime = endtime;
-  } else {
+  } else
+#endif
+  {
     Debug(1, "CURL NOT DOING DRAW BOXES");
   }
   endtime = std::chrono::system_clock::now();
@@ -3446,7 +3449,7 @@ int Monitor::Decode() {
         bool sending = false;
         std::list<ZMPacketLock> new_decoder_queue;
         while (decoder_queue.size() and !zm_terminate) {
-          Debug(1, "Sending queued packets to new decoder %ld", decoder_queue.size());
+          Debug(1, "Sending queued packets to new decoder %zu", decoder_queue.size());
           // Inject current queue into the decoder.
           ZMPacketLock delayed_packet_lock = std::move(decoder_queue.front());
           decoder_queue.pop_front();

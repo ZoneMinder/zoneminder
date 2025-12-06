@@ -24,30 +24,30 @@ if (!canView('Events')) {
 }
 
 $storage_areas = ZM\Storage::find();
-$is_ok_path = false;
+$storage_areas_by_path = array_to_hash_by_key('Path', $storage_areas);
 $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : '';
 if (!$path) {
-  if (count($storage_areas)==0) {
-    $path = ZM_DIR_EVENTS;
-  } else if (count($storage_areas)==0) {
-    $path = $storage_areas[0]->Path();
-  }
+  $path = (count($storage_areas)==0) ?  ZM_DIR_EVENTS : $storage_areas[0]->Path();
 }
 
+$is_ok_path = false;
 if ($path) {
   foreach ($storage_areas as $storage) {
     $rc = strstr($path, $storage->Path(), true);
     if ((false !== $rc) and ($rc == '')) {
       # Must be at the beginning
       $is_ok_path = true;
+      break;
     }
   }
-  $path_parts = pathinfo($path);
+  if ($is_ok_path) {
+    $path_parts = pathinfo($path);
 
-  if (@is_file($path)) {
-    if (output_file($path))
-      return;
-    $path = $path_parts['dirname'];
+    if (@is_file($path)) {
+      if (output_file($path))
+        return;
+      $path = $path_parts['dirname'];
+    }
   }
 } # end if path
 
@@ -121,6 +121,8 @@ if ($path) {
           <tbody>
 <?php
 function get_dir_size($dir_path) {
+  global $storage_areas_by_path;
+  if (isset($storage_areas_by_path[$dir_path])) return $storage_areas_by_path[$dir_path]->DiskSpace();
   $size = 0;
   $entries = is_readable($dir_path) ? scandir($dir_path) : array();
   foreach ($entries as $file) {

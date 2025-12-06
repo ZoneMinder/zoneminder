@@ -108,9 +108,11 @@ RETSIGTYPE zm_die_handler(int signal)
 
   // Print the full backtrace
   for (int i = 0; i < trace_size; i++) {
-    Error("Backtrace %u: %s", i, messages[i]);
-    if (strstr(messages[i], self) == nullptr)
+    Error("Backtrace %s, %u: %s", self, i, messages[i]);
+    if (strstr(messages[i], self) == nullptr) {
+      Error("DIdn't find self");
       continue;
+    }
     ofs_ptr = strstr(messages[i], "(+0x");
     if (ofs_ptr == nullptr)
       continue;

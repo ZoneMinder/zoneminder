@@ -3643,8 +3643,7 @@ int Monitor::Decode() {
           return -1;
         }
       } else if (deinterlacing_value == 5) {
-        capture_image->Deinterlace_Blend_CustomRatio((deinterlacing >> 8) &
-                                                     0xff);
+        capture_image->Deinterlace_Blend_CustomRatio((deinterlacing >> 8) & 0xff);
       }
     }  // end if deinterlacing_value
 
@@ -3664,6 +3663,7 @@ int Monitor::Decode() {
           capture_image->Flip(orientation == FLIP_HORI);
           break;
       }
+      packet->image->PopulateFrame(packet->in_frame.get());
     }  // end if have rotation
 
     if (privacy_bitmask) {

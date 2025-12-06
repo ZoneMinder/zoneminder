@@ -2892,6 +2892,16 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_ANIMATIONS',
+    default     => 'yes',
+    description => 'Use various animations when rendering the web UI.',
+    help        => q`
+      Animations include content roll up when changing views etc.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_USE_OBJECT_TAGS',
     default     => 'yes',
     description => 'Wrap embed in object tags for media content',

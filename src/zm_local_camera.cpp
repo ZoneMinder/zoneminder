@@ -1418,13 +1418,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   }
 
   zm_packet->in_frame = av_frame_ptr{av_frame_alloc()};
-  zm_packet->in_frame->width = width;
-  zm_packet->in_frame->height = height;
-  zm_packet->in_frame->format = imagePixFormat;
-
-  av_image_fill_arrays(zm_packet->in_frame->data,
-      zm_packet->in_frame->linesize, directbuffer,
-      imagePixFormat, width, height, 1);
+  zm_packet->image->PopulateFrame(zm_packet->in_frame.get());
 
   if (conversion_type != 0) {
     Debug(3, "Performing format conversion %d", conversion_type);

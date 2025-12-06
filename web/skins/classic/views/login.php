@@ -3,7 +3,7 @@ xhtmlHeaders(__FILE__, translate('Login'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div class="container">
+  <div id="content" class="container">
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
 ?>

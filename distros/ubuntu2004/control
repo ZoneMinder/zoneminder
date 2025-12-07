@@ -76,7 +76,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,pkexec | policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libpcre2
+        ,libpcre2-posix3
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0

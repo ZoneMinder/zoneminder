@@ -1006,14 +1006,11 @@ class Filter extends ZM_Object {
         if ( $term['attr'] == 'Archived' ) {
           $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-        
-        
-        
         } else if ( $term['attr'] == 'Tags') {
           // Error($term['attr']);
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $options = ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple'];
-          $selected = explode(',', $term['val']);
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
           // These echo statements print these variables at the top of the view for debugging.
           // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
@@ -1149,12 +1146,13 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = explode(',', $term['val']);
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
+            if ((!isset($term['val']) or $term['val']=='') and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
               $selected = json_decode($_COOKIE[$term['cookie']]);
           }
           // These echo statements print these variables at the top of the view for debugging.

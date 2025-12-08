@@ -924,6 +924,9 @@ class Filter extends ZM_Object {
     return self::$archiveTypes;
   }
 
+  //
+  // This displays filters from the filters page.
+  //
   public function widget() {
     $html = '<table id="fieldsTable" class="filterTable"><tbody>';
     $opTypes = $this->opTypes();
@@ -976,7 +979,7 @@ class Filter extends ZM_Object {
         }
       }
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array(translate('No Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1011,14 +1014,11 @@ class Filter extends ZM_Object {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $options = ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple'];
           $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
-          // ZM\Debug('$availableTags: '.$availableTags);
-          // ZM\Debug('$selected: '.$selected);
-
-
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1088,6 +1088,9 @@ class Filter extends ZM_Object {
     return $html;
   }  # end function widget()
 
+  //
+  // This displays filters from the events page.
+  //
   public function simple_widget() {
     $html = '<div id="fieldsTable" class="filterTable">';
     $terms = $this->terms();
@@ -1112,7 +1115,7 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < 7; $i++ ) {
       $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array(translate('No Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1146,11 +1149,7 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = empty($term['val']) ? [] : json_decode($term['val']);
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = explode(',', $term['val']);
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
@@ -1158,10 +1157,10 @@ class Filter extends ZM_Object {
             if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
               $selected = json_decode($_COOKIE[$term['cookie']]);
           }
-          // These echo statements print these variables at the top of the view.
-          // echo '<pre>availableTags: '; print_r($availableTags); echo '</pre>';
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          // echo '<pre>options: '; print_r($options); echo '</pre>';
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;

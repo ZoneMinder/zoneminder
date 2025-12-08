@@ -174,7 +174,7 @@ movecrud () {
     else
         echo "Unpacking CxxUrl..."
         tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
-        rmdir dep/CssUrl
+        rmdir dep/CxxUrl
         mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
     fi
 }

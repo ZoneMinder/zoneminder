@@ -1146,7 +1146,7 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = empty($term['val']) ? [] : json_decode($term['val']);
+          $selected = explode(',', $term['val']);
           // echo '<pre>selected: '; print_r($selected); echo '</pre>';
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;

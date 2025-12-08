@@ -132,7 +132,7 @@ foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
   }
 }
 
-$availableTags = array(''=>translate('No Tag'));
+$availableTags = array('0'=>translate('No Tag'));
 foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
   $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
 }

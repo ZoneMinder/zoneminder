@@ -170,14 +170,10 @@ movecrud () {
         rmdir dep/RtspServer
         mv -f RtspServer-${RTSPVER} dep/RtspServer
     fi
-    if [ -e "dep/CxxUrl/CMakeLists.txt" ]; then
-        echo "CxxUrl already installed..."
-    else
-        echo "Unpacking CxxUrl..."
-        tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
-        rm -r dep/CxxUrl
-        mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
-    fi
+    echo "Unpacking CxxUrl..."
+    tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
+    rm -r dep/CxxUrl
+    mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
 }
 
 # previously part of installzm.sh

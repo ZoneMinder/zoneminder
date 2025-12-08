@@ -1148,9 +1148,6 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'Tags' ) {
           $selected = explode(',', $term['val']);
           // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];

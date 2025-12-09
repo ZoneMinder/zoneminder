@@ -300,7 +300,7 @@ function parseRows(rows) {
       const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       console.log(availableTags);
       console.log(Object.keys(availableTags));
-      availableTags.forEach(tag => {
+      availableTags.forEach((tag) => {
         tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
       });
       const tagVal = inputTds.eq(4).children().val();

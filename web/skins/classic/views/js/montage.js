@@ -1056,7 +1056,8 @@ document.onvisibilitychange = () => {
       //Stop monitors when hiding page
       //closing should kill, hiding should stop/pause
       for (let i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].pause();
+        // Stop instead of pause because we don't want buffering in zms
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {

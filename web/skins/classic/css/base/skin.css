@@ -1420,6 +1420,10 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Volume сontrol --- */
 
+.rightInFlexContainer {
+  margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
+}
+
 video-stream {
   position: relative;
 }

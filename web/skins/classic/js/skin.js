@@ -2135,6 +2135,13 @@ function initPageGeneral() {
       }
     });
   });
+
+  document.querySelectorAll('input.disabled').forEach(function(el) {
+    el.addEventListener("click", function clickInputDisabled(event) {
+      event.preventDefault();
+      return;
+    });
+  });
 }
 
 $j( window ).on("load", initPageGeneral);

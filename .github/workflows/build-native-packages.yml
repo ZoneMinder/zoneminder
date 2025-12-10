@@ -2,8 +2,7 @@ name: build-native-packages-signed
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
+    branches: [ master ]
 permissions:
   contents: write
 env:
@@ -61,7 +60,7 @@ jobs:
             libmosquittopp-dev
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -101,7 +100,8 @@ jobs:
         run: |
           set -eux
           mkdir -p artifacts/deb
-          mv ../*.deb ../*.buildinfo ../*.changes ../*.tar.gz artifacts/deb/ || true
+          ls -l ../
+          mv ../*.deb ../*.buildinfo ../*.changes ../*.dsc ../*.tar.xz ../*.tar.gz artifacts/deb/ || true
           # quick verify signatures (non-fatal)
           gpg --verify artifacts/deb/*.changes || true
           gpg --verify artifacts/deb/*.buildinfo || true

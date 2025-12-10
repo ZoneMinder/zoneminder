@@ -6,7 +6,11 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
   this.started = false;
+  this.muted = false;
   this.connKey = monitorData.connKey;
+  this.genConnKey = function() {
+    return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', {minimumIntegerDigits: 6, useGrouping: false});
+  };
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
@@ -195,7 +199,11 @@ function MonitorStream(monitorData) {
       console.log('No stream in setScale');
       return;
     }
-    console.log("setScale", stream, newscale, width, height, param);
+    //console.trace("setScale", stream, newscale, width, height, param);
+    if (height == '0px') {
+      console.error("Don't want to set 0px height. Reverting to auto");
+      height = 'auto';
+    }
 
     // Scale the frame
     const monitor_frame = $j('#monitor'+this.id);
@@ -252,7 +260,7 @@ function MonitorStream(monitorData) {
     }
     if (param.resizeImg) {
       if (stream.style.width) stream.style.width = '100%';
-      if (height && height != '0px') stream.style.height = height;
+      if (height && (height != '0px')) stream.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
         stream.style.width = 'auto';
@@ -295,10 +303,10 @@ function MonitorStream(monitorData) {
     if (newscale < 25 && streamQuality > -1) newscale = 25; // Arbitrary, lower values look bad
     if (newscale <= 0) newscale = 100;
     this.scale = newscale;
-    if (this.connKey) {
-      /* Can just tell it to scale, in fact will happen automatically on next query */
-    } else {
-      if (stream.nodeName == 'IMG') {
+    if (stream.nodeName == 'IMG' && this.started) {
+      if (this.connKey) {
+        /* Can just tell it to scale, in fact will happen automatically on next query */
+      } else {
         const oldSrc = stream.src;
         if (!oldSrc) {
           console.log('No src on img?!', stream);
@@ -340,7 +348,7 @@ function MonitorStream(monitorData) {
     }
     this.streamListenerBind = streamListener.bind(null, this);
 
-    console.log('start', this.Go2RTCEnabled, this.player);
+    //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
     $j('#volumeControls').hide();
 
@@ -353,6 +361,7 @@ function MonitorStream(monitorData) {
         stream.id = old_stream.id; // should be liveStream+id
         stream.style = old_stream.style; // Copy any applied styles
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
+        stream.muted = this.muted;
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
@@ -419,6 +428,7 @@ function MonitorStream(monitorData) {
       return;
     }
 
+    // FIXME auto mode doesn't work properly here. Ideally it would try each until one succeeds
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         let stream = this.getElement();
@@ -428,7 +438,7 @@ function MonitorStream(monitorData) {
           const new_stream = this.element = document.createElement('video');
           new_stream.id = stream.id; // should be liveStream+id
           new_stream.setAttribute("autoplay", "");
-          new_stream.setAttribute("muted", "");
+          new_stream.setAttribute("muted", this.muted);
           new_stream.setAttribute("playsinline", "");
           new_stream.style = stream.style; // Copy any applied styles
           stream.remove();
@@ -471,7 +481,7 @@ function MonitorStream(monitorData) {
           mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
           startMsePlay(this, stream, mseUrl.href);
           this.activePlayer = 'rtsp2web_mse';
-        } else if (-1 !== this.player.indexOf('webrtc')) {
+        } else if (!this.player || (-1 !== this.player.indexOf('webrtc'))) {
           const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
@@ -481,7 +491,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo(players ? players[this.player] : 'RTSP2Web ' + this.RTSP2WebType);
+        this.updateStreamInfo(players ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -509,7 +519,12 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
-    if (-1 != stream.src.indexOf('mode=paused')) {
+    if (this.activePlayer == 'zms') {
+      // Only if we were already zms streaming
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCommand(CMD_PLAY);
+    } else if (-1 != stream.src.indexOf('mode=paused')) {
+      // Initial page load has zms with mode=paused
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
@@ -528,8 +543,8 @@ function MonitorStream(monitorData) {
       if (-1 == src.search('mode=')) {
         src += '&mode=jpeg';
       }
-      console.log("Setting src.src", stream.src, src);
       if (stream.src != src) {
+        //console.log("Setting src.src", stream.src, src);
         stream.src = '';
         stream.src = src;
       }
@@ -547,7 +562,7 @@ function MonitorStream(monitorData) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} it is impossible to stop because it is not found.`);
       return;
     }
-    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPED`);
+    console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
     this.started = false;
@@ -665,6 +680,7 @@ function MonitorStream(monitorData) {
   };
 
   this.kill = function() {
+    console.log("kill");
     /* kill should actually remove the zms process.  Resulting in a broken image on screen. */
     if (janus && streaming[this.id]) {
       streaming[this.id].detach();
@@ -678,10 +694,10 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && (-1 !== this.activePlayer.indexOf('zms'))) {
-      stream.src = '';
-      // Make zms exit
+    if (stream.src && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+      // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
+      stream.src = '';
     }
     // Kill and stop share a lot of the same code... so just call stop
     this.stop();
@@ -780,7 +796,7 @@ function MonitorStream(monitorData) {
   };
 
   this.onpause = function() {
-    console.log('onpause');
+    console.log('onpause doing nothing');
   };
   this.setup_onpause = function(func) {
     this.onpause = func;
@@ -800,7 +816,7 @@ function MonitorStream(monitorData) {
     return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+mid);
   };
 
-  this.getAudioStraem = function(mid) {
+  this.getAudioStream = function(mid) {
     /*
     Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
     RTSP2Web uses <video id='liveStreamXX'></video>
@@ -825,6 +841,7 @@ function MonitorStream(monitorData) {
       }
       volumeSlider.noUiSlider.set(audioStream.volume * 100);
     }
+    // FIXME what if we are on montage?
     setCookie('zmWatchMuted', audioStream.muted);
     setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
     volumeSlider.setAttribute('data-muted', audioStream.muted);
@@ -835,7 +852,7 @@ function MonitorStream(monitorData) {
     const mid = this.id;
     const volumeSlider = this.getVolumeSlider(mid);
     const iconMute = this.getIconMute(mid);
-    const audioStream = this.getAudioStraem(mid);
+    const audioStream = this.getAudioStream(mid);
     if (!volumeSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
     if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
@@ -906,29 +923,35 @@ function MonitorStream(monitorData) {
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
-    const mid = this.id;
-    const volumeSlider = this.getVolumeSlider(mid);
-    const audioStream = this.getAudioStraem(mid);
-    const iconMute = this.getIconMute(mid);
-    if (!audioStream || !iconMute) return;
     if (mode=='switch') {
-      if (audioStream.muted) {
-        audioStream.muted = false;
-        iconMute.innerHTML = 'volume_up';
-        volumeSlider.classList.add('noUi-mute');
-        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
-      } else {
-        audioStream.muted = true;
-        iconMute.innerHTML = 'volume_off';
-        volumeSlider.classList.remove('noUi-mute');
-      }
+      this.muted = !this.muted;
     } else if (mode=='on') {
-      audioStream.muted = true;
-      iconMute.innerHTML = 'volume_off';
-      volumeSlider.classList.add('noUi-mute');
+      this.muted = true;
     } else if (mode=='off') {
-      audioStream.muted = false;
+      this.muted = false;
+    } else {
+      console.log("Invalid value for mode", mode);
+    }
+    const mid = this.id;
+
+    const audioStream = this.getAudioStream(mid);
+    if (audioStream) {
+      audioStream.muted = this.muted;
+      console.log("Setting muted for ", mid, " to ", this.muted, "stream value is", audioStream.muted);
+    } else {
+      console.log("No audiostream! in controlMute");
+    }
+
+    const iconMute = this.getIconMute(mid);
+    if (!iconMute) return;
+    const volumeSlider = this.getVolumeSlider(mid);
+
+    if (!this.muted) {
       iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.add('noUi-mute');
+      if (audioStream) audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+    } else {
+      iconMute.innerHTML = 'volume_off';
       volumeSlider.classList.remove('noUi-mute');
     }
   };
@@ -972,7 +995,6 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      console.log(ZM_WEB_SOUND_ON_ALARM);
       if (parseInt(ZM_WEB_SOUND_ON_ALARM) == 1) {
         console.log('Attempting to play alarm sound');
         if (ZM_DIR_SOUNDS != '' && ZM_WEB_ALARM_SOUND != '') {
@@ -1165,9 +1187,9 @@ function MonitorStream(monitorData) {
         } // end if have a new auth hash
       } // end if has state
 
-      if (!this.streamCmdTimer) {
+      if (this.started && !this.streamCmdTimer) {
         // When using mode=paused, we don't get the onload event.  This is just an extra check to make sure that streamCmdQuery is running
-        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms', this.streamCmdQuery);
+        console.log('starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
         this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
     } else {
@@ -1179,16 +1201,13 @@ function MonitorStream(monitorData) {
         // Instead of changing rand, perhaps we should be changing connKey.
         let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
         src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-        // Maybe updated auth
-        if (src != stream.src) {
-          stream.src = '';
-          stream.src = src;
-        } else {
-          console.log("Failed to update rand on stream src", stream.src);
-        }
+        this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
+        src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
+        stream.src = '';
+        stream.src = src;
       }
     } // end if Ok or not
-  };
+  }; // this.getStreamCmdResponse
 
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {

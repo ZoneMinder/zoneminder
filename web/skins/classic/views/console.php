@@ -108,8 +108,6 @@ $colAllAvailableMonitors = $resultMonitorFilters['selected_monitor_ids'];
 $displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
 
 $show_storage_areas = (count($storage_areas) > 1) and (canEdit('System') ? 1 : 0);
-$maxWidth = 0;
-$maxHeight = 0;
 $zoneCount = 0;
 $total_capturing_bandwidth = 0;
 $total_fps = 0;
@@ -127,13 +125,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   if ( !isset($status_counts[$monitor['Status']]) )
     $status_counts[$monitor['Status']] = 0;
   $status_counts[$monitor['Status']] += 1;
-
-  if ( $monitor['Capturing'] != 'None' ) {
-    $scaleWidth = reScale($monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-    $scaleHeight = reScale($monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-    if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
-    if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
-  }
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
@@ -151,8 +142,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   }
   unset($monitor);
 } // end foreach display monitor
-$cycleWidth = $maxWidth;
-$cycleHeight = $maxHeight;
 
 noCacheHeaders();
 
@@ -335,7 +324,6 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     #FIXME replace this with a check for runstate vs dbstate
   }
 
-  $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Capturing'] != 'None');
 
   if ($canEditMonitors) {

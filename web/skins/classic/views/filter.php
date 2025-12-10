@@ -132,9 +132,9 @@ foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
   }
 }
 
-$availableTags = array(''=>translate('No Tag'));
-foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
-  $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
+$availableTags = array(['Id'=>'0', 'Name'=>translate('No Tag')]);
+foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') AS $tag ) {
+  $availableTags[] = ['Id'=>$tag['Id'] , 'Name'=>validHtmlStr($tag['Name'])];
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));

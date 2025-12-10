@@ -598,9 +598,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   pre_event_count = atoi(dbrow[col]);
   col++;
-  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
-  packetqueue.setMaxVideoPackets(max_image_buffer_count);
-  packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
   post_event_count = atoi(dbrow[col]);
   col++;
   stream_replay_buffer = atoi(dbrow[col]);
@@ -612,6 +609,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) {
     alarm_frame_count = MAX_PRE_ALARM_FRAMES;
   }
+  packetqueue.setPreEventVideoPackets(pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count);
+  packetqueue.setMaxVideoPackets(max_image_buffer_count);
+  packetqueue.setKeepKeyframes((videowriter == PASSTHROUGH) && (recording != RECORDING_NONE));
 
   /* "SectionLength, SectionLengthWarn, MinSectionLength, EventCloseMode, FrameSkip, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col]));
@@ -3516,7 +3516,7 @@ int Monitor::Play() {
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_count);
   if (decoding != DECODING_NONE) {
-    Debug(1, "Restarting decoder thread");
+    Debug(1, "Starting decoder thread");
     decoder->Start();
   }
   Debug(1, "Restarting analysis thread");

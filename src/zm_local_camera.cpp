@@ -46,7 +46,7 @@ static int vidioctl(int fd, int request, void *arg) {
   return result;
 }
 
-static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette) {
+static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
 
   switch (palette) {
@@ -139,7 +139,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
   //case V4L2_PIX_FMT_PJPG :
   //case V4L2_PIX_FMT_YVYU :
   default : {
-    Fatal("Can't find swscale format for palette %d", palette);
+    Fatal("Can't find swscale format for palette %u", palette);
     break;
 #if 0
     // These are all spare and may match some of the above
@@ -226,14 +226,14 @@ LocalCamera::LocalCamera(
   const Monitor *monitor,
   const std::string &p_device,
   int p_channel,
-  int p_standard,
+  v4l2_std_id p_standard,
   bool p_v4l_multi_buffer,
   unsigned int p_v4l_captures_per_frame,
   const std::string &p_method,
   int p_width,
   int p_height,
   int p_colours,
-  int p_palette,
+  unsigned int p_palette,
   int p_brightness,
   int p_contrast,
   int p_hue,
@@ -501,6 +501,49 @@ void LocalCamera::Initialise() {
   if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
     Fatal("Video device does not support streaming i/o");
 
+  struct v4l2_input input;
+  v4l2_std_id stdId;
+
+  memset(&input, 0, sizeof(input));
+  input.index = channel;
+
+  if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
+    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+  }
+
+  v4l2_standard enum_standard = {};
+  int standardIndex = 0;
+  do {
+    memset(&enum_standard, 0, sizeof(enum_standard));
+    enum_standard.index = standardIndex;
+
+    if ( vidioctl(vid_fd, VIDIOC_ENUMSTD, &enum_standard) < 0 ) {
+      if ( errno == EINVAL || errno == ENODATA || errno == ENOTTY ) {
+        Debug(6, "Done enumerating standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+        standardIndex = -1;
+        break;
+      } else {
+        Error("Failed to enumerate standard %d: %d %s", enum_standard.index, errno, strerror(errno));
+      }
+    }
+  } while ( standardIndex++ >= 0 );
+
+  if (standardIndex != -1) {
+    if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
+      Error("Device does not support video standard %lld", standard);
+    }
+
+    if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
+      Error("Failed to get video standard: %d %s", errno, strerror(errno));
+    }
+    if (stdId != standard) {
+      stdId = standard;
+      if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
+        Error("Failed to set video standard %lld: %d %s", standard, errno, strerror(errno));
+      }
+    }
+  } // end if standardIndex != -1 meaning the device does support standard
+ 
   Debug(3, "Setting up video format");
 
   memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
@@ -530,29 +573,46 @@ void LocalCamera::Initialise() {
         , v4l2_data.fmt.fmt.pix.priv
        );
 
-  v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  v4l2_data.fmt.fmt.pix.width = width;
-  v4l2_data.fmt.fmt.pix.height = height;
-  v4l2_data.fmt.fmt.pix.pixelformat = palette;
+  if (
+      (v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+      or
+      (v4l2_data.fmt.fmt.pix.width != width)
+      or
+      (v4l2_data.fmt.fmt.pix.height != height)
+      or
+      (v4l2_data.fmt.fmt.pix.pixelformat != palette)
+     ) {
+    v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_data.fmt.fmt.pix.width = width;
+    v4l2_data.fmt.fmt.pix.height = height;
+    v4l2_data.fmt.fmt.pix.pixelformat = palette;
 
-  if ((extras & 0xff) != 0) {
-    v4l2_data.fmt.fmt.pix.field = (v4l2_field)(extras & 0xff);
+    usleep(100000); // 100ms delay - test if timing related
 
-    if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-      Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
-      v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+    if ((extras & 0xff) != 0) {
+      v4l2_data.fmt.fmt.pix.field = (v4l2_field)(extras & 0xff);
+
       if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-        Fatal("Failed to set video format: %s", strerror(errno));
+        Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
+        v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+        if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+          Fatal("Failed to set video format: %s", strerror(errno));
+        }
+      }
+    } else {
+      if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+        Error("Failed to set video format: %s", strerror(errno));
+        if (v4l2_data.fmt.fmt.pix.field != V4L2_FIELD_ANY) {
+          v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
+          if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
+            Fatal("Failed to set video format: %s", strerror(errno));
+          }
+        }
       }
     }
-  } else {
-    if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-      Error("Failed to set video format: %s", strerror(errno));
-    }
-  }
 
-  /* Note VIDIOC_S_FMT may change width and height. */
-  Debug(4,
+    /* Note VIDIOC_S_FMT may change width and height. */
+    Debug(4,
         " v4l2_data.fmt.type = %08x\n"
         " v4l2_data.fmt.fmt.pix.width = %d\n"
         " v4l2_data.fmt.fmt.pix.height = %d\n"
@@ -571,14 +631,15 @@ void LocalCamera::Initialise() {
         , v4l2_data.fmt.fmt.pix.sizeimage
         , v4l2_data.fmt.fmt.pix.colorspace
         , v4l2_data.fmt.fmt.pix.priv
-       );
+        );
 
-  if (v4l2_data.fmt.fmt.pix.width != width) {
-    Warning("Failed to set requested width");
-  }
-  if (v4l2_data.fmt.fmt.pix.height != height) {
-    Warning("Failed to set requested height");
-  }
+    if (v4l2_data.fmt.fmt.pix.width != width) {
+      Warning("Failed to set requested width");
+    }
+    if (v4l2_data.fmt.fmt.pix.height != height) {
+      Warning("Failed to set requested height");
+    }
+  } // end if not already in the righ tformat.
 
   /* Buggy driver paranoia. */
   unsigned int min;
@@ -619,6 +680,15 @@ void LocalCamera::Initialise() {
       }
     }
   } // end if JPEG/MJPEG
+
+  if (0) {
+  Debug(3, "Configuring video source");
+
+  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
+    Error("Failed to set camera source %d: %s", channel, strerror(errno));
+  }
+  }
+
 
   Debug(3, "Setting up request buffers");
 
@@ -665,6 +735,7 @@ void LocalCamera::Initialise() {
     //vid_buf.memory = V4L2_MEMORY_MMAP;
     vid_buf.memory = v4l2_data.reqbufs.memory;
     vid_buf.index = i;
+    Debug(1, "buf_type for %d  %d =? %d, memory %d =? %d", i, vid_buf.type, V4L2_BUF_TYPE_VIDEO_CAPTURE, vid_buf.memory, V4L2_MEMORY_MMAP);
 
     if (vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0)
       Fatal("Unable to query video buffer: %s", strerror(errno));
@@ -675,6 +746,7 @@ void LocalCamera::Initialise() {
     if (v4l2_data.buffers[i].start == MAP_FAILED)
       Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
+
 
     capturePictures[i] = av_frame_ptr{av_frame_alloc()};
 
@@ -691,30 +763,6 @@ void LocalCamera::Initialise() {
       1);
   } // end foreach request buf
 
-  Debug(3, "Configuring video source");
-
-  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
-    Fatal("Failed to set camera source %d: %s", channel, strerror(errno));
-  }
-
-  struct v4l2_input input;
-  v4l2_std_id stdId;
-
-  memset(&input, 0, sizeof(input));
-  input.index = channel;
-
-  if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
-    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
-  }
-
-  if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
-    Error("Device does not support video standard %d", standard);
-  }
-
-  stdId = standard;
-  if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
-    Error("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
-  }
 
   Contrast(contrast);
   Brightness(brightness);
@@ -741,7 +789,7 @@ void LocalCamera::Terminate() {
   }
 
   close(vid_fd);
-  primed = false;
+  primed = mIsPrimed = false;
 } // end LocalCamera::Terminate
 
 uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
@@ -1200,8 +1248,34 @@ int LocalCamera::Contrast(int p_contrast) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
-  if (!device_prime)
+  if (primed) {
+    Debug(1, "Calling PrimeCapture while already primed...");
     return 1;
+  }
+
+  // *** VERIFY FORMAT HASN'T CHANGED ***
+  struct v4l2_format current_fmt;
+  memset(&current_fmt, 0, sizeof(current_fmt));
+  current_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+  if (vidioctl(vid_fd, VIDIOC_G_FMT, &current_fmt) < 0) {
+    Error("Failed to get current format: %s", strerror(errno));
+  } else {
+    Debug(1, "Format at PrimeCapture: %dx%d, format=0x%x, bytesperline=%d, sizeimage=%d",
+          current_fmt.fmt.pix. width, current_fmt.fmt. pix.height,
+          current_fmt.fmt.pix. pixelformat, current_fmt. fmt.pix.bytesperline,
+          current_fmt. fmt.pix.sizeimage);
+    Debug(1, "Expected format: %dx%d, format=0x%x, bytesperline=%d, sizeimage=%d",
+          v4l2_data.fmt.fmt. pix.width, v4l2_data.fmt.fmt. pix.height,
+          v4l2_data.fmt. fmt.pix.pixelformat, v4l2_data. fmt.fmt.pix.bytesperline,
+          v4l2_data.fmt.fmt.pix.sizeimage);
+
+    if (current_fmt.fmt.pix.sizeimage != v4l2_data.fmt.fmt.pix.sizeimage) {
+      Error("FORMAT MISMATCH! Current sizeimage %d != expected %d",
+            current_fmt.fmt.pix.sizeimage, v4l2_data.fmt.fmt.pix. sizeimage);
+    }
+  }
+  // *** END DIAGNOSTIC ***
 
   Debug(3, "Queueing (%d) buffers", v4l2_data.reqbufs.count);
   for (unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++) {
@@ -1216,8 +1290,16 @@ int LocalCamera::PrimeCapture() {
     vid_buf.memory = v4l2_data.reqbufs.memory;
     vid_buf.index = frame;
 
+     // *** ADD MORE DIAGNOSTICS FOR THE FAILING QBUF ***
+    Debug(3, "Attempting QBUF: index=%d, type=%d, memory=%d, reqbufs.count=%d",
+          vid_buf.index, vid_buf.type, vid_buf.memory, v4l2_data. reqbufs.count);
+
     if (vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0) {
       Error("Failed to queue buffer %d: %s", frame, strerror(errno));
+        Error("  vid_buf: type=%d, memory=%d, index=%d", vid_buf.type, vid_buf.memory, vid_buf.index);
+      Error("  reqbufs: count=%d, type=%d, memory=%d",
+            v4l2_data.reqbufs.count, v4l2_data.reqbufs.type, v4l2_data.reqbufs.memory);
+
       return 0;
     }
   }
@@ -1232,6 +1314,7 @@ int LocalCamera::PrimeCapture() {
     return -1;
   }
 
+  primed = mIsPrimed = true;
   return 1;
 } // end LocalCamera::PrimeCapture
 
@@ -1258,7 +1341,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     static struct v4l2_buffer vid_buf;
 
     memset(&vid_buf, 0, sizeof(vid_buf));
-
     vid_buf.type = v4l2_data.fmt.type;
     vid_buf.memory = v4l2_data.reqbufs.memory;
 

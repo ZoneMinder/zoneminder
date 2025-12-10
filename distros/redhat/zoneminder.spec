@@ -11,7 +11,7 @@
 # RtspServer is configured as a git submodule
 %global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
 # CxxUrl is configured as a git submodule
-%global CxxUrl_version     v0.3
+%global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -39,7 +39,7 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
-Source3: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxUrl-%{CxxUrl_version}.tar.gz
+Source4: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxUrl-%{CxxUrl_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
@@ -241,6 +241,7 @@ find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist
 
 # Remove third-party header and cmake files that should not have been installed
 rm -rf %{buildroot}%{_prefix}/cmake
+rm -rf %{buildroot}%{_prefix}/%{_lib}/cmake/CxxUrl
 rm -rf %{buildroot}%{_includedir}
 
 # Recursively change shebang in all relevant scripts and set execute permission
@@ -337,6 +338,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 
 %postun
 %systemd_postun_with_restart %{name}.service
+%systemd_postun_with_restart php-fpm.service
 
 %files
 # nothing
@@ -384,6 +386,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmrecover.pl
 %{_bindir}/zm_rtsp_server
 
+%{_libdir}/libCxxUrl.a
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*

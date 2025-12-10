@@ -717,10 +717,16 @@ input[type=submit]:disabled,
   .navbar-nav {
     flex-direction: row;
   }
-  .navbar-nav .nav-link {
+  .navbar-nav .nav-link,
+  #getHeaderFlipHTML a
+  {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+}
+#getHeaderFlipHTML a {
+  display: block;
+  padding: .5rem 1rem;
 }
 
 .navbar-btn {
@@ -1234,6 +1240,7 @@ button.btn.btn-view-watch:hover {
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;
     -moz-appearance: none;
+    appearance: none;
     /*height: 21px;*/
     height: 18px;
     outline: none;
@@ -1376,10 +1383,12 @@ button.btn.btn-view-watch:hover {
   margin-top: 10px;*/
 }
 
-.noUi-target {
-  /*border: 1px solid var(--scrollbarBG);
-  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+/* 
+noUi-target {
+  border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;
 }
+*/
 
 .noUi-base, .noUi-touch-area {
   cursor: pointer;
@@ -1401,9 +1410,11 @@ button.btn.btn-view-watch:hover {
   height: 5px;
 }
 
+/*
 .noUi-round .noUi-connects {
-  /*background: #c0392b;*/
+  background: #c0392b;
 }
+*/
 
 .noUi-round .noUi-handle {
   height: 18px;
@@ -1413,6 +1424,10 @@ button.btn.btn-view-watch:hover {
   border-radius: 9px;
 }
 /* --- Volume сontrol --- */
+
+.rightInFlexContainer {
+  margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
+}
 
 video-stream {
   position: relative;
@@ -1434,13 +1449,13 @@ video-stream {
   padding:0;
 }
 
+/*
 .stream-info-status, .stream-info-mode {
-  /*
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
   padding: 0.3em;
-  */
 }
+*/
 
 /* +++ This block should always be located at the end! */
 .hidden {

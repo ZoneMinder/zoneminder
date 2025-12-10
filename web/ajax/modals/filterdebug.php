@@ -34,14 +34,58 @@
 ?>
           <p><label>SQL</label>
 <?php
-  $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale<br/>FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)<br/>WHERE<br/>';
+  $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
+    WHERE
+';
   $sql .= $filter->sql();
   $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
   $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
   $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
 
-  echo $sql;
+
+  echo preg_replace('/\n/', '<br/>', $sql);
 ?></p>
+<p><label>MySQL Explanation</label>
+<?php
+  echo '
+<table>
+  <thead>
+    <tr>
+      <th>Select Type</th>
+      <th>Table</th>
+      <th>Partitions</th>
+      <th>Type</th>
+      <th>Possible Keys</th>
+      <th>Key</th>
+      <th>Key Length</th>
+      <th>Ref</th>
+      <th>Rows</th>
+      <th>Filtered</th>
+      <th>Extra</th>
+    </tr>
+  </thead>
+  <tbody>
+';
+  $result = dbFetchAll('EXPLAIN '.$sql);
+  foreach ($result as $row) {
+    echo '<tr>'.PHP_EOL.
+  '<td>'.$row['select_type'].'</td>'.
+  '<td>'.$row['table'].'</td>'.
+  '<td>'.$row['partitions'].'</td>'.
+  '<td>'.$row['type'].'</td>'.
+  '<td>'.$row['possible_keys'].'</td>'.
+  '<td>'.$row['key'].'</td>'.
+  '<td>'.$row['key_len'].'</td>'.
+  '<td>'.$row['ref'].'</td>'.
+  '<td>'.$row['rows'].'</td>'.
+  '<td>'.$row['filtered'].'</td>'.
+  '<td>'.$row['Extra'].'</td>';
+    echo '</tr>';
+  }
+    echo '</tbody></table>';
+
+?>
+</p>
          <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close')?> </button>
         </div>

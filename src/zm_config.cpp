@@ -373,7 +373,7 @@ const ConfigItem &Config::Item(int id) {
     Assign();
   }
 
-  if ( id < 0 || id > ZM_MAX_CFG_ID ) {
+  if ( id < 0 || id > ZM_MAX_CFG_ID || id > n_items ) {
     Error("Attempt to access invalid config, id = %d. Try running 'zmupdate.pl -f' to reload config.", id);
     exit(-1);
   }

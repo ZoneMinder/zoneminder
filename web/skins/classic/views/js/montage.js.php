@@ -54,7 +54,7 @@ foreach ( $layouts as $layout ) {
 layouts[<?php echo $layout->Id() ?>] = {
   "Name":"<?php echo $layout->Name()?>",
   "UserId":"<?php echo $layout->UserId()?>",
-  "Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
+  "Positions":<?php echo ($layout->Positions() and json_decode($layout->Positions()))?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
 global $AutoLayoutName;

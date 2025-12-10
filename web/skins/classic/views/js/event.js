@@ -1329,12 +1329,13 @@ function initPage() {
     onStatsResize(eventData.Width);
     wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
+  if (eventData.DefaultVideo) {
+    canPlayCodec(eventData.DefaultVideo);
+  }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   const video_element = document.getElementById('videoobj');
   if (video_element) {
-    canPlayCodec(eventData.DefaultVideo);
-
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load

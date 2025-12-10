@@ -28,6 +28,8 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
+#include <filesystem>
+
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif

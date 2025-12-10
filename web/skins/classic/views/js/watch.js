@@ -1345,10 +1345,10 @@ function monitorsSetScale(id=null) {
   if (id || typeof monitorStream !== 'undefined') {
     if (monitorStream !== false) {
       //monitorStream used on Watch page.
-      var curentMonitor = monitorStream;
+      var currentMonitor = monitorStream;
     } else if (typeof monitors !== 'undefined') {
       //used on Montage, Watch & Event page.
-      var curentMonitor = monitors.find((o) => {
+      var currentMonitor = monitors.find((o) => {
         return parseInt(o["id"]) === id;
       });
     } else {
@@ -1363,7 +1363,7 @@ function monitorsSetScale(id=null) {
     let height = 'auto';
     let overrideHW = false;
     let defScale = 0;
-    const landscape = curentMonitor.width / curentMonitor.height > 1 ? true : false; //Image orientation.
+    const landscape = currentMonitor.width / currentMonitor.height > 1 ? true : false; //Image orientation.
 
     const scale = $j('#scale').val();
     if (scale == '0') {
@@ -1371,17 +1371,17 @@ function monitorsSetScale(id=null) {
       resize = true;
     } else if (scale == '100') {
       //Actual, 100% of original size
-      width = curentMonitor.width + 'px';
-      height = curentMonitor.height + 'px';
+      width = currentMonitor.width + 'px';
+      height = currentMonitor.height + 'px';
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
       width = parseInt(window.innerWidth * panZoomScale) + 'px';
     } else if (scale.indexOf("px") > -1) {
       if (landscape) {
         maxWidth = scale;
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
       } else {
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / curentMonitor.height * panZoomScale * 100);
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
         height = scale;
       }
       resize = true;
@@ -1410,8 +1410,8 @@ function monitorsSetScale(id=null) {
         liveStream.style.width = width;
       }
     }
-    //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+    //currentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
       if (!landscape) { //PORTRAIT
         monitor_div.style.width = 'max-content';
@@ -1476,7 +1476,8 @@ document.onvisibilitychange = () => {
         if (monitorStream.started) {
           prevStateStarted = 'played';
           //Stop only if playing or paused.
-          monitorStream.kill();
+          // We might want to continue status updates so that alarm sounds etc still happen
+          monitorStream.stop();
         } else {
           prevStateStarted = false;
         }

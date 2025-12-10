@@ -3,6 +3,7 @@ const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorInitComplete = false;
+var resizeInterval = null;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -315,17 +316,14 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
+  const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height + 'px';
+    //console.log('good height', height, objStream);
+    objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
-}
-
-function toGrid(value) { //Not used
-/*  return Math.round(value / 80) * 80;*/
 }
 
 // Makes monitors draggable.
@@ -495,10 +493,11 @@ function startMonitors() {
 }
 
 function stopMonitors() { //Not working yet.
+  console.log("stop monitoirs");
   for (let i = 0, length = monitors.length; i < length; i++) {
     //monitors[i].stop();
-    //monitors[i].kill();
-    monitors[i].streamCommand(CMD_QUIT);
+    monitors[i].kill();
+    //monitors[i].streamCommand(CMD_QUIT);
   }
   monitors.length = 0;
 }
@@ -634,6 +633,7 @@ function initPage() {
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const monitor = monitors[i] = new MonitorStream(monitorData[i]);
+    monitor.controlMute('on'); // Default to no audio. User can toggle audio for individual streams manually
     monitor.setGridStack(objGridStack);
     //Create a Ratio array for each monitor
     const r = monitor.width / monitor.height;
@@ -648,7 +648,7 @@ function initPage() {
   document.addEventListener("fullscreenchange", fullscreenchanged);
 
   // If you click on the navigation links, shut down streaming so the browser can process it
-  document.querySelectorAll('#main-header-nav a').forEach(function(el) {
+  document.querySelectorAll('#main-header-nav a.nav-link').forEach(function(el) {
     el.onclick = function() {
       for (let i = 0, length = monitors.length; i < length; i++) {
         if (monitors[i]) monitors[i].kill();
@@ -666,7 +666,7 @@ function initPage() {
       function stopPlayback() {
         idleTimeoutTriggered = true;
         for (let i=0, length = monitors.length; i < length; i++) {
-          monitors[i].kill();
+          monitors[i].stop();
         }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -698,7 +698,7 @@ function initPage() {
     inactivityTime();
   }
 
-  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
+  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
         const img = getStream(item);
@@ -758,15 +758,17 @@ function showСontrolElementsOnStream(stream) {
 
 function on_scroll() {
   if (!monitorInitComplete || idleTimeoutTriggered) return;
+
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
+    //console.log(isOut, monitor.id);
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      //monitor.stop(); // does not work without replacing SRC to stop ZMS
-      monitor.kill();
+      monitor.stop(); // does not work without replacing SRC to stop ZMS
+      //monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -795,6 +797,7 @@ function isOutOfViewport(elem) {
 };
 
 function formSubmit(form) {
+  clearInterval(resizeInterval);
   console.log("Killing streaming");
   for (let i = 0, length = monitors.length; i < length; i++) {
     if (monitors[i]) {
@@ -835,20 +838,20 @@ function initGridStack(grid=null) {
 function addEvents(grid, id) {
   //let g = (id !== undefined ? 'grid' + id + ' ' : '');
   grid.on('resizestop', function(event, el) {
-        //const width = parseInt(el.getAttribute('gs-w')) || 0;
-        // or all values...
-        const node = el.gridstackNode; // {x, y, width, height, id, ....}
-        //let rec = el.getBoundingClientRect();
-        //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
+    //const width = parseInt(el.getAttribute('gs-w')) || 0;
+    // or all values...
+    const node = el.gridstackNode; // {x, y, width, height, id, ....}
+    //let rec = el.getBoundingClientRect();
+    //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
 
-        const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === currentMonitorId;
-        });
-        //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
-        setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
-        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
-      });
+    const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
+    const currentMonitor = monitors.find((o) => {
+      return parseInt(o["id"]) === currentMonitorId;
+    });
+    //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+    setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
+    currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
+  });
 }
 
 function panZoomIn(el) {
@@ -879,6 +882,7 @@ function monitorsSetScale(id=null) {
     }
     const el = document.getElementById('liveStream'+id);
     const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
+    console.log("monitorsSetsCale", id, 'clientWidth', el.clientWidth, 'clientHeight', el.clientHeight, 'panzoomscale', panZoomScale);
     currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -1049,9 +1053,11 @@ document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
-      //Stop monitors when closing or hiding page
+      //Stop monitors when hiding page
+      //closing should kill, hiding should stop/pause
       for (let i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].kill();
+        // Stop instead of pause because we don't want buffering in zms
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {
@@ -1073,7 +1079,8 @@ document.onvisibilitychange = () => {
 
 window.onbeforeunload = function(e) {
   console.log('unload');
-/*
+  clearInterval(resizeInterval);
+  /*
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();

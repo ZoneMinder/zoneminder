@@ -52,17 +52,17 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
+  use LWP::UserAgent;
+  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua}->cookie_jar( {} );
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
+  $self->{state} = 'closed';
 
   my $uri = $self->guess_credentials();
   $uri = new URI() if ! $uri;;
   # For parent get
   $$self{BaseURL} = $uri->canonical();
 
-  use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->cookie_jar( {} );
-  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
-  $self->{state} = 'closed';
 
   my $realm = $self->{Monitor}->{ControlDevice};
 

@@ -1101,13 +1101,17 @@ function manageChannelStream() {
   let select = null;
   let secondPath_ = null;
   if (currentView == 'watch') {
-    const monitor = monitorData.find((o) => {
-      return parseInt(o["id"]) === monitorId;
-    });
-    if (monitor) {
-      secondPath_ = monitor['SecondPath'];
+    if (typeof monitorData !== 'undefined') {
+      const monitor = monitorData.find((o) => {
+        return parseInt(o["id"]) === monitorId;
+      });
+      if (monitor) {
+        secondPath_ = monitor['SecondPath'];
+      }
+      select = document.querySelector('select[name="streamChannel"]');
+    } else {
+      console.error("No monitorData in watch view");
     }
-    select = document.querySelector('select[name="streamChannel"]');
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
@@ -1526,10 +1530,16 @@ function canPlayCodec(filename) {
   const matches = re.exec(filename);
   if (matches && matches.length) {
     const video = document.createElement('video');
-    if (matches[1] == 'av1') matches[1] = 'avc1';
+    if (matches[1] == 'av1') matches[1] = 'av01';
+    else if (matches[1] == 'h264') matches[1] = 'avc1';
+    else if (matches[1] == 'hevc') matches[1] = 'hvc1';
+    else {
+      console.log('matches didnt match'+matches[1]);
+    }
+
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
-      console.log("can play "+matches[1]);
+      console.log("can probably play "+matches[1]);
       return true;
     } else if (can == "maybe") {
       console.log("can maybe play "+matches[1]);
@@ -2143,12 +2153,15 @@ function initPageGeneral() {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});
       }
-
-      mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
-        const btnCollapse = $j('body').find('#btn-collapse');
-        if (btnCollapse) btnCollapse.css({display: "none"});
+      if (typeof ZM_WEB_ANIMATIONS === 'undefined' || !ZM_WEB_ANIMATIONS) {
         mainContentJ.css({display: "none"});
-      });
+      } else {
+        mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+          const btnCollapse = $j('body').find('#btn-collapse');
+          if (btnCollapse.length) btnCollapse.css({display: "none"});
+          mainContentJ.css({display: "none"});
+        });
+      }
     }
     //event.returnValue = '';
   });

@@ -172,7 +172,7 @@ if ($parent != '') {
   echo '
 <tr>
   <td class="colSelect"></td>
-  <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
+  <td colspan="3"><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
 </tr>';
 }
 foreach ($folders as $folder) {

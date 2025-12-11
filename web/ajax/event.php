@@ -113,7 +113,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
     if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
-    $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\):]/u', '', $exportFileName);
+    $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\)]/u', '', $exportFileName);
 
     $exportIds = [];
     if (!empty($_REQUEST['eids'])) {

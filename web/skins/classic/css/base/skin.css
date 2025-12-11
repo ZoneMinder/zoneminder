@@ -995,7 +995,6 @@ a.flip {
 
 .tags-container {
   display: flex;
-  flex-wrap: wrap;
   border: 1px solid;
   border-color: #ccc;
   border-radius: 4px;

@@ -2096,7 +2096,7 @@ function initPageGeneral() {
     }
   });
 
-  function addListenerGlobalBeforeunload(event) { 
+  function addListenerGlobalBeforeunload(event) {
     //window.removeEventListener('beforeunload', addListenerGlobalBeforeunload);
     //event.preventDefault();
     if (navbar_type == 'left') {

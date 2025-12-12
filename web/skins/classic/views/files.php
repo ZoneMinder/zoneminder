@@ -102,7 +102,7 @@ if ($path) {
 } # end if path
 ?>
           </div><!--path-->
-          <div id="contentButtons">
+          <div id="contentButtons" class='rightInFlexContainer'>
             <button type="submit" name="action" value="delete" disabled="disabled">
             <?php echo translate('Delete') ?>
             </button>
@@ -172,7 +172,7 @@ if ($parent != '') {
   echo '
 <tr>
   <td class="colSelect"></td>
-  <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
+  <td colspan="3"><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
 </tr>';
 }
 foreach ($folders as $folder) {

@@ -343,7 +343,7 @@ class FilterTerm {
         $subterms[] = $subterm;
       }
       $sql .= '('.implode(' OR ', $subterms).')';
-    } elseif (($this->attr === 'Tags') && ($values[0] === '')) {
+    } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
     } else {
       $sql .= $this->sql_attr();

@@ -4310,7 +4310,7 @@ int Monitor::Play() {
         "%d",
         video_stream_id, audio_stream_id, pre_event_count);
   if (decoding != DECODING_NONE) {
-    Debug(1, "Restarting decoder thread");
+    Debug(1, "Starting decoder thread");
     decoder->Start();
   }
   Debug(1, "Restarting analysis thread");

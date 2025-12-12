@@ -34,7 +34,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev, gsoap
               ,libmosquittopp-dev
-              ,nlohmann-json3-dev
+              ,nlohmann-json3-dev|nlohmann-json-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 

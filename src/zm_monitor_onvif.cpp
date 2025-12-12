@@ -133,14 +133,6 @@ void Monitor::ONVIF::start() {
       soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
       soap->os = old_stream; // no longer writing to the stream
       Debug(1, "Response was %s", ss.str().c_str());
-
-      _wsnt__Unsubscribe wsnt__Unsubscribe;
-      _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-      soap_destroy(soap);
-      soap_end(soap);
-      soap_free(soap);
-      soap = nullptr;
     } else {
 #if 0
       std::stringstream ss;
@@ -166,21 +158,6 @@ void Monitor::ONVIF::start() {
           healthy = true;
         }
 
-        std::stringstream ss;
-        std::ostream *old_stream = soap->os;
-        soap->os = &ss; // assign a stringstream to write output to
-        proxyEvent.CreatePullPointSubscription(&request, response);
-        //soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
-        soap->os = old_stream; // no longer writing to the stream
-        Error("Response was %s", ss.str().c_str());
-
-        _wsnt__Unsubscribe wsnt__Unsubscribe;
-        _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-        proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-        soap_destroy(soap);
-        soap_end(soap);
-        soap_free(soap);
-        soap = nullptr;
       } else {
         Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
         healthy = false;

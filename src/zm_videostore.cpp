@@ -583,7 +583,8 @@ void VideoStore::flush_codecs() {
     // Put encoder into flushing mode
     int ret = avcodec_send_frame(video_out_ctx, nullptr);
     if (0 > ret) {
-      Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
+      if (AVERROR(EAGAIN) != ret)
+        Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
     } else {
       while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
         av_packet_guard pkt_guard{pkt};

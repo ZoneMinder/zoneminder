@@ -74,8 +74,8 @@ protected:
 protected:
   std::string device;
   int channel;
-  int standard;
-  int palette;
+  v4l2_std_id standard;
+  unsigned int palette;
   bool device_prime;
   bool channel_prime;
   int channel_index;
@@ -117,14 +117,14 @@ public:
     const Monitor *monitor,
     const std::string &device,
     int p_channel,
-    int p_format,
+    v4l2_std_id p_standard,
     bool v4lmultibuffer,
     unsigned int v4lcapturesperframe,
     const std::string &p_method,
     int p_width,
     int p_height,
     int p_colours,
-    int p_palette,
+    unsigned int p_palette,
     int p_brightness,
     int p_contrast,
     int p_hue,
@@ -141,7 +141,7 @@ public:
 
   int Channel() const { return channel; }
   int Standard() const { return standard; }
-  int Palette() const { return palette; }
+  unsigned int Palette() const { return palette; }
   int Extras() const { return extras; }
 
   int Brightness( int p_brightness=-1 ) override;

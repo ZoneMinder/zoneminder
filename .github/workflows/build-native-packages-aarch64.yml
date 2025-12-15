@@ -117,7 +117,7 @@ jobs:
           echo "artifact_name=binary-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload .deb artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}

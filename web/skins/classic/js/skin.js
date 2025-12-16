@@ -2088,22 +2088,22 @@ function initPageGeneral() {
   }, 200);
 
   // https://web.dev/articles/bfcache Firefox has a peculiar behavior of caching the previous page.
-  // The problem also occurs on some Linux (Chromium) and Android (Chrome) devices.
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
       // Do any checks and updates to the page
-      window.location.reload( true );
+      if (mainContentJ[0].clientHeight < 1) {
+        window.location.reload( true );
+      }
     }
   });
 
-  function addListenerGlobalBeforeunload(event) {
-    //window.removeEventListener('beforeunload', addListenerGlobalBeforeunload);
+  window.addEventListener('beforeunload', function addListenerGlobalBeforeunload(event) {
     //event.preventDefault();
     if (navbar_type == 'left') {
       closeMbExtruder(updateCookie = true);
     }
 
-    if (mainContent) {
+    if (mainContentJ) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});
@@ -2112,13 +2112,14 @@ function initPageGeneral() {
         mainContentJ.css({display: "none"});
       } else {
         mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
+          const btnCollapse = $j('body').find('#btn-collapse');
+          if (btnCollapse.length) btnCollapse.css({display: "none"});
           mainContentJ.css({display: "none"});
         });
       }
     }
     //event.returnValue = '';
-  }
-  window.addEventListener('beforeunload', addListenerGlobalBeforeunload);
+  });
 
   document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
     el.addEventListener("click", function clickControlMute(event) {

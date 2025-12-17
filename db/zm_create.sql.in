@@ -644,6 +644,7 @@ CREATE TABLE `Monitor_Status` (
   `UpdatedOn`     TIMESTAMP NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+CREATE INDEX Monitor_Status_UpdatedOn_idx on Monitor_Status(UpdatedOn);
 
 DROP TABLE IF EXISTS `Event_Summaries`;
 CREATE TABLE `Event_Summaries` (

@@ -293,7 +293,7 @@ sub getMonitorRef {
   my $sql = 'SELECT `Id`,`Name`,`Type`,`Capturing`,`Analysing`,`Recording`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`,
   (SELECT Name FROM Manufacturers WHERE Manufacturers.Id = ManufacturerId) AS Manufacturer,
   (SELECT Name FROM Models WHERE Models.Id = ModelId) AS Model
-  FROM `Monitors`';
+  FROM `Monitors` WHERE Deleted=false';
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
   my $arrayref = $sth->fetchall_arrayref({});

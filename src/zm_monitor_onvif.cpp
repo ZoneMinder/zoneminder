@@ -42,8 +42,9 @@ std::string SOAP_STRINGS[] = {
 
 Monitor::ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed(false)
+  ,subscribed(false)
   ,healthy(false)
+  ,alarmed(false)
 #ifdef WITH_GSOAP
   ,soap(nullptr)
 #endif
@@ -52,29 +53,46 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
 
 Monitor::ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
-  if (soap != nullptr) {
-    Debug(1, "Tearing Down Onvif");
-    //We have lost ONVIF clear previous alarm topics
-    alarms.clear();
-    //Set alarmed to false so we don't get stuck recording
-    alarmed = false;
-    Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
-    _wsnt__Unsubscribe wsnt__Unsubscribe;
-    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-    if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)) {
-      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-    } else {
-      Error("Couldn't set wsa headers RequestMessageID=%s; TO= %s; Request=UnsubscribeRequest .... ! Error %i %s, %s",
-            RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    }
-
+  if (soap) {
+    stop();
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);
     soap = nullptr;
-  }  // end if soap
+  }
 #endif
+}
+
+void Monitor::ONVIF::stop() {
+  if (!(soap and subscribed)) return;
+
+  Debug(1, "Tearing Down ONVIF");
+  //We have lost ONVIF clear previous alarm topics
+  alarms.clear();
+  //Set alarmed to false so we don't get stuck recording
+  alarmed = false;
+  Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+
+#ifdef WITH_GSOAP
+  _wsnt__Unsubscribe wsnt__Unsubscribe;
+  _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+
+  if (parent->soap_wsa_compl) add_wsa_request("UnsubscribeRequest");
+
+  int rc= proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+  if (rc != SOAP_OK) {
+    const char *detail = soap_fault_detail(soap);
+    if (rc > 8) {
+      Error("ONVIF Couldn't unsubscribe at %s! %d, fault:%s, detail:%s", response.SubscriptionReference.Address,
+          rc, soap_fault_string(soap), detail ? detail : "null");
+    } else {
+      Error("ONVIF Couldn't unsubscribe at %s! %d %s, fault:%s, detail:%s", response.SubscriptionReference.Address,
+          rc, SOAP_STRINGS[rc].c_str(),
+          soap_fault_string(soap), detail ? detail : "null");
+    }
+  }
+#endif
+  subscribed = false;
 }
 
 void Monitor::ONVIF::start() {
@@ -89,7 +107,8 @@ void Monitor::ONVIF::start() {
   soap->send_timeout = 0;
   //soap->bind_flags |= SO_REUSEADDR;
   soap_register_plugin(soap, soap_wsse);
-  if (parent->soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);};
+  if (parent->soap_wsa_compl) soap_register_plugin(soap, soap_wsa);
+
   proxyEvent = PullPointSubscriptionBindingProxy(soap);
 
   Url url(parent->onvif_url);
@@ -101,103 +120,89 @@ void Monitor::ONVIF::start() {
   }
   std::string full_url = url.str() + parent->onvif_events_path;
   proxyEvent.soap_endpoint = full_url.c_str();
+  Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
   set_credentials(soap);
-  const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
 
-  if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
-    Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-    int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+  if (parent->soap_wsa_compl) add_wsa_request("CreatePullPointSubscriptionRequest");
+
+  int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+#if 0
+  std::stringstream ss;
+  soap->os = &ss; // assign a stringstream to write output to
+  soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+  soap->os = NULL; // no longer writing to the stream
+  Debug(1, "Response was %s", ss.str().c_str());
+#endif
+
+  if (rc != SOAP_OK) {
+    const char *detail = soap_fault_detail(soap);
+    if (rc > 8) {
+      Error("ONVIF Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(),
+          rc, soap_fault_string(soap), detail ? detail : "null");
+    } else {
+      Error("ONVIF Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+          rc, SOAP_STRINGS[rc].c_str(),
+          soap_fault_string(soap), detail ? detail : "null");
+    }
+
+    std::stringstream ss;
+    std::ostream *old_stream = soap->os;
+    soap->os = &ss; // assign a stringstream to write output to
+    proxyEvent.CreatePullPointSubscription(&request, response);
+    soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
+    soap->os = old_stream; // no longer writing to the stream
+    Debug(1, "ONVIF Response was %s", ss.str().c_str());
+  } else {
+    subscribed = true;
 #if 0
     std::stringstream ss;
     soap->os = &ss; // assign a stringstream to write output to
+    int rc = proxyEvent.CreatePullPointSubscription(&request, response);
     soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
     soap->os = NULL; // no longer writing to the stream
     Debug(1, "Response was %s", ss.str().c_str());
 #endif
-
-    if (rc != SOAP_OK) {
-      const char *detail = soap_fault_detail(soap);
-      if (rc > 8) {
-        Error("ONVIF Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(),
-            rc, soap_fault_string(soap), detail ? detail : "null");
-      } else {
-        Error("ONVIF Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
-            rc, SOAP_STRINGS[rc].c_str(),
-            soap_fault_string(soap), detail ? detail : "null");
-      }
-
-      std::stringstream ss;
-      std::ostream *old_stream = soap->os;
-      soap->os = &ss; // assign a stringstream to write output to
-      proxyEvent.CreatePullPointSubscription(&request, response);
-      soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
-      soap->os = old_stream; // no longer writing to the stream
-      Debug(1, "Response was %s", ss.str().c_str());
-    } else {
-#if 0
-      std::stringstream ss;
-      soap->os = &ss; // assign a stringstream to write output to
-      int rc = proxyEvent.CreatePullPointSubscription(&request, response);
-      soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
-      soap->os = NULL; // no longer writing to the stream
-      Debug(1, "Response was %s", ss.str().c_str());
-#endif
-      //Empty the stored messages
-      set_credentials(soap);
-
-      RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : nullptr;
-      if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
-        Debug(1, "ONVIF :soap_wsa_request  OK ");
-        if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-            (soap->error != SOAP_EOF)
-           ) { //SOAP_EOF could indicate no messages to pull.
-          Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          healthy = false;
-        } else {
-          Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          healthy = true;
-        }
-
-      } else {
-        Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-        healthy = false;
-      }
-
-      // we renew the current subscription .........
-      if (parent->soap_wsa_compl) {
-        set_credentials(soap);
-        RequestMessageID = soap_wsa_rand_uuid(soap);
-        if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-          Debug(1, "ONVIF :soap_wsa_request OK");
-          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-            Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            if (soap->error==12) {//ActionNotSupported
-              healthy = true;
-            } else {
-              healthy = false;
-            }
-          } else {
-            Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            healthy = true;
-          }
-        } else {
-          Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
-              RequestMessageID,
-              response.SubscriptionReference.Address,
-              soap->error,
-              soap_fault_string(soap),
-              soap_fault_detail(soap));
-          healthy = false;
-        } // end renew
-      }
-    }
-  } else {
-    Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest Error %i %s, %s",
-        RequestMessageID, proxyEvent.soap_endpoint, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
   }
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif
+}
+
+void Monitor::ONVIF::PullMessages() {
+  //Empty the stored messages
+  set_credentials(soap);
+  if (parent->soap_wsa_compl) add_wsa_request("PullMessageRequest");
+
+  if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+      (soap->error != SOAP_EOF)
+     ) { //SOAP_EOF could indicate no messages to pull.
+    Error("ONVIF Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    healthy = false;
+  } else {
+    Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    healthy = true;
+  }
+}
+
+void Monitor::ONVIF::Renew() {
+  // we renew the current subscription .........
+  set_credentials(soap);
+  std::string Termination_time = "PT60S";
+  wsnt__Renew.TerminationTime = &Termination_time;
+
+  if (parent->soap_wsa_compl) add_wsa_request("RenewRequest");
+   
+  if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+    Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    if (soap->error==12) {//ActionNotSupported
+      healthy = true;
+    } else {
+      healthy = false;
+    }
+  } else {
+    Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    healthy = true;
+  }
 }
 
 void Monitor::ONVIF::WaitForMessage() {
@@ -221,7 +226,7 @@ void Monitor::ONVIF::WaitForMessage() {
         proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
         soap_write__tev__PullMessagesResponse(soap, &tev__PullMessagesResponse);
         soap->os = old_stream; // no longer writing to the stream
-        Debug(1, "Response was %s", ss.str().c_str());
+        Debug(1, "ONVIF Response was %s", ss.str().c_str());
 
         healthy = false;
       } else {
@@ -281,15 +286,13 @@ void Monitor::ONVIF::WaitForMessage() {
                 }
               } else {
                 // Event Start
-                Info("Triggered Start on ONVIF");
+                Debug(1, "Triggered Start on ONVIF");
                 if (alarms.count(last_topic) == 0) {
                   alarms[last_topic] = last_value;
                   if (!alarmed) {
                     Info("Triggered Start Event on ONVIF");
                     alarmed = true;
                   }
-                } else {
-
                 }
               }
               Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
@@ -304,31 +307,7 @@ void Monitor::ONVIF::WaitForMessage() {
 
       if (zm_terminate) return;
 
-      // we renew the current subscription .........
-      if (parent->soap_wsa_compl) {
-        set_credentials(soap);
-        std::string Termination_time = "PT60S";
-        wsnt__Renew.TerminationTime = &Termination_time;
-        RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-        if ((!parent->soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK)) {
-          Debug(1, ":soap_wsa_request OK");
-          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-            Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            if (soap->error==12) {//ActionNotSupported
-              healthy = true;
-            } else {
-              healthy = false;
-            }
-          } else {
-            Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            healthy = true;
-          }
-        } else {
-          Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
-              RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          healthy = false;
-        } // end renew
-      }
+      Renew();
     }  // end if SOAP OK/NOT OK
   } else {
     Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",
@@ -347,6 +326,17 @@ void Monitor::ONVIF::set_credentials(struct soap *soap) {
       (parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str()),
       (parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str())
       );
+}
+
+void Monitor::ONVIF::add_wsa_request(const char *request) {
+#ifdef WITH_GSOAP
+  const char *RequestMessageID = soap_wsa_rand_uuid(soap);
+  if (soap_wsa_request(soap, RequestMessageID, proxyEvent.soap_endpoint, request) != SOAP_OK) {
+    Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=%s Error %i %s, %s",
+        RequestMessageID, proxyEvent.soap_endpoint, request, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    return;
+  }
+#endif
 }
 
 //GSOAP boilerplate
@@ -373,7 +363,6 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 #endif
 
 void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
-  #ifdef WITH_GSOAP
     std::unique_lock<std::mutex> lck(alarms_mutex);
     if (alarms.empty()) return;
 
@@ -382,7 +371,6 @@ void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
       note = it->first + "/" + it->second;
       noteSet.insert(note);
     }
-  #endif
   return;
 }
 

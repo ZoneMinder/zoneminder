@@ -26,7 +26,7 @@ monitorData[monitorData.length] = {
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
-  'scale':<?php echo $monitor->initial_scale() ?>,
+  'scale': '<?php echo $monitor->initial_scale() ?>',
   'RTSP2WebEnabled':<?php echo $monitor->RTSP2WebEnabled() ?>,
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
   'RTSP2WebStream':'<?php echo $monitor->RTSP2WebStream() ?>',

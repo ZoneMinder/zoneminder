@@ -385,8 +385,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   class ONVIF {
    protected:
     Monitor *parent;
-    bool alarmed;
+    bool subscribed;
     bool healthy;
+    bool alarmed;
+
     std::string last_topic;
     std::string last_value;
     void SetNoteSet(Event::StringSet &noteSet);
@@ -403,10 +405,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 #endif
     std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;
+   private:
+    void Renew();
+    void PullMessages();
+    void add_wsa_request(const char *request);
    public:
     explicit ONVIF(Monitor *parent_);
     ~ONVIF();
     void start();
+    void stop();
     void WaitForMessage();
     bool isAlarmed() {
       std::unique_lock<std::mutex> lck(alarms_mutex);

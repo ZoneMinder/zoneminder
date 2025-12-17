@@ -344,6 +344,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
   #ZM\Debug('Options: ' . print_r($monitor_options,true));
+  $monitor_options['scale'] = 50; # ensure defined value, but not 100 because this is montage... we assume at least 2 streams
 
   if ($monitor->Type() == 'WebSite') {
     echo getWebSiteUrl(
@@ -386,7 +387,7 @@ foreach ($monitors as $monitor) {
     }
     $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
-  }
+  } # end if monitor type == Website
 } # end foreach monitor
 ?>
       </div>

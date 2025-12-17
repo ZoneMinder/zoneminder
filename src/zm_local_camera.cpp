@@ -681,14 +681,6 @@ void LocalCamera::Initialise() {
     }
   } // end if JPEG/MJPEG
 
-  if (0) {
-  Debug(3, "Configuring video source");
-
-  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
-    Error("Failed to set camera source %d: %s", channel, strerror(errno));
-  }
-  }
-
 
   Debug(3, "Setting up request buffers");
 
@@ -762,7 +754,6 @@ void LocalCamera::Initialise() {
       v4l2_data.fmt.fmt.pix.height,
       1);
   } // end foreach request buf
-
 
   Contrast(contrast);
   Brightness(brightness);
@@ -883,7 +874,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   if ( nIndexUsed >= 0 ) {
     /* Found a match */
     selected_palette = fmt_fcc[nIndexUsed];
-    strcpy(palette_desc,fmt_desc[nIndexUsed]);
+    strcpy(palette_desc, fmt_desc[nIndexUsed]);
   }
 
   /* Close the device */
@@ -1213,7 +1204,7 @@ int LocalCamera::Control(int vid_id, int newvalue) {
     if (errno != EINVAL) {
       Error("Unable to query control: %s", strerror(errno));
     } else {
-      Warning("Control is not supported");
+      Debug(1, "Control is not supported");
     }
   } else if (newvalue >= 0) {
     vid_control.value = newvalue;
@@ -1431,7 +1422,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
 
     if (conversion_type == 1) {
-      Debug(9, "Calling sws_scale to perform the conversion");
+      Debug(4, "Calling sws_scale to perform the conversion");
       sws_scale(
         imgConversionContext,
         capturePictures[capture_frame]->data,

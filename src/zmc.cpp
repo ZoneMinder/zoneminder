@@ -247,7 +247,7 @@ int main(int argc, char *argv[], char **envp) {
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
       std::string sql = stringtf(
                           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
-                          " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                          " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0,UpdatedOn=NOW()",
                           monitor->Id());
       zmDbDo(sql);
 
@@ -286,7 +286,7 @@ int main(int argc, char *argv[], char **envp) {
       if (zm_terminate) break;
 
       sql = stringtf(
-              "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+              "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected',UpdatedOn=NOW()",
               monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
@@ -409,7 +409,7 @@ int main(int argc, char *argv[], char **envp) {
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(
-                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0,UpdatedOn=NOW()",
                         monitor->Id());
     zmDbDo(sql);
   }

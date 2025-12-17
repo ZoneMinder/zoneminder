@@ -118,11 +118,12 @@ bool VideoStore::open() {
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-    } else if (monitor->has_out_of_order_packets()
-        and !monitor->WallClockTimestamps()
-        ) {
+    } else if (monitor->has_out_of_order_packets() and !monitor->WallClockTimestamps()) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+    } else {
+      Debug(1, "Not setting reorder_queue_size beacuse has_out_of_order_packet %d and ! wallclock %d",
+          monitor->has_out_of_order_packets(), monitor->WallClockTimestamps());
     }
   }
 

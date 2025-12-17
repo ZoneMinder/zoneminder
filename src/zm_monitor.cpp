@@ -776,6 +776,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
 
   //shared_data->capture_image_count = 0;
   last_alarm_count = 0;
+
   state = IDLE;
   last_signal = true;  // Defaulting to having signal so that we don't get a
                        // signal change on the first frame.
@@ -1211,7 +1212,8 @@ bool Monitor::connect() {
   }
 
   // We set these here because otherwise the first fps calc is meaningless
-  last_fps_time = std::chrono::system_clock::now();
+  last_fps_time = 
+  last_status_time = 
   last_analysis_fps_time = std::chrono::system_clock::now();
   last_capture_image_count = 0;
 
@@ -1898,6 +1900,11 @@ void Monitor::UpdateFPS() {
           new_capture_fps, new_capture_bandwidth, new_analysis_fps);
       dbQueue.push(std::move(sql));
       last_status_time = now;
+    } else {
+      Debug(1, "Not doing db status as now %.2lf - last %.2lf = %lf", 
+          FPSeconds(now.time_since_epoch()).count(),
+          FPSeconds(last_fps_time.time_since_epoch()).count(),
+          db_elapsed.count());
     }
   }  // now != last_fps_time
 }  // void Monitor::UpdateFPS()
@@ -2964,13 +2971,10 @@ void Monitor::Reload() {
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
-  Debug(3, "Reloading zones for monitor %s have %zu", name.c_str(),
-        zones.size());
   zones = Zone::Load(shared_from_this());
   Debug(1, "Reloading zones for monitor %s have %zu", name.c_str(),
         zones.size());
   this->AddPrivacyBitmask();
-  // DumpZoneImage();
 }  // end void Monitor::ReloadZones()
 
 void Monitor::ReloadLinkedMonitors() {

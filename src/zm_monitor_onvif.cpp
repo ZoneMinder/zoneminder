@@ -23,6 +23,15 @@
 #include <sstream>
 #include "url.hpp"
 
+// ONVIF configuration constants
+#ifdef WITH_GSOAP
+namespace {
+  const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
+  const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
+  const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
+}
+#endif
+
 std::string SOAP_STRINGS[] = {
   "SOAP_OK", // 0
   "SOAP_CLI_FAULT", // 1
@@ -521,7 +530,7 @@ void Monitor::ONVIF::parse_onvif_options() {
         try {
           max_retries = std::stoi(value);
           if (max_retries < 0) max_retries = 0;
-          if (max_retries > 100) max_retries = 100;  // Reasonable upper limit
+          if (max_retries > ONVIF_MAX_RETRIES_LIMIT) max_retries = ONVIF_MAX_RETRIES_LIMIT;
           Debug(2, "ONVIF: Set max_retries to %d", max_retries);
         } catch (const std::exception &e) {
           Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
@@ -548,14 +557,16 @@ void Monitor::ONVIF::parse_onvif_options() {
 }
 
 // Calculate exponential backoff delay for retries
-// Returns delay in seconds: min(2^retry_count, 300)
+// Returns delay in seconds: min(2^retry_count, ONVIF_RETRY_DELAY_CAP)
 int Monitor::ONVIF::get_retry_delay() {
   // Use safe approach to avoid integer overflow
-  if (retry_count >= 9) {
-    return 300;  // 2^9 = 512, cap at 5 minutes
+  if (retry_count >= ONVIF_RETRY_EXPONENT_LIMIT) {
+    return ONVIF_RETRY_DELAY_CAP;  // 2^9 = 512, cap at 5 minutes
   }
   int delay = 1 << retry_count;  // 2^retry_count
-  if (delay > 300) delay = 300;  // Extra safety check
+  if (delay > ONVIF_RETRY_DELAY_CAP) {
+    delay = ONVIF_RETRY_DELAY_CAP;  // Extra safety check
+  }
   return delay;
 }
 

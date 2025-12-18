@@ -349,10 +349,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int retry_count;  // Track retry attempts
     std::string discovered_event_endpoint;  // Store discovered endpoint
     
+    // Configurable timeout values (can be set via onvif_options)
+    std::string pull_timeout;  // Default "PT20S"
+    std::string subscription_timeout;  // Default "PT60S"
+    
     // Helper methods
     bool parse_event_message(struct _wsnt__NotificationMessage *msg, std::string &topic, std::string &value, std::string &operation);
     bool matches_topic_filter(const std::string &topic, const std::string &filter);
     void log_soap_request_response(const char *operation);
+    void parse_onvif_options();  // Parse options from parent->onvif_options
 #endif
     std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;

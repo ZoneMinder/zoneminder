@@ -47,8 +47,13 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
   ,retry_count(0)
+  ,pull_timeout("PT20S")
+  ,subscription_timeout("PT60S")
 #endif
 {
+#ifdef WITH_GSOAP
+  parse_onvif_options();
+#endif
 }
 
 Monitor::ONVIF::~ONVIF() {
@@ -91,10 +96,13 @@ Monitor::ONVIF::~ONVIF() {
 
 void Monitor::ONVIF::start() {
 #ifdef WITH_GSOAP
-  tev__PullMessages.Timeout = "PT20S";
+  tev__PullMessages.Timeout = pull_timeout.c_str();
   tev__PullMessages.MessageLimit = 10;
-  std::string Termination_time = "PT60S";
-  wsnt__Renew.TerminationTime = &Termination_time;
+  wsnt__Renew.TerminationTime = &subscription_timeout;
+  
+  Debug(2, "ONVIF: Using pull_timeout=%s, subscription_timeout=%s", 
+        pull_timeout.c_str(), subscription_timeout.c_str());
+  
   soap = soap_new();
   soap->connect_timeout = 0;
   soap->recv_timeout = 0;
@@ -416,8 +424,7 @@ void Monitor::ONVIF::WaitForMessage() {
       // we renew the current subscription .........
       if (use_wsa) {
         set_credentials(soap);
-        std::string Termination_time = "PT60S";
-        wsnt__Renew.TerminationTime = &Termination_time;
+        wsnt__Renew.TerminationTime = &subscription_timeout;
         RequestMessageID = soap_wsa_rand_uuid(soap);
         if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
           Debug(2, "ONVIF: WS-Addressing headers set for Renew");
@@ -444,6 +451,57 @@ void Monitor::ONVIF::WaitForMessage() {
 }
 
 #ifdef WITH_GSOAP
+// Parse ONVIF options from the onvif_options string
+// Format: key1=value1,key2=value2
+// Supported options:
+//   pull_timeout=PT20S - Timeout for PullMessages requests
+//   subscription_timeout=PT60S - Timeout for subscription renewal
+void Monitor::ONVIF::parse_onvif_options() {
+  if (parent->onvif_options.empty()) {
+    return;
+  }
+  
+  Debug(2, "ONVIF: Parsing options: %s", parent->onvif_options.c_str());
+  
+  std::string options = parent->onvif_options;
+  size_t start = 0;
+  size_t pos = 0;
+  
+  while ((pos = options.find(',', start)) != std::string::npos) {
+    std::string option = options.substr(start, pos - start);
+    size_t eq_pos = option.find('=');
+    if (eq_pos != std::string::npos) {
+      std::string key = option.substr(0, eq_pos);
+      std::string value = option.substr(eq_pos + 1);
+      
+      if (key == "pull_timeout") {
+        pull_timeout = value;
+        Debug(2, "ONVIF: Set pull_timeout to %s", pull_timeout.c_str());
+      } else if (key == "subscription_timeout") {
+        subscription_timeout = value;
+        Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
+      }
+    }
+    start = pos + 1;
+  }
+  
+  // Handle last option (no trailing comma)
+  std::string option = options.substr(start);
+  size_t eq_pos = option.find('=');
+  if (eq_pos != std::string::npos) {
+    std::string key = option.substr(0, eq_pos);
+    std::string value = option.substr(eq_pos + 1);
+    
+    if (key == "pull_timeout") {
+      pull_timeout = value;
+      Debug(2, "ONVIF: Set pull_timeout to %s", pull_timeout.c_str());
+    } else if (key == "subscription_timeout") {
+      subscription_timeout = value;
+      Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
+    }
+  }
+}
+
 //ONVIF Set Credentials
 void Monitor::ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);

@@ -345,6 +345,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     _wsnt__RenewResponse wsnt__RenewResponse;
     PullPointSubscriptionBindingProxy proxyEvent;
     void set_credentials(struct soap *soap);
+    bool try_usernametoken_auth;  // Track if we should try plain auth
+    int retry_count;  // Track retry attempts
+    std::string discovered_event_endpoint;  // Store discovered endpoint
+    
+    // Helper methods
+    bool parse_event_message(struct _wsnt__NotificationMessage *msg, std::string &topic, std::string &value, std::string &operation);
+    bool matches_topic_filter(const std::string &topic, const std::string &filter);
+    void log_soap_request_response(const char *operation);
 #endif
     std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;

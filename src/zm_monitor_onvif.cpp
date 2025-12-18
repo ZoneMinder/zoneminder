@@ -774,21 +774,6 @@ bool Monitor::ONVIF::matches_topic_filter(const std::string &topic, const std::s
   return filter_idx >= filter_parts.size();
 }
 
-// Helper function to log SOAP requests/responses for debugging
-void Monitor::ONVIF::log_soap_request_response(const char *operation) {
-  if (config.log_level >= 3) {
-    std::stringstream ss;
-    std::ostream *old_stream = soap->os;
-    soap->os = &ss;
-    
-    Debug(3, "ONVIF: SOAP request/response for %s:", operation);
-    // Note: Actual request/response logging would require intercepting at a lower level
-    // This is a placeholder for the logging structure
-    
-    soap->os = old_stream;
-  }
-}
-
 //GSOAP boilerplate
 int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail) {
   // populate the fault struct from the operation arguments to print it

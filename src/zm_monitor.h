@@ -358,7 +358,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     // Helper methods
     bool parse_event_message(struct _wsnt__NotificationMessage *msg, std::string &topic, std::string &value, std::string &operation);
     bool matches_topic_filter(const std::string &topic, const std::string &filter);
-    void log_soap_request_response(const char *operation);
     void parse_onvif_options();  // Parse options from parent->onvif_options
     int get_retry_delay();  // Calculate exponential backoff delay
 #endif

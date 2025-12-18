@@ -560,6 +560,8 @@ bool Monitor::ONVIF::parse_event_message(struct _wsnt__NotificationMessage *msg,
   }
   
   // Fallback: try the old parsing method for backward compatibility
+  // This preserves the original deeply nested null-checking pattern
+  // to support cameras that worked with the old code
   if (value.empty() &&
       msg->Message.__any.elts &&
       msg->Message.__any.elts->next &&
@@ -621,9 +623,17 @@ bool Monitor::ONVIF::matches_topic_filter(const std::string &topic, const std::s
       // Single level wildcard - matches one part
       filter_idx++;
       topic_idx++;
-    } else if (filter_part == "**" || filter_part.find("/*") != std::string::npos) {
+    } else if (filter_part == "**") {
       // Multi-level wildcard - matches rest of topic
       return true;
+    } else if (!filter_part.empty() && filter_part.back() == '*') {
+      // Ends with wildcard like "RuleEngine*" - prefix match
+      std::string prefix = filter_part.substr(0, filter_part.length() - 1);
+      if (topic_parts[topic_idx].find(prefix) != 0) {
+        return false;
+      }
+      filter_idx++;
+      topic_idx++;
     } else {
       // Exact match or substring match required
       if (topic_parts[topic_idx].find(filter_part) == std::string::npos) {

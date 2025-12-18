@@ -47,12 +47,14 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
   ,retry_count(0)
+  ,max_retries(5)
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
 #endif
 {
 #ifdef WITH_GSOAP
   parse_onvif_options();
+  last_retry_time = std::chrono::system_clock::now();
 #endif
 }
 
@@ -188,7 +190,9 @@ void Monitor::ONVIF::start() {
       rc = proxyEvent.CreatePullPointSubscription(&request, response);
       
       if (rc != SOAP_OK) {
-        Error("ONVIF: Plain authentication also failed. Error %d: %s", rc, soap_fault_string(soap));
+        retry_count++;
+        Error("ONVIF: Plain authentication also failed (retry %d/%d). Error %d: %s", 
+              retry_count, max_retries, rc, soap_fault_string(soap));
         if (config.log_level >= 3) {
           std::stringstream ss;
           std::ostream *old_stream = soap->os;
@@ -199,16 +203,27 @@ void Monitor::ONVIF::start() {
           Debug(3, "ONVIF: Response was %s", ss.str().c_str());
         }
         
+        if (retry_count >= max_retries) {
+          Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
+        } else {
+          int delay = get_retry_delay();
+          Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+               delay, retry_count + 1, max_retries);
+        }
+        
         soap_destroy(soap);
         soap_end(soap);
         soap_free(soap);
         soap = nullptr;
+        healthy = false;
         return;
       }
       
       Info("ONVIF: Plain authentication succeeded");
+      retry_count = 0;  // Reset retry count on success
     } else {
       // Not an auth error or already tried plain auth
+      retry_count++;
       if (config.log_level >= 3) {
         std::stringstream ss;
         std::ostream *old_stream = soap->os;
@@ -219,13 +234,24 @@ void Monitor::ONVIF::start() {
         Debug(3, "ONVIF: Response was %s", ss.str().c_str());
       }
       
+      if (retry_count >= max_retries) {
+        Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
+      } else {
+        int delay = get_retry_delay();
+        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+             delay, retry_count + 1, max_retries);
+      }
+      
       soap_destroy(soap);
       soap_end(soap);
       soap_free(soap);
       soap = nullptr;
+      healthy = false;
       return;
     }
-  }
+  } else {
+    // Success - reset retry count
+    retry_count = 0;
   
   Debug(1, "ONVIF: Successfully created PullPoint subscription");
   
@@ -324,6 +350,13 @@ void Monitor::ONVIF::WaitForMessage() {
           Debug(3, "ONVIF: Response was %s", ss.str().c_str());
         }
 
+        retry_count++;
+        if (retry_count >= max_retries) {
+          Error("ONVIF: Max retries (%d) reached for PullMessages, subscription may be lost", max_retries);
+        } else {
+          Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", 
+               retry_count, max_retries);
+        }
         healthy = false;
       } else {
         // SOAP_EOF - this is just a timeout, not an error
@@ -336,8 +369,15 @@ void Monitor::ONVIF::WaitForMessage() {
         // For now, just leave alarms as-is on timeout
         Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
               alarms.size(), alarmed ? "true" : "false");
+        
+        // Timeout is not an error, don't increment retry_count
       }
     } else {
+      // Success - reset retry count
+      if (retry_count > 0) {
+        Info("ONVIF: PullMessages succeeded after %d failed attempts", retry_count);
+        retry_count = 0;
+      }
       Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
@@ -480,6 +520,9 @@ void Monitor::ONVIF::parse_onvif_options() {
       } else if (key == "subscription_timeout") {
         subscription_timeout = value;
         Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
+      } else if (key == "max_retries") {
+        max_retries = std::stoi(value);
+        Debug(2, "ONVIF: Set max_retries to %d", max_retries);
       }
     }
     start = pos + 1;
@@ -498,8 +541,19 @@ void Monitor::ONVIF::parse_onvif_options() {
     } else if (key == "subscription_timeout") {
       subscription_timeout = value;
       Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
+    } else if (key == "max_retries") {
+      max_retries = std::stoi(value);
+      Debug(2, "ONVIF: Set max_retries to %d", max_retries);
     }
   }
+}
+
+// Calculate exponential backoff delay for retries
+// Returns delay in seconds: 2^retry_count (capped at 300 seconds = 5 minutes)
+int Monitor::ONVIF::get_retry_delay() {
+  int delay = 1 << retry_count;  // 2^retry_count
+  if (delay > 300) delay = 300;  // Cap at 5 minutes
+  return delay;
 }
 
 //ONVIF Set Credentials

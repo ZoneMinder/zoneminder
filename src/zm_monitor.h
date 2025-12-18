@@ -408,7 +408,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
    private:
     void Renew();
     void PullMessages();
-    void add_wsa_request(const char *request);
+    int add_wsa_request(const char *request);
    public:
     explicit ONVIF(Monitor *parent_);
     ~ONVIF();

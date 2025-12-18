@@ -28,25 +28,25 @@ std::string SOAP_STRINGS[] = {
   "SOAP_OK", // 0
   "SOAP_CLI_FAULT", // 1
   "SOAP_SVR_FAULT",//                  2
-  "SOAP_TAG_MISMATCH",//               3
-  "SOAP_TYPE",//                       4
-  "SOAP_SYNTAX_ERROR",//               5
+  "SOAP_TAG_MISMATCH",  //             3
+  "SOAP_TYPE",          //             4
+  "SOAP_SYNTAX_ERROR",  //             5
   "SOAP_NO_TAG",//                     6
   "SOAP_IOB",//                        7
   "SOAP_MUSTUNDERSTAND",//             8
   "SOAP_NAMESPACE", //                  9
   "SOAP_USER_ERROR", //                 10
-  "SOAP_FATAL_ERROR", //                11 
+  "SOAP_FATAL_ERROR", //                11
   "SOAP_FAULT", //                      12
 };
 
 Monitor::ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,subscribed(false)
-  ,healthy(false)
-  ,alarmed(false)
+  , subscribed(false)
+  , healthy(false)
+  , alarmed(false)
 #ifdef WITH_GSOAP
-  ,soap(nullptr)
+  , soap(nullptr)
 #endif
 {
 }
@@ -79,7 +79,8 @@ void Monitor::ONVIF::stop() {
 
   if (parent->soap_wsa_compl) add_wsa_request("UnsubscribeRequest");
 
-  int rc= proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+  int rc = proxyEvent.Unsubscribe(response.SubscriptionReference.Address,
+      nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
   if (rc != SOAP_OK) {
     const char *detail = soap_fault_detail(soap);
     if (rc > 8) {
@@ -123,9 +124,13 @@ void Monitor::ONVIF::start() {
   Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
   set_credentials(soap);
 
-  if (parent->soap_wsa_compl) add_wsa_request("CreatePullPointSubscriptionRequest");
+  int rc = SOAP_OK;
 
-  int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+  if (parent->soap_wsa_compl) {
+    rc = add_wsa_request("CreatePullPointSubscriptionRequest");
+  }
+
+  rc = proxyEvent.CreatePullPointSubscription(&request, response);
 #if 0
   std::stringstream ss;
   soap->os = &ss; // assign a stringstream to write output to
@@ -191,7 +196,7 @@ void Monitor::ONVIF::Renew() {
   wsnt__Renew.TerminationTime = &Termination_time;
 
   if (parent->soap_wsa_compl) add_wsa_request("RenewRequest");
-   
+
   if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
     Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error==12) {//ActionNotSupported
@@ -322,25 +327,41 @@ void Monitor::ONVIF::WaitForMessage() {
 void Monitor::ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, "Time", 10);
-  soap_wsse_add_UsernameTokenDigest(soap, "Auth", 
+  soap_wsse_add_UsernameTokenDigest(soap, "Auth",
       (parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str()),
       (parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str())
       );
 }
 
-void Monitor::ONVIF::add_wsa_request(const char *request) {
+int Monitor::ONVIF::add_wsa_request(const char *request) {
 #ifdef WITH_GSOAP
   const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-  if (soap_wsa_request(soap, RequestMessageID, proxyEvent.soap_endpoint, request) != SOAP_OK) {
-    Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=%s Error %i %s, %s",
-        RequestMessageID, proxyEvent.soap_endpoint, request, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    return;
+  int rc = soap_wsa_request(soap, RequestMessageID, proxyEvent.soap_endpoint, request);
+  if (rc != SOAP_OK) {
+    Error("ONVIF Couldn't do wsa request RequestMessageID=%s; TO=%s; Request=%s Error %i %s, %s",
+        RequestMessageID, proxyEvent.soap_endpoint, request, soap->error, soap_fault_string(soap),
+        soap_fault_detail(soap));
+  } else {
+    Debug(1, "ONVIF did wsa request RequestMessageID=%s; TO=%s; Request=%s RC %i %i",
+        RequestMessageID, proxyEvent.soap_endpoint, request, rc, soap->error);
   }
+  return rc;
 #endif
 }
 
 //GSOAP boilerplate
-int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail) {
+int SOAP_ENV__Fault(
+    struct soap *soap,
+    char *faultcode,
+    char *faultstring,
+    char *faultactor,
+    struct SOAP_ENV__Detail *detail,
+    struct SOAP_ENV__Code *SOAP_ENV__Code,
+    struct SOAP_ENV__Reason *SOAP_ENV__Reason,
+    char *SOAP_ENV__Node,
+    char *SOAP_ENV__Role,
+    struct SOAP_ENV__Detail *SOAP_ENV__Detail
+    ) {
   // populate the fault struct from the operation arguments to print it
   soap_fault(soap);
   // SOAP 1.1

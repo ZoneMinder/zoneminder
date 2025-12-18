@@ -496,6 +496,7 @@ void Monitor::ONVIF::WaitForMessage() {
 // Supported options:
 //   pull_timeout=PT20S - Timeout for PullMessages requests
 //   subscription_timeout=PT60S - Timeout for subscription renewal
+//   max_retries=5 - Maximum retry attempts
 void Monitor::ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
     return;
@@ -503,12 +504,8 @@ void Monitor::ONVIF::parse_onvif_options() {
   
   Debug(2, "ONVIF: Parsing options: %s", parent->onvif_options.c_str());
   
-  std::string options = parent->onvif_options;
-  size_t start = 0;
-  size_t pos = 0;
-  
-  while ((pos = options.find(',', start)) != std::string::npos) {
-    std::string option = options.substr(start, pos - start);
+  // Helper lambda to parse a single option
+  auto parse_option = [this](const std::string &option) {
     size_t eq_pos = option.find('=');
     if (eq_pos != std::string::npos) {
       std::string key = option.substr(0, eq_pos);
@@ -521,38 +518,44 @@ void Monitor::ONVIF::parse_onvif_options() {
         subscription_timeout = value;
         Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
       } else if (key == "max_retries") {
-        max_retries = std::stoi(value);
-        Debug(2, "ONVIF: Set max_retries to %d", max_retries);
+        try {
+          max_retries = std::stoi(value);
+          if (max_retries < 0) max_retries = 0;
+          if (max_retries > 100) max_retries = 100;  // Reasonable upper limit
+          Debug(2, "ONVIF: Set max_retries to %d", max_retries);
+        } catch (const std::exception &e) {
+          Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
+        }
       }
     }
+  };
+  
+  std::string options = parent->onvif_options;
+  size_t start = 0;
+  size_t pos = 0;
+  
+  while ((pos = options.find(',', start)) != std::string::npos) {
+    std::string option = options.substr(start, pos - start);
+    parse_option(option);
     start = pos + 1;
   }
   
   // Handle last option (no trailing comma)
-  std::string option = options.substr(start);
-  size_t eq_pos = option.find('=');
-  if (eq_pos != std::string::npos) {
-    std::string key = option.substr(0, eq_pos);
-    std::string value = option.substr(eq_pos + 1);
-    
-    if (key == "pull_timeout") {
-      pull_timeout = value;
-      Debug(2, "ONVIF: Set pull_timeout to %s", pull_timeout.c_str());
-    } else if (key == "subscription_timeout") {
-      subscription_timeout = value;
-      Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
-    } else if (key == "max_retries") {
-      max_retries = std::stoi(value);
-      Debug(2, "ONVIF: Set max_retries to %d", max_retries);
-    }
+  if (start < options.length()) {
+    std::string option = options.substr(start);
+    parse_option(option);
   }
 }
 
 // Calculate exponential backoff delay for retries
-// Returns delay in seconds: 2^retry_count (capped at 300 seconds = 5 minutes)
+// Returns delay in seconds: min(2^retry_count, 300)
 int Monitor::ONVIF::get_retry_delay() {
+  // Use safe approach to avoid integer overflow
+  if (retry_count >= 9) {
+    return 300;  // 2^9 = 512, cap at 5 minutes
+  }
   int delay = 1 << retry_count;  // 2^retry_count
-  if (delay > 300) delay = 300;  // Cap at 5 minutes
+  if (delay > 300) delay = 300;  // Extra safety check
   return delay;
 }
 
@@ -616,8 +619,11 @@ bool Monitor::ONVIF::parse_event_message(struct _wsnt__NotificationMessage *msg,
         if (att->name && att->text) {
           Debug(4, "ONVIF: Attribute: %s = %s", att->name, att->text);
           
-          // Look for PropertyOperation attribute
-          if (std::strstr(att->name, "PropertyOperation")) {
+          // Look for PropertyOperation attribute (may have namespace prefix)
+          // Check if attribute name ends with PropertyOperation
+          const char *colon = std::strrchr(att->name, ':');
+          const char *attr_name = colon ? colon + 1 : att->name;
+          if (std::strcmp(attr_name, "PropertyOperation") == 0) {
             operation = att->text;
             Debug(3, "ONVIF: Found PropertyOperation: %s", operation.c_str());
           }
@@ -627,28 +633,36 @@ bool Monitor::ONVIF::parse_event_message(struct _wsnt__NotificationMessage *msg,
     }
     
     // Look for SimpleItem or ElementItem
+    // Element names may have namespace prefixes (e.g., "tt:SimpleItem")
     if (elt->name) {
-      if (std::strstr(elt->name, "SimpleItem")) {
+      const char *colon = std::strrchr(elt->name, ':');
+      const char *elem_name = colon ? colon + 1 : elt->name;
+      
+      if (std::strcmp(elem_name, "SimpleItem") == 0) {
         // SimpleItem has Value attribute
         if (elt->atts) {
           struct soap_dom_attribute *att = elt->atts;
           while (att) {
-            if (att->name && att->text && std::strstr(att->name, "Value")) {
-              value = att->text;
-              Debug(3, "ONVIF: Found SimpleItem Value: %s", value.c_str());
-              return true;
+            if (att->name && att->text) {
+              const char *att_colon = std::strrchr(att->name, ':');
+              const char *att_name = att_colon ? att_colon + 1 : att->name;
+              if (std::strcmp(att_name, "Value") == 0) {
+                value = att->text;
+                Debug(3, "ONVIF: Found SimpleItem Value: %s", value.c_str());
+                return true;
+              }
             }
             att = att->next;
           }
         }
-      } else if (std::strstr(elt->name, "ElementItem")) {
+      } else if (std::strcmp(elem_name, "ElementItem") == 0) {
         // ElementItem might have child elements with values
         if (elt->elts && elt->elts->text) {
           value = elt->elts->text;
           Debug(3, "ONVIF: Found ElementItem value: %s", value.c_str());
           return true;
         }
-      } else if (std::strstr(elt->name, "Data")) {
+      } else if (std::strcmp(elem_name, "Data") == 0) {
         // Data element, look in children
         if (elt->elts) {
           elt = elt->elts;

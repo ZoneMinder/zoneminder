@@ -36,7 +36,7 @@ class EventsController extends AppController {
    * This also creates a thumbnail for each event.
    */
   public function index() {
-    $this->Event->recursive = -1;
+    $this->Event->recursive = 0;
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
@@ -116,20 +116,32 @@ class EventsController extends AppController {
       // TODO: Implement request based limits.
 
       'paramType' => 'querystring',
+      'joins'=>[],
+      'contain'=>[]
     );
 
-    if ( isset($conditions['GroupId']) ) {
-      $settings['joins'] = array(
-        array(
-          'table' => 'Groups_Monitors',
-          'type' => 'inner',
-          'conditions' => array(
-            'Groups_Monitors.MonitorId = Event.MonitorId'
-          ),
-        ),
-      );
-      $settings['contain'] = array('Group');
+    if (isset($conditions['GroupId'])) {
+      $settings['joins'][] = [
+        'table' => 'Groups_Monitors',
+        'type' => 'inner',
+        'conditions' => ['Groups_Monitors.MonitorId = Event.MonitorId'],
+      ];
+      $settings['contain'][] = 'Group';
     }
+    if (isset($conditions['Tags.Id'])) {
+      $settings['joins'][] = [
+        'table' => 'Events_Tags',
+        'type'  => 'inner',
+        'conditions' => ['Events_Tags.EventId = Event.Id'],
+      ];
+      $settings['joins'][] = [
+        'table' => 'Tags',
+        'type'  => 'inner',
+        'conditions' => ['Tags.Id = Events_Tags.TagId'],
+      ];
+      //$settings['contain'][] = 'Tag';
+    }
+
     $settings['conditions'] = array($conditions, $mon_options);
 
     $this->Paginator->settings = $settings;

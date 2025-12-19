@@ -1182,9 +1182,10 @@ class Monitor extends ZM_Object {
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
-      $html .= '<video id="liveStream'.$this->Id().'" '.
-        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
-        ' autoplay muted controls playsinline=""></video>';
+      $html .= '<video id="liveStream'.$this->Id().'" style="'.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
+        ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
+        '" autoplay muted controls playsinline=""></video>';
     } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);

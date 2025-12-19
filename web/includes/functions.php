@@ -244,10 +244,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if (canStreamIframe()) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
-      (($height and ($height != 'auto'))?' height:'.$height.';':'').
-      '" />';
+    return getImageStill($id, $src, $width, $height, $title);
   }
 }
 
@@ -282,9 +279,10 @@ function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
-    (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').' />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
+      '" />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {

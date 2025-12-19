@@ -1779,7 +1779,7 @@ function formatTag(tag) {
 }
 
 function addTag(tag) {
-  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           formatTag(tag);

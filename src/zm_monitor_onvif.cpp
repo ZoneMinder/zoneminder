@@ -315,6 +315,7 @@ void Monitor::ONVIF::start() {
       healthy = false;
     } // end renew
   }
+  } // end else (success block)
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif

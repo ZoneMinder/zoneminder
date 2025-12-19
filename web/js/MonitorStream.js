@@ -201,7 +201,7 @@ function MonitorStream(monitorData) {
     }
     //console.trace("setScale", stream, newscale, width, height, param);
     if (height == '0px') {
-      console.error("Don't want to set 0px height. Reverting to auto");
+      console.log("Don't want to set 0px height. Reverting to auto");
       height = 'auto';
     }
 

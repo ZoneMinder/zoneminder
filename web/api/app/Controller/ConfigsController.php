@@ -22,11 +22,28 @@ class ConfigsController extends AppController {
  * @return void
  */      
   public function index() {
-    global $configvals;
-    $this->Config->recursive = 0;
-    $configs = $this->Config->find('all');
-    foreach ( $configvals as $k=>$v ) {
-      $configs[] = array( 'Config'=>array('Name'=>$k, 'Value'=>$v ) );
+    $this->Config->recursive = -1; // Configs have no associations anyways
+
+    $conditions = [];
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    }
+
+    $configs = $this->Config->find('all', ['conditions' => &$conditions]);
+
+    $config_by_name = [];
+    foreach ($configs as $c) {
+      $config_by_name[$c['Config']['Name']] = &$c['Config'];
+    }
+
+    global $zm_config;
+    foreach ( $zm_config as $k=>$c ) {
+      if (isset($config_by_name[$k])) {
+        $config_by_name[$k]['Value'] = $c['Value'];
+      } else if (!count($conditions)) {
+        $configs[] = ['Config'=>$c];
+      }
     }
     $this->set(array(
       'configs' => $configs,
@@ -47,6 +64,10 @@ class ConfigsController extends AppController {
 		}
 		$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
 		$config = $this->Config->find('first', $options);
+
+    # Value might be overriden in /etc/zm/conf.d
+    global $zm_config;
+    $config['Config']['Value'] = $zm_config[$config['Config']['Name']]['Value'];
 		$this->set(array(
 			'config' => $config,
 			'_serialize' => array('config')
@@ -57,9 +78,9 @@ class ConfigsController extends AppController {
 		$config = $this->Config->findByName($name, array('fields' => 'Value'));
 
 		if ( !$config ) {
-      global $configvals;
-      if ( $configvals[$name] ) {
-        $config = array( 'Config'=>array('Value'=>$configvals[$name]) );
+      global $zm_config;
+      if ( $zm_config[$name] ) {
+        $config = array('Config'=>$zm_config[$name]);
       } else {
         throw new NotFoundException(__('Invalid config'));
       }

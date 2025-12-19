@@ -40,20 +40,26 @@ class TagsController extends AppController {
       $conditions = array();
     }
 
+    ZM\Debug(print_r($conditions, true));
     $find_array = array(
       'conditions' => &$conditions,
-      'contain'    => array('Event'),
-      'joins'      => array(
-        array(
-          'table' => 'Events_Tags',
-          'type'  => 'left',
-          'conditions' => array(
-            'Events_Tags.TagId = Tag.Id',
-          ),
-        ),
-      ),
-      'tag' => '`Tag`.`Id`',
+      'joins' => [],
+      'contain'=> [],
     );
+
+    if (isset($conditions['Events.Id'])) {
+      $find_array['contain'][] = 'Event';
+      $find_array['joins'][]   = [ 
+          'table' => 'Events_Tags',
+          'type'  => 'inner',
+          'conditions' => ['Events_Tags.TagId = Tag.Id'],
+      ];
+      $find_array['joins'][]   = [ 
+          'table' => 'Events',
+          'type'  => 'inner',
+          'conditions' => ['Events.Id = Events_Tags.EventId'],
+        ];
+    }
 
 		$tags = $this->Tag->find('all', $find_array);
 		$this->set(array(

@@ -48,7 +48,6 @@ class TagsController extends AppController {
     );
 
     if (isset($conditions['Events.Id'])) {
-      $find_array['contain'][] = 'Event';
       $find_array['joins'][]   = [ 
           'table' => 'Events_Tags',
           'type'  => 'inner',

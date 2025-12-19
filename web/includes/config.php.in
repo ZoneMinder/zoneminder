@@ -28,6 +28,7 @@ define( 'ZM_VERSION', '@VERSION@' );               // Version
 define( 'ZM_DIR_TEMP', '@ZM_TMPDIR@' );
 define( 'ZM_DIR_CACHE', '@ZM_CACHEDIR@' );
 global $zm_configvals;
+global $zm_config;
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
@@ -230,9 +231,8 @@ $GLOBALS['defaultUser'] = array(
 
 function loadConfig( $defineConsts=true ) {
   global $zm_config;
+  global $zm_configvals;
   global $dbConn;
-
-  $config = array();
 
   $result = $dbConn->query('SELECT Name,Value,Type,Private FROM Config');
   if ( !$result )
@@ -248,6 +248,7 @@ function loadConfig( $defineConsts=true ) {
         $zm_config[$row['Name']]['Value'] = constant($row['Name']);
       }
     }
+    if (!isset($zm_configvals[$row['Name']])) $zm_configvals[$row['Name']] = $row['Value'];
   }
   return $zm_config;
 } # end function loadConfig

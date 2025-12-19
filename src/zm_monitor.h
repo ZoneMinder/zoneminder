@@ -402,6 +402,21 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     _wsnt__RenewResponse wsnt__RenewResponse;
     PullPointSubscriptionBindingProxy proxyEvent;
     void set_credentials(struct soap *soap);
+    bool try_usernametoken_auth;  // Track if we should try plain auth
+    int retry_count;  // Track retry attempts
+    int max_retries;  // Maximum retry attempts before giving up
+    std::string discovered_event_endpoint;  // Store discovered endpoint
+    SystemTimePoint last_retry_time;  // Time of last retry attempt
+    
+    // Configurable timeout values (can be set via onvif_options)
+    std::string pull_timeout;  // Default "PT20S"
+    std::string subscription_timeout;  // Default "PT60S"
+    
+    // Helper methods
+    bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
+    bool matches_topic_filter(const std::string &topic, const std::string &filter);
+    void parse_onvif_options();  // Parse options from parent->onvif_options
+    int get_retry_delay();  // Calculate exponential backoff delay
 #endif
     std::unordered_map<std::string, std::string> alarms;
     std::mutex   alarms_mutex;

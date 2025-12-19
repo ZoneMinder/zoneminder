@@ -1047,10 +1047,10 @@ class Monitor extends ZM_Object {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
-      <div class="stream-info">
-          <div class="stream-info-status"></div>
-          <div class="stream-info-mode"></div>
-      </div>
+  <div class="stream-info">
+    <div class="stream-info-status"></div>
+    <div class="stream-info-mode"></div>
+  </div>
 <span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
@@ -1128,7 +1128,9 @@ class Monitor extends ZM_Object {
     }
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
+
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+
     $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
 </select></div>' : '';
     $html = '
@@ -1185,10 +1187,11 @@ class Monitor extends ZM_Object {
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
-      $html .= '<video id="liveStream'.$this->Id().'" '.
-        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
-        ' autoplay muted controls playsinline=""></video>';
-    } else if ( $options['mode'] == 'stream' and canStream() ) {
+      $html .= '<video id="liveStream'.$this->Id().'" style="'.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
+        ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
+        '" autoplay muted controls playsinline=""></video>';
+    } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
@@ -1199,6 +1202,7 @@ class Monitor extends ZM_Object {
       if ($options['mode'] == 'stream') {
         Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
       }
+      Warning("Using deprecated single stream mode ${options['mode']}");
       $options['mode'] = 'single';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,

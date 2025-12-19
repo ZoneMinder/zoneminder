@@ -1752,6 +1752,16 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_ID_ON_FILTER',
+    default     => 'yes',
+    description => 'Should the filter view list the filter id',
+    help        => q`
+      Some find it useful to have the id included in the dropdown before the name.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_POPUP_ON_ALARM',
     default     => 'yes',
     description => 'Should the monitor window jump to the top if an alarm occurs',

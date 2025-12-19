@@ -356,7 +356,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string subscription_timeout;  // Default "PT60S"
     
     // Helper methods
-    bool parse_event_message(struct _wsnt__NotificationMessage *msg, std::string &topic, std::string &value, std::string &operation);
+    bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
     bool matches_topic_filter(const std::string &topic, const std::string &filter);
     void parse_onvif_options();  // Parse options from parent->onvif_options
     int get_retry_delay();  // Calculate exponential backoff delay

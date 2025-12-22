@@ -137,6 +137,9 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
   Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   if (ret == AVERROR(EAGAIN)) {
     return 0;
+  } else if (ret == AVERROR(EOF)) {
+    Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
   } else if (ret < 0) {
     Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     return ret;

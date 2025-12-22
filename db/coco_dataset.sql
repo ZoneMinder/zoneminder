@@ -106,5 +106,5 @@ SELECT NULL, Id, 1, 1,
     ELSE '#808080'
   END
 FROM AI_Object_Classes 
-WHERE DatasetId = 1 
+WHERE DatasetId = (SELECT Id FROM AI_Datasets WHERE Name = 'COCO' LIMIT 1)
 AND ClassName IN ('person', 'car', 'truck', 'bus', 'motorcycle');

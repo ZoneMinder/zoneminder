@@ -136,11 +136,19 @@ function initPage() {
   // Dataset filter functionality for AI Classes tab
   $j('#datasetFilter').change(function() {
     var datasetId = $j(this).val();
+    var $rows = $j('#contentTable tbody tr');
     if (datasetId === '') {
-      $j('#contentTable tbody tr').show();
+      $rows.show();
     } else {
-      $j('#contentTable tbody tr').hide();
-      $j('#contentTable tbody tr').find('.classCol[data-dataset-id="' + datasetId + '"]').closest('tr').show();
+      $rows.each(function() {
+        var $row = $j(this);
+        var rowDatasetId = $row.find('.classCol').data('dataset-id');
+        if (rowDatasetId == datasetId) {
+          $row.show();
+        } else {
+          $row.hide();
+        }
+      });
     }
   });
 

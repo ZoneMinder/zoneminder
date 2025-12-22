@@ -48,15 +48,40 @@ function AddNewUser(el) {
   window.location.assign(url);
 }
 
+// Load the AI Class Modal HTML via Ajax call
+function getAIClassModal(cid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=ai_class&id=' + cid)
+      .done(function(data) {
+        insertModalHtml('AIClassModal', data.html);
+        $j('#AIClassModal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function enableAIClassModal() {
+  $j(".aiClassCol").click(function(evt) {
+    evt.preventDefault();
+    const cid = $j(this).data('cid');
+    getAIClassModal(cid);
+  });
+  $j('#NewAIClassBtn').click(function(evt) {
+    evt.preventDefault();
+    getAIClassModal(0);
+  });
+}
+
 function initPage() {
   const NewStorageBtn = $j('#NewStorageBtn');
   const NewServerBtn = $j('#NewServerBtn');
+  const NewAIClassBtn = $j('#NewAIClassBtn');
 
   if ( canEdit.System ) enableStorageModal();
   if ( canEdit.System ) enableServerModal();
+  if ( canEdit.System ) enableAIClassModal();
 
   NewStorageBtn.prop('disabled', !canEdit.System);
   NewServerBtn.prop('disabled', !canEdit.System);
+  NewAIClassBtn.prop('disabled', !canEdit.System);
 
   $j('.bootstraptable').bootstrapTable({icons: icons}).show();
 }

@@ -96,6 +96,7 @@ void Monitor::ONVIF::stop() {
   _wsnt__Unsubscribe wsnt__Unsubscribe;
   _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
 
+  set_credentials(soap);
   if (parent->soap_wsa_compl) add_wsa_request("UnsubscribeRequest");
 
   int rc = proxyEvent.Unsubscribe(response.SubscriptionReference.Address,
@@ -351,19 +352,15 @@ void Monitor::ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
   set_credentials(soap);
   
-  const char *RequestMessageID = nullptr;
-  bool use_wsa = parent->soap_wsa_compl;
-  
-  if (use_wsa) {
-    RequestMessageID = soap_wsa_rand_uuid(soap);
+  if (parent->soap_wsa_compl) {
+    const char *RequestMessageID = soap_wsa_rand_uuid(soap);
     if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") != SOAP_OK) {
       Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=PullMessageRequest. Error %i %s, %s",
           RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
       return;
     }
-    Debug(2, "ONVIF: WS-Addressing headers set successfully");
   } else {
-    Debug(2, "ONVIF: WS-Addressing disabled, not sending addressing headers");
+    Debug(4, "ONVIF: WS-Addressing disabled, not sending addressing headers");
   }
   
   Debug(1, "ONVIF: Starting PullMessageRequest ...");
@@ -396,9 +393,6 @@ void Monitor::ONVIF::WaitForMessage() {
         healthy = false;
       } else {
         // SOAP_EOF - this is just a timeout, not an error
-        Debug(2, "ONVIF PullMessage timeout (SOAP_EOF) - no new messages. result=%d soap_fault_string=%s detail=%s",
-            result, soap_fault_string(soap), detail ? detail : "null");
-        
         // Don't clear alarms on timeout - they should remain active until explicitly cleared
         // Only clear if Event_Poller_Closes_Event is false (camera doesn't send close events)
         // and we haven't received any messages for a long time
@@ -420,8 +414,6 @@ void Monitor::ONVIF::WaitForMessage() {
 
         // Only clear alarms if we explicitly get "false" or "Deleted" operations
         // Don't clear on empty response - that could be just a timeout
-        bool has_messages = tev__PullMessagesResponse.wsnt__NotificationMessage.size() > 0;
-        
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           std::string topic, value, operation;
           
@@ -452,8 +444,7 @@ void Monitor::ONVIF::WaitForMessage() {
           if (operation == "Deleted") {
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s", 
-                  alarms.size(), alarmed ? "true" : "false");
+            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
             if (alarms.empty()) {
               alarmed = false;
             }

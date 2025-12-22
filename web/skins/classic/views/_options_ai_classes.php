@@ -15,7 +15,20 @@
     <div class="wrapper-scroll-table">
       <div class="row">
         <div class="col overflow-auto">
-          <table id="contentTable" class="table table-striped">
+          <table id="contentTable" class="table table-striped"
+              data-click-to-select="true"
+              data-check-on-init="true"
+              data-mobile-responsive="true"
+              data-min-width="562"
+              data-show-export="true"
+              data-show-columns="true"
+              data-uncheckAll="true"
+              data-cookie="true"
+              data-cookie-same-site="Strict"
+              data-cookie-id-table="zmAIClassesTable"
+              data-cookie-expire="2y"
+              data-remember-order="false"
+          >
             <thead class="thead-highlight">
               <tr>
                 <th class="colId"><?php echo translate('Id') ?></th>

@@ -6,7 +6,8 @@ function validateForm(form) {
   if (!form.elements['newAIClass[ClassName]'].value) {
     errors[errors.length] = 'You must supply a class name';
   }
-  if (!form.elements['newAIClass[ClassIndex]'].value && form.elements['newAIClass[ClassIndex]'].value !== '0') {
+  var classIndexValue = form.elements['newAIClass[ClassIndex]'].value;
+  if (!classIndexValue && classIndexValue !== '0') {
     errors[errors.length] = 'You must supply a class index';
   }
   if (errors.length) {

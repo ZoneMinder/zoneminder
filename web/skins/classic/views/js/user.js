@@ -89,6 +89,23 @@ function initPage() {
     };
   });
 
+  // Initialize bootstrap-table event handlers
+  const table = $j('#contentTable');
+  
+  // Update event handlers after bootstrap-table renders rows
+  table.on('post-body.bs.table', function(data) {
+    // Re-bind data-on-change handlers for the newly rendered radio buttons
+    if (typeof dataOnChange === 'function') {
+      dataOnChange();
+    }
+  });
+
+  // Initialize bootstrap-table
+  table.bootstrapTable({icons: icons});
+  
+  // Show the table after initialization
+  table.show();
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

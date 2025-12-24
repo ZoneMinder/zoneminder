@@ -195,6 +195,7 @@ if (canEdit('System')) {
         </div><!--Permissions-->
       <br class="clear"/>
 <?php
+$monitors = ZM\Monitor::find(['Deleted'=>false], ['order'=>'Sequence ASC']);
 $groups = array();
 if (canEdit('Groups')) {
   foreach (ZM\Group::find() as $group) {

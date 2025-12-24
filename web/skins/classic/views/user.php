@@ -261,37 +261,44 @@ if (canEdit('Groups')) {
 ?>
 <div id="MonitorPermissions">
   <fieldset><legend><?php echo translate('Monitor Permissions') ?></legend>
-    <table id="contentTable" class="major Monitors">
-      <thead class="thead-highlight">
-        <tr>
-          <th class="Id"><?php echo translate('Id') ?></th>
-          <th class="Name"><?php echo translate('Name') ?></th>
-          <th class="permission"><?php echo translate('Permission') ?></th>
-          <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
-        </tr>
-      </thead>
-      <tbody>
-<?php
-  $monitors = ZM\Monitor::find(['Deleted'=>0], ['order'=>'Sequence ASC']);
-  foreach ( $monitors as $monitor ) {
-    if ($monitor->canView()) {
-      echo '
-<tr class="monitor">
-  <td class="Id">'.$monitor->Id().'</td>
-  <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
-  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
-    $User->Monitor_Permission($monitor->Id())->Permission(),
-    ['default'=>'Inherit'],
-    ['data-on-change'=>'updateEffectivePermissions']).'</td>
-  <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
-</tr>';
-    } else {
-      ZM\Debug("Can't view monitor ".$monitor->Id(). ' ' .$monitor->canView());
-    }
-  }
-?>
-      </tbody>
-    </table>
+    <div id="monitorPermissionsTable" class="table-responsive">
+      <table
+        id="contentTable"
+        data-locale="<?php echo i18n() ?>"
+        data-side-pagination="server"
+        data-ajax="ajaxRequest"
+        data-pagination="true"
+        data-page-size="25"
+        data-page-list="[10, 25, 50, 100, All]"
+        data-search="true"
+        data-cookie="true"
+        data-cookie-same-site="Strict"
+        data-cookie-id-table="zmUserMonitorsTable"
+        data-cookie-expire="2y"
+        data-show-columns="true"
+        data-show-export="true"
+        data-show-refresh="true"
+        data-sort-name="Sequence"
+        data-sort-order="asc"
+        data-server-sort="true"
+        data-buttons-class="btn btn-normal"
+        data-mobile-responsive="true"
+        data-min-width="562"
+        class="table-sm table-borderless table major Monitors"
+        style="display:none;"
+      >
+        <thead class="thead-highlight">
+          <tr>
+            <th data-sortable="true" data-field="Id" class="Id"><?php echo translate('Id') ?></th>
+            <th data-sortable="true" data-field="Name" class="Name"><?php echo translate('Name') ?></th>
+            <th data-sortable="false" data-field="Permission" class="permission"><?php echo translate('Permission') ?></th>
+            <th data-sortable="false" data-field="EffectivePermission" class="effective_permission"><?php echo translate('Effective Permission') ?></th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
   </fieldset>
 </div>
 <?php

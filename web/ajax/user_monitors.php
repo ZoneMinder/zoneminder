@@ -6,7 +6,20 @@ $message = '';
 // INITIALIZE AND CHECK SANITY
 //
 
-if (!canEdit('System') && !ZM_USER_SELF_EDIT) {
+// uid must be set
+if (empty($_REQUEST['uid'])) {
+  $message = 'No user id supplied';
+} else {
+  $uid = validInt($_REQUEST['uid']);
+  $User = new ZM\User($uid);
+  if (!$User->Id()) {
+    $message = 'Invalid user id supplied';
+  }
+}
+
+// Check permissions
+$selfEdit = ZM_USER_SELF_EDIT && (isset($uid) && $uid == $user->Id());
+if (!canEdit('System') && !$selfEdit) {
   $message = 'Insufficient permissions for user '.$user->Username();
 }
 
@@ -20,17 +33,6 @@ if (empty($_REQUEST['task'])) {
   $task = $_REQUEST['task'];
 }
 
-// uid must be set
-if (empty($_REQUEST['uid'])) {
-  $message = 'No user id supplied';
-} else {
-  $uid = validInt($_REQUEST['uid']);
-  $User = new ZM\User($uid);
-  if (!$User->Id()) {
-    $message = 'Invalid user id supplied';
-  }
-}
-
 if ($message) {
   ajaxError($message);
   return;
@@ -40,7 +42,7 @@ if ($message) {
 $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
-// Bootstrap table sends json_ecoded array, which we must decode
+// Bootstrap table sends json_encoded array, which we must decode
 $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
 // Sort specifies the name of the column to sort on

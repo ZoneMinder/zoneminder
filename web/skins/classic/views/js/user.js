@@ -19,6 +19,65 @@ function validateForm( form, newUser ) {
   return true;
 }
 
+// Called by bootstrap-table to retrieve monitor data
+var ajax = null;
+function ajaxRequest(params) {
+  if (params.data && params.data.filter) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
+  
+  // Add user ID to the request
+  params.data.uid = userId;
+  
+  if (ajax) ajax.abort();
+  ajax = $j.ajax({
+    method: 'POST',
+    url: '?view=request&request=user_monitors&task=query',
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      if (data.result == 'Error') {
+        alert(data.message);
+        return;
+      }
+      var rows = processRows(data.rows);
+      // rearrange the result into what bootstrap-table expects
+      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+    },
+    error: function(jqXHR) {
+      if (jqXHR.statusText != 'abort') {
+        console.log("error", jqXHR);
+      }
+    }
+  });
+}
+
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    var monitorId = row.Id;
+    
+    // Build permission radio buttons
+    var permissionHtml = '';
+    for (var value in permissionOptions) {
+      var label = permissionOptions[value];
+      var checked = (value == row.Permission) ? ' checked="checked"' : '';
+      
+      permissionHtml += '<div class="form-check form-check-inline">';
+      permissionHtml += '<label class="form-check-label radio-inline" for="monitor_permission[' + monitorId + ']_' + value + '">';
+      permissionHtml += '<input class="form-check-input" type="radio" name="monitor_permission[' + monitorId + ']" value="' + value + '" id="monitor_permission[' + monitorId + ']_' + value + '"' + checked + ' data-on-change="updateEffectivePermissions" />';
+      permissionHtml += label + '</label></div>';
+    }
+    
+    row.Permission = permissionHtml;
+    
+    // Store effective permission with an ID for updates
+    row.EffectivePermission = '<span id="effective_permission' + monitorId + '">' + row.EffectivePermission + '</span>';
+  });
+  
+  return rows;
+}
+
 function initPage() {
   $j('#contentForm').submit(function(event) {
     if ( validateForm(this) ) {
@@ -28,6 +87,23 @@ function initPage() {
       return false;
     };
   });
+
+  // Initialize bootstrap-table event handlers
+  const table = $j('#monitorPermissionsTable');
+  
+  // Update event handlers after bootstrap-table renders rows
+  table.on('post-body.bs.table', function(data) {
+    // Re-bind data-on-change handlers for the newly rendered radio buttons
+    if (typeof dataOnChange === 'function') {
+      dataOnChange();
+    }
+  });
+
+  // Initialize bootstrap-table
+  table.bootstrapTable({icons: icons});
+  
+  // Show the table after initialization
+  table.show();
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

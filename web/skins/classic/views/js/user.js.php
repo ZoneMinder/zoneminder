@@ -1,6 +1,8 @@
 <?php
 global $monitors;
 global $groups;
+global $User;
+global $inve;
 ?>
 const monitors = new Array();
 <?php
@@ -24,3 +26,6 @@ groups[groups.length] = {
 <?php
 } // end foreach group
 ?>
+const userId = <?php echo $User->Id() ?>;
+const permissionOptions = <?php echo json_encode($inve) ?>;
+

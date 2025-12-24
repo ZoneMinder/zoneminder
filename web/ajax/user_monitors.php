@@ -140,13 +140,20 @@ function queryRequest($User, $search, $advsearch, $sort, $offset, $order, $limit
   $col_str = 'M.Id, M.Name, M.Sequence';
   $sql = 'SELECT ' . $col_str . ' FROM Monitors AS M ' . $where;
 
-  // Get total count before pagination
+  // Get total count without search filter (totalNotFiltered)
+  $countSqlNoFilter = 'SELECT COUNT(*) AS total FROM Monitors AS M WHERE Deleted = 0';
+  $result = dbQuery($countSqlNoFilter);
+  if ($result) {
+    $row = dbFetchNext($result);
+    $data['totalNotFiltered'] = $row['total'];
+  }
+
+  // Get total count with search filter (total)
   $countSql = 'SELECT COUNT(*) AS total FROM Monitors AS M ' . $where;
   $result = dbQuery($countSql, $values);
   if ($result) {
     $row = dbFetchNext($result);
     $data['total'] = $row['total'];
-    $data['totalNotFiltered'] = $row['total'];
   }
 
   // Add sorting and pagination
@@ -188,8 +195,6 @@ function queryRequest($User, $search, $advsearch, $sort, $offset, $order, $limit
   }
 
   $data['rows'] = $rows;
-  // Update total to reflect filtered results
-  $data['total'] = count($rows);
 
   return $data;
 }

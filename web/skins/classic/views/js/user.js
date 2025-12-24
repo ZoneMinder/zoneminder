@@ -62,11 +62,10 @@ function processRows(rows) {
     for (var value in permissionOptions) {
       var label = permissionOptions[value];
       var checked = (value == row.Permission) ? ' checked="checked"' : '';
-      var isDefault = (value == 'Inherit') ? 'default' : '';
       
       permissionHtml += '<div class="form-check form-check-inline">';
-      permissionHtml += '<label class="form-check-label radio-inline" for="monitor_permission[' + monitorId + ']' + value + '">';
-      permissionHtml += '<input class="form-check-input" type="radio" name="monitor_permission[' + monitorId + ']" value="' + value + '" id="monitor_permission[' + monitorId + ']' + value + '"' + checked + ' data-on-change="updateEffectivePermissions" />';
+      permissionHtml += '<label class="form-check-label radio-inline" for="monitor_permission[' + monitorId + ']_' + value + '">';
+      permissionHtml += '<input class="form-check-input" type="radio" name="monitor_permission[' + monitorId + ']" value="' + value + '" id="monitor_permission[' + monitorId + ']_' + value + '"' + checked + ' data-on-change="updateEffectivePermissions" />';
       permissionHtml += label + '</label></div>';
     }
     

@@ -89,7 +89,7 @@ function initPage() {
   });
 
   // Initialize bootstrap-table event handlers
-  const table = $j('#contentTable');
+  const table = $j('#monitorPermissionsTable');
   
   // Update event handlers after bootstrap-table renders rows
   table.on('post-body.bs.table', function(data) {

@@ -113,7 +113,7 @@ function queryRequest($User, $search, $advsearch, $sort, $offset, $order, $limit
 
   $values = array();
   $likes = array();
-  $where = 'WHERE Deleted = 0';
+  $where = 'WHERE Deleted = false';
 
   // Build search query
   if ($search != '') {
@@ -141,7 +141,7 @@ function queryRequest($User, $search, $advsearch, $sort, $offset, $order, $limit
   $sql = 'SELECT ' . $col_str . ' FROM Monitors AS M ' . $where;
 
   // Get total count without search filter (totalNotFiltered)
-  $countSqlNoFilter = 'SELECT COUNT(*) AS total FROM Monitors AS M WHERE Deleted = 0';
+  $countSqlNoFilter = 'SELECT COUNT(*) AS total FROM Monitors AS M WHERE Deleted = false';
   $result = dbQuery($countSqlNoFilter);
   if ($result) {
     $row = dbFetchNext($result);

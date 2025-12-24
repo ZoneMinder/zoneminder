@@ -264,7 +264,7 @@ if (canEdit('Groups')) {
   <fieldset><legend><?php echo translate('Monitor Permissions') ?></legend>
     <div id="monitorPermissionsTable" class="table-responsive">
       <table
-        id="contentTable"
+        id="monitorPermissionsTable"
         data-locale="<?php echo i18n() ?>"
         data-side-pagination="server"
         data-ajax="ajaxRequest"

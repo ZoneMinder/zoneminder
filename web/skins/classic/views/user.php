@@ -291,6 +291,7 @@ if (canEdit('Groups')) {
           <tr>
             <th data-sortable="true" data-field="Id" class="Id"><?php echo translate('Id') ?></th>
             <th data-sortable="true" data-field="Name" class="Name"><?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
             <th data-sortable="false" data-field="Permission" class="permission"><?php echo translate('Permission') ?></th>
             <th data-sortable="false" data-field="EffectivePermission" class="effective_permission"><?php echo translate('Effective Permission') ?></th>
           </tr>

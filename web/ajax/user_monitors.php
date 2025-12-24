@@ -179,6 +179,7 @@ function queryRequest($User, $search, $advsearch, $sort, $offset, $order, $limit
     $rows[] = array(
       'Id' => $monitor->Id(),
       'Name' => validHtmlStr($monitor->Name()),
+      'Sequence' => $monitor->Sequence(),
       'Permission' => $permission,
       'EffectivePermission' => translate($effectivePermission)
     );

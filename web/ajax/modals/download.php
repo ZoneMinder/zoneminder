@@ -86,16 +86,16 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
         </button>
       </div>
       <div class="modal-body">
-      <form name="contentForm" id="downloadForm" method="post" action="?">
-          <?php
-          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-          echo getCSRFinputHTML();
-          ?>
-        <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
-        <input type="hidden" name="exportVideo" value="1"/>
-        <input type="hidden" name="mergeevents" value="1"/>
+        <form name="contentForm" id="downloadForm" method="post" action="?">
+            <?php
+            // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+           echo getCSRFinputHTML();
+            ?>
+          <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
+          <input type="hidden" name="exportVideo" value="1"/>
+          <input type="hidden" name="mergeevents" value="1"/>
 <?php echo $filter ? $filter->hidden_fields() : '' ?>
-        <div>
+          <div>
 <?php
   $result = '';
 
@@ -123,6 +123,8 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     }
     unset($eid);
     $result .= 'Downloading ' . count($eids) . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
+    $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
+    $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
       $results .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }
@@ -132,29 +134,32 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
 
   echo $result;
 ?>
+          </div>
+          <div class="exportFileName">
+            <label><?php echo translate('Download File Name') ?></label>
+            <input type="text" name="exportFileName" value="<?php echo validHtmlStr($exportFileName) ?>" pattern="[A-Za-z0-9 \(\)\.\:\-]+"/>
+          </div>
+          <div class="exportFormat">
+            <label><?php echo translate('ExportFormat') ?></label>
+            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive" checked="checked"/>
+            <label for="exportFormatNoArchive"><?php echo translate('mp4') ?></label>
+            <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
+            <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
+            <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked"/>
+            <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
+          </div>
+          <button type="button" id="exportButton" name="exportButton" value="GenerateDownload"><?php echo translate('GenerateDownload') ?></button>
+        </form>
+        <h2 id="exportProgress" class="text-warning invisible"> 
+          <span class="spinner-grow" role="status" aria-hidden="true"></span> 
+          Exporting...
+        </h2>
+        <div class="downloadLinks"><h3><a id="downloadLink" href="#"></a></h3></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
-        <div class="exportFileName">
-          <label><?php echo translate('Download File Name') ?></label>
-          <input type="text" name="exportFileName" value="<?php echo validHtmlStr($exportFileName) ?>" pattern="[A-Za-z0-9 \(\)\.\:\-]+"/>
-        </div>
-        <div class="exportFormat">
-          <label><?php echo translate('ExportFormat') ?></label>
-          <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
-          <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-          <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked"/>
-          <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
-        </div>
-        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload"><?php echo translate('GenerateDownload') ?></button>
-      </form>
-      </div>
-      <h2 id="exportProgress" class="text-warning invisible"> 
-        <span class="spinner-grow" role="status" aria-hidden="true"></span> 
-        Exporting...
-      </h2>
-      <h3><a id="downloadLink" href="#"></a></h3>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
+
+      </div> <!-- end ".modal-body" -->
     </div>
   </div>
 </div>

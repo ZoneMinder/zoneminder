@@ -42,6 +42,7 @@ if (
   $protocol = 'http';
 }
 define('ZM_BASE_PROTOCOL', $protocol);
+define('DIR_EXPORTS_DOWNLOAD', ZM_DIR_EXPORTS.'/files_for_download');
 
 // Absolute URL's are unnecessary and break compatibility with reverse proxies 
 // define( "ZM_BASE_URL", $protocol.'://'.$_SERVER['HTTP_HOST'] );

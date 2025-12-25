@@ -135,7 +135,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       ZM\Debug("No filter");
     }
 
-    if ( $exportFile = exportEvents(
+    if ( $exportFile = downloadEvents(
       $exportIds,
       $exportFileName,
       $exportFormat,
@@ -148,7 +148,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ));
 
     } else {
-      ajaxError('Export Failed');
+      ajaxError('Download generation Failed');
     }
     break;
   }

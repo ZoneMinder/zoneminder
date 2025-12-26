@@ -1,4 +1,23 @@
 <?php
+$message = '';
+$data = array();
+
+// Handle query task for bootstrap-table AJAX requests
+if (!empty($_REQUEST['task'])) {
+  $task = $_REQUEST['task'];
+  
+  if ($task == 'query') {
+    if (!canView('Monitors')) {
+      ajaxError('Insufficient permissions for user '.$user->Username());
+      return;
+    }
+    $data = queryRequest();
+    ajaxResponse($data);
+    return;
+  }
+}
+
+// Handle legacy action-based requests
 if ( canEdit('Monitors') ) {
   switch ( $_REQUEST['action'] ) {
   case 'sort' :
@@ -30,4 +49,307 @@ if ( canEdit('Monitors') ) {
 }
 
 ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user->Username());
+
+//
+// FUNCTION DEFINITIONS
+//
+
+function queryRequest() {
+  global $user, $Servers;
+  require_once('includes/Monitor.php');
+  require_once('includes/Group_Monitor.php');
+  
+  $data = array(
+    'total' => 0,
+    'totalNotFiltered' => 0,
+    'rows' => array()
+  );
+  
+  // Get pagination parameters
+  $offset = 0;
+  if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
+    if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
+      ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+    } else {
+      $offset = $_REQUEST['offset'];
+    }
+  }
+  
+  $limit = 0;
+  if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
+    if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
+      ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+    } else {
+      $limit = $_REQUEST['limit'];
+    }
+  }
+  
+  // Get search parameter
+  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  
+  // Get sort parameters
+  $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
+  $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
+  
+  // Build monitor query with filters from session
+  zm_session_start();
+  $conditions = array();
+  $values = array();
+  
+  // Apply session filters
+  if (isset($_SESSION['GroupId']) && $_SESSION['GroupId']) {
+    $GroupIds = is_array($_SESSION['GroupId']) ? $_SESSION['GroupId'] : array($_SESSION['GroupId']);
+    $conditions[] = 'M.Id IN (SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (' . implode(',', array_fill(0, count($GroupIds), '?')) . '))';
+    $values = array_merge($values, $GroupIds);
+  }
+  
+  foreach (array('ServerId','StorageId') as $filter) {
+    if (isset($_SESSION[$filter]) && $_SESSION[$filter]) {
+      $filter_values = is_array($_SESSION[$filter]) ? $_SESSION[$filter] : array($_SESSION[$filter]);
+      if (count($filter_values)) {
+        $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
+        $values = array_merge($values, $filter_values);
+      }
+    }
+  }
+  
+  foreach (array('Capturing','Analysing','Recording') as $filter) {
+    if (isset($_SESSION[$filter]) && $_SESSION[$filter]) {
+      $filter_values = is_array($_SESSION[$filter]) ? $_SESSION[$filter] : array($_SESSION[$filter]);
+      if (count($filter_values)) {
+        $conditions[] = 'S.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
+        $values = array_merge($values, $filter_values);
+      }
+    }
+  }
+  
+  if (isset($_SESSION['Status']) && $_SESSION['Status']) {
+    $status_values = is_array($_SESSION['Status']) ? $_SESSION['Status'] : array($_SESSION['Status']);
+    if (count($status_values)) {
+      $conditions[] = 'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning")) IN (' . implode(',', array_fill(0, count($status_values), '?')) . ')';
+      $values = array_merge($values, $status_values);
+    }
+  }
+  
+  session_write_close();
+  
+  // Build SQL query
+  $sql = 'SELECT M.*, S.*, E.*
+    FROM Monitors AS M
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
+    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+    WHERE M.`Deleted`=false';
+  
+  if (count($conditions)) {
+    $sql .= ' AND ' . implode(' AND ', $conditions);
+  }
+  
+  // Get total count before filtering
+  $monitors = dbFetchAll($sql, null, $values);
+  $unfiltered_monitors = array();
+  foreach ($monitors as $monitor) {
+    if (visibleMonitor($monitor['Id'])) {
+      $unfiltered_monitors[] = $monitor;
+    }
+  }
+  $data['totalNotFiltered'] = count($unfiltered_monitors);
+  
+  // Apply search filter
+  $filtered_monitors = $unfiltered_monitors;
+  if ($search != '') {
+    $search_lower = strtolower($search);
+    $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search_lower) {
+      $Monitor = new ZM\Monitor($monitor);
+      return (
+        stripos($monitor['Name'], $search_lower) !== false ||
+        stripos($monitor['Function'], $search_lower) !== false ||
+        stripos($Monitor->Source(), $search_lower) !== false ||
+        stripos($monitor['Id'], $search_lower) !== false ||
+        (isset($monitor['Status']) && stripos($monitor['Status'], $search_lower) !== false)
+      );
+    });
+  }
+  
+  // Apply MonitorName and Source session filters
+  if (isset($_SESSION['MonitorName']) && $_SESSION['MonitorName']) {
+    $regexp = $_SESSION['MonitorName'];
+    if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
+    $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
+      return @preg_match($regexp, $monitor['Name']);
+    });
+  }
+  
+  if (isset($_SESSION['Source']) && $_SESSION['Source']) {
+    $regexp = $_SESSION['Source'];
+    if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp))
+      $regexp = '/'.$regexp.'/i';
+    $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
+      $Monitor = new ZM\Monitor($monitor);
+      return (preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path()));
+    });
+  }
+  
+  $data['total'] = count($filtered_monitors);
+  
+  // Sort monitors
+  usort($filtered_monitors, function($a, $b) use ($sort, $order) {
+    $aVal = isset($a[$sort]) ? $a[$sort] : '';
+    $bVal = isset($b[$sort]) ? $b[$sort] : '';
+    
+    if (is_numeric($aVal) && is_numeric($bVal)) {
+      $result = $aVal - $bVal;
+    } else {
+      $result = strcasecmp($aVal, $bVal);
+    }
+    
+    return $order == 'ASC' ? $result : -$result;
+  });
+  
+  // Apply pagination
+  if ($limit > 0) {
+    $filtered_monitors = array_slice($filtered_monitors, $offset, $limit);
+  } else {
+    $filtered_monitors = array_slice($filtered_monitors, $offset);
+  }
+  
+  // Get storage areas and servers
+  $storage_areas = ZM\Storage::find();
+  $StorageById = array();
+  foreach ($storage_areas as $S) {
+    $StorageById[$S->Id()] = $S;
+  }
+  
+  $ServersById = array();
+  foreach ($Servers as $s) {
+    $ServersById[$s->Id()] = $s;
+  }
+  
+  // Get group IDs for each monitor
+  $monitor_ids = array_map(function($m) { return $m['Id']; }, $filtered_monitors);
+  $group_ids_by_monitor_id = array();
+  if (count($monitor_ids)) {
+    foreach (ZM\Group_Monitor::find(array('MonitorId'=>$monitor_ids)) as $GM) {
+      if (!isset($group_ids_by_monitor_id[$GM->MonitorId()]))
+        $group_ids_by_monitor_id[$GM->MonitorId()] = array();
+      $group_ids_by_monitor_id[$GM->MonitorId()][] = $GM->GroupId();
+    }
+  }
+  
+  // Process each monitor and build row data
+  foreach ($filtered_monitors as $monitor) {
+    $Monitor = new ZM\Monitor($monitor);
+    $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
+    
+    $row = array();
+    $row['Id'] = $monitor['Id'];
+    $row['Name'] = validHtmlStr($monitor['Name']);
+    $row['Function'] = $monitor['Function'];
+    $row['Enabled'] = $monitor['Enabled'];
+    
+    // Status
+    if (!$monitor['Status']) {
+      if ($monitor['Type'] == 'WebSite')
+        $monitor['Status'] = 'Running';
+      else
+        $monitor['Status'] = 'NotRunning';
+    }
+    $row['Status'] = $monitor['Status'];
+    
+    // Server
+    if (count($Servers)) {
+      $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
+      $row['Server'] = validHtmlStr($Server->Name());
+      $row['ServerId'] = $monitor['ServerId'];
+    }
+    
+    // Source
+    $row['Source'] = validHtmlStr($Monitor->Source());
+    $row['Width'] = $Monitor->Width();
+    $row['Height'] = $Monitor->Height();
+    
+    // Storage
+    if (isset($StorageById[$monitor['StorageId']])) {
+      $row['Storage'] = validHtmlStr($StorageById[$monitor['StorageId']]->Name());
+    } else if ($monitor['StorageId']) {
+      $row['Storage'] = '<span class="error">Deleted '.$monitor['StorageId'].'</span>';
+    } else {
+      $row['Storage'] = '';
+    }
+    
+    // Event counts
+    $eventCounts = array('Total', 'Hour', 'Day', 'Week', 'Month', 'Archived');
+    foreach ($eventCounts as $period) {
+      $row[$period.'Events'] = (int)$monitor[$period.'Events'];
+      $row[$period.'EventDiskSpace'] = human_filesize($monitor[$period.'EventDiskSpace']);
+    }
+    
+    // Zone count
+    $row['ZoneCount'] = $monitor['ZoneCount'];
+    
+    // FPS and bandwidth
+    $row['CaptureFPS'] = isset($monitor['CaptureFPS']) ? $monitor['CaptureFPS'] : '0.00';
+    $row['AnalysisFPS'] = isset($monitor['AnalysisFPS']) ? $monitor['AnalysisFPS'] : '0.00';
+    $row['CaptureBandwidth'] = isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
+    $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
+    $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
+    $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Event_Listener'] : 0;
+    $row['UpdatedOn'] = isset($monitor['UpdatedOn']) ? $monitor['UpdatedOn'] : '';
+    $row['Type'] = $monitor['Type'];
+    $row['Capturing'] = isset($monitor['Capturing']) ? $monitor['Capturing'] : 'None';
+    
+    // Groups
+    if (canView('Groups')) {
+      $groups_html = implode('<br/>',
+        array_map(function($group_id) {
+          $Group = ZM\Group::find_one(array('Id'=>$group_id));
+          if ($Group) {
+            $Groups = $Group->Parents();
+            array_push($Groups, $Group);
+          } else {
+            $Groups = array();
+          }
+          return implode(' &gt; ', array_map(function($Group) {
+            if (canView('Stream')) {
+              return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>';
+            } else {
+              return validHtmlStr($Group->Name());
+            }
+          }, $Groups));
+        }, $Monitor->GroupIds())
+      );
+      $row['Groups'] = $groups_html;
+    } else {
+      $row['Groups'] = '';
+    }
+    
+    // Thumbnail
+    $row['Thumbnail'] = '';
+    if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
+      $options = array();
+      $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 1;
+      $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
+      $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
+      $options['scale'] = $Monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100;
+      $options['mode'] = 'jpeg';
+      $options['frames'] = 1;
+      
+      $stillSrc = $Monitor->getStreamSrc($options);
+      $streamSrc = $Monitor->getStreamSrc(array('scale'=>($options['scale'] > 20 ? 100 : $options['scale']*5)));
+      
+      $thmbWidth = ($options['width']) ? 'width:'.$options['width'].'px;' : '';
+      $thmbHeight = ($options['height']) ? 'height:'.$options['height'].'px;' : '';
+      
+      $row['Thumbnail'] = '<div class="colThumbnail" style="'.$thmbHeight.'"><a href="?view=watch&amp;mid='.$monitor['Id'].'">'.
+        '<img id="thumbnail'.$Monitor->Id().'" src="'.$stillSrc.'" style="'.$thmbWidth.$thmbHeight.
+        '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.
+        ($options['width'] ? ' width="'.$options['width'].'"' : '').
+        ($options['height'] ? ' height="'.$options['height'].'"' : '').
+        ' loading="lazy" /></a></div>';
+    }
+    
+    $data['rows'][] = $row;
+  }
+  
+  return $data;
+}
 ?>

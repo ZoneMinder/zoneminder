@@ -11,22 +11,18 @@ if ( canEdit('System') && ZM_DYN_SHOW_DONATE_REMINDER ) {
 }
 ?>
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
-var monitors = new Array();
-<?php
-  global $monitors;
-  foreach ( $monitors as $monitor ) {
-?>
-  monitors[<?php echo $monitor->Id() ?>] = {
-  'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
-  'ViewWidth': <?php echo $monitor->ViewWidth() ?>,
-  'ViewHeight':<?php echo $monitor->ViewHeight() ?>,
-  'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'Type': '<?php echo $monitor->Type() ?>',
-  'Function': '<?php echo $monitor->Function() ?>',
-  'Enabled': '<?php echo $monitor->Enabled() ?>',
-  'DecodingEnabled': '<?php echo $monitor->DecodingEnabled() ?>'
+
+// Variables for bootstrap-table
+var canView = {
+  'Stream': <?php echo canView('Stream') ? 'true' : 'false' ?>,
+  'Events': <?php echo canView('Events') ? 'true' : 'false' ?>,
+  'Monitors': <?php echo canView('Monitors') ? 'true' : 'false' ?>
 };
-<?php
-  }
-?>
+
+var canEdit = {
+  'Monitors': <?php echo canEdit('Monitors') ? 'true' : 'false' ?>,
+  'Events': <?php echo canEdit('Events') ? 'true' : 'false' ?>
+};
+
+var ZM_WEB_EVENTS_VIEW = '<?php echo ZM_WEB_EVENTS_VIEW ?>';
+

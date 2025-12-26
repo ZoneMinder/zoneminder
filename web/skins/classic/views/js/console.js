@@ -17,9 +17,9 @@ function ajaxRequest(params) {
         return;
       }
       var rows = processRows(data.rows);
-      // Store monitors for function modal
+      // Store monitors for function modal using original ID
       rows.forEach(function(row) {
-        monitors[row.Id] = row;
+        monitors[row._id] = row;
       });
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
@@ -35,6 +35,10 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     var mid = row.Id;
+    
+    // Store original ID for later use
+    row._id = mid;
+    
     var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
     
     // Determine status classes
@@ -189,13 +193,7 @@ function cloneMonitor(element) {
   }
   const selections = table.bootstrapTable('getSelections');
   if (selections.length > 0) {
-    // Get the actual monitor ID from the first selection
-    var monitorId = selections[0].Id;
-    // Remove HTML if present
-    var match = monitorId.match(/mid=(\d+)/);
-    if (match) {
-      monitorId = match[1];
-    }
+    var monitorId = selections[0]._id;
     window.location.assign('?view=monitor&dupId=' + monitorId);
   } else {
     alert('Please select a monitor to clone');
@@ -207,10 +205,7 @@ function editMonitor(element) {
   if (selections.length == 0) return;
   
   var monitorIds = selections.map(function(sel) {
-    var mid = sel.Id;
-    // Extract numeric ID from HTML if present
-    var match = mid.toString().match(/mid=(\d+)/);
-    return match ? match[1] : mid;
+    return sel._id;
   });
   
   if (monitorIds.length == 1) {
@@ -230,15 +225,10 @@ function deleteMonitor(element) {
     // Get selected monitor IDs and add them to the form
     const selections = table.bootstrapTable('getSelections');
     selections.forEach(function(sel) {
-      var mid = sel.Id;
-      // Extract numeric ID from HTML if present
-      var match = mid.toString().match(/mid=(\d+)/);
-      mid = match ? match[1] : mid;
-      
       var input = document.createElement('input');
       input.type = 'hidden';
       input.name = 'markMids[]';
-      input.value = mid;
+      input.value = sel._id;
       form.appendChild(input);
     });
     
@@ -251,11 +241,7 @@ function selectMonitor(element) {
   var url = thisUrl + '?view=console';
   
   selections.forEach(function(sel) {
-    var mid = sel.Id;
-    // Extract numeric ID from HTML if present
-    var match = mid.toString().match(/mid=(\d+)/);
-    mid = match ? match[1] : mid;
-    url += '&MonitorId[]=' + mid;
+    url += '&MonitorId[]=' + sel._id;
   });
   
   window.location.replace(url);

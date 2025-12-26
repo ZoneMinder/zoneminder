@@ -172,11 +172,13 @@ function queryRequest() {
   if ($search != '') {
     $search_lower = strtolower($search);
     $filtered_monitors = array_filter($unfiltered_monitors, function($monitor) use ($search_lower) {
-      $Monitor = new ZM\Monitor($monitor);
+      // Search across common fields without creating Monitor object
       return (
         stripos($monitor['Name'], $search_lower) !== false ||
         stripos($monitor['Function'], $search_lower) !== false ||
-        stripos($Monitor->Source(), $search_lower) !== false ||
+        stripos($monitor['Path'], $search_lower) !== false ||
+        stripos($monitor['Device'], $search_lower) !== false ||
+        stripos($monitor['Host'], $search_lower) !== false ||
         stripos($monitor['Id'], $search_lower) !== false ||
         (isset($monitor['Status']) && stripos($monitor['Status'], $search_lower) !== false)
       );
@@ -197,8 +199,8 @@ function queryRequest() {
     if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp))
       $regexp = '/'.$regexp.'/i';
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
-      $Monitor = new ZM\Monitor($monitor);
-      return (preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path()));
+      // Match against Path field directly instead of creating Monitor object
+      return (preg_match($regexp, $monitor['Path']) || preg_match($regexp, $monitor['Device']) || preg_match($regexp, $monitor['Host']));
     });
   }
   

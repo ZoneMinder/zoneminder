@@ -44,7 +44,8 @@ function processRows(rows) {
     // Determine status classes
     var source_class = 'infoText';
     var source_class_reason = '';
-    var fps_report_seconds = 60 + 30; // Simplified calculation
+    // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
+    var fps_report_seconds = 90;
     
     if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
@@ -158,9 +159,9 @@ function processRows(rows) {
   return rows;
 }
 
-function setButtonStates(element) {
+function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = element ? element.form : document.forms['monitorForm'];
+  const form = document.forms['monitorForm'];
   
   if (selections && selections.length > 0) {
     form.editBtn.disabled = false;
@@ -372,8 +373,6 @@ function initPage() {
     if (!isMobile()) initThumbAnimation();
     $j('.functionLnk').click(manageFunctionModal);
   });
-
-  $j('.functionLnk').click(manageFunctionModal);
 
   // Makes table sortable - disabled by default, enabled by Sort button
   // Note: This may need adjustment for bootstrap-table compatibility

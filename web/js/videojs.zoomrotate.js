@@ -1,61 +1,109 @@
-(function(){
-    var defaults, extend;
-    defaults = {
-      zoom: 1,
-      rotate: 0
-    };
-    extend = function() {
-      var args, target, i, object, property;
-      args = Array.prototype.slice.call(arguments);
-      target = args.shift() || {};
-      for (i in args) {
-        object = args[i];
-        for (property in object) {
-          if (object.hasOwnProperty(property)) {
-            if (typeof object[property] === 'object') {
-              target[property] = extend(target[property], object[property]);
-            } else {
-              target[property] = object[property];
-            }
-          }
-        }
+/**
+ * Video.js Zoom Rotate Plugin
+ * Compatible with Video.js 8.x
+ */
+(function(window, videojs) {
+  'use strict';
+
+  // Default options
+  const defaults = {
+    zoom: 1,
+    rotate: 0
+  };
+
+  // Cross-browser CSS transform property detection
+  function getTransformProperty() {
+    const properties = [
+      'transform',
+      'WebkitTransform',
+      'MozTransform',
+      'msTransform',
+      'OTransform'
+    ];
+    
+    const testElement = document.createElement('div');
+    for (let i = 0; i < properties.length; i++) {
+      if (typeof testElement.style[properties[i]] !== 'undefined') {
+        return properties[i];
       }
-      return target;
-    };
+    }
+    return 'transform'; // fallback
+  }
 
   /**
-    * register the zoomrotate plugin
-    */
-    videojs.plugin('zoomrotate', function(options){
-        var settings, player, video, poster;
-        settings = extend(defaults, options);
+   * Plugin function
+   */
+  function zoomrotate(options) {
+    const player = this;
+    const settings = videojs.obj.merge(defaults, options);
+    
+    // Wait for player to be ready
+    player.ready(function() {
+      const playerEl = player.el();
+      const videoEl = playerEl.querySelector('video');
+      const posterEl = playerEl.querySelector('.vjs-poster');
+      
+      if (!videoEl) {
+        videojs.log.warn('zoomrotate: video element not found');
+        return;
+      }
 
-        /* Grab the necessary DOM elements */
-        player = this.el();
-        video = this.el().getElementsByTagName('video')[0];
-        poster = this.el().getElementsByTagName('div')[1]; // div vjs-poster
+      // Get the appropriate transform property
+      const transformProp = getTransformProperty();
+      
+      // Apply transform
+      const transformValue = `scale(${settings.zoom}) rotate(${settings.rotate}deg)`;
+      
+      // Set overflow hidden on player
+      playerEl.style.overflow = 'hidden';
+      
+      // Apply transform to video element
+      videoEl.style[transformProp] = transformValue;
+      
+      // Apply transform to poster if it exists
+      if (posterEl) {
+        posterEl.style[transformProp] = transformValue;
+      }
 
-        console.log('zoomrotate: '+video.style);
-        console.log('zoomrotate: '+poster.style);
-        console.log('zoomrotate: '+options.rotate);
-        console.log('zoomrotate: '+options.zoom);
-
-        /* Array of possible browser specific settings for transformation */
-        const properties = ['transform', 'WebkitTransform', 'MozTransform',
-                          'msTransform', 'OTransform'];
-        prop = properties[0];
-
-        /* Find out which CSS transform the browser supports */
-        for (let i=0,len = properties.length;i<len; i++) {
-          if (typeof player.style[properties[i]] !== 'undefined') {
-            prop = properties[i];
-            break;
-          }
-        }
-
-        /* Let's do it */
-        player.style.overflow = 'hidden';
-        video.style[prop] = 'scale('+options.zoom+') rotate('+options.rotate+'deg)';
-        poster.style[prop] = 'scale('+options.zoom+') rotate('+options.rotate+'deg)';
+      videojs.log('zoomrotate applied:', {
+        zoom: settings.zoom,
+        rotate: settings.rotate,
+        transform: transformValue
+      });
     });
-})();
+
+    // Store settings on player for potential future access
+    player.zoomrotate = {
+      zoom: settings.zoom,
+      rotate: settings.rotate,
+      
+      // Method to update zoom/rotate dynamically
+      update: function(newZoom, newRotate) {
+        const zoom = newZoom !== undefined ? newZoom : this.zoom;
+        const rotate = newRotate !== undefined ? newRotate : this.rotate;
+        
+        const playerEl = player.el();
+        const videoEl = playerEl.querySelector('video');
+        const posterEl = playerEl.querySelector('.vjs-poster');
+        const transformPro      
+      // Apply transform to videot transformValue = `scale(${zoom}) rotate(${rotate}deg)`;
+        
+        if (videoEl) {
+          videoEl.style[transformProp] = transformValue;
+        }
+        if (posterEl) {
+          posterEl.style[transformProp] = transformValue;
+        }
+        
+        this.zoom = zoom;
+        this.rotate = rotate;
+      }
+    };
+  }
+
+  // Register the      });
+    });
+
+    // Store registerPlugin('zoomrotate', zoomrotate);
+
+})(window, window.videojs);

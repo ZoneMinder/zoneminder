@@ -208,19 +208,28 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
   switch ($mimeType) {
     case 'video/mp4' :
       global $rates;
-      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
+      $playbackRates = implode(',',
+        array_map(function($r){return $r/100;},
+          array_filter(
+            array_keys($rates),
+            function($r){return $r >= 0 ? true : false;}
+          )));
+      
+      return '<video id="videoobj" class="video-js"'
         .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
             style="transform: matrix(1, 0, 0, 1, 0, 0);"
-            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
-              array_map(function($r){return $r/100;},
-                array_filter(
-                  array_keys($rates),
-                  function($r){return $r >= 0 ? true : false;}
-                ))).']}\' 
-          >
+            controls autoplay preload="auto">
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
-          </video>';
+        </video>
+        <script>
+          videojs("videoobj", {
+            controls: true,
+            autoplay: true,
+            preload: "auto",
+            playbackRates: [' . $playbackRates . ']
+          });
+        </script>';
     default:
     return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"

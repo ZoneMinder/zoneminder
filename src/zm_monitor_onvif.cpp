@@ -90,7 +90,7 @@ void Monitor::ONVIF::stop() {
   alarms.clear();
   //Set alarmed to false so we don't get stuck recording
   alarmed = false;
-  Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+  Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
 
 #ifdef WITH_GSOAP
   _wsnt__Unsubscribe wsnt__Unsubscribe;
@@ -316,10 +316,10 @@ void Monitor::ONVIF::PullMessages() {
   if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
       (soap->error != SOAP_EOF)
      ) { //SOAP_EOF could indicate no messages to pull.
-    Error("ONVIF Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Error("ONVIF: Couldn't do event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     healthy = false;
   } else {
-    Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "Good Initial ONVIF Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     healthy = true;
   }
 }
@@ -386,11 +386,10 @@ void Monitor::ONVIF::WaitForMessage() {
         retry_count++;
         if (retry_count >= max_retries) {
           Error("ONVIF: Max retries (%d) reached for PullMessages, subscription may be lost", max_retries);
+          healthy = false;
         } else {
-          Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", 
-               retry_count, max_retries);
+          Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
-        healthy = false;
       } else {
         // SOAP_EOF - this is just a timeout, not an error
         // Don't clear alarms on timeout - they should remain active until explicitly cleared
@@ -411,6 +410,13 @@ void Monitor::ONVIF::WaitForMessage() {
       Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
+
+        if (!tev__PullMessagesResponse.wsnt__NotificationMessage.size()) {
+          if (!parent->Event_Poller_Closes_Event and alarmed) {
+            alarmed = false;
+            alarms.clear();
+          }
+        }
 
         // Only clear alarms if we explicitly get "false" or "Deleted" operations
         // Don't clear on empty response - that could be just a timeout
@@ -434,55 +440,40 @@ void Monitor::ONVIF::WaitForMessage() {
             continue;
           }
           
+          // Store these so they can be queried later
           last_topic = topic;
           last_value = value;
           
-          Info("ONVIF Got Event! topic:%s value:%s operation:%s", 
-               last_topic.c_str(), last_value.c_str(), operation.c_str());
+          Info("ONVIF Got Event! topic:%s value:%s operation:%s", topic.c_str(), value.c_str(), operation.c_str());
           
           // Handle PropertyOperation: Deleted means alarm is cleared
-          if (operation == "Deleted") {
-            Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
-            alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
-            if (alarms.empty()) {
-              alarmed = false;
-            }
-            if (!parent->Event_Poller_Closes_Event) {
-              parent->Event_Poller_Closes_Event = true;
-              Info("Setting ClosesEvent (detected Deleted operation)");
-            }
-          } else if (value.find("false") == 0 || value == "0") {
+          if (operation == "Deleted" || value.find("false") == 0 || value == "0") {
             // Value indicates alarm is off
-            Info("ONVIF Alarm Off for topic: %s", last_topic.c_str());
-            alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s", 
-                  alarms.size(), alarmed ? "true" : "false");
+            Info("ONVIF Alarm Off for topic: %s", topic.c_str());
+            alarms.erase(topic);
+            Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
             if (alarms.empty()) {
               alarmed = false;
             }
             if (!parent->Event_Poller_Closes_Event) {
               parent->Event_Poller_Closes_Event = true;
-              Info("Setting ClosesEvent (detected false value)");
+              Debug(1, "ONVIF: Setting ClosesEvent (detected false value)");
             }
           } else {
             // Event Start or Changed with true value
             if (operation == "Changed") {
-              Debug(2, "ONVIF Alarm Changed for topic: %s", last_topic.c_str());
+              Debug(2, "ONVIF Alarm Changed for topic: %s", topic.c_str());
             } else {
-              Debug(2, "ONVIF Alarm Started/Initialized for topic: %s", last_topic.c_str());
+              Debug(2, "ONVIF Alarm Started/Initialized for topic: %s", topic.c_str());
             }
             
-            if (alarms.count(last_topic) == 0) {
-              alarms[last_topic] = last_value;
+            if (alarms.count(topic) == 0) {
               if (!alarmed) {
-                Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
+                Info("ONVIF Triggered Start Event on topic: %s", topic.c_str());
                 alarmed = true;
               }
-            } else {
-              // Update existing alarm value
-              alarms[last_topic] = last_value;
             }
+            alarms[topic] = value;
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
         }  // end foreach msg

@@ -154,9 +154,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
             function($r){return $r >= 0 ? true : false;}
           )));
       
-      return '<video id="videoobj" class="video-js"'
-        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
-            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+      return '<video id="videoobj" class="video-js" data-setup="{}"
             controls autoplay preload="auto">
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
@@ -171,6 +169,8 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
               controls: true,
               autoplay: true,
               preload: "auto",
+              fluid: true,
+              responsive: true,
               playbackRates: [' . $playbackRates . ']
             });
           });

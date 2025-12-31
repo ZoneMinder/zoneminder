@@ -248,7 +248,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
     } # end if passthrough
 ?>
     <div id="videoFeed">
-      <video id="videoobj" class="video-js" style="transform: matrix(1, 0, 0, 1, 0, 0);"
+      <video id="videoobj" class="video-js"
         width="<?php echo $event->Width() ?>"
         height="<?php echo $event->Height() ?>"
         controls autoplay preload="auto">

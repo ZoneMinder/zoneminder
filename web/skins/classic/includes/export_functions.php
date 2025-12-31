@@ -234,8 +234,16 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
     $Monitor = $event->Monitor();
     if ($Monitor->VideoWriter() == '2') {
       # Passthrough
-      $Rotation = $event->Orientation();
-      if (in_array($event->Orientation(), array('ROTATE_90','ROTATE_270')))
+      $orientationString = $event->Orientation();
+      // Convert orientation constants to degrees
+      if ($orientationString == 'ROTATE_90' || $orientationString == '90') {
+        $Rotation = 90;
+      } else if ($orientationString == 'ROTATE_180' || $orientationString == '180') {
+        $Rotation = 180;
+      } else if ($orientationString == 'ROTATE_270' || $orientationString == '270') {
+        $Rotation = 270;
+      }
+      if (in_array($orientationString, array('ROTATE_90', 'ROTATE_270', '90', '270')))
         $Zoom = $event->Height()/$event->Width();
     } # end if passthrough
 ?>

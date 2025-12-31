@@ -158,8 +158,16 @@ $Zoom = 1;
 $Rotation = 0;
 if ($monitor->VideoWriter() == '2') {
 # Passthrough
-  $Rotation = $Event->Orientation();
-  if (in_array($Event->Orientation(),array('90','270')))
+  $orientationString = $Event->Orientation();
+  // Convert orientation constants to degrees
+  if ($orientationString == 'ROTATE_90' || $orientationString == '90') {
+    $Rotation = 90;
+  } else if ($orientationString == 'ROTATE_180' || $orientationString == '180') {
+    $Rotation = 180;
+  } else if ($orientationString == 'ROTATE_270' || $orientationString == '270') {
+    $Rotation = 270;
+  }
+  if (in_array($orientationString, array('ROTATE_90', 'ROTATE_270', '90', '270')))
     $Zoom = $Event->Height()/$Event->Width();
 }
 

@@ -153,10 +153,6 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 $video_tag = ($codec == 'MP4') || 
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
-// Rotation is always handled by the video itself:
-// - Passthrough: rotation metadata in MP4 container
-// - Encode/Direct: frames are rotated before encoding/saving
-// Browser handles dimension swapping automatically, no zoom needed
 
 // These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
 if ( !isset($_REQUEST['filter']) ) {

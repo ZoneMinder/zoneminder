@@ -207,7 +207,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
 
   switch ($mimeType) {
     case 'video/mp4' :
-      global $rates;
+      global $rates, $cspNonce;
       $playbackRates = implode(',',
         array_map(function($r){return $r/100;},
           array_filter(
@@ -222,10 +222,10 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <script nonce="<?php echo $cspNonce; ?>">
-          document.addEventListener('DOMContentLoaded', function() {
-            if (typeof videojs === 'undefined') {
-              console.error('videojs is not loaded');
+        <script nonce="'.$cspNonce.'">
+          document.addEventListener("DOMContentLoaded", function() {
+            if (typeof videojs === "undefined") {
+              console.error("videojs is not loaded");
               return;
             }
             videojs("videoobj", {

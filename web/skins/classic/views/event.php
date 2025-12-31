@@ -153,22 +153,14 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 $video_tag = ($codec == 'MP4') || 
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
-// videojs zoomrotate only when direct recording
+// videojs zoom for aspect ratio correction on rotated videos
+// Rotation is always handled by the video itself:
+// - Passthrough: rotation metadata in MP4 container
+// - Encode/Direct: frames are rotated before encoding/saving
 $Zoom = 1;
-$Rotation = 0;
-if ($monitor->VideoWriter() == '2') {
-# Passthrough
-  $orientationString = $Event->Orientation();
-  // Convert orientation constants to degrees
-  if ($orientationString == 'ROTATE_90' || $orientationString == '90') {
-    $Rotation = 90;
-  } else if ($orientationString == 'ROTATE_180' || $orientationString == '180') {
-    $Rotation = 180;
-  } else if ($orientationString == 'ROTATE_270' || $orientationString == '270') {
-    $Rotation = 270;
-  }
-  if (in_array($orientationString, array('ROTATE_90', 'ROTATE_270', '90', '270')))
-    $Zoom = $Event->Height()/$Event->Width();
+$orientationString = $Event->Orientation();
+if (in_array($orientationString, array('ROTATE_90', 'ROTATE_270', '90', '270'))) {
+  $Zoom = $Event->Height()/$Event->Width();
 }
 
 // These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
@@ -368,7 +360,7 @@ if ($video_tag) {
                       });
                       player.zoomrotate({
                         zoom: <?php echo $Zoom ?>,
-                        rotate: <?php echo $Rotation ?>
+                        rotate: 0
                       });
                     });
                   </script>

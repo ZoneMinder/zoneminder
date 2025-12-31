@@ -683,13 +683,13 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
     console.warn('addVideoTimingTrack: No text tracks available');
     return;
   }
-  
+
   var track = vid.textTracks()[0];
   if (!track) {
     console.warn('addVideoTimingTrack: Text track not found');
     return;
   }
-  
+
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 

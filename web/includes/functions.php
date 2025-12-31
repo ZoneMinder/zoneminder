@@ -223,11 +223,17 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
           Your browser does not support the video tag.
         </video>
         <script nonce="<?php echo $cspNonce; ?>">
-          videojs("videoobj", {
-            controls: true,
-            autoplay: true,
-            preload: "auto",
-            playbackRates: [' . $playbackRates . ']
+          document.addEventListener('DOMContentLoaded', function() {
+            if (typeof videojs === 'undefined') {
+              console.error('videojs is not loaded');
+              return;
+            }
+            videojs("videoobj", {
+              controls: true,
+              autoplay: true,
+              preload: "auto",
+              playbackRates: [' . $playbackRates . ']
+            });
           });
         </script>';
     default:

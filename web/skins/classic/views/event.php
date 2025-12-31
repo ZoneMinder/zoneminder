@@ -342,7 +342,11 @@ if ($video_tag) {
                   Your browser does not support the video tag.
                   </video>
                   <script nonce="<?php echo $cspNonce; ?>">
-                    (function() {
+                    document.addEventListener('DOMContentLoaded', function() {
+                      if (typeof videojs === 'undefined') {
+                        console.error('videojs is not loaded');
+                        return;
+                      }
                       var rates = [<?php echo implode(',',
                         array_map(function($r){return $r/100;},
                           array_filter(
@@ -359,7 +363,7 @@ if ($video_tag) {
                         zoom: <?php echo $Zoom ?>,
                         rotate: <?php echo $Rotation ?>
                       });
-                    })();
+                    });
                   </script>
 <?php
 } else {

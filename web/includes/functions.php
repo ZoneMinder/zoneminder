@@ -222,7 +222,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <script>
+        <script nonce="<?php echo $cspNonce; ?>">
           videojs("videoobj", {
             controls: true,
             autoplay: true,

@@ -249,7 +249,11 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         Your browser does not support the video tag.
       </video>
       <script nonce="<?php echo $cspNonce; ?>">
-        (function() {
+        document.addEventListener('DOMContentLoaded', function() {
+          if (typeof videojs === 'undefined') {
+            console.error('videojs is not loaded');
+            return;
+          }
           var player = videojs('videoobj', {
             controls: true,
             autoplay: true,
@@ -259,7 +263,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
             zoom: <?php echo $Zoom ?>,
             rotate: <?php echo $Rotation ?>
           });
-        })();
+        });
       </script>
     </div><!--videoFeed-->
 <?php

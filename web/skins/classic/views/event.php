@@ -331,21 +331,36 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($video_tag) {
 ?>
-                  <video autoplay id="videoobj" class="video-js vjs-default-skin"
+                  <video id="videoobj" class="video-js"
                     style="transform: matrix(1, 0, 0, 1, 0, 0);"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
-                    data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ <?php echo implode(',',
-                      array_map(function($r){return $r/100;},
-                        array_filter(
-                          array_keys($rates),
-                          function($r){return $r >= 0 ? true : false;}
-                        ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
+                    controls autoplay preload="auto"
                   >
                   <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
+                  <script>
+                    (function() {
+                      var rates = [<?php echo implode(',',
+                        array_map(function($r){return $r/100;},
+                          array_filter(
+                            array_keys($rates),
+                            function($r){return $r >= 0 ? true : false;}
+                          ))) ?>];
+                      var player = videojs('videoobj', {
+                        controls: true,
+                        autoplay: true,
+                        preload: 'auto',
+                        playbackRates: rates
+                      });
+                      player.zoomrotate({
+                        zoom: <?php echo $Zoom ?>,
+                        rotate: <?php echo $Rotation ?>
+                      });
+                    })();
+                  </script>
 <?php
 } else {
   if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
@@ -452,7 +467,7 @@ if ($video_tag) {
     
   </div><!--page-->
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));

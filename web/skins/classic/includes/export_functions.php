@@ -228,10 +228,6 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 
 <?php
   if ($event->DefaultVideo()) {
-    // Rotation is always handled by the video itself:
-    // - Passthrough: rotation metadata in MP4 container
-    // - Encode/Direct: frames are rotated before encoding/saving
-    // Browser handles dimension swapping automatically, no zoom needed
 ?>
     <div id="videoFeed">
       <video id="videoobj" class="video-js"

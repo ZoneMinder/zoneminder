@@ -340,7 +340,6 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 if ($video_tag) {
 ?>
                   <video id="videoobj" class="video-js"
-                    style="transform: matrix(1, 0, 0, 1, 0, 0);"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"

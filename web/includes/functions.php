@@ -145,30 +145,9 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
     $mimeType = 'video/'.$format;
   if ( ZM_WEB_USE_OBJECT_TAGS ) {
     switch( $mimeType ) {
-      case 'video/mp4' :
-        // Use Video.js for MP4 playback instead of deprecated plugins
-        global $cspNonce;
-        $videoId = $id ?: 'videoobj_' . uniqid();
-        return '<video id="'.$videoId.'" class="video-js" width="'.$width.'" height="'.$height.'"
-          controls autoplay preload="auto">
-          <source src="'.$src.'" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-        <script' . ($cspNonce ? ' nonce="'.$cspNonce.'"' : '') . '>
-          document.addEventListener("DOMContentLoaded", function() {
-            if (typeof videojs === "undefined") {
-              console.error("videojs is not loaded");
-              return;
-            }
-            videojs("'.$videoId.'", {
-              controls: true,
-              autoplay: true,
-              preload: "auto"
-            });
-          });
-        </script>';
       case 'video/x-ms-asf' :
       case 'video/x-msvideo' :
+      case 'video/mp4' :
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"

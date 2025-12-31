@@ -248,7 +248,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
-      <script>
+      <script nonce="<?php echo $cspNonce; ?>">
         (function() {
           var player = videojs('videoobj', {
             controls: true,

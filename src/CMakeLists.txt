@@ -110,6 +110,7 @@ if(GSOAP_FOUND)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES LANGUAGE C)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
 
   #Create a cmake target that generate gsoap files
   add_custom_command(

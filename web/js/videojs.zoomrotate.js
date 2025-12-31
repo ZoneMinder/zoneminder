@@ -85,8 +85,8 @@
         const playerEl = player.el();
         const videoEl = playerEl.querySelector('video');
         const posterEl = playerEl.querySelector('.vjs-poster');
-        const transformPro      
-      // Apply transform to videot transformValue = `scale(${zoom}) rotate(${rotate}deg)`;
+        const transformProp = getTransformProperty();
+        const transformValue = `scale(${zoom}) rotate(${rotate}deg)`;
         
         if (videoEl) {
           videoEl.style[transformProp] = transformValue;
@@ -101,9 +101,7 @@
     };
   }
 
-  // Register the      });
-    });
-
-    // Store registerPlugin('zoomrotate', zoomrotate);
+  // Register the plugin with Video.js
+  videojs.registerPlugin('zoomrotate', zoomrotate);
 
 })(window, window.videojs);

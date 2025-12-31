@@ -253,6 +253,6 @@ if (isset($_REQUEST['showIndex'])) {
     </div>
   </div>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php xhtmlFooter() ?>

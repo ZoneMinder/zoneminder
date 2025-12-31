@@ -26,16 +26,16 @@
 
 class ZoneStats {
  public:
-  explicit ZoneStats(int zone_id) :
-    zone_id_(zone_id),
-    pixel_diff_(0),
-    alarm_pixels_(0),
-    alarm_filter_pixels_(0),
-    alarm_blob_pixels_(0),
-    alarm_blobs_(0),
-    min_blob_size_(0),
-    max_blob_size_(0),
-    score_(0) {};
+  explicit ZoneStats(int zone_id)
+      : zone_id_(zone_id),
+        pixel_diff_(0),
+        alarm_pixels_(0),
+        alarm_filter_pixels_(0),
+        alarm_blob_pixels_(0),
+        alarm_blobs_(0),
+        min_blob_size_(0),
+        max_blob_size_(0),
+        score_(0){};
 
   void Reset() {
     pixel_diff_ = 0;
@@ -52,7 +52,9 @@ class ZoneStats {
 
   void DumpToLog(const char *prefix) const {
     Debug(1,
-          "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
+          "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d "
+          "alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d "
+          "alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
           prefix,
           zone_id_,
           pixel_diff_,
@@ -86,4 +88,4 @@ class ZoneStats {
   unsigned int score_;
 };
 
-#endif // ZM_ZONE_STATS_H
+#endif  // ZM_ZONE_STATS_H

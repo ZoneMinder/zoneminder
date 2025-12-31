@@ -22,6 +22,7 @@
 
 #include "zm_line.h"
 #include "zm_vector2.h"
+
 #include <cmath>
 #include <vector>
 
@@ -49,9 +50,7 @@ class Box {
   }
 
   // Get vertices of the box in a counter-clockwise order
-  std::vector<Vector2> Vertices() const {
-    return {lo_, {hi_.x_, lo_.y_}, hi_, {lo_.x_, hi_.y_}};
-  }
+  std::vector<Vector2> Vertices() const { return {lo_, {hi_.x_, lo_.y_}, hi_, {lo_.x_, hi_.y_}}; }
 
   // Get edges of the box in a counter-clockwise order
   std::vector<LineSegment> Edges() const {
@@ -77,4 +76,4 @@ class Box {
   Vector2 size_;
 };
 
-#endif // ZM_BOX_H
+#endif  // ZM_BOX_H

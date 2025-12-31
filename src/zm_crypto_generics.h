@@ -20,6 +20,7 @@
 
 #include "zm_define.h"
 #include "zm_utils.h"
+
 #include <array>
 #include <cstring>
 
@@ -27,25 +28,22 @@ namespace zm {
 namespace crypto {
 namespace impl {
 
-enum class HashAlgorithms {
-  kMD5,
-  kSHA1
-};
+enum class HashAlgorithms { kMD5, kSHA1 };
 
-template<HashAlgorithms Algorithm>
+template <HashAlgorithms Algorithm>
 struct HashAlgorithm;
 
-template<>
+template <>
 struct HashAlgorithm<HashAlgorithms::kMD5> {
   static constexpr size_t digest_length = 16;
 };
 
-template<>
+template <>
 struct HashAlgorithm<HashAlgorithms::kSHA1> {
   static constexpr size_t digest_length = 20;
 };
 
-template<typename Impl, HashAlgorithms Algorithm>
+template <typename Impl, HashAlgorithms Algorithm>
 class GenericHash {
  public:
   static constexpr size_t DIGEST_LENGTH = HashAlgorithm<Algorithm>::digest_length;
@@ -58,8 +56,8 @@ class GenericHash {
     return hash.GetDigest();
   }
 
-  template<typename... Ts>
-  static Digest GetDigestOf(Ts &&... pack) {
+  template <typename... Ts>
+  static Digest GetDigestOf(Ts &&...pack) {
     Impl hash;
     UpdateData(hash, std::forward<Ts>(pack)...);
     hash.Finalize();
@@ -75,14 +73,12 @@ class GenericHash {
   void UpdateData(const char *str) {
     UpdateData(reinterpret_cast<const uint8 *>(str), strlen(str));
   }
-  template<typename Container>
+  template <typename Container>
   void UpdateData(Container const &c) {
     UpdateData(zm::data(c), zm::size(c));
   }
 
-  void Finalize() {
-    static_cast<Impl &>(*this).DoFinalize();
-  }
+  void Finalize() { static_cast<Impl &>(*this).DoFinalize(); }
 
   const Digest &GetDigest() const { return digest_; }
 
@@ -90,19 +86,19 @@ class GenericHash {
   Digest digest_ = {};
 
  private:
-  template<typename T>
+  template <typename T>
   static void UpdateData(Impl &hash, T const &data) {
     hash.UpdateData(data);
   }
 
-  template<typename T, typename... TRest>
-  static void UpdateData(Impl &hash, T const &data, TRest &&... rest) {
+  template <typename T, typename... TRest>
+  static void UpdateData(Impl &hash, T const &data, TRest &&...rest) {
     hash.UpdateData(data);
     UpdateData(hash, std::forward<TRest>(rest)...);
   }
 };
-}
-}
-}
+}  // namespace impl
+}  // namespace crypto
+}  // namespace zm
 
-#endif //ZONEMINDER_SRC_ZM_CRYPTO_GENERICS_H_
+#endif  // ZONEMINDER_SRC_ZM_CRYPTO_GENERICS_H_

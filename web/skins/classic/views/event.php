@@ -153,15 +153,10 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 $video_tag = ($codec == 'MP4') || 
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
-// videojs zoom for aspect ratio correction on rotated videos
 // Rotation is always handled by the video itself:
 // - Passthrough: rotation metadata in MP4 container
 // - Encode/Direct: frames are rotated before encoding/saving
-$Zoom = 1;
-$orientationString = $Event->Orientation();
-if (in_array($orientationString, array('ROTATE_90', 'ROTATE_270', '90', '270'))) {
-  $Zoom = $Event->Height()/$Event->Width();
-}
+// Browser handles dimension swapping automatically, no zoom needed
 
 // These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
 if ( !isset($_REQUEST['filter']) ) {
@@ -359,7 +354,7 @@ if ($video_tag) {
                         playbackRates: rates
                       });
                       player.zoomrotate({
-                        zoom: <?php echo $Zoom ?>,
+                        zoom: 1,
                         rotate: 0
                       });
                     });

@@ -83,7 +83,7 @@ find_package_handle_standard_args(LibJWT
 if(LIBJWT_FOUND AND PC_LIBJWT_VERSION)
   if(PC_LIBJWT_VERSION VERSION_LESS "3.0.0")
     message(WARNING "LibJWT version ${PC_LIBJWT_VERSION} found, but version 3.0.0 or later is required. "
-                    "Please upgrade libjwt to version 3.x or later.")
+                    "Please upgrade libjwt.")
     set(LIBJWT_FOUND FALSE)
   endif()
 endif()

@@ -25,7 +25,7 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
   err = jwt_decode(&jwt, jwt_token_str.c_str(), JWT_ALG_HS256,
                    reinterpret_cast<const unsigned char *>(key.c_str()), key.length());
   if (err) {
-    if (jwt) jwt_free(jwt);
+    jwt_free(jwt);
     Error("Could not decode JWT");
     return std::make_pair("", 0);
   }

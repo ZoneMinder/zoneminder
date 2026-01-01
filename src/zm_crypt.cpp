@@ -21,23 +21,10 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
   int err = 0;
   jwt_t *jwt = nullptr;
 
-  err = jwt_new(&jwt);
-  if (err) {
-    Error("Unable to Allocate JWT object");
-    return std::make_pair("", 0);
-  }
-
-  err = jwt_set_alg(jwt, JWT_ALG_HS256, (const unsigned char*)key.c_str(), key.length());
-  if (err) {
-    jwt_free(jwt);
-    Error("Error setting Algorithm for JWT decode");
-    return std::make_pair("", 0);
-  }
-
-  err = jwt_decode(&jwt, jwt_token_str.c_str(),
+  // In libjwt 3.x, jwt_decode() takes the algorithm as a parameter
+  err = jwt_decode(&jwt, jwt_token_str.c_str(), JWT_ALG_HS256,
                    reinterpret_cast<const unsigned char *>(key.c_str()), key.length());
   if (err) {
-    jwt_free(jwt);
     Error("Could not decode JWT");
     return std::make_pair("", 0);
   }

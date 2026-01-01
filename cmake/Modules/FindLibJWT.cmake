@@ -75,8 +75,18 @@ find_package_handle_standard_args(LibJWT
   REQUIRED_VARS
     LIBJWT_INCLUDE_DIR
     LIBJWT_LIBRARY
+  VERSION_VAR PC_LIBJWT_VERSION
   FAIL_MESSAGE
     "Could NOT find LibJWT with the crypto backend ${LIBJWT_CRYPTO_BACKEND}.")
+
+# Check if libjwt version is 3.x or later
+if(LIBJWT_FOUND AND PC_LIBJWT_VERSION)
+  if(PC_LIBJWT_VERSION VERSION_LESS "3.0.0")
+    message(WARNING "LibJWT version ${PC_LIBJWT_VERSION} found, but version 3.0.0 or later is required. "
+                    "Please upgrade libjwt to version 3.x or later.")
+    set(LIBJWT_FOUND FALSE)
+  endif()
+endif()
 
 if(LIBJWT_FOUND)
   set(LIBJWT_LIBRARIES ${LIBJWT_LIBRARY})

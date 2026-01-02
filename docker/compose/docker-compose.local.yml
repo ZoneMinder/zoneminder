@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_DATABASE: ${ZM_DB_NAME:-zm}
+      MYSQL_USER: ${ZM_DB_USER:-zmuser}
+      MYSQL_PASSWORD: ${ZM_DB_PASS:-zmsecret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - backend
+
+  zoneminder:
+    build:
+      context: ../images/release
+    ports:
+      - "8080:80"
+    environment:
+      ZM_DB_HOST: db
+      ZM_DB_NAME: ${ZM_DB_NAME:-zm}
+      ZM_DB_USER: ${ZM_DB_USER:-zmuser}
+      ZM_DB_PASS: ${ZM_DB_PASS:-zmsecret}
+    volumes:
+      - zm-events:/var/cache/zoneminder
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  db-data:
+  zm-events:
+
+networks:
+  backend:
+    internal: true

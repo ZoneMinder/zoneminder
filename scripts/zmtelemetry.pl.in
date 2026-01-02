@@ -303,8 +303,7 @@ sub getMonitorRef {
   foreach my $monitor (@{$arrayref}) {
     next if $$monitor{Type} eq 'Local';
     my $uri = URI->new($$monitor{Path});
-    $uri->host('host') if $uri->host();
-    $uri->userinfo('username:password') if $uri->userinfo();
+    $uri->authority('username:password@host');
     $$monitor{Path} = $uri->as_string();
   }
 

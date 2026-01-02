@@ -411,15 +411,12 @@ void Monitor::ONVIF::WaitForMessage() {
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
 
-        if (!tev__PullMessagesResponse.wsnt__NotificationMessage.size()) {
-          if (!parent->Event_Poller_Closes_Event and alarmed) {
-            alarmed = false;
-            alarms.clear();
-          }
+        bool has_messages = tev__PullMessagesResponse.wsnt__NotificationMessage.size() > 0;
+        if (!has_messages and !parent->Event_Poller_Closes_Event and alarmed) {
+          alarmed = false;
+          alarms.clear();
         }
-
-        // Only clear alarms if we explicitly get "false" or "Deleted" operations
-        // Don't clear on empty response - that could be just a timeout
+        
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           std::string topic, value, operation;
           

@@ -793,7 +793,7 @@ void Image::AssignDirect(const AVFrame *frame) {
       subpixelorder = ZM_SUBPIX_ORDER_YUV420P;
       break;
     default:
-Warning("Unknown pixel format %d", frame->format);
+      Warning("Unknown pixel format %d", frame->format);
       break;
   }
   holdbuffer = true;

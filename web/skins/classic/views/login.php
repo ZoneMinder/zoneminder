@@ -10,9 +10,9 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
   // Give priority to URL parameter as it's more immediate
   $postLoginQuery = '';
   if (isset($_REQUEST['postLoginQuery'])) {
-    $postLoginQuery = $_REQUEST['postLoginQuery'];
+    $postLoginQuery = validStr($_REQUEST['postLoginQuery']);
   } else if (isset($_SESSION['postLoginQuery'])) {
-    $postLoginQuery = $_SESSION['postLoginQuery'];
+    $postLoginQuery = validStr($_SESSION['postLoginQuery']);
   }
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">

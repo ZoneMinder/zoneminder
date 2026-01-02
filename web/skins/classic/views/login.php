@@ -6,11 +6,11 @@ echo getNavBarHTML();
   <div id="content" class="container">
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
-  // Check for postLoginQuery in both $_REQUEST (URL parameter) and $_SESSION
+  // Check for postLoginQuery in both $_GET (URL parameter) and $_SESSION
   // Give priority to URL parameter as it's more immediate
   $postLoginQuery = '';
-  if (isset($_REQUEST['postLoginQuery'])) {
-    $postLoginQuery = validStr($_REQUEST['postLoginQuery']);
+  if (isset($_GET['postLoginQuery'])) {
+    $postLoginQuery = validStr($_GET['postLoginQuery']);
   } else if (isset($_SESSION['postLoginQuery'])) {
     $postLoginQuery = validStr($_SESSION['postLoginQuery']);
   }

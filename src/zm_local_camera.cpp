@@ -530,7 +530,7 @@ void LocalCamera::Initialise() {
 
   if (standardIndex != -1) {
     if ((input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN)) {
-      Error("Device does not support video standard %lld", standard);
+      Error("Device does not support video standard %llx", static_cast<long long unsigned int>(standard)); // Freebsd has it as an unsigned long
     }
 
     if ((vidioctl(vid_fd, VIDIOC_G_STD, &stdId) < 0)) {
@@ -539,7 +539,7 @@ void LocalCamera::Initialise() {
     if (stdId != standard) {
       stdId = standard;
       if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
-        Error("Failed to set video standard %lld: %d %s", standard, errno, strerror(errno));
+        Error("Failed to set video standard %llx: %d %s", static_cast<long long unsigned int>(standard), errno, strerror(errno));
       }
     }
   } // end if standardIndex != -1 meaning the device does support standard

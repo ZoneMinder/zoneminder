@@ -296,9 +296,6 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
-$devices = [''=>translate('Other')];
-foreach (glob('/dev/video*') as $device) 
-  $devices[$device] = $device;
 
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
@@ -653,12 +650,17 @@ switch ($name) {
             </li>
 <?php
       if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
+        $devices = [''=>translate('Other')];
+        foreach (glob('/dev/video*') as $device) 
+          $devices[$device] = $device;
+        if ($monitor->Device() and !isset($devices[$monitor->Device()]))
+          $devices[$monitor->Device()] = $monitor->Device();
 ?>
           <li class="Device">
             <label><?php echo translate('DevicePath') ?></label>
 <?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
             <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
-<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+<?php echo (count($devices) > 1) ? 'style="display: none;"' : '' ?> autocomplete="off"
             />
           </li>
 <?php

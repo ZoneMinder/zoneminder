@@ -568,26 +568,10 @@ function MonitorStream(monitorData) {
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
-    this.started = false;
 
     if (-1 !== this.activePlayer.indexOf('zms')) {
       // Icon: My current thought is to just tell zms to stop. Don't go to single.
-      if (0 && stream.src) {
-        let src = stream.src;
-        if (-1 === src.indexOf('mode=')) {
-          src += '&mode=single';
-        } else {
-          src = src.replace(/mode=jpeg/i, 'mode=single');
-        }
-
-        if (stream.src != src) {
-          stream.src = '';
-          stream.src = src;
-        }
-      }
-      if (stream.src) {
-        this.streamCommand(CMD_STOP);
-      }
+      if (this.started) this.streamCommand(CMD_STOP);
     } else if (-1 !== this.activePlayer.indexOf('go2rtc')) {
       if (!(stream.wsState === WebSocket.CLOSED && stream.pcState === WebSocket.CLOSED)) {
         try {
@@ -623,6 +607,7 @@ function MonitorStream(monitorData) {
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
+    this.started = false;
   };
 
   this.stopMse = function() {
@@ -697,10 +682,10 @@ function MonitorStream(monitorData) {
     stream.onload = null;
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
-    if (stream.src && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+    if (this.started && (-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
       // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
-      stream.src = '';
+      this.connKey = null;
     }
     // Kill and stop share a lot of the same code... so just call stop
     this.stop();
@@ -719,13 +704,11 @@ function MonitorStream(monitorData) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
       this.element.pause();
       this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-    } else {
-      if (this.element.src) {
-        this.streamCommand(CMD_PAUSE);
-      } else {
-        this.element.pause();
-        this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-      }
+    } else if ((-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+      this.streamCommand(CMD_PAUSE);
+    } else { // janus?
+      this.element.pause();
+      this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     }
   };
 
@@ -747,13 +730,11 @@ function MonitorStream(monitorData) {
         }
       });
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    } else if ((-1 !== this.activePlayer.indexOf('zms')) && this.connKey) {
+      this.streamCommand(CMD_PLAY);
     } else {
-      if (this.element.src) {
-        this.streamCommand(CMD_PLAY);
-      } else {
-        this.element.play();
-        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-      }
+      this.element.play();
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
 
@@ -1198,16 +1179,14 @@ function MonitorStream(monitorData) {
       if (!this.started) return;
       console.error(respObj.message);
       // Try to reload the image stream.
-      if (stream.src) {
-        console.log('Reloading stream: ' + stream.src);
-        // Instead of changing rand, perhaps we should be changing connKey.
-        let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
-        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-        this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
-        src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
-        stream.src = '';
-        stream.src = src;
-      }
+      console.log('Reloading stream: ' + stream.src);
+      // Instead of changing rand, perhaps we should be changing connKey.
+      let src = (-1 != stream.src.indexOf('rand=')) ? stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )) : stream.src+'&rand='+Math.floor((Math.random() * 1000000));
+      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+      this.streamCmdParms.connkey = this.statusCmdParms.connkey = this.connKey = this.genConnKey();
+      src = src.replace(/connkey=\d+/i, 'connkey='+this.connKey);
+      stream.src = '';
+      stream.src = src;
     } // end if Ok or not
   }; // this.getStreamCmdResponse
 
@@ -1377,11 +1356,6 @@ function MonitorStream(monitorData) {
     } else {
       params.command = command;
     }
-    /*
-    if (this.ajaxQueue) {
-      this.ajaxQueue.abort();
-    }
-    */
     this.streamCmdReq(params);
   };
 

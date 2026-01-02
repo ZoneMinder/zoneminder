@@ -6,10 +6,18 @@ echo getNavBarHTML();
   <div id="content" class="container">
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
+  // Check for postLoginQuery in both $_REQUEST (URL parameter) and $_SESSION
+  // Give priority to URL parameter as it's more immediate
+  $postLoginQuery = '';
+  if (isset($_REQUEST['postLoginQuery'])) {
+    $postLoginQuery = $_REQUEST['postLoginQuery'];
+  } else if (isset($_SESSION['postLoginQuery'])) {
+    $postLoginQuery = $_SESSION['postLoginQuery'];
+  }
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
       <input type="hidden" name="action" value="login"/>
-      <input type="hidden" name="postLoginQuery" value="<?php echo isset($_SESSION['postLoginQuery']) ? validHtmlStr($_SESSION['postLoginQuery']) : ''; ?>" />
+      <input type="hidden" name="postLoginQuery" value="<?php echo validHtmlStr($postLoginQuery); ?>" />
 
       <div id="loginError" class="hidden alarm" role="alert">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>

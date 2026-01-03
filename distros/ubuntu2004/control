@@ -31,7 +31,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
               ,libvncserver-dev
-              ,libjwt-gnutls-dev|libjwt-dev
+              ,libjwt-gnutls-dev (>= 3.0) | libjwt-dev (>= 3.0)
               ,libgsoap-dev, gsoap
               ,libmosquittopp-dev
               ,nlohmann-json3-dev|nlohmann-json-dev
@@ -82,7 +82,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
-        ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
+        ,libjwt4 | libjwt-gnutls4 | libjwt2 | libjwt-gnutls2 | libjwt-gnutls0 | libjwt0
         ,libgsoap-2.8.135|libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
         ,libmosquittopp1
 Recommends: ${misc:Recommends}

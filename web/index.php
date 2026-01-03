@@ -249,9 +249,10 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
     exit;
   }
   $view = 'none';
-  $redirect = '?view=login';
+  $postLoginQuery = $_SERVER['QUERY_STRING'];
+  $redirect = '?view=login&postLoginQuery=' . urlencode($postLoginQuery);
   zm_session_start();
-  $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+  $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
   ZM\Debug("Redirecting to $redirect");
   header('Location: '.$redirect);

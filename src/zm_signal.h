@@ -31,6 +31,9 @@
 #endif
 
 typedef RETSIGTYPE (SigHandler)( int );
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
+#endif
 
 extern bool zm_reload;
 extern bool zm_terminate;
@@ -45,7 +48,11 @@ RETSIGTYPE zmc_die_handler( int signal );
 
 void zmSetHupHandler( SigHandler *handler );
 void zmSetTermHandler( SigHandler *handler );
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+void zmSetDieHandler( SigActionHandler *handler );
+#else
 void zmSetDieHandler( SigHandler *handler );
+#endif
 
 void zmSetDefaultHupHandler();
 void zmSetDefaultTermHandler();

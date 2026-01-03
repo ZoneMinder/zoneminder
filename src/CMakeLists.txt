@@ -105,11 +105,16 @@ if(GSOAP_FOUND)
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapClientLib.c       PROPERTIES GENERATED TRUE )
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapC.c       PROPERTIES GENERATED TRUE )
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapPullPointSubscriptionBindingProxy.cpp     PROPERTIES GENERATED TRUE )
-  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES LANGUAGE CXX)
-  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES LANGUAGE C)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES LANGUAGE CXX)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES LANGUAGE CXX)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-implicit-function-declaration")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
 
   #Create a cmake target that generate gsoap files
   add_custom_command(

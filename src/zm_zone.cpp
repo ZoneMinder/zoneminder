@@ -844,7 +844,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::vector<Zone> zones;
   zones.reserve(n_zones);
 
-  for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+  for (MYSQL_ROW dbrow = mysql_fetch_row(result); dbrow; dbrow = mysql_fetch_row(result)) {
     int col = 0;
 
     int Id = atoi(dbrow[col++]);

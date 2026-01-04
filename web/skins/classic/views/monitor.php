@@ -453,6 +453,7 @@ if (canEdit('Monitors')) {
     <!-- BEGIN ITEM LIST -->
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
+        <input type="password" name="dummy_password" style="display:none;"/><?php #to prevent chrome from saving passwords ?>
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>

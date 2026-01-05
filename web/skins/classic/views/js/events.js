@@ -522,15 +522,20 @@ function initPage() {
 
   // Store filter state before navigating away
   window.addEventListener('pagehide', function() {
-    const filterState = {};
-    $j('#fieldsTable input, #fieldsTable select').each(function() {
-      const el = $j(this);
-      const name = el.attr('name');
-      if (name) {
-        filterState[name] = el.val();
-      }
-    });
-    sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
+    try {
+      const filterState = {};
+      $j('#fieldsTable input, #fieldsTable select').each(function() {
+        const el = $j(this);
+        const name = el.attr('name');
+        if (name) {
+          filterState[name] = el.val();
+        }
+      });
+      sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
+    } catch (e) {
+      // Handle quota exceeded or sessionStorage disabled errors
+      console.error('Failed to save filter state:', e);
+    }
   });
 
   // Restore filter state when coming back via bfcache
@@ -544,7 +549,7 @@ function initPage() {
           $j('#fieldsTable input, #fieldsTable select').each(function() {
             const field = $j(this);
             const name = field.attr('name');
-            if (name && filterState.hasOwnProperty(name)) {
+            if (name && Object.prototype.hasOwnProperty.call(filterState, name)) {
               const value = filterState[name];
               // For select elements, validate that the value exists in options
               if (field.is('select')) {

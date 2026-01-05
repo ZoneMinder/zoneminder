@@ -109,7 +109,7 @@ void ZoneMinderDeviceSource::deliverFrame() {
   }
   Debug(2, "deliverFrame stream: %d timestamp: %jd.%06ld size: %d queuesize: %d",
         m_stream->index,
-        (intmax_t)frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
+        static_cast<intmax_t>(frame->m_timestamp.tv_sec), frame->m_timestamp.tv_usec,
         fFrameSize,
         m_captureQueue.size()
        );

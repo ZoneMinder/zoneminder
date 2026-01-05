@@ -292,8 +292,8 @@ if ( $request ) {
 }
 
 if (!$view) {
-  ZM\Debug(1, "Empty view, defaulting to home view");
   $view = getHomeView();
+  ZM\Debug("Empty view, defaulting to home view".$view);
   header('Location: ?view='.$view);
   return;
 }

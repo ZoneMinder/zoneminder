@@ -524,7 +524,10 @@ function initPage() {
     const filterState = {};
     $j('#fieldsTable input, #fieldsTable select').each(function() {
       const el = $j(this);
-      filterState[el.attr('name')] = el.val();
+      const name = el.attr('name');
+      if (name) {
+        filterState[name] = el.val();
+      }
     });
     sessionStorage.setItem('eventsFilterState', JSON.stringify(filterState));
   });
@@ -536,10 +539,29 @@ function initPage() {
       if (savedState) {
         try {
           const filterState = JSON.parse(savedState);
-          Object.keys(filterState).forEach(function(name) {
-            // Use safer attribute selector to prevent XSS
-            const escapedName = name.replace(/"/g, '\\"');
-            $j('#fieldsTable [name="'+escapedName+'"]').val(filterState[name]);
+          // Iterate through actual form fields and restore their values
+          $j('#fieldsTable input, #fieldsTable select').each(function() {
+            const field = $j(this);
+            const name = field.attr('name');
+            if (name && filterState.hasOwnProperty(name)) {
+              const value = filterState[name];
+              // For select elements, validate that the value exists in options
+              if (field.is('select')) {
+                let validOption = false;
+                field.find('option').each(function() {
+                  if ($j(this).val() === value) {
+                    validOption = true;
+                    return false; // break
+                  }
+                });
+                if (validOption || value === '') {
+                  field.val(value);
+                }
+              } else {
+                // For input elements, restore the value directly
+                field.val(value);
+              }
+            }
           });
           // Refresh the table with the restored filter values
           table.bootstrapTable('refresh');

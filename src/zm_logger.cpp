@@ -20,6 +20,7 @@
 #include "zm_logger.h"
 
 #include "zm_db.h"
+#include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 #include <libgen.h>
@@ -544,8 +545,10 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   log_mutex.unlock();
   if (level <= FATAL) {
-    logTerm();
+    zm_terminate = true;
+    dbQueue.stop();
     zmDbClose();
+    logTerm();
     if (level <= PANIC) abort();
     exit(-1);
   }

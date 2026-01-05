@@ -374,7 +374,9 @@ function getImageSource(monId, time) {
     return server.PathToZMS + '?' +
     //mode=jpeg
      "mode=single"+
-      "&event=" + Frame.EventId + '&frame='+frame_id +
+      "&event=" + Frame.EventId +
+		  //'&frame='+frame_id +
+		  '&time='+time +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +

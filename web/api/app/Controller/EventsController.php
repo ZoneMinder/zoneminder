@@ -147,7 +147,7 @@ class EventsController extends AppController {
       'paramType' => 'querystring',
     );
 
-    $settings['contain'] = array('Tag');
+    $settings['contain'] = [];
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
         array(
@@ -161,6 +161,7 @@ class EventsController extends AppController {
       $settings['contain'][] = 'Group';
     }
     if ($tag_filter_value !== null) {
+      #$settings['contain'][] = 'Tag';
       if (!isset($settings['joins'])) {
         $settings['joins'] = array();
       }

@@ -275,7 +275,11 @@ sub autoStop {
   my $iszoom = shift;
 
   if ( $autostop ) {
-    Debug('Auto Stop');
+    my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
+    $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
+    # Change from microseconds to milliseconds or seconds to milliseconds
+    Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
+
     my $cmd = $controlUri;
     my $msg_body;
     if ( $iszoom) {
@@ -299,7 +303,7 @@ sub autoStop {
     }
 
     my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
-    usleep($autostop);
+    usleep($duration);
     $self->sendCmd($cmd, $msg_body, $content_type);
   }
 }

@@ -519,10 +519,33 @@ function initPage() {
     initDatepickerEventsPage();
   }
 
-  window.onpageshow = function(evt) {
-    console.log('Refreshing table');
-    table.bootstrapTable('refresh');
-  };
+  // Store filter state before navigating away
+  window.addEventListener('pagehide', function() {
+    const filterState = {};
+    $j('#fieldsTable input, #fieldsTable select').each(function() {
+      const el = $j(this);
+      filterState[el.attr('name')] = el.val();
+    });
+    sessionStorage.setItem('eventsFilterState', JSON.stringify(filterState));
+  });
+
+  // Restore filter state when coming back via bfcache
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      const savedState = sessionStorage.getItem('eventsFilterState');
+      if (savedState) {
+        const filterState = JSON.parse(savedState);
+        Object.keys(filterState).forEach(function(name) {
+          $j('#fieldsTable [name="'+name+'"]').val(filterState[name]);
+        });
+        // Refresh the table with the restored filter values
+        table.bootstrapTable('refresh');
+      }
+    } else {
+      console.log('Refreshing table');
+      table.bootstrapTable('refresh');
+    }
+  });
 
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it

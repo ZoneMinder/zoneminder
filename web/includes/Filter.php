@@ -1135,6 +1135,9 @@ class Filter extends ZM_Object {
       #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
       $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
       if ( isset($term['attr']) ) {
+        if (($term['attr'] == 'Tags') and (count($availableTags)<=1)) {
+          continue;
+        }
         $html .= '<span class="term '.$term['attr'].'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
@@ -1160,10 +1163,10 @@ class Filter extends ZM_Object {
           // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
           // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
-          $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
-          $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
-          $html .= '</span>';
+            $html .= '<span class="term-value-wrapper">';
+            $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
+            $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+            $html .= '</span>';
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($availableTags,$availableTags), $term['val'],
           // $options).'</span>'.PHP_EOL;
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $term['val'], $options).'</span>'.PHP_EOL;
@@ -1172,8 +1175,6 @@ class Filter extends ZM_Object {
           // Debug('$availableTags: '.$availableTags);
           // Debug('$selected: '.$selected);
           // Debug('$options: '.$options);
-
-
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span class="term-value-wrapper">';

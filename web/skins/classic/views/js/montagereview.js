@@ -373,10 +373,10 @@ function getImageSource(monId, time) {
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToZMS + '?' +
     //mode=jpeg
-     "mode=single"+
+      "mode=single" +
       "&event=" + Frame.EventId +
-		  //'&frame='+frame_id +
-		  '&time='+time +
+      //'&frame='+frame_id +
+      '&time='+time +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +

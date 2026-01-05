@@ -534,12 +534,22 @@ function initPage() {
     if (event.persisted) {
       const savedState = sessionStorage.getItem('eventsFilterState');
       if (savedState) {
-        const filterState = JSON.parse(savedState);
-        Object.keys(filterState).forEach(function(name) {
-          $j('#fieldsTable [name="'+name+'"]').val(filterState[name]);
-        });
-        // Refresh the table with the restored filter values
-        table.bootstrapTable('refresh');
+        try {
+          const filterState = JSON.parse(savedState);
+          Object.keys(filterState).forEach(function(name) {
+            // Use safer attribute selector to prevent XSS
+            const escapedName = name.replace(/"/g, '\\"');
+            $j('#fieldsTable [name="'+escapedName+'"]').val(filterState[name]);
+          });
+          // Refresh the table with the restored filter values
+          table.bootstrapTable('refresh');
+        } catch (e) {
+          // Handle corrupted sessionStorage data gracefully
+          console.error('Failed to restore filter state:', e);
+          sessionStorage.removeItem('eventsFilterState');
+          console.log('Refreshing table');
+          table.bootstrapTable('refresh');
+        }
       }
     } else {
       console.log('Refreshing table');

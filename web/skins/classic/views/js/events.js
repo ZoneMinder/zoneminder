@@ -8,6 +8,7 @@ const exportButton = $j('#exportBtn');
 const downloadButton = $j('#downloadBtn');
 const deleteButton = $j('#deleteBtn');
 const table = $j('#eventTable');
+const FILTER_STATE_KEY = 'eventsFilterState';
 var ajax = null;
 
 /*
@@ -529,13 +530,13 @@ function initPage() {
         filterState[name] = el.val();
       }
     });
-    sessionStorage.setItem('eventsFilterState', JSON.stringify(filterState));
+    sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
   });
 
   // Restore filter state when coming back via bfcache
   window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
-      const savedState = sessionStorage.getItem('eventsFilterState');
+      const savedState = sessionStorage.getItem(FILTER_STATE_KEY);
       if (savedState) {
         try {
           const filterState = JSON.parse(savedState);
@@ -568,7 +569,7 @@ function initPage() {
         } catch (e) {
           // Handle corrupted sessionStorage data gracefully
           console.error('Failed to restore filter state:', e);
-          sessionStorage.removeItem('eventsFilterState');
+          sessionStorage.removeItem(FILTER_STATE_KEY);
           console.log('Refreshing table');
           table.bootstrapTable('refresh');
         }

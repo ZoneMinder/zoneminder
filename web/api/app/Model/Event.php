@@ -125,6 +125,7 @@ class Event extends AppModel {
   );
 
   public $actsAs = array(
+    'Containable',
     'CakePHP-Enum-Behavior.Enum' => array(
       'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       'Scheme'          => array('Deep','Medium','Shallow')

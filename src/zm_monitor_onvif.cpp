@@ -474,9 +474,9 @@ void Monitor::ONVIF::WaitForMessage() {
       } // end scope for lock
 
       // we renew the current subscription .........
+      set_credentials(soap);
+      wsnt__Renew.TerminationTime = &subscription_timeout;
       if (use_wsa) {
-        set_credentials(soap);
-        wsnt__Renew.TerminationTime = &subscription_timeout;
         RequestMessageID = soap_wsa_rand_uuid(soap);
         if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
           Debug(2, "ONVIF: WS-Addressing headers set for Renew");
@@ -496,6 +496,18 @@ void Monitor::ONVIF::WaitForMessage() {
               RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
           healthy = false;
         } // end renew
+      } else { 
+          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+            Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            if (soap->error==12) {//ActionNotSupported
+              healthy = true;
+            } else {
+              healthy = false;
+            }
+          } else {
+            Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            healthy = true;
+          }
       }
     }  // end if SOAP OK/NOT OK
 #endif

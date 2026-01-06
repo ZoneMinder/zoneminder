@@ -87,7 +87,6 @@ our @ISA = qw(ZoneMinder::Control);
 
 our %CamParams = ();
 
-our ($profileToken, $address, $port, %identity);
 my ( $controlUri, $scheme );
 
 # ==========================================================================
@@ -125,6 +124,8 @@ use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 use LWP::UserAgent;
 use IO::Socket::SSL;
+
+my $profileToken;
 
 sub open {
   my $self = shift;
@@ -216,7 +217,7 @@ sub sendCmd {
   my $server_endpoint = $$self{BaseURL}.$$self{path};
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => $content_type);
-  $req->header('Host' => $address . ':' . $port);
+  $req->header('Host' => $$self{address} . ':' . $$self{port});
   $req->header('content-length' => length($msg));
   $req->header('accept-encoding' => 'gzip, deflate');
   $req->header('connection' => 'Close');

@@ -274,14 +274,14 @@ echo $navbar ?>
       $filter = addFilterTerm(
         $eventCounts[$i]['filter'],
         count($eventCounts[$i]['filter']['Query']['terms']),
-        count($displayMonitorIds) != $colAllAvailableMonitors #Add monitors to the filter only if the filter limit is set
+        count($displayMonitorIds) != $colAllAvailableMonitors // Add monitors to the filter only if the filter limit is set
           ? array(
             'cnj'=>'and',
             'attr'=>'Monitor',
             'op'=>'IN',
             'val'=>implode(',', $displayMonitorIds)
             )
-          : ['cnj'=>'and', 'attr'=>'Monitor']
+          : array('cnj'=>'and', 'attr'=>'Monitor')
       );
     parseFilter($filter);
     echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"><a '

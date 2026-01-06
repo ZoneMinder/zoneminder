@@ -323,9 +323,6 @@ function manageFunctionModal(evt) {
 } // end function manageFunctionModal
 
 function initPage() {
-  // Remove the thumbnail column from the DOM if thumbnails are off globally
-  if (!ZM_WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
-  
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
   

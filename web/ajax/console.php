@@ -132,7 +132,7 @@ function queryRequest() {
     if ($session_filters[$filter]) {
       $filter_values = is_array($session_filters[$filter]) ? $session_filters[$filter] : array($session_filters[$filter]);
       if (count($filter_values)) {
-        $conditions[] = 'S.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
+        $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
       }
     }

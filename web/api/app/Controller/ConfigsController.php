@@ -77,14 +77,17 @@ class ConfigsController extends AppController {
 	public function viewByName($name = null) {
 		$config = $this->Config->findByName($name, array('fields' => 'Value'));
 
-		if ( !$config ) {
+    global $zm_config;
+		if (!$config) {
       global $zm_config;
-      if ( $zm_config[$name] ) {
+      if ( isset($zm_config[$name]) ) {
         $config = array('Config'=>$zm_config[$name]);
       } else {
+        ZM\Error(print_r($zm_config, true));
         throw new NotFoundException(__('Invalid config'));
       }
-    } else {
+    } else if ( isset($zm_config[$name]) ) {
+      $config['Config']['Value'] = $zm_config[$name]['Value'];
 		}
 
 		$this->set(array(

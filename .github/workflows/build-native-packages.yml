@@ -18,11 +18,12 @@ env:
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
+    if: github.repository == 'ZoneMinder/zoneminder'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        distro: ["debian:13", "debian:12", "ubuntu:22.04", "ubuntu:24.04"]
+        distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:25.10", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
     container:
       image: ${{ matrix.distro }}
 
@@ -130,7 +131,7 @@ jobs:
   release:
     name: Create GitHub Release (on tag)
     needs: build-debian
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.repository == 'ZoneMinder/zoneminder' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts

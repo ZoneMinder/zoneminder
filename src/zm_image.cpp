@@ -671,7 +671,9 @@ void Image::AssignDirect(const AVFrame *frame) {
       break;
     case  AV_PIX_FMT_YUV420P:
       colours = ZM_COLOUR_GRAY8;
+      break;
     default:
+      Debug(1, "Unimplemented format");
       break;
   }
   buffertype = ZM_BUFTYPE_DONTFREE;

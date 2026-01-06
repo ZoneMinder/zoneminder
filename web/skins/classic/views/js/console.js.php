@@ -12,17 +12,6 @@ if ( canEdit('System') && ZM_DYN_SHOW_DONATE_REMINDER ) {
 ?>
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
 
-// Variables for bootstrap-table
-var canView = {
-  'Stream': <?php echo canView('Stream') ? 'true' : 'false' ?>,
-  'Events': <?php echo canView('Events') ? 'true' : 'false' ?>,
-  'Monitors': <?php echo canView('Monitors') ? 'true' : 'false' ?>
-};
-
-var canEdit = {
-  'Monitors': <?php echo canEdit('Monitors') ? 'true' : 'false' ?>,
-  'Events': <?php echo canEdit('Events') ? 'true' : 'false' ?>
-};
-
 var ZM_WEB_EVENTS_VIEW = '<?php echo ZM_WEB_EVENTS_VIEW ?>';
+var ZM_WEB_LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS ? 'true' : 'false' ?>;
 

@@ -73,23 +73,20 @@ function processRows(rows) {
       row.Id = mid;
     }
     
-    // Format Name column with status indicator, link, thumbnail, and groups
+    // Thumbnail goes in its own column if enabled
+    // (row.Thumbnail is already set from AJAX response)
+    
+    // Format Name column with status indicator, link, and groups (no thumbnail)
     var nameHtml = '<i class="material-icons ' + dot_class + '" title="' + dot_class_reason + '">lens</i> ';
     if (stream_available) {
       nameHtml += '<a href="?view=watch&amp;mid=' + mid + '">' + row.Name + '</a>';
     } else {
       nameHtml += row.Name;
     }
-    nameHtml += '<br/>';
-    
-    // Add thumbnail if available
-    if (row.Thumbnail) {
-      nameHtml += row.Thumbnail;
-    }
     
     // Add groups
     if (row.Groups) {
-      nameHtml += '<div class="small text-nowrap text-muted">' + row.Groups + '</div>';
+      nameHtml += '<br/><div class="small text-nowrap text-muted">' + row.Groups + '</div>';
     }
     
     row.Name = nameHtml;
@@ -326,6 +323,9 @@ function manageFunctionModal(evt) {
 } // end function manageFunctionModal
 
 function initPage() {
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if (!ZM_WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
+  
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
   
@@ -380,6 +380,9 @@ function initPage() {
     disabled: true,
     update: applySort,
     axis: 'Y'} );
+  
+  // Make the table visible after initialization
+  table.show();
 } // end function initPage
 
 function sortMonitors(button) {

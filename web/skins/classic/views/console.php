@@ -257,6 +257,9 @@ echo $navbar ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th data-sortable="true" data-field="Id" class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
+<?php if ( ZM_WEB_LIST_THUMBS ) { ?>
+            <th data-sortable="false" data-field="Thumbnail" class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
+<?php } ?>
             <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
             <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
@@ -268,7 +271,23 @@ echo $navbar ?>
 <?php }
 
   foreach ( array_keys($eventCounts) as $i ) {
-    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents">'.$eventCounts[$i]['title'].'</th>'.PHP_EOL;
+      $filter = addFilterTerm(
+        $eventCounts[$i]['filter'],
+        count($eventCounts[$i]['filter']['Query']['terms']),
+        count($displayMonitorIds) != $colAllAvailableMonitors #Add monitors to the filter only if the filter limit is set
+          ? array(
+            'cnj'=>'and',
+            'attr'=>'Monitor',
+            'op'=>'IN',
+            'val'=>implode(',', $displayMonitorIds)
+            )
+          : ['cnj'=>'and', 'attr'=>'Monitor']
+      );
+    parseFilter($filter);
+    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"><a '
+      .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
+      .$eventCounts[$i]['title']
+      .'</a></th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
             <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
@@ -277,6 +296,52 @@ echo $navbar ?>
         <tbody id="consoleTableBody">
         </tbody>
         <tfoot>
+          <tr>
+<?php if ($canEditMonitors) { ?>
+            <td class="colMark"></td>
+<?php } ?>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
+            <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
+<?php } ?>
+<?php if ( ZM_WEB_LIST_THUMBS ) { ?>
+            <td class="colThumbnail"></td>
+<?php } ?>
+            <td class="colName"></td>
+            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s '.
+$total_fps.' fps / '.$total_analysis_fps.' fps' ?></td>
+<?php if ( count($Servers) ) { ?>
+            <td class="colServer"></td>
+<?php } ?>
+            <td class="colSource"></td>
+<?php if ( $show_storage_areas ) { ?>
+            <td class="colStorage"></td>
+<?php
+}
+  foreach ( array_keys($eventCounts) as $i ) {
+    $filter = addFilterTerm(
+      $eventCounts[$i]['filter'],
+      count($eventCounts[$i]['filter']['Query']['terms']),
+      array(
+        'cnj'=>'and',
+        'attr'=>'Monitor',
+        'op'=>'IN',
+        'val'=>implode(',', $displayMonitorIds)
+        )
+    );
+    parseFilter($filter);
+?>
+            <td class="colEvents">
+              <a <?php echo
+              (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '') . 
+              (int)$eventCounts[$i]['totalevents'].'</a><br/>
+              <div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace'])
+            ?></div>
+            </td>
+<?php
+  } // end foreach eventCounts
+?>
+            <td class="colZones"><?php echo $zoneCount ?></td>
+         </tr>
         </tfoot>
         </table>
     </div><!-- content table responsive div -->

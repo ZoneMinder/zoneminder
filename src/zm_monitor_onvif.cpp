@@ -301,7 +301,7 @@ void Monitor::ONVIF::start() {
     }
 
     // we renew the current subscription .........
-    if (use_wsa) Renew();
+    Renew();
   } // end else (success block)
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
@@ -325,27 +325,23 @@ void Monitor::ONVIF::PullMessages() {
 }
 
 void Monitor::ONVIF::Renew() {
-  if (!parent->soap_wsa_compl) return;
-
   // we renew the current subscription .........
   set_credentials(soap);
   wsnt__Renew.TerminationTime = &subscription_timeout;
-  if (add_wsa_request("RenewRequest")) {
-    Debug(2, "ONVIF: WS-Addressing headers set for Renew");
-    if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-      Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      if (soap->error==12) {//ActionNotSupported
-        healthy = true;
-      } else {
-        healthy = false;
-      }
-    } else {
-      Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+  if (parent->soap_wsa_compl) add_wsa_request("RenewRequest");
+
+  Debug(2, "ONVIF: WS-Addressing headers set for Renew");
+  if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+    Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    if (soap->error==12) {//ActionNotSupported
       healthy = true;
+    } else {
+      healthy = false;
     }
   } else {
-    healthy = false;
-  } // end renew
+    Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    healthy = true;
+  }
 } // end void Monitor::ONVIF::Renew()
 
 void Monitor::ONVIF::WaitForMessage() {

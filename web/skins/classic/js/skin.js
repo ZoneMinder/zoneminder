@@ -1491,6 +1491,7 @@ function canPlayCodec(filename) {
     else {
       console.log('matches didnt match'+matches[1]);
     }
+    video.muted = true;
 
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {

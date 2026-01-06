@@ -1,5 +1,5 @@
 //
-// ZoneMinder Monitor::ONVIF Class Implementation
+// ZoneMinder ONVIF Class Implementation
 // Copyright (C) 2024 ZoneMinder Inc
 //
 // This program is free software; you can redistribute it and/or

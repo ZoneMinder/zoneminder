@@ -1,5 +1,5 @@
 //
-// ZoneMinder Monitor::ONVIF Class Implementation
+// ZoneMinder ONVIF Class Implementation
 // Copyright (C) 2024 ZoneMinder Inc
 //
 // This program is free software; you can redistribute it and/or
@@ -17,6 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
 
 #include <cstring>
@@ -48,7 +49,7 @@ std::string SOAP_STRINGS[] = {
   "SOAP_FAULT", //                      12
 };
 
-Monitor::ONVIF::ONVIF(Monitor *parent_) :
+ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
   ,alarmed(false)
   ,healthy(false)
@@ -67,7 +68,7 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
 #endif
 }
 
-Monitor::ONVIF::~ONVIF() {
+ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "ONVIF: Tearing Down");
@@ -105,7 +106,7 @@ Monitor::ONVIF::~ONVIF() {
 #endif
 }
 
-void Monitor::ONVIF::start() {
+void ONVIF::start() {
 #ifdef WITH_GSOAP
   tev__PullMessages.Timeout = pull_timeout.c_str();
   tev__PullMessages.MessageLimit = 10;
@@ -321,7 +322,7 @@ void Monitor::ONVIF::start() {
 #endif
 }
 
-void Monitor::ONVIF::WaitForMessage() {
+void ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
   set_credentials(soap);
   
@@ -521,7 +522,7 @@ void Monitor::ONVIF::WaitForMessage() {
 //   pull_timeout=PT20S - Timeout for PullMessages requests
 //   subscription_timeout=PT60S - Timeout for subscription renewal
 //   max_retries=5 - Maximum retry attempts
-void Monitor::ONVIF::parse_onvif_options() {
+void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
     return;
   }
@@ -573,7 +574,7 @@ void Monitor::ONVIF::parse_onvif_options() {
 
 // Calculate exponential backoff delay for retries
 // Returns delay in seconds: min(2^retry_count, ONVIF_RETRY_DELAY_CAP)
-int Monitor::ONVIF::get_retry_delay() {
+int ONVIF::get_retry_delay() {
   // Use safe approach to avoid integer overflow
   if (retry_count >= ONVIF_RETRY_EXPONENT_LIMIT) {
     return ONVIF_RETRY_DELAY_CAP;  // 2^9 = 512, cap at 5 minutes
@@ -586,7 +587,7 @@ int Monitor::ONVIF::get_retry_delay() {
 }
 
 //ONVIF Set Credentials
-void Monitor::ONVIF::set_credentials(struct soap *soap) {
+void ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, "Time", 10);
   
@@ -605,7 +606,7 @@ void Monitor::ONVIF::set_credentials(struct soap *soap) {
 }
 
 // Helper function to parse event messages with flexible XML structure handling
-bool Monitor::ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg, 
+bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg, 
                                           std::string &topic, 
                                           std::string &value, 
                                           std::string &operation) {
@@ -731,7 +732,7 @@ bool Monitor::ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *ms
 }
 
 // Helper function for hierarchical topic matching with wildcard support
-bool Monitor::ONVIF::matches_topic_filter(const std::string &topic, const std::string &filter) {
+bool ONVIF::matches_topic_filter(const std::string &topic, const std::string &filter) {
   if (filter.empty()) {
     return true;  // Empty filter matches all
   }
@@ -823,7 +824,7 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 }
 #endif
 
-void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
+void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #ifdef WITH_GSOAP
     std::unique_lock<std::mutex> lck(alarms_mutex);
     if (alarms.empty()) return;

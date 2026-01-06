@@ -55,7 +55,11 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
 
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+    return false;
+  }
+  if (!mysql_num_rows(result)) {
+    Error("Unable to load event using %s", sql.c_str());
+    return false;
   }
 
   uint64_t init_event_id = atoll(dbrow[0]);
@@ -64,30 +68,41 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
 
   loadEventData(init_event_id);
 
-  if (event_time.time_since_epoch() == Seconds(0)) {
-    curr_stream_time = event_time;
-    curr_frame_id = 1; // curr_frame_id is 1-based
-    if (event_time >= event_data->start_time) {
-      Debug(2, "event time is after event start");
-      for (int i=0; i < event_data->frame_count; i++) {
-        //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
-        if (event_data->frames[i].timestamp >= event_time) {
-          curr_frame_id = i + 1;
-          Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",
-                FPSeconds(curr_stream_time.time_since_epoch()).count(),
-                curr_frame_id);
-          break;
-        }
-      } // end foreach frame
-      Debug(3, "Skipping %d frames", event_data->frame_count);
-    } else {
-      Warning("Requested an event time less than the start of the event. event_time %" PRIi64 " < start_time %" PRIi64,
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(event_time.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(event_data->start_time.time_since_epoch()).count()));
-    }
+  // Default to starting at beginning
+  curr_stream_time = event_data->start_time;
+  curr_frame_id = 1; // curr_frame_id is 1-based
+
+  if (event_time.time_since_epoch() != Seconds(0)) {
+    seek(event_time);
   } // end if have a start time
   return true;
 } // bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
+
+bool EventStream::seek(SystemTimePoint event_time) {
+  if (event_time < event_data->start_time || event_time > event_data->end_time) {
+    Warning("Requested an event time less than the start of the event. event_time %" PRIi64 " < start_time %" PRIi64,
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(event_time.time_since_epoch()).count()),
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(event_data->start_time.time_since_epoch()).count()));
+    return false;
+  }
+
+  for (int i=0; i < event_data->frame_count; i++) {
+    //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
+    if (event_data->frames[i].timestamp >= event_time || 
+        event_data->frames[i].timestamp + event_data->frames[i].delta >=event_time) {
+      curr_frame_id = i + 1;
+      curr_stream_time = event_time;
+      Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",
+          FPSeconds(curr_stream_time.time_since_epoch()).count(),
+          curr_frame_id);
+      return true;
+    }
+  } // end foreach frame
+    Warning("Requested an event time less than the start of the event. event_time %" PRIi64 " < start_time %" PRIi64,
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(event_time.time_since_epoch()).count()),
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(event_data->start_time.time_since_epoch()).count()));
+    return false;
+}  // end bool EventStream::seek(SystemTimePoint event_time)
 
 bool EventStream::loadInitialEventData(
   uint64_t init_event_id,
@@ -309,7 +324,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
       event_data->frame_count ++;
     } else {
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
-      Debug(1, "Setting delta from endtime %f - %f / %d - %d", 
+      Debug(1, "Setting delta from endtime %f - %f / frame_count %d - last_id %d", 
               FPSeconds(event_data->end_time.time_since_epoch()).count(),
               FPSeconds(last_timestamp.time_since_epoch()).count(),
               event_data->frame_count,
@@ -1288,6 +1303,12 @@ void EventStream::setStreamStart(
   loadInitialEventData(init_event_id, init_frame_id);
 }  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
 
-void EventStream::setStreamStart(int monitor_id, time_t event_time) {
+void EventStream::setStreamStart(
+  uint64_t init_event_id, SystemTimePoint event_time
+  ) {
+  loadInitialEventData(init_event_id, event_time);
+}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
+
+void EventStream::setStreamStart(int monitor_id, SystemTimePoint event_time) {
   loadInitialEventData(monitor_id, event_time);
 }

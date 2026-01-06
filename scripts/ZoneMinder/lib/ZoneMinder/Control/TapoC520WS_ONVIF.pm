@@ -77,6 +77,7 @@ use MIME::Base64;
 use Digest::SHA;
 use DateTime;
 use URI;
+use URI::Escape;
 use Data::Dumper;
 
 require ZoneMinder::Base;
@@ -158,6 +159,7 @@ sub parseControlAddress {
   my $url = URI->new($controlAddress);
   $$self{scheme} = $url->scheme;
   @$self{'username','password'} = split /:/, $url->userinfo if $url->userinfo;
+  $$self{password} = URI::Escape::uri_unescape($$self{password});
 
   #If we have no explicitly defined port
   $$self{port} = $url->port ? $url->port : $url->default_port;
@@ -275,7 +277,6 @@ sub autoStop {
   my $iszoom = shift;
 
   if ( $autostop ) {
-    Debug("Auto Stop $autostop");
     my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
     $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
     # Change from microseconds to milliseconds or seconds to milliseconds

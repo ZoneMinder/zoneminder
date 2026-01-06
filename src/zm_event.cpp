@@ -174,8 +174,8 @@ Event::~Event() {
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql),
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->EventPrefix(), id, end_time.tv_sec,
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%jd), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
+      monitor->EventPrefix(), id, static_cast<intmax_t>(end_time.tv_sec),
       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
       frames, alarm_frames,
       tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
@@ -183,8 +183,8 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     snprintf(sql, sizeof(sql),
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-        end_time.tv_sec,
+        "UPDATE Events SET EndDateTime = from_unixtime(%jd), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        static_cast<intmax_t>(end_time.tv_sec),
         delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
         frames, alarm_frames,
         tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
@@ -374,10 +374,10 @@ void Event::WriteDbFrames() {
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ),",
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %jd ), %s%ld.%02ld, %d ),",
         id, frame->frame_id,
         frame_type_names[frame->type],
-        frame->timestamp.tv_sec,
+        static_cast<intmax_t>(frame->timestamp.tv_sec),
         frame->delta.positive ? "" : "-",
         frame->delta.sec,
         frame->delta.fsec,

@@ -238,6 +238,7 @@ echo $navbar ?>
         data-remember-order="true"
         data-show-columns="true"
         data-show-export="true"
+        data-show-footer="true"
         data-toolbar="#toolbar"
         data-sort-name="Sequence"
         data-sort-order="asc"

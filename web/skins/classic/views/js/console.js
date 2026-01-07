@@ -5,21 +5,21 @@ var monitors = {}; // Store monitors by ID for function modal
 
 // Update footer with dynamic totals
 function updateFooter(footer) {
+  // Target the footer within the bootstrap-table wrapper
+  var footerRow = $j('#consoleTable tfoot tr');
+  
   // Update monitor count (in Id column if shown)
-  if ($j('tfoot .colId').length) {
-    $j('tfoot .colId').html('Total: ' + footer.monitor_count);
-  }
+  footerRow.find('td.colId').html('Total: ' + footer.monitor_count);
   
   // Update bandwidth/FPS (in Function column)
-  if ($j('tfoot .colFunction').length) {
-    $j('tfoot .colFunction').html(footer.bandwidth_fps);
-  }
+  footerRow.find('td.colFunction').html(footer.bandwidth_fps);
   
   // Update event totals
   var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
-  eventPeriods.forEach(function(period) {
-    var cell = $j('tfoot td.colEvents:eq(' + eventPeriods.indexOf(period) + ')');
-    if (cell.length) {
+  var eventCells = footerRow.find('td.colEvents');
+  eventPeriods.forEach(function(period, index) {
+    if (eventCells.length > index) {
+      var cell = $j(eventCells[index]);
       var link = cell.find('a');
       if (link.length) {
         // Preserve the link but update the count
@@ -34,9 +34,7 @@ function updateFooter(footer) {
   });
   
   // Update zone count
-  if ($j('tfoot .colZones').length) {
-    $j('tfoot .colZones').text(footer.total_zones);
-  }
+  footerRow.find('td.colZones').text(footer.total_zones);
 }
 
 // Called by bootstrap-table to retrieve monitor data

@@ -90,6 +90,11 @@
     text-align: center;
 }
 
+.consoleTable .colId {
+    width: 70px;
+    text-align: center;
+}
+
 .consoleTable .colLeftButtons {
     text-align: left;
 }

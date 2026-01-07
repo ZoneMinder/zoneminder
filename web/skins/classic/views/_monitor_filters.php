@@ -23,7 +23,7 @@ function addFilterSelect($name, $options) {
   // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
   $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
   
-  // Get selected value from cookie first, then fallback to session
+  // Get selected value from cookie only
   $selectedValue = '';
   if (isset($_COOKIE['zmFilter_'.$name])) {
     $cookieValue = $_COOKIE['zmFilter_'.$name];
@@ -32,8 +32,6 @@ function addFilterSelect($name, $options) {
       $decoded = json_decode($cookieValue, true);
       $selectedValue = ($decoded !== null) ? $decoded : $cookieValue;
     }
-  } else if (isset($_SESSION[$name])) {
-    $selectedValue = $_SESSION[$name];
   }
   
   $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
@@ -75,30 +73,19 @@ function buildMonitorsFilters() {
   // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
   $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
 
-  zm_session_start();
-  foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
-    if (isset($_REQUEST[$var])) {
-      if ($_REQUEST[$var] != '') {
-        $_SESSION[$var] = $_REQUEST[$var];
-      } else {
-        unset($_SESSION[$var]);
-      }
-    } else if (isset($_REQUEST['filtering'])) {
-      unset($_SESSION[$var]);
-    } else if (!isset($_SESSION[$var])) {
-      // Restore from cookie if session doesn't have a value
-      $cookieName = 'zmFilter_'.$var;
-      if (isset($_COOKIE[$cookieName])) {
-        $cookieValue = $_COOKIE[$cookieName];
-        if ($cookieValue && $cookieValue !== '') {
-          // Try to decode JSON for array values
-          $decoded = json_decode($cookieValue, true);
-          $_SESSION[$var] = ($decoded !== null) ? $decoded : $cookieValue;
-        }
+  // Helper function to get filter value from cookie
+  function getFilterFromCookie($var) {
+    $cookieName = 'zmFilter_'.$var;
+    if (isset($_COOKIE[$cookieName])) {
+      $cookieValue = $_COOKIE[$cookieName];
+      if ($cookieValue && $cookieValue !== '') {
+        // Try to decode JSON for array values
+        $decoded = json_decode($cookieValue, true);
+        return ($decoded !== null) ? $decoded : $cookieValue;
       }
     }
+    return null;
   }
-  session_write_close();
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -130,7 +117,7 @@ function buildMonitorsFilters() {
       $html .= '<span class="term" id="groupControl"><label>'. translate('Group') .'</label>';
       $html .= '<span class="term-value-wrapper">';
       # This will end up with the group_id of the deepest selection
-      $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
+      $group_id = getFilterFromCookie('GroupId');
       $html .= ZM\Group::get_group_dropdown($view);
       $groupSql = ZM\Group::get_group_sql($group_id);
       $html .= addButtonResetForFilterSelect('GroupId[]');
@@ -139,8 +126,10 @@ function buildMonitorsFilters() {
     }
   }
 
-  $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
-  if ( !is_array($selected_monitor_ids) ) {
+  $selected_monitor_ids = getFilterFromCookie('MonitorId');
+  if (!$selected_monitor_ids) {
+    $selected_monitor_ids = array();
+  } else if (!is_array($selected_monitor_ids)) {
     $selected_monitor_ids = array($selected_monitor_ids);
   }
 
@@ -150,13 +139,14 @@ function buildMonitorsFilters() {
   if ( $groupSql )
     $conditions[] = $groupSql;
   foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recording') as $filter ) {
-    if ( isset($_SESSION[$filter]) ) {
-      if ( is_array($_SESSION[$filter]) ) {
-        $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
-        $values = array_merge($values, $_SESSION[$filter]);
+    $filterValue = getFilterFromCookie($filter);
+    if ( $filterValue ) {
+      if ( is_array($filterValue) ) {
+        $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $filterValue)).')';
+        $values = array_merge($values, $filterValue);
       } else {
         $conditions[] = '`'.$filter . '`=?';
-        $values[] = $_SESSION[$filter];
+        $values[] = $filterValue;
       }
     }
   } # end foreach filter
@@ -167,9 +157,10 @@ function buildMonitorsFilters() {
     $values = array_merge($values, $ids);
   }
 
+  $monitorNameValue = getFilterFromCookie('MonitorName');
   $html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="'.translate('text or regular expression').'"/></span>';
+  $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'"/></span>';
   $html .= '</span>'.PHP_EOL;
 
   $html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));
@@ -180,7 +171,7 @@ function buildMonitorsFilters() {
     $html .= '<span class="term ServerFilter"><label>'. translate('Server').'</label>';
     $html .= '<span class="term-value-wrapper">';
     $html .= htmlSelect('ServerId[]', $ServersById,
-      (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
+      getFilterFromCookie('ServerId') ?: '',
       array(
         'data-on-change'=>$onChangeFunction,
         'class'=>'chosen',
@@ -197,7 +188,7 @@ function buildMonitorsFilters() {
     $html .= '<span class="term StorageFilter"><label>'.translate('Storage').'</label>';
     $html .= '<span class="term-value-wrapper">';
     $html .= htmlSelect('StorageId[]', $StorageById,
-      (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
+      getFilterFromCookie('StorageId') ?: '',
       array(
         'data-on-change'=>$onChangeFunction,
         'class'=>'chosen',
@@ -218,7 +209,7 @@ function buildMonitorsFilters() {
     );
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect( 'Status[]', $status_options,
-    ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
+    getFilterFromCookie('Status') ?: '',
     array(
       'data-on-change'=>$onChangeFunction,
       'class'=>'chosen',
@@ -229,9 +220,10 @@ function buildMonitorsFilters() {
   $html .= '</span>';
   $html .= '</span>';
 
+  $sourceValue = getFilterFromCookie('Source');
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="'.translate('text or regular expression').'"/>';
+  $html .= '<input type="text" name="Source" value="'.($sourceValue ? validHtmlStr($sourceValue) : '').'" placeholder="'.translate('text or regular expression').'"/>';
   $html .= '</span>';
   $html .= '</span>';
 
@@ -276,11 +268,12 @@ function buildMonitorsFilters() {
       continue;
     }
 
-    if ( isset($_SESSION['MonitorName']) ) {
+    $monitorNameFilter = getFilterFromCookie('MonitorName');
+    if ( $monitorNameFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
-      $regexp = $_SESSION['MonitorName'];
+      $regexp = $monitorNameFilter;
       if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
 
       @preg_match($regexp, '');
@@ -293,18 +286,19 @@ function buildMonitorsFilters() {
       }
     }
 
-    if ( isset($_SESSION['Source']) ) {
+    $sourceFilter = getFilterFromCookie('Source');
+    if ( $sourceFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
-      $regexp = $_SESSION['Source'];
+      $regexp = $sourceFilter;
 
       if (!preg_match("/^\/.+\/[a-z]*$/i",$regexp))
         $regexp = '/'.$regexp.'/i';
 
       @preg_match($regexp, '');
       if ( $php_errormsg ) {
-        ZM\Warning($_SESSION['Source'].' is not a valid search string');
+        ZM\Warning($sourceFilter.' is not a valid search string');
       } else {
         ZM\Debug("Using $regexp for source");
         if ( !preg_match($regexp, $Monitor->Source()) ) {

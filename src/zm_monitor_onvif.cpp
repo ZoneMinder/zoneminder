@@ -438,7 +438,7 @@ void ONVIF::WaitForMessage() {
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent (detected Deleted operation)");
             }
-          } else if (value.find("false") == 0 || value == "0") {
+          } else if (value.find("false") == 0 || value == "0" || value == "000") {
             // Value indicates alarm is off
             Info("ONVIF Alarm Off for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);

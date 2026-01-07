@@ -64,6 +64,11 @@
     vertical-align: middle;
 }
 
+.consoleTable thead th .material-icons {
+    vertical-align: middle;
+    line-height: inherit;
+}
+
 .consoleTable tfoot td {
     padding-top: 4px;
     vertical-align: middle;

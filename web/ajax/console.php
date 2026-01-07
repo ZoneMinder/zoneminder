@@ -331,7 +331,14 @@ function queryRequest() {
     // FPS and bandwidth
     $row['CaptureFPS'] = isset($monitor['CaptureFPS']) ? $monitor['CaptureFPS'] : '0.00';
     $row['AnalysisFPS'] = isset($monitor['AnalysisFPS']) ? $monitor['AnalysisFPS'] : '0.00';
-    $row['CaptureBandwidth'] = isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
+
+    // Format bandwidth with units (bytes per second) - use human_filesize for consistency
+    $bandwidth = isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
+    if ($bandwidth > 0) {
+      $row['CaptureBandwidth'] = human_filesize($bandwidth).'/s';
+    } else {
+      $row['CaptureBandwidth'] = '';
+    }
     $row['Analysing'] = isset($monitor['Analysing']) ? $monitor['Analysing'] : 'None';
     $row['Recording'] = isset($monitor['Recording']) ? $monitor['Recording'] : 'None';
     $row['ONVIF_Event_Listener'] = isset($monitor['ONVIF_Event_Listener']) ? $monitor['ONVIF_Event_Listener'] : 0;

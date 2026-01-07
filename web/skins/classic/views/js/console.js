@@ -6,35 +6,56 @@ var monitors = {}; // Store monitors by ID for function modal
 // Update footer with dynamic totals
 function updateFooter(footer) {
   // Target the footer within the bootstrap-table wrapper
-  var footerRow = $j('#consoleTable tfoot tr');
+  // Bootstrap-table may transform td to th and wrap content in divs
+  var footerRow = $j('#consoleTable').closest('.bootstrap-table').find('tfoot tr');
+  if (!footerRow.length) {
+    footerRow = $j('#consoleTable tfoot tr');
+  }
+  
+  // Helper function to update cell content (handles th-inner and fht-cell divs)
+  function updateCell(selector, content) {
+    var cell = footerRow.find(selector);
+    if (cell.length) {
+      // Check if bootstrap-table has wrapped content in divs
+      var innerDiv = cell.find('.th-inner, .fht-cell');
+      if (innerDiv.length) {
+        innerDiv.html(content);
+      } else {
+        cell.html(content);
+      }
+    }
+  }
   
   // Update monitor count (in Id column if shown)
-  footerRow.find('td.colId').html('Total: ' + footer.monitor_count);
+  updateCell('td.colId, th.colId', 'Total: ' + footer.monitor_count);
   
   // Update bandwidth/FPS (in Function column)
-  footerRow.find('td.colFunction').html(footer.bandwidth_fps);
+  updateCell('td.colFunction, th.colFunction', footer.bandwidth_fps);
   
   // Update event totals
   var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
-  var eventCells = footerRow.find('td.colEvents');
+  var eventCells = footerRow.find('td.colEvents, th.colEvents');
   eventPeriods.forEach(function(period, index) {
     if (eventCells.length > index) {
       var cell = $j(eventCells[index]);
-      var link = cell.find('a');
+      var innerDiv = cell.find('.th-inner, .fht-cell');
+      var target = innerDiv.length ? innerDiv : cell;
+      
+      var link = target.find('a');
       if (link.length) {
         // Preserve the link but update the count
         var newHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
                       footer[period + 'EventDiskSpace'] + '</div>';
         link.html(newHtml);
       } else {
-        cell.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
-                  footer[period + 'EventDiskSpace'] + '</div>');
+        target.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+                    footer[period + 'EventDiskSpace'] + '</div>');
       }
     }
   });
   
   // Update zone count
-  footerRow.find('td.colZones').text(footer.total_zones);
+  updateCell('td.colZones, th.colZones', footer.total_zones);
 }
 
 // Called by bootstrap-table to retrieve monitor data

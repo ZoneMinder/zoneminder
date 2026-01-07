@@ -71,32 +71,57 @@ function ajaxRequest(params) {
       params.data = {};
     }
     
-    // Serialize form data to get filter values
-    var formData = $j(form).serializeArray();
-    
-    // Add form data to params.data
-    formData.forEach(function(field) {
-      // Check if this is an array field (name ends with [])
-      var isArrayField = field.name.endsWith('[]');
+    // Iterate over form elements instead of using serialize
+    for (var i = 0; i < form.elements.length; i++) {
+      var element = form.elements[i];
+      var name = element.name;
       
-      if (!params.data[field.name]) {
-        // First occurrence of this field
-        if (isArrayField) {
-          // Initialize as array for array fields
-          params.data[field.name] = [field.value];
-        } else {
-          // Single value for non-array fields
-          params.data[field.name] = field.value;
-        }
-      } else if (isArrayField) {
-        // Additional values for array fields
-        if (!Array.isArray(params.data[field.name])) {
-          params.data[field.name] = [params.data[field.name]];
-        }
-        params.data[field.name].push(field.value);
+      // Skip elements without names or disabled elements
+      if (!name || element.disabled) {
+        continue;
       }
-      // Non-array fields that already exist are not overwritten
-    });
+      
+      // Get the value(s) for this element
+      var value = null;
+      
+      if (element.type === 'select-multiple' || (element.multiple && element.tagName === 'SELECT')) {
+        // Handle multi-select dropdowns
+        var selectedOptions = [];
+        for (var j = 0; j < element.options.length; j++) {
+          if (element.options[j].selected) {
+            selectedOptions.push(element.options[j].value);
+          }
+        }
+        if (selectedOptions.length > 0) {
+          value = selectedOptions;
+        }
+      } else if (element.type === 'checkbox' || element.type === 'radio') {
+        // Only include checked checkboxes/radios
+        if (element.checked) {
+          value = element.value;
+        }
+      } else {
+        // Text inputs, single selects, etc.
+        value = element.value;
+      }
+      
+      // Only add to params.data if value is not empty
+      if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+        if (params.data[name]) {
+          // If field already exists, convert to array or append
+          if (!Array.isArray(params.data[name])) {
+            params.data[name] = [params.data[name]];
+          }
+          if (Array.isArray(value)) {
+            params.data[name] = params.data[name].concat(value);
+          } else {
+            params.data[name].push(value);
+          }
+        } else {
+          params.data[name] = value;
+        }
+      }
+    }
   }
   
   ajax = $j.ajax({

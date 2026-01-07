@@ -97,11 +97,22 @@ function queryRequest() {
   // Update session from request parameters (filter values from the form)
   foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
     if (isset($_REQUEST[$var])) {
-      // Check for non-empty values (but allow '0' which is valid)
-      if ($_REQUEST[$var] !== '' && (!is_array($_REQUEST[$var]) || count($_REQUEST[$var]) > 0)) {
-        $_SESSION[$var] = $_REQUEST[$var];
+      $value = $_REQUEST[$var];
+      // Check if value is meaningful (non-empty string or non-empty array)
+      if (is_array($value)) {
+        // For arrays, check if it has elements
+        if (count($value) > 0) {
+          $_SESSION[$var] = $value;
+        } else {
+          unset($_SESSION[$var]);
+        }
       } else {
-        unset($_SESSION[$var]);
+        // For non-arrays (strings), check if not empty string
+        if ($value !== '') {
+          $_SESSION[$var] = $value;
+        } else {
+          unset($_SESSION[$var]);
+        }
       }
     }
   }

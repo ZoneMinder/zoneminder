@@ -66,6 +66,11 @@ function ajaxRequest(params) {
   // Get filter selections from the form and add to params.data
   var form = document.forms['monitorForm'];
   if (form) {
+    // Ensure params.data is initialized
+    if (!params.data) {
+      params.data = {};
+    }
+    
     // Serialize form data to get filter values
     var formData = $j(form).serializeArray();
     

@@ -384,6 +384,17 @@ function manageFunctionModal(evt) {
   $j('#modalFunction').modal('show');
 } // end function manageFunctionModal
 
+// Called when monitor filters change - refreshes table via AJAX instead of full page reload
+function monitorFilterOnChange() {
+  // On console view with bootstrap-table, just refresh the table
+  if (typeof table !== 'undefined' && table.length) {
+    table.bootstrapTable('refresh');
+  } else {
+    // Fall back to full page reload on other views
+    submitThisForm();
+  }
+}
+
 function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});

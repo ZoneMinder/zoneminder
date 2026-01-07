@@ -130,7 +130,7 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/proposed/mini-dinstall/incoming/
 
   release:
     name: Create GitHub Release (on tag)

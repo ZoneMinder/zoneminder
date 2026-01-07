@@ -161,8 +161,20 @@ body.sticky #monitorList thead {
   }
 }
 
+.colThumbnail {
+  position: relative;
+}
+
 .colThumbnail img:hover {
-  /*
   position: absolute;
-  */
+  z-index: 1000;
+}
+
+/* Allow thumbnails to expand beyond table boundaries */
+.consoleTable:has(.colThumbnail img:hover) {
+  overflow: visible !important;
+}
+
+#monitorList:has(.colThumbnail img:hover) {
+  overflow: visible !important;
 }

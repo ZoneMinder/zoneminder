@@ -129,6 +129,7 @@ function queryRequest() {
     'Analysing' => isset($_SESSION['Analysing']) ? $_SESSION['Analysing'] : null,
     'Recording' => isset($_SESSION['Recording']) ? $_SESSION['Recording'] : null,
     'Status' => isset($_SESSION['Status']) ? $_SESSION['Status'] : null,
+    'MonitorId' => isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : null,
     'MonitorName' => isset($_SESSION['MonitorName']) ? $_SESSION['MonitorName'] : null,
     'Source' => isset($_SESSION['Source']) ? $_SESSION['Source'] : null
   );
@@ -225,6 +226,14 @@ function queryRequest() {
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
       // Match against Path field directly instead of creating Monitor object
       return (preg_match($regexp, $monitor['Path']) || preg_match($regexp, $monitor['Device']) || preg_match($regexp, $monitor['Host']));
+    });
+  }
+  
+  // Apply MonitorId filter
+  if ($session_filters['MonitorId']) {
+    $monitor_ids = is_array($session_filters['MonitorId']) ? $session_filters['MonitorId'] : array($session_filters['MonitorId']);
+    $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
+      return in_array($monitor['Id'], $monitor_ids);
     });
   }
   

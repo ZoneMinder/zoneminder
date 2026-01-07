@@ -393,12 +393,13 @@ void ONVIF::WaitForMessage() {
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
 
-        bool has_messages = tev__PullMessagesResponse.wsnt__NotificationMessage.size() > 0;
-        if (!has_messages and !parent->Event_Poller_Closes_Event and alarmed) {
-          alarmed = false;
-          alarms.clear();
-        }
-        
+        // Note: We do NOT clear alarms on empty PullMessages response.
+        // According to ONVIF spec, alarms should only be cleared based on explicit
+        // PropertyOperation="Deleted" or PropertyOperation="Changed" with inactive value.
+        // The old code cleared on empty messages because it wasn't properly handling
+        // PropertyOperation - cameras DO send proper "Deleted" or value changes, we just
+        // weren't interpreting them correctly.
+
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           std::string topic, value, operation;
           
@@ -422,14 +423,19 @@ void ONVIF::WaitForMessage() {
           last_topic = topic;
           last_value = value;
           
-          Info("ONVIF Got Event! topic:%s value:%s operation:%s", 
+          Info("ONVIF Got Event! topic:%s value:%s operation:%s",
                last_topic.c_str(), last_value.c_str(), operation.c_str());
-          
-          // Handle PropertyOperation: Deleted means alarm is cleared
+
+          // Handle PropertyOperation according to ONVIF spec:
+          // - "Deleted" = property no longer exists (alarm ended)
+          // - "Initialized" = current state at subscription time (not a new alarm)
+          // - "Changed" = property value changed (actual alarm state transition)
+
           if (operation == "Deleted") {
+            // PropertyOperation="Deleted" means the alarm has ended
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s", 
+            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
                   alarms.size(), alarmed ? "true" : "false");
             if (alarms.empty()) {
               alarmed = false;
@@ -438,36 +444,88 @@ void ONVIF::WaitForMessage() {
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent (detected Deleted operation)");
             }
-          } else if (value.find("false") == 0 || value == "0") {
-            // Value indicates alarm is off
-            Info("ONVIF Alarm Off for topic: %s", last_topic.c_str());
-            alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s", 
-                  alarms.size(), alarmed ? "true" : "false");
-            if (alarms.empty()) {
-              alarmed = false;
-            }
-            if (!parent->Event_Poller_Closes_Event) {
-              parent->Event_Poller_Closes_Event = true;
-              Info("Setting ClosesEvent (detected false value)");
-            }
-          } else {
-            // Event Start or Changed with true value
-            if (operation == "Changed") {
-              Debug(2, "ONVIF Alarm Changed for topic: %s", last_topic.c_str());
-            } else {
-              Debug(2, "ONVIF Alarm Started/Initialized for topic: %s", last_topic.c_str());
-            }
-            
-            if (alarms.count(last_topic) == 0) {
+          } else if (operation == "Initialized") {
+            // PropertyOperation="Initialized" means this is the current state at subscription time,
+            // NOT a new alarm trigger. We should sync our state with the camera's current state,
+            // but not trigger a new event.
+            bool state_is_active = interpret_alarm_value(last_value);
+            Debug(2, "ONVIF Property Initialized: topic=%s value=%s active=%s",
+                  last_topic.c_str(), last_value.c_str(), state_is_active ? "true" : "false");
+
+            if (state_is_active && alarms.count(last_topic) == 0) {
+              // Camera reports an existing alarm we didn't know about
+              Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = last_value;
               if (!alarmed) {
-                Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
                 alarmed = true;
+                Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
+              }
+            } else if (!state_is_active && alarms.count(last_topic) > 0) {
+              // We thought there was an alarm, but camera says it's not active
+              Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
+              alarms.erase(last_topic);
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+            }
+
+            // Set Event_Poller_Closes_Event if we see the camera can send state updates
+            if (!parent->Event_Poller_Closes_Event) {
+              parent->Event_Poller_Closes_Event = true;
+              Info("Setting ClosesEvent (camera supports PropertyOperation)");
+            }
+          } else if (operation == "Changed") {
+            // PropertyOperation="Changed" means the alarm state actually changed
+            bool state_is_active = interpret_alarm_value(last_value);
+
+            if (!state_is_active) {
+              // Alarm turned off
+              Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+              alarms.erase(last_topic);
+              Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
+                    alarms.size(), alarmed ? "true" : "false");
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+              if (!parent->Event_Poller_Closes_Event) {
+                parent->Event_Poller_Closes_Event = true;
+                Info("Setting ClosesEvent (detected Changed to inactive)");
               }
             } else {
-              // Update existing alarm value
-              alarms[last_topic] = last_value;
+              // Alarm turned on
+              Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+              if (alarms.count(last_topic) == 0) {
+                alarms[last_topic] = last_value;
+                if (!alarmed) {
+                  Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
+                  alarmed = true;
+                }
+              } else {
+                // Update existing alarm value
+                alarms[last_topic] = last_value;
+              }
+            }
+          } else {
+            // Unknown operation (shouldn't happen with spec-compliant cameras)
+            // Treat as legacy behavior for backwards compatibility
+            Warning("ONVIF Unknown PropertyOperation '%s', treating as legacy event. topic=%s value=%s",
+                    operation.c_str(), last_topic.c_str(), last_value.c_str());
+            bool state_is_active = interpret_alarm_value(last_value);
+
+            if (!state_is_active) {
+              alarms.erase(last_topic);
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+            } else {
+              if (alarms.count(last_topic) == 0) {
+                alarms[last_topic] = last_value;
+                if (!alarmed) {
+                  alarmed = true;
+                }
+              } else {
+                alarms[last_topic] = last_value;
+              }
             }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
@@ -603,6 +661,40 @@ void ONVIF::set_credentials(struct soap *soap) {
     Debug(2, "ONVIF: Using UsernameTokenDigest authentication");
     soap_wsse_add_UsernameTokenDigest(soap, "Auth", username, password);
   }
+}
+
+// Helper function to interpret alarm values from various formats
+// Returns true if the value indicates an active alarm, false otherwise
+bool ONVIF::interpret_alarm_value(const std::string &value) {
+  if (value.empty()) {
+    return false;  // Empty value = no alarm
+  }
+
+  // Check for explicit false values
+  if (value == "false" || value == "False" || value == "FALSE") {
+    return false;
+  }
+
+  // Check for numeric zero values (0, 00, 000, etc.)
+  bool all_zeros = true;
+  for (char c : value) {
+    if (c != '0') {
+      all_zeros = false;
+      break;
+    }
+  }
+  if (all_zeros) {
+    return false;  // "0", "00", "000", etc. = no alarm
+  }
+
+  // Check for explicit true values
+  if (value == "true" || value == "True" || value == "TRUE") {
+    return true;
+  }
+
+  // Any other non-zero value is considered active
+  // This handles "1", "001", custom camera values, etc.
+  return true;
 }
 
 // Helper function to parse event messages with flexible XML structure handling

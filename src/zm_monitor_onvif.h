@@ -67,6 +67,7 @@ class ONVIF {
   std::string subscription_timeout;  // Default "PT60S"
   
   // Helper methods
+  bool interpret_alarm_value(const std::string &value);  // Interpret alarm value from various formats
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();  // Parse options from parent->onvif_options

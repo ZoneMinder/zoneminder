@@ -12,12 +12,12 @@ function updateFooter(footer) {
     footerRow = $j('#consoleTable tfoot tr');
   }
   
-  // Helper function to update cell content (handles th-inner and fht-cell divs)
+  // Helper function to update cell content (only updates th-inner div)
   function updateCell(selector, content) {
     var cell = footerRow.find(selector);
     if (cell.length) {
-      // Check if bootstrap-table has wrapped content in divs
-      var innerDiv = cell.find('.th-inner, .fht-cell');
+      // Only update the th-inner div if it exists
+      var innerDiv = cell.find('.th-inner');
       if (innerDiv.length) {
         innerDiv.html(content);
       } else {
@@ -38,7 +38,8 @@ function updateFooter(footer) {
   eventPeriods.forEach(function(period, index) {
     if (eventCells.length > index) {
       var cell = $j(eventCells[index]);
-      var innerDiv = cell.find('.th-inner, .fht-cell');
+      // Only update the th-inner div if it exists
+      var innerDiv = cell.find('.th-inner');
       var target = innerDiv.length ? innerDiv : cell;
       
       var link = target.find('a');
@@ -77,13 +78,13 @@ function ajaxRequest(params) {
         monitors[row._id] = row;
       });
       
-      // Update footer with totals from response
+      // rearrange the result into what bootstrap-table expects
+      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      
+      // Update footer with totals from response after table is rendered
       if (data.footer) {
         updateFooter(data.footer);
       }
-      
-      // rearrange the result into what bootstrap-table expects
-      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
       if (jqXHR.statusText != 'abort') {

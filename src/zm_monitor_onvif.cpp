@@ -155,11 +155,8 @@ void Monitor::ONVIF::start() {
   const char *RequestMessageID = nullptr;
   bool use_wsa = parent->soap_wsa_compl;
 
-  if (use_wsa) {
-    RequestMessageID = soap_wsa_rand_uuid(soap);
-    if (soap_wsa_request(soap, RequestMessageID, proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") != SOAP_OK) {
-      Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest. Error %i %s, %s",
-          RequestMessageID, proxyEvent.soap_endpoint, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+  if (parent->soap_wsa_compl) {
+    if (add_wsa_request("CreatePullPointSubscriptionRequest") != SOAP_OK) {
       soap_destroy(soap);
       soap_end(soap);
       soap_free(soap);
@@ -196,11 +193,8 @@ void Monitor::ONVIF::start() {
       // Set credentials with plain auth
       set_credentials(soap);
 
-      if (use_wsa) {
-        RequestMessageID = soap_wsa_rand_uuid(soap);
-        if (soap_wsa_request(soap, RequestMessageID, proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") != SOAP_OK) {
-          Error("ONVIF: Couldn't set WS-Addressing headers on retry. RequestMessageID=%s; TO=%s", 
-              RequestMessageID, proxyEvent.soap_endpoint);
+      if (parent->soap_wsa_compl) {
+        if (add_wsa_request("CreatePullPointSubscriptionRequest") != SOAP_OK) {
           soap_free(soap);
           soap = nullptr;
           return;
@@ -330,7 +324,6 @@ void Monitor::ONVIF::Renew() {
   wsnt__Renew.TerminationTime = &subscription_timeout;
   if (parent->soap_wsa_compl) add_wsa_request("RenewRequest");
 
-  Debug(2, "ONVIF: WS-Addressing headers set for Renew");
   if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
     Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error==12) {//ActionNotSupported
@@ -348,16 +341,7 @@ void Monitor::ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
   set_credentials(soap);
   
-  if (parent->soap_wsa_compl) {
-    const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-    if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") != SOAP_OK) {
-      Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=PullMessageRequest. Error %i %s, %s",
-          RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      return;
-    }
-  } else {
-    Debug(4, "ONVIF: WS-Addressing disabled, not sending addressing headers");
-  }
+  if (parent->soap_wsa_compl) add_wsa_request("PullMessageRequest");
   
   Debug(1, "ONVIF: Starting PullMessageRequest ...");
   int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
@@ -395,7 +379,8 @@ void Monitor::ONVIF::WaitForMessage() {
         Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
               alarms.size(), alarmed ? "true" : "false");
         
-        // Timeout is not an error, don't increment retry_count
+        // Timeout is not an error, don't increment retry_count, in fact clear it.
+        retry_count = 0;
       }
     } else {
       // Success - reset retry count

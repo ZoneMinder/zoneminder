@@ -71,17 +71,26 @@ function ajaxRequest(params) {
     
     // Add form data to params.data
     formData.forEach(function(field) {
-      // Bootstrap-table already populates params.data with pagination/sort params
-      // We need to add our filter fields to it
+      // Check if this is an array field (name ends with [])
+      var isArrayField = field.name.endsWith('[]');
+      
       if (!params.data[field.name]) {
-        params.data[field.name] = field.value;
-      } else {
-        // Handle multiple values for the same field name (like arrays)
+        // First occurrence of this field
+        if (isArrayField) {
+          // Initialize as array for array fields
+          params.data[field.name] = [field.value];
+        } else {
+          // Single value for non-array fields
+          params.data[field.name] = field.value;
+        }
+      } else if (isArrayField) {
+        // Additional values for array fields
         if (!Array.isArray(params.data[field.name])) {
           params.data[field.name] = [params.data[field.name]];
         }
         params.data[field.name].push(field.value);
       }
+      // Non-array fields that already exist are not overwritten
     });
   }
   
@@ -429,8 +438,11 @@ function monitorFilterOnChange() {
     filterFields.forEach(function(fieldInfo) {
       var field = form.elements[fieldInfo.name];
       if (field) {
-        if (field.multiple || field.type === 'select-multiple') {
-          // Handle multi-select dropdowns
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+        
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
           var selected = $j(field).val();
           if (selected && selected.length > 0) {
             setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));

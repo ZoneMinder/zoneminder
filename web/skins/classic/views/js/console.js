@@ -62,6 +62,29 @@ function updateFooter(footer) {
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
   if (ajax) ajax.abort();
+  
+  // Get filter selections from the form and add to params.data
+  var form = document.forms['monitorForm'];
+  if (form) {
+    // Serialize form data to get filter values
+    var formData = $j(form).serializeArray();
+    
+    // Add form data to params.data
+    formData.forEach(function(field) {
+      // Bootstrap-table already populates params.data with pagination/sort params
+      // We need to add our filter fields to it
+      if (!params.data[field.name]) {
+        params.data[field.name] = field.value;
+      } else {
+        // Handle multiple values for the same field name (like arrays)
+        if (!Array.isArray(params.data[field.name])) {
+          params.data[field.name] = [params.data[field.name]];
+        }
+        params.data[field.name].push(field.value);
+      }
+    });
+  }
+  
   ajax = $j.ajax({
     method: 'POST',
     url: thisUrl + '?view=request&request=console&task=query',
@@ -386,6 +409,33 @@ function manageFunctionModal(evt) {
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload
 function monitorFilterOnChange() {
+  // Save filter values to cookies for persistence
+  var form = document.forms['monitorForm'];
+  if (form) {
+    // Save each filter field to a cookie
+    var filterFields = ['GroupId[]', 'ServerId[]', 'StorageId[]', 'Status[]', 
+                        'Capturing[]', 'Analysing[]', 'Recording[]', 
+                        'MonitorId[]', 'MonitorName', 'Source'];
+    
+    filterFields.forEach(function(fieldName) {
+      var field = form.elements[fieldName];
+      if (field) {
+        if (field.multiple || field.type === 'select-multiple') {
+          // Handle multi-select dropdowns
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldName, field.value);
+        }
+      }
+    });
+  }
+  
   // On console view with bootstrap-table, just refresh the table
   if (typeof table !== 'undefined' && table.length) {
     table.bootstrapTable('refresh');

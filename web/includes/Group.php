@@ -67,7 +67,7 @@ class Group extends ZM_Object {
     return $this->{'MonitorIds'};
   }
 
-  public static function get_group_dropdown( ) {
+  public static function get_group_dropdown( $view = null ) {
     $selected_group_id = 0;
     if ( isset($_REQUEST['groups']) ) {
       $selected_group_id = $group_id = $_SESSION['groups'] = $_REQUEST['groups'];
@@ -79,8 +79,11 @@ class Group extends ZM_Object {
       session_write_close();
     }
 
+    // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
+    $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
+
     return htmlSelect('GroupId[]', Group::get_dropdown_options(), isset($_SESSION['GroupId'])?$_SESSION['GroupId']:null, array(
-          'data-on-change' => 'submitThisForm',
+          'data-on-change' => $onChangeFunction,
           'class'=>'chosen',
           'multiple'=>'multiple',
           'data-placeholder'=>'All',

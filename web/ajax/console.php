@@ -93,6 +93,18 @@ function queryRequest() {
   
   // Build monitor query with filters from session
   zm_session_start();
+  
+  // Update session from request parameters (filter values from the form)
+  foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
+    if (isset($_REQUEST[$var])) {
+      if ($_REQUEST[$var] != '' && $_REQUEST[$var] !== array()) {
+        $_SESSION[$var] = $_REQUEST[$var];
+      } else {
+        unset($_SESSION[$var]);
+      }
+    }
+  }
+  
   $conditions = array();
   $values = array();
   

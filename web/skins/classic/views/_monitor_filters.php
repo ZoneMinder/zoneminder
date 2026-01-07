@@ -107,7 +107,7 @@ function buildMonitorsFilters() {
       $html .= '<span class="term-value-wrapper">';
       # This will end up with the group_id of the deepest selection
       $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
-      $html .= ZM\Group::get_group_dropdown();
+      $html .= ZM\Group::get_group_dropdown($view);
       $groupSql = ZM\Group::get_group_sql($group_id);
       $html .= addButtonResetForFilterSelect('GroupId[]');
       $html .= '</span>';

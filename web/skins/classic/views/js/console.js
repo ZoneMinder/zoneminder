@@ -62,6 +62,68 @@ function updateFooter(footer) {
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
   if (ajax) ajax.abort();
+  
+  // Get filter selections from the form and add to params.data
+  var form = document.forms['monitorForm'];
+  if (form) {
+    // Ensure params.data is initialized
+    if (!params.data) {
+      params.data = {};
+    }
+    
+    // Iterate over form elements instead of using serialize
+    for (var i = 0; i < form.elements.length; i++) {
+      var element = form.elements[i];
+      var name = element.name;
+      
+      // Skip elements without names or disabled elements
+      if (!name || element.disabled) {
+        continue;
+      }
+      
+      // Get the value(s) for this element
+      var value = null;
+      
+      if (element.type === 'select-multiple' || (element.multiple && element.tagName === 'SELECT')) {
+        // Handle multi-select dropdowns
+        var selectedOptions = [];
+        for (var j = 0; j < element.options.length; j++) {
+          if (element.options[j].selected) {
+            selectedOptions.push(element.options[j].value);
+          }
+        }
+        if (selectedOptions.length > 0) {
+          value = selectedOptions;
+        }
+      } else if (element.type === 'checkbox' || element.type === 'radio') {
+        // Only include checked checkboxes/radios
+        if (element.checked) {
+          value = element.value;
+        }
+      } else {
+        // Text inputs, single selects, etc.
+        value = element.value;
+      }
+      
+      // Only add to params.data if value is not empty
+      if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+        if (params.data[name]) {
+          // If field already exists, convert to array or append
+          if (!Array.isArray(params.data[name])) {
+            params.data[name] = [params.data[name]];
+          }
+          if (Array.isArray(value)) {
+            params.data[name] = params.data[name].concat(value);
+          } else {
+            params.data[name].push(value);
+          }
+        } else {
+          params.data[name] = value;
+        }
+      }
+    }
+  }
+  
   ajax = $j.ajax({
     method: 'POST',
     url: thisUrl + '?view=request&request=console&task=query',
@@ -386,6 +448,45 @@ function manageFunctionModal(evt) {
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload
 function monitorFilterOnChange() {
+  // Save filter values to cookies for persistence
+  var form = document.forms['monitorForm'];
+  if (form) {
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
+    
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
+      if (field) {
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+        
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
+        }
+      }
+    });
+  }
+  
   // On console view with bootstrap-table, just refresh the table
   if (typeof table !== 'undefined' && table.length) {
     table.bootstrapTable('refresh');

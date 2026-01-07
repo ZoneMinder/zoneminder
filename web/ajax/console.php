@@ -91,61 +91,34 @@ function queryRequest() {
   $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
   $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
   
-  // Build monitor query with filters from session
-  zm_session_start();
-  
-  // Update session from request parameters (filter values from the form)
-  foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
-    if (isset($_REQUEST[$var])) {
-      $value = $_REQUEST[$var];
-      // Check if value is meaningful (non-empty string or non-empty array)
-      if (is_array($value)) {
-        // For arrays, check if it has elements
-        if (count($value) > 0) {
-          $_SESSION[$var] = $value;
-        } else {
-          unset($_SESSION[$var]);
-        }
-      } else {
-        // For non-arrays (strings), check if not empty string
-        if ($value !== '') {
-          $_SESSION[$var] = $value;
-        } else {
-          unset($_SESSION[$var]);
-        }
-      }
-    }
-  }
-  
+  // Build monitor query with filters from request parameters (stateless)
   $conditions = array();
   $values = array();
   
-  // Store session filters for later use
-  $session_filters = array(
-    'GroupId' => isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null,
-    'ServerId' => isset($_SESSION['ServerId']) ? $_SESSION['ServerId'] : null,
-    'StorageId' => isset($_SESSION['StorageId']) ? $_SESSION['StorageId'] : null,
-    'Capturing' => isset($_SESSION['Capturing']) ? $_SESSION['Capturing'] : null,
-    'Analysing' => isset($_SESSION['Analysing']) ? $_SESSION['Analysing'] : null,
-    'Recording' => isset($_SESSION['Recording']) ? $_SESSION['Recording'] : null,
-    'Status' => isset($_SESSION['Status']) ? $_SESSION['Status'] : null,
-    'MonitorId' => isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : null,
-    'MonitorName' => isset($_SESSION['MonitorName']) ? $_SESSION['MonitorName'] : null,
-    'Source' => isset($_SESSION['Source']) ? $_SESSION['Source'] : null
+  // Get filter values directly from request
+  $request_filters = array(
+    'GroupId' => isset($_REQUEST['GroupId']) ? $_REQUEST['GroupId'] : null,
+    'ServerId' => isset($_REQUEST['ServerId']) ? $_REQUEST['ServerId'] : null,
+    'StorageId' => isset($_REQUEST['StorageId']) ? $_REQUEST['StorageId'] : null,
+    'Capturing' => isset($_REQUEST['Capturing']) ? $_REQUEST['Capturing'] : null,
+    'Analysing' => isset($_REQUEST['Analysing']) ? $_REQUEST['Analysing'] : null,
+    'Recording' => isset($_REQUEST['Recording']) ? $_REQUEST['Recording'] : null,
+    'Status' => isset($_REQUEST['Status']) ? $_REQUEST['Status'] : null,
+    'MonitorId' => isset($_REQUEST['MonitorId']) ? $_REQUEST['MonitorId'] : null,
+    'MonitorName' => isset($_REQUEST['MonitorName']) ? $_REQUEST['MonitorName'] : null,
+    'Source' => isset($_REQUEST['Source']) ? $_REQUEST['Source'] : null
   );
   
-  session_write_close();
-  
-  // Apply session filters to SQL
-  if ($session_filters['GroupId']) {
-    $GroupIds = is_array($session_filters['GroupId']) ? $session_filters['GroupId'] : array($session_filters['GroupId']);
+  // Apply request filters to SQL
+  if ($request_filters['GroupId']) {
+    $GroupIds = is_array($request_filters['GroupId']) ? $request_filters['GroupId'] : array($request_filters['GroupId']);
     $conditions[] = 'M.Id IN (SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (' . implode(',', array_fill(0, count($GroupIds), '?')) . '))';
     $values = array_merge($values, $GroupIds);
   }
   
   foreach (array('ServerId','StorageId') as $filter) {
-    if ($session_filters[$filter]) {
-      $filter_values = is_array($session_filters[$filter]) ? $session_filters[$filter] : array($session_filters[$filter]);
+    if ($request_filters[$filter]) {
+      $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -154,8 +127,8 @@ function queryRequest() {
   }
   
   foreach (array('Capturing','Analysing','Recording') as $filter) {
-    if ($session_filters[$filter]) {
-      $filter_values = is_array($session_filters[$filter]) ? $session_filters[$filter] : array($session_filters[$filter]);
+    if ($request_filters[$filter]) {
+      $filter_values = is_array($request_filters[$filter]) ? $request_filters[$filter] : array($request_filters[$filter]);
       if (count($filter_values)) {
         $conditions[] = 'M.'.$filter.' IN (' . implode(',', array_fill(0, count($filter_values), '?')) . ')';
         $values = array_merge($values, $filter_values);
@@ -163,8 +136,8 @@ function queryRequest() {
     }
   }
   
-  if ($session_filters['Status']) {
-    $status_values = is_array($session_filters['Status']) ? $session_filters['Status'] : array($session_filters['Status']);
+  if ($request_filters['Status']) {
+    $status_values = is_array($request_filters['Status']) ? $request_filters['Status'] : array($request_filters['Status']);
     if (count($status_values)) {
       $conditions[] = 'COALESCE(S.Status, IF(M.Type="WebSite","Running","NotRunning")) IN (' . implode(',', array_fill(0, count($status_values), '?')) . ')';
       $values = array_merge($values, $status_values);
@@ -210,17 +183,17 @@ function queryRequest() {
     });
   }
   
-  // Apply MonitorName and Source session filters
-  if ($session_filters['MonitorName']) {
-    $regexp = $session_filters['MonitorName'];
+  // Apply MonitorName and Source request filters
+  if ($request_filters['MonitorName']) {
+    $regexp = $request_filters['MonitorName'];
     if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
       return @preg_match($regexp, $monitor['Name']);
     });
   }
   
-  if ($session_filters['Source']) {
-    $regexp = $session_filters['Source'];
+  if ($request_filters['Source']) {
+    $regexp = $request_filters['Source'];
     if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp))
       $regexp = '/'.$regexp.'/i';
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
@@ -230,8 +203,8 @@ function queryRequest() {
   }
   
   // Apply MonitorId filter
-  if ($session_filters['MonitorId']) {
-    $monitor_ids = is_array($session_filters['MonitorId']) ? $session_filters['MonitorId'] : array($session_filters['MonitorId']);
+  if ($request_filters['MonitorId']) {
+    $monitor_ids = is_array($request_filters['MonitorId']) ? $request_filters['MonitorId'] : array($request_filters['MonitorId']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($monitor_ids) {
       return in_array($monitor['Id'], $monitor_ids);
     });

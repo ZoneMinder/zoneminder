@@ -3,6 +3,42 @@ const table = $j('#consoleTable');
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
 
+// Update footer with dynamic totals
+function updateFooter(footer) {
+  // Update monitor count (in Id column if shown)
+  if ($j('tfoot .colId').length) {
+    $j('tfoot .colId').html('Total: ' + footer.monitor_count);
+  }
+  
+  // Update bandwidth/FPS (in Function column)
+  if ($j('tfoot .colFunction').length) {
+    $j('tfoot .colFunction').html(footer.bandwidth_fps);
+  }
+  
+  // Update event totals
+  var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
+  eventPeriods.forEach(function(period) {
+    var cell = $j('tfoot td.colEvents:eq(' + eventPeriods.indexOf(period) + ')');
+    if (cell.length) {
+      var link = cell.find('a');
+      if (link.length) {
+        // Preserve the link but update the count
+        var newHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+                      footer[period + 'EventDiskSpace'] + '</div>';
+        link.html(newHtml);
+      } else {
+        cell.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+                  footer[period + 'EventDiskSpace'] + '</div>');
+      }
+    }
+  });
+  
+  // Update zone count
+  if ($j('tfoot .colZones').length) {
+    $j('tfoot .colZones').text(footer.total_zones);
+  }
+}
+
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
   if (ajax) ajax.abort();
@@ -21,6 +57,12 @@ function ajaxRequest(params) {
       rows.forEach(function(row) {
         monitors[row._id] = row;
       });
+      
+      // Update footer with totals from response
+      if (data.footer) {
+        updateFooter(data.footer);
+      }
+      
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },

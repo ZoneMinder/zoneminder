@@ -251,9 +251,36 @@ function queryRequest() {
   }
   
   // Process each monitor and build row data
+  $footer_totals = array(
+    'monitor_count' => count($filtered_monitors),
+    'total_bandwidth' => 0,
+    'total_fps' => 0,
+    'total_analysis_fps' => 0,
+    'total_zones' => 0,
+    'event_totals' => array(
+      'Total' => array('events' => 0, 'diskspace' => 0),
+      'Hour' => array('events' => 0, 'diskspace' => 0),
+      'Day' => array('events' => 0, 'diskspace' => 0),
+      'Week' => array('events' => 0, 'diskspace' => 0),
+      'Month' => array('events' => 0, 'diskspace' => 0),
+      'Archived' => array('events' => 0, 'diskspace' => 0)
+    )
+  );
+  
   foreach ($filtered_monitors as $monitor) {
     $Monitor = new ZM\Monitor($monitor);
     $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
+    
+    // Accumulate footer totals
+    $footer_totals['total_bandwidth'] += isset($monitor['CaptureBandwidth']) ? $monitor['CaptureBandwidth'] : 0;
+    $footer_totals['total_fps'] += isset($monitor['CaptureFPS']) ? floatval($monitor['CaptureFPS']) : 0;
+    $footer_totals['total_analysis_fps'] += isset($monitor['AnalysisFPS']) ? floatval($monitor['AnalysisFPS']) : 0;
+    $footer_totals['total_zones'] += isset($monitor['ZoneCount']) ? intval($monitor['ZoneCount']) : 0;
+    
+    foreach (array('Total', 'Hour', 'Day', 'Week', 'Month', 'Archived') as $period) {
+      $footer_totals['event_totals'][$period]['events'] += isset($monitor[$period.'Events']) ? intval($monitor[$period.'Events']) : 0;
+      $footer_totals['event_totals'][$period]['diskspace'] += isset($monitor[$period.'EventDiskSpace']) ? intval($monitor[$period.'EventDiskSpace']) : 0;
+    }
     
     $row = array();
     $row['Id'] = $monitor['Id'];
@@ -363,6 +390,21 @@ function queryRequest() {
     }
     
     $data['rows'][] = $row;
+  }
+  
+  // Add footer totals to response
+  $data['footer'] = array(
+    'monitor_count' => $footer_totals['monitor_count'],
+    'bandwidth_fps' => human_filesize($footer_totals['total_bandwidth']).'/s '.
+                       round($footer_totals['total_fps'], 2).' fps / '.
+                       round($footer_totals['total_analysis_fps'], 2).' fps',
+    'total_zones' => $footer_totals['total_zones']
+  );
+  
+  // Add formatted event totals to footer
+  foreach (array('Total', 'Hour', 'Day', 'Week', 'Month', 'Archived') as $period) {
+    $data['footer'][$period.'Events'] = $footer_totals['event_totals'][$period]['events'];
+    $data['footer'][$period.'EventDiskSpace'] = human_filesize($footer_totals['event_totals'][$period]['diskspace']);
   }
   
   return $data;

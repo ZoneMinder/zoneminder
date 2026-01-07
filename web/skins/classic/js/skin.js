@@ -1988,6 +1988,8 @@ function resetSelectElement(el) {
 
   if (currentView == 'events') {
     filterEvents(clickedElement = selectElement);
+  } else if (currentView == 'console') {
+    monitorFilterOnChange();
   } else {
     submitThisForm(this.closest('form'));
   }

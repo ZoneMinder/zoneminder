@@ -235,7 +235,7 @@ echo $navbar ?>
         data-cookie-same-site="Strict"
         data-cookie-id-table="zmConsoleTable"
         data-cookie-expire="2y"
-        data-remember-order="true"
+        data-remember-order="false"
         data-show-columns="true"
         data-show-export="true"
         data-show-footer="true"
@@ -292,59 +292,12 @@ echo $navbar ?>
   } // end foreach eventCounts
 ?>
             <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th data-sortable="true" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
           </tr>
         </thead>
         <tbody id="consoleTableBody">
         </tbody>
-        <tfoot>
-          <tr>
-<?php if ($canEditMonitors) { ?>
-            <td class="colMark"></td>
-<?php } ?>
-<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
-            <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
-<?php } ?>
-<?php if ( ZM_WEB_LIST_THUMBS ) { ?>
-            <td class="colThumbnail"></td>
-<?php } ?>
-            <td class="colName"></td>
-            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s '.
-$total_fps.' fps / '.$total_analysis_fps.' fps' ?></td>
-<?php if ( count($Servers) ) { ?>
-            <td class="colServer"></td>
-<?php } ?>
-            <td class="colSource"></td>
-<?php if ( $show_storage_areas ) { ?>
-            <td class="colStorage"></td>
-<?php
-}
-  foreach ( array_keys($eventCounts) as $i ) {
-    $filter = addFilterTerm(
-      $eventCounts[$i]['filter'],
-      count($eventCounts[$i]['filter']['Query']['terms']),
-      array(
-        'cnj'=>'and',
-        'attr'=>'Monitor',
-        'op'=>'IN',
-        'val'=>implode(',', $displayMonitorIds)
-        )
-    );
-    parseFilter($filter);
-?>
-            <td class="colEvents">
-              <a <?php echo
-              (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '') . 
-              (int)$eventCounts[$i]['totalevents'].'</a><br/>
-              <div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace'])
-            ?></div>
-            </td>
-<?php
-  } // end foreach eventCounts
-?>
-            <td class="colZones"><?php echo $zoneCount ?></td>
-         </tr>
-        </tfoot>
-        </table>
+      </table>
     </div><!-- content table responsive div -->
   </form>
 </div><!--content-->

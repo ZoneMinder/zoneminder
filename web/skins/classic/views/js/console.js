@@ -11,7 +11,7 @@ function updateFooter(footer) {
   if (!footerRow.length) {
     footerRow = $j('#consoleTable tfoot tr');
   }
-  
+
   // Helper function to update cell content (only updates th-inner div)
   function updateCell(selector, content) {
     var cell = footerRow.find(selector);
@@ -25,13 +25,13 @@ function updateFooter(footer) {
       }
     }
   }
-  
+
   // Update monitor count (in Id column if shown)
   updateCell('td.colId, th.colId', 'Total: ' + footer.monitor_count);
-  
+
   // Update bandwidth/FPS (in Function column)
   updateCell('td.colFunction, th.colFunction', footer.bandwidth_fps);
-  
+
   // Update event totals
   var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
   var eventCells = footerRow.find('td.colEvents, th.colEvents');
@@ -41,20 +41,20 @@ function updateFooter(footer) {
       // Only update the th-inner div if it exists
       var innerDiv = cell.find('.th-inner');
       var target = innerDiv.length ? innerDiv : cell;
-      
+
       var link = target.find('a');
       if (link.length) {
         // Preserve the link but update the count
-        var newHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+        var newHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
                       footer[period + 'EventDiskSpace'] + '</div>';
         link.html(newHtml);
       } else {
-        target.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+        target.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
                     footer[period + 'EventDiskSpace'] + '</div>');
       }
     }
   });
-  
+
   // Update zone count
   updateCell('td.colZones, th.colZones', footer.total_zones);
 }
@@ -62,7 +62,7 @@ function updateFooter(footer) {
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
   if (ajax) ajax.abort();
-  
+
   // Get filter selections from the form and add to params.data
   var form = document.forms['monitorForm'];
   if (form) {
@@ -70,20 +70,20 @@ function ajaxRequest(params) {
     if (!params.data) {
       params.data = {};
     }
-    
+
     // Iterate over form elements instead of using serialize
     for (var i = 0; i < form.elements.length; i++) {
       var element = form.elements[i];
       var name = element.name;
-      
+
       // Skip elements without names or disabled elements
       if (!name || element.disabled) {
         continue;
       }
-      
+
       // Get the value(s) for this element
       var value = null;
-      
+
       if (element.type === 'select-multiple' || (element.multiple && element.tagName === 'SELECT')) {
         // Handle multi-select dropdowns
         var selectedOptions = [];
@@ -104,7 +104,7 @@ function ajaxRequest(params) {
         // Text inputs, single selects, etc.
         value = element.value;
       }
-      
+
       // Only add to params.data if value is not empty
       if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
         if (params.data[name]) {
@@ -123,7 +123,7 @@ function ajaxRequest(params) {
       }
     }
   }
-  
+
   ajax = $j.ajax({
     method: 'POST',
     url: thisUrl + '?view=request&request=console&task=query',
@@ -139,10 +139,10 @@ function ajaxRequest(params) {
       rows.forEach(function(row) {
         monitors[row._id] = row;
       });
-      
+
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
-      
+
       // Update footer with totals from response after table is rendered
       if (data.footer) {
         updateFooter(data.footer);
@@ -159,18 +159,18 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     var mid = row.Id;
-    
+
     // Store original ID for later use
     row._id = mid;
-    
+
     var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
-    
+
     // Determine status classes
     var source_class = 'infoText';
     var source_class_reason = '';
     // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
     var fps_report_seconds = 90;
-    
+
     if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
@@ -186,20 +186,20 @@ function processRows(rows) {
         source_class_reason = 'No analysis FPS';
       }
     }
-    
+
     var dot_class = source_class;
     var dot_class_reason = source_class_reason;
-    
+
     // Format Id column
     if (stream_available) {
       row.Id = '<a href="?view=watch&amp;mid=' + mid + '">' + mid + '</a>';
     } else {
       row.Id = mid;
     }
-    
+
     // Thumbnail goes in its own column if enabled
     // (row.Thumbnail is already set from AJAX response)
-    
+
     // Format Name column with status indicator, link, and groups (no thumbnail)
     var nameHtml = '<i class="material-icons ' + dot_class + '" title="' + dot_class_reason + '">lens</i> ';
     if (stream_available) {
@@ -207,14 +207,14 @@ function processRows(rows) {
     } else {
       nameHtml += row.Name;
     }
-    
+
     // Add groups
     if (row.Groups) {
       nameHtml += '<br/><div class="small text-nowrap text-muted">' + row.Groups + '</div>';
     }
-    
+
     row.Name = nameHtml;
-    
+
     // Format Function column with status and FPS info
     var functionHtml = '';
     if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < Date.now() - fps_report_seconds * 1000)) {
@@ -232,7 +232,7 @@ function processRows(rows) {
         functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';
-      
+
       var fps_string = '';
       if (row.CaptureFPS) {
         fps_string = row.CaptureFPS;
@@ -247,7 +247,7 @@ function processRows(rows) {
       functionHtml += fps_string + '</div>';
     }
     row.Function = functionHtml;
-    
+
     // Format Source column with link and dimensions
     var sourceHtml = '';
     if (canEdit.Monitors) {
@@ -257,33 +257,33 @@ function processRows(rows) {
     }
     sourceHtml += '<br/>' + row.Width + 'x' + row.Height;
     row.Source = sourceHtml;
-    
+
     // Format event count columns
     var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
     eventPeriods.forEach(function(period) {
       if (canView.Events) {
-        row[period + 'Events'] = '<a href="?view=' + ZM_WEB_EVENTS_VIEW + '&amp;MonitorId=' + mid + '">' + 
-          row[period + 'Events'] + '</a><br/><div class="small text-nowrap text-muted">' + 
+        row[period + 'Events'] = '<a href="?view=' + ZM_WEB_EVENTS_VIEW + '&amp;MonitorId=' + mid + '">' +
+          row[period + 'Events'] + '</a><br/><div class="small text-nowrap text-muted">' +
           row[period + 'EventDiskSpace'] + '</div>';
       } else {
-        row[period + 'Events'] = row[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' + 
+        row[period + 'Events'] = row[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
           row[period + 'EventDiskSpace'] + '</div>';
       }
     });
-    
+
     // Format Zones column
     if (canView.Monitors) {
       row.ZoneCount = '<a href="?view=zones&amp;mid=' + mid + '">' + row.ZoneCount + '</a>';
     }
   });
-  
+
   return rows;
 }
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
   const form = document.forms['monitorForm'];
-  
+
   if (selections && selections.length > 0) {
     form.editBtn.disabled = false;
     form.deleteBtn.disabled = false;
@@ -325,11 +325,11 @@ function cloneMonitor(element) {
 function editMonitor(element) {
   const selections = table.bootstrapTable('getSelections');
   if (selections.length == 0) return;
-  
+
   var monitorIds = selections.map(function(sel) {
     return sel._id;
   });
-  
+
   if (monitorIds.length == 1) {
     window.location.assign('?view=monitor&mid=' + monitorIds[0]);
   } else if (monitorIds.length > 1) {
@@ -343,7 +343,7 @@ function deleteMonitor(element) {
   if (confirm('Deleting a monitor only marks it as deleted.  Events will age out. If you want them to be immediately removed, please delete them first.\nAre you sure you wish to delete?')) {
     const form = element.form;
     form.elements['action'].value = 'delete';
-    
+
     // Get selected monitor IDs and add them to the form
     const selections = table.bootstrapTable('getSelections');
     selections.forEach(function(sel) {
@@ -353,7 +353,7 @@ function deleteMonitor(element) {
       input.value = sel._id;
       form.appendChild(input);
     });
-    
+
     form.submit();
   }
 }
@@ -361,11 +361,11 @@ function deleteMonitor(element) {
 function selectMonitor(element) {
   const selections = table.bootstrapTable('getSelections');
   var url = thisUrl + '?view=console';
-  
+
   selections.forEach(function(sel) {
     url += '&MonitorId[]=' + sel._id;
   });
-  
+
   window.location.replace(url);
 }
 
@@ -464,13 +464,13 @@ function monitorFilterOnChange() {
       {name: 'MonitorName', cookieName: 'MonitorName'},
       {name: 'Source', cookieName: 'Source'}
     ];
-    
+
     filterFields.forEach(function(fieldInfo) {
       var field = form.elements[fieldInfo.name];
       if (field) {
         // Check if it's a multi-value field (ends with [] or is select-multiple)
         var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
-        
+
         if (isMultiValue) {
           // Handle multi-select dropdowns and array fields
           var selected = $j(field).val();
@@ -486,7 +486,7 @@ function monitorFilterOnChange() {
       }
     });
   }
-  
+
   // On console view with bootstrap-table, just refresh the table
   if (typeof table !== 'undefined' && table.length) {
     table.bootstrapTable('refresh');
@@ -499,32 +499,37 @@ function monitorFilterOnChange() {
 function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
-  
+  // Hide these columns on first run when no cookie is saved
+  if (!getCookie('zmConsoleTable.bs.table.hiddenColumns')) {
+    // table.bootstrapTable('hideColumn', 'Archived');
+    table.bootstrapTable('hideColumn', 'Sequence');
+  }
+
   // Enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
-    function() {
-      const selections = table.bootstrapTable('getSelections');
-      const form = document.forms['monitorForm'];
-      
-      if (selections.length > 0) {
-        form.editBtn.disabled = false;
-        form.deleteBtn.disabled = false;
-        form.selectBtn.disabled = false;
-        form.cloneBtn.disabled = false;
-      } else {
-        form.editBtn.disabled = true;
-        form.deleteBtn.disabled = true;
-        form.selectBtn.disabled = true;
-        form.cloneBtn.disabled = true;
+      function() {
+        const selections = table.bootstrapTable('getSelections');
+        const form = document.forms['monitorForm'];
+
+        if (selections.length > 0) {
+          form.editBtn.disabled = false;
+          form.deleteBtn.disabled = false;
+          form.selectBtn.disabled = false;
+          form.cloneBtn.disabled = false;
+        } else {
+          form.editBtn.disabled = true;
+          form.deleteBtn.disabled = true;
+          form.selectBtn.disabled = true;
+          form.cloneBtn.disabled = true;
+        }
       }
-    }
   );
-  
+
   // Setup automatic refresh with table refresh instead of page reload
   if (consoleRefreshTimeout > 0) {
     setInterval(reloadWindow, consoleRefreshTimeout);
   }
-  
+
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {
@@ -551,7 +556,7 @@ function initPage() {
     disabled: true,
     update: applySort,
     axis: 'Y'} );
-  
+
   // Make the table visible after initialization
   table.show();
 } // end function initPage

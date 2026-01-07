@@ -97,7 +97,7 @@ function queryRequest() {
   // Update session from request parameters (filter values from the form)
   foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
     if (isset($_REQUEST[$var])) {
-      if ($_REQUEST[$var] != '' && !(is_array($_REQUEST[$var]) && count($_REQUEST[$var]) == 0)) {
+      if (!empty($_REQUEST[$var])) {
         $_SESSION[$var] = $_REQUEST[$var];
       } else {
         unset($_SESSION[$var]);

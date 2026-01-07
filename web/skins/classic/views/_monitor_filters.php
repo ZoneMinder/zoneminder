@@ -72,19 +72,16 @@ function buildMonitorsFilters() {
       }
     } else if (isset($_REQUEST['filtering'])) {
       unset($_SESSION[$var]);
-    } else if (!isset($_SESSION[$var]) && isset($_COOKIE['zmFilter_'.$var.'[]'])) {
+    } else if (!isset($_SESSION[$var])) {
       // Restore from cookie if session doesn't have a value
-      $cookieValue = $_COOKIE['zmFilter_'.$var.'[]'];
-      if ($cookieValue && $cookieValue !== '') {
-        // Try to decode JSON for array values
-        $decoded = json_decode($cookieValue, true);
-        $_SESSION[$var] = ($decoded !== null) ? $decoded : $cookieValue;
-      }
-    } else if (!isset($_SESSION[$var]) && isset($_COOKIE['zmFilter_'.$var])) {
-      // Restore from cookie if session doesn't have a value (for text fields)
-      $cookieValue = $_COOKIE['zmFilter_'.$var];
-      if ($cookieValue && $cookieValue !== '') {
-        $_SESSION[$var] = $cookieValue;
+      $cookieName = 'zmFilter_'.$var;
+      if (isset($_COOKIE[$cookieName])) {
+        $cookieValue = $_COOKIE[$cookieName];
+        if ($cookieValue && $cookieValue !== '') {
+          // Try to decode JSON for array values
+          $decoded = json_decode($cookieValue, true);
+          $_SESSION[$var] = ($decoded !== null) ? $decoded : $cookieValue;
+        }
       }
     }
   }

@@ -412,25 +412,34 @@ function monitorFilterOnChange() {
   // Save filter values to cookies for persistence
   var form = document.forms['monitorForm'];
   if (form) {
-    // Save each filter field to a cookie
-    var filterFields = ['GroupId[]', 'ServerId[]', 'StorageId[]', 'Status[]', 
-                        'Capturing[]', 'Analysing[]', 'Recording[]', 
-                        'MonitorId[]', 'MonitorName', 'Source'];
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
     
-    filterFields.forEach(function(fieldName) {
-      var field = form.elements[fieldName];
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
       if (field) {
         if (field.multiple || field.type === 'select-multiple') {
           // Handle multi-select dropdowns
           var selected = $j(field).val();
           if (selected && selected.length > 0) {
-            setCookie('zmFilter_' + fieldName, JSON.stringify(selected));
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
           } else {
-            setCookie('zmFilter_' + fieldName, '');
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
           }
         } else if (field.type === 'text') {
           // Handle text inputs
-          setCookie('zmFilter_' + fieldName, field.value);
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
         }
       }
     });

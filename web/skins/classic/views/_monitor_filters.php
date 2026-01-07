@@ -23,17 +23,17 @@ function addFilterSelect($name, $options) {
   // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
   $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
   
-  // Get selected value from session, or fallback to cookie
+  // Get selected value from cookie first, then fallback to session
   $selectedValue = '';
-  if (isset($_SESSION[$name])) {
-    $selectedValue = $_SESSION[$name];
-  } else if (isset($_COOKIE['zmFilter_'.$name])) {
+  if (isset($_COOKIE['zmFilter_'.$name])) {
     $cookieValue = $_COOKIE['zmFilter_'.$name];
     if ($cookieValue && $cookieValue !== '') {
       // Try to decode JSON for array values
       $decoded = json_decode($cookieValue, true);
       $selectedValue = ($decoded !== null) ? $decoded : $cookieValue;
     }
+  } else if (isset($_SESSION[$name])) {
+    $selectedValue = $_SESSION[$name];
   }
   
   $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';

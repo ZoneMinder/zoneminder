@@ -174,9 +174,6 @@ function processRows(rows) {
     if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
-    } else if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < Date.now() - fps_report_seconds * 1000)) {
-      source_class = 'errorText';
-      source_class_reason = 'Offline';
     } else {
       if (row.CaptureFPS == '0.00') {
         source_class = 'errorText';

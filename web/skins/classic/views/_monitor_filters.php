@@ -19,12 +19,16 @@
 //
 
 function addFilterSelect($name, $options) {
+  global $view;
+  // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
+  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
+  
   $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect($name.'[]', $options,
     (isset($_SESSION[$name])?$_SESSION[$name]:''),
       array(
-        'data-on-change'=>'submitThisForm',
+        'data-on-change'=>$onChangeFunction,
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -52,8 +56,11 @@ function addButtonResetForFilterSelect($nameSelect) {
 }
 
 function buildMonitorsFilters() {
-  global $user, $Servers;
+  global $user, $Servers, $view;
   require_once('includes/Monitor.php');
+  
+  // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
+  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
 
   zm_session_start();
   foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
@@ -151,7 +158,7 @@ function buildMonitorsFilters() {
     $html .= htmlSelect('ServerId[]', $ServersById,
       (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
       array(
-        'data-on-change'=>'submitThisForm',
+        'data-on-change'=>$onChangeFunction,
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -168,7 +175,7 @@ function buildMonitorsFilters() {
     $html .= htmlSelect('StorageId[]', $StorageById,
       (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
       array(
-        'data-on-change'=>'submitThisForm',
+        'data-on-change'=>$onChangeFunction,
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -189,7 +196,7 @@ function buildMonitorsFilters() {
   $html .= htmlSelect( 'Status[]', $status_options,
     ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
     array(
-      'data-on-change'=>'submitThisForm',
+      'data-on-change'=>$onChangeFunction,
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All'
@@ -296,7 +303,7 @@ function buildMonitorsFilters() {
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
-      'data-on-change'=>'submitThisForm',
+      'data-on-change'=>$onChangeFunction,
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',

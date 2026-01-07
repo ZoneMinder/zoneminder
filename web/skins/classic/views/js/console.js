@@ -158,7 +158,7 @@ function processRows(rows) {
     if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < Date.now() - fps_report_seconds * 1000)) {
       functionHtml = 'Offline<br/>';
     } else {
-      functionHtml = 'Status: ' + row.Status + '<br/>';
+      functionHtml = '';
       if (row.Analysing && row.Analysing != 'None') {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }

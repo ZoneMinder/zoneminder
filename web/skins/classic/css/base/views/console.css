@@ -64,6 +64,11 @@
     vertical-align: middle;
 }
 
+.consoleTable thead th .material-icons {
+    vertical-align: middle;
+    line-height: inherit;
+}
+
 .consoleTable tfoot td {
     padding-top: 4px;
     vertical-align: middle;
@@ -87,6 +92,11 @@
 }
 .consoleTable .colFunction {
     width: 135px;
+    text-align: center;
+}
+
+.consoleTable .colId {
+    width: 70px;
     text-align: center;
 }
 
@@ -161,8 +171,20 @@ body.sticky #monitorList thead {
   }
 }
 
+.colThumbnail {
+  position: relative;
+}
+
 .colThumbnail img:hover {
-  /*
   position: absolute;
-  */
+  z-index: 1000;
+}
+
+/* Allow thumbnails to expand beyond table boundaries */
+.consoleTable:has(.colThumbnail img:hover) {
+  overflow: visible !important;
+}
+
+#monitorList:has(.colThumbnail img:hover) {
+  overflow: visible !important;
 }

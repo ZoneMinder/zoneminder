@@ -409,7 +409,9 @@ void ONVIF::WaitForMessage() {
         // PropertyOperation - cameras DO send proper "Deleted" or value changes, we just
         // weren't interpreting them correctly.
 
+        int msg_index = 0;
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+          msg_index++;
           std::string topic, value, operation;
           
           // Use improved parsing that handles different message structures
@@ -431,8 +433,9 @@ void ONVIF::WaitForMessage() {
           
           last_topic = topic;
           last_value = value;
-          
-          Info("ONVIF Got Event! topic:%s value:%s operation:%s",
+
+          Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
+               msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
                last_topic.c_str(), last_value.c_str(), operation.c_str());
 
           // Handle PropertyOperation according to ONVIF spec:
@@ -836,20 +839,43 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
       const char *elem_name = colon ? colon + 1 : elt->name;
       
       if (std::strcmp(elem_name, "SimpleItem") == 0) {
-        // SimpleItem has Value attribute
+        // SimpleItem has Name and Value attributes
+        // We need to find SimpleItems with specific Names like "State", "IsMotion", etc.
+        // Not just any SimpleItem (e.g., Source identifiers)
         if (elt->atts) {
+          std::string item_name;
+          std::string item_value;
+
           struct soap_dom_attribute *att = elt->atts;
           while (att) {
             if (att->name && att->text) {
               const char *att_colon = std::strrchr(att->name, ':');
               const char *att_name = att_colon ? att_colon + 1 : att->name;
-              if (std::strcmp(att_name, "Value") == 0) {
-                value = att->text;
-                Debug(3, "ONVIF: Found SimpleItem Value: %s", value.c_str());
-                return true;
+
+              if (std::strcmp(att_name, "Name") == 0) {
+                item_name = att->text;
+              } else if (std::strcmp(att_name, "Value") == 0) {
+                item_value = att->text;
               }
             }
             att = att->next;
+          }
+
+          // Look for data items, not source/token identifiers
+          // Common data item names: State, IsMotion, IsTamper, etc.
+          if (!item_name.empty() && !item_value.empty()) {
+            Debug(4, "ONVIF: Found SimpleItem Name=%s Value=%s", item_name.c_str(), item_value.c_str());
+
+            // Check if this is a data item (not a source identifier)
+            if (item_name == "State" ||
+                item_name == "IsMotion" ||
+                item_name == "IsTamper" ||
+                item_name == "Value" ||  // Generic value field
+                item_name.find("Is") == 0) {  // Items starting with "Is"
+              value = item_value;
+              Debug(3, "ONVIF: Found data SimpleItem %s=%s", item_name.c_str(), value.c_str());
+              return true;
+            }
           }
         }
       } else if (std::strcmp(elem_name, "ElementItem") == 0) {

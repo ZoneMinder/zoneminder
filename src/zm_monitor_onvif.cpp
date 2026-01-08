@@ -58,6 +58,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,try_usernametoken_auth(false)
   ,retry_count(0)
   ,max_retries(5)
+  ,warned_initialized_repeat(false)
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
@@ -456,6 +457,17 @@ void ONVIF::WaitForMessage() {
             // PropertyOperation="Initialized" means this is the current state at subscription time,
             // NOT a new alarm trigger. We should sync our state with the camera's current state,
             // but not trigger a new event.
+
+            // Track repeated Initialized messages (non-compliant camera behavior)
+            initialized_count[last_topic]++;
+            if (!warned_initialized_repeat && initialized_count[last_topic] > 1) {
+              Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s). "
+                      "According to ONVIF spec, 'Initialized' should only be sent once at subscription time. "
+                      "This is non-compliant camera behavior but ZoneMinder handles it correctly by not triggering false alarms.",
+                      initialized_count[last_topic], last_topic.c_str());
+              warned_initialized_repeat = true;
+            }
+
             bool state_is_active = interpret_alarm_value(last_value);
             Debug(2, "ONVIF Property Initialized: topic=%s value=%s active=%s",
                   last_topic.c_str(), last_value.c_str(), state_is_active ? "true" : "false");

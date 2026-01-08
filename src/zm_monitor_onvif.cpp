@@ -461,9 +461,7 @@ void ONVIF::WaitForMessage() {
             // Track repeated Initialized messages (non-compliant camera behavior)
             initialized_count[last_topic]++;
             if (!warned_initialized_repeat && initialized_count[last_topic] > 1) {
-              Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s). "
-                      "According to ONVIF spec, 'Initialized' should only be sent once at subscription time. "
-                      "This is non-compliant camera behavior but ZoneMinder handles it correctly by not triggering false alarms.",
+              Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s).",
                       initialized_count[last_topic], last_topic.c_str());
               warned_initialized_repeat = true;
             }
@@ -1009,4 +1007,3 @@ void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #endif
   return;
 }
-

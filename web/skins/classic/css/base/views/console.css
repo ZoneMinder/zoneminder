@@ -188,3 +188,14 @@ body.sticky #monitorList thead {
 #monitorList:has(.colThumbnail img:hover) {
   overflow: visible !important;
 }
+/* Make the boot-strap table monitor list scrollable instead of content div */
+#content ,
+#monitorList,
+#monitorList .bootstrap-table,
+#monitorList .fixed-table-container {
+  overflow: hidden;
+  height: 100%;
+}
+#monitorList .fixed-table-container {
+  overflow: auto;
+}

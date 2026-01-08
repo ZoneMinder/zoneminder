@@ -34,6 +34,7 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#include "zm_monitor_onvif.h"
 #include "zm_mqtt.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
@@ -41,13 +42,6 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-#ifdef WITH_GSOAP
-#include <openssl/err.h>
-
-#include "plugin/wsaapi.h"
-#include "plugin/wsseapi.h"
-#include "soapPullPointSubscriptionBindingProxy.h"
-#endif
 
 #if HAVE_QUADRA
 extern "C" {
@@ -75,6 +69,7 @@ class MonitorLinkExpression;
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
+  friend class ONVIF;
 
  public:
   typedef enum { QUERY = 0, CAPTURE, ANALYSIS } Purpose;
@@ -381,63 +376,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *monitor;
   };
 #endif
-
-  class ONVIF {
-   protected:
-    Monitor *parent;
-    bool subscribed;
-    bool healthy;
-    bool alarmed;
-
-    std::string last_topic;
-    std::string last_value;
-    void SetNoteSet(Event::StringSet &noteSet);
-#ifdef WITH_GSOAP
-    struct soap *soap = nullptr;
-    _tev__CreatePullPointSubscription request;
-    _tev__CreatePullPointSubscriptionResponse response;
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    _wsnt__Renew wsnt__Renew;
-    _wsnt__RenewResponse wsnt__RenewResponse;
-    PullPointSubscriptionBindingProxy proxyEvent;
-    void set_credentials(struct soap *soap);
-    bool try_usernametoken_auth;  // Track if we should try plain auth
-    int retry_count;  // Track retry attempts
-    int max_retries;  // Maximum retry attempts before giving up
-    std::string discovered_event_endpoint;  // Store discovered endpoint
-    SystemTimePoint last_retry_time;  // Time of last retry attempt
-    
-    // Configurable timeout values (can be set via onvif_options)
-    std::string pull_timeout;  // Default "PT20S"
-    std::string subscription_timeout;  // Default "PT60S"
-    
-    // Helper methods
-    bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
-    bool matches_topic_filter(const std::string &topic, const std::string &filter);
-    void parse_onvif_options();  // Parse options from parent->onvif_options
-    int get_retry_delay();  // Calculate exponential backoff delay
-#endif
-    std::unordered_map<std::string, std::string> alarms;
-    std::mutex   alarms_mutex;
-   private:
-    void Renew();
-    void PullMessages();
-    int add_wsa_request(const char *request);
-   public:
-    explicit ONVIF(Monitor *parent_);
-    ~ONVIF();
-    void start();
-    void stop();
-    void WaitForMessage();
-    bool isAlarmed() {
-      std::unique_lock<std::mutex> lck(alarms_mutex);
-      return alarmed;
-    };
-    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-    bool isHealthy() const { return healthy; };
-    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
-  };
 
   class AmcrestAPI {
    private:

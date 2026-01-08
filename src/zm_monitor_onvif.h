@@ -30,6 +30,7 @@
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
 #include "plugin/wsaapi.h"
+#include "plugin/logging.h"
 #include <openssl/err.h>
 #endif
 
@@ -61,12 +62,18 @@ class ONVIF {
   int max_retries;  // Maximum retry attempts before giving up
   std::string discovered_event_endpoint;  // Store discovered endpoint
   SystemTimePoint last_retry_time;  // Time of last retry attempt
-  
+  bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
+  std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic
+
   // Configurable timeout values (can be set via onvif_options)
   std::string pull_timeout;  // Default "PT20S"
   std::string subscription_timeout;  // Default "PT60S"
-  
+  std::string soap_log_file;  // SOAP message logging file (empty = disabled)
+  FILE *soap_log_fd;  // File descriptor for SOAP logging
+
   // Helper methods
+  void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging
+  void disable_soap_logging();  // Disable SOAP message logging
   bool interpret_alarm_value(const std::string &value);  // Interpret alarm value from various formats
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
   bool matches_topic_filter(const std::string &topic, const std::string &filter);

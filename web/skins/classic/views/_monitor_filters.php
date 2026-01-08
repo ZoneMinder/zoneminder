@@ -157,10 +157,12 @@ function buildMonitorsFilters() {
     $values = array_merge($values, $ids);
   }
 
+  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
+
   $monitorNameValue = getFilterFromCookie('MonitorName');
   $html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'"/></span>';
+  $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'" data-on-input="'.$onChangeFunction.'"/></span>';
   $html .= '</span>'.PHP_EOL;
 
   $html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));

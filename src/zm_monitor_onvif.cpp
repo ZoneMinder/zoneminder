@@ -60,6 +60,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,max_retries(5)
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
+  ,soap_log_fd(nullptr)
 #endif
 {
 #ifdef WITH_GSOAP
@@ -98,6 +99,7 @@ ONVIF::~ONVIF() {
       proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     }
 
+    disable_soap_logging();
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);
@@ -127,6 +129,12 @@ void ONVIF::start() {
   } else {
     Debug(2, "ONVIF: WS-Addressing disabled");
   }
+
+  // Enable SOAP logging if configured
+  if (!soap_log_file.empty()) {
+    enable_soap_logging(soap_log_file);
+  }
+
   proxyEvent = PullPointSubscriptionBindingProxy(soap);
 
   Url url(parent->onvif_url);
@@ -574,12 +582,53 @@ void ONVIF::WaitForMessage() {
 }
 
 #ifdef WITH_GSOAP
+// Enable SOAP message logging to a file
+// This logs all sent and received SOAP messages for debugging
+void ONVIF::enable_soap_logging(const std::string &log_path) {
+  if (!soap) {
+    Warning("ONVIF: Cannot enable SOAP logging, soap context not initialized");
+    return;
+  }
+
+  // Close existing log file if open
+  disable_soap_logging();
+
+  // Open new log file
+  soap_log_fd = fopen(log_path.c_str(), "a");
+  if (!soap_log_fd) {
+    Error("ONVIF: Failed to open SOAP log file: %s", log_path.c_str());
+    return;
+  }
+
+  // Enable gSOAP logging - logs both sent and received messages
+  soap_set_recv_logfile(soap, soap_log_fd);
+  soap_set_sent_logfile(soap, soap_log_fd);
+  soap_set_test_logfile(soap, soap_log_fd);
+
+  Info("ONVIF: SOAP message logging enabled to: %s", log_path.c_str());
+}
+
+// Disable SOAP message logging and close log file
+void ONVIF::disable_soap_logging() {
+  if (soap_log_fd) {
+    if (soap) {
+      soap_set_recv_logfile(soap, nullptr);
+      soap_set_sent_logfile(soap, nullptr);
+      soap_set_test_logfile(soap, nullptr);
+    }
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+    Debug(2, "ONVIF: SOAP message logging disabled");
+  }
+}
+
 // Parse ONVIF options from the onvif_options string
 // Format: key1=value1,key2=value2
 // Supported options:
 //   pull_timeout=PT20S - Timeout for PullMessages requests
 //   subscription_timeout=PT60S - Timeout for subscription renewal
 //   max_retries=5 - Maximum retry attempts
+//   soap_log=/path/to/logfile - Enable SOAP message logging
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
     return;
@@ -609,6 +658,9 @@ void ONVIF::parse_onvif_options() {
         } catch (const std::exception &e) {
           Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
         }
+      } else if (key == "soap_log") {
+        soap_log_file = value;
+        Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
       }
     }
   };

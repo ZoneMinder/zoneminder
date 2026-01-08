@@ -203,15 +203,24 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        // Adjust zone dimensions if monitor has rotation applied
+        $zoneWidth = $newMonitor['Width'];
+        $zoneHeight = $newMonitor['Height'];
+        if (isset($newMonitor['Orientation']) &&
+            ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
+          // Swap dimensions for 90/270 degree rotations
+          $zoneWidth = $newMonitor['Height'];
+          $zoneHeight = $newMonitor['Width'];
+        }
+        $zoneArea = $zoneWidth * $zoneHeight;
         dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid,
               sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-                $newMonitor['Width']-1,
+                $zoneWidth-1,
                 0,
-                $newMonitor['Width']-1,
-                $newMonitor['Height']-1,
+                $zoneWidth-1,
+                $zoneHeight-1,
                 0,
-                $newMonitor['Height']-1),
+                $zoneHeight-1),
               $zoneArea,
               intval(($zoneArea*3)/100),
               intval(($zoneArea*75)/100),

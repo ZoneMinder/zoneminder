@@ -582,7 +582,7 @@ void ONVIF::WaitForMessage() {
 }
 
 #ifdef WITH_GSOAP
-// Enable SOAP message logging to a file
+// Enable SOAP message logging to a file using the gSOAP logging plugin
 // This logs all sent and received SOAP messages for debugging
 void ONVIF::enable_soap_logging(const std::string &log_path) {
   if (!soap) {
@@ -600,21 +600,37 @@ void ONVIF::enable_soap_logging(const std::string &log_path) {
     return;
   }
 
-  // Enable gSOAP logging - logs both sent and received messages
-  soap_set_recv_logfile(soap, soap_log_fd);
-  soap_set_sent_logfile(soap, soap_log_fd);
-  soap_set_test_logfile(soap, soap_log_fd);
+  // Register the logging plugin
+  if (soap_register_plugin(soap, logging) != SOAP_OK) {
+    Error("ONVIF: Failed to register logging plugin: %s", soap_fault_string(soap));
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+    return;
+  }
 
-  Info("ONVIF: SOAP message logging enabled to: %s", log_path.c_str());
+  // Get the logging plugin data and configure it
+  struct logging_data *log_data = (struct logging_data*)soap_lookup_plugin(soap, LOGGING_ID);
+  if (log_data) {
+    log_data->inbound = soap_log_fd;   // Log received messages
+    log_data->outbound = soap_log_fd;  // Log sent messages
+    Info("ONVIF: SOAP message logging enabled to: %s", log_path.c_str());
+  } else {
+    Error("ONVIF: Failed to get logging plugin data");
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+  }
 }
 
 // Disable SOAP message logging and close log file
 void ONVIF::disable_soap_logging() {
   if (soap_log_fd) {
     if (soap) {
-      soap_set_recv_logfile(soap, nullptr);
-      soap_set_sent_logfile(soap, nullptr);
-      soap_set_test_logfile(soap, nullptr);
+      // Unregister the logging plugin
+      struct logging_data *log_data = (struct logging_data*)soap_lookup_plugin(soap, LOGGING_ID);
+      if (log_data) {
+        log_data->inbound = nullptr;
+        log_data->outbound = nullptr;
+      }
     }
     fclose(soap_log_fd);
     soap_log_fd = nullptr;

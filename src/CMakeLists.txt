@@ -92,6 +92,7 @@ if(GSOAP_FOUND)
   ${GSOAP_PLUGIN_DIR}/mecevp.c
   ${GSOAP_PLUGIN_DIR}/wsaapi.c
   ${GSOAP_PLUGIN_DIR}/wsseapi.c
+  ${GSOAP_PLUGIN_DIR}/logging.c
   ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c
   )
 
@@ -109,11 +110,13 @@ if(GSOAP_FOUND)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES LANGUAGE CXX)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/logging.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES LANGUAGE CXX)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-implicit-function-declaration")
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/logging.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
 
   #Create a cmake target that generate gsoap files
@@ -134,6 +137,7 @@ if(GSOAP_FOUND)
         DEPENDS ${GSOAP_PLUGIN_DIR}/mecevp.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/wsaapi.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/wsseapi.c
+        DEPENDS ${GSOAP_PLUGIN_DIR}/logging.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c
   )
 

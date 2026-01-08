@@ -30,6 +30,7 @@
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
 #include "plugin/wsaapi.h"
+#include "plugin/logging.h"
 #include <openssl/err.h>
 #endif
 

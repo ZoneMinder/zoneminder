@@ -59,7 +59,7 @@ class downloadingGeneratedEventFile {
       $this->filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$this->connkey.$this->fileExt";
       $this->filename = str_replace('/', '', $this->filename); # protect system files. must be a filename, not a path
       $this->exportRoot = isset($_REQUEST['export_root'])?$_REQUEST['export_root']."/":"";
-      $this->exportRoot = str_replace('/', '', $this->export_root); # protect system files. must be a export_root, not a path
+      $this->exportRoot = str_replace('/', '', $this->exportRoot); # protect system files. must be a export_root, not a path
 
       if ($this->exportRoot) {
         $this->filenamePath = DIR_EXPORTS_DOWNLOAD.'/'. $this->exportRoot . '/' . $this->filename;

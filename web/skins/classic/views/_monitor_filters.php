@@ -25,7 +25,9 @@ function addFilterSelect($name, $options) {
   
   // Get selected value from cookie only
   $selectedValue = '';
-  if (isset($_COOKIE['zmFilter_'.$name])) {
+  if (isset($_REQUEST[$name])) {
+    $selectedValue = $_REQUEST[$name];
+  } else if (isset($_COOKIE['zmFilter_'.$name])) {
     $cookieValue = $_COOKIE['zmFilter_'.$name];
     if ($cookieValue && $cookieValue !== '') {
       // Try to decode JSON for array values

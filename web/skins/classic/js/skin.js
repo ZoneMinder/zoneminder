@@ -1491,6 +1491,7 @@ function canPlayCodec(filename) {
     else {
       console.log('matches didnt match'+matches[1]);
     }
+    video.muted = true;
 
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
@@ -1987,6 +1988,8 @@ function resetSelectElement(el) {
 
   if (currentView == 'events') {
     filterEvents(clickedElement = selectElement);
+  } else if (currentView == 'console') {
+    monitorFilterOnChange();
   } else {
     submitThisForm(this.closest('form'));
   }

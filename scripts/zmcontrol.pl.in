@@ -22,6 +22,7 @@
 # ==========================================================================
 
 use strict;
+use warnings;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
@@ -100,7 +101,7 @@ if ($options{command}) {
     Error("Unable to connect to zmcontrol server at $sock_file");
   }
 } else {
-  # The server isn't there
+  # We are the server
   require ZoneMinder::Monitor;
 
   my $monitor = ZoneMinder::Monitor->find_one(Id=>$id);
@@ -124,21 +125,14 @@ if ($options{command}) {
   $SIG{TERM} = \&TermHandler;
   $SIG{INT} = \&TermHandler;
 
-  Info("Control server $id/$protocol starting at "
-    .strftime('%y/%m/%d %H:%M:%S', localtime())
-  );
+  Info("Control server $id/$protocol starting at " .strftime('%y/%m/%d %H:%M:%S', localtime()));
 
   $0 = $0.' --id '.$id;
 
   my $control_key = $control->getKey();
   $control->loadMonitor();
-
-  $control->open();
-
-  # If we have a command when starting up, then do it.
-  if ($options{command}) {
-    my $command = $options{command};
-    $control->$command(\%options);
+  if (!$control->open()) {
+    Warning("Failed to open control");
   }
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");

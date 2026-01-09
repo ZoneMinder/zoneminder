@@ -40,12 +40,7 @@
 #include <vector>
 #include <curl/curl.h>
 
-#ifdef WITH_GSOAP
-#include "soapPullPointSubscriptionBindingProxy.h"
-#include "plugin/wsseapi.h"
-#include "plugin/wsaapi.h"
-#include <openssl/err.h>
-#endif
+#include "zm_monitor_onvif.h"
 
 class Group;
 class MonitorLinkExpression;
@@ -62,6 +57,7 @@ class MonitorLinkExpression;
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
+  friend class ONVIF;
 
  public:
   typedef enum {
@@ -326,41 +322,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int score();
   };
  protected:
-
-  class ONVIF {
-   protected:
-    Monitor *parent;
-    bool alarmed;
-    bool healthy;
-    std::string last_topic;
-    std::string last_value;
-    void SetNoteSet(Event::StringSet &noteSet);
-#ifdef WITH_GSOAP
-    struct soap *soap = nullptr;
-    _tev__CreatePullPointSubscription request;
-    _tev__CreatePullPointSubscriptionResponse response;
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    _wsnt__Renew wsnt__Renew;
-    _wsnt__RenewResponse wsnt__RenewResponse;
-    PullPointSubscriptionBindingProxy proxyEvent;
-    void set_credentials(struct soap *soap);
-#endif
-    std::unordered_map<std::string, std::string> alarms;
-    std::mutex   alarms_mutex;
-   public:
-    explicit ONVIF(Monitor *parent_);
-    ~ONVIF();
-    void start();
-    void WaitForMessage();
-    bool isAlarmed() {
-      std::unique_lock<std::mutex> lck(alarms_mutex);
-      return alarmed;
-    };
-    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-    bool isHealthy() const { return healthy; };
-    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
-  };
 
   class AmcrestAPI {
    private:

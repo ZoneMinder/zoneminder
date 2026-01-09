@@ -201,8 +201,8 @@ Event::~Event() {
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
@@ -213,8 +213,8 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
-        std::chrono::system_clock::to_time_t(end_time),
+        "UPDATE Events SET EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
@@ -392,10 +392,10 @@ void Event::WriteDbFrames() {
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %.2f, %d ),",
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %jd ), %.2f, %d ),",
                                  id, frame->frame_id,
                                  frame_type_names[frame->type],
-                                 std::chrono::system_clock::to_time_t(frame->timestamp),
+                                 static_cast<intmax_t>(std::chrono::system_clock::to_time_t(frame->timestamp)),
                                  std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
                                  frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {

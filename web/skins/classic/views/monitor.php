@@ -296,9 +296,6 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
-$devices = [''=>translate('Other')];
-foreach (glob('/dev/video*') as $device) 
-  $devices[$device] = $device;
 
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
@@ -456,6 +453,7 @@ if (canEdit('Monitors')) {
     <!-- BEGIN ITEM LIST -->
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
+        <input type="password" name="dummy_password" style="display:none;"/><?php #to prevent chrome from saving passwords ?>
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
@@ -524,8 +522,16 @@ switch ($name) {
 <?php 
   require_once('includes/Model.php');
   $models = array(''=>translate('Unknown'));
+  # We still do the query even if manufacturerId is empty so that it lists models with no manufacturer
   foreach ( ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()), array('order'=>'lower(Name)')) as $Model ) {
     $models[$Model->Id()] = $Model->Name();
+  }
+  # This is to handle a case where the model's manufacturerId didn't get set, or somehow is no longer valid
+  if ($monitor->ModelId() and !isset($models[$monitor->ModelId()])) {
+    $model = $monitor->Model();
+    if (!$model->ManufacturerId() or !ZM\Manufacturer::find_one(['Id'=>$model->ManufacturerId()])) {
+      $model->save(['ManufacturerId'=>$monitor->ManufacturerId()]);
+    }
   }
   echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(),
       array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
@@ -533,7 +539,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
                     autocomplete="new_model"
-                    value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
+                    value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"' : '' ?>
                     data-on-input-this="Model_onchange"
                     />
               </li>
@@ -653,12 +659,17 @@ switch ($name) {
             </li>
 <?php
       if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
+        $devices = [''=>translate('Other')];
+        foreach (glob('/dev/video*') as $device) 
+          $devices[$device] = $device;
+        if ($monitor->Device() and !isset($devices[$monitor->Device()]))
+          $devices[$monitor->Device()] = $monitor->Device();
 ?>
           <li class="Device">
             <label><?php echo translate('DevicePath') ?></label>
 <?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
             <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
-<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+<?php echo (count($devices) > 1) ? 'style="display: none;"' : '' ?> autocomplete="off"
             />
           </li>
 <?php

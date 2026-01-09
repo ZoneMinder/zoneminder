@@ -27,49 +27,6 @@ define( 'ZM_CONFIG_SUBDIR', '@ZM_CONFIG_SUBDIR@' ); // Path to config subfolder
 define( 'ZM_VERSION', '@VERSION@' );               // Version
 define( 'ZM_DIR_TEMP', '@ZM_TMPDIR@' );
 define( 'ZM_DIR_CACHE', '@ZM_CACHEDIR@' );
-global $zm_configvals;
-
-$configFile = ZM_CONFIG;
-$localConfigFile = basename($configFile);
-if ( file_exists($localConfigFile) && filesize($localConfigFile) > 0 ) {
-  if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
-    print("Warning, overriding installed $localConfigFile file with local copy\n");
-  else
-    error_log("Warning, overriding installed $localConfigFile file with local copy");
-  $configFile = $localConfigFile;
-}
-
-# Process name, value pairs from the main config file first
-$zm_configvals = process_configfile($configFile);
-if (!$zm_configvals) $zm_configvals = [];
-
-# Search for user created config files. If one or more are found then
-# update our config value array with those values
-$configSubFolder = ZM_CONFIG_SUBDIR;
-if ( is_dir($configSubFolder) ) {
-  if ( is_readable($configSubFolder) ) {
-    foreach ( glob($configSubFolder.'/*.conf') as $filename ) {
-      //error_log("processing $filename");
-      $newconfigvals = process_configfile($filename);
-      if ($newconfigvals) $zm_configvals = array_replace($zm_configvals, $newconfigvals);
-    }
-  } else {
-    error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
-  }
-} else {
-  error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.$configSubFolder);
-}
-
-# Now that our array our finalized, define each key => value
-# pair in the array as a constant
-foreach ( $zm_configvals as $key => $value ) {
-  define($key, $value);
-}
-
-//
-// This section is options normally derived from other options or configuration
-//
-define('ZMU_PATH', ZM_PATH_BIN.'/zmu');               // Local path to the ZoneMinder Utility
 
 //
 // If setup supports Video 4 Linux v2
@@ -160,10 +117,13 @@ $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateF
 $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
 $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 
-require_once('database.php');
-require_once('logger.php');
-loadConfig();
+global $zm_config;
+$zm_config = loadConfig();
 ZM\Logger::fetch()->initialise();
+//
+// This section is options normally derived from other options or configuration
+//
+define('ZMU_PATH', ZM_PATH_BIN.'/zmu');               // Local path to the ZoneMinder Utility
 
 $locale = ZM_LOCALE_DEFAULT;
 $locales = ResourceBundle::getLocales('');
@@ -229,27 +189,73 @@ $GLOBALS['defaultUser'] = array(
 );
 
 function loadConfig( $defineConsts=true ) {
-  global $zm_config;
+  $configFile = ZM_CONFIG;
+  $localConfigFile = basename($configFile);
+  if ( file_exists($localConfigFile) && filesize($localConfigFile) > 0 ) {
+    if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
+      print("Warning, overriding installed $localConfigFile file with local copy\n");
+    else
+      error_log("Warning, overriding installed $localConfigFile file with local copy");
+    $configFile = $localConfigFile;
+  }
+
+  # Process name, value pairs from the main config file first
+  $initial_config = process_configfile($configFile);
+  if (!$initial_config) $initial_config = [];
+
+  # Search for user created config files. If one or more are found then
+  # update our config value array with those values
+  if ( is_dir(ZM_CONFIG_SUBDIR) ) {
+    if ( is_readable(ZM_CONFIG_SUBDIR) ) {
+      foreach ( glob(ZM_CONFIG_SUBDIR.'/*.conf') as $filename ) {
+        $newconfig = process_configfile($filename);
+        if ($newconfig) $initial_config = array_merge($initial_config, $newconfig);
+      }
+    } else {
+      error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
+    }
+  } else {
+    error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.$configSubFolder);
+  }
+
+  # Need initial config defines in order to connect to db
+  # Now that our array our finalized, define each key => value
+  # pair in the array as a constant
+  if ($defineConsts) {
+    foreach ( $initial_config as $key => $config ) {
+      define($key, $config['Value']);
+    }
+  }
+
+  # Must have DB defines in place before including database.php
+  require_once('database.php');
+  require_once('logger.php');
+
+  $config = [];
+
   global $dbConn;
-
-  $config = array();
-
   $result = $dbConn->query('SELECT Name,Value,Type,Private FROM Config');
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
-    $zm_config[$row['Name']] = $row;
+    $name = $row['Name'];
+
+    $config[$name] = $row;
+    if (isset($initial_config[$name])) {
+      $config[$name]['Value'] = $initial_config[$name]['Value'];
+      unset($initial_config[$name]);
+    }
 
     if ( $defineConsts ) {
       # Values in conf.d files override db so check if already defined and update value
-      if ( ! defined($row['Name']) ) {
-        define($row['Name'], $row['Value']);
+      if (!defined($name)) {
+        define($name, $row['Value']);
       } else {
-        $zm_config[$row['Name']]['Value'] = constant($row['Name']);
+        $config[$name]['Value'] = constant($name);
       }
     }
   }
-  return $zm_config;
+  return array_merge($config, $initial_config); # Merge any remaining config not in db
 } # end function loadConfig
 
 require_once('Server.php');
@@ -291,7 +297,7 @@ if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )
   ini_set('date.timezone', ZM_TIMEZONE);
 
 function process_configfile($configFile) {
-  $configvals = array();
+  $config = array();
   if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or error_log('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
@@ -299,7 +305,7 @@ function process_configfile($configFile) {
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
       } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches) ) {
-        $configvals[$matches[1]] = $matches[2];
+        $config[$matches[1]] = ['Name'=>$matches[1], 'Value'=>$matches[2]];
 			} else {
 				error_log("Malformed line in config $configFile\n$str");
 			}
@@ -308,7 +314,7 @@ function process_configfile($configFile) {
   } else {
     error_log('WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on '.$configFile);
   }
-  return $configvals;
+  return $config;
 }
 
 ?>

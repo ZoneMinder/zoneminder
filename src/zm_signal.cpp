@@ -163,17 +163,23 @@ void zmSetTermHandler(SigHandler * handler) {
   sigaction(SIGQUIT, &action, &old_action);
 }
 
-void zmSetDieHandler(SigHandler * handler) {
+void zmSetDieHandler(
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+    SigActionHandler *handler
+#else
+    SigHandler *handler
+#endif
+) {
   sigset_t block_set;
   sigemptyset(&block_set);
   struct sigaction action, old_action;
 
   action.sa_mask = block_set;
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-  action.sa_sigaction = (void (*)(int, siginfo_t *, void *))handler;
+  action.sa_sigaction = handler;
   action.sa_flags = SA_SIGINFO;
 #else
-  action.sa_handler = (SigHandler *) handler;
+  action.sa_handler = handler;
   action.sa_flags = 0;
 #endif
 
@@ -196,6 +202,6 @@ void zmSetDefaultDieHandler() {
   if ( config.dump_cores ) {
     // Do nothing
   } else {
-    zmSetDieHandler((SigHandler *) zm_die_handler);
+    zmSetDieHandler(zm_die_handler);
   }
 }

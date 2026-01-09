@@ -110,7 +110,7 @@ class EventData extends AppModel {
 			'fields' => '',
 			'order' => ''
 		),
-		'Monitor' => array(
+		'Frame' => array(
 			'className' => 'Frame',
 			'foreignKey' => 'FrameId',
 			'conditions' => '',

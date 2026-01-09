@@ -730,10 +730,9 @@ bool ONVIF::Renew() {
   wsnt__Renew.TerminationTime = &subscription_timeout;
   
   bool use_wsa = parent->soap_wsa_compl;
-  const char *RequestMessageID = nullptr;
   
   if (use_wsa) {
-    RequestMessageID = soap_wsa_rand_uuid(soap);
+    const char *RequestMessageID = soap_wsa_rand_uuid(soap);
     if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") != SOAP_OK) {
       Error("ONVIF: Couldn't set WS-Addressing headers for Renew. RequestMessageID=%s; TO=%s; Request=RenewRequest. Error %i %s, %s",
           RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));

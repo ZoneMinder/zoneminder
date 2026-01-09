@@ -303,10 +303,11 @@ void ONVIF::WaitForMessage() {
   
   bool use_wsa = parent->soap_wsa_compl;
   
-  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
-    return;
-  }
-  if (!use_wsa) {
+  if (use_wsa) {
+    if (!do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
+      return;
+    }
+  } else {
     Debug(2, "ONVIF: WS-Addressing disabled, not sending addressing headers");
   }
   

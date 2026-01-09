@@ -778,7 +778,7 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
   int depth = 0;
   const int max_depth = 10;
   
-  while (elt && depth < max_depth) {
+  while (elt && (depth < max_depth)) {
     Debug(4, "ONVIF: Examining element at depth %d: %s", depth, (elt->name ? elt->name : "null"));
     
     // Check if this is a PropertyOperation element
@@ -862,7 +862,7 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
           continue;
         }
       }
-    }
+    }  // end if elt->name
     
     // Try to descend into children first
     if (elt->elts) {
@@ -875,7 +875,7 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
       // No children or siblings
       break;
     }
-  }
+  }  // end while (elt && (depth < max_depth))
   
   // Fallback: try the old parsing method for backward compatibility
   // This preserves the original deeply nested null-checking pattern

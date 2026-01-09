@@ -777,19 +777,26 @@ int ONVIF::get_retry_delay() {
 // Update subscription renewal tracking times based on TerminationTime from ONVIF response
 // termination_time: Unix timestamp (time_t) indicating when subscription expires
 void ONVIF::update_renewal_times(time_t termination_time) {
-  if (termination_time == 0) {
-    Warning("ONVIF: Received invalid TerminationTime (0), not updating renewal tracking");
+  if (termination_time <= 0) {
+    Warning("ONVIF: Received invalid TerminationTime (%ld), not updating renewal tracking", 
+            static_cast<long>(termination_time));
     return;
   }
   
   // Convert time_t to SystemTimePoint
   subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
   
-  // Calculate renewal time: 10 seconds before termination
+  // Validate that termination time is in the future
+  auto now = std::chrono::system_clock::now();
+  if (subscription_termination_time <= now) {
+    Warning("ONVIF: Received TerminationTime in the past, not updating renewal tracking");
+    return;
+  }
+  
+  // Calculate renewal time: N seconds before termination
   next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
   
   // Log the renewal schedule
-  auto now = std::chrono::system_clock::now();
   auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
     next_renewal_time - now).count();
   auto seconds_until_termination = std::chrono::duration_cast<std::chrono::seconds>(

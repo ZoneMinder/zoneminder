@@ -517,9 +517,9 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
     }
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
-    $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path);
+    $scaled_path = preg_replace('/\.jpg$/', "-{$width}x{$height}.jpg", $path);
     if ($Event) {
-      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
+      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-{$width}x{$height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
 

@@ -77,6 +77,7 @@ use MIME::Base64;
 use Digest::SHA;
 use DateTime;
 use URI;
+use URI::Escape;
 use Data::Dumper;
 
 require ZoneMinder::Base;
@@ -86,7 +87,6 @@ our @ISA = qw(ZoneMinder::Control);
 
 our %CamParams = ();
 
-our ($profileToken, $address, $port, %identity);
 my ( $controlUri, $scheme );
 
 # ==========================================================================
@@ -125,6 +125,8 @@ use Time::HiRes qw( usleep );
 use LWP::UserAgent;
 use IO::Socket::SSL;
 
+my $profileToken;
+
 sub open {
   my $self = shift;
 
@@ -158,6 +160,7 @@ sub parseControlAddress {
   my $url = URI->new($controlAddress);
   $$self{scheme} = $url->scheme;
   @$self{'username','password'} = split /:/, $url->userinfo if $url->userinfo;
+  $$self{password} = URI::Escape::uri_unescape($$self{password});
 
   #If we have no explicitly defined port
   $$self{port} = $url->port ? $url->port : $url->default_port;
@@ -214,7 +217,7 @@ sub sendCmd {
   my $server_endpoint = $$self{BaseURL}.$$self{path};
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => $content_type);
-  $req->header('Host' => $address . ':' . $port);
+  $req->header('Host' => $$self{address} . ':' . $$self{port});
   $req->header('content-length' => length($msg));
   $req->header('accept-encoding' => 'gzip, deflate');
   $req->header('connection' => 'Close');
@@ -275,7 +278,11 @@ sub autoStop {
   my $iszoom = shift;
 
   if ( $autostop ) {
-    Debug('Auto Stop');
+    my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
+    $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
+    # Change from microseconds to milliseconds or seconds to milliseconds
+    Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
+
     my $cmd = $controlUri;
     my $msg_body;
     if ( $iszoom) {
@@ -299,7 +306,7 @@ sub autoStop {
     }
 
     my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
-    usleep($autostop);
+    usleep($duration);
     $self->sendCmd($cmd, $msg_body, $content_type);
   }
 }

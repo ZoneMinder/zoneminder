@@ -1,5 +1,5 @@
 //
-// ZoneMinder Monitor::ONVIF Class Implementation
+// ZoneMinder ONVIF Class Implementation
 // Copyright (C) 2024 ZoneMinder Inc
 //
 // This program is free software; you can redistribute it and/or
@@ -17,6 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
 
 #include <cstring>
@@ -48,7 +49,7 @@ std::string SOAP_STRINGS[] = {
   "SOAP_FAULT", //                      12
 };
 
-Monitor::ONVIF::ONVIF(Monitor *parent_) :
+ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
   ,alarmed(false)
   ,healthy(false)
@@ -57,8 +58,10 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
   ,try_usernametoken_auth(false)
   ,retry_count(0)
   ,max_retries(5)
+  ,warned_initialized_repeat(false)
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
+  ,soap_log_fd(nullptr)
 #endif
 {
 #ifdef WITH_GSOAP
@@ -67,7 +70,7 @@ Monitor::ONVIF::ONVIF(Monitor *parent_) :
 #endif
 }
 
-Monitor::ONVIF::~ONVIF() {
+ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "ONVIF: Tearing Down");
@@ -97,6 +100,7 @@ Monitor::ONVIF::~ONVIF() {
       proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     }
 
+    disable_soap_logging();
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);
@@ -105,7 +109,7 @@ Monitor::ONVIF::~ONVIF() {
 #endif
 }
 
-void Monitor::ONVIF::start() {
+void ONVIF::start() {
 #ifdef WITH_GSOAP
   tev__PullMessages.Timeout = pull_timeout.c_str();
   tev__PullMessages.MessageLimit = 10;
@@ -126,6 +130,12 @@ void Monitor::ONVIF::start() {
   } else {
     Debug(2, "ONVIF: WS-Addressing disabled");
   }
+
+  // Enable SOAP logging if configured
+  if (!soap_log_file.empty()) {
+    enable_soap_logging(soap_log_file);
+  }
+
   proxyEvent = PullPointSubscriptionBindingProxy(soap);
 
   Url url(parent->onvif_url);
@@ -321,7 +331,7 @@ void Monitor::ONVIF::start() {
 #endif
 }
 
-void Monitor::ONVIF::WaitForMessage() {
+void ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
   set_credentials(soap);
   
@@ -392,13 +402,16 @@ void Monitor::ONVIF::WaitForMessage() {
       {  // Scope for lock
         std::unique_lock<std::mutex> lck(alarms_mutex);
 
-        bool has_messages = tev__PullMessagesResponse.wsnt__NotificationMessage.size() > 0;
-        if (!has_messages and !parent->Event_Poller_Closes_Event and alarmed) {
-          alarmed = false;
-          alarms.clear();
-        }
-        
+        // Note: We do NOT clear alarms on empty PullMessages response.
+        // According to ONVIF spec, alarms should only be cleared based on explicit
+        // PropertyOperation="Deleted" or PropertyOperation="Changed" with inactive value.
+        // The old code cleared on empty messages because it wasn't properly handling
+        // PropertyOperation - cameras DO send proper "Deleted" or value changes, we just
+        // weren't interpreting them correctly.
+
+        int msg_index = 0;
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+          msg_index++;
           std::string topic, value, operation;
           
           // Use improved parsing that handles different message structures
@@ -420,15 +433,21 @@ void Monitor::ONVIF::WaitForMessage() {
           
           last_topic = topic;
           last_value = value;
-          
-          Info("ONVIF Got Event! topic:%s value:%s operation:%s", 
+
+          Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
+               msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
                last_topic.c_str(), last_value.c_str(), operation.c_str());
-          
-          // Handle PropertyOperation: Deleted means alarm is cleared
+
+          // Handle PropertyOperation according to ONVIF spec:
+          // - "Deleted" = property no longer exists (alarm ended)
+          // - "Initialized" = current state at subscription time (not a new alarm)
+          // - "Changed" = property value changed (actual alarm state transition)
+
           if (operation == "Deleted") {
+            // PropertyOperation="Deleted" means the alarm has ended
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s", 
+            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
                   alarms.size(), alarmed ? "true" : "false");
             if (alarms.empty()) {
               alarmed = false;
@@ -437,36 +456,97 @@ void Monitor::ONVIF::WaitForMessage() {
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent (detected Deleted operation)");
             }
-          } else if (value.find("false") == 0 || value == "0") {
-            // Value indicates alarm is off
-            Info("ONVIF Alarm Off for topic: %s", last_topic.c_str());
-            alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s", 
-                  alarms.size(), alarmed ? "true" : "false");
-            if (alarms.empty()) {
-              alarmed = false;
+          } else if (operation == "Initialized") {
+            // PropertyOperation="Initialized" means this is the current state at subscription time,
+            // NOT a new alarm trigger. We should sync our state with the camera's current state,
+            // but not trigger a new event.
+
+            // Track repeated Initialized messages (non-compliant camera behavior)
+            initialized_count[last_topic]++;
+            if (!warned_initialized_repeat && initialized_count[last_topic] > 1) {
+              Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s).",
+                      initialized_count[last_topic], last_topic.c_str());
+              warned_initialized_repeat = true;
             }
-            if (!parent->Event_Poller_Closes_Event) {
-              parent->Event_Poller_Closes_Event = true;
-              Info("Setting ClosesEvent (detected false value)");
-            }
-          } else {
-            // Event Start or Changed with true value
-            if (operation == "Changed") {
-              Debug(2, "ONVIF Alarm Changed for topic: %s", last_topic.c_str());
-            } else {
-              Debug(2, "ONVIF Alarm Started/Initialized for topic: %s", last_topic.c_str());
-            }
-            
-            if (alarms.count(last_topic) == 0) {
+
+            bool state_is_active = interpret_alarm_value(last_value);
+            Debug(2, "ONVIF Property Initialized: topic=%s value=%s active=%s",
+                  last_topic.c_str(), last_value.c_str(), state_is_active ? "true" : "false");
+
+            if (state_is_active && alarms.count(last_topic) == 0) {
+              // Camera reports an existing alarm we didn't know about
+              Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = last_value;
               if (!alarmed) {
-                Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
                 alarmed = true;
+                Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
+              }
+            } else if (!state_is_active && alarms.count(last_topic) > 0) {
+              // We thought there was an alarm, but camera says it's not active
+              Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
+              alarms.erase(last_topic);
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+            }
+
+            // Set Event_Poller_Closes_Event if we see the camera can send state updates
+            if (!parent->Event_Poller_Closes_Event) {
+              parent->Event_Poller_Closes_Event = true;
+              Info("Setting ClosesEvent (camera supports PropertyOperation)");
+            }
+          } else if (operation == "Changed") {
+            // PropertyOperation="Changed" means the alarm state actually changed
+            bool state_is_active = interpret_alarm_value(last_value);
+
+            if (!state_is_active) {
+              // Alarm turned off
+              Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+              alarms.erase(last_topic);
+              Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
+                    alarms.size(), alarmed ? "true" : "false");
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+              if (!parent->Event_Poller_Closes_Event) {
+                parent->Event_Poller_Closes_Event = true;
+                Info("Setting ClosesEvent (detected Changed to inactive)");
               }
             } else {
-              // Update existing alarm value
-              alarms[last_topic] = last_value;
+              // Alarm turned on
+              Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+              if (alarms.count(last_topic) == 0) {
+                alarms[last_topic] = last_value;
+                if (!alarmed) {
+                  Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
+                  alarmed = true;
+                }
+              } else {
+                // Update existing alarm value
+                alarms[last_topic] = last_value;
+              }
+            }
+          } else {
+            // Unknown operation (shouldn't happen with spec-compliant cameras)
+            // Treat as legacy behavior for backwards compatibility
+            Warning("ONVIF Unknown PropertyOperation '%s', treating as legacy event. topic=%s value=%s",
+                    operation.c_str(), last_topic.c_str(), last_value.c_str());
+            bool state_is_active = interpret_alarm_value(last_value);
+
+            if (!state_is_active) {
+              alarms.erase(last_topic);
+              if (alarms.empty()) {
+                alarmed = false;
+              }
+            } else {
+              if (alarms.count(last_topic) == 0) {
+                alarms[last_topic] = last_value;
+                if (!alarmed) {
+                  alarmed = true;
+                }
+              } else {
+                alarms[last_topic] = last_value;
+              }
             }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
@@ -474,9 +554,9 @@ void Monitor::ONVIF::WaitForMessage() {
       } // end scope for lock
 
       // we renew the current subscription .........
+      set_credentials(soap);
+      wsnt__Renew.TerminationTime = &subscription_timeout;
       if (use_wsa) {
-        set_credentials(soap);
-        wsnt__Renew.TerminationTime = &subscription_timeout;
         RequestMessageID = soap_wsa_rand_uuid(soap);
         if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
           Debug(2, "ONVIF: WS-Addressing headers set for Renew");
@@ -496,6 +576,18 @@ void Monitor::ONVIF::WaitForMessage() {
               RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
           healthy = false;
         } // end renew
+      } else { 
+          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+            Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            if (soap->error==12) {//ActionNotSupported
+              healthy = true;
+            } else {
+              healthy = false;
+            }
+          } else {
+            Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            healthy = true;
+          }
       }
     }  // end if SOAP OK/NOT OK
 #endif
@@ -503,13 +595,70 @@ void Monitor::ONVIF::WaitForMessage() {
 }
 
 #ifdef WITH_GSOAP
+// Enable SOAP message logging to a file using the gSOAP logging plugin
+// This logs all sent and received SOAP messages for debugging
+void ONVIF::enable_soap_logging(const std::string &log_path) {
+  if (!soap) {
+    Warning("ONVIF: Cannot enable SOAP logging, soap context not initialized");
+    return;
+  }
+
+  // Close existing log file if open
+  disable_soap_logging();
+
+  // Open new log file
+  soap_log_fd = fopen(log_path.c_str(), "a");
+  if (!soap_log_fd) {
+    Error("ONVIF: Failed to open SOAP log file: %s", log_path.c_str());
+    return;
+  }
+
+  // Register the logging plugin
+  if (soap_register_plugin(soap, logging) != SOAP_OK) {
+    Error("ONVIF: Failed to register logging plugin: %s", soap_fault_string(soap));
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+    return;
+  }
+
+  // Get the logging plugin data and configure it
+  struct logging_data *log_data = (struct logging_data*)soap_lookup_plugin(soap, LOGGING_ID);
+  if (log_data) {
+    log_data->inbound = soap_log_fd;   // Log received messages
+    log_data->outbound = soap_log_fd;  // Log sent messages
+    Info("ONVIF: SOAP message logging enabled to: %s", log_path.c_str());
+  } else {
+    Error("ONVIF: Failed to get logging plugin data");
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+  }
+}
+
+// Disable SOAP message logging and close log file
+void ONVIF::disable_soap_logging() {
+  if (soap_log_fd) {
+    if (soap) {
+      // Unregister the logging plugin
+      struct logging_data *log_data = (struct logging_data*)soap_lookup_plugin(soap, LOGGING_ID);
+      if (log_data) {
+        log_data->inbound = nullptr;
+        log_data->outbound = nullptr;
+      }
+    }
+    fclose(soap_log_fd);
+    soap_log_fd = nullptr;
+    Debug(2, "ONVIF: SOAP message logging disabled");
+  }
+}
+
 // Parse ONVIF options from the onvif_options string
 // Format: key1=value1,key2=value2
 // Supported options:
 //   pull_timeout=PT20S - Timeout for PullMessages requests
 //   subscription_timeout=PT60S - Timeout for subscription renewal
 //   max_retries=5 - Maximum retry attempts
-void Monitor::ONVIF::parse_onvif_options() {
+//   soap_log=/path/to/logfile - Enable SOAP message logging
+void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
     return;
   }
@@ -538,6 +687,9 @@ void Monitor::ONVIF::parse_onvif_options() {
         } catch (const std::exception &e) {
           Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
         }
+      } else if (key == "soap_log") {
+        soap_log_file = value;
+        Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
       }
     }
   };
@@ -561,7 +713,7 @@ void Monitor::ONVIF::parse_onvif_options() {
 
 // Calculate exponential backoff delay for retries
 // Returns delay in seconds: min(2^retry_count, ONVIF_RETRY_DELAY_CAP)
-int Monitor::ONVIF::get_retry_delay() {
+int ONVIF::get_retry_delay() {
   // Use safe approach to avoid integer overflow
   if (retry_count >= ONVIF_RETRY_EXPONENT_LIMIT) {
     return ONVIF_RETRY_DELAY_CAP;  // 2^9 = 512, cap at 5 minutes
@@ -574,7 +726,7 @@ int Monitor::ONVIF::get_retry_delay() {
 }
 
 //ONVIF Set Credentials
-void Monitor::ONVIF::set_credentials(struct soap *soap) {
+void ONVIF::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, "Time", 10);
   
@@ -592,8 +744,42 @@ void Monitor::ONVIF::set_credentials(struct soap *soap) {
   }
 }
 
+// Helper function to interpret alarm values from various formats
+// Returns true if the value indicates an active alarm, false otherwise
+bool ONVIF::interpret_alarm_value(const std::string &value) {
+  if (value.empty()) {
+    return false;  // Empty value = no alarm
+  }
+
+  // Check for explicit false values
+  if (value == "false" || value == "False" || value == "FALSE") {
+    return false;
+  }
+
+  // Check for numeric zero values (0, 00, 000, etc.)
+  bool all_zeros = true;
+  for (char c : value) {
+    if (c != '0') {
+      all_zeros = false;
+      break;
+    }
+  }
+  if (all_zeros) {
+    return false;  // "0", "00", "000", etc. = no alarm
+  }
+
+  // Check for explicit true values
+  if (value == "true" || value == "True" || value == "TRUE") {
+    return true;
+  }
+
+  // Any other non-zero value is considered active
+  // This handles "1", "001", custom camera values, etc.
+  return true;
+}
+
 // Helper function to parse event messages with flexible XML structure handling
-bool Monitor::ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg, 
+bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg, 
                                           std::string &topic, 
                                           std::string &value, 
                                           std::string &operation) {
@@ -653,20 +839,43 @@ bool Monitor::ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *ms
       const char *elem_name = colon ? colon + 1 : elt->name;
       
       if (std::strcmp(elem_name, "SimpleItem") == 0) {
-        // SimpleItem has Value attribute
+        // SimpleItem has Name and Value attributes
+        // We need to find SimpleItems with specific Names like "State", "IsMotion", etc.
+        // Not just any SimpleItem (e.g., Source identifiers)
         if (elt->atts) {
+          std::string item_name;
+          std::string item_value;
+
           struct soap_dom_attribute *att = elt->atts;
           while (att) {
             if (att->name && att->text) {
               const char *att_colon = std::strrchr(att->name, ':');
               const char *att_name = att_colon ? att_colon + 1 : att->name;
-              if (std::strcmp(att_name, "Value") == 0) {
-                value = att->text;
-                Debug(3, "ONVIF: Found SimpleItem Value: %s", value.c_str());
-                return true;
+
+              if (std::strcmp(att_name, "Name") == 0) {
+                item_name = att->text;
+              } else if (std::strcmp(att_name, "Value") == 0) {
+                item_value = att->text;
               }
             }
             att = att->next;
+          }
+
+          // Look for data items, not source/token identifiers
+          // Common data item names: State, IsMotion, IsTamper, etc.
+          if (!item_name.empty() && !item_value.empty()) {
+            Debug(4, "ONVIF: Found SimpleItem Name=%s Value=%s", item_name.c_str(), item_value.c_str());
+
+            // Check if this is a data item (not a source identifier)
+            if (item_name == "State" ||
+                item_name == "IsMotion" ||
+                item_name == "IsTamper" ||
+                item_name == "Value" ||  // Generic value field
+                item_name.find("Is") == 0) {  // Items starting with "Is"
+              value = item_value;
+              Debug(3, "ONVIF: Found data SimpleItem %s=%s", item_name.c_str(), value.c_str());
+              return true;
+            }
           }
         }
       } else if (std::strcmp(elem_name, "ElementItem") == 0) {
@@ -719,7 +928,7 @@ bool Monitor::ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *ms
 }
 
 // Helper function for hierarchical topic matching with wildcard support
-bool Monitor::ONVIF::matches_topic_filter(const std::string &topic, const std::string &filter) {
+bool ONVIF::matches_topic_filter(const std::string &topic, const std::string &filter) {
   if (filter.empty()) {
     return true;  // Empty filter matches all
   }
@@ -811,7 +1020,7 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 }
 #endif
 
-void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
+void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #ifdef WITH_GSOAP
     std::unique_lock<std::mutex> lck(alarms_mutex);
     if (alarms.empty()) return;
@@ -824,4 +1033,3 @@ void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   #endif
   return;
 }
-

@@ -507,7 +507,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'api',
+    category    => 'system',
   },
   {
     name        => 'ZM_OPT_USE_LEGACY_API_AUTH',

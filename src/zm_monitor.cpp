@@ -686,7 +686,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
-  //if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
 
   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : "");
@@ -1904,7 +1903,9 @@ bool Monitor::Poll() {
       delete Amcrest_Manager;
       Amcrest_Manager = new AmcrestAPI(this);
     }
-  } else if (onvif) {
+  }
+
+  if (onvif) {
     if (onvif->isHealthy()) {
       onvif->WaitForMessage();
     } else {

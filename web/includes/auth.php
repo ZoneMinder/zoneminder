@@ -414,6 +414,14 @@ if (ZM_OPT_USE_AUTH) {
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
+      if ($user) {
+        $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+        if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $_REQUEST['auth'])) {
+          unset($_SESSION['AuthHashGeneratedAt']);
+          unset($_SESSION['AuthHash'.$remoteAddr]);
+        }
+        $_SESSION['username'] = $user->Username();
+      }
     } else if (!(empty($_REQUEST['user']) or empty($_REQUEST['pass']))) {
       # The shortened versions are used in auth_relay = PLAIN
       $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);

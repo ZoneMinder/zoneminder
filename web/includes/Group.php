@@ -67,20 +67,23 @@ class Group extends ZM_Object {
     return $this->{'MonitorIds'};
   }
 
-  public static function get_group_dropdown( ) {
-    $selected_group_id = 0;
-    if ( isset($_REQUEST['groups']) ) {
-      $selected_group_id = $group_id = $_SESSION['groups'] = $_REQUEST['groups'];
-    } else if ( isset( $_SESSION['groups'] ) ) {
-      $selected_group_id = $group_id = $_SESSION['groups'];
-    } else if ( isset($_REQUEST['filtering']) ) {
-      zm_session_start();
-      unset($_SESSION['groups']);
-      session_write_close();
+  public static function get_group_dropdown( $view = null ) {
+    // Get selected value from cookie
+    $selectedValue = null;
+    if (isset($_COOKIE['zmFilter_GroupId'])) {
+      $cookieValue = $_COOKIE['zmFilter_GroupId'];
+      if ($cookieValue && $cookieValue !== '') {
+        // Try to decode JSON for array values
+        $decoded = json_decode($cookieValue, true);
+        $selectedValue = ($decoded !== null) ? $decoded : $cookieValue;
+      }
     }
 
-    return htmlSelect('GroupId[]', Group::get_dropdown_options(), isset($_SESSION['GroupId'])?$_SESSION['GroupId']:null, array(
-          'data-on-change' => 'submitThisForm',
+    // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
+    $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
+
+    return htmlSelect('GroupId[]', Group::get_dropdown_options(), $selectedValue, array(
+          'data-on-change' => $onChangeFunction,
           'class'=>'chosen',
           'multiple'=>'multiple',
           'data-placeholder'=>'All',

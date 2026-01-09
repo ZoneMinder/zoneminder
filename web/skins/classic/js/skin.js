@@ -2148,7 +2148,6 @@ function monitorFilterOnChange(element) {
   // Save filter values to cookies for persistence
   var form = (element && element.form) ? element.form : document.forms['monitorFiltersForm'];
   if (form) {
-    console.log('have form', element, form);
     // Define filter fields to save (using var names without [] suffix for consistency)
     var filterFields = [
       {name: 'GroupId[]', cookieName: 'GroupId'},
@@ -2183,8 +2182,6 @@ function monitorFilterOnChange(element) {
         }
       }
     });
-  } else {
-    console.log('do not have form', element);
   }
 
   // On console view with bootstrap-table, just refresh the table

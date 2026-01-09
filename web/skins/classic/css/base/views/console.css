@@ -120,7 +120,9 @@
 .MonitorFilter {
   display: inline-block;
 } */
-form[name="monitorFiltersForm"] {
+#monitorFiltersForm,
+#monitorForm
+{
   display: flex;
   flex-flow: column nowrap;
   height: 100%;
@@ -189,7 +191,7 @@ body.sticky #monitorList thead {
   overflow: visible !important;
 }
 /* Make the boot-strap table monitor list scrollable instead of content div */
-#content ,
+#content,
 #monitorList,
 #monitorList .bootstrap-table,
 #monitorList .fixed-table-container {

@@ -335,7 +335,7 @@ $log->debug("No serial") if $debug;
       } # end if
       if ( $debug or DEBUG_ALL ) {
         $command =~ s/\?/\%s/g;
-        $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? ( ref $_ eq 'ARRAY' ? join(',',@{$_}) : $_ ) : 'undef' } ( @sql{@keys}, @$self{@identified_by} ) ).'):' );
+        $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? ( ref $_ eq 'ARRAY' ? join(',',@{$_}) : '\''.$_.'\'' ) : 'NULL' } ( @sql{@keys}, @$self{@identified_by} ) ).'):' );
       } # end if
     } # end if
   } # end if

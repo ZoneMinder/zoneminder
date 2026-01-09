@@ -40,17 +40,10 @@ class Monitor;
 class ONVIF {
   friend class Monitor;
 
- private:
-  void Renew();
-  void PullMessages();
-  int add_wsa_request(const char *request);
-
-
  protected:
   Monitor *parent;
-  bool subscribed;
-  bool healthy;
   bool alarmed;
+  bool healthy;
   std::string last_topic;
   std::string last_value;
   void SetNoteSet(Event::StringSet &noteSet);
@@ -78,6 +71,10 @@ class ONVIF {
   std::string soap_log_file;  // SOAP message logging file (empty = disabled)
   FILE *soap_log_fd;  // File descriptor for SOAP logging
 
+  // Subscription renewal tracking
+  SystemTimePoint subscription_termination_time;  // When subscription expires
+  SystemTimePoint next_renewal_time;  // When to perform next renewal (termination - 10s)
+
   // Helper methods
   void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging
   void disable_soap_logging();  // Disable SOAP message logging
@@ -86,6 +83,11 @@ class ONVIF {
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();  // Parse options from parent->onvif_options
   int get_retry_delay();  // Calculate exponential backoff delay
+  void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
+  bool is_renewal_tracking_initialized() const;  // Check if renewal tracking has been set up
+  bool Renew();  // Perform subscription renewal, returns true on success
+  bool IsRenewalNeeded() const;  // Check if subscription renewal is needed now
+  bool do_wsa_request(const char* address, const char* action);  // Setup WS-Addressing headers for SOAP request
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;
@@ -93,7 +95,6 @@ class ONVIF {
   explicit ONVIF(Monitor *parent_);
   ~ONVIF();
   void start();
-  void stop();
   void WaitForMessage();
   bool isAlarmed() {
     std::unique_lock<std::mutex> lck(alarms_mutex);

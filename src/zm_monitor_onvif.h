@@ -84,6 +84,7 @@ class ONVIF {
   void parse_onvif_options();  // Parse options from parent->onvif_options
   int get_retry_delay();  // Calculate exponential backoff delay
   void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
+  bool is_renewal_tracking_initialized() const;  // Check if renewal tracking has been set up
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;

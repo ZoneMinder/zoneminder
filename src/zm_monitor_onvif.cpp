@@ -30,6 +30,7 @@ namespace {
   const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
+  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 10;  // Renew subscription N seconds before expiration
 }
 #endif
 
@@ -69,9 +70,6 @@ ONVIF::ONVIF(Monitor *parent_) :
 #ifdef WITH_GSOAP
   parse_onvif_options();
   last_retry_time = std::chrono::system_clock::now();
-  // Initialize renewal times to epoch (indicating not yet set)
-  subscription_termination_time = SystemTimePoint();
-  next_renewal_time = SystemTimePoint();
 #endif
 }
 
@@ -574,7 +572,7 @@ void ONVIF::WaitForMessage() {
       bool renewal_needed = false;
       
       // Check if we have valid renewal times set
-      if (next_renewal_time.time_since_epoch().count() == 0) {
+      if (!is_renewal_tracking_initialized()) {
         // No renewal tracking set up yet, always renew (backward compatibility)
         Debug(2, "ONVIF: No renewal tracking initialized, performing renewal");
         renewal_needed = true;
@@ -788,7 +786,7 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
   
   // Calculate renewal time: 10 seconds before termination
-  next_renewal_time = subscription_termination_time - std::chrono::seconds(10);
+  next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
   
   // Log the renewal schedule
   auto now = std::chrono::system_clock::now();
@@ -799,6 +797,12 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   
   Debug(2, "ONVIF: Updated subscription times - will renew in %ld seconds, terminates in %ld seconds",
         seconds_until_renewal, seconds_until_termination);
+}
+
+// Check if renewal tracking has been initialized
+// Returns false if tracking times are at epoch (uninitialized), true otherwise
+bool ONVIF::is_renewal_tracking_initialized() const {
+  return next_renewal_time.time_since_epoch().count() != 0;
 }
 
 //ONVIF Set Credentials

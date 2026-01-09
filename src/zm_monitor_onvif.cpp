@@ -30,6 +30,7 @@ namespace {
   const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
+  const int ONVIF_SUBSCRIPTION_RENEWAL_BUFFER = 10; // Renew 10 seconds before expiration
 }
 #endif
 
@@ -62,9 +63,9 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
-  // Initialize to far future to prevent premature renewal attempts before subscription is created
-  ,subscription_termination_time(std::chrono::system_clock::time_point::max())
-  ,subscription_renewal_time(std::chrono::system_clock::time_point::max())
+  // Initialize to far future (1 year ahead) to prevent premature renewal attempts before subscription is created
+  ,subscription_termination_time(std::chrono::system_clock::now() + std::chrono::hours(24 * 365))
+  ,subscription_renewal_time(std::chrono::system_clock::now() + std::chrono::hours(24 * 365))
 #endif
 {
 #ifdef WITH_GSOAP
@@ -1046,13 +1047,29 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 }
 
 // Update subscription termination and renewal times based on a termination time
-// The renewal time is set to 10 seconds before the termination time
+// The renewal time is set to ONVIF_SUBSCRIPTION_RENEWAL_BUFFER seconds before the termination time
 void ONVIF::update_subscription_times(time_t termination_time) {
+  // Validate termination_time is reasonable (not in the past, not too far in future)
+  time_t now_t = std::time(nullptr);
+  if (termination_time <= now_t) {
+    Warning("ONVIF: Received termination time in the past or present (%ld vs %ld), adjusting to 60 seconds from now",
+            termination_time, now_t);
+    termination_time = now_t + 60;
+  }
+  
+  // Check if termination time is more than 1 year in the future (likely an error)
+  const time_t one_year = 365 * 24 * 3600;
+  if (termination_time > now_t + one_year) {
+    Warning("ONVIF: Received termination time too far in future (%ld vs %ld), capping to 1 hour from now",
+            termination_time, now_t);
+    termination_time = now_t + 3600;
+  }
+  
   // Convert time_t to SystemTimePoint
   subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
   
-  // Calculate renewal time as termination time minus 10 seconds
-  subscription_renewal_time = subscription_termination_time - std::chrono::seconds(10);
+  // Calculate renewal time as termination time minus ONVIF_SUBSCRIPTION_RENEWAL_BUFFER seconds
+  subscription_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_SUBSCRIPTION_RENEWAL_BUFFER);
   
   Debug(2, "ONVIF: Updated subscription times - termination: %s, renewal: %s",
         SystemTimePointToString(subscription_termination_time).c_str(),

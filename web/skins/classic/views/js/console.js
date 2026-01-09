@@ -64,7 +64,7 @@ function ajaxRequest(params) {
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data
-  var form = document.forms['monitorForm'];
+  var form = document.forms['monitorFiltersForm'];
   if (form) {
     // Ensure params.data is initialized
     if (!params.data) {
@@ -281,7 +281,7 @@ function processRows(rows) {
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = document.forms['monitorForm'];
+  const form = document.forms['monitorFiltersForm'];
 
   if (selections && selections.length > 0) {
     form.editBtn.disabled = false;
@@ -445,56 +445,6 @@ function manageFunctionModal(evt) {
   $j('#modalFunction').modal('show');
 } // end function manageFunctionModal
 
-// Called when monitor filters change - refreshes table via AJAX instead of full page reload
-function monitorFilterOnChange() {
-  // Save filter values to cookies for persistence
-  var form = document.forms['monitorForm'];
-  if (form) {
-    // Define filter fields to save (using var names without [] suffix for consistency)
-    var filterFields = [
-      {name: 'GroupId[]', cookieName: 'GroupId'},
-      {name: 'ServerId[]', cookieName: 'ServerId'},
-      {name: 'StorageId[]', cookieName: 'StorageId'},
-      {name: 'Status[]', cookieName: 'Status'},
-      {name: 'Capturing[]', cookieName: 'Capturing'},
-      {name: 'Analysing[]', cookieName: 'Analysing'},
-      {name: 'Recording[]', cookieName: 'Recording'},
-      {name: 'MonitorId[]', cookieName: 'MonitorId'},
-      {name: 'MonitorName', cookieName: 'MonitorName'},
-      {name: 'Source', cookieName: 'Source'}
-    ];
-
-    filterFields.forEach(function(fieldInfo) {
-      var field = form.elements[fieldInfo.name];
-      if (field) {
-        // Check if it's a multi-value field (ends with [] or is select-multiple)
-        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
-
-        if (isMultiValue) {
-          // Handle multi-select dropdowns and array fields
-          var selected = $j(field).val();
-          if (selected && selected.length > 0) {
-            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
-          } else {
-            setCookie('zmFilter_' + fieldInfo.cookieName, '');
-          }
-        } else if (field.type === 'text') {
-          // Handle text inputs
-          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
-        }
-      }
-    });
-  }
-
-  // On console view with bootstrap-table, just refresh the table
-  if (typeof table !== 'undefined' && table.length) {
-    table.bootstrapTable('refresh');
-  } else {
-    // Fall back to full page reload on other views
-    submitThisForm();
-  }
-}
-
 function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
@@ -508,7 +458,7 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
       function() {
         const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorForm'];
+        const form = document.forms['monitorFiltersForm'];
 
         if (selections.length > 0) {
           form.editBtn.disabled = false;

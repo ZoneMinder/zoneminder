@@ -767,7 +767,18 @@ bool ONVIF::IsRenewalNeeded() const {
 }
 
 // Setup WS-Addressing headers for SOAP request
-// Returns true if successful or WS-Addressing is disabled, false on error
+// This helper method encapsulates the common pattern of setting up WS-Addressing
+// headers for SOAP requests, eliminating code duplication across the class.
+//
+// Parameters:
+//   address - The target endpoint address (TO header)
+//   action  - The SOAP action name for the request
+//
+// Returns:
+//   true  - WS-Addressing headers were successfully set
+//   false - Failed to set headers (error logged), or invalid parameters
+//
+// Note: This method assumes the soap context is already initialized.
 bool ONVIF::do_wsa_request(const char* address, const char* action) {
 #ifdef WITH_GSOAP
   if (!soap || !address || !action) {

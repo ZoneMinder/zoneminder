@@ -156,13 +156,15 @@ getBodyTopHTML();
 echo $navbar ?>
 <div id="page">
   <div id="content">
-  <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
-    <input type="hidden" name="action" value=""/>
 
     <div id="fbpanel" class="filterBar hidden-shift">
+  <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
+  </form>
     </div>
 
+  <form name="monitorForm" id="monitorForm" method="post" action="?view=<?php echo $view; ?>">
+    <input type="hidden" name="action" value=""/>
     <div id="toolbar" class="container-fluid pt-2 pb-2">
       <div class="statusBreakdown">
 <?php

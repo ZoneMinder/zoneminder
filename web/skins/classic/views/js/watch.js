@@ -2,7 +2,7 @@ var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
-var table = $j('#eventList');
+var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
@@ -655,7 +655,7 @@ function processClicks(event, field, value, row, $element) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
-            table.bootstrapTable('refresh');
+            eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
     } else {
@@ -684,7 +684,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
-          table.bootstrapTable('refresh');
+          eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
@@ -697,7 +697,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function refresh_events_table() {
-  table.bootstrapTable('refresh');
+  eventListTable.bootstrapTable('refresh');
 }
 
 function controlSetClicked() {
@@ -759,9 +759,9 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
-      table.bootstrapTable({icons: icons});
+      eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         $j('#eventList tr:contains("New Event")').addClass('recent');
         $j('.objDetectLink').click(function(evt) {
           evt.preventDefault();
@@ -770,17 +770,17 @@ function streamPrepareStart(monitor=null) {
       });
 
       // Take appropriate action when the user clicks on a cell
-      table.on('click-cell.bs.table', processClicks);
+      eventListTable.on('click-cell.bs.table', processClicks);
 
       // Some toolbar events break the thumbnail animation, so re-init eventlistener
-      table.on('all.bs.table', initThumbAnimation);
+      eventListTable.on('all.bs.table', initThumbAnimation);
 
       // Update table links each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         const thumb_ndx = $j('#eventList tr th').filter(function() {
           return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
         }).index();
-        table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
+        eventListTable.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
@@ -900,7 +900,7 @@ function streamReStart(oldId, newId) {
   //Set global variables from the current monitor
   streamMode = currentMonitor.streamMode;
 
-  table.bootstrapTable('destroy');
+  eventListTable.bootstrapTable('destroy');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);

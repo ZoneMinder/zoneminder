@@ -257,9 +257,31 @@ function processRows(rows) {
 
     // Format event count columns
     var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
+
+    // Define filter parameters for each event period
+    var filterParams = {
+      'Hour': {attr: 'StartDateTime', op: '>=', val: '-1 hour'},
+      'Day': {attr: 'StartDateTime', op: '>=', val: '-1 day'},
+      'Week': {attr: 'StartDateTime', op: '>=', val: '-7 day'},
+      'Month': {attr: 'StartDateTime', op: '>=', val: '-1 month'},
+      'Archived': {attr: 'Archived', op: '=', val: '1'}
+      // 'Total' has no filter - shows all events
+    };
+
     eventPeriods.forEach(function(period) {
       if (canView.Events) {
-        row[period + 'Events'] = '<a href="?view=' + ZM_WEB_EVENTS_VIEW + '&amp;MonitorId=' + mid + '">' +
+        // Build the URL with MonitorId
+        var url = '?view=' + ZM_WEB_EVENTS_VIEW + '&amp;MonitorId=' + mid;
+
+        // Add filter querystring for periods that have filters
+        if (filterParams[period]) {
+          var params = filterParams[period];
+          url += '&amp;filter[Query][terms][0][attr]=' + encodeURIComponent(params.attr);
+          url += '&amp;filter[Query][terms][0][op]=' + encodeURIComponent(params.op);
+          url += '&amp;filter[Query][terms][0][val]=' + encodeURIComponent(params.val);
+        }
+
+        row[period + 'Events'] = '<a href="' + url + '">' +
           row[period + 'Events'] + '</a><br/><div class="small text-nowrap text-muted">' +
           row[period + 'EventDiskSpace'] + '</div>';
       } else {

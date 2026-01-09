@@ -365,7 +365,7 @@ function queryRequest() {
       $filter = addFilterTerm(
         $eventCount['filter'],
         count($eventCount['filter']['Query']['terms']),
-        array('cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'])
+        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => '=', 'val' => $monitor['Id'])
       );
       parseFilter($filter);
       $row[$period.'FilterQuery'] = $filter['querystring'];

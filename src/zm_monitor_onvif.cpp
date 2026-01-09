@@ -62,8 +62,9 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
-  ,subscription_termination_time()
-  ,subscription_renewal_time()
+  // Initialize to far future to prevent premature renewal attempts before subscription is created
+  ,subscription_termination_time(std::chrono::system_clock::time_point::max())
+  ,subscription_renewal_time(std::chrono::system_clock::time_point::max())
 #endif
 {
 #ifdef WITH_GSOAP

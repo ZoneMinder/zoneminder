@@ -31,6 +31,8 @@ namespace {
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
   const int ONVIF_SUBSCRIPTION_RENEWAL_BUFFER = 10; // Renew 10 seconds before expiration
+  const int ONVIF_INITIALIZATION_DELAY_HOURS = 24 * 365; // Initialize to 1 year in future
+  const time_t ONVIF_MAX_FUTURE_SECONDS = 365L * 24 * 3600; // Maximum 1 year into future
 }
 #endif
 
@@ -64,8 +66,8 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
   // Initialize to far future (1 year ahead) to prevent premature renewal attempts before subscription is created
-  ,subscription_termination_time(std::chrono::system_clock::now() + std::chrono::hours(24 * 365))
-  ,subscription_renewal_time(std::chrono::system_clock::now() + std::chrono::hours(24 * 365))
+  ,subscription_termination_time(std::chrono::system_clock::now() + std::chrono::hours(ONVIF_INITIALIZATION_DELAY_HOURS))
+  ,subscription_renewal_time(std::chrono::system_clock::now() + std::chrono::hours(ONVIF_INITIALIZATION_DELAY_HOURS))
 #endif
 {
 #ifdef WITH_GSOAP
@@ -1058,8 +1060,7 @@ void ONVIF::update_subscription_times(time_t termination_time) {
   }
   
   // Check if termination time is more than 1 year in the future (likely an error)
-  const time_t one_year = 365 * 24 * 3600;
-  if (termination_time > now_t + one_year) {
+  if (termination_time > now_t + ONVIF_MAX_FUTURE_SECONDS) {
     Warning("ONVIF: Received termination time too far in future (%ld vs %ld), capping to 1 hour from now",
             termination_time, now_t);
     termination_time = now_t + 3600;

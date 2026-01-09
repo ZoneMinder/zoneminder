@@ -2110,6 +2110,10 @@ function initPageGeneral() {
       closeMbExtruder(updateCookie = true);
     }
 
+    if (event.target.activeElement.href && (event.target.activeElement.href.indexOf('view=archive') != -1 || event.target.activeElement.href.indexOf('view=download') != -1) || event.target.activeElement.id == 'exportButton') { // Clicked on the link to download the generated file in the modal window on the Events page or when automatic download of generated files was enabled
+      return;
+    }
+
     if (mainContent) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!

@@ -20,8 +20,6 @@
 
 function addFilterSelect($name, $options) {
   global $view;
-  // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
-  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
   
   // Get selected value from cookie only
   $selectedValue = '';
@@ -41,7 +39,7 @@ function addFilterSelect($name, $options) {
   $html .= htmlSelect($name.'[]', $options,
     $selectedValue,
       array(
-        'data-on-change'=>$onChangeFunction,
+        'data-on-change-this'=>'monitorFilterOnChange',
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -72,11 +70,10 @@ function buildMonitorsFilters() {
   global $user, $Servers, $view;
   require_once('includes/Monitor.php');
   
-  // Use monitorFilterOnChange on console view for AJAX refresh, submitThisForm elsewhere
-  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
-
   // Helper function to get filter value from cookie
-  function getFilterFromCookie($var) {
+  function getFilterSelection($var) {
+    if (isset($_REQUEST[$var]))
+      return $_REQUEST[$var];
     $cookieName = 'zmFilter_'.$var;
     if (isset($_COOKIE[$cookieName])) {
       $cookieValue = $_COOKIE[$cookieName];
@@ -119,7 +116,7 @@ function buildMonitorsFilters() {
       $html .= '<span class="term" id="groupControl"><label>'. translate('Group') .'</label>';
       $html .= '<span class="term-value-wrapper">';
       # This will end up with the group_id of the deepest selection
-      $group_id = getFilterFromCookie('GroupId');
+      $group_id = getFilterSelection('GroupId');
       $html .= ZM\Group::get_group_dropdown($view);
       $groupSql = ZM\Group::get_group_sql($group_id);
       $html .= addButtonResetForFilterSelect('GroupId[]');
@@ -128,7 +125,7 @@ function buildMonitorsFilters() {
     }
   }
 
-  $selected_monitor_ids = getFilterFromCookie('MonitorId');
+  $selected_monitor_ids = getFilterSelection('MonitorId');
   if (!$selected_monitor_ids) {
     $selected_monitor_ids = array();
   } else if (!is_array($selected_monitor_ids)) {
@@ -141,7 +138,7 @@ function buildMonitorsFilters() {
   if ( $groupSql )
     $conditions[] = $groupSql;
   foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recording') as $filter ) {
-    $filterValue = getFilterFromCookie($filter);
+    $filterValue = getFilterSelection($filter);
     if ( $filterValue ) {
       if ( is_array($filterValue) ) {
         $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $filterValue)).')';
@@ -159,12 +156,10 @@ function buildMonitorsFilters() {
     $values = array_merge($values, $ids);
   }
 
-  $onChangeFunction = ($view == 'console') ? 'monitorFilterOnChange' : 'submitThisForm';
-
-  $monitorNameValue = getFilterFromCookie('MonitorName');
+  $monitorNameValue = getFilterSelection('MonitorName');
   $html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'" data-on-input="'.$onChangeFunction.'"/></span>';
+  $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'" data-on-input="monitorFilterOnChange"/></span>';
   $html .= '</span>'.PHP_EOL;
 
   $html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));
@@ -175,9 +170,9 @@ function buildMonitorsFilters() {
     $html .= '<span class="term ServerFilter"><label>'. translate('Server').'</label>';
     $html .= '<span class="term-value-wrapper">';
     $html .= htmlSelect('ServerId[]', $ServersById,
-      getFilterFromCookie('ServerId') ?: '',
+      getFilterSelection('ServerId') ?: '',
       array(
-        'data-on-change'=>$onChangeFunction,
+        'data-on-change-this'=>'monitorFilterOnChange',
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -192,9 +187,9 @@ function buildMonitorsFilters() {
     $html .= '<span class="term StorageFilter"><label>'.translate('Storage').'</label>';
     $html .= '<span class="term-value-wrapper">';
     $html .= htmlSelect('StorageId[]', $StorageById,
-      getFilterFromCookie('StorageId') ?: '',
+      getFilterSelection('StorageId') ?: '',
       array(
-        'data-on-change'=>$onChangeFunction,
+        'data-on-change-this'=>'monitorFilterOnChange',
         'class'=>'chosen',
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
@@ -213,9 +208,9 @@ function buildMonitorsFilters() {
     );
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect( 'Status[]', $status_options,
-    getFilterFromCookie('Status') ?: '',
+    getFilterSelection('Status') ?: '',
     array(
-      'data-on-change'=>$onChangeFunction,
+      'data-on-change-this'=>'monitorFilterOnChange',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All'
@@ -224,7 +219,7 @@ function buildMonitorsFilters() {
   $html .= '</span>';
   $html .= '</span>';
 
-  $sourceValue = getFilterFromCookie('Source');
+  $sourceValue = getFilterSelection('Source');
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= '<input type="text" name="Source" value="'.($sourceValue ? validHtmlStr($sourceValue) : '').'" placeholder="'.translate('text or regular expression').'"/>';
@@ -272,7 +267,7 @@ function buildMonitorsFilters() {
       continue;
     }
 
-    $monitorNameFilter = getFilterFromCookie('MonitorName');
+    $monitorNameFilter = getFilterSelection('MonitorName');
     if ( $monitorNameFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
@@ -290,7 +285,7 @@ function buildMonitorsFilters() {
       }
     }
 
-    $sourceFilter = getFilterFromCookie('Source');
+    $sourceFilter = getFilterSelection('Source');
     if ( $sourceFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
@@ -325,7 +320,7 @@ function buildMonitorsFilters() {
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
-      'data-on-change'=>$onChangeFunction,
+      'data-on-change-this'=>'monitorFilterOnChange',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',

@@ -325,11 +325,50 @@ function queryRequest() {
       $row['Storage'] = '';
     }
     
-    // Event counts
-    $eventCounts = array('Total', 'Hour', 'Day', 'Week', 'Month', 'Archived');
-    foreach ($eventCounts as $period) {
+    // Event counts with filter querystrings
+    $eventCounts = array(
+      'Total' => array(
+        'filter' => array('Query' => array('terms' => array()))
+      ),
+      'Hour' => array(
+        'filter' => array('Query' => array('terms' => array(
+          array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour')
+        )))
+      ),
+      'Day' => array(
+        'filter' => array('Query' => array('terms' => array(
+          array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 day')
+        )))
+      ),
+      'Week' => array(
+        'filter' => array('Query' => array('terms' => array(
+          array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-7 day')
+        )))
+      ),
+      'Month' => array(
+        'filter' => array('Query' => array('terms' => array(
+          array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 month')
+        )))
+      ),
+      'Archived' => array(
+        'filter' => array('Query' => array('terms' => array(
+          array('cnj' => 'and', 'attr' => 'Archived', 'op' => '=', 'val' => '1')
+        )))
+      )
+    );
+    
+    foreach ($eventCounts as $period => $eventCount) {
       $row[$period.'Events'] = (int)$monitor[$period.'Events'];
       $row[$period.'EventDiskSpace'] = human_filesize($monitor[$period.'EventDiskSpace']);
+      
+      // Generate filter querystring for this period and monitor
+      $filter = addFilterTerm(
+        $eventCount['filter'],
+        count($eventCount['filter']['Query']['terms']),
+        array('cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'])
+      );
+      parseFilter($filter);
+      $row[$period.'FilterQuery'] = $filter['querystring'];
     }
     
     // Zone count

@@ -259,7 +259,9 @@ function processRows(rows) {
     var eventPeriods = ['Total', 'Hour', 'Day', 'Week', 'Month', 'Archived'];
     eventPeriods.forEach(function(period) {
       if (canView.Events) {
-        row[period + 'Events'] = '<a href="?view=' + ZM_WEB_EVENTS_VIEW + '&amp;MonitorId=' + mid + '">' +
+        // Use filter querystring if available, otherwise fall back to MonitorId filter
+        var filterQuery = row[period + 'FilterQuery'] ? row[period + 'FilterQuery'] : '&amp;MonitorId=' + mid;
+        row[period + 'Events'] = '<a href="?view=' + ZM_WEB_EVENTS_VIEW + filterQuery + '">' +
           row[period + 'Events'] + '</a><br/><div class="small text-nowrap text-muted">' +
           row[period + 'EventDiskSpace'] + '</div>';
       } else {

@@ -38,11 +38,11 @@ if ($filter) {
   }
   if (isset($_REQUEST['maxTimeSecs'])) {
   }
-  if (isset($_REQUEST['minTime']) and !$filter->has_term('DateTime', '>='))) {
+  if (isset($_REQUEST['minTime']) and !$filter->has_term('DateTime', '>=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'cnj' => 'and'));
     $exportFileName .= ' '.$_REQUEST['minTime']; 
   }
-  if (isset($_REQUEST['maxTime']) and !$filter->has_term('DateTime', '<='))) {
+  if (isset($_REQUEST['maxTime']) and !$filter->has_term('DateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'));
     $exportFileName .= ' '.$_REQUEST['maxTime']; 
   }

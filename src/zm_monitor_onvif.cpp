@@ -62,11 +62,16 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,pull_timeout("PT20S")
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
+  ,subscription_termination_time()
+  ,next_renewal_time()
 #endif
 {
 #ifdef WITH_GSOAP
   parse_onvif_options();
   last_retry_time = std::chrono::system_clock::now();
+  // Initialize renewal times to epoch (indicating not yet set)
+  subscription_termination_time = SystemTimePoint();
+  next_renewal_time = SystemTimePoint();
 #endif
 }
 
@@ -274,6 +279,13 @@ void ONVIF::start() {
   
   Debug(1, "ONVIF: Successfully created PullPoint subscription");
   
+  // Update renewal tracking times from initial subscription response
+  if (response.wsnt__TerminationTime != 0) {
+    update_renewal_times(response.wsnt__TerminationTime);
+  } else {
+    Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+  }
+  
   //Empty the stored messages
   set_credentials(soap);
 
@@ -314,6 +326,10 @@ void ONVIF::start() {
       } else {
         Debug(2, "ONVIF: Good Initial Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
         healthy = true;
+        // Update renewal times from initial renew response
+        if (wsnt__RenewResponse.TerminationTime != 0) {
+          update_renewal_times(wsnt__RenewResponse.TerminationTime);
+        }
       }
     } else {
       Error("ONVIF: Couldn't set WS-Addressing headers for Renew. RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
@@ -553,42 +569,77 @@ void ONVIF::WaitForMessage() {
         }  // end foreach msg
       } // end scope for lock
 
-      // we renew the current subscription .........
-      set_credentials(soap);
-      wsnt__Renew.TerminationTime = &subscription_timeout;
-      if (use_wsa) {
-        RequestMessageID = soap_wsa_rand_uuid(soap);
-        if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-          Debug(2, "ONVIF: WS-Addressing headers set for Renew");
-          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-            Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            if (soap->error==12) {//ActionNotSupported
-              healthy = true;
-            } else {
-              healthy = false;
-            }
-          } else {
-            Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            healthy = true;
-          }
-        } else {
-          Error("ONVIF: Couldn't set WS-Addressing headers for Renew. RequestMessageID=%s; TO=%s; Request=RenewRequest. Error %i %s, %s",
-              RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          healthy = false;
-        } // end renew
-      } else { 
-          if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-            Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            if (soap->error==12) {//ActionNotSupported
-              healthy = true;
-            } else {
-              healthy = false;
-            }
-          } else {
-            Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            healthy = true;
-          }
+      // Check if renewal is needed (only renew 10 seconds before termination)
+      SystemTimePoint now = std::chrono::system_clock::now();
+      bool renewal_needed = false;
+      
+      // Check if we have valid renewal times set
+      if (next_renewal_time.time_since_epoch().count() == 0) {
+        // No renewal tracking set up yet, always renew (backward compatibility)
+        Debug(2, "ONVIF: No renewal tracking initialized, performing renewal");
+        renewal_needed = true;
+      } else if (now >= next_renewal_time) {
+        // Time to renew
+        auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
+          now - next_renewal_time).count();
+        Debug(2, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+        renewal_needed = true;
+      } else {
+        // Not yet time to renew
+        auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+          next_renewal_time - now).count();
+        Debug(2, "ONVIF: Subscription renewal not yet needed (renews in %ld seconds)", 
+              seconds_until_renewal);
+        renewal_needed = false;
       }
+
+      // Only renew if needed
+      if (renewal_needed) {
+        // we renew the current subscription .........
+        set_credentials(soap);
+        wsnt__Renew.TerminationTime = &subscription_timeout;
+        if (use_wsa) {
+          RequestMessageID = soap_wsa_rand_uuid(soap);
+          if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
+            Debug(2, "ONVIF: WS-Addressing headers set for Renew");
+            if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+              Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              if (soap->error==12) {//ActionNotSupported
+                healthy = true;
+              } else {
+                healthy = false;
+              }
+            } else {
+              Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              healthy = true;
+              // Update renewal times from renew response
+              if (wsnt__RenewResponse.TerminationTime != 0) {
+                update_renewal_times(wsnt__RenewResponse.TerminationTime);
+              }
+            }
+          } else {
+            Error("ONVIF: Couldn't set WS-Addressing headers for Renew. RequestMessageID=%s; TO=%s; Request=RenewRequest. Error %i %s, %s",
+                RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            healthy = false;
+          } // end renew
+        } else { 
+            if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+              Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              if (soap->error==12) {//ActionNotSupported
+                healthy = true;
+              } else {
+                healthy = false;
+              }
+            } else {
+              Debug(2, "ONVIF: Good Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              healthy = true;
+              // Update renewal times from renew response  
+              if (wsnt__RenewResponse.TerminationTime != 0) {
+                update_renewal_times(wsnt__RenewResponse.TerminationTime);
+              }
+            }
+        }
+      } // end if renewal_needed
     }  // end if SOAP OK/NOT OK
 #endif
   return;
@@ -723,6 +774,31 @@ int ONVIF::get_retry_delay() {
     delay = ONVIF_RETRY_DELAY_CAP;  // Extra safety check
   }
   return delay;
+}
+
+// Update subscription renewal tracking times based on TerminationTime from ONVIF response
+// termination_time: Unix timestamp (time_t) indicating when subscription expires
+void ONVIF::update_renewal_times(time_t termination_time) {
+  if (termination_time == 0) {
+    Warning("ONVIF: Received invalid TerminationTime (0), not updating renewal tracking");
+    return;
+  }
+  
+  // Convert time_t to SystemTimePoint
+  subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
+  
+  // Calculate renewal time: 10 seconds before termination
+  next_renewal_time = subscription_termination_time - std::chrono::seconds(10);
+  
+  // Log the renewal schedule
+  auto now = std::chrono::system_clock::now();
+  auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+    next_renewal_time - now).count();
+  auto seconds_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
+    subscription_termination_time - now).count();
+  
+  Debug(2, "ONVIF: Updated subscription times - will renew in %ld seconds, terminates in %ld seconds",
+        seconds_until_renewal, seconds_until_termination);
 }
 
 //ONVIF Set Credentials

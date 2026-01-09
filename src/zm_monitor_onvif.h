@@ -71,6 +71,10 @@ class ONVIF {
   std::string soap_log_file;  // SOAP message logging file (empty = disabled)
   FILE *soap_log_fd;  // File descriptor for SOAP logging
 
+  // Subscription renewal tracking
+  SystemTimePoint subscription_termination_time;  // When subscription expires
+  SystemTimePoint next_renewal_time;  // When to perform next renewal (termination - 10s)
+
   // Helper methods
   void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging
   void disable_soap_logging();  // Disable SOAP message logging
@@ -79,6 +83,7 @@ class ONVIF {
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();  // Parse options from parent->onvif_options
   int get_retry_delay();  // Calculate exponential backoff delay
+  void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;

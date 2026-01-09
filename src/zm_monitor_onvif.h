@@ -85,6 +85,8 @@ class ONVIF {
   int get_retry_delay();  // Calculate exponential backoff delay
   void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
   bool is_renewal_tracking_initialized() const;  // Check if renewal tracking has been set up
+  bool Renew();  // Perform subscription renewal, returns true on success
+  bool IsRenewalNeeded() const;  // Check if subscription renewal is needed now
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;

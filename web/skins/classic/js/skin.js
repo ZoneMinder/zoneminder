@@ -560,17 +560,21 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
-    form = param;
+  if (!form && param && typeof param === 'object' && 'tagName' in param) {
+    if (param.tagName == 'FORM') { // A form can be passed as a parameter.
+      form = param;
+    } else if (param.form) {
+      form = param.form;
+    }
   }
   if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
-      form = document.querySelector('form[name="monitorForm"]');
+      form = document.getElementById('monitorFiltersForm');
       // We get a filter
       filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.getElementById('filters_form');
+      form = document.getElementById('monitorFiltersForm');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
       form = document.getElementById('montagereview_form');
@@ -581,7 +585,7 @@ function submitThisForm(param = null) {
   }
 
   if ( ! form ) {
-    console.log("No this.form.  element with onchange is not in a form");
+    console.log("No this.form.  element with onchange is not in a form", this, param);
     return;
   }
   if (filter && navbar_type == 'left') {
@@ -1565,7 +1569,7 @@ function insertControlModuleMenu() {
     filter = document.querySelector('#fbpanel');
   } else if (currentView == 'montage') {
     destroyChosen();
-    filter = document.querySelector('#filters_form');
+    filter = document.querySelector('#monitorFiltersForm');
   } else if (currentView == 'montagereview') {
     destroyChosen();
     filter = document.createElement('div');
@@ -2137,6 +2141,59 @@ function initPageGeneral() {
       }
     });
   });
+}
+
+// Called when monitor filters change - refreshes table via AJAX instead of full page reload
+function monitorFilterOnChange(element) {
+  // Save filter values to cookies for persistence
+  var form = (element && element.form) ? element.form : document.forms['monitorFiltersForm'];
+  if (form) {
+    console.log('have form', element, form);
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
+
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
+      if (field) {
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
+        }
+      }
+    });
+  } else {
+    console.log('do not have form', element);
+  }
+
+  // On console view with bootstrap-table, just refresh the table
+  if (typeof table !== 'undefined' && table.length) {
+    table.bootstrapTable('refresh');
+  } else {
+    // Fall back to full page reload on other views
+    submitThisForm(element);
+  }
 }
 
 $j( window ).on("load", initPageGeneral);

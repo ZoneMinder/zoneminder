@@ -120,7 +120,7 @@
 .MonitorFilter {
   display: inline-block;
 } */
-form[name="monitorForm"] {
+form[name="monitorFiltersForm"] {
   display: flex;
   flex-flow: column nowrap;
   height: 100%;

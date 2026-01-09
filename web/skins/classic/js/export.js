@@ -10,10 +10,7 @@ function startDownload(exportFile) {
 
 function getFileNameFromURL(url) {
   const matches = url.match(/file=(.*?)&/) || url.match(/file=(.*)/);
-  if (matches)
-    return matches[1];
-  else
-    return '';
+  return (matches) ? matches[1] : '';
 }
 
 function exportResponse(data, responseText) {
@@ -46,7 +43,6 @@ function exportResponse(data, responseText) {
           $j(nodeCopy).attr("href", thisUrl + file);
         }
       }
-
     } else {
       $j('#downloadLink').text('Download ' + '"' + getFileNameFromURL(exportFile) + '"');
       $j('#downloadLink').attr("href", thisUrl + exportFile);
@@ -77,7 +73,7 @@ function exportEvent() {
       downloadLink.remove();
       i++;
     } else {
-       i = 1000;
+      i = 1000;
     }
   }
 

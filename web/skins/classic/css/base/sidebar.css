@@ -312,12 +312,46 @@ body #sidebarMain .sub-menu-list {
 }
 
 /* Clear Filter Button Select Multiple Selection */
+.extruder .extruder-content .term-value-wrapper {
+  position: relative; /* Enable absolute positioning for child */
+}
+
 .extruder .extruder-content .btn-term-remove-all {
-  display: flex;
-  flex-direction: row-reverse;
+  position: absolute;
+  top: 2px;
+  right: 28px; /* Position to the left of chosen dropdown arrow */
+  z-index: 1011; /* Above chosen dropdown (z-index: 1010) */
   width: auto;
-  padding-left: 10px;
-  max-height: 35px;
+  height: auto;
+  padding: 0;
+  max-height: none;
+}
+
+.extruder .extruder-content .btn-term-remove-all button {
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.extruder .extruder-content .btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.extruder .extruder-content .btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.extruder .extruder-content .btn-term-remove-all button:hover .material-icons {
+  color: #333;
 }
 /* --- TRANSFERRED FILTERS */
 

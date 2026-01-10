@@ -682,13 +682,30 @@ function convertLabelFormat(LabelFormat, monitorName) {
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
-//This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
-  var cues = vid.textTracks()[0].cues();
+  // Updated for Video.js 8.x API
+  if (!vid || !vid.textTracks || !vid.textTracks().length) {
+    console.warn('addVideoTimingTrack: No text tracks available');
+    return;
+  }
+
+  var track = vid.textTracks()[0];
+  if (!track) {
+    console.warn('addVideoTimingTrack: Text track not found');
+    return;
+  }
+
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for ( var i = 0; i <= duration; i++ ) {
-    cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
+  // In Video.js 8, we need to add cues using the addCue method
+  for (var i = 0; i <= duration; i++) {
+    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    cue.id = i;
+    try {
+      track.addCue(cue);
+    } catch (e) {
+      console.warn('Failed to add cue:', e);
+    }
     startTime.add(1, 's');
   }
 }

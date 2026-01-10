@@ -1159,7 +1159,6 @@ function loadEventData(e) {
     mon_ids[mon_ids.length] = monitor.Id;
   }
 
-  var url = Servers[serverId].urlToApi()+'/events/index';
   $j('#fieldsTable input,#fieldsTable select').each(function(index) {
     const el = $j(this);
     const val = el.val();
@@ -1167,21 +1166,6 @@ function loadEventData(e) {
       const name = el.attr('name');
 
       if (name) {
-        const found = name.match(/filter\[Query\]\[terms\]\[(\d)+\]\[val\]/);
-        if (found) {
-          const attr_name = 'filter[Query][terms]['+found[1]+'][attr]';
-          const attr = this.form.elements[attr_name];
-          const op_name = 'filter[Query][terms]['+found[1]+'][op]';
-          const op = this.form.elements[op_name];
-          if (attr) {
-            if (attr.value==='Monitor') attr.value='MonitorId';
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(val);
-          } else {
-            console.log('No attr for '+attr_name);
-          }
-        //} else {
-          //console.log("No match for " + name);
-        }
         data[name] = val;
         const cookie = el.attr('data-cookie');
         if (cookie) setCookie(cookie, val, 3600);
@@ -1194,17 +1178,17 @@ function loadEventData(e) {
       alert(data.message);
       return;
     }
-    if (!data.events) {
+    if (!data.rows) {
       console.log(data);
       return;
     }
     console.log("Event data ", data);
 
-    if (data.events.length) {
+    if (data.rows.length) {
       // event_list is solely for sending to loadFrames
       const event_list = {};
-      for (let i=0, len = data.events.length; i<len; i++) {
-        const ev = data.events[i].Event;
+      for (let i=0, len = data.rows.length; i<len; i++) {
+        const ev = data.rows[i];
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
         event_list[ev.Id] = events[ev.Id] = ev;
@@ -1242,11 +1226,14 @@ function loadEventData(e) {
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
+      data['filter[Query][terms][0][attr]'] = 'MonitorId';
+      data['filter[Query][terms][0][op]'] = '=';
+      data['filter[Query][terms][0][val]'] = mon_ids[i];
+      
       ajax = $j.ajax({
-        url: url+ '/MonitorId:'+mon_ids[i]+ '.json'+'?'+auth_relay,
-        method: 'GET',
-        //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
-        //data: data,
+        url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
+        method: 'POST',
+        data: data,
         timeout: 0,
         success: receive_events,
         error: function(jqXHR) {
@@ -1257,10 +1244,9 @@ function loadEventData(e) {
     } // end foreach monitor
   } else {
     ajax = $j.ajax({
-      url: url+'.json'+'?'+auth_relay,
-      method: 'GET',
-      //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
-      //data: data,
+      url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
+      method: 'POST',
+      data: data,
       timeout: 0,
       success: receive_events,
       error: function(jqXHR) {
@@ -1423,72 +1409,70 @@ window.addEventListener('DOMContentLoaded', initPage);
 /* Expects an Object, not an array, of EventId=>Event mappings. */
 function loadFrames(zm_events) {
   return new Promise(function(resolve, reject) {
-    const url = Servers[serverId].urlToApi()+'/frames/index';
-
-    let query = '';
     const ids = Object.keys(zm_events);
+    let promises = [];
 
     while (ids.length) {
       const event_id = ids.shift();
-      {
-        const zm_event = zm_events[event_id];
-        if (zm_event.FramesById) {
-          console.log('already loaded FramesById', zm_event);
-          continue;
-        }
-        zm_event.FramesById = []; //Signal that we are loading them
+      const zm_event = zm_events[event_id];
+      if (zm_event.FramesById) {
+        console.log('already loaded FramesById', zm_event);
+        continue;
       }
-      query += '/EventId:'+event_id;
+      zm_event.FramesById = []; //Signal that we are loading them
 
-      if ((!ids.length) || (query.length > 1000)) {
-        $j.ajax(url+query+'.json?'+auth_relay, {
-          timeout: 0,
-          success: function(data) {
-            console.log(data);
-            if (data && data.frames && data.frames.length) {
-              let last_frame = null;
+      const framePromise = $j.ajax({
+        url: thisUrl + '?view=request&request=frames&task=query&eid=' + event_id,
+        method: 'GET',
+        timeout: 0
+      }).then(function(data) {
+        console.log(data);
+        if (data && data.rows && data.rows.length) {
+          let last_frame = null;
 
-              for (let i=0, len=data.frames.length; i<len; i++) {
-                const frame = data.frames[i].Frame;
-                const zm_event = events[frame.EventId];
-                if (!zm_event) {
-                  console.error("No event object found for " + data.frames[0].Frame.EventId);
-                  continue;
-                }
-                if (last_frame && (frame.EventId != last_frame.EventId)) {
-                  last_frame = null;
-                }
-                //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
-                if (last_frame) {
-                  frame.PrevFrameId = last_frame.Id;
-                  last_frame.NextFrameId = frame.Id;
-                  if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
-                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
-                  } else {
-                    console.log("Out of order timestamps?", last_frame, frame);
-                  }
-                }
-                last_frame = frame;
+          for (let i=0, len=data.rows.length; i<len; i++) {
+            const frame = data.rows[i];
+            const zm_event = events[frame.EventId];
+            if (!zm_event) {
+              console.error("No event object found for " + frame.EventId);
+              continue;
+            }
+            if (last_frame && (frame.EventId != last_frame.EventId)) {
+              last_frame = null;
+            }
+            //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+            if (last_frame) {
+              frame.PrevFrameId = last_frame.Id;
+              last_frame.NextFrameId = frame.Id;
+              if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
+                last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+              } else {
+                console.log("Out of order timestamps?", last_frame, frame);
+              }
+            }
+            last_frame = frame;
 
-                //if (!zm_event.FramesById) zm_event.FramesById = [];
-                zm_event.FramesById[frame.Id] = frame;
-                //drawFrameOnGraph(frame);
-              } // end foreach frame
-            } else {
-              console.log("No frames in data", data);
-            } // end if there are frames
-            resolve();
-          },
-          error: function() {
-            logAjaxFail;
-            reject(Error("There was an error"));
-          }
-        }); // end ajax
-        query = '';
-      } // end if query string is too long
-    } // end while zm_events.legtnh
-  } // end Promise
-  );
+            //if (!zm_event.FramesById) zm_event.FramesById = [];
+            zm_event.FramesById[frame.Id] = frame;
+            //drawFrameOnGraph(frame);
+          } // end foreach frame
+        } else {
+          console.log("No frames in data", data);
+        } // end if there are frames
+      }).catch(function(error) {
+        console.log("Error loading frames for event " + event_id, error);
+      });
+
+      promises.push(framePromise);
+    } // end while zm_events.length
+
+    // Wait for all frame requests to complete
+    Promise.all(promises).then(function() {
+      resolve();
+    }).catch(function(error) {
+      reject(Error("There was an error loading frames: " + error));
+    });
+  }); // end Promise
 } // end function loadFrames(Event)
 
 function getMinMaxStartDateTimeElements() {

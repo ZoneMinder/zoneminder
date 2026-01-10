@@ -1159,29 +1159,12 @@ function loadEventData(e) {
     mon_ids[mon_ids.length] = monitor.Id;
   }
 
-  var url = Servers[serverId].urlToApi()+'/events/index';
   $j('#fieldsTable input,#fieldsTable select').each(function(index) {
     const el = $j(this);
     const val = el.val();
     if (val && (!Array.isArray(val) || val.length)) {
       const name = el.attr('name');
-
       if (name) {
-        const found = name.match(/filter\[Query\]\[terms\]\[(\d)+\]\[val\]/);
-        if (found) {
-          const attr_name = 'filter[Query][terms]['+found[1]+'][attr]';
-          const attr = this.form.elements[attr_name];
-          const op_name = 'filter[Query][terms]['+found[1]+'][op]';
-          const op = this.form.elements[op_name];
-          if (attr) {
-            if (attr.value==='Monitor') attr.value='MonitorId';
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(val);
-          } else {
-            console.log('No attr for '+attr_name);
-          }
-        //} else {
-          //console.log("No match for " + name);
-        }
         data[name] = val;
         const cookie = el.attr('data-cookie');
         if (cookie) setCookie(cookie, val, 3600);
@@ -1194,17 +1177,17 @@ function loadEventData(e) {
       alert(data.message);
       return;
     }
-    if (!data.events) {
+    if (!data.rows) {
       console.log(data);
       return;
     }
     console.log("Event data ", data);
 
-    if (data.events.length) {
+    if (data.rows.length) {
       // event_list is solely for sending to loadFrames
       const event_list = {};
-      for (let i=0, len = data.events.length; i<len; i++) {
-        const ev = data.events[i].Event;
+      for (let i=0, len = data.rows.length; i<len; i++) {
+        const ev = data.rows[i];
         ev.Id = parseInt(ev.Id);
         ev.MonitorId = parseInt(ev.MonitorId);
         event_list[ev.Id] = events[ev.Id] = ev;
@@ -1212,41 +1195,29 @@ function loadEventData(e) {
         if ((!(ev.MonitorId in events_for_monitor)) || !events_for_monitor[ev.MonitorId]) {
           events_for_monitor[ev.MonitorId] = []; // id=>event
         }
-        //events_by_monitor_id[ev.MonitorId].push(ev.Id);
         events_for_monitor[ev.MonitorId].push(ev);
-        //drawEventOnGraph(ev);
       }
       loadFrames(event_list).then(function() {
-        console.log("have ffaremes, drawing graph");
+        console.log("have frames, drawing graph");
         drawGraph();
-        /*
-        // HACK to refresh monitor names over event data
-        for (let i=0; i < numMonitors; i++) {
-          // Apparently we have to set these each time before calling fillText
-          ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = "white";
-          // This should roughly center font in row
-          ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
-        }
-        //underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
-        */
       });
     } else {
       console.log("No events in data?");
     }
   } // end function receive_events
 
-  //FIXME ajax gets overwrritten by subsequent monitor
+  //FIXME ajax gets overwritten by subsequent monitor
   if (ajax) ajax.abort();
 
   if (mon_ids.length) {
     for (let i=0; i < mon_ids.length; i++) {
+      // Add MonitorId filter to data for this specific monitor
+      const monitor_data = Object.assign({}, data);
+      monitor_data['MonitorId'] = mon_ids[i];
       ajax = $j.ajax({
-        url: url+ '/MonitorId:'+mon_ids[i]+ '.json'+'?'+auth_relay,
-        method: 'GET',
-        //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
-        //data: data,
+        url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
+        method: 'POST',
+        data: monitor_data,
         timeout: 0,
         success: receive_events,
         error: function(jqXHR) {
@@ -1257,10 +1228,9 @@ function loadEventData(e) {
     } // end foreach monitor
   } else {
     ajax = $j.ajax({
-      url: url+'.json'+'?'+auth_relay,
-      method: 'GET',
-      //url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
-      //data: data,
+      url: thisUrl + '?view=request&request=events&task=query&sort=Id&order=ASC',
+      method: 'POST',
+      data: data,
       timeout: 0,
       success: receive_events,
       error: function(jqXHR) {

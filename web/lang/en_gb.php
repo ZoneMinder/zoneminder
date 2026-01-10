@@ -446,6 +446,7 @@ $SLANG = array(
     'NoneAvailable'         => 'None available',
     'NoSavedFilters'        => 'No Saved Filters',
     'NoStatisticsRecorded'  => 'There are no statistics recorded for this event/frame',
+    'Any Tag'               => 'Any Tag',
     'No Tag'                => 'No Tag',
     'NumPresets'            => 'Num Presets',
     'OnvifProbe'            => 'ONVIF',

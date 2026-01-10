@@ -979,7 +979,7 @@ class Filter extends ZM_Object {
         }
       }
     }
-    $availableTags = array('0'=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1112,7 +1112,7 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < 7; $i++ ) {
       $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
     }
-    $availableTags = array('0'=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }

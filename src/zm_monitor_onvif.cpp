@@ -60,7 +60,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,retry_count(0)
   ,max_retries(5)
   ,warned_initialized_repeat(false)
-  ,pull_timeout("PT20S")
+  ,pull_timeout("PT5S")
   ,subscription_timeout("PT60S")
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
@@ -745,8 +745,10 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
   if (subscription_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past %ld %s, not updating renewal tracking",
-      static_cast<long>(termination_time), SystemTimePointToString(subscription_termination_time).c_str());
+    Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, not updating renewal tracking",
+      static_cast<long>(termination_time),
+      SystemTimePointToString(subscription_termination_time).c_str(),
+      SystemTimePointToString(now).c_str());
     return;
   }
   

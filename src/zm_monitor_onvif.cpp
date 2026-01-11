@@ -632,10 +632,13 @@ void ONVIF::cleanup_subscription() {
       result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
                                        &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
+      // WS-Addressing setup failed - log the error details from soap_wsa_request
       Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s", 
               soap->error, soap_fault_string(soap), 
               soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
       // Don't attempt unsubscribe if WS-Addressing setup failed
+      // Note: This is a limitation - subscription may remain active on camera
+      // However, attempting unsubscribe with invalid WS-Addressing state would fail anyway
       return;
     }
   } else {

@@ -86,15 +86,29 @@ ONVIF::~ONVIF() {
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     
     bool use_wsa = parent->soap_wsa_compl;
+    int result = SOAP_OK;
     
     if (use_wsa) {
       if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-        proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+        result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+                                         &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+      } else {
+        Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe in destructor");
       }
     } else {
       // No WS-Addressing, just unsubscribe
       Debug(2, "ONVIF: Unsubscribing without WS-Addressing");
-      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+                                       &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    }
+    
+    // Check result and log warnings if unsubscribe failed
+    if (result != SOAP_OK) {
+      Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.", 
+              soap->error, soap_fault_string(soap), 
+              soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+    } else {
+      Debug(1, "ONVIF: Successfully unsubscribed in destructor");
     }
 
     disable_soap_logging();
@@ -108,6 +122,20 @@ ONVIF::~ONVIF() {
 
 void ONVIF::start() {
 #ifdef WITH_GSOAP
+  // Check if soap context already exists from a previous failed attempt
+  // If so, clean up the stale subscription before creating a new one
+  if (soap != nullptr) {
+    Debug(1, "ONVIF: Existing soap context found, cleaning up stale subscription before restart");
+    cleanup_subscription();
+    
+    // Clean up the old soap context
+    disable_soap_logging();
+    soap_destroy(soap);
+    soap_end(soap);
+    soap_free(soap);
+    soap = nullptr;
+  }
+  
   tev__PullMessages.Timeout = pull_timeout.c_str();
   tev__PullMessages.MessageLimit = 10;
   wsnt__Renew.TerminationTime = &subscription_timeout;
@@ -582,6 +610,46 @@ void ONVIF::disable_soap_logging() {
   }
 }
 
+// Clean up existing subscription properly
+// This helper method ensures proper unsubscribe is called before cleanup or retry
+void ONVIF::cleanup_subscription() {
+  if (!soap) {
+    Debug(3, "ONVIF: cleanup_subscription called but soap is null, nothing to clean");
+    return;
+  }
+
+  Debug(2, "ONVIF: Cleaning up existing subscription");
+  
+  _wsnt__Unsubscribe wsnt__Unsubscribe;
+  _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+  
+  bool use_wsa = parent->soap_wsa_compl;
+  int result = SOAP_OK;
+  
+  // Attempt to unsubscribe from the existing subscription
+  if (use_wsa) {
+    if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
+      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+                                       &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    } else {
+      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup");
+      result = SOAP_ERR;
+    }
+  } else {
+    Debug(2, "ONVIF: Unsubscribing without WS-Addressing during cleanup");
+    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+                                     &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+  }
+  
+  if (result != SOAP_OK) {
+    Warning("ONVIF: Unsubscribe failed during cleanup. Error %i %s, %s", 
+            soap->error, soap_fault_string(soap), 
+            soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+  } else {
+    Debug(2, "ONVIF: Successfully unsubscribed during cleanup");
+  }
+}
+
 // Parse ONVIF options from the onvif_options string
 // Format: key1=value1,key2=value2
 // Supported options:
@@ -704,6 +772,8 @@ bool ONVIF::Renew() {
   bool use_wsa = parent->soap_wsa_compl;
   
   if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "RenewRequest")) {
+    Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
+    cleanup_subscription();
     healthy = false;
     return false;
   }
@@ -715,6 +785,9 @@ bool ONVIF::Renew() {
       healthy = true;
       return true;  // Not a fatal error
     } else {
+      // Renewal failed - clean up the subscription to prevent leaks
+      Debug(1, "ONVIF: Renewal failed, cleaning up subscription to prevent leak");
+      cleanup_subscription();
       healthy = false;
       return false;
     }

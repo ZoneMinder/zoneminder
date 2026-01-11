@@ -78,6 +78,7 @@ class ONVIF {
   // Helper methods
   void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging
   void disable_soap_logging();  // Disable SOAP message logging
+  void cleanup_subscription();  // Properly unsubscribe and clean up existing subscription
   bool interpret_alarm_value(const std::string &value);  // Interpret alarm value from various formats
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
   bool matches_topic_filter(const std::string &topic, const std::string &filter);

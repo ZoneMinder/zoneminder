@@ -137,31 +137,20 @@ ONVIF::~ONVIF() {
     Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+    set_credentials(soap);
     
     bool use_wsa = parent->soap_wsa_compl;
-    int result = SOAP_OK;
-    
-    if (use_wsa) {
-      if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-        result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
-                                         &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
+      int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+          &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+      // Check result and log warnings if unsubscribe failed
+      if (result != SOAP_OK) {
+        Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.", 
+            soap->error, soap_fault_string(soap), 
+            soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
       } else {
-        Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe in destructor");
+        Debug(1, "ONVIF: Successfully unsubscribed in destructor");
       }
-    } else {
-      // No WS-Addressing, just unsubscribe
-      Debug(2, "ONVIF: Unsubscribing without WS-Addressing");
-      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
-                                       &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-    }
-    
-    // Check result and log warnings if unsubscribe failed
-    if (result != SOAP_OK) {
-      Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.", 
-              soap->error, soap_fault_string(soap), 
-              soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
-    } else {
-      Debug(1, "ONVIF: Successfully unsubscribed in destructor");
     }
 
     disable_soap_logging();
@@ -864,9 +853,12 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   auto seconds_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
     subscription_termination_time - now).count();
   
-  Debug(2, "ONVIF: Updated subscription times - will renew in %ld seconds, terminates in %ld seconds",
-        seconds_until_renewal, seconds_until_termination);
-}
+  Debug(2, "ONVIF: Updated subscription times - will renew in %ld seconds at %s, terminates in %ld seconds at %s",
+        seconds_until_renewal,
+        SystemTimePointToString(next_renewal_time).c_str(),
+        seconds_until_termination,
+        SystemTimePointToString(subscription_termination_time).c_str());
+}  // end void ONVIF::update_renewal_times(time_t termination_time)
 
 // Check if renewal tracking has been initialized
 // Returns false if tracking times are at epoch (uninitialized), true otherwise

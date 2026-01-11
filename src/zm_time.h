@@ -125,4 +125,18 @@ std::string SystemTimePointToString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
 SystemTimePoint StringToSystemTimePoint(const std::string &stp);
 
+// Parse ISO 8601 duration string to seconds
+// Supports formats like "PT20S", "PT1M", "PT1H30M45S"
+// Returns -1 on parse error
+int ParseISO8601Duration(const std::string& duration);
+
+// Format time_t to human-readable string "YYYY-MM-DD HH:MM:SS"
+std::string FormatTimestamp(time_t t);
+
+// Format SystemTimePoint to human-readable string "YYYY-MM-DD HH:MM:SS"
+std::string FormatTimestamp(SystemTimePoint tp);
+
+// Format seconds to human-readable duration string like "1h 30m 45s" or "45s"
+std::string FormatDuration(int64_t seconds);
+
 #endif // ZM_TIME_H

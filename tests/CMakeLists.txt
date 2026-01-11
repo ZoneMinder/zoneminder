@@ -18,6 +18,7 @@ set(TEST_SOURCES
   zm_font.cpp
   zm_onvif_renewal.cpp
   zm_poly.cpp
+  zm_time.cpp
   zm_utils.cpp
   zm_vector2.cpp)
 

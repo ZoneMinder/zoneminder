@@ -77,6 +77,11 @@ TEST_CASE("ParseISO8601Duration") {
     REQUIRE(ParseISO8601Duration("PT24H") == 86400);  // 24 hours = 1 day
     REQUIRE(ParseISO8601Duration("PT60M") == 3600);   // 60 minutes = 1 hour
     REQUIRE(ParseISO8601Duration("PT3600S") == 3600); // 3600 seconds = 1 hour
+    
+    // Overflow protection - should return -1 for values that would overflow int
+    REQUIRE(ParseISO8601Duration("PT999999999H") == -1);  // Would overflow
+    REQUIRE(ParseISO8601Duration("PT999999999M") == -1);  // Would overflow
+    REQUIRE(ParseISO8601Duration("PT9999999999S") == -1); // Would overflow
   }
 }
 

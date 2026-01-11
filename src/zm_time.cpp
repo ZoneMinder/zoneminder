@@ -74,29 +74,55 @@ int ParseISO8601Duration(const std::string& duration) {
     return -1;
   }
   
-  int total_seconds = 0;
-  int current_value = 0;
+  // Use long long to detect overflow before converting to int
+  long long total_seconds = 0;
+  long long current_value = 0;
   bool has_digit = false;
+  
+  // Maximum reasonable duration: ~24 days (INT_MAX seconds)
+  constexpr long long MAX_SECONDS = 2147483647LL;  // INT_MAX
+  constexpr long long MAX_VALUE = MAX_SECONDS / 3600;  // Max hours to avoid overflow
   
   // Parse from position 2 onwards (after "PT")
   for (size_t i = 2; i < duration.size(); i++) {
     char c = duration[i];
     
     if (c >= '0' && c <= '9') {
+      // Check for overflow before multiplying
+      if (current_value > MAX_VALUE) {
+        return -1;  // Value too large
+      }
       current_value = current_value * 10 + (c - '0');
       has_digit = true;
     } else if (c == 'H' && has_digit) {
-      // Hours
-      total_seconds += current_value * 3600;
+      // Hours - check for overflow before multiplying
+      if (current_value > MAX_SECONDS / 3600) {
+        return -1;  // Would overflow
+      }
+      long long hours_seconds = current_value * 3600;
+      if (total_seconds > MAX_SECONDS - hours_seconds) {
+        return -1;  // Would overflow when added
+      }
+      total_seconds += hours_seconds;
       current_value = 0;
       has_digit = false;
     } else if (c == 'M' && has_digit) {
-      // Minutes
-      total_seconds += current_value * 60;
+      // Minutes - check for overflow before multiplying
+      if (current_value > MAX_SECONDS / 60) {
+        return -1;  // Would overflow
+      }
+      long long minutes_seconds = current_value * 60;
+      if (total_seconds > MAX_SECONDS - minutes_seconds) {
+        return -1;  // Would overflow when added
+      }
+      total_seconds += minutes_seconds;
       current_value = 0;
       has_digit = false;
     } else if (c == 'S' && has_digit) {
-      // Seconds
+      // Seconds - check for overflow before adding
+      if (total_seconds > MAX_SECONDS - current_value) {
+        return -1;  // Would overflow when added
+      }
       total_seconds += current_value;
       current_value = 0;
       has_digit = false;
@@ -111,7 +137,8 @@ int ParseISO8601Duration(const std::string& duration) {
     return -1;
   }
   
-  return total_seconds;
+  // Safe to cast to int as we've checked bounds
+  return static_cast<int>(total_seconds);
 }
 
 // Format time_t to human-readable string "YYYY-MM-DD HH:MM:SS"

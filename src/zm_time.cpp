@@ -116,7 +116,8 @@ int ParseISO8601Duration(const std::string& duration) {
 
 // Format time_t to human-readable string "YYYY-MM-DD HH:MM:SS"
 std::string FormatTimestamp(time_t t) {
-  char buf[64];
+  constexpr size_t TIMESTAMP_BUFFER_SIZE = 64;
+  char buf[TIMESTAMP_BUFFER_SIZE];
   struct tm tm_val;
   localtime_r(&t, &tm_val);
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm_val);
@@ -140,6 +141,8 @@ std::string FormatDuration(int64_t seconds) {
   int64_t secs = seconds % 60;
   
   std::string result;
+  result.reserve(32);  // Reserve space to avoid reallocations
+  
   if (hours > 0) {
     result += std::to_string(hours) + "h ";
   }

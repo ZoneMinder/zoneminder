@@ -286,39 +286,39 @@ void ONVIF::start() {
     // Success - reset retry count
     retry_count = 0;
   
-  Debug(1, "ONVIF: Successfully created PullPoint subscription");
-  
-  // Update renewal tracking times from initial subscription response
-  if (response.wsnt__TerminationTime != 0) {
-    update_renewal_times(response.wsnt__TerminationTime);
-  } else {
-    Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
-  }
-  
-  //Empty the stored messages
-  set_credentials(soap);
+    Debug(1, "ONVIF: Successfully created PullPoint subscription");
 
-  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
-    healthy = false;
-    return;
-  }
-  
-  if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-      (soap->error != SOAP_EOF)
-     ) { //SOAP_EOF could indicate no messages to pull.
-    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    healthy = false;
-  } else {
-    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    healthy = true;
-  }
-
-  // Perform initial renewal of the subscription
-  if (use_wsa) {  // Only if WS-Addressing is enabled
-    if (!Renew()) {
-      Debug(1, "ONVIF: Initial renewal failed, but continuing");
+    // Update renewal tracking times from initial subscription response
+    if (response.wsnt__TerminationTime != 0) {
+      update_renewal_times(response.wsnt__TerminationTime);
+    } else {
+      Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
     }
-  }
+
+    //Empty the stored messages
+    set_credentials(soap);
+
+    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
+      healthy = false;
+      return;
+    }
+
+    if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+        (soap->error != SOAP_EOF)
+       ) { //SOAP_EOF could indicate no messages to pull.
+      Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      healthy = false;
+    } else {
+      Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      healthy = true;
+    }
+
+    // Perform initial renewal of the subscription
+    if (use_wsa) {  // Only if WS-Addressing is enabled
+      if (!Renew()) {
+        Debug(1, "ONVIF: Initial renewal failed, but continuing");
+      }
+    }
   } // end else (success block)
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
@@ -745,7 +745,8 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
   if (subscription_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past, not updating renewal tracking");
+    Warning("ONVIF: Received TerminationTime in the past %ld %s, not updating renewal tracking",
+      static_cast<long>(termination_time), SystemTimePointToString(subscription_termination_time).c_str());
     return;
   }
   

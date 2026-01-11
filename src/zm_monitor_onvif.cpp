@@ -969,25 +969,21 @@ bool ONVIF::IsRenewalNeeded() const {
   auto seconds_until_expiration = std::chrono::duration_cast<std::chrono::seconds>(
     subscription_termination_time - now).count();
   
-  if (now >= next_renewal_time) {
-    // Time to renew
-    Debug(3, "ONVIF: Checking renewal. Current time: %s, Next renewal: %s, "
-          "Termination: %s, Seconds until renewal: %ld, Seconds until expiration: %ld",
-          SystemTimePointToString(now).c_str(),
-          SystemTimePointToString(next_renewal_time).c_str(), 
-          SystemTimePointToString(subscription_termination_time).c_str(),
-          seconds_until_renewal, seconds_until_expiration);
-    Debug(2, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", -seconds_until_renewal);
-    return true;
-  }
-  
-  // Not yet time to renew
+  // Log detailed timing information at debug level 3
   Debug(3, "ONVIF: Checking renewal. Current time: %s, Next renewal: %s, "
         "Termination: %s, Seconds until renewal: %ld, Seconds until expiration: %ld",
         SystemTimePointToString(now).c_str(),
         SystemTimePointToString(next_renewal_time).c_str(), 
         SystemTimePointToString(subscription_termination_time).c_str(),
         seconds_until_renewal, seconds_until_expiration);
+  
+  if (now >= next_renewal_time) {
+    // Time to renew
+    Debug(2, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", -seconds_until_renewal);
+    return true;
+  }
+  
+  // Not yet time to renew
   Debug(2, "ONVIF: Subscription renewal not yet needed (renews in %ld seconds)", 
         seconds_until_renewal);
   return false;

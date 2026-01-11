@@ -21,7 +21,9 @@
 #include <string>
 
 // Helper functions for testing (duplicated from zm_monitor_onvif.cpp for testing purposes)
-// These are tested here to ensure they work correctly before being used in production
+// NOTE: These functions are duplicated here because the production versions are in an
+// anonymous namespace in zm_monitor_onvif.cpp and not exported. This allows us to test
+// the logic independently without exposing internal implementation details.
 namespace {
   // Parse ISO 8601 duration format to seconds
   int parse_duration_to_seconds(const std::string& duration) {

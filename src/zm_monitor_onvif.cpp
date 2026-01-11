@@ -31,6 +31,84 @@ namespace {
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
   const int ONVIF_RENEWAL_ADVANCE_SECONDS = 10;  // Renew subscription N seconds before expiration
+  const int ONVIF_MAX_PULL_TIMEOUT = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;  // 9 seconds max pull timeout
+}
+
+// Helper function to parse ISO 8601 duration format to seconds
+// Supports formats like "PT20S" (20 seconds), "PT1M" (60 seconds), "PT1M30S" (90 seconds)
+// Returns -1 on parse error
+int parse_duration_to_seconds(const std::string& duration) {
+  if (duration.empty() || duration.size() < 3) {
+    return -1;
+  }
+  
+  // Must start with "PT" (Period Time)
+  if (duration[0] != 'P' || duration[1] != 'T') {
+    return -1;
+  }
+  
+  int total_seconds = 0;
+  size_t pos = 2;  // Skip "PT"
+  std::string number;
+  
+  while (pos < duration.length()) {
+    char c = duration[pos];
+    
+    if (std::isdigit(c)) {
+      number += c;
+    } else if (c == 'H') {
+      // Hours
+      if (!number.empty()) {
+        total_seconds += std::stoi(number) * 3600;
+        number.clear();
+      }
+    } else if (c == 'M') {
+      // Minutes
+      if (!number.empty()) {
+        total_seconds += std::stoi(number) * 60;
+        number.clear();
+      }
+    } else if (c == 'S') {
+      // Seconds
+      if (!number.empty()) {
+        total_seconds += std::stoi(number);
+        number.clear();
+      }
+    } else {
+      // Invalid character
+      return -1;
+    }
+    pos++;
+  }
+  
+  return total_seconds;
+}
+
+// Helper function to format seconds to ISO 8601 duration format
+// Example: 20 seconds -> "PT20S", 90 seconds -> "PT1M30S"
+std::string format_duration(int seconds) {
+  if (seconds < 0) {
+    return "PT0S";
+  }
+  
+  int hours = seconds / 3600;
+  int minutes = (seconds % 3600) / 60;
+  int secs = seconds % 60;
+  
+  std::string result = "PT";
+  
+  if (hours > 0) {
+    result += std::to_string(hours) + "H";
+  }
+  if (minutes > 0) {
+    result += std::to_string(minutes) + "M";
+  }
+  if (secs > 0 || result == "PT") {
+    // Always include seconds if it's the only component
+    result += std::to_string(secs) + "S";
+  }
+  
+  return result;
 }
 #endif
 
@@ -291,6 +369,19 @@ void ONVIF::start() {
     // Update renewal tracking times from initial subscription response
     if (response.wsnt__TerminationTime != 0) {
       update_renewal_times(response.wsnt__TerminationTime);
+      
+      // Log subscription timing information for debugging
+      auto now = std::chrono::system_clock::now();
+      auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+        next_renewal_time - now).count();
+      auto seconds_until_expiration = std::chrono::duration_cast<std::chrono::seconds>(
+        subscription_termination_time - now).count();
+      
+      Debug(1, "ONVIF: Subscription created. Termination: %s, Next renewal: %s, "
+            "Time until renewal: %ld seconds, Time until expiration: %ld seconds",
+            SystemTimePointToString(subscription_termination_time).c_str(),
+            SystemTimePointToString(next_renewal_time).c_str(),
+            seconds_until_renewal, seconds_until_expiration);
     } else {
       Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
     }
@@ -337,6 +428,18 @@ void ONVIF::WaitForMessage() {
     }
   } else {
     Debug(2, "ONVIF: WS-Addressing disabled, not sending addressing headers");
+  }
+  
+  // Log subscription status before PullMessages (only at higher debug levels)
+  if (Logger::fetch()->level() >= Logger::DEBUG2 && is_renewal_tracking_initialized()) {
+    auto now = std::chrono::system_clock::now();
+    auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+      next_renewal_time - now).count();
+    auto seconds_until_expiration = std::chrono::duration_cast<std::chrono::seconds>(
+      subscription_termination_time - now).count();
+    Debug(2, "ONVIF: Subscription status before PullMessages: "
+          "renewal in %ld seconds, expiration in %ld seconds",
+          seconds_until_renewal, seconds_until_expiration);
   }
   
   Debug(1, "ONVIF: Starting PullMessageRequest ...");
@@ -714,6 +817,25 @@ void ONVIF::parse_onvif_options() {
     std::string option = options.substr(start);
     parse_option(option);
   }
+  
+  // Validate pull_timeout after parsing all options
+  int pull_timeout_secs = parse_duration_to_seconds(pull_timeout);
+  if (pull_timeout_secs < 0) {
+    Warning("ONVIF: Invalid pull_timeout format '%s', using default PT5S", pull_timeout.c_str());
+    pull_timeout = "PT5S";
+    pull_timeout_secs = 5;
+  }
+  
+  // Enforce constraint: pull_timeout must be less than renewal advance time
+  // This ensures we can check for renewal between PullMessages calls
+  if (pull_timeout_secs >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
+    Warning("ONVIF: pull_timeout=%s (%ds) exceeds safe limit for renewals. "
+            "Must be < %ds to ensure renewal checks happen in time. "
+            "Automatically adjusting to PT%dS",
+            pull_timeout.c_str(), pull_timeout_secs, 
+            ONVIF_RENEWAL_ADVANCE_SECONDS, ONVIF_MAX_PULL_TIMEOUT);
+    pull_timeout = format_duration(ONVIF_MAX_PULL_TIMEOUT);
+  }
 }
 
 // Calculate exponential backoff delay for retries
@@ -808,6 +930,18 @@ bool ONVIF::Renew() {
   // Update renewal times from renew response
   if (wsnt__RenewResponse.TerminationTime != 0) {
     update_renewal_times(wsnt__RenewResponse.TerminationTime);
+    
+    // Log renewal timing information
+    auto now = std::chrono::system_clock::now();
+    auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+      next_renewal_time - now).count();
+    auto seconds_until_expiration = std::chrono::duration_cast<std::chrono::seconds>(
+      subscription_termination_time - now).count();
+    
+    Info("ONVIF: Subscription renewed. New termination: %s (in %ld seconds), "
+         "Next renewal: %s (in %ld seconds)",
+         SystemTimePointToString(subscription_termination_time).c_str(), seconds_until_expiration,
+         SystemTimePointToString(next_renewal_time).c_str(), seconds_until_renewal);
   }
   
   return true;
@@ -829,17 +963,31 @@ bool ONVIF::IsRenewalNeeded() const {
   
   SystemTimePoint now = std::chrono::system_clock::now();
   
+  // Calculate time until renewal and expiration for logging
+  auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+    next_renewal_time - now).count();
+  auto seconds_until_expiration = std::chrono::duration_cast<std::chrono::seconds>(
+    subscription_termination_time - now).count();
+  
   if (now >= next_renewal_time) {
     // Time to renew
-    auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
-      now - next_renewal_time).count();
-    Debug(2, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    Debug(3, "ONVIF: Checking renewal. Current time: %s, Next renewal: %s, "
+          "Termination: %s, Seconds until renewal: %ld, Seconds until expiration: %ld",
+          SystemTimePointToString(now).c_str(),
+          SystemTimePointToString(next_renewal_time).c_str(), 
+          SystemTimePointToString(subscription_termination_time).c_str(),
+          seconds_until_renewal, seconds_until_expiration);
+    Debug(2, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", -seconds_until_renewal);
     return true;
   }
   
   // Not yet time to renew
-  auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
-    next_renewal_time - now).count();
+  Debug(3, "ONVIF: Checking renewal. Current time: %s, Next renewal: %s, "
+        "Termination: %s, Seconds until renewal: %ld, Seconds until expiration: %ld",
+        SystemTimePointToString(now).c_str(),
+        SystemTimePointToString(next_renewal_time).c_str(), 
+        SystemTimePointToString(subscription_termination_time).c_str(),
+        seconds_until_renewal, seconds_until_expiration);
   Debug(2, "ONVIF: Subscription renewal not yet needed (renews in %ld seconds)", 
         seconds_until_renewal);
   return false;

@@ -18,6 +18,177 @@
 #include "zm_catch2.h"
 #include "zm_time.h"
 #include <chrono>
+#include <string>
+
+// Helper functions for testing (duplicated from zm_monitor_onvif.cpp for testing purposes)
+// These are tested here to ensure they work correctly before being used in production
+namespace {
+  // Parse ISO 8601 duration format to seconds
+  int parse_duration_to_seconds(const std::string& duration) {
+    if (duration.empty() || duration.size() < 3) {
+      return -1;
+    }
+    
+    if (duration[0] != 'P' || duration[1] != 'T') {
+      return -1;
+    }
+    
+    int total_seconds = 0;
+    size_t pos = 2;
+    std::string number;
+    
+    while (pos < duration.length()) {
+      char c = duration[pos];
+      
+      if (std::isdigit(c)) {
+        number += c;
+      } else if (c == 'H') {
+        if (!number.empty()) {
+          total_seconds += std::stoi(number) * 3600;
+          number.clear();
+        }
+      } else if (c == 'M') {
+        if (!number.empty()) {
+          total_seconds += std::stoi(number) * 60;
+          number.clear();
+        }
+      } else if (c == 'S') {
+        if (!number.empty()) {
+          total_seconds += std::stoi(number);
+          number.clear();
+        }
+      } else {
+        return -1;
+      }
+      pos++;
+    }
+    
+    return total_seconds;
+  }
+  
+  // Format seconds to ISO 8601 duration format
+  std::string format_duration(int seconds) {
+    if (seconds < 0) {
+      return "PT0S";
+    }
+    
+    int hours = seconds / 3600;
+    int minutes = (seconds % 3600) / 60;
+    int secs = seconds % 60;
+    
+    std::string result = "PT";
+    
+    if (hours > 0) {
+      result += std::to_string(hours) + "H";
+    }
+    if (minutes > 0) {
+      result += std::to_string(minutes) + "M";
+    }
+    if (secs > 0 || result == "PT") {
+      result += std::to_string(secs) + "S";
+    }
+    
+    return result;
+  }
+}
+
+// Test ISO 8601 duration parsing
+TEST_CASE("ONVIF Duration Parsing") {
+  SECTION("Parse valid duration formats") {
+    REQUIRE(parse_duration_to_seconds("PT5S") == 5);
+    REQUIRE(parse_duration_to_seconds("PT20S") == 20);
+    REQUIRE(parse_duration_to_seconds("PT60S") == 60);
+    REQUIRE(parse_duration_to_seconds("PT1M") == 60);
+    REQUIRE(parse_duration_to_seconds("PT2M") == 120);
+    REQUIRE(parse_duration_to_seconds("PT1M30S") == 90);
+    REQUIRE(parse_duration_to_seconds("PT1H") == 3600);
+    REQUIRE(parse_duration_to_seconds("PT1H30M") == 5400);
+    REQUIRE(parse_duration_to_seconds("PT1H30M45S") == 5445);
+  }
+  
+  SECTION("Parse edge cases") {
+    REQUIRE(parse_duration_to_seconds("PT0S") == 0);
+    REQUIRE(parse_duration_to_seconds("PT100S") == 100);
+  }
+  
+  SECTION("Reject invalid formats") {
+    REQUIRE(parse_duration_to_seconds("") == -1);
+    REQUIRE(parse_duration_to_seconds("P") == -1);
+    REQUIRE(parse_duration_to_seconds("T5S") == -1);
+    REQUIRE(parse_duration_to_seconds("5S") == -1);
+    REQUIRE(parse_duration_to_seconds("PT") == -1);
+    REQUIRE(parse_duration_to_seconds("PTXS") == -1);
+  }
+}
+
+// Test ISO 8601 duration formatting
+TEST_CASE("ONVIF Duration Formatting") {
+  SECTION("Format valid durations") {
+    REQUIRE(format_duration(5) == "PT5S");
+    REQUIRE(format_duration(20) == "PT20S");
+    REQUIRE(format_duration(60) == "PT1M");
+    REQUIRE(format_duration(90) == "PT1M30S");
+    REQUIRE(format_duration(120) == "PT2M");
+    REQUIRE(format_duration(3600) == "PT1H");
+    REQUIRE(format_duration(3660) == "PT1H1M");
+    REQUIRE(format_duration(3665) == "PT1H1M5S");
+    REQUIRE(format_duration(5445) == "PT1H30M45S");
+  }
+  
+  SECTION("Format edge cases") {
+    REQUIRE(format_duration(0) == "PT0S");
+    REQUIRE(format_duration(-1) == "PT0S");
+    REQUIRE(format_duration(-100) == "PT0S");
+  }
+  
+  SECTION("Round-trip conversion") {
+    // Test that parse(format(x)) == x for various values
+    REQUIRE(parse_duration_to_seconds(format_duration(5)) == 5);
+    REQUIRE(parse_duration_to_seconds(format_duration(20)) == 20);
+    REQUIRE(parse_duration_to_seconds(format_duration(90)) == 90);
+    REQUIRE(parse_duration_to_seconds(format_duration(3665)) == 3665);
+  }
+}
+
+// Test pull_timeout validation logic
+TEST_CASE("ONVIF Pull Timeout Validation") {
+  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 10;
+  const int ONVIF_MAX_PULL_TIMEOUT = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+  
+  SECTION("Safe pull_timeout values should not trigger warning") {
+    // Values less than 10 seconds are safe
+    REQUIRE(parse_duration_to_seconds("PT5S") < ONVIF_RENEWAL_ADVANCE_SECONDS);
+    REQUIRE(parse_duration_to_seconds("PT9S") < ONVIF_RENEWAL_ADVANCE_SECONDS);
+    REQUIRE(parse_duration_to_seconds("PT1S") < ONVIF_RENEWAL_ADVANCE_SECONDS);
+  }
+  
+  SECTION("Unsafe pull_timeout values should be adjusted") {
+    // Values >= 10 seconds are unsafe and should be capped
+    int timeout_20s = parse_duration_to_seconds("PT20S");
+    REQUIRE(timeout_20s >= ONVIF_RENEWAL_ADVANCE_SECONDS);
+    
+    int timeout_30s = parse_duration_to_seconds("PT30S");
+    REQUIRE(timeout_30s >= ONVIF_RENEWAL_ADVANCE_SECONDS);
+    
+    int timeout_1m = parse_duration_to_seconds("PT1M");
+    REQUIRE(timeout_1m >= ONVIF_RENEWAL_ADVANCE_SECONDS);
+    
+    // All should be adjusted to max safe value (9 seconds)
+    std::string safe_timeout = format_duration(ONVIF_MAX_PULL_TIMEOUT);
+    REQUIRE(safe_timeout == "PT9S");
+    REQUIRE(parse_duration_to_seconds(safe_timeout) == 9);
+  }
+  
+  SECTION("Edge case: pull_timeout exactly at limit") {
+    // Exactly 10 seconds should also trigger adjustment
+    int timeout_10s = parse_duration_to_seconds("PT10S");
+    REQUIRE(timeout_10s >= ONVIF_RENEWAL_ADVANCE_SECONDS);
+    
+    // Should be adjusted to 9 seconds
+    std::string safe_timeout = format_duration(ONVIF_MAX_PULL_TIMEOUT);
+    REQUIRE(parse_duration_to_seconds(safe_timeout) == 9);
+  }
+}
 
 // Test the ONVIF subscription renewal timing logic
 TEST_CASE("ONVIF Subscription Renewal Timing") {

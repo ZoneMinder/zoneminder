@@ -20,6 +20,7 @@
 #include "zm_time.h"
 
 #include <cinttypes>
+#include <climits>
 #include <ctime>
 
 std::string SystemTimePointToString(SystemTimePoint tp) {
@@ -80,7 +81,7 @@ int ParseISO8601Duration(const std::string& duration) {
   bool has_digit = false;
   
   // Maximum reasonable duration: ~24 days (INT_MAX seconds)
-  constexpr long long MAX_SECONDS = 2147483647LL;  // INT_MAX
+  constexpr long long MAX_SECONDS = INT_MAX;
   constexpr long long MAX_VALUE = MAX_SECONDS / 3600;  // Max hours to avoid overflow
   
   // Parse from position 2 onwards (after "PT")

@@ -1,3 +1,15 @@
+const server_utc_offset = <?php
+$tz = ini_get('date.timezone');
+if (!$tz) {
+  $tz = 'UTC';
+  ZM\Warning('Timezone has not been set. Either select it in Options->System->Timezone or in php.ini');
+}
+
+$TimeZone = new DateTimeZone($tz);
+$now = new DateTime('now', $TimeZone);
+$offset = $TimeZone->getOffset($now);
+echo $offset.'; // '.floor($offset / 3600).' hours '.PHP_EOL;
+?>
 var consoleRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_MAIN ?>;
 
 <?php

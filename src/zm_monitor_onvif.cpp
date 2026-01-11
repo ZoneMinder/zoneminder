@@ -632,8 +632,11 @@ void ONVIF::cleanup_subscription() {
       result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
                                        &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
-      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup");
-      result = SOAP_ERR;
+      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s", 
+              soap->error, soap_fault_string(soap), 
+              soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+      // Don't attempt unsubscribe if WS-Addressing setup failed
+      return;
     }
   } else {
     Debug(2, "ONVIF: Unsubscribing without WS-Addressing during cleanup");

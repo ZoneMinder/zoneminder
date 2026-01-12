@@ -194,7 +194,6 @@ void ONVIF::start() {
   
   tev__PullMessages.Timeout = pull_timeout.c_str();
   tev__PullMessages.MessageLimit = 10;
-  wsnt__Renew.TerminationTime = &subscription_timeout;
   
   Debug(2, "ONVIF: Using pull_timeout=%s, subscription_timeout=%s", 
         pull_timeout.c_str(), subscription_timeout.c_str());
@@ -282,15 +281,6 @@ void ONVIF::start() {
         retry_count++;
         Error("ONVIF: Plain authentication also failed (retry %d/%d). Error %d: %s", 
               retry_count, max_retries, rc, soap_fault_string(soap));
-        if (Logger::fetch()->level() >= Logger::DEBUG3) {
-          std::stringstream ss;
-          std::ostream *old_stream = soap->os;
-          soap->os = &ss;
-          proxyEvent.CreatePullPointSubscription(&request, response);
-          soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
-          soap->os = old_stream;
-          Debug(3, "ONVIF: Response was %s", ss.str().c_str());
-        }
         
         if (retry_count >= max_retries) {
           Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
@@ -313,15 +303,6 @@ void ONVIF::start() {
     } else {
       // Not an auth error or already tried plain auth
       retry_count++;
-      if (Logger::fetch()->level() >= Logger::DEBUG3) {
-        std::stringstream ss;
-        std::ostream *old_stream = soap->os;
-        soap->os = &ss;
-        proxyEvent.CreatePullPointSubscription(&request, response);
-        soap_write__tev__CreatePullPointSubscriptionResponse(soap, &response);
-        soap->os = old_stream;
-        Debug(3, "ONVIF: Response was %s", ss.str().c_str());
-      }
       
       if (retry_count >= max_retries) {
         Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
@@ -904,7 +885,10 @@ void ONVIF::log_subscription_timing(const char* context) {
 bool ONVIF::Renew() {
 #ifdef WITH_GSOAP
   set_credentials(soap);
+  _wsnt__Renew wsnt__Renew;
+  _wsnt__RenewResponse wsnt__RenewResponse;
   wsnt__Renew.TerminationTime = &subscription_timeout;
+  Debug(1, "Setting renew termination time to %s", subscription_timeout.c_str());
   
   bool use_wsa = parent->soap_wsa_compl;
   
@@ -937,6 +921,8 @@ bool ONVIF::Renew() {
   if (wsnt__RenewResponse.TerminationTime != 0) {
     update_renewal_times(wsnt__RenewResponse.TerminationTime);
     log_subscription_timing("renewed");
+  } else {
+    Debug(1, "No TerminationTime in RenewResponse");
   }
   
   return true;
@@ -957,6 +943,13 @@ bool ONVIF::IsRenewalNeeded() const {
   }
   
   SystemTimePoint now = std::chrono::system_clock::now();
+  if (now >= next_renewal_time) {
+    // Time to renew
+    auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
+      now - next_renewal_time).count();
+    Info("ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    return true;
+  }
   
   // Calculate time remaining
   auto time_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
@@ -973,18 +966,9 @@ bool ONVIF::IsRenewalNeeded() const {
   strftime(renew_buf, sizeof(renew_buf), "%Y-%m-%d %H:%M:%S", localtime(&renew_time));
   
   Debug(2, "ONVIF [renewal_check]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
-        term_buf, time_until_termination, renew_buf, time_until_renewal);
-  
-  if (now >= next_renewal_time) {
-    // Time to renew
-    auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
-      now - next_renewal_time).count();
-    Info("ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
-    return true;
-  }
-  
-  // Not yet time to renew
-  Debug(2, "ONVIF: Subscription renewal not yet needed (renews in %ld seconds)", 
+        SystemTimePointToString(subscription_termination_time).c_str(),
+        time_until_termination,
+        SystemTimePointToString(next_renewal_time).c_str(),
         time_until_renewal);
   return false;
 #else

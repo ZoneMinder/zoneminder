@@ -53,8 +53,6 @@ class ONVIF {
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
-  _wsnt__Renew wsnt__Renew;
-  _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
   bool try_usernametoken_auth;  // Track if we should try plain auth

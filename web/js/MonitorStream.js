@@ -904,35 +904,29 @@ function MonitorStream(monitorData) {
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
-    if (mode=='switch') {
-      this.muted = !this.muted;
-    } else if (mode=='on') {
-      this.muted = true;
-    } else if (mode=='off') {
-      this.muted = false;
-    } else {
-      console.log("Invalid value for mode", mode);
-    }
     const mid = this.id;
-
-    const audioStream = this.getAudioStream(mid);
-    if (audioStream) {
-      audioStream.muted = this.muted;
-      console.log("Setting muted for ", mid, " to ", this.muted, "stream value is", audioStream.muted);
-    } else {
-      console.log("No audiostream! in controlMute");
-    }
-
-    const iconMute = this.getIconMute(mid);
-    if (!iconMute) return;
     const volumeSlider = this.getVolumeSlider(mid);
-
-    if (!this.muted) {
-      iconMute.innerHTML = 'volume_up';
-      volumeSlider.classList.add('noUi-mute');
-      if (audioStream) audioStream.volume = volumeSlider.noUiSlider.get() / 100;
-    } else {
+    const audioStream = this.getAudioStream(mid);
+    const iconMute = this.getIconMute(mid);
+    if (!audioStream || !iconMute) return;
+    if (mode=='switch') {
+      if (audioStream.muted) {
+        audioStream.muted = this.muted = false;
+        iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.add('noUi-mute');
+        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+      } else {
+        audioStream.muted = this.muted = true;
+        iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.remove('noUi-mute');
+      }
+    } else if (mode=='on') {
+      audioStream.muted = this.muted = true;
       iconMute.innerHTML = 'volume_off';
+      volumeSlider.classList.add('noUi-mute');
+    } else if (mode=='off') {
+      audioStream.muted = this.muted = false;
+      iconMute.innerHTML = 'volume_up';
       volumeSlider.classList.remove('noUi-mute');
     }
   };

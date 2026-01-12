@@ -822,9 +822,11 @@ function MonitorStream(monitorData) {
       }
       volumeSlider.noUiSlider.set(audioStream.volume * 100);
     }
-    // FIXME what if we are on montage?
-    setCookie('zmWatchMuted', audioStream.muted);
-    setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
+
+    if (currentView != 'montage') {
+      setCookie('zmWatchMuted', audioStream.muted);
+      setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
+    }
     volumeSlider.setAttribute('data-muted', audioStream.muted);
     volumeSlider.setAttribute('data-volume', parseInt(audioStream.volume * 100));
   };

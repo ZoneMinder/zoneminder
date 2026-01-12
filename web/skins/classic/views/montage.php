@@ -357,7 +357,8 @@ foreach ($monitors as $monitor) {
   } else {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'paused';
+    # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
+    $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();
     $browser_width = 1920;
     if (isset($_COOKIE['zmBrowserSizes'])) {

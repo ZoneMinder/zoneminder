@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     055d81fe1293429e496b19104a9ed3360755a440
+%global rtspserver_commit     ec9035ea8b393243608def4e9237209653554e8d
 # CxxUrl is configured as a git submodule
 %global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 

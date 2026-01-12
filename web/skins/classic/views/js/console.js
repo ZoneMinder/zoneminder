@@ -214,7 +214,12 @@ function processRows(rows) {
 
     // Format Function column with status and FPS info
     var functionHtml = '';
-    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < Date.now() - fps_report_seconds * 1000)) {
+    var date = new Date();
+    var now = Math.floor(date.getTime() / 1000);
+    var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
+    now -= tz_difference;
+
+    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < now - fps_report_seconds * 1000)) {
       functionHtml = 'Offline<br/>';
     } else {
       functionHtml = '';
@@ -462,8 +467,7 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
       function() {
         const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorFiltersForm'];
-
+        const form = document.forms['monitorForm'];
         if (selections.length > 0) {
           form.editBtn.disabled = false;
           form.deleteBtn.disabled = false;

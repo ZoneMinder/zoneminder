@@ -348,6 +348,8 @@ sub Sql {
               $self->{Sql} .= ' NOT LIKE '.$value;
             } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq 0) {
               $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq '=' or $term->{op} eq 'IS') and $term->{val} eq -1) {
+              $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
             } else {
               $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }

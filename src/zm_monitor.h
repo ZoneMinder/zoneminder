@@ -758,6 +758,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 #if HAVE_QUADRA
   //Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
+  int quadra_retries;
   std::mutex   quadra_mutex;
 #endif
 #if HAVE_MX_ACCL_H

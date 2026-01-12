@@ -307,6 +307,7 @@ Monitor::Monitor() :
 #if HAVE_QUADRA
   //quadra(nullptr),
   quadra_yolo(nullptr),
+  quadra_retries(0),
 #endif
 #if HAVE_MX_ACCL
   mx_accl(nullptr),
@@ -2011,7 +2012,7 @@ int Monitor::Analyse() {
       if (onvif_event_listener) {
         if (onvif and onvif->isAlarmed()) {
           score += 9;
-          Debug(4, "Triggered on ONVIF");
+          //Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF");
           onvif->setNotes(noteSet);
@@ -2629,7 +2630,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
   // Decoder ctx can get re-opened by decoder thread, and if so, quadra needs to get deleted.
   std::lock_guard<std::mutex> lck(quadra_mutex);
   //OBJECT_DETECTION_QUADRA) {
-  if (!quadra_yolo and mVideoCodecContext) {
+  if (!quadra_yolo and mVideoCodecContext and (quadra_retries < 10)) {
     quadra_yolo = new Quadra_Yolo(this, frame->format == AV_PIX_FMT_NI_QUAD ? true : false);
     int deviceid = -1;
     if (frame && frame->format == AV_PIX_FMT_NI_QUAD) {
@@ -2640,6 +2641,9 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
       Warning("Failed Quadra");
       delete quadra_yolo;
       quadra_yolo = nullptr;
+      quadra_retries++;
+    } else {
+      quadra_retries--;
     }
     // give up... 
   }

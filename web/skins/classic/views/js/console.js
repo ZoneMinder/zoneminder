@@ -463,8 +463,7 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
       function() {
         const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorFiltersForm'];
-
+        const form = document.forms['monitorForm'];
         if (selections.length > 0) {
           form.editBtn.disabled = false;
           form.deleteBtn.disabled = false;

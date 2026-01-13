@@ -893,17 +893,17 @@ li.search-choice {
 .zoom,
 .zoom-console {
   z-index: 1001;
-  position: sticky;
 }
 
 .zoom {
+  position: sticky;
   transform-origin: 0% 00%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
 
-/* Console view zoom uses dynamic scaling calculated via JavaScript */
+/* Console view zoom uses dynamic scaling and positioning via JavaScript */
 .zoom-console {
-  /* Transform and transform-origin are set dynamically via JavaScript */
+  /* Position, transform and transform-origin are set dynamically via JavaScript */
 }
 
 #framesTable .zoom {

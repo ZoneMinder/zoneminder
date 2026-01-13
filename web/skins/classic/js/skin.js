@@ -1178,6 +1178,13 @@ function thumbnail_onmouseover(event) {
       finalScale = (viewportHeight * 0.9) / rect.height;
     }
 
+    // Use fixed positioning to break out of container overflow restrictions
+    img.style.position = 'fixed';
+    img.style.left = rect.left + 'px';
+    img.style.top = rect.top + 'px';
+    img.style.width = rect.width + 'px';
+    img.style.height = rect.height + 'px';
+
     // Set transform origin to top-left so it expands from there
     // This keeps the top-left corner (where cursor enters) in place
     img.style.transformOrigin = '0% 0%';
@@ -1201,6 +1208,11 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
   if ( currentView == 'console' || currentView == 'monitor' ) {
+    img.style.position = '';
+    img.style.left = '';
+    img.style.top = '';
+    img.style.width = '';
+    img.style.height = '';
     img.style.transform = '';
     img.style.transformOrigin = '';
   }

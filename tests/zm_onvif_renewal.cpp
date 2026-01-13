@@ -147,3 +147,77 @@ TEST_CASE("ONVIF Subscription Cleanup Logic") {
     REQUIRE(true); // Behavior verified through code inspection
   }
 }
+
+// Helper function from zm_monitor_onvif.cpp for testing
+// Format an absolute time as ISO 8601 string for ONVIF RenewRequest
+// Returns a string like "2026-01-13T15:30:45.000Z"
+std::string format_absolute_time_iso8601(time_t time) {
+  struct tm *tm_utc = gmtime(&time);
+  if (!tm_utc) {
+    return "";
+  }
+  
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
+  return std::string(buffer);
+}
+
+// Test the ISO 8601 absolute time formatting for ONVIF renewal requests
+TEST_CASE("ONVIF Absolute Time Formatting") {
+  SECTION("Format known timestamp as ISO 8601") {
+    // Test with known timestamp: 2024-01-13 13:14:56 UTC
+    time_t test_time = 1705151696;  // 2024-01-13 13:14:56 UTC
+    std::string result = format_absolute_time_iso8601(test_time);
+    
+    // Should be formatted as ISO 8601 with .000Z suffix
+    REQUIRE(result == "2024-01-13T13:14:56.000Z");
+  }
+  
+  SECTION("Format current time as ISO 8601") {
+    time_t now = time(nullptr);
+    std::string result = format_absolute_time_iso8601(now);
+    
+    // Should not be empty
+    REQUIRE_FALSE(result.empty());
+    
+    // Should have expected format with 'T' separator and 'Z' suffix
+    REQUIRE(result.find('T') != std::string::npos);
+    REQUIRE(result.find('Z') != std::string::npos);
+    REQUIRE(result.back() == 'Z');
+    
+    // Should have the correct length (YYYY-MM-DDTHH:MM:SS.000Z = 24 characters)
+    REQUIRE(result.length() == 24);
+  }
+  
+  SECTION("Format future time for renewal") {
+    // Simulate renewal: current time + 60 seconds
+    time_t now = time(nullptr);
+    time_t renewal_time = now + 60;
+    std::string result = format_absolute_time_iso8601(renewal_time);
+    
+    // Should not be empty
+    REQUIRE_FALSE(result.empty());
+    
+    // Should have expected format
+    REQUIRE(result.find('T') != std::string::npos);
+    REQUIRE(result.find('Z') != std::string::npos);
+    REQUIRE(result.length() == 24);
+  }
+  
+  SECTION("Verify ISO 8601 format components") {
+    time_t test_time = 1705151696;  // 2024-01-13 13:14:56 UTC
+    std::string result = format_absolute_time_iso8601(test_time);
+    
+    // Check year
+    REQUIRE(result.substr(0, 4) == "2024");
+    
+    // Check separators
+    REQUIRE(result[4] == '-');  // After year
+    REQUIRE(result[7] == '-');  // After month
+    REQUIRE(result[10] == 'T'); // Date/time separator
+    REQUIRE(result[13] == ':'); // After hour
+    REQUIRE(result[16] == ':'); // After minute
+    REQUIRE(result[19] == '.'); // After second
+    REQUIRE(result[23] == 'Z'); // UTC indicator
+  }
+}

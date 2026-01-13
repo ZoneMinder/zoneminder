@@ -53,8 +53,6 @@ class ONVIF {
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
-  _wsnt__Renew wsnt__Renew;
-  _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
   bool try_usernametoken_auth;  // Track if we should try plain auth
@@ -74,6 +72,7 @@ class ONVIF {
   // Subscription renewal tracking
   SystemTimePoint subscription_termination_time;  // When subscription expires
   SystemTimePoint next_renewal_time;  // When to perform next renewal (termination - 10s)
+  bool use_absolute_time_for_renewal;  // Use absolute time instead of duration for renewals
 
   // Helper methods
   void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging
@@ -86,6 +85,7 @@ class ONVIF {
   int get_retry_delay();  // Calculate exponential backoff delay
   void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
   bool is_renewal_tracking_initialized() const;  // Check if renewal tracking has been set up
+  void log_subscription_timing(const char* context);  // Log subscription timing information for debugging
   bool Renew();  // Perform subscription renewal, returns true on success
   bool IsRenewalNeeded() const;  // Check if subscription renewal is needed now
   bool do_wsa_request(const char* address, const char* action);  // Setup WS-Addressing headers for SOAP request

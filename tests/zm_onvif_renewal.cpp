@@ -175,14 +175,14 @@ TEST_CASE("ONVIF Stale TerminationTime Detection") {
     
     // Second renewal: Camera returns SAME TerminationTime (stale - didn't advance)
     // In reality, time has passed but camera firmware bug returns the same time
-    time_t second_termination = first_termination;  // STALE - same as first
-    SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
+    time_t stale_termination = first_termination;  // STALE - same as first
+    SystemTimePoint stale_tp = std::chrono::system_clock::from_time_t(stale_termination);
     
-    // Detection logic: second_tp <= first_tp indicates stale time
-    REQUIRE(second_tp <= first_tp);  // This should trigger the stale detection
+    // Detection logic: stale_tp <= first_tp indicates stale time
+    REQUIRE(stale_tp <= first_tp);  // This should trigger the stale detection
     
     // The new time should not have advanced beyond a reasonable threshold
-    auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(second_tp - first_tp).count();
+    auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(stale_tp - first_tp).count();
     REQUIRE(time_diff == 0);  // No advancement = stale
   }
   
@@ -228,8 +228,8 @@ TEST_CASE("ONVIF Stale TerminationTime Detection") {
     // First time setting termination time (initial subscription)
     // Should not be treated as stale since there's no previous time to compare
     
-    // Uninitialized time point (epoch)
-    SystemTimePoint uninitialized_tp;
+    // Uninitialized time point (default constructed - typically epoch)
+    SystemTimePoint uninitialized_tp{};
     REQUIRE(uninitialized_tp.time_since_epoch().count() == 0);
     
     // First termination time

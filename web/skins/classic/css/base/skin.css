@@ -269,8 +269,10 @@ ul.tabList li.active a {
 
 body.sticky #content {
   flex: 1 1 auto;
+  /* whether or not #content is flex is a per-view thing
   display: flex;
   flex-flow: column;
+  */
   height: 100%;
   /* There shouldn't be any, but if there is, at least we can scroll it
   overflow: hidden;

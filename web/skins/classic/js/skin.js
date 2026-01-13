@@ -1159,11 +1159,33 @@ function thumbnail_onmouseover(event) {
   img.src = img.getAttribute(imgAttr);
   if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
-    const zoomHeight = rect.height * 5; // scale factor defined in css
-    if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate available space to the right of the thumbnail
+    const availableRight = viewportWidth - rect.left;
+
+    // Use percentage-based width: 60% of viewport width, capped by available space
+    const targetWidth = Math.min(viewportWidth * 0.6, availableRight * 0.9);
+    const scale = targetWidth / rect.width;
+
+    // Calculate if scaled height would exceed viewport
+    const scaledHeight = rect.height * scale;
+    let finalScale = scale;
+
+    // Adjust scale if height would be too large
+    if (scaledHeight > viewportHeight * 0.9) {
+      finalScale = (viewportHeight * 0.9) / rect.height;
+    }
+
+    // Set transform origin to top-left so it expands from there
+    // This keeps the top-left corner (where cursor enters) in place
+    img.style.transformOrigin = '0% 0%';
+    img.style.transform = 'scale(' + finalScale + ')';
+
+    // Adjust origin if it would go off the bottom
+    if (rect.top + (rect.height * finalScale) > viewportHeight) {
       img.style.transformOrigin = '0% 100%';
-    } else {
-      img.style.transformOrigin = '0% 0%';
     }
   }
   thumbnail_timeout = setTimeout(function() {
@@ -1179,6 +1201,7 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
   if ( currentView == 'console' || currentView == 'monitor' ) {
+    img.style.transform = '';
     img.style.transformOrigin = '';
   }
 }

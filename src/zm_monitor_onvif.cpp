@@ -819,7 +819,7 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
   if (new_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past %ld %s <= %s, switching to absolute time for future renewals",
+    Warning("ONVIF: Received TerminationTime in the past (%ld): %s <= %s, switching to absolute time for future renewals",
       static_cast<long>(termination_time),
       SystemTimePointToString(new_termination_time).c_str(),
       SystemTimePointToString(now).c_str());

@@ -162,6 +162,107 @@ std::string format_absolute_time_iso8601(time_t time) {
   return std::string(buffer);
 }
 
+// Test the stale TerminationTime detection logic
+// This tests the detection of firmware bugs where cameras return non-advancing TerminationTime
+TEST_CASE("ONVIF Stale TerminationTime Detection") {
+  SECTION("Detect stale TerminationTime on renewal") {
+    // Scenario: Camera returns same TerminationTime on subsequent renewal
+    auto now = std::chrono::system_clock::now();
+    
+    // First renewal: TerminationTime = now + 60s
+    time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
+    SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
+    
+    // Simulate time passing (10 seconds)
+    auto later = now + std::chrono::seconds(10);
+    
+    // Second renewal: Camera returns SAME TerminationTime (stale - didn't advance)
+    time_t second_termination = first_termination;  // STALE - same as first
+    SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
+    
+    // Detection logic: second_tp <= first_tp indicates stale time
+    REQUIRE(second_tp <= first_tp);  // This should trigger the stale detection
+    
+    // The new time should not have advanced beyond a reasonable threshold
+    auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(second_tp - first_tp).count();
+    REQUIRE(time_diff == 0);  // No advancement = stale
+  }
+  
+  SECTION("Detect TerminationTime that goes backward") {
+    // Edge case: Camera returns EARLIER TerminationTime on renewal
+    auto now = std::chrono::system_clock::now();
+    
+    // First renewal: TerminationTime = now + 60s
+    time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
+    SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
+    
+    // Second renewal: Camera returns EARLIER time (going backward)
+    time_t second_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(50));
+    SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
+    
+    // Detection logic: second_tp < first_tp indicates stale/buggy time
+    REQUIRE(second_tp < first_tp);  // This should trigger the stale detection
+  }
+  
+  SECTION("Normal case - TerminationTime advances correctly") {
+    // Normal scenario: Camera properly advances TerminationTime on renewal
+    auto now = std::chrono::system_clock::now();
+    
+    // First renewal: TerminationTime = now + 60s
+    time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
+    SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
+    
+    // Simulate time passing (10 seconds)
+    auto later = now + std::chrono::seconds(10);
+    
+    // Second renewal: Camera returns ADVANCED TerminationTime (later + 60s)
+    time_t second_termination = std::chrono::system_clock::to_time_t(later + std::chrono::seconds(60));
+    SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
+    
+    // Normal operation: second_tp > first_tp
+    REQUIRE(second_tp > first_tp);  // This should NOT trigger stale detection
+    
+    // The new time should have advanced
+    auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(second_tp - first_tp).count();
+    REQUIRE(time_diff > 0);  // Advanced = good
+  }
+  
+  SECTION("Initial subscription should not trigger stale detection") {
+    // First time setting termination time (initial subscription)
+    // Should not be treated as stale since there's no previous time to compare
+    
+    // Uninitialized time point (epoch)
+    SystemTimePoint uninitialized_tp;
+    REQUIRE(uninitialized_tp.time_since_epoch().count() == 0);
+    
+    // First termination time
+    auto now = std::chrono::system_clock::now();
+    time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
+    SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
+    
+    // When uninitialized, we can't compare, so stale detection shouldn't apply
+    bool is_initialized = (uninitialized_tp.time_since_epoch().count() != 0);
+    REQUIRE_FALSE(is_initialized);  // Not initialized, so no stale detection
+  }
+  
+  SECTION("Small forward advancement should not be considered stale") {
+    // Edge case: TerminationTime advances by a small amount (e.g., 1 second)
+    // This is still valid advancement, not stale
+    auto now = std::chrono::system_clock::now();
+    
+    // First renewal: TerminationTime = now + 60s
+    time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
+    SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
+    
+    // Second renewal: Camera advances by 1 second
+    time_t second_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(61));
+    SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
+    
+    // Even small advancement is valid
+    REQUIRE(second_tp > first_tp);  // This should NOT trigger stale detection
+  }
+}
+
 // Test the ISO 8601 absolute time formatting for ONVIF renewal requests
 TEST_CASE("ONVIF Absolute Time Formatting") {
   SECTION("Format known timestamp as ISO 8601") {

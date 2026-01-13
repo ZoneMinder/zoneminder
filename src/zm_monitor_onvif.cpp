@@ -814,18 +814,44 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   }
   
   // Convert time_t to SystemTimePoint
-  subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
+  auto new_termination_time = std::chrono::system_clock::from_time_t(termination_time);
   
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
-  if (subscription_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, switching to absolute time for future renewals",
+  if (new_termination_time <= now) {
+    Warning("ONVIF: Received TerminationTime in the past %ld %s <= %s, switching to absolute time for future renewals",
       static_cast<long>(termination_time),
-      SystemTimePointToString(subscription_termination_time).c_str(),
+      SystemTimePointToString(new_termination_time).c_str(),
       SystemTimePointToString(now).c_str());
     use_absolute_time_for_renewal = true;
     return;
   }
+  
+  // NEW: Check if this is a renewal (not initial subscription) and the time didn't advance
+  if (is_renewal_tracking_initialized()) {
+    // This is not the first time we're setting termination time
+    // Check if the new time is the same or earlier than the previous time
+    if (new_termination_time <= subscription_termination_time) {
+      Warning("ONVIF: Camera returned stale TerminationTime. "
+              "Previous: %s (%ld), New: %s (%ld). "
+              "Camera firmware cannot handle duration-based renewals. "
+              "Switching to absolute time format for future renewals.",
+              SystemTimePointToString(subscription_termination_time).c_str(),
+              std::chrono::system_clock::to_time_t(subscription_termination_time),
+              SystemTimePointToString(new_termination_time).c_str(),
+              termination_time);
+      use_absolute_time_for_renewal = true;
+      
+      // Still update the times with the stale value so we attempt renewal again
+      // The camera is apparently honoring subscriptions even past the reported time
+      subscription_termination_time = new_termination_time;
+      next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
+      return;
+    }
+  }
+  
+  // Normal case - termination time advanced properly
+  subscription_termination_time = new_termination_time;
   
   // Calculate renewal time: N seconds before termination
   next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);

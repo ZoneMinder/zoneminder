@@ -914,7 +914,7 @@ function MonitorStream(monitorData) {
       iconMute.innerHTML = (volume == 'on')? 'volume_up' : 'volume_off';
     }
     return iconMute;
-  }
+  };
 
   /*
   * volume: on || off
@@ -929,7 +929,7 @@ function MonitorStream(monitorData) {
       }
     }
     return volumeSlider;
-  }
+  };
 
   /*
   * mode: switch, on, off
@@ -938,7 +938,7 @@ function MonitorStream(monitorData) {
     const mid = this.id;
     let volumeSlider;
     const audioStream = this.getAudioStream(mid);
-    if (!audioStream){
+    if (!audioStream) {
       console.log(`No audiostream! in controlMute for monitor ID=${mid}`);
       return;
     }

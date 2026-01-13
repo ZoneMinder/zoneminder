@@ -1999,21 +1999,14 @@ function closeMbExtruder(updateCookie = false) {
 * If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
 */
 function resetSelectElement(el) {
-  console.log("clearSelectMultiply_el=>", el);
-  const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
-  if (!selectElement) return;
-  Array.from(selectElement.options).forEach((option) => {
-    option.selected = false;
-  });
-  applyChosen(selectElement);
-
-  if (currentView == 'events') {
-    filterEvents(clickedElement = selectElement);
-  } else if (currentView == 'console') {
-    monitorFilterOnChange();
-  } else {
-    submitThisForm(this.closest('form'));
+  const selectElement = $j('select[name="'+el.getAttribute('data-select-target')+'"]');
+  if (!selectElement.length) {
+    console.log('No element found for select[name="'+el.getAttribute('data-select-target')+'"]');
+    return;
   }
+  selectElement.val('');
+  applyChosen(selectElement);
+  selectElement.change();
 }
 
 function initPageGeneral() {

@@ -125,15 +125,11 @@
 {
   display: flex;
   flex-flow: column nowrap;
-  height: 100%;
   flex: 1 1 auto;
 }
 #monitorList {
   flex: 1 1 auto;
 /*  overflow-y: scroll; */
-}
-body.sticky #monitorList {
-  overflow: auto; 
 }
 body.sticky #monitorList thead {
   position: sticky;

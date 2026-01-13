@@ -120,6 +120,9 @@
 .MonitorFilter {
   display: inline-block;
 } */
+#fbpanel {
+  flex: 0 0 auto; /* Don't grow, don't shrink, size based on content */
+}
 #monitorFiltersForm,
 #monitorForm
 {

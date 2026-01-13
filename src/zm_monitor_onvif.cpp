@@ -118,6 +118,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
   ,next_renewal_time()
+  ,use_absolute_time_for_renewal(false)
 #endif
 {
 #ifdef WITH_GSOAP
@@ -818,10 +819,11 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
   if (subscription_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, not updating renewal tracking",
+    Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, switching to absolute time for future renewals",
       static_cast<long>(termination_time),
       SystemTimePointToString(subscription_termination_time).c_str(),
       SystemTimePointToString(now).c_str());
+    use_absolute_time_for_renewal = true;
     return;
   }
   
@@ -880,6 +882,19 @@ void ONVIF::log_subscription_timing(const char* context) {
 }
 
 
+// Format an absolute time as ISO 8601 string for ONVIF RenewRequest
+// Returns a string like "2026-01-13T15:30:45.000Z"
+std::string format_absolute_time_iso8601(time_t time) {
+  struct tm *tm_utc = gmtime(&time);
+  if (!tm_utc) {
+    return "";
+  }
+  
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
+  return std::string(buffer);
+}
+
 // Perform ONVIF subscription renewal
 // Returns true if renewal succeeded or is not supported, false on error
 bool ONVIF::Renew() {
@@ -887,8 +902,34 @@ bool ONVIF::Renew() {
   set_credentials(soap);
   _wsnt__Renew wsnt__Renew;
   _wsnt__RenewResponse wsnt__RenewResponse;
-  wsnt__Renew.TerminationTime = &subscription_timeout;
-  Debug(1, "Setting renew termination time to %s", subscription_timeout.c_str());
+  
+  std::string absolute_time_str;
+  
+  if (use_absolute_time_for_renewal) {
+    // Calculate absolute termination time: current time + subscription duration
+    int subscription_timeout_seconds = parse_iso8601_duration_seconds(subscription_timeout);
+    if (subscription_timeout_seconds < 0) {
+      Warning("ONVIF: Invalid subscription_timeout format: %s, using default 60 seconds", subscription_timeout.c_str());
+      subscription_timeout_seconds = 60;
+    }
+    
+    time_t now = time(nullptr);
+    time_t absolute_termination = now + subscription_timeout_seconds;
+    absolute_time_str = format_absolute_time_iso8601(absolute_termination);
+    
+    if (absolute_time_str.empty()) {
+      Error("ONVIF: Failed to format absolute time for renewal");
+      return false;
+    }
+    
+    wsnt__Renew.TerminationTime = &absolute_time_str;
+    Debug(1, "ONVIF: Setting renew termination time to absolute time: %s (camera requires absolute time format)", 
+          absolute_time_str.c_str());
+  } else {
+    // Use duration format (default behavior)
+    wsnt__Renew.TerminationTime = &subscription_timeout;
+    Debug(1, "ONVIF: Setting renew termination time to duration: %s", subscription_timeout.c_str());
+  }
   
   bool use_wsa = parent->soap_wsa_compl;
   

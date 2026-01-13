@@ -649,7 +649,7 @@ input[type=submit],
 .btn-term-remove-all {
   position: absolute;
   top: 2px;
-  right: 28px;
+  right: 0px;
   z-index: 1011;
 }
 

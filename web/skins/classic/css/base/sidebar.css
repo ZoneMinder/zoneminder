@@ -174,7 +174,8 @@ body.sticky .content-main {
 
 @media (max-height: 500px) {
   .layout-main .sidebar-main .sidebar-content,
-  .layout-main .sidebar-main .sidebar-footer { /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
+  .layout-main .sidebar-main .sidebar-footer {
+    /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
     display: contents;
   }
 }
@@ -319,7 +320,7 @@ body #sidebarMain .sub-menu-list {
 .extruder .extruder-content .btn-term-remove-all {
   position: absolute;
   top: 2px;
-  right: 28px; /* Position to the left of chosen dropdown arrow */
+  right: 0px; /* Position to the left of chosen dropdown arrow */
   z-index: 1011; /* Above chosen dropdown (z-index: 1010) */
   width: auto;
   height: auto;
@@ -358,4 +359,16 @@ body #sidebarMain .sub-menu-list {
 /* !HACK! Otherwise the height of the parent block will be calculated based on the height of the drop-down list, even if the selection is not active! */
 div:not(.chosen-container-active) > .chosen-drop {
   display: none;
+}
+
+.sidebar-main .sidebar-layout .sidebar-footer {
+  height: auto;
+  min-height: 0;
+  margin: 20px 0;
+}
+.layout-main .sidebar-main .footer-box {
+  padding: 0;
+}
+#statusSidebar {
+  display: flex;
 }

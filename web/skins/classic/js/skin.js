@@ -1162,6 +1162,21 @@ function thumbnail_onmouseover(event) {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    // Find the table container to determine bounds
+    let tableTop = 0;
+    const table = img.closest('table');
+    if (table) {
+      const tableRect = table.getBoundingClientRect();
+      const thead = table.querySelector('thead');
+      if (thead) {
+        const theadRect = thead.getBoundingClientRect();
+        // Position below the table header
+        tableTop = theadRect.bottom;
+      } else {
+        tableTop = tableRect.top;
+      }
+    }
+
     // Calculate available space to the right of the thumbnail
     const availableRight = viewportWidth - rect.left;
 
@@ -1173,27 +1188,30 @@ function thumbnail_onmouseover(event) {
     const scaledHeight = rect.height * scale;
     let finalScale = scale;
 
-    // Adjust scale if height would be too large
-    if (scaledHeight > viewportHeight * 0.9) {
-      finalScale = (viewportHeight * 0.9) / rect.height;
+    // Adjust scale if height would be too large (leave space from table header to bottom)
+    const availableHeight = viewportHeight - tableTop - 20; // 20px bottom margin
+    if (scaledHeight > availableHeight) {
+      finalScale = availableHeight / rect.height;
+    }
+
+    // Position the thumbnail: prefer below table header, but keep under cursor
+    let topPosition = Math.max(tableTop, rect.top);
+
+    // Ensure the enlarged thumbnail doesn't go off the bottom
+    if (topPosition + (rect.height * finalScale) > viewportHeight - 20) {
+      topPosition = viewportHeight - (rect.height * finalScale) - 20;
     }
 
     // Use fixed positioning to break out of container overflow restrictions
     img.style.position = 'fixed';
     img.style.left = rect.left + 'px';
-    img.style.top = rect.top + 'px';
+    img.style.top = topPosition + 'px';
     img.style.width = rect.width + 'px';
     img.style.height = rect.height + 'px';
 
     // Set transform origin to top-left so it expands from there
-    // This keeps the top-left corner (where cursor enters) in place
     img.style.transformOrigin = '0% 0%';
     img.style.transform = 'scale(' + finalScale + ')';
-
-    // Adjust origin if it would go off the bottom
-    if (rect.top + (rect.height * finalScale) > viewportHeight) {
-      img.style.transformOrigin = '0% 100%';
-    }
   }
   thumbnail_timeout = setTimeout(function() {
     img.classList.add(imgClass);

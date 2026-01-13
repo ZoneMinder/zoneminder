@@ -158,15 +158,16 @@ echo $navbar ?>
   <div id="content">
 
     <div id="fbpanel" class="filterBar hidden-shift">
-  <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
+      <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
-  </form>
+      </form>
     </div>
 
-  <form name="monitorForm" id="monitorForm" method="post" action="?view=<?php echo $view; ?>">
-    <input type="hidden" name="action" value=""/>
-    <div id="toolbar" class="container-fluid pt-2 pb-2">
-      <div class="statusBreakdown">
+    <div id="monitorsContainer">
+      <form name="monitorForm" id="monitorForm" method="post" action="?view=<?php echo $view; ?>">
+        <input type="hidden" name="action" value=""/>
+        <div id="toolbar" class="container-fluid pt-2 pb-2">
+          <div class="statusBreakdown">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -302,6 +303,7 @@ echo $navbar ?>
       </table>
     </div><!-- content table responsive div -->
   </form>
+</div>
 </div><!--content-->
 </div><!--page-->
 <?php

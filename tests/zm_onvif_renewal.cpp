@@ -173,10 +173,8 @@ TEST_CASE("ONVIF Stale TerminationTime Detection") {
     time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
     SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
     
-    // Simulate time passing (10 seconds)
-    auto later = now + std::chrono::seconds(10);
-    
     // Second renewal: Camera returns SAME TerminationTime (stale - didn't advance)
+    // In reality, time has passed but camera firmware bug returns the same time
     time_t second_termination = first_termination;  // STALE - same as first
     SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
     
@@ -212,10 +210,9 @@ TEST_CASE("ONVIF Stale TerminationTime Detection") {
     time_t first_termination = std::chrono::system_clock::to_time_t(now + std::chrono::seconds(60));
     SystemTimePoint first_tp = std::chrono::system_clock::from_time_t(first_termination);
     
-    // Simulate time passing (10 seconds)
+    // Second renewal: After 10 seconds pass, camera correctly returns new time
+    // Conceptually represents: later_time = now + 10s, then new_termination = later_time + 60s
     auto later = now + std::chrono::seconds(10);
-    
-    // Second renewal: Camera returns ADVANCED TerminationTime (later + 60s)
     time_t second_termination = std::chrono::system_clock::to_time_t(later + std::chrono::seconds(60));
     SystemTimePoint second_tp = std::chrono::system_clock::from_time_t(second_termination);
     

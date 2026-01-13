@@ -268,12 +268,13 @@ ul.tabList li.active a {
 }
 
 body.sticky #content {
-/*
   flex: 1 1 auto;
   display: flex;
   flex-flow: column;
-  overflow: hidden;*/
   height: 100%;
+  /* There shouldn't be any, but if there is, at least we can scroll it
+  overflow: hidden;
+  */
 }
 
 #inner-content {

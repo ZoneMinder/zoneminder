@@ -53,10 +53,18 @@
 
 .consoleTable {
     width: 100%;
+    height: 100%; /* parent is flex-height */
 }
 
 .consoleTable tr.highlight {
     background-color: #eeeeee;
+}
+
+.consoleTable thead {
+  flex: 0 0 auto;
+}
+.consoleTable tbody {
+  flex: 1 1 auto;
 }
 
 .consoleTable thead th {
@@ -120,21 +128,29 @@
 .MonitorFilter {
   display: inline-block;
 } */
+
+#monitorsContainer {
+  flex: 1 1 auto;
+  overflow: hidden; /* Ensures height is correct if content too large */
+}
+
 #monitorFiltersForm,
 #monitorForm
 {
+  height: 100%;
+  /*
   display: flex;
   flex-flow: column nowrap;
-  height: 100%;
   flex: 1 1 auto;
+  */
 }
 #monitorList {
-  flex: 1 1 auto;
-/*  overflow-y: scroll; */
 }
+/*
 body.sticky #monitorList {
   overflow: auto; 
 }
+*/
 body.sticky #monitorList thead {
   position: sticky;
   top: 0;
@@ -191,13 +207,31 @@ body.sticky #monitorList thead {
   overflow: visible !important;
 }
 /* Make the boot-strap table monitor list scrollable instead of content div */
+/*
 #content,
-#monitorList,
-#monitorList .bootstrap-table,
-#monitorList .fixed-table-container {
+*/
+#monitorList {
   overflow: hidden;
   height: 100%;
 }
+
+#monitorList .bootstrap-table {
+  overflow: hidden;
+  height: 100%;
+}
+
+#monitorList .bootstrap-table {
+  display: flex;
+  flex-direction: column;
+    flex-wrap: nowrap;
+}
 #monitorList .fixed-table-container {
-  overflow: auto;
+  overflow: hidden; /* Ensures height doesn't expand */
+}
+
+#fbpanel {
+  flex: 0 0 auto; /* Don't grow, don't shrink, size based on content */
+}
+.bootstrap-table .fixed-table-toolbar .bs-bars {
+  margin: 0;
 }

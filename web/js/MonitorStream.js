@@ -811,22 +811,27 @@ function MonitorStream(monitorData) {
     const mid = this.id;
     const audioStream = el.target;
     const volumeSlider = this.getVolumeSlider(mid);
-    const iconMute = this.getIconMute(mid);
     if (volumeSlider.allowSetValue) {
       if (audioStream.muted === true) {
-        iconMute.innerHTML = 'volume_off';
+        this.changeStateIconMute(mid, 'off');
         volumeSlider.classList.add('noUi-mute');
       } else {
-        iconMute.innerHTML = 'volume_up';
+        this.changeStateIconMute(mid, 'on');
         volumeSlider.classList.remove('noUi-mute');
       }
-      volumeSlider.noUiSlider.set(audioStream.volume * 100);
+      if (volumeSlider) {
+        volumeSlider.noUiSlider.set(audioStream.volume * 100);
+      }
     }
-    // FIXME what if we are on montage?
-    setCookie('zmWatchMuted', audioStream.muted);
-    setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
-    volumeSlider.setAttribute('data-muted', audioStream.muted);
-    volumeSlider.setAttribute('data-volume', parseInt(audioStream.volume * 100));
+
+    if (currentView != 'montage') {
+      setCookie('zmWatchMuted', audioStream.muted);
+      setCookie('zmWatchVolume', parseInt(audioStream.volume * 100));
+    }
+    if (volumeSlider) {
+      volumeSlider.setAttribute('data-muted', audioStream.muted);
+      volumeSlider.setAttribute('data-volume', parseInt(audioStream.volume * 100));
+    }
   };
 
   this.createVolumeSlider = function() {
@@ -834,7 +839,7 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider(mid);
     const iconMute = this.getIconMute(mid);
     const audioStream = this.getAudioStream(mid);
-    if (!volumeSlider) return;
+    if (!volumeSlider || !audioStream) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
     if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
@@ -901,33 +906,66 @@ function MonitorStream(monitorData) {
   };
 
   /*
+  * volume: on || off
+  */
+  this.changeStateIconMute = function(mid, volume) {
+    const iconMute = this.getIconMute(mid);
+    if (iconMute) {
+      iconMute.innerHTML = (volume == 'on')? 'volume_up' : 'volume_off';
+    }
+    return iconMute;
+  }
+
+  /*
+  * volume: on || off
+  */
+  this.changeVolumeSlider = function(mid, volume) {
+    const volumeSlider = this.getVolumeSlider(mid);
+    if (volumeSlider) {
+      if (volume == 'on') {
+        volumeSlider.classList.remove('noUi-mute');
+      } else if (volume == 'off') {
+        volumeSlider.classList.add('noUi-mute');
+      }
+    }
+    return volumeSlider;
+  }
+
+  /*
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
     const mid = this.id;
-    const volumeSlider = this.getVolumeSlider(mid);
+    let volumeSlider;
     const audioStream = this.getAudioStream(mid);
-    const iconMute = this.getIconMute(mid);
-    if (!audioStream || !iconMute) return;
+    if (!audioStream){
+      console.log(`No audiostream! in controlMute for monitor ID=${mid}`);
+      return;
+    }
     if (mode=='switch') {
       if (audioStream.muted) {
         audioStream.muted = this.muted = false;
-        iconMute.innerHTML = 'volume_up';
-        volumeSlider.classList.add('noUi-mute');
-        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+        this.changeStateIconMute(mid, 'on');
+        volumeSlider = this.changeVolumeSlider(mid, 'on');
+        if (volumeSlider) {
+          audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+        }
       } else {
         audioStream.muted = this.muted = true;
-        iconMute.innerHTML = 'volume_off';
-        volumeSlider.classList.remove('noUi-mute');
+        this.changeStateIconMute(mid, 'off');
+        this.changeVolumeSlider(mid, 'off');
       }
     } else if (mode=='on') {
       audioStream.muted = this.muted = true;
-      iconMute.innerHTML = 'volume_off';
-      volumeSlider.classList.add('noUi-mute');
+      this.changeStateIconMute(mid, 'off');
+      this.changeVolumeSlider(mid, 'off');
     } else if (mode=='off') {
       audioStream.muted = this.muted = false;
-      iconMute.innerHTML = 'volume_up';
-      volumeSlider.classList.remove('noUi-mute');
+      this.changeStateIconMute(mid, 'on');
+      volumeSlider = this.changeVolumeSlider(mid, 'on');
+      if (volumeSlider) {
+        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+      }
     }
   };
 

@@ -640,8 +640,44 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+/* Clear button for filter selects (general pages, not in extruder) */
+.term-value-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-term-remove-all {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  z-index: 1011;
+}
+
 .btn-term-remove-all button {
-  padding: 4px 10px;
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.btn-term-remove-all button:hover .material-icons {
+  color: #333;
 }
 
 .btn-normal,

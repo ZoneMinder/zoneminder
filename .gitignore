@@ -5,6 +5,8 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
+build/
+_build/
 cmake/cmake_uninstall.cmake
 cmake_install.cmake
 compile

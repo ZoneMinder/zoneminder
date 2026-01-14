@@ -1084,13 +1084,20 @@ void ONVIF::set_credentials(struct soap *soap) {
 
 // Helper function to interpret alarm values from various formats
 // Returns true if the value indicates an active alarm, false otherwise
+// Handles formats from: Hikvision, Dahua, Axis, Reolink, Amcrest, Hanwha, etc.
 bool ONVIF::interpret_alarm_value(const std::string &value) {
   if (value.empty()) {
     return false;  // Empty value = no alarm
   }
 
-  // Check for explicit false values
-  if (value == "false" || value == "False" || value == "FALSE") {
+  // Check for explicit false/inactive values (case-insensitive common patterns)
+  if (value == "false" || value == "False" || value == "FALSE" ||
+      value == "inactive" || value == "Inactive" || value == "INACTIVE" ||
+      value == "off" || value == "Off" || value == "OFF" ||
+      value == "no" || value == "No" || value == "NO" ||
+      value == "idle" || value == "Idle" || value == "IDLE" ||
+      value == "normal" || value == "Normal" || value == "NORMAL" ||
+      value == "closed" || value == "Closed" || value == "CLOSED") {
     return false;
   }
 
@@ -1102,17 +1109,23 @@ bool ONVIF::interpret_alarm_value(const std::string &value) {
       break;
     }
   }
-  if (all_zeros) {
+  if (all_zeros && !value.empty()) {
     return false;  // "0", "00", "000", etc. = no alarm
   }
 
-  // Check for explicit true values
-  if (value == "true" || value == "True" || value == "TRUE") {
+  // Check for explicit true/active values
+  if (value == "true" || value == "True" || value == "TRUE" ||
+      value == "active" || value == "Active" || value == "ACTIVE" ||
+      value == "on" || value == "On" || value == "ON" ||
+      value == "yes" || value == "Yes" || value == "YES" ||
+      value == "alarm" || value == "Alarm" || value == "ALARM" ||
+      value == "triggered" || value == "Triggered" || value == "TRIGGERED" ||
+      value == "open" || value == "Open" || value == "OPEN") {
     return true;
   }
 
-  // Any other non-zero value is considered active
-  // This handles "1", "001", custom camera values, etc.
+  // Any other non-zero/non-empty value is considered active
+  // This handles "1", "001", custom camera values, direction strings, etc.
   return true;
 }
 
@@ -1149,27 +1162,68 @@ static bool extract_simple_item_attrs(struct soap_dom_element *elt,
 }
 
 // Check if SimpleItem Name is a data field (not a source identifier)
+// Based on ONVIF Event Service Specification and common camera implementations:
+// - Hikvision, Dahua, Axis, Reolink, Amcrest, Hanwha/Samsung, etc.
 static bool is_data_simple_item(const std::string &item_name) {
-  // Known data field names
-  if (item_name == "State" ||
-      item_name == "IsMotion" ||
-      item_name == "IsTamper" ||
-      item_name == "IsInside" ||
-      item_name == "IsCrossing" ||
-      item_name == "Value") {
+  // Known data field names from ONVIF spec and various camera manufacturers
+  // Boolean state fields
+  if (item_name == "State" ||           // Common: most cameras
+      item_name == "IsMotion" ||        // Motion detection
+      item_name == "IsTamper" ||        // Tamper detection
+      item_name == "IsInside" ||        // Field detector (objects inside region)
+      item_name == "IsCrossing" ||      // Line crossing
+      item_name == "IsActive" ||        // Generic active state
+      item_name == "LogicalState" ||    // Digital I/O (Hikvision, Dahua)
+      item_name == "active" ||          // Axis cameras
+      item_name == "Value" ||           // Generic value field
+      item_name == "Alarm" ||           // Generic alarm field
+      item_name == "Motion") {          // Some cameras use just "Motion"
     return true;
   }
+
+  // Analytics/counting fields (these may have non-boolean values)
+  if (item_name == "Count" ||           // Object counting
+      item_name == "Level" ||           // Audio detection level
+      item_name == "Direction" ||       // Line crossing direction
+      item_name == "ObjectId" ||        // Object tracking ID
+      item_name == "Speed" ||           // Speed detection
+      item_name == "Region" ||          // Region identifier
+      item_name == "Percentage") {      // Fill percentage
+    return true;
+  }
+
   // Items starting with "Is" are typically boolean state fields
+  // Examples: IsMotion, IsTamper, IsInside, IsCrossing, IsHandRaised, etc.
   if (item_name.length() >= 2 && item_name[0] == 'I' && item_name[1] == 's') {
     return true;
   }
+
+  // Items ending with "State" or "Alarm" are typically state indicators
+  if (item_name.length() >= 5) {
+    if (item_name.compare(item_name.length() - 5, 5, "State") == 0 ||
+        item_name.compare(item_name.length() - 5, 5, "Alarm") == 0) {
+      return true;
+    }
+  }
+
   return false;
 }
 
 // Helper function to parse event messages with flexible XML structure handling
-// Handles Reolink RLC-811A, RLC-822A, and similar cameras
-// XML structure:
-//   wsnt:Message > tt:Message[PropertyOperation] > tt:Source + tt:Data > tt:SimpleItem[Name,Value]
+// Supports ONVIF-compliant cameras including:
+//   Reolink (RLC-811A, RLC-822A, etc.), Hikvision, Dahua, Axis, Amcrest, Hanwha/Samsung
+//
+// ONVIF Event Service XML structure per specification:
+//   wsnt:Message > tt:Message[UtcTime, PropertyOperation] >
+//     tt:Source > tt:SimpleItem[Name,Value]    (identifies the source, e.g., VideoSourceToken)
+//     tt:Key > tt:SimpleItem[Name,Value]       (optional, additional identifiers)
+//     tt:Data > tt:SimpleItem[Name,Value]      (the actual event data we want)
+//            > tt:ElementItem[Name]            (complex data with child elements)
+//
+// PropertyOperation values per ONVIF spec:
+//   "Initialized" - Current state at subscription time
+//   "Changed"     - State actually changed (alarm on/off)
+//   "Deleted"     - Property no longer exists
 bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
                                           std::string &topic,
                                           std::string &value,
@@ -1219,7 +1273,8 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
   }
 
   // Step 2: Find tt:Data element among tt:Message's children
-  // Children are: tt:Source, tt:Data (order may vary)
+  // Children per ONVIF spec: tt:Source, tt:Key (optional), tt:Data
+  // We specifically look for "Data" and skip Source/Key elements
   struct soap_dom_element *data_elt = nullptr;
   struct soap_dom_element *child = tt_message->elts;
 

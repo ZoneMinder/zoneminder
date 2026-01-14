@@ -322,7 +322,6 @@ Monitor::Monitor() :
   //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
-  Event_Poller_Closes_Event(false),
   RTSP2Web_Manager(nullptr),
   Go2RTC_Manager(nullptr),
   Janus_Manager(nullptr),
@@ -1194,15 +1193,9 @@ bool Monitor::connect() {
       Amcrest_Manager = new AmcrestAPI(this);
     }
 
-    if (onvif_event_listener) { //
-      Debug(1, "Starting ONVIF");
-      if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
-        Event_Poller_Closes_Event = true;
-      }
+    if (onvif_event_listener) {
       onvif = new ONVIF(this);
-    } else {
-      Debug(1, "Not Starting ONVIF");
-    }  //End ONVIF Setup
+    }  // End ONVIF Setup
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -1984,20 +1977,18 @@ bool Monitor::Analyse() {
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
-      if (onvif_event_listener) {
-        if (onvif and onvif->isAlarmed()) {
-          score += 9;
-          Debug(4, "Triggered on ONVIF");
-          Event::StringSet noteSet;
-          noteSet.insert("ONVIF");
-          onvif->setNotes(noteSet);
-          noteSetMap[MOTION_CAUSE] = noteSet;
-          cause += "ONVIF";
-          // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-          //if (!Event_Poller_Closes_Event && state == ALARM)
-            //onvif->setAlarmed(false);
-        }  // end ONVIF_Trigger
-      }  // end if (onvif_event_listener  && Event_Poller_Healthy)
+      if (onvif and onvif->isAlarmed()) {
+        score += 9;
+        Debug(4, "Triggered on ONVIF");
+        Event::StringSet noteSet;
+        noteSet.insert("ONVIF");
+        onvif->setNotes(noteSet);
+        noteSetMap[MOTION_CAUSE] = noteSet;
+        cause += "ONVIF";
+        // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+        //if (!Event_Poller_Closes_Event && state == ALARM)
+        //onvif->setAlarmed(false);
+      }  // end ONVIF_Trigger
 #endif
 
       if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {

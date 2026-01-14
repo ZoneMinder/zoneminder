@@ -114,7 +114,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,max_retries(5)
   ,warned_initialized_repeat(false)
   ,pull_timeout("PT5S")
-  ,subscription_timeout("PT60S")
+  ,subscription_timeout("PT300S")
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
   ,next_renewal_time()
@@ -819,11 +819,18 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Validate that termination time is in the future
   auto now = std::chrono::system_clock::now();
   if (subscription_termination_time <= now) {
-    Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, switching to absolute time for future renewals",
-      static_cast<long>(termination_time),
-      SystemTimePointToString(subscription_termination_time).c_str(),
-      SystemTimePointToString(now).c_str());
-    use_absolute_time_for_renewal = true;
+    if (!use_absolute_time_for_renewal) {
+      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, switching to absolute time for future renewals",
+          static_cast<long>(termination_time),
+          SystemTimePointToString(subscription_termination_time).c_str(),
+          SystemTimePointToString(now).c_str());
+      use_absolute_time_for_renewal = true;
+    } else {
+      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, despite using absolute time for renewals.",
+          static_cast<long>(termination_time),
+          SystemTimePointToString(subscription_termination_time).c_str(),
+          SystemTimePointToString(now).c_str());
+    }
     return;
   }
   
@@ -911,6 +918,8 @@ bool ONVIF::Renew() {
     if (subscription_timeout_seconds < 0) {
       Warning("ONVIF: Invalid subscription_timeout format: %s, using default 60 seconds", subscription_timeout.c_str());
       subscription_timeout_seconds = 60;
+    } else {
+      Debug(3, "Have subscription timeout duration %dseconds", subscription_timeout_seconds);
     }
     
     time_t now = time(nullptr);
@@ -970,7 +979,7 @@ bool ONVIF::Renew() {
 #else
   return false;
 #endif
-}
+}  // bool ONVIF::Renew()
 
 // Check if subscription renewal is needed
 // Returns true if renewal should be performed now, false if not yet needed

@@ -3407,7 +3407,7 @@ int Monitor::PrimeCapture() {
   }  // end if rtsp_server
 
   //Poller Thread
-  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API) {
+  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
     if (!Poller) {
       Debug(1, "Creating unique poller thread");
       Poller = zm::make_unique<PollThread>(this);

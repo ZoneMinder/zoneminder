@@ -29,13 +29,16 @@
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
 
+  Debug(1, "Go2RTC: Initializing Go2RTCManager for monitor %s (%d)", parent->Name(), parent->Id());
 
   if ((config.go2rtc_path != nullptr) && (config.go2rtc_path[0] != '\0')) {
     Go2RTC_endpoint = config.go2rtc_path;
     // remove the trailing slash if present
     if (Go2RTC_endpoint.back() == '/') Go2RTC_endpoint.pop_back();
+    Debug(1, "Go2RTC: Using configured endpoint: %s", Go2RTC_endpoint.c_str());
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
+    Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s", Go2RTC_endpoint.c_str());
   }
 
   Use_RTSP_Restream = parent->RTSPServer();
@@ -75,20 +78,32 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
       rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
     }
   }  // end if !user.empty
+
+  Debug(1, "Go2RTC: Primary RTSP path: %s", rtsp_path.c_str());
+  if (!rtsp_second_path.empty()) {
+    Debug(1, "Go2RTC: Secondary RTSP path: %s", rtsp_second_path.c_str());
+  }
+  if (!rtsp_restream_path.empty()) {
+    Debug(1, "Go2RTC: ZM RTSP restream path: %s", rtsp_restream_path.c_str());
+  }
 }
 
 Monitor::Go2RTCManager::~Go2RTCManager() { remove_from_Go2RTC(); }
 
 int Monitor::Go2RTCManager::check_Go2RTC() {
+  Debug(2, "Go2RTC: check_Go2RTC called for monitor %s (%d)", parent->Name(), parent->id);
+
   CURL *curl = curl_easy_init();
   if (!curl) {
-    Error("Go2RTC: Failed to init curl");
+    Error("Go2RTC: Failed to init curl in check_Go2RTC");
     return -1;
   }
 
   // Assemble our actual request
   std::string endpoint = Go2RTC_endpoint + "/streams?src=" + std::to_string(parent->id);
   std::string response;
+
+  Debug(2, "Go2RTC: Checking endpoint: %s", endpoint.c_str());
 
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -100,54 +115,94 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
   response = remove_newlines(response);
   if (res != CURLE_OK) {
-    Warning("Go2RTC: Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Check failed - attempted %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
     return -1;
   }
 
+  Debug(2, "Go2RTC: Check response: %s", response.c_str());
+  Debug(2, "Go2RTC: Looking for RTSP path: %s", rtsp_path.c_str());
+
   if (response.find(rtsp_path) == std::string::npos) {
-    Debug(1, "Go2RTC: Mountpoint Missing %s", response.c_str());
+    Debug(1, "Go2RTC: Stream not found in Go2RTC (expected path '%s' not in response)", rtsp_path.c_str());
     return 0;
   }
 
+  Debug(1, "Go2RTC: Stream found in Go2RTC");
   return 1;
 }
 
 int Monitor::Go2RTCManager::add_to_Go2RTC() {
+  Debug(1, "Go2RTC: add_to_Go2RTC called for monitor %s (%d)", parent->Name(), parent->Id());
+
   CURL *curl = curl_easy_init();
   if (!curl) {
-    Error("Failed to init curl");
+    Error("Go2RTC: Failed to init curl");
     return -1;
   }
 
+  Debug(1, "Go2RTC: Adding primary stream (monitor ID) - RTSP path: %s", rtsp_path.c_str());
   std::string endpoint = Go2RTC_endpoint + "/streams?name="+std::to_string(parent->Id())+"&src="+UriEncode(rtsp_path);
   std::string postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";
+  Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
-  if (response.first != CURLE_OK) return -1;
+  if (response.first != CURLE_OK) {
+    Warning("Go2RTC: Failed to add primary stream (monitor ID)");
+    return -1;
+  }
+  Debug(1, "Go2RTC: Successfully added primary stream (monitor ID), response: %s", response.second.c_str());
 
+  Debug(1, "Go2RTC: Adding stream with ID_0 format");
   endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_0", parent->Id())+"&src="+UriEncode(rtsp_path);
   postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 0\", \"src\": \""+rtsp_path+"\" }";
+  Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
   response = CURL_PUT(endpoint, postData);
+  if (response.first == CURLE_OK) {
+    Debug(1, "Go2RTC: Successfully added stream ID_0, response: %s", response.second.c_str());
+  }
 
   if (!rtsp_second_path.empty()) {
+    Debug(1, "Go2RTC: Adding secondary stream (channel 1) - RTSP path: %s", rtsp_second_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_1", parent->Id())+"&src="+UriEncode(rtsp_second_path);
     postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 1\", \"src\": \""+rtsp_second_path+"\" }";
+    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
+    if (response.first == CURLE_OK) {
+      Debug(1, "Go2RTC: Successfully added secondary stream, response: %s", response.second.c_str());
+    }
+  } else {
+    Debug(2, "Go2RTC: No secondary stream configured");
   }
 
   if (!rtsp_restream_path.empty()) {
+    Debug(1, "Go2RTC: Adding ZM RTSP restream (channel 2) - path: %s", rtsp_restream_path.c_str());
     endpoint = Go2RTC_endpoint + "/streams?name="+stringtf("%d_2", parent->Id())+"&src="+UriEncode(rtsp_restream_path);
     postData = "{\"name\" : \"" + std::string(parent->Name()) + " channel 2\", \"src\": \""+rtsp_restream_path+"\" }";
+    Debug(2, "Go2RTC: PUT to %s", endpoint.c_str());
     response = CURL_PUT(endpoint, postData);
+    if (response.first == CURLE_OK) {
+      Debug(1, "Go2RTC: Successfully added RTSP restream, response: %s", response.second.c_str());
+    }
+  } else {
+    Debug(2, "Go2RTC: No RTSP restream configured");
   }
+
+  Debug(1, "Go2RTC: Finished adding streams for monitor %d", parent->Id());
   return 0;
 }
 
 int Monitor::Go2RTCManager::remove_from_Go2RTC() {
+  Debug(1, "Go2RTC: remove_from_Go2RTC called for monitor %s (%d)", parent->Name(), parent->Id());
+
   std::string endpoint = Go2RTC_endpoint + "/streams?src="+std::to_string(parent->Id());
   std::string response;
 
+  Debug(2, "Go2RTC: DELETE request to: %s", endpoint.c_str());
+
   CURL *curl = curl_easy_init();
-  if (!curl) return -1;
+  if (!curl) {
+    Error("Go2RTC: Failed to init curl in remove_from_Go2RTC");
+    return -1;
+  }
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -157,9 +212,9 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
 
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Delete failed - attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
   } else {
-    Debug(1, "Removed stream from Go2RTC: %s", response.c_str());
+    Debug(1, "Go2RTC: Successfully removed stream, response: %s", response.c_str());
   }
 
   curl_easy_cleanup(curl);

@@ -122,10 +122,6 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,use_absolute_time_for_renewal(false)
 #endif
 {
-#ifdef WITH_GSOAP
-  parse_onvif_options();
-  last_retry_time = std::chrono::system_clock::now();
-#endif
 }
 
 ONVIF::~ONVIF() {
@@ -166,6 +162,8 @@ ONVIF::~ONVIF() {
 
 void ONVIF::start() {
 #ifdef WITH_GSOAP
+  parse_onvif_options();
+  last_retry_time = std::chrono::system_clock::now();
   // Check if soap context already exists from a previous failed attempt
   // If so, clean up the stale subscription before creating a new one
   if (soap != nullptr) {

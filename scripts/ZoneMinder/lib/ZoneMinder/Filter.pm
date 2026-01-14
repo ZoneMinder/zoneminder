@@ -493,7 +493,7 @@ sub strtotime {
   my $dt_str = shift;
   require Date::Manip;
 
-  Date::Manip::Date_Init("SetDate=now,".$ZoneMinder::Config{ZM_TIMEZONE});
+  Date::Manip::Date_Init("SetDate=now,".$ZoneMinder::Config{ZM_TIMEZONE}) if $ZoneMinder::Config{ZM_TIMEZONE};
   my $dt = Date::Manip::ParseDate($dt_str);
   return Date::Manip::UnixDate($dt, '%s');
 }

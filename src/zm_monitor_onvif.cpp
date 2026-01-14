@@ -187,11 +187,10 @@ void ONVIF::start() {
   }
   
   if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
+    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
             pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
     pull_timeout = "PT8S";
   }
-  
   
   soap = soap_new();
   soap->connect_timeout = 0;
@@ -199,11 +198,13 @@ void ONVIF::start() {
   soap->send_timeout = 0;
   //soap->bind_flags |= SO_REUSEADDR;
   soap_register_plugin(soap, soap_wsse);
+  // Always register WS-Addressing plugin to handle mustUnderstand headers in responses,
+  // even if we don't send WS-Addressing headers in requests
+  soap_register_plugin(soap, soap_wsa);
   if (parent->soap_wsa_compl) {
-    soap_register_plugin(soap, soap_wsa);
-    Debug(2, "ONVIF: WS-Addressing plugin registered");
+    Debug(2, "ONVIF: WS-Addressing enabled for requests");
   } else {
-    Debug(2, "ONVIF: WS-Addressing disabled");
+    Debug(2, "ONVIF: WS-Addressing disabled for requests (plugin still registered for responses)");
   }
 
   // Enable SOAP logging if configured
@@ -328,10 +329,12 @@ void ONVIF::start() {
       Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
     }
 
-    //Empty the stored messages
+    // Empty the stored messages
+    // Clear any stale SOAP headers from previous requests/responses
+    soap->header = nullptr;
     set_credentials(soap);
 
-    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
+    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
       healthy = false;
       return;
     }
@@ -367,6 +370,8 @@ void ONVIF::start() {
 
 void ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
+  // Clear any stale SOAP headers from previous requests/responses
+  soap->header = nullptr;
   set_credentials(soap);
   
   bool use_wsa = parent->soap_wsa_compl;
@@ -381,32 +386,23 @@ void ONVIF::WaitForMessage() {
   
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
-  Debug(1, "ONVIF: Starting PullMessageRequest ...");
+  tev__PullMessages.Timeout = pull_timeout.c_str();
+  tev__PullMessages.MessageLimit = 10;
+  Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%s, MessageLimit=%d ...",
+        pull_timeout.c_str(), tev__PullMessages.MessageLimit);
   int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
 
-      if (result != SOAP_EOF) { //Ignore the timeout error
-        Error("Failed to get ONVIF messages! result=%d soap_fault_string=%s detail=%s",
-            result, soap_fault_string(soap), (detail ? detail : "null"));
-
-        if (Logger::fetch()->level() >= Logger::DEBUG3) {
-          std::ostream *old_stream = soap->os;
-          std::stringstream ss;
-          soap->os = &ss; // assign a stringstream to write output to
-          set_credentials(soap);
-          proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
-          soap_write__tev__PullMessagesResponse(soap, &tev__PullMessagesResponse);
-          soap->os = old_stream; // no longer writing to the stream
-          Debug(3, "ONVIF: Response was %s", ss.str().c_str());
-        }
+      if (soap->error != SOAP_EOF) { //Ignore the timeout error
+        Error("Failed to get ONVIF messages! result=%d soap->error %d, soap_fault_string=%s detail=%s",
+            result, soap->error, soap_fault_string(soap), (detail ? detail : "null"));
 
         retry_count++;
         if (retry_count >= max_retries) {
           Error("ONVIF: Max retries (%d) reached for PullMessages, subscription may be lost", max_retries);
         } else {
-          Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", 
-               retry_count, max_retries);
+          Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
         healthy = false;
       } else {

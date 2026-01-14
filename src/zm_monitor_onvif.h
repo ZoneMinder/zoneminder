@@ -44,6 +44,7 @@ class ONVIF {
   Monitor *parent;
   bool alarmed;
   bool healthy;
+  bool closes_event;
   std::string last_topic;
   std::string last_value;
   void SetNoteSet(Event::StringSet &noteSet);
@@ -51,8 +52,6 @@ class ONVIF {
   struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
-  _tev__PullMessages tev__PullMessages;
-  _tev__PullMessagesResponse tev__PullMessagesResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
   bool try_usernametoken_auth;  // Track if we should try plain auth

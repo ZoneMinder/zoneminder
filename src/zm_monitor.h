@@ -747,9 +747,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_ref;
   std::string diag_path_delta;
 
-  // ONVIF
-  bool Event_Poller_Closes_Event;
-
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;

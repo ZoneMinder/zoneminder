@@ -107,6 +107,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
   ,alarmed(false)
   ,healthy(false)
+  ,closes_event(false)
 #ifdef WITH_GSOAP
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
@@ -193,11 +194,6 @@ void ONVIF::start() {
     pull_timeout = "PT8S";
   }
   
-  tev__PullMessages.Timeout = pull_timeout.c_str();
-  tev__PullMessages.MessageLimit = 10;
-  
-  Debug(2, "ONVIF: Using pull_timeout=%s, subscription_timeout=%s", 
-        pull_timeout.c_str(), subscription_timeout.c_str());
   
   soap = soap_new();
   soap->connect_timeout = 0;
@@ -342,6 +338,13 @@ void ONVIF::start() {
       return;
     }
 
+    _tev__PullMessages tev__PullMessages;
+    _tev__PullMessagesResponse tev__PullMessagesResponse;
+    tev__PullMessages.Timeout = pull_timeout.c_str();
+    tev__PullMessages.MessageLimit = 10;
+
+    Debug(2, "ONVIF: Using pull_timeout=%s, subscription_timeout=%s at %s", 
+        pull_timeout.c_str(), subscription_timeout.c_str(), response.SubscriptionReference.Address);
     if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
         (soap->error != SOAP_EOF)
        ) { //SOAP_EOF could indicate no messages to pull.
@@ -378,6 +381,8 @@ void ONVIF::WaitForMessage() {
     Debug(2, "ONVIF: WS-Addressing disabled, not sending addressing headers");
   }
   
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
   Debug(1, "ONVIF: Starting PullMessageRequest ...");
   int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
@@ -412,7 +417,7 @@ void ONVIF::WaitForMessage() {
             result, soap_fault_string(soap), detail ? detail : "null");
         
         // Don't clear alarms on timeout - they should remain active until explicitly cleared
-        // Only clear if Event_Poller_Closes_Event is false (camera doesn't send close events)
+        // Only clear if Closes_Event is false (camera doesn't send close events)
         // and we haven't received any messages for a long time
         // For now, just leave alarms as-is on timeout
         Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
@@ -480,8 +485,8 @@ void ONVIF::WaitForMessage() {
             if (alarms.empty()) {
               alarmed = false;
             }
-            if (!parent->Event_Poller_Closes_Event) {
-              parent->Event_Poller_Closes_Event = true;
+            if (!closes_event) {
+              closes_event = true;
               Info("Setting ClosesEvent (detected Deleted operation)");
             }
           } else if (operation == "Initialized") {
@@ -518,9 +523,9 @@ void ONVIF::WaitForMessage() {
               }
             }
 
-            // Set Event_Poller_Closes_Event if we see the camera can send state updates
-            if (!parent->Event_Poller_Closes_Event) {
-              parent->Event_Poller_Closes_Event = true;
+            // Set Closes_Event if we see the camera can send state updates
+            if (!closes_event) {
+              closes_event = true;
               Info("Setting ClosesEvent (camera supports PropertyOperation)");
             }
           } else if (operation == "Changed") {
@@ -536,8 +541,8 @@ void ONVIF::WaitForMessage() {
               if (alarms.empty()) {
                 alarmed = false;
               }
-              if (!parent->Event_Poller_Closes_Event) {
-                parent->Event_Poller_Closes_Event = true;
+              if (!closes_event) {
+                closes_event = true;
                 Info("Setting ClosesEvent (detected Changed to inactive)");
               }
             } else {
@@ -751,6 +756,9 @@ void ONVIF::parse_onvif_options() {
       } else if (key == "soap_log") {
         soap_log_file = value;
         Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
+      } else if (option.find("closes_event") != std::string::npos) {
+        // Option to indicate that ONVIF will send a close event message
+        closes_event = true;
       }
     }
   };

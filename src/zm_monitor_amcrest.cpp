@@ -166,12 +166,8 @@ void Monitor::AmcrestAPI::WaitForMessage() {
         alarmed = true;
       }
     } else if (command.find("action=Stop") != std::string::npos) {
-      Debug(1, "AMCREST Triggered off ONVIF");
+      Debug(1, "AMCREST Triggered off");
       alarmed = false;
-      if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
-        parent->Event_Poller_Closes_Event = true;
-        Debug(1, "AMCREST Setting ClosesEvent");
-      }
     } else {
       Debug(1, "AMCREST unhandled message: %s", command.c_str());
     }

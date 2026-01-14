@@ -22,6 +22,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <vector>
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -1115,139 +1116,220 @@ bool ONVIF::interpret_alarm_value(const std::string &value) {
   return true;
 }
 
+// Helper function to get local element name (strip namespace prefix)
+static const char* get_local_name(const char* name) {
+  if (!name) return nullptr;
+  const char *colon = std::strrchr(name, ':');
+  return colon ? colon + 1 : name;
+}
+
+// Helper function to extract SimpleItem Name and Value attributes
+static bool extract_simple_item_attrs(struct soap_dom_element *elt,
+                                       std::string &item_name,
+                                       std::string &item_value) {
+  item_name.clear();
+  item_value.clear();
+
+  if (!elt || !elt->atts) return false;
+
+  struct soap_dom_attribute *att = elt->atts;
+  while (att) {
+    if (att->name && att->text) {
+      const char *attr_name = get_local_name(att->name);
+      if (std::strcmp(attr_name, "Name") == 0) {
+        item_name = att->text;
+      } else if (std::strcmp(attr_name, "Value") == 0) {
+        item_value = att->text;
+      }
+    }
+    att = att->next;
+  }
+
+  return !item_name.empty();
+}
+
+// Check if SimpleItem Name is a data field (not a source identifier)
+static bool is_data_simple_item(const std::string &item_name) {
+  // Known data field names
+  if (item_name == "State" ||
+      item_name == "IsMotion" ||
+      item_name == "IsTamper" ||
+      item_name == "IsInside" ||
+      item_name == "IsCrossing" ||
+      item_name == "Value") {
+    return true;
+  }
+  // Items starting with "Is" are typically boolean state fields
+  if (item_name.length() >= 2 && item_name[0] == 'I' && item_name[1] == 's') {
+    return true;
+  }
+  return false;
+}
+
 // Helper function to parse event messages with flexible XML structure handling
-bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg, 
-                                          std::string &topic, 
-                                          std::string &value, 
+// Handles Reolink RLC-811A, RLC-822A, and similar cameras
+// XML structure:
+//   wsnt:Message > tt:Message[PropertyOperation] > tt:Source + tt:Data > tt:SimpleItem[Name,Value]
+bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
+                                          std::string &topic,
+                                          std::string &value,
                                           std::string &operation) {
   if (!msg || !msg->Topic || !msg->Topic->__any.text) {
     Debug(3, "ONVIF: Message has no topic");
     return false;
   }
-  
+
   topic = msg->Topic->__any.text;
   Debug(3, "ONVIF: Parsing message with topic: %s", topic.c_str());
-  
+
   // Initialize defaults
   value = "";
-  operation = "Initialized";  // Default operation
-  
+  operation = "Initialized";  // Default operation per ONVIF spec
+
   if (!msg->Message.__any.elts) {
     Debug(3, "ONVIF: Message has no elements");
     return false;
   }
-  
-  // Navigate the DOM structure more flexibly
-  // Different cameras structure messages differently, so we need to handle variations
-  struct soap_dom_element *elt = msg->Message.__any.elts;
-  
-  // Look for Message > Message > Data > SimpleItem or ElementItem
-  // But also handle variations in structure
-  int depth = 0;
-  const int max_depth = 10;
-  
-  while (elt && depth < max_depth) {
-    Debug(4, "ONVIF: Examining element at depth %d: %s", depth, (elt->name ? elt->name : "null"));
-    
-    // Check if this is a PropertyOperation element
-    if (elt->atts) {
-      struct soap_dom_attribute *att = elt->atts;
-      while (att) {
-        if (att->name && att->text) {
-          Debug(4, "ONVIF: Attribute: %s = %s", att->name, att->text);
-          
-          // Look for PropertyOperation attribute (may have namespace prefix)
-          // Check if attribute name ends with PropertyOperation
-          const char *colon = std::strrchr(att->name, ':');
-          const char *attr_name = colon ? colon + 1 : att->name;
-          if (std::strcmp(attr_name, "PropertyOperation") == 0) {
-            operation = att->text;
-            Debug(3, "ONVIF: Found PropertyOperation: %s", operation.c_str());
-          }
+
+  // The structure is: wsnt:Message > tt:Message > tt:Source + tt:Data
+  // msg->Message.__any.elts points to the tt:Message element
+  struct soap_dom_element *tt_message = msg->Message.__any.elts;
+
+  if (!tt_message) {
+    Debug(3, "ONVIF: No tt:Message element found");
+    return false;
+  }
+
+  Debug(4, "ONVIF: Found element: %s", tt_message->name ? tt_message->name : "unnamed");
+
+  // Step 1: Extract PropertyOperation attribute from tt:Message
+  if (tt_message->atts) {
+    struct soap_dom_attribute *att = tt_message->atts;
+    while (att) {
+      if (att->name && att->text) {
+        const char *attr_name = get_local_name(att->name);
+        Debug(4, "ONVIF: tt:Message attribute: %s = %s", att->name, att->text);
+        if (std::strcmp(attr_name, "PropertyOperation") == 0) {
+          operation = att->text;
+          Debug(3, "ONVIF: Found PropertyOperation: %s", operation.c_str());
         }
-        att = att->next;
+      }
+      att = att->next;
+    }
+  }
+
+  // Step 2: Find tt:Data element among tt:Message's children
+  // Children are: tt:Source, tt:Data (order may vary)
+  struct soap_dom_element *data_elt = nullptr;
+  struct soap_dom_element *child = tt_message->elts;
+
+  while (child) {
+    if (child->name) {
+      const char *child_name = get_local_name(child->name);
+      Debug(4, "ONVIF: tt:Message child: %s", child->name);
+
+      if (std::strcmp(child_name, "Data") == 0) {
+        data_elt = child;
+        Debug(4, "ONVIF: Found tt:Data element");
+        break;
       }
     }
-    
-    // Look for SimpleItem or ElementItem
-    // Element names may have namespace prefixes (e.g., "tt:SimpleItem")
-    if (elt->name) {
-      const char *colon = std::strrchr(elt->name, ':');
-      const char *elem_name = colon ? colon + 1 : elt->name;
-      
-      if (std::strcmp(elem_name, "SimpleItem") == 0) {
-        // SimpleItem has Name and Value attributes
-        // We need to find SimpleItems with specific Names like "State", "IsMotion", etc.
-        // Not just any SimpleItem (e.g., Source identifiers)
-        if (elt->atts) {
-          std::string item_name;
-          std::string item_value;
+    child = child->next;
+  }
 
-          struct soap_dom_attribute *att = elt->atts;
-          while (att) {
-            if (att->name && att->text) {
-              const char *att_colon = std::strrchr(att->name, ':');
-              const char *att_name = att_colon ? att_colon + 1 : att->name;
+  // Step 3: If we found Data, look for SimpleItem within it
+  if (data_elt && data_elt->elts) {
+    struct soap_dom_element *item = data_elt->elts;
+    while (item) {
+      if (item->name) {
+        const char *item_elem_name = get_local_name(item->name);
+        Debug(4, "ONVIF: Data child: %s", item->name);
 
-              if (std::strcmp(att_name, "Name") == 0) {
-                item_name = att->text;
-              } else if (std::strcmp(att_name, "Value") == 0) {
-                item_value = att->text;
-              }
-            }
-            att = att->next;
-          }
+        if (std::strcmp(item_elem_name, "SimpleItem") == 0) {
+          std::string item_name, item_value;
+          if (extract_simple_item_attrs(item, item_name, item_value)) {
+            Debug(4, "ONVIF: SimpleItem in Data: Name=%s Value=%s",
+                  item_name.c_str(), item_value.c_str());
 
-          // Look for data items, not source/token identifiers
-          // Common data item names: State, IsMotion, IsTamper, etc.
-          if (!item_name.empty() && !item_value.empty()) {
-            Debug(4, "ONVIF: Found SimpleItem Name=%s Value=%s", item_name.c_str(), item_value.c_str());
-
-            // Check if this is a data item (not a source identifier)
-            if (item_name == "State" ||
-                item_name == "IsMotion" ||
-                item_name == "IsTamper" ||
-                item_name == "Value" ||  // Generic value field
-                item_name.find("Is") == 0) {  // Items starting with "Is"
+            if (is_data_simple_item(item_name)) {
               value = item_value;
-              Debug(3, "ONVIF: Found data SimpleItem %s=%s", item_name.c_str(), value.c_str());
+              Debug(3, "ONVIF: Extracted data value: %s=%s (operation=%s)",
+                    item_name.c_str(), value.c_str(), operation.c_str());
+              return true;
+            }
+          }
+        } else if (std::strcmp(item_elem_name, "ElementItem") == 0) {
+          // ElementItem might have child elements with text values
+          if (item->elts && item->elts->text) {
+            value = item->elts->text;
+            Debug(3, "ONVIF: Found ElementItem value: %s", value.c_str());
+            return true;
+          }
+        }
+      }
+      item = item->next;
+    }
+  }
+
+  // Step 4: Fallback - some cameras may have a different structure
+  // Try to find SimpleItem anywhere in the message using depth-first search
+  if (value.empty()) {
+    Debug(4, "ONVIF: Data element not found or empty, trying fallback search");
+
+    // Stack for iterative depth-first search (avoid recursion)
+    std::vector<struct soap_dom_element*> stack;
+    stack.push_back(tt_message);
+
+    while (!stack.empty() && value.empty()) {
+      struct soap_dom_element *elt = stack.back();
+      stack.pop_back();
+
+      if (!elt) continue;
+
+      // Check if this element has PropertyOperation (we might have missed it)
+      if (operation == "Initialized" && elt->atts) {
+        struct soap_dom_attribute *att = elt->atts;
+        while (att) {
+          if (att->name && att->text) {
+            const char *attr_name = get_local_name(att->name);
+            if (std::strcmp(attr_name, "PropertyOperation") == 0) {
+              operation = att->text;
+              Debug(3, "ONVIF: Found PropertyOperation in fallback: %s", operation.c_str());
+            }
+          }
+          att = att->next;
+        }
+      }
+
+      // Check if this is a SimpleItem in a Data context
+      if (elt->name) {
+        const char *elem_name = get_local_name(elt->name);
+
+        if (std::strcmp(elem_name, "SimpleItem") == 0) {
+          std::string item_name, item_value;
+          if (extract_simple_item_attrs(elt, item_name, item_value)) {
+            if (is_data_simple_item(item_name)) {
+              value = item_value;
+              Debug(3, "ONVIF: Fallback found data value: %s=%s",
+                    item_name.c_str(), value.c_str());
               return true;
             }
           }
         }
-      } else if (std::strcmp(elem_name, "ElementItem") == 0) {
-        // ElementItem might have child elements with values
-        if (elt->elts && elt->elts->text) {
-          value = elt->elts->text;
-          Debug(3, "ONVIF: Found ElementItem value: %s", value.c_str());
-          return true;
-        }
-      } else if (std::strcmp(elem_name, "Data") == 0) {
-        // Data element, look in children
-        if (elt->elts) {
-          elt = elt->elts;
-          depth++;
-          continue;
-        }
+      }
+
+      // Add siblings and children to stack (process children first)
+      if (elt->next) {
+        stack.push_back(elt->next);
+      }
+      if (elt->elts) {
+        stack.push_back(elt->elts);
       }
     }
-    
-    // Try to descend into children first
-    if (elt->elts) {
-      elt = elt->elts;
-      depth++;
-    } else if (elt->next) {
-      // No children, try sibling
-      elt = elt->next;
-    } else {
-      // No children or siblings
-      break;
-    }
   }
-  
-  // Fallback: try the old parsing method for backward compatibility
-  // This preserves the original deeply nested null-checking pattern
-  // to support cameras that worked with the old code
+
+  // Step 5: Legacy fallback for old cameras
+  // This preserves compatibility with cameras that worked with the original code
   if (value.empty() &&
       msg->Message.__any.elts &&
       msg->Message.__any.elts->next &&
@@ -1259,8 +1341,8 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
     Debug(3, "ONVIF: Found value using legacy parsing: %s", value.c_str());
     return true;
   }
-  
-  Debug(2, "ONVIF: Could not parse event message value");
+
+  Debug(2, "ONVIF: Could not parse event message value for topic: %s", topic.c_str());
   return false;
 }
 

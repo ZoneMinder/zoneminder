@@ -1090,14 +1090,21 @@ bool ONVIF::interpret_alarm_value(const std::string &value) {
     return false;  // Empty value = no alarm
   }
 
-  // Check for explicit false/inactive values (case-insensitive common patterns)
-  if (value == "false" || value == "False" || value == "FALSE" ||
-      value == "inactive" || value == "Inactive" || value == "INACTIVE" ||
-      value == "off" || value == "Off" || value == "OFF" ||
-      value == "no" || value == "No" || value == "NO" ||
-      value == "idle" || value == "Idle" || value == "IDLE" ||
-      value == "normal" || value == "Normal" || value == "NORMAL" ||
-      value == "closed" || value == "Closed" || value == "CLOSED") {
+  // Convert to lowercase once for case-insensitive comparison (ASCII-only)
+  std::string lower_value;
+  lower_value.reserve(value.size());
+  for (char c : value) {
+    lower_value += (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
+  }
+
+  // Check for explicit false/inactive values
+  if (lower_value == "false" ||
+      lower_value == "inactive" ||
+      lower_value == "off" ||
+      lower_value == "no" ||
+      lower_value == "idle" ||
+      lower_value == "normal" ||
+      lower_value == "closed") {
     return false;
   }
 
@@ -1109,23 +1116,12 @@ bool ONVIF::interpret_alarm_value(const std::string &value) {
       break;
     }
   }
-  if (all_zeros && !value.empty()) {
+  if (all_zeros) {
     return false;  // "0", "00", "000", etc. = no alarm
   }
 
-  // Check for explicit true/active values
-  if (value == "true" || value == "True" || value == "TRUE" ||
-      value == "active" || value == "Active" || value == "ACTIVE" ||
-      value == "on" || value == "On" || value == "ON" ||
-      value == "yes" || value == "Yes" || value == "YES" ||
-      value == "alarm" || value == "Alarm" || value == "ALARM" ||
-      value == "triggered" || value == "Triggered" || value == "TRIGGERED" ||
-      value == "open" || value == "Open" || value == "OPEN") {
-    return true;
-  }
-
   // Any other non-zero/non-empty value is considered active
-  // This handles "1", "001", custom camera values, direction strings, etc.
+  // This handles "true", "active", "1", "001", direction strings, etc.
   return true;
 }
 

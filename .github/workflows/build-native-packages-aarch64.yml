@@ -102,6 +102,9 @@ jobs:
           export GPG_TTY=$(tty || true)
           ls -l /bin/bash
           ./do_debian_package.sh -s=CURRENT -t=binary 
+      - name: Cleanup
+        run: |
+          rm -rf *_zoneminder_release *.build
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |
           set -eux

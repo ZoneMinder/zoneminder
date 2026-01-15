@@ -2002,7 +2002,6 @@ int Monitor::Analyse() {
 #ifdef WITH_GSOAP
       if (onvif and onvif->isAlarmed()) {
         score += 9;
-        //Debug(4, "Triggered on ONVIF");
         Event::StringSet noteSet;
         noteSet.insert("ONVIF");
         onvif->setNotes(noteSet);
@@ -2031,7 +2030,6 @@ int Monitor::Analyse() {
         noteSet.insert(trigger_data->trigger_text);
         noteSetMap[trigger_data->trigger_cause] = noteSet;
       }  // end if trigger_on
-
 
       // FIXME this packet might not be the one that caused the signal change.  Need to store that in the packet.
       if (signal_change) {
@@ -2145,7 +2143,6 @@ int Monitor::Analyse() {
                     and (shared_data->last_analysis_index != image_buffer_count)) {
                   int count = 5; // 30000 usecs.  Which means 30fps. But untether might be slow, but should catch up
                   while (shared_data->analysis_image_count < packet->image_index and !zm_terminate and count) {
-
                     Debug(1, "Waiting for speedai analysis_image_count, %d packet index %d", shared_data->analysis_image_count, packet->image_index);
                     std::this_thread::sleep_for(Microseconds(10000));
                     count--;

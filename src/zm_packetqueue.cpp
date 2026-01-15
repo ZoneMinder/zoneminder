@@ -163,7 +163,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       it ++;
       while ((*it != add_packet) && !(deleting or zm_terminate)) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
-         ZMPacketLock packet_lock(zm_packet);
+        ZMPacketLock packet_lock(zm_packet);
 
         if (!packet_lock.trylock()) {
           if (warned_count < 2) {
@@ -510,7 +510,7 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
         Error("Null p?!");
         return ZMPacketLock();
       }
-      Debug(4, "get_packet using it %p trylocking packet %d", std::addressof(*it), p->image_index);
+      Debug(3, "get_packet using it %p trylocking index %d", std::addressof(*it), p->image_index);
 
       {
         std::shared_ptr<ZMPacket> p = *(*it);

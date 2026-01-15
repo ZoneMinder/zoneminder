@@ -885,7 +885,7 @@ void ONVIF::log_subscription_timing(const char* context) {
   
   // Warn if we're getting close to termination
   if (time_until_termination < ONVIF_RENEWAL_ADVANCE_SECONDS && time_until_termination > 0) {
-    Warning("ONVIF: Subscription terminating soon! Only %ld seconds remaining", time_until_termination);
+    Debug(1, "ONVIF: Subscription terminating soon! Only %ld seconds remaining", time_until_termination);
   }
 #endif
 }

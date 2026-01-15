@@ -839,17 +839,7 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   // Calculate renewal time: N seconds before termination
   next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
   
-  // Log the renewal schedule
-  auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
-    next_renewal_time - now).count();
-  auto seconds_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
-    subscription_termination_time - now).count();
-  
-  Debug(2, "ONVIF: Updated subscription times - will renew in %ld seconds at %s, terminates in %ld seconds at %s",
-        seconds_until_renewal,
-        SystemTimePointToString(next_renewal_time).c_str(),
-        seconds_until_termination,
-        SystemTimePointToString(subscription_termination_time).c_str());
+  log_subscription_timing("Updated subscription");
 }  // end void ONVIF::update_renewal_times(time_t termination_time)
 
 // Check if renewal tracking has been initialized
@@ -868,24 +858,20 @@ void ONVIF::log_subscription_timing(const char* context) {
   }
   
   auto now = std::chrono::system_clock::now();
-  auto time_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
+  auto seconds_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
     subscription_termination_time - now).count();
-  auto time_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
+  auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
     next_renewal_time - now).count();
   
-  time_t term_time = std::chrono::system_clock::to_time_t(subscription_termination_time);
-  time_t renew_time = std::chrono::system_clock::to_time_t(next_renewal_time);
-  
-  char term_buf[64], renew_buf[64];
-  strftime(term_buf, sizeof(term_buf), "%Y-%m-%d %H:%M:%S", localtime(&term_time));
-  strftime(renew_buf, sizeof(renew_buf), "%Y-%m-%d %H:%M:%S", localtime(&renew_time));
-  
-  Info("ONVIF [%s]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
-       context, term_buf, time_until_termination, renew_buf, time_until_renewal);
+  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
+       context, SystemTimePointToString(subscription_termination_time).c_str(),
+       seconds_until_termination,
+       SystemTimePointToString(next_renewal_time).c_str(),
+       seconds_until_renewal);
   
   // Warn if we're getting close to termination
-  if (time_until_termination < ONVIF_RENEWAL_ADVANCE_SECONDS && time_until_termination > 0) {
-    Debug(1, "ONVIF: Subscription terminating soon! Only %ld seconds remaining", time_until_termination);
+  if (seconds_until_termination < ONVIF_RENEWAL_ADVANCE_SECONDS && seconds_until_termination > 0) {
+    Warning("ONVIF: Subscription terminating soon! Only %ld seconds remaining", seconds_until_termination);
   }
 #endif
 }
@@ -908,6 +894,7 @@ std::string format_absolute_time_iso8601(time_t time) {
 // Returns true if renewal succeeded or is not supported, false on error
 bool ONVIF::Renew() {
 #ifdef WITH_GSOAP
+  soap->header = nullptr;
   set_credentials(soap);
   _wsnt__Renew wsnt__Renew;
   _wsnt__RenewResponse wsnt__RenewResponse;
@@ -985,7 +972,7 @@ bool ONVIF::Renew() {
 
 // Check if subscription renewal is needed
 // Returns true if renewal should be performed now, false if not yet needed
-bool ONVIF::IsRenewalNeeded() const {
+bool ONVIF::IsRenewalNeeded() {
 #ifdef WITH_GSOAP
   // Check if we have valid renewal times set
   if (!is_renewal_tracking_initialized()) {
@@ -999,33 +986,13 @@ bool ONVIF::IsRenewalNeeded() const {
     // Time to renew
     auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
       now - next_renewal_time).count();
-    Info("ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    Debug(1, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
     return true;
   }
   
-  // Calculate time remaining
-  auto time_until_termination = std::chrono::duration_cast<std::chrono::seconds>(
-    subscription_termination_time - now).count();
-  auto time_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
-    next_renewal_time - now).count();
-  
-  // Log current timing status
-  time_t term_time = std::chrono::system_clock::to_time_t(subscription_termination_time);
-  time_t renew_time = std::chrono::system_clock::to_time_t(next_renewal_time);
-  
-  char term_buf[64], renew_buf[64];
-  strftime(term_buf, sizeof(term_buf), "%Y-%m-%d %H:%M:%S", localtime(&term_time));
-  strftime(renew_buf, sizeof(renew_buf), "%Y-%m-%d %H:%M:%S", localtime(&renew_time));
-  
-  Debug(2, "ONVIF [renewal_check]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
-        SystemTimePointToString(subscription_termination_time).c_str(),
-        time_until_termination,
-        SystemTimePointToString(next_renewal_time).c_str(),
-        time_until_renewal);
-  return false;
-#else
-  return false;
+  log_subscription_timing("renewal check");
 #endif
+  return false;
 }
 
 // Setup WS-Addressing headers for SOAP request

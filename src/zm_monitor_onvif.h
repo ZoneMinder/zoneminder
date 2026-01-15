@@ -86,7 +86,7 @@ class ONVIF {
   bool is_renewal_tracking_initialized() const;  // Check if renewal tracking has been set up
   void log_subscription_timing(const char* context);  // Log subscription timing information for debugging
   bool Renew();  // Perform subscription renewal, returns true on success
-  bool IsRenewalNeeded() const;  // Check if subscription renewal is needed now
+  bool IsRenewalNeeded();  // Check if subscription renewal is needed now
   bool do_wsa_request(const char* address, const char* action);  // Setup WS-Addressing headers for SOAP request
 #endif
   std::unordered_map<std::string, std::string> alarms;

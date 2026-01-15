@@ -2262,4 +2262,8 @@ function monitorFilterOnChange(element) {
   }
 }
 
+function isEmpty(obj) {
+  return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
+}
+
 $j( window ).on("load", initPageGeneral);

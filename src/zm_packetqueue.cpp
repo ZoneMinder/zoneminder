@@ -158,6 +158,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
                 , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_);
       }
 
+      // Going to delete a GOP of packets. So find another keyframe and delete everything before it.
       auto it = pktQueue.begin();
       // Start at second packet because the first is always a keyframe unless we don't care about keyframes
       it ++;
@@ -165,16 +166,20 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
         ZMPacketLock packet_lock(zm_packet);
 
-        if (!packet_lock.trylock()) {
-          if (warned_count < 2) {
-            warned_count++;
-            Warning("Found locked packet %d when trying to free up video packets. Our packet %d", zm_packet->image_index, add_packet->image_index);
-            break;
-          }
-        }
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
           for ( it = pktQueue.begin(); *it != zm_packet; ) {
             it = this->deletePacket(it);
+          }
+          break;
+        }  // end if erasing a whole gop
+ 
+        // Don't need to lock the new keyframe, just everythig before it
+        if (!packet_lock.trylock()) {
+          // If we can't get a lock, then we can't delete a GOP.  I'm actually not sure about this.
+          // It means someone is playing with the packet but doesn't mean we can't remove it from the queue.
+          if (warned_count < 2) {
+            warned_count++;
+            Warning("Found locked packet %d when trying to free up video packets. Our packet %d", zm_packet->image_index, add_packet->image_index);
           }
           break;
         }

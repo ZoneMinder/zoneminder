@@ -1090,12 +1090,8 @@ bool ONVIF::interpret_alarm_value(const std::string &value) {
     return false;  // Empty value = no alarm
   }
 
-  // Convert to lowercase once for case-insensitive comparison (ASCII-only)
-  std::string lower_value;
-  lower_value.reserve(value.size());
-  for (char c : value) {
-    lower_value += (c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c;
-  }
+  // Convert to lowercase once for case-insensitive comparison
+  std::string lower_value = StringToLower(value);
 
   // Check for explicit false/inactive values
   if (lower_value == "false" ||

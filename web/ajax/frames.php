@@ -108,7 +108,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   $likes = array();
   $where = 'WHERE EventId = '.$eid;
 
-  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order;
+  $sql = 'SELECT *, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order;
 
   //ZM\Debug('Calling the following sql query: ' .$sql);
 
@@ -152,7 +152,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT * FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $sql = 'SELECT *, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
   } else {

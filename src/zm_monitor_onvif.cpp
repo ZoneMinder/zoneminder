@@ -1157,45 +1157,42 @@ static bool extract_simple_item_attrs(struct soap_dom_element *elt,
 // Based on ONVIF Event Service Specification and common camera implementations:
 // - Hikvision, Dahua, Axis, Reolink, Amcrest, Hanwha/Samsung, etc.
 static bool is_data_simple_item(const std::string &item_name) {
+  // Convert to lowercase for case-insensitive comparison
+  std::string lower_name = StringToLower(item_name);
+
+  // Items starting with "is" are typically boolean state fields
+  // Examples: IsMotion, IsTamper, IsInside, IsCrossing, IsActive, IsHandRaised, etc.
+  if (lower_name.length() >= 2 && lower_name[0] == 'i' && lower_name[1] == 's') {
+    return true;
+  }
+
+  // Items ending with "state" or "alarm" are typically state indicators
+  if (lower_name.length() >= 5) {
+    if (lower_name.compare(lower_name.length() - 5, 5, "state") == 0 ||
+        lower_name.compare(lower_name.length() - 5, 5, "alarm") == 0) {
+      return true;
+    }
+  }
+
   // Known data field names from ONVIF spec and various camera manufacturers
-  // Boolean state fields
-  if (item_name == "State" ||           // Common: most cameras
-      item_name == "IsMotion" ||        // Motion detection
-      item_name == "IsTamper" ||        // Tamper detection
-      item_name == "IsInside" ||        // Field detector (objects inside region)
-      item_name == "IsCrossing" ||      // Line crossing
-      item_name == "IsActive" ||        // Generic active state
-      item_name == "LogicalState" ||    // Digital I/O (Hikvision, Dahua)
-      item_name == "active" ||          // Axis cameras
-      item_name == "Value" ||           // Generic value field
-      item_name == "Alarm" ||           // Generic alarm field
-      item_name == "Motion") {          // Some cameras use just "Motion"
+  if (lower_name == "state" ||           // Common: most cameras
+      lower_name == "logicalstate" ||    // Digital I/O (Hikvision, Dahua)
+      lower_name == "active" ||          // Axis cameras
+      lower_name == "value" ||           // Generic value field
+      lower_name == "alarm" ||           // Generic alarm field
+      lower_name == "motion") {          // Some cameras use just "Motion"
     return true;
   }
 
   // Analytics/counting fields (these may have non-boolean values)
-  if (item_name == "Count" ||           // Object counting
-      item_name == "Level" ||           // Audio detection level
-      item_name == "Direction" ||       // Line crossing direction
-      item_name == "ObjectId" ||        // Object tracking ID
-      item_name == "Speed" ||           // Speed detection
-      item_name == "Region" ||          // Region identifier
-      item_name == "Percentage") {      // Fill percentage
+  if (lower_name == "count" ||           // Object counting
+      lower_name == "level" ||           // Audio detection level
+      lower_name == "direction" ||       // Line crossing direction
+      lower_name == "objectid" ||        // Object tracking ID
+      lower_name == "speed" ||           // Speed detection
+      lower_name == "region" ||          // Region identifier
+      lower_name == "percentage") {      // Fill percentage
     return true;
-  }
-
-  // Items starting with "Is" are typically boolean state fields
-  // Examples: IsMotion, IsTamper, IsInside, IsCrossing, IsHandRaised, etc.
-  if (item_name.length() >= 2 && item_name[0] == 'I' && item_name[1] == 's') {
-    return true;
-  }
-
-  // Items ending with "State" or "Alarm" are typically state indicators
-  if (item_name.length() >= 5) {
-    if (item_name.compare(item_name.length() - 5, 5, "State") == 0 ||
-        item_name.compare(item_name.length() - 5, 5, "Alarm") == 0) {
-      return true;
-    }
   }
 
   return false;

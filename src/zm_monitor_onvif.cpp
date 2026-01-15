@@ -1224,6 +1224,11 @@ static bool is_data_simple_item(const std::string &item_name) {
 //   "Initialized" - Current state at subscription time
 //   "Changed"     - State actually changed (alarm on/off)
 //   "Deleted"     - Property no longer exists
+//
+// gSOAP DOM mapping for msg->Message.__any (which IS the tt:Message element):
+//   msg->Message.__any.atts -> attributes of tt:Message (PropertyOperation, UtcTime)
+//   msg->Message.__any.elts -> first child element of tt:Message (tt:Source)
+//   To find tt:Data, iterate through elts and siblings using ->next
 bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
                                           std::string &topic,
                                           std::string &value,
@@ -1240,25 +1245,14 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
   value = "";
   operation = "Initialized";  // Default operation per ONVIF spec
 
-  if (!msg->Message.__any.elts) {
-    Debug(3, "ONVIF: Message has no elements");
-    return false;
-  }
-
-  // The structure is: wsnt:Message > tt:Message > tt:Source + tt:Data
-  // msg->Message.__any.elts points to the tt:Message element
-  struct soap_dom_element *tt_message = msg->Message.__any.elts;
-
-  if (!tt_message) {
-    Debug(3, "ONVIF: No tt:Message element found");
-    return false;
-  }
-
-  Debug(4, "ONVIF: Found element: %s", tt_message->name ? tt_message->name : "unnamed");
+  // gSOAP DOM: msg->Message.__any IS the tt:Message element
+  // - msg->Message.__any.atts = attributes of tt:Message (PropertyOperation, UtcTime)
+  // - msg->Message.__any.elts = first child of tt:Message (tt:Source or tt:Data)
 
   // Step 1: Extract PropertyOperation attribute from tt:Message
-  if (tt_message->atts) {
-    struct soap_dom_attribute *att = tt_message->atts;
+  // The attributes are directly on msg->Message.__any, not on its children
+  if (msg->Message.__any.atts) {
+    struct soap_dom_attribute *att = msg->Message.__any.atts;
     while (att) {
       if (att->name && att->text) {
         const char *attr_name = get_local_name(att->name);
@@ -1272,11 +1266,16 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
     }
   }
 
+  if (!msg->Message.__any.elts) {
+    Debug(3, "ONVIF: Message has no child elements");
+    return false;
+  }
+
   // Step 2: Find tt:Data element among tt:Message's children
-  // Children per ONVIF spec: tt:Source, tt:Key (optional), tt:Data
-  // We specifically look for "Data" and skip Source/Key elements
+  // msg->Message.__any.elts is the first child (usually tt:Source)
+  // Iterate through siblings using ->next to find tt:Data
   struct soap_dom_element *data_elt = nullptr;
-  struct soap_dom_element *child = tt_message->elts;
+  struct soap_dom_element *child = msg->Message.__any.elts;
 
   while (child) {
     if (child->name) {
@@ -1332,8 +1331,11 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
     Debug(4, "ONVIF: Data element not found or empty, trying fallback search");
 
     // Stack for iterative depth-first search (avoid recursion)
+    // Start from the first child of tt:Message
     std::vector<struct soap_dom_element*> stack;
-    stack.push_back(tt_message);
+    if (msg->Message.__any.elts) {
+      stack.push_back(msg->Message.__any.elts);
+    }
 
     while (!stack.empty() && value.empty()) {
       struct soap_dom_element *elt = stack.back();

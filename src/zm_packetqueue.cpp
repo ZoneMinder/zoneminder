@@ -119,7 +119,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
         }
       } else {
-        frames_since_last_keyframe_ = 1;
+        frames_since_last_keyframe_ = 0;
         if (!max_keyframe_interval_) max_keyframe_interval_ = 1;
       }
     } else {

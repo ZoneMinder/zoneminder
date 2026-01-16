@@ -336,6 +336,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   while (*it != add_packet) {
     zm_packet = *it;
     {
+      // We are only locking it to see if anyone else is messing with it.
       ZMPacketLock packet_lock(zm_packet);
       if (!packet_lock.trylock()) {
         Debug(3, "Failed locking packet %d", zm_packet->image_index);
@@ -476,7 +477,7 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
     return ZMPacketLock();
   if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
     Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
-    condition.wait(lck);
+    condition.wait(lck, [&]{ return (*it != pktQueue.end()) || deleting || zm_terminate; });
   }
   if ((*it == pktQueue.end()) or deleting or zm_terminate) return ZMPacketLock();
 

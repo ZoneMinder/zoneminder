@@ -39,7 +39,7 @@ class PacketQueue {
   // This is now a hard limit on the # of video packets to keep in the queue so that we can limit ram
   int pre_event_video_packet_count; // Was max_video_packet_count
   int max_stream_id;
-  int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
+  std::unique_ptr<int[]> packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
   bool deleting;
   bool keep_keyframes;
   std::list<packetqueue_iterator *> iterators;

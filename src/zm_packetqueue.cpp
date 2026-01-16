@@ -52,8 +52,7 @@ int PacketQueue::addStream() {
     max_stream_id ++;
   }
 
-  if (packet_counts) delete[] packet_counts;
-  packet_counts = new int[max_stream_id+1];
+  packet_counts.reset(new int[max_stream_id + 1]);
   for (int i=0; i <= max_stream_id; ++i)
     packet_counts[i] = 0;
   return max_stream_id;
@@ -61,10 +60,6 @@ int PacketQueue::addStream() {
 
 PacketQueue::~PacketQueue() {
   clear();
-  if (packet_counts) {
-    delete[] packet_counts;
-    packet_counts = nullptr;
-  }
   while (!iterators.empty()) {
     packetqueue_iterator *it = iterators.front();
     iterators.pop_front();
@@ -444,14 +439,15 @@ void PacketQueue::clear() {
     *iterator_it = pktQueue.begin();
   }  // end foreach iterator
 
-  delete[] packet_counts;
-  packet_counts = nullptr;
+  packet_counts.reset(new int[max_stream_id + 1]);
+
+  packet_counts.reset();
   max_stream_id = -1;
   max_keyframe_interval_ = 0;
 
   Debug(1, "Packetqueue is clear, notifying");
   condition.notify_all();
-}
+}  // end void PacketQueue::clear()
 
 unsigned int PacketQueue::size() {
   std::unique_lock<std::mutex> lck(mutex);
@@ -462,6 +458,10 @@ int PacketQueue::packet_count(int stream_id) {
   std::unique_lock<std::mutex> lck(mutex);
   if (stream_id < 0 or stream_id > max_stream_id) {
     Error("Invalid stream_id %d max is %d", stream_id, max_stream_id);
+    return -1;
+  }
+  if (!packet_counts) {
+    Error("packet_counts not allocated");
     return -1;
   }
   return packet_counts[stream_id];

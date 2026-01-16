@@ -761,9 +761,11 @@ function populate_models(ManufacturerId) {
 function ManufacturerId_onchange(ManufacturerId_select) {
   if (ManufacturerId_select.value) {
     ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'none';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = true;
     populate_models(ManufacturerId_select.value);
   } else {
-    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = '';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = false;
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
@@ -800,9 +802,9 @@ function Manufacturer_onchange(input) {
 
 function ModelId_onchange(ModelId_select) {
   if (parseInt(ModelId_select.value)) {
-    $j('[name="newMonitor[Model]"]').hide();
+    $j('[name="newMonitor[Model]"]').hide().prop('disabled', true);
   } else {
-    $j('[name="newMonitor[Model]"]').show();
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 

@@ -560,17 +560,21 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
-    form = param;
+  if (!form && param && typeof param === 'object' && 'tagName' in param) {
+    if (param.tagName == 'FORM') { // A form can be passed as a parameter.
+      form = param;
+    } else if (param.form) {
+      form = param.form;
+    }
   }
   if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
-      form = document.querySelector('form[name="monitorForm"]');
+      form = document.getElementById('monitorFiltersForm');
       // We get a filter
       filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.getElementById('filters_form');
+      form = document.getElementById('monitorFiltersForm');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
       form = document.getElementById('montagereview_form');
@@ -581,7 +585,7 @@ function submitThisForm(param = null) {
   }
 
   if ( ! form ) {
-    console.log("No this.form.  element with onchange is not in a form");
+    console.log("No this.form.  element with onchange is not in a form", this, param);
     return;
   }
   if (filter && navbar_type == 'left') {
@@ -678,13 +682,30 @@ function convertLabelFormat(LabelFormat, monitorName) {
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
-//This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
-  var cues = vid.textTracks()[0].cues();
+  // Updated for Video.js 8.x API
+  if (!vid || !vid.textTracks || !vid.textTracks().length) {
+    console.warn('addVideoTimingTrack: No text tracks available');
+    return;
+  }
+
+  var track = vid.textTracks()[0];
+  if (!track) {
+    console.warn('addVideoTimingTrack: Text track not found');
+    return;
+  }
+
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for ( var i = 0; i <= duration; i++ ) {
-    cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
+  // In Video.js 8, we need to add cues using the addCue method
+  for (var i = 0; i <= duration; i++) {
+    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    cue.id = i;
+    try {
+      track.addCue(cue);
+    } catch (e) {
+      console.warn('Failed to add cue:', e);
+    }
     startTime.add(1, 's');
   }
 }
@@ -1138,12 +1159,59 @@ function thumbnail_onmouseover(event) {
   img.src = img.getAttribute(imgAttr);
   if ( currentView == 'console' || currentView == 'monitor' ) {
     const rect = img.getBoundingClientRect();
-    const zoomHeight = rect.height * 5; // scale factor defined in css
-    if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
-      img.style.transformOrigin = '0% 100%';
-    } else {
-      img.style.transformOrigin = '0% 0%';
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Find the table container to determine bounds
+    let tableTop = 0;
+    const table = img.closest('table');
+    if (table) {
+      const tableRect = table.getBoundingClientRect();
+      const thead = table.querySelector('thead');
+      if (thead) {
+        const theadRect = thead.getBoundingClientRect();
+        // Position below the table header
+        tableTop = theadRect.bottom;
+      } else {
+        tableTop = tableRect.top;
+      }
     }
+
+    // Calculate available space to the right of the thumbnail
+    const availableRight = viewportWidth - rect.left;
+
+    // Use percentage-based width: 60% of viewport width, capped by available space
+    const targetWidth = Math.min(viewportWidth * 0.6, availableRight * 0.9);
+    const scale = targetWidth / rect.width;
+
+    // Calculate if scaled height would exceed viewport
+    const scaledHeight = rect.height * scale;
+    let finalScale = scale;
+
+    // Adjust scale if height would be too large (leave space from table header to bottom)
+    const availableHeight = viewportHeight - tableTop - 20; // 20px bottom margin
+    if (scaledHeight > availableHeight) {
+      finalScale = availableHeight / rect.height;
+    }
+
+    // Position the thumbnail: prefer below table header, but keep under cursor
+    let topPosition = Math.max(tableTop, rect.top);
+
+    // Ensure the enlarged thumbnail doesn't go off the bottom
+    if (topPosition + (rect.height * finalScale) > viewportHeight - 20) {
+      topPosition = viewportHeight - (rect.height * finalScale) - 20;
+    }
+
+    // Use fixed positioning to break out of container overflow restrictions
+    img.style.position = 'fixed';
+    img.style.left = rect.left + 'px';
+    img.style.top = topPosition + 'px';
+    img.style.width = rect.width + 'px';
+    img.style.height = rect.height + 'px';
+
+    // Set transform origin to top-left so it expands from there
+    img.style.transformOrigin = '0% 0%';
+    img.style.transform = 'scale(' + finalScale + ')';
   }
   thumbnail_timeout = setTimeout(function() {
     img.classList.add(imgClass);
@@ -1158,6 +1226,12 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
   if ( currentView == 'console' || currentView == 'monitor' ) {
+    img.style.position = '';
+    img.style.left = '';
+    img.style.top = '';
+    img.style.width = '';
+    img.style.height = '';
+    img.style.transform = '';
     img.style.transformOrigin = '';
   }
 }
@@ -1491,6 +1565,7 @@ function canPlayCodec(filename) {
     else {
       console.log('matches didnt match'+matches[1]);
     }
+    video.muted = true;
 
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
@@ -1564,7 +1639,7 @@ function insertControlModuleMenu() {
     filter = document.querySelector('#fbpanel');
   } else if (currentView == 'montage') {
     destroyChosen();
-    filter = document.querySelector('#filters_form');
+    filter = document.querySelector('#monitorFiltersForm');
   } else if (currentView == 'montagereview') {
     destroyChosen();
     filter = document.createElement('div');
@@ -1977,19 +2052,14 @@ function closeMbExtruder(updateCookie = false) {
 * If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
 */
 function resetSelectElement(el) {
-  console.log("clearSelectMultiply_el=>", el);
-  const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
-  if (!selectElement) return;
-  Array.from(selectElement.options).forEach((option) => {
-    option.selected = false;
-  });
-  applyChosen(selectElement);
-
-  if (currentView == 'events') {
-    filterEvents(clickedElement = selectElement);
-  } else {
-    submitThisForm(this.closest('form'));
+  const selectElement = $j('select[name="'+el.getAttribute('data-select-target')+'"]');
+  if (!selectElement.length) {
+    console.log('No element found for select[name="'+el.getAttribute('data-select-target')+'"]');
+    return;
   }
+  selectElement.val('');
+  applyChosen(selectElement);
+  selectElement.change();
 }
 
 function initPageGeneral() {
@@ -2103,6 +2173,10 @@ function initPageGeneral() {
       closeMbExtruder(updateCookie = true);
     }
 
+    if (event.target.activeElement.href && (event.target.activeElement.href.indexOf('view=archive') != -1 || event.target.activeElement.href.indexOf('view=download') != -1) || event.target.activeElement.id == 'exportButton') { // Clicked on the link to download the generated file in the modal window on the Events page or when automatic download of generated files was enabled
+      return;
+    }
+
     if (mainContent) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
@@ -2134,6 +2208,60 @@ function initPageGeneral() {
       }
     });
   });
+}
+
+// Called when monitor filters change - refreshes table via AJAX instead of full page reload
+function monitorFilterOnChange(element) {
+  // Save filter values to cookies for persistence
+  var form = (element && element.form) ? element.form : document.forms['monitorFiltersForm'];
+  if (form) {
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
+
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
+      if (field) {
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
+        }
+      }
+    });
+  }
+
+  // On console view with bootstrap-table, just refresh the table
+  if (typeof table !== 'undefined' && table.length) {
+    table.bootstrapTable('refresh');
+  } else {
+    // Fall back to full page reload on other views
+    submitThisForm(element);
+  }
+}
+
+function isEmpty(obj) {
+  return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
 }
 
 $j( window ).on("load", initPageGeneral);

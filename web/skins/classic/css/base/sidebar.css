@@ -174,7 +174,8 @@ body.sticky .content-main {
 
 @media (max-height: 500px) {
   .layout-main .sidebar-main .sidebar-content,
-  .layout-main .sidebar-main .sidebar-footer { /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
+  .layout-main .sidebar-main .sidebar-footer {
+    /* Sidebar is not divided into Header, Footer and content. Everything is one and everything is scrollable */
     display: contents;
   }
 }
@@ -312,16 +313,62 @@ body #sidebarMain .sub-menu-list {
 }
 
 /* Clear Filter Button Select Multiple Selection */
+.extruder .extruder-content .term-value-wrapper {
+  position: relative; /* Enable absolute positioning for child */
+}
+
 .extruder .extruder-content .btn-term-remove-all {
-  display: flex;
-  flex-direction: row-reverse;
+  position: absolute;
+  top: 2px;
+  right: 0px; /* Position to the left of chosen dropdown arrow */
+  z-index: 1011; /* Above chosen dropdown (z-index: 1010) */
   width: auto;
-  padding-left: 10px;
-  max-height: 35px;
+  height: auto;
+  padding: 0;
+  max-height: none;
+}
+
+.extruder .extruder-content .btn-term-remove-all button {
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.extruder .extruder-content .btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.extruder .extruder-content .btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.extruder .extruder-content .btn-term-remove-all button:hover .material-icons {
+  color: #333;
 }
 /* --- TRANSFERRED FILTERS */
 
 /* !HACK! Otherwise the height of the parent block will be calculated based on the height of the drop-down list, even if the selection is not active! */
 div:not(.chosen-container-active) > .chosen-drop {
   display: none;
+}
+
+.sidebar-main .sidebar-layout .sidebar-footer {
+  height: auto;
+  min-height: 0;
+  margin: 20px 0;
+}
+.layout-main .sidebar-main .footer-box {
+  padding: 0;
+}
+#statusSidebar {
+  display: flex;
 }

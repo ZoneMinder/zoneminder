@@ -40,12 +40,7 @@
 #include <vector>
 #include <curl/curl.h>
 
-#ifdef WITH_GSOAP
-#include "soapPullPointSubscriptionBindingProxy.h"
-#include "plugin/wsseapi.h"
-#include "plugin/wsaapi.h"
-#include <openssl/err.h>
-#endif
+#include "zm_monitor_onvif.h"
 
 class Group;
 class MonitorLinkExpression;
@@ -62,6 +57,7 @@ class MonitorLinkExpression;
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
+  friend class ONVIF;
 
  public:
   typedef enum {
@@ -326,56 +322,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int score();
   };
  protected:
-
-  class ONVIF {
-   protected:
-    Monitor *parent;
-    bool alarmed;
-    bool healthy;
-    std::string last_topic;
-    std::string last_value;
-    void SetNoteSet(Event::StringSet &noteSet);
-#ifdef WITH_GSOAP
-    struct soap *soap = nullptr;
-    _tev__CreatePullPointSubscription request;
-    _tev__CreatePullPointSubscriptionResponse response;
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    _wsnt__Renew wsnt__Renew;
-    _wsnt__RenewResponse wsnt__RenewResponse;
-    PullPointSubscriptionBindingProxy proxyEvent;
-    void set_credentials(struct soap *soap);
-    bool try_usernametoken_auth;  // Track if we should try plain auth
-    int retry_count;  // Track retry attempts
-    int max_retries;  // Maximum retry attempts before giving up
-    std::string discovered_event_endpoint;  // Store discovered endpoint
-    SystemTimePoint last_retry_time;  // Time of last retry attempt
-    
-    // Configurable timeout values (can be set via onvif_options)
-    std::string pull_timeout;  // Default "PT20S"
-    std::string subscription_timeout;  // Default "PT60S"
-    
-    // Helper methods
-    bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
-    bool matches_topic_filter(const std::string &topic, const std::string &filter);
-    void parse_onvif_options();  // Parse options from parent->onvif_options
-    int get_retry_delay();  // Calculate exponential backoff delay
-#endif
-    std::unordered_map<std::string, std::string> alarms;
-    std::mutex   alarms_mutex;
-   public:
-    explicit ONVIF(Monitor *parent_);
-    ~ONVIF();
-    void start();
-    void WaitForMessage();
-    bool isAlarmed() {
-      std::unique_lock<std::mutex> lck(alarms_mutex);
-      return alarmed;
-    };
-    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-    bool isHealthy() const { return healthy; };
-    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
-  };
 
   class AmcrestAPI {
    private:
@@ -709,9 +655,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_ref;
   std::string diag_path_delta;
 
-  //ONVIF
-  bool Event_Poller_Closes_Event;
-
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
@@ -790,8 +733,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return shared_data->janus_pin;
   }
 
-  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
-  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+  bool has_out_of_order_packets() { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() { return packetqueue.get_max_keyframe_interval(); };
 
   bool OnvifEnabled() {
     return onvif_event_listener;
@@ -968,7 +911,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-    const std::shared_ptr<ZMPacket> &snap,
+    ZMPacketLock *packet_lock,
     const std::string &cause,
     const Event::StringSetMap &noteSetMap);
   void closeEvent();

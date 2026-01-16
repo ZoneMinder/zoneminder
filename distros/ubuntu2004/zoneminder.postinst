@@ -37,10 +37,14 @@ create_update_user () {
 
 update_db () {
 
-  zmupdate.pl -s --nointeractive
+  zmupdate.pl --nointeractive
   if [ $? -ne 0 ]; then
-    echo "Error updating db."
-    exit 1;
+    echo "Error updating db. Trying with super-user privileges"
+    zmupdate.pl -s --nointeractive
+    if [ $? -ne 0 ]; then
+      echo "Failed updating db. Please try manually by running: sudo zmupdate.pl"
+      exit 1;
+    fi
   fi
   zmupdate.pl --nointeractive -f
   if [ $? -ne 0 ]; then

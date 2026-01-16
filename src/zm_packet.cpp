@@ -26,6 +26,7 @@ using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
+  locked(false),
   keyframe(0),
   stream(nullptr),
   image(nullptr),
@@ -41,6 +42,7 @@ ZMPacket::ZMPacket() :
 }
 
 ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
+  locked(false),
   keyframe(0),
   stream(nullptr),
   timestamp(tv),
@@ -57,6 +59,7 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
 }
 
 ZMPacket::ZMPacket(ZMPacket &p) :
+  locked(false),
   keyframe(0),
   stream(nullptr),
   timestamp(p.timestamp),
@@ -98,32 +101,30 @@ ssize_t ZMPacket::ram() {
 int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
-  if (in_frame) {
-    Error("Already have a frame?");
-  } else {
-    in_frame = av_frame_ptr{av_frame_alloc()};
-  }
-
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
+  in_frame = av_frame_ptr{av_frame_alloc()};
   int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
   if (ret < 0) {
     if (AVERROR(EAGAIN) != ret) {
-      Warning("Unable to receive frame : code %d %s.",
-              ret, av_make_error_string(ret).c_str());
+      Warning("Unable to receive frame : code %d %s.", ret, av_make_error_string(ret).c_str());
     }
     in_frame = nullptr;
     return 0;
   }
-  int bytes_consumed = ret;
-  if (ret > 0) {
-    zm_dump_video_frame(in_frame.get(), "got frame");
+
+  zm_dump_video_frame(in_frame.get(), "got frame");
+  int bytes_consumed = packet->size;
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if ((ctx->sw_pix_fmt != AV_PIX_FMT_NONE) and (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))) {
+    if (
+        (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
+        and
+        (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
+        ) {
       Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
             ctx->pix_fmt,
             av_get_pix_fmt_name(ctx->pix_fmt),
@@ -172,18 +173,16 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       }
 #endif
       /* retrieve data from GPU to CPU */
-      zm_dump_video_frame(in_frame.get(), "Before hwtransfer");
-      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
+      hw_frame = std::move(in_frame);
+      zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
+      ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
       if (ret < 0) {
-        Error("Unable to transfer frame: %s, continuing",
-              av_make_error_string(ret).c_str());
-        in_frame = nullptr;
+        Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
         return 0;
       }
-      ret = av_frame_copy_props(new_frame.get(), in_frame.get());
+      ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
       if (ret < 0) {
-        Error("Unable to copy props: %s, continuing",
-              av_make_error_string(ret).c_str());
+        Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
       }
 
       zm_dump_video_frame(new_frame.get(), "After hwtransfer");
@@ -206,7 +205,6 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       image->Assign(in_frame);
     }
 #endif
-  } // end if if ( ret > 0 ) {
   return bytes_consumed;
 } // end ZMPacket::decode
 
@@ -280,3 +278,44 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
   }
   return out_frame.get();
 } // end AVFrame *ZMPacket::get_out_frame( AVCodecContext *ctx );
+
+std::unique_lock<std::mutex> ZMPacket::lock() {
+  std::unique_lock<std::mutex> lck_(mutex_, std::defer_lock);
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  lck_.lock();
+  locked = true;
+  Debug(4, "packet %d locked", image_index);
+  return lck_;
+};
+
+void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  lck_.lock();
+  locked = true;
+  Debug(4, "packet %d locked", image_index);
+};
+
+bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
+  locked = lck_.try_lock();
+  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
+  return locked;
+};
+
+void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  locked = false;
+  lck_.unlock();
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  condition_.notify_all();
+};
+
+void ZMPacket::unlock() {
+  if (locked) {
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    our_lck_.unlock();
+  } else {
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+  }
+}
+

@@ -437,6 +437,8 @@ sub guess_credentials {
     }
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->scheme()."://$$self{host}:$$self{port}";
+    $$self{BaseURL} = $uri->canonical();
+    #$uri->scheme()."://$$self{host}:$$self{port}";
     $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
@@ -458,13 +460,23 @@ sub guess_credentials {
     $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
-    $uri->path('');
+    $uri->path_query('');
+    if ( $uri->userinfo()) {
+      @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass};
+      # This will put it into canonical
+      $uri->userinfo($$self{username}.':'.$$self{password});
+    }
+    $$self{address} = $uri->host_port();
     $$self{host} = $uri->host();
     $$self{uri} = $uri;
     $$self{port} = $uri->port();
-    $$self{BaseURL} = $uri->scheme().'://'.$$self{host}.($$self{port} ? ':'.$$self{port}:'');
-    Debug("Have base url $$self{BaseURL} with credentials $$self{username}/$$self{password}");
-    $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    #$$self{BaseURL} = $uri->scheme().'://'.$$self{host}.($$self{port} ? ':'.$$self{port}:'');
+    $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
+    $$self{BaseURL} = $uri->canonical();
+    Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
   } else {
     Debug('Unable to guess credentials');
   }

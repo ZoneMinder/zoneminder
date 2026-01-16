@@ -1197,7 +1197,7 @@ class Monitor extends ZM_Object {
       if ($options['mode'] == 'stream') {
         Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
       }
-      Warning("Using deprecated single stream mode ${options['mode']}");
+      Warning("Using deprecated single stream mode {$options['mode']}");
       $options['mode'] = 'single';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,

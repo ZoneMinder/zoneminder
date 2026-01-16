@@ -345,6 +345,8 @@ class FilterTerm {
       $sql .= '('.implode(' OR ', $subterms).')';
     } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+    } elseif (($this->attr === 'Tags') && ($values[0] === "'-1'")) {
+      $sql .= 'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
     } else {
       $sql .= $this->sql_attr();
       if ($this->collate) $sql .= ' COLLATE '.$this->collate;

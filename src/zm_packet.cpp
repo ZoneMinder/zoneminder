@@ -311,7 +311,11 @@ void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
 };
 
 void ZMPacket::unlock() {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
-  our_lck_.unlock();
+  if (locked) {
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    our_lck_.unlock();
+  } else {
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+  }
 }
 

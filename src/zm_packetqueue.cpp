@@ -227,6 +227,7 @@ packetqueue_iterator PacketQueue::deletePacket(packetqueue_iterator it) {
 }
 
 void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
+  std::lock_guard<std::mutex> lck(mutex);
   // Only do queueCleaning if we are adding a video keyframe, so that we guarantee that there is one.
   // No good.  Have to satisfy two conditions:
   // 1. packetqueue starts with a video keyframe
@@ -256,7 +257,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
          );
     return;
   }
-  std::lock_guard<std::mutex> lck(mutex);
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
@@ -409,13 +409,13 @@ void PacketQueue::stop() {
 }
 
 void PacketQueue::clear() {
+  Debug(1, "Clearing packetqueue");
+  std::lock_guard<std::mutex> lck(mutex);
   deleting = true;
   // Why are we notifying?
   condition.notify_all();
   if (!packet_counts) // special case, not initialised
     return;
-  Debug(1, "Clearing packetqueue");
-  std::lock_guard<std::mutex> lck(mutex);
 
   while (!pktQueue.empty()) {
     std::shared_ptr<ZMPacket> packet = pktQueue.front();
@@ -465,8 +465,6 @@ int PacketQueue::packet_count(int stream_id) {
 }  // end int PacketQueue::packet_count(int stream_id)
 
 ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
-  if (deleting or zm_terminate)
-    return ZMPacketLock();
 
   Debug(4, "Locking in get_packet using it %p queue end? %d",
       std::addressof(*it), (*it == pktQueue.end()));
@@ -474,6 +472,8 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
   // scope for lock
   std::unique_lock<std::mutex> lck(mutex);
   Debug(4, "Have Lock in get_packet");
+  if (deleting or zm_terminate)
+    return ZMPacketLock();
   if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
     Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);

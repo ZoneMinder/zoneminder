@@ -31,7 +31,7 @@ namespace {
   const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
-  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 10;  // Renew subscription N seconds before expiration
+  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 20;  // Renew subscription N seconds before expiration
 
   // Parse ISO 8601 duration string to seconds
   // Supports formats like "PT20S", "PT1M", "PT1H30M45S"

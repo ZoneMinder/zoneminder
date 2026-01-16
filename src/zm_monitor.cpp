@@ -2456,6 +2456,7 @@ bool Monitor::Analyse() {
       //packet->out_frame = nullptr;
     }
   }  // end scope for event_lock
+  packet->analyzed = true;
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it);

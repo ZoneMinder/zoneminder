@@ -743,6 +743,15 @@ void Event::Run() {
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
+      if (!packet->analyzed) {
+        Debug(1, "Not analyzed");
+        packet_lock.unlock();
+        // Stay behind ai
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
 
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);

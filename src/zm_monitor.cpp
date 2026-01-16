@@ -2129,7 +2129,7 @@ bool Monitor::Analyse() {
                 } else {
                   ref_image.Assign(*(packet->image));
                 }
-                //alarm_image.Assign(*(packet->image));
+                alarm_image.Assign(*(packet->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
@@ -2138,13 +2138,14 @@ bool Monitor::Analyse() {
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
                     motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->y_image));
+                      //packet->analysis_image = new Image(*(packet->y_image));
                   } else {
                     motion_score += DetectMotion(*(packet->image), zoneSet);
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->image));
                   }
+
+                  // Instead of showing a greyscale image, let's use the full colour
+                  if (!packet->analysis_image)
+                    packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
                   packet->zone_stats.reserve(zones.size());
@@ -2163,7 +2164,6 @@ bool Monitor::Analyse() {
                     zone_scores[zone_index] = zone.Score();
                     zone_index ++;
                   }
-                  //alarm_image.Assign(*(packet->analysis_image));
                   Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                         score, last_motion_score, motion_score);
                   motion_frame_count += 1;
@@ -2178,6 +2178,11 @@ bool Monitor::Analyse() {
                 } else {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
                   //score += last_motion_score;
+                }
+
+                if (hasAnalysisViewers()) {
+                  // These extra copies are expensive, so only do it if we have viewers.
+                  alarm_image.Assign(*(packet->analysis_image ? packet->analysis_image : packet->image));
                 }
 
                 if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
@@ -2844,7 +2849,7 @@ bool Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
       ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
     if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
       packet->y_image->Scale(camera_width, camera_height);
 

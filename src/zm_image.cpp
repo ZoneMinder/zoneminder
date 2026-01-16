@@ -415,6 +415,11 @@ Image::~Image() {
   DumpImgBuffer();
 }
 
+const std::string Image::toString() {
+  return stringtf("%dx%d colours:%d pixfmt:%d %s size %d", width, height, colours,
+      imagePixFormat, av_get_pix_fmt_name(imagePixFormat), size);
+}
+
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
   if (!initialised) return;

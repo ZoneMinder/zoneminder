@@ -2124,7 +2124,8 @@ int local_size = width * height;
       /* RGBA\BGRA subpixel order - Alpha byte is last */
       while ( prdest < max_ptr ) {
         if ( *psrc ) {
-          RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+          RED_PTR_RGBA(prdest) = *psrc;
+          //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
         }
         prdest++;
         psrc++;

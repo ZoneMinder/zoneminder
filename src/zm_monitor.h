@@ -233,13 +233,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256]; /* +152  */
+    union {                     /* +152  */
+      time_t last_analysis_viewed_time;
+      uint64_t extrapad6;
+    };
+    uint8_t control_state[256]; /* +160  */
 
-    char alarm_cause[256]; /* 408 */
-    char video_fifo_path[64]; /* 664 */
-    char audio_fifo_path[64]; /* 728 */
-    char janus_pin[64]; /* 792 */
-    /* 856 total? */
+    char alarm_cause[256]; /* +416 */
+    char video_fifo_path[64]; /* +672 */
+    char audio_fifo_path[64]; /* +736 */
+    char janus_pin[64]; /* +800 */
+    /* 864 total */
   } SharedData;
 
   enum TriggerState : uint32 {
@@ -783,6 +787,28 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
       Debug(3, "Last viewed %" PRId64 " seconds ago", intNow - shared_data->last_viewed_time);
       return (((!shared_data->last_viewed_time) or ((intNow - shared_data->last_viewed_time)) > 10)) ? false : true;
+    }
+    return false;
+  }
+  int64_t getLastAnalysisViewed() {
+    if (shared_data && shared_data->valid)
+      return shared_data->last_analysis_viewed_time;
+    return 0;
+  }
+  void setLastAnalysisViewed() {
+    setLastAnalysisViewed(std::chrono::system_clock::now());
+  }
+  void setLastAnalysisViewed(SystemTimePoint new_time) {
+    if (shared_data && shared_data->valid)
+      shared_data->last_analysis_viewed_time =
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
+  }
+  bool hasAnalysisViewers() {
+    if (shared_data && shared_data->valid) {
+      SystemTimePoint now = std::chrono::system_clock::now();
+      int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
+      Debug(3, "Last analysis viewed %" PRId64 " seconds ago", intNow - shared_data->last_analysis_viewed_time);
+      return (((!shared_data->last_analysis_viewed_time) or ((intNow - shared_data->last_analysis_viewed_time)) > 10)) ? false : true;
     }
     return false;
   }

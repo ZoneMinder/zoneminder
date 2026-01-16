@@ -593,6 +593,8 @@ void MonitorStream::runStream() {
       continue;
     }
     monitor->setLastViewed();
+    if (frame_type == FRAME_ANALYSIS)
+      monitor->setLastAnalysisViewed();
 
     if (paused) {
       if (!was_paused) {

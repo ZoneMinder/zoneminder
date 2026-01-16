@@ -454,10 +454,12 @@ void PacketQueue::clear() {
 }
 
 unsigned int PacketQueue::size() {
+  std::unique_lock<std::mutex> lck(mutex);
   return pktQueue.size();
 }
 
 int PacketQueue::packet_count(int stream_id) {
+  std::unique_lock<std::mutex> lck(mutex);
   if (stream_id < 0 or stream_id > max_stream_id) {
     Error("Invalid stream_id %d max is %d", stream_id, max_stream_id);
     return -1;
@@ -470,7 +472,6 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
   Debug(4, "Locking in get_packet using it %p queue end? %d",
       std::addressof(*it), (*it == pktQueue.end()));
 
-  // scope for lock
   std::unique_lock<std::mutex> lck(mutex);
   Debug(4, "Have Lock in get_packet");
   if (deleting or zm_terminate)

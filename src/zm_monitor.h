@@ -733,8 +733,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return shared_data->janus_pin;
   }
 
-  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
-  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+  bool has_out_of_order_packets() { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() { return packetqueue.get_max_keyframe_interval(); };
 
   bool OnvifEnabled() {
     return onvif_event_listener;

@@ -707,7 +707,6 @@ void MonitorStream::runStream() {
             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
-          /*
           if ((frame_type == FRAME_ANALYSIS) &&
               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
@@ -716,7 +715,7 @@ void MonitorStream::runStream() {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
-          } else*/ {
+          } else {
             //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];

@@ -161,7 +161,8 @@ class ZMPacketLock {
     };
 
     ~ZMPacketLock() {
-      if (locked) {
+      if (locked and packet_) {
+        // packet_ should never be null
         Debug(4, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
         packet_->unlock(lck_);
       } else if (packet_) {

@@ -164,7 +164,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       it ++;
       while ((*it != add_packet) && !(deleting or zm_terminate)) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
-        ZMPacketLock packet_lock(zm_packet);
 
         if (zm_packet->packet->stream_index == video_stream_id and zm_packet->keyframe) {
           for ( it = pktQueue.begin(); *it != zm_packet; ) {
@@ -172,7 +171,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           }
           break;
         }  // end if erasing a whole gop
-        // Don't need to lock the new keyframe, just everythig before it
+        // Don't need to lock the new keyframe, just everything before it
+        ZMPacketLock packet_lock(zm_packet);
         if (!packet_lock.trylock()) {
           // If we can't get a lock, then we can't delete a GOP.  I'm actually not sure about this.
           // It means someone is playing with the packet but doesn't mean we can't remove it from the queue.
@@ -696,16 +696,13 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
   std::unique_lock<std::mutex> lck(mutex);
   *it = pktQueue.begin();
 
-  if ( wait ) {
+  if (wait) {
     while ( ((! pktQueue.size()) or (*it == pktQueue.end())) and !zm_terminate and !deleting ) {
       Debug(2, "waiting for packets in queue. Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
       *it = pktQueue.begin();
     }
-    if ( deleting or zm_terminate ) {
-      // Isn't this redundant?
-      free_it(it);
-      delete it;
+    if (deleting or zm_terminate) {
       return nullptr;
     }
   }
@@ -714,7 +711,6 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
     std::shared_ptr<ZMPacket> zm_packet = *(*it);
     if (!zm_packet) {
       Error("Null zmpacket in queue!?");
-      free_it(it);
       return nullptr;
     }
     Debug(1, "Packet keyframe %d for stream %d, so returning the it to it",

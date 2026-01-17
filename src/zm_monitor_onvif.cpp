@@ -581,15 +581,7 @@ void ONVIF::WaitForMessage() {
         }  // end foreach msg
       } // end scope for lock
 
-      // Log subscription timing before checking if renewal is needed
-      log_subscription_timing("before_renewal_check");
-
-      // Renew subscription if needed
-      if (IsRenewalNeeded()) {
-        if (!Renew()) {
-          Warning("ONVIF: Failed to renew subscription");
-        }
-      }
+      if (IsRenewalNeeded()) Renew();
     }  // end if SOAP OK/NOT OK
 #endif
   return;
@@ -947,7 +939,7 @@ bool ONVIF::Renew() {
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
-      Debug(1, "ONVIF: Renewal failed, cleaning up subscription to prevent leak");
+      Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
       cleanup_subscription();
       healthy = false;
       return false;

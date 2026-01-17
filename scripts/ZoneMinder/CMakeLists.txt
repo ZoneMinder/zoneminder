@@ -25,10 +25,10 @@ else()
 endif()
 
 # Add build target for the perl modules
-add_custom_target(zmperlmodules ALL perl Makefile.PL ${ZM_PERL_MM_PARMS_FULL} FIRST_MAKEFILE=MakefilePerl DESTDIR="${CMAKE_CURRENT_BINARY_DIR}/output" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make -f MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
+add_custom_target(zmperlmodules ALL perl Makefile.PL ${ZM_PERL_MM_PARMS_FULL} DESTDIR="${CMAKE_CURRENT_BINARY_DIR}/output" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make -f Makefile pure_install COMMENT "Building ZoneMinder perl modules")
 
 # Add install target for the perl modules
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/output/" DESTINATION "/")
 
 # Add additional files and directories to make clean
-set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "output;blib;pm_to_blib;MakefilePerl")
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "output;blib;pm_to_blib;Makefile")

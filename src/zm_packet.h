@@ -138,7 +138,7 @@ class ZMPacketLock {
 
     ZMPacketLock() :
       packet_(nullptr),
-      locked(false) { Debug(1, "New empty"); };
+      locked(false) {};
 
     explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
       packet_(p),

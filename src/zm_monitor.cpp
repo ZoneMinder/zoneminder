@@ -2189,9 +2189,10 @@ bool Monitor::Analyse() {
                   alarm_image.Assign(*(packet->analysis_image ? packet->analysis_image : packet->image));
                 }
 
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
+                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   Debug(1, "Blending from y-channel");
-                  ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  if (packet->y_image)
+                    ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (packet->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),

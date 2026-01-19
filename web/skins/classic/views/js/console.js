@@ -461,6 +461,8 @@ function initPage() {
   if (!getCookie('zmConsoleTable.bs.table.hiddenColumns')) {
     // table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Sequence');
+    table.bootstrapTable('hideColumn', 'Manufacturer');
+    table.bootstrapTable('hideColumn', 'Model');
   }
 
   // Enable or disable buttons based on current selection and user rights

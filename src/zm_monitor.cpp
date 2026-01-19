@@ -2048,9 +2048,11 @@ int Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-            Debug(1, "assigning refimage from y-channel");
-            ref_image.Assign(*(packet->y_image));
+          if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+            if (packet->y_image) {
+              Debug(1, "assigning refimage from y-channel");
+              ref_image.Assign(*(packet->y_image));
+            }
           } else if (packet->image) {
             Debug(1, "assigning refimage from packet->image");
             ref_image.Assign(*(packet->image));
@@ -2862,8 +2864,8 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
   // decoder may not have been able to provide an image
   if (!ref_image.Buffer()) {
     Debug(1, "Assigning instead of Detecting");
-    if (packet->y_image) {
-      ref_image.Assign(*(packet->y_image));
+    if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+      if (packet->y_image) ref_image.Assign(*(packet->y_image));
     } else if (packet->image) {
       // image should always be scaled
       ref_image.Assign(*(packet->image));
@@ -2906,28 +2908,18 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
       Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
     }
 
-    if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
+    if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
       Debug(1, "Blending from y-channel");
-      ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-    } else if (packet->image) {
-      if (packet->image->AVPixFormat() == AV_PIX_FMT_YUV420P) {
-        if (!packet->y_image) {
-          packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-          if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-            packet->y_image->Scale(camera_width, camera_height);
-        }
-        Debug(1, "Blending from y-channel");
+      if (packet->y_image)
         ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-      } else {
-        Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
-            analysis_image, packet->in_frame.get(),
-            (packet->in_frame ? packet->in_frame->format : -1),
-            AV_PIX_FMT_YUV420P,
-            AV_PIX_FMT_YUVJ420P
-            );
-        ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-      }
-      Debug(1, "Done Blending");
+    } else if (packet->image) {
+      Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
+          analysis_image, packet->in_frame.get(),
+          (packet->in_frame ? packet->in_frame->format : -1),
+          AV_PIX_FMT_YUV420P,
+          AV_PIX_FMT_YUVJ420P
+          );
+      ref_image.Blend(*(packet->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
     } else {
       Debug(1, "Not able to blend");
     }
@@ -3572,31 +3564,35 @@ int Monitor::Decode() {
   }  // end if need_decoding
 
 #if 0
-  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-        ||
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-      ) ) {
-    Image *y_image = packet->get_y_image();
-    if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-      y_image->Scale(camera_width, camera_height);
+  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+    if (packet->in_frame && (
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
+          ||
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
+          ) ) {
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
 
-    if (orientation != ROTATE_0) {
-      switch (orientation) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 :
-        y_image->Rotate((orientation-1)*90);
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        y_image->Flip(orientation==FLIP_HORI);
-        break;
-      }
-    }  // end if have rotation
+      if (orientation != ROTATE_0) {
+        switch (orientation) {
+          case ROTATE_0 :
+            // No action required
+            break;
+          case ROTATE_90 :
+          case ROTATE_180 :
+          case ROTATE_270 :
+            packet->y_image->Rotate((orientation-1)*90);
+            break;
+          case FLIP_HORI :
+          case FLIP_VERT :
+            packet->y_image->Flip(orientation==FLIP_HORI);
+            break;
+        }
+      } // end if have rotation
+    } else if (decoding == DECODING_ALWAYS) {
+      Error("Want to use y-channel, but no in_frame or wrong format");
+    }
   }
 #endif
 
@@ -3900,10 +3896,12 @@ unsigned int Monitor::DetectMotion(const Image &comp_image,
 
   if (zones.empty()) {
     Warning("No zones to check!");
-    return alarm;
+    return 0;
   }
 
-  ref_image.Delta(comp_image, &delta_image);
+  if (!ref_image.Delta(comp_image, &delta_image)) {
+    return 0;
+  }
 
   if (config.record_diag_images) {
     ref_image.WriteJpeg(diag_path_ref, config.record_diag_images_fifo);

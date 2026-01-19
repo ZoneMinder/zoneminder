@@ -2231,8 +2231,9 @@ void Image::Blend( const Image &image, int transparency ) {
          && colours == image.colours
          && subpixelorder == image.subpixelorder
        ) ) {
-    Panic("Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
+    Error("Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
           width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
+    return;
   }
 
   if ( transparency <= 0 ) {
@@ -2361,16 +2362,17 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 }
 
 /* New function to allow buffer re-using instead of allocating memory for the delta image every time */
-void Image::Delta(const Image &image, Image* targetimage) const {
+bool Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
-    Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
+    Error( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
            width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
+    return false;
   }
 
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
-
   if ( pdiff == nullptr ) {
-    Panic("Failed requesting writeable buffer for storing the delta image");
+    Error("Failed requesting writeable buffer for storing the delta image");
+    return false;
   }
 
 #ifdef ZM_IMAGE_PROFILING
@@ -2420,6 +2422,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
         static_cast<int64>(diff.count()),
         mil_pixels);
 #endif
+  return true;
 }
 
 const Vector2 Image::centreCoord(const char *text, int size = 1) const {

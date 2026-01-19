@@ -2029,9 +2029,11 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-            Debug(1, "assigning refimage from y-channel");
-            ref_image.Assign(*(packet->y_image));
+          if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+            if (packet->y_image) {
+              Debug(1, "assigning refimage from y-channel");
+              ref_image.Assign(*(packet->y_image));
+            }
           } else if (packet->image) {
             Debug(1, "assigning refimage from packet->image");
             ref_image.Assign(*(packet->image));
@@ -2124,21 +2126,23 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-                  ref_image.Assign(*(packet->y_image));
-                } else {
+                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+                  // If not decoding, y_image can be null
+                  if (packet->y_image) ref_image.Assign(*(packet->y_image));
+                } else if (packet->image) {
                   ref_image.Assign(*(packet->image));
+                } else {
+                  Debug(1, "No image to ref yet");
                 }
                 alarm_image.Assign(*(packet->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
-                  Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
+                  Debug(1, "Detecting motion on image %d, image %p, y_image %p", packet->image_index, packet->image, packet->y_image);
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
                     motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                      //packet->analysis_image = new Image(*(packet->y_image));
                   } else {
                     motion_score += DetectMotion(*(packet->image), zoneSet);
                   }
@@ -2845,31 +2849,35 @@ bool Monitor::Decode() {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
 
-  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-        ||
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-      ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
-    if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-      packet->y_image->Scale(camera_width, camera_height);
+  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+    if (packet->in_frame && (
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
+          ||
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
+          ) ) {
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
 
-    if (orientation != ROTATE_0) {
-      switch (orientation) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 :
-        packet->y_image->Rotate((orientation-1)*90);
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        packet->y_image->Flip(orientation==FLIP_HORI);
-        break;
-      }
-    } // end if have rotation
+      if (orientation != ROTATE_0) {
+        switch (orientation) {
+          case ROTATE_0 :
+            // No action required
+            break;
+          case ROTATE_90 :
+          case ROTATE_180 :
+          case ROTATE_270 :
+            packet->y_image->Rotate((orientation-1)*90);
+            break;
+          case FLIP_HORI :
+          case FLIP_VERT :
+            packet->y_image->Flip(orientation==FLIP_HORI);
+            break;
+        }
+      } // end if have rotation
+    } else if (decoding == DECODING_ALWAYS) {
+      Error("Want to use y-channel, but no in_frame or wrong format");
+    }
   }
 
   if (packet->image) {
@@ -3129,10 +3137,12 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
   if (zones.empty()) {
     Warning("No zones to check!");
-    return alarm;
+    return 0;
   }
 
-  ref_image.Delta(comp_image, &delta_image);
+  if (!ref_image.Delta(comp_image, &delta_image)) {
+    return 0;
+  }
 
   if (config.record_diag_images) {
     ref_image.WriteJpeg(diag_path_ref, config.record_diag_images_fifo);

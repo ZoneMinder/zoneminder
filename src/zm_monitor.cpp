@@ -1736,7 +1736,7 @@ bool Monitor::CheckSignal(const Image *image) {
   int index = 0;
   for (int i = 0; i < signal_check_points; i++) {
     while (true) {
-      // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
+      // Why the casting to long long?
       index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
       if (!config.timestamp_on_capture || !label_format[0])
         break;

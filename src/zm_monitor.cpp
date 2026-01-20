@@ -1303,6 +1303,10 @@ Monitor::~Monitor() {
     delete Amcrest_Manager;
   }
   if (onvif) delete onvif;
+  if (curl) {
+    curl_easy_cleanup(curl);
+    curl = nullptr;
+  }
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {

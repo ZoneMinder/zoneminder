@@ -1061,7 +1061,7 @@ bool Monitor::connect() {
   zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
   video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-  shared_analysis_timestamps = (struct timeval *)((char *)shared_timestamps + sizeof(struct timeval));
+  shared_analysis_timestamps = (struct timeval *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
   shared_images = (unsigned char *)((char *)shared_analysis_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
   if (((unsigned long)shared_images % 64) != 0) {

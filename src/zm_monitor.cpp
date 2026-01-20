@@ -1368,7 +1368,7 @@ int Monitor::GetImage(int32_t index, int scale) {
   }
 }
 
-ZMPacket *Monitor::getSnapshot(int index) const {
+std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
@@ -1377,8 +1377,9 @@ ZMPacket *Monitor::getSnapshot(int index) const {
     return nullptr;
   }
   if (index != image_buffer_count) {
-    return new ZMPacket(image_buffer[index],
+    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (image_buffer[index],
                         SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
+    return packet;
   } else {
     Error("Unable to generate image, no images in buffer");
   }
@@ -1386,7 +1387,7 @@ ZMPacket *Monitor::getSnapshot(int index) const {
 }
 
 SystemTimePoint Monitor::GetTimestamp(int index) const {
-  ZMPacket *packet = getSnapshot(index);
+  std::shared_ptr<ZMPacket> packet = getSnapshot(index);
   if (packet)
     return packet->timestamp;
 
@@ -1645,7 +1646,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
-    ZMPacket *packet = getSnapshot(index);
+    std::shared_ptr<ZMPacket>packet = getSnapshot(index);
     zone_image = new Image(*packet->image);
   } else {
     Debug(3, "Trying to load from event");

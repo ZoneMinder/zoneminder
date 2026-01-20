@@ -3626,7 +3626,7 @@ std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if (!groups.size()) {
     std::string sql = stringtf(
-                        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
+                        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups`.`Id` IN "
                         "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
     MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {

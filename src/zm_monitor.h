@@ -1007,7 +1007,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
 
   int GetImage(int32_t index=-1, int scale=100);
-  ZMPacket *getSnapshot( int index=-1 ) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

@@ -1051,7 +1051,7 @@ bool Monitor::connect() {
           strerror(errno));
   }
   mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
-  if ((int)mem_ptr == -1) {
+  if (static_cast<void *>(mem_ptr) == -1) {
     Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif  // ZM_MEM_MAPPED
@@ -1370,7 +1370,7 @@ int Monitor::GetImage(int32_t index, int scale) {
   }
 }
 
-ZMPacket *Monitor::getSnapshot(int index) const {
+std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_decoder_index;
   }
@@ -1380,9 +1380,10 @@ ZMPacket *Monitor::getSnapshot(int index) const {
     return nullptr;
   }
   if (index != image_buffer_count) {
-    return new ZMPacket(image_buffer[index],
+    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (image_buffer[index],
                         SystemTimePoint(zm::chrono::duration_cast<Microseconds>(
                             shared_timestamps[index])));
+    return packet;
   } else {
     Error("Unable to generate image, no images in buffer");
   }
@@ -1390,8 +1391,9 @@ ZMPacket *Monitor::getSnapshot(int index) const {
 }
 
 SystemTimePoint Monitor::GetTimestamp(int index) const {
-  ZMPacket *packet = getSnapshot(index);
-  if (packet) return packet->timestamp;
+  std::shared_ptr<ZMPacket> packet = getSnapshot(index);
+  if (packet)
+    return packet->timestamp;
 
   return {};
 }
@@ -1651,7 +1653,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
       mem_ptr) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_decoder_index;
-    ZMPacket *packet = getSnapshot(index);
+    std::shared_ptr<ZMPacket>packet = getSnapshot(index);
     zone_image = new Image(*packet->image);
   } else {
     Debug(3, "Trying to load from event");
@@ -1743,10 +1745,10 @@ bool Monitor::CheckSignal(const Image *image) {
   int index = 0;
   for (int i = 0; i < signal_check_points; i++) {
     while (true) {
-      // Why the casting to long long? also note that on a 64bit cpu, long long
-      // is 128bits
+      // Why the casting to long long?
       index = (int)(((long long)rand() * (long long)(pixels - 1)) / RAND_MAX);
-      if (!config.timestamp_on_capture || !label_format[0]) break;
+      if (!config.timestamp_on_capture || !label_format[0])
+        break;
       // Avoid sampling the rows with timestamp in
       if (index < (label_coord.y_ * width) ||
           index >= (label_coord.y_ + Image::LINE_HEIGHT) * width) {
@@ -4409,9 +4411,8 @@ std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if (!groups.size()) {
     std::string sql = stringtf(
-        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
-        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)",
-        id);
+        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups`.`Id` IN "
+        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
     MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {
       Error("Can't load groups: %s", mysql_error(&dbconn));

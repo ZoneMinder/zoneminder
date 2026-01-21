@@ -833,7 +833,7 @@ function streamStart(monitor = null) {
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
-  monitor.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
+  monitorStream.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
   monitorStream.manageAvailablePlayers();
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server

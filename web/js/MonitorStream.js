@@ -339,7 +339,7 @@ function MonitorStream(monitorData) {
   };
 
   this.copyAllAttributes = function(fromEl, toEl) {
-    for(let attr of fromEl.attributes){
+    for (const attr of fromEl.attributes) {
       toEl.setAttribute(attr.name, attr.value);
     }
   };

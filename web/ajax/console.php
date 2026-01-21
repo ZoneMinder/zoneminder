@@ -293,6 +293,8 @@ function queryRequest() {
     $row['Name'] = validHtmlStr($monitor['Name']);
     $row['Function'] = $monitor['Function'];
     $row['Enabled'] = $monitor['Enabled'];
+    $row['Manufacturer'] = $monitor['Manufacturer'];
+    $row['Model'] = $monitor['Model'];
     $row['Sequence'] = isset($monitor['Sequence']) ? $monitor['Sequence'] : 0;
     
     // Status

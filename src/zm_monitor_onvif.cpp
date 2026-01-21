@@ -32,7 +32,7 @@ namespace {
   const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
-  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 20;  // Renew subscription N seconds before expiration
+  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
 
   // Parse ISO 8601 duration string to seconds
   // Supports formats like "PT20S", "PT1M", "PT1H30M45S"
@@ -90,19 +90,19 @@ namespace {
 #endif
 
 std::string SOAP_STRINGS[] = {
-  "SOAP_OK", // 0
-  "SOAP_CLI_FAULT", // 1
-  "SOAP_SVR_FAULT",//                  2
-  "SOAP_TAG_MISMATCH",//               3
-  "SOAP_TYPE",//                       4
-  "SOAP_SYNTAX_ERROR",//               5
-  "SOAP_NO_TAG",//                     6
-  "SOAP_IOB",//                        7
-  "SOAP_MUSTUNDERSTAND",//             8
-  "SOAP_NAMESPACE", //                  9
-  "SOAP_USER_ERROR", //                 10
-  "SOAP_FATAL_ERROR", //                11 
-  "SOAP_FAULT", //                      12
+    "SOAP_OK",              // 0
+    "SOAP_CLI_FAULT",       // 1
+    "SOAP_SVR_FAULT",       // 2
+    "SOAP_TAG_MISMATCH",    // 3
+    "SOAP_TYPE",            // 4
+    "SOAP_SYNTAX_ERROR",    // 5
+    "SOAP_NO_TAG",          // 6
+    "SOAP_IOB",             // 7
+    "SOAP_MUSTUNDERSTAND",  // 8
+    "SOAP_NAMESPACE",       // 9
+    "SOAP_USER_ERROR",      // 10
+    "SOAP_FATAL_ERROR",     // 11
+    "SOAP_FAULT",           // 12
 };
 
 ONVIF::ONVIF(Monitor *parent_) :
@@ -116,7 +116,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,retry_count(0)
   ,max_retries(5)
   ,warned_initialized_repeat(false)
-  ,pull_timeout("PT10S")
+  ,pull_timeout("PT5S")
   ,subscription_timeout("PT300S")
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
@@ -190,17 +190,18 @@ void ONVIF::start() {
   // Validate pull_timeout before creating subscription
   int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
   if (pull_timeout_seconds < 0) {
-    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
+    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT5S", pull_timeout.c_str());
+    pull_timeout = "PT5S";
+    pull_timeout_seconds = 5;
   }
   
   if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout = "PT8S";
+    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+    pull_timeout = "PT" + std::to_string(pull_timeout_seconds) + "S";
+    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to %s",
+            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS, pull_timeout.c_str());
   }
-  
+
   soap = soap_new();
   soap->connect_timeout = 0;
   soap->recv_timeout = 0;
@@ -748,15 +749,16 @@ void ONVIF::parse_onvif_options() {
         // Validate pull_timeout immediately
         int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
         if (pull_timeout_seconds < 0) {
-          Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-          pull_timeout = "PT8S";
-          pull_timeout_seconds = 8;
+          Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT5S", pull_timeout.c_str());
+          pull_timeout = "PT5S";
+          pull_timeout_seconds = 5;
         }
         
         if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-          Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
-                  pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-          pull_timeout = "PT8S";
+          pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+          pull_timeout = "PT" + std::to_string(pull_timeout_seconds) + "S";
+          Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to %s",
+                  pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS, pull_timeout.c_str());
         }
       } else if (key == "subscription_timeout") {
         subscription_timeout = value;
@@ -799,18 +801,18 @@ void ONVIF::parse_onvif_options() {
   // Final validation of pull_timeout (in case it was not set in options and we're using default)
   int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
   if (pull_timeout_seconds < 0) {
-    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
+    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT5S", pull_timeout.c_str());
+    pull_timeout = "PT5S";
+    pull_timeout_seconds = 5;
   }
   
   if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
+    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+    pull_timeout = "PT" + std::to_string(pull_timeout_seconds) + "S";
+    Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to %s",
+            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS, pull_timeout.c_str());
   }
-  
+
   Info("ONVIF: Using pull_timeout=%s (%d seconds), subscription_timeout=%s", 
        pull_timeout.c_str(), pull_timeout_seconds, subscription_timeout.c_str());
 }

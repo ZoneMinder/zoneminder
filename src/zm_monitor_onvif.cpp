@@ -337,9 +337,9 @@ void ONVIF::Run() {
     } else {
       // Attempt to re-establish connection
       Debug(1, "ONVIF: Unhealthy, attempting to restart subscription");
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       start();
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
   Debug(1, "ONVIF: Polling thread exiting");
 }

@@ -107,8 +107,8 @@ std::string SOAP_STRINGS[] = {
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed(false)
-  ,healthy(false)
+  ,alarmed_(false)
+  ,healthy_(false)
   ,closes_event(false)
 #ifdef WITH_GSOAP
   ,soap(nullptr)
@@ -140,8 +140,8 @@ ONVIF::~ONVIF() {
     //We have lost ONVIF clear previous alarm topics
     alarms.clear();
     //Set alarmed to false so we don't get stuck recording
-    alarmed = false;
-    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+    alarmed_.store(false, std::memory_order_release);
+    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     set_credentials(soap);
@@ -299,7 +299,7 @@ void ONVIF::start() {
         soap_end(soap);
         soap_free(soap);
         soap = nullptr;
-        healthy = false;
+        healthy_.store(false, std::memory_order_release);
         return;
       }
       
@@ -321,7 +321,7 @@ void ONVIF::start() {
       soap_end(soap);
       soap_free(soap);
       soap = nullptr;
-      healthy = false;
+      healthy_.store(false, std::memory_order_release);
       return;
     }
   } else {
@@ -344,7 +344,7 @@ void ONVIF::start() {
     set_credentials(soap);
 
     if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
-      healthy = false;
+      healthy_.store(false, std::memory_order_release);
       return;
     }
 
@@ -359,10 +359,10 @@ void ONVIF::start() {
         (soap->error != SOAP_EOF)
        ) { //SOAP_EOF could indicate no messages to pull.
       Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy = false;
+      healthy_.store(false, std::memory_order_release);
     } else {
       Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy = true;
+      healthy_.store(true, std::memory_order_release);
     }
 
     // Perform initial renewal of the subscription
@@ -374,7 +374,7 @@ void ONVIF::start() {
   } // end else (success block)
 
   // Start the polling thread if initialization succeeded
-  if (healthy && !thread_.joinable()) {
+  if (healthy_.load(std::memory_order_acquire) && !thread_.joinable()) {
     Debug(1, "ONVIF: Starting polling thread");
     terminate_ = false;
     thread_ = std::thread(&ONVIF::Run, this);
@@ -387,7 +387,7 @@ void ONVIF::start() {
 void ONVIF::Run() {
   Debug(1, "ONVIF: Polling thread started");
   while (!terminate_ && !zm_terminate) {
-    if (healthy) {
+    if (healthy_.load(std::memory_order_acquire)) {
       WaitForMessage();
     } else {
       // Attempt to re-establish connection
@@ -435,7 +435,7 @@ void ONVIF::WaitForMessage() {
         } else {
           Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
-        healthy = false;
+        healthy_.store(false, std::memory_order_release);
       } else {
         // SOAP_EOF - this is just a timeout, not an error
         Debug(2, "ONVIF PullMessage timeout (SOAP_EOF) - no new messages. result=%d soap_fault_string=%s detail=%s",
@@ -446,7 +446,7 @@ void ONVIF::WaitForMessage() {
         // and we haven't received any messages for a long time
         // For now, just leave alarms as-is on timeout
         Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
-              alarms.size(), alarmed ? "true" : "false");
+              alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
         
         // Timeout is not an error, don't increment retry_count
       }
@@ -506,9 +506,9 @@ void ONVIF::WaitForMessage() {
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
             Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
-                  alarms.size(), alarmed ? "true" : "false");
+                  alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
             if (alarms.empty()) {
-              alarmed = false;
+              alarmed_.store(false, std::memory_order_release);
             }
             if (!closes_event) {
               closes_event = true;
@@ -535,8 +535,8 @@ void ONVIF::WaitForMessage() {
               // Camera reports an existing alarm we didn't know about
               Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = last_value;
-              if (!alarmed) {
-                alarmed = true;
+              if (!alarmed_.load(std::memory_order_acquire)) {
+                alarmed_.store(true, std::memory_order_release);
                 Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
               }
             } else if (!state_is_active && alarms.count(last_topic) > 0) {
@@ -544,7 +544,7 @@ void ONVIF::WaitForMessage() {
               Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed = false;
+                alarmed_.store(false, std::memory_order_release);
               }
             }
 
@@ -562,9 +562,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               alarms.erase(last_topic);
               Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
-                    alarms.size(), alarmed ? "true" : "false");
+                    alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
               if (alarms.empty()) {
-                alarmed = false;
+                alarmed_.store(false, std::memory_order_release);
               }
               if (!closes_event) {
                 closes_event = true;
@@ -575,9 +575,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed) {
+                if (!alarmed_.load(std::memory_order_acquire)) {
                   Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
-                  alarmed = true;
+                  alarmed_.store(true, std::memory_order_release);
                 }
               } else {
                 // Update existing alarm value
@@ -594,20 +594,20 @@ void ONVIF::WaitForMessage() {
             if (!state_is_active) {
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed = false;
+                alarmed_.store(false, std::memory_order_release);
               }
             } else {
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed) {
-                  alarmed = true;
+                if (!alarmed_.load(std::memory_order_acquire)) {
+                  alarmed_.store(true, std::memory_order_release);
                 }
               } else {
                 alarms[last_topic] = last_value;
               }
             }
           }
-          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
+          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
         }  // end foreach msg
       } // end scope for lock
 
@@ -957,7 +957,7 @@ bool ONVIF::Renew() {
   if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "RenewRequest")) {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
-    healthy = false;
+    healthy_.store(false, std::memory_order_release);
     return false;
   }
   
@@ -965,19 +965,19 @@ bool ONVIF::Renew() {
     Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
-      healthy = true;
+      healthy_.store(true, std::memory_order_release);
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
       Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
       cleanup_subscription();
-      healthy = false;
+      healthy_.store(false, std::memory_order_release);
       return false;
     }
   }
   
   Debug(2, "ONVIF: Subscription renewed successfully");
-  healthy = true;
+  healthy_.store(true, std::memory_order_release);
   
   // Update renewal times from renew response
   if (wsnt__RenewResponse.TerminationTime != 0) {

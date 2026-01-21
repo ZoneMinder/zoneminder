@@ -44,8 +44,8 @@ class ONVIF {
 
  protected:
   Monitor *parent;
-  bool alarmed;
-  bool healthy;
+  std::atomic<bool> alarmed_;
+  std::atomic<bool> healthy_;
   bool closes_event;
   std::string last_topic;
   std::string last_value;
@@ -103,12 +103,9 @@ class ONVIF {
   ~ONVIF();
   void start();
   void WaitForMessage();
-  bool isAlarmed() {
-    std::unique_lock<std::mutex> lck(alarms_mutex);
-    return alarmed;
-  };
-  void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-  bool isHealthy() const { return healthy; };
+  bool isAlarmed() const { return alarmed_.load(std::memory_order_acquire); }
+  void setAlarmed(bool p_alarmed) { alarmed_.store(p_alarmed, std::memory_order_release); }
+  bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
 };
 

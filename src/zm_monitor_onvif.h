@@ -64,9 +64,9 @@ class ONVIF {
   bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
   std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic
 
-  // Configurable timeout values (can be set via onvif_options)
-  std::string pull_timeout;  // Default "PT20S"
-  std::string subscription_timeout;  // Default "PT60S"
+  // Configurable timeout values in seconds (can be set via onvif_options)
+  int pull_timeout_seconds;  // Default 5 seconds
+  int subscription_timeout_seconds;  // Default 300 seconds (5 minutes)
   std::string soap_log_file;  // SOAP message logging file (empty = disabled)
   FILE *soap_log_fd;  // File descriptor for SOAP logging
 

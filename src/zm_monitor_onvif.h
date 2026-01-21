@@ -20,8 +20,10 @@
 #ifndef ZM_MONITOR_ONVIF_H
 #define ZM_MONITOR_ONVIF_H
 
+#include <atomic>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include "zm_event.h"
 #include "zm_time.h"
@@ -91,6 +93,11 @@ class ONVIF {
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;
+
+  // Thread management
+  std::thread thread_;
+  std::atomic<bool> terminate_;
+  void Run();
  public:
   explicit ONVIF(Monitor *parent_);
   ~ONVIF();

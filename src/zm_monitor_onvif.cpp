@@ -19,6 +19,7 @@
 
 #include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
 
 #include <cstring>
 #include <sstream>
@@ -115,17 +116,24 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,retry_count(0)
   ,max_retries(5)
   ,warned_initialized_repeat(false)
-  ,pull_timeout("PT5S")
+  ,pull_timeout("PT10S")
   ,subscription_timeout("PT300S")
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
   ,next_renewal_time()
   ,use_absolute_time_for_renewal(false)
 #endif
+  ,terminate_(false)
 {
 }
 
 ONVIF::~ONVIF() {
+  // Stop the polling thread first
+  terminate_ = true;
+  if (thread_.joinable()) {
+    thread_.join();
+  }
+
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "ONVIF: Tearing Down");
@@ -364,9 +372,31 @@ void ONVIF::start() {
       }
     }
   } // end else (success block)
+
+  // Start the polling thread if initialization succeeded
+  if (healthy && !thread_.joinable()) {
+    Debug(1, "ONVIF: Starting polling thread");
+    terminate_ = false;
+    thread_ = std::thread(&ONVIF::Run, this);
+  }
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif
+}
+
+void ONVIF::Run() {
+  Debug(1, "ONVIF: Polling thread started");
+  while (!terminate_ && !zm_terminate) {
+    if (healthy) {
+      WaitForMessage();
+    } else {
+      // Attempt to re-establish connection
+      Debug(1, "ONVIF: Unhealthy, attempting to restart subscription");
+      start();
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
+  Debug(1, "ONVIF: Polling thread exiting");
 }
 
 void ONVIF::WaitForMessage() {

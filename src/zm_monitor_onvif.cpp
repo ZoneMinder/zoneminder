@@ -67,6 +67,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,try_usernametoken_auth(false)
   ,retry_count(0)
   ,max_retries(10)
+  ,has_valid_subscription_(false)
   ,warned_initialized_repeat(false)
   ,pull_timeout_seconds(5)
   ,subscription_timeout_seconds(300)
@@ -94,22 +95,29 @@ ONVIF::~ONVIF() {
     //Set alarmed to false so we don't get stuck recording
     setAlarmed(false);
     Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true": "false");
-    _wsnt__Unsubscribe wsnt__Unsubscribe;
-    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    set_credentials(soap);
-    
-    bool use_wsa = parent->soap_wsa_compl;
-    if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-      int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
-          &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-      // Check result and log warnings if unsubscribe failed
-      if (result != SOAP_OK) {
-        Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.", 
-            soap->error, soap_fault_string(soap), 
-            soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
-      } else {
-        Debug(1, "ONVIF: Successfully unsubscribed in destructor");
+
+    // Only attempt unsubscribe if we have a valid subscription
+    if (has_valid_subscription_) {
+      _wsnt__Unsubscribe wsnt__Unsubscribe;
+      _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+      set_credentials(soap);
+
+      bool use_wsa = parent->soap_wsa_compl;
+      if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
+        int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
+            &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+        // Check result and log warnings if unsubscribe failed
+        if (result != SOAP_OK) {
+          Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.",
+              soap->error, soap_fault_string(soap),
+              soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+        } else {
+          Debug(1, "ONVIF: Successfully unsubscribed in destructor");
+        }
       }
+      has_valid_subscription_ = false;
+    } else {
+      Debug(2, "ONVIF: No valid subscription to unsubscribe in destructor");
     }
 
     disable_soap_logging();
@@ -308,6 +316,7 @@ void ONVIF::attempt_subscription() {
 
       Info("ONVIF: Plain authentication succeeded");
       retry_count = 0;  // Reset retry count on success
+      has_valid_subscription_ = true;
     } else {
       // Not an auth error or already tried plain auth
       retry_count++;
@@ -330,7 +339,8 @@ void ONVIF::attempt_subscription() {
   } else {
     // Success - reset retry count
     retry_count = 0;
-  
+    has_valid_subscription_ = true;
+
     Debug(1, "ONVIF: Successfully created PullPoint subscription");
 
     // Update renewal tracking times from initial subscription response
@@ -657,42 +667,52 @@ void ONVIF::cleanup_subscription() {
     return;
   }
 
+  // Only attempt unsubscribe if we actually have a valid subscription
+  if (!has_valid_subscription_) {
+    Debug(2, "ONVIF: cleanup_subscription called but no valid subscription exists, skipping unsubscribe");
+    return;
+  }
+
   Debug(2, "ONVIF: Cleaning up existing subscription");
-  
+
   _wsnt__Unsubscribe wsnt__Unsubscribe;
   _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-  
+
   bool use_wsa = parent->soap_wsa_compl;
   int result = SOAP_OK;
-  
+
   // Attempt to unsubscribe from the existing subscription
   if (use_wsa) {
     if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
                                        &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
       // WS-Addressing setup failed - log the error details from soap_wsa_request
-      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s", 
-              soap->error, soap_fault_string(soap), 
+      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s",
+              soap->error, soap_fault_string(soap),
               soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
       // Don't attempt unsubscribe if WS-Addressing setup failed
       // Note: This is a limitation - subscription may remain active on camera
       // However, attempting unsubscribe with invalid WS-Addressing state would fail anyway
+      has_valid_subscription_ = false;
       return;
     }
   } else {
     Debug(2, "ONVIF: Unsubscribing without WS-Addressing during cleanup");
-    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
                                      &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
   }
-  
+
   if (result != SOAP_OK) {
-    Warning("ONVIF: Unsubscribe failed during cleanup. Error %i %s, %s", 
-            soap->error, soap_fault_string(soap), 
+    Warning("ONVIF: Unsubscribe failed during cleanup. Error %i %s, %s",
+            soap->error, soap_fault_string(soap),
             soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
   } else {
     Debug(2, "ONVIF: Successfully unsubscribed during cleanup");
   }
+
+  // Mark subscription as invalid regardless of unsubscribe result
+  has_valid_subscription_ = false;
 }
 
 // Parse ONVIF options from the onvif_options string

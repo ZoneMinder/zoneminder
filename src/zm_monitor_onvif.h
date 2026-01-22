@@ -60,6 +60,7 @@ class ONVIF {
   int retry_count;  // Track retry attempts
   int max_retries;  // Maximum retry attempts before giving up
   std::string event_endpoint_url_;  // Store endpoint URL (must persist for proxyEvent.soap_endpoint)
+  bool has_valid_subscription_;  // True only when we have an active subscription to unsubscribe from
   bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
   std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic
 

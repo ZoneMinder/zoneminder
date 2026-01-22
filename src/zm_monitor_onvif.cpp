@@ -183,17 +183,18 @@ void ONVIF::start() {
   set_credentials(soap);
   
   bool use_wsa = parent->soap_wsa_compl;
+  int rc = SOAP_OK;
   
   if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);
     soap = nullptr;
-    return;
+    goto start_thread;
   }
   
   Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s", proxyEvent.soap_endpoint);
-  int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+  rc = proxyEvent.CreatePullPointSubscription(&request, response);
 
   if (rc != SOAP_OK) {
     const char *detail = soap_fault_detail(soap);
@@ -223,7 +224,7 @@ void ONVIF::start() {
       if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
         soap_free(soap);
         soap = nullptr;
-        return;
+        goto start_thread;
       }
       
       rc = proxyEvent.CreatePullPointSubscription(&request, response);
@@ -246,7 +247,7 @@ void ONVIF::start() {
         soap_free(soap);
         soap = nullptr;
         setHealthy(false);
-        return;
+        goto start_thread;
       }
       
       Info("ONVIF: Plain authentication succeeded");
@@ -268,7 +269,7 @@ void ONVIF::start() {
       soap_free(soap);
       soap = nullptr;
       setHealthy(false);
-      return;
+      goto start_thread;
     }
   } else {
     // Success - reset retry count
@@ -291,7 +292,7 @@ void ONVIF::start() {
 
     if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
       setHealthy(false);
-      return;
+      goto start_thread;
     }
 
     _tev__PullMessages tev__PullMessages;
@@ -320,9 +321,11 @@ void ONVIF::start() {
     }
   } // end else (success block)
 
-  // Start the polling thread if initialization succeeded
-  if (isHealthy() && !thread_.joinable()) {
-    Debug(1, "ONVIF: Starting polling thread");
+start_thread:
+  // Start the polling thread if not already running
+  // Thread will handle reconnection attempts if initial subscription failed
+  if (!thread_.joinable()) {
+    Debug(1, "ONVIF: Starting polling thread (healthy=%s)", isHealthy() ? "true" : "false");
     terminate_ = false;
     thread_ = std::thread(&ONVIF::Run, this);
   }

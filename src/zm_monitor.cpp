@@ -1195,6 +1195,7 @@ bool Monitor::connect() {
 
     if (onvif_event_listener) {
       onvif = new ONVIF(this);
+      onvif->start();
     }  // End ONVIF Setup
 
 #if MOSQUITTOPP_FOUND
@@ -1885,9 +1886,9 @@ void Monitor::UpdateFPS() {
 }  // void Monitor::UpdateFPS()
 
 //Thread where ONVIF polling, and other similar status polling can happen.
-//Since these can be blocking, run here to avoid intefering with other processing
+//Since these can be blocking, run here to avoid intefering with other processing.
+//Loop runs every 10 seconds.
 bool Monitor::Poll() {
-  // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (use_Amcrest_API) {
@@ -1898,16 +1899,6 @@ bool Monitor::Poll() {
       Amcrest_Manager = new AmcrestAPI(this);
     }
   }
-
-  if (onvif) {
-    if (onvif->isHealthy()) {
-      onvif->WaitForMessage();
-    } else {
-      delete onvif;
-      onvif = new ONVIF(this);
-      onvif->start();
-    }
-  }  // end if Amcrest or not
 
   if (RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");

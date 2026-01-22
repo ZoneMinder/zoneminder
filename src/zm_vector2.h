@@ -21,6 +21,7 @@
 #define ZM_VECTOR2_H
 
 #include "zm_define.h"
+
 #include <cmath>
 #include <limits>
 
@@ -33,25 +34,23 @@ class Vector2 {
   Vector2(int32 x, int32 y) : x_(x), y_(y) {}
 
   static Vector2 Inf() {
-    static const Vector2 inf = {std::numeric_limits<int32>::max(), std::numeric_limits<int32>::max()};
+    static const Vector2 inf = {std::numeric_limits<int32>::max(),
+                                std::numeric_limits<int32>::max()};
     return inf;
   }
 
   bool operator==(const Vector2 &rhs) const { return (x_ == rhs.x_ && y_ == rhs.y_); }
   bool operator!=(const Vector2 &rhs) const { return (x_ != rhs.x_ || y_ != rhs.y_); }
 
-  // These operators are not idiomatic. If lexicographic comparison is needed, it should be implemented separately.
+  // These operators are not idiomatic. If lexicographic comparison is needed, it should be
+  // implemented separately.
   bool operator>(const Vector2 &rhs) const = delete;
   bool operator>=(const Vector2 &rhs) const = delete;
   bool operator<(const Vector2 &rhs) const = delete;
   bool operator<=(const Vector2 &rhs) const = delete;
 
-  Vector2 operator+(const Vector2 &rhs) const {
-    return {x_ + rhs.x_, y_ + rhs.y_};
-  }
-  Vector2 operator-(const Vector2 &rhs) const {
-    return {x_ - rhs.x_, y_ - rhs.y_};
-  }
+  Vector2 operator+(const Vector2 &rhs) const { return {x_ + rhs.x_, y_ + rhs.y_}; }
+  Vector2 operator-(const Vector2 &rhs) const { return {x_ - rhs.x_, y_ - rhs.y_}; }
   Vector2 operator*(double rhs) const {
     return {static_cast<int32>(std::lround(x_ * rhs)), static_cast<int32>(std::lround(y_ * rhs))};
   }
@@ -68,13 +67,11 @@ class Vector2 {
   }
 
   // Calculated the determinant of the 2x2 matrix as given by [[x_, y_], [v.x_y, v.y_]]
-  int32 Determinant(Vector2 const &v) const {
-    return (x_ * v.y_) - (y_ * v.x_);
-  }
+  int32 Determinant(Vector2 const &v) const { return (x_ * v.y_) - (y_ * v.x_); }
 
  public:
   int32 x_;
   int32 y_;
 };
 
-#endif // ZM_VECTOR2_H
+#endif  // ZM_VECTOR2_H

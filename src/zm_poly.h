@@ -21,6 +21,7 @@
 #define ZM_POLY_H
 
 #include "zm_box.h"
+
 #include <vector>
 
 // This class represents convex or concave non-self-intersecting polygons.
@@ -29,9 +30,7 @@ class Polygon {
   Polygon() : area(0) {}
   explicit Polygon(std::vector<Vector2> vertices);
 
-  const std::vector<Vector2> &GetVertices() const {
-    return vertices_;
-  }
+  const std::vector<Vector2> &GetVertices() const { return vertices_; }
 
   const Box &Extent() const { return extent; }
   int32 Area() const { return area; }
@@ -53,4 +52,4 @@ class Polygon {
   Vector2 centre;
 };
 
-#endif // ZM_POLY_H
+#endif  // ZM_POLY_H

@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+ */
 
 #ifndef ZONEMINDER_SRC_ZM_DEFINE_H_
 #define ZONEMINDER_SRC_ZM_DEFINE_H_
 
 // These macros have not been adopted by the C++11 standard.
-// However glibc 2.17 (CentOS 7) still depends on them to provide the macros which are guarded by these defines.
+// However glibc 2.17 (CentOS 7) still depends on them to provide the macros which are guarded by
+// these defines.
 #if !defined(__STDC_FORMAT_MACROS)
-#  define __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
 #endif
 #if !defined(__STDC_CONSTANT_MACROS)
-#  define __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS
 #endif
 
 #include <cinttypes>
@@ -50,4 +51,4 @@ typedef std::uint8_t uint8;
 #endif
 #endif
 
-#endif // ZONEMINDER_SRC_ZM_DEFINE_H_
+#endif  // ZONEMINDER_SRC_ZM_DEFINE_H_

@@ -149,7 +149,7 @@ else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
 fi
 
-if [ ! -f /etc/apt/sources.list.d/zoneminder.list ]; then
+if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.list.d/zoneminder.sources ]; then
   wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
   DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
 

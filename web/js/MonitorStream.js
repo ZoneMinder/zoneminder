@@ -6,7 +6,7 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
   this.started = false;
-  this.muted = false;
+  this.muted = (currentView == 'watch') ? !!getCookie('zmWatchMuted') : true;
   this.connKey = monitorData.connKey;
   this.genConnKey = function() {
     return (Math.floor((Math.random() * 999999) + 1)).toLocaleString('en-US', {minimumIntegerDigits: 6, useGrouping: false});
@@ -339,6 +339,12 @@ function MonitorStream(monitorData) {
     if (statusEl) statusEl.innerText = '';
   };
 
+  this.copyAllAttributes = function(fromEl, toEl) {
+    for (const attr of fromEl.attributes) {
+      toEl.setAttribute(attr.name, attr.value);
+    }
+  };
+
   /*
   * streamChannel = 0 || Primary; 1 || Secondary.; 2 || Restream
   */
@@ -360,10 +366,9 @@ function MonitorStream(monitorData) {
 
         const old_stream = this.getElement();
         const stream = this.element = document.createElement('video-stream');
-        stream.id = old_stream.id; // should be liveStream+id
-        stream.style = old_stream.style; // Copy any applied styles
+        this.copyAllAttributes(old_stream, stream);
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
-        stream.muted = this.muted;
+        //stream.muted = this.muted;
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
         this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
@@ -381,8 +386,9 @@ function MonitorStream(monitorData) {
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
-        const video_el = document.querySelector('video');
+        const video_el = document.querySelector('#liveStream'+this.id+' video');
         if (video_el) {
+          video_el.muted = this.muted;
           video_el.addEventListener('play', (e) => {
             this.createVolumeSlider();
           }, this);
@@ -439,7 +445,7 @@ function MonitorStream(monitorData) {
           // replace with new video tag.
           const stream_container = stream.parentNode;
           const new_stream = this.element = document.createElement('video');
-          new_stream.id = stream.id; // should be liveStream+id
+          this.copyAllAttributes(stream, new_stream);
           new_stream.setAttribute("autoplay", "");
           new_stream.setAttribute("muted", this.muted);
           new_stream.setAttribute("playsinline", "");
@@ -509,8 +515,7 @@ function MonitorStream(monitorData) {
       // replace with new img tag.
       const stream_container = stream.parentNode;
       const new_stream = this.element = document.createElement('img');
-      new_stream.id = stream.id; // should be liveStream+id
-      new_stream.style = stream.style; // Copy any applied styles
+      this.copyAllAttributes(stream, new_stream);
       stream.remove();
       stream_container.appendChild(new_stream);
       stream = new_stream;
@@ -686,6 +691,7 @@ function MonitorStream(monitorData) {
       // Make zms exit, sometimes zms doesn't receive SIGPIPE, so try to send QUIT
       this.streamCommand(CMD_QUIT);
       this.connKey = null;
+      this.started = false;
     }
     // Kill and stop share a lot of the same code... so just call stop
     this.stop();

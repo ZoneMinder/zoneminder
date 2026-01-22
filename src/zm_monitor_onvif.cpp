@@ -315,20 +315,19 @@ void ONVIF::attempt_subscription() {
       }
 
       Info("ONVIF: Plain authentication succeeded");
-      retry_count = 0;  // Reset retry count on success
-      has_valid_subscription_ = true;
+      // Fall through to success handling below
     } else {
       // Not an auth error or already tried plain auth
       retry_count++;
-      
+
       if (retry_count >= max_retries) {
         Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
       } else {
         int delay = get_retry_delay();
-        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)",
              delay, retry_count + 1, max_retries);
       }
-      
+
       soap_destroy(soap);
       soap_end(soap);
       soap_free(soap);
@@ -336,56 +335,57 @@ void ONVIF::attempt_subscription() {
       setHealthy(false);
       return;
     }
+  }
+
+  // Success handling - reached by either:
+  // 1. First attempt succeeded (original rc == SOAP_OK)
+  // 2. Plain auth retry succeeded (rc == SOAP_OK after retry)
+  retry_count = 0;
+  has_valid_subscription_ = true;
+
+  Debug(1, "ONVIF: Successfully created PullPoint subscription");
+
+  // Update renewal tracking times from initial subscription response
+  if (response.wsnt__TerminationTime != 0) {
+    update_renewal_times(response.wsnt__TerminationTime);
+    log_subscription_timing("subscription_created");
   } else {
-    // Success - reset retry count
-    retry_count = 0;
-    has_valid_subscription_ = true;
+    Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+  }
 
-    Debug(1, "ONVIF: Successfully created PullPoint subscription");
+  // Clear any stale SOAP headers from previous requests/responses
+  soap->header = nullptr;
+  set_credentials(soap);
 
-    // Update renewal tracking times from initial subscription response
-    if (response.wsnt__TerminationTime != 0) {
-      update_renewal_times(response.wsnt__TerminationTime);
-      log_subscription_timing("subscription_created");
-    } else {
-      Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
+    setHealthy(false);
+    return;
+  }
+
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
+  tev__PullMessages.Timeout = pull_timeout_str.c_str();
+  tev__PullMessages.MessageLimit = 10;
+
+  Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
+      pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
+  if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+      (soap->error != SOAP_EOF)
+     ) { //SOAP_EOF could indicate no messages to pull.
+    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    setHealthy(false);
+  } else {
+    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    setHealthy(true);
+  }
+
+  // Perform initial renewal of the subscription
+  if (use_wsa) {  // Only if WS-Addressing is enabled
+    if (!Renew()) {
+      Debug(1, "ONVIF: Initial renewal failed, but continuing");
     }
-
-    // Empty the stored messages
-    // Clear any stale SOAP headers from previous requests/responses
-    soap->header = nullptr;
-    set_credentials(soap);
-
-    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
-      setHealthy(false);
-      return;
-    }
-
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
-    tev__PullMessages.Timeout = pull_timeout_str.c_str();
-    tev__PullMessages.MessageLimit = 10;
-
-    Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
-        pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
-    if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-        (soap->error != SOAP_EOF)
-       ) { //SOAP_EOF could indicate no messages to pull.
-      Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      setHealthy(false);
-    } else {
-      Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      setHealthy(true);
-    }
-
-    // Perform initial renewal of the subscription
-    if (use_wsa) {  // Only if WS-Addressing is enabled
-      if (!Renew()) {
-        Debug(1, "ONVIF: Initial renewal failed, but continuing");
-      }
-    }
-  } // end else (success block)
+  }
 }
 #endif
 

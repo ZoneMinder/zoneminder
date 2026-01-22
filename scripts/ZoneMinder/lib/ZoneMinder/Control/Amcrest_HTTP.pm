@@ -57,6 +57,14 @@ sub open {
     $self->{state} = 'open';
     return !undef;
   }
+  if ($self->{Monitor}->{ControlAddress}) {
+    $self->parse_Path();
+    # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
+    if ($self->get_realm($url)) {
+      $self->{state} = 'open';
+      return !undef;
+    }
+  }
 
   $self->{state} = 'closed';
   return undef;

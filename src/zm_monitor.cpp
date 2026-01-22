@@ -1180,6 +1180,12 @@ bool Monitor::connect() {
     }
 
     if (onvif_event_listener) {
+      // Clean up existing ONVIF object to prevent memory leak and duplicate threads
+      if (onvif) {
+        Debug(1, "Cleaning up existing ONVIF object before reconnect");
+        delete onvif;
+        onvif = nullptr;
+      }
       onvif = new ONVIF(this);
       onvif->start();
     }  // End ONVIF Setup

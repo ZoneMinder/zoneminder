@@ -66,7 +66,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
   ,retry_count(0)
-  ,max_retries(5)
+  ,max_retries(10)
   ,warned_initialized_repeat(false)
   ,pull_timeout_seconds(5)
   ,subscription_timeout_seconds(300)
@@ -124,7 +124,6 @@ ONVIF::~ONVIF() {
 void ONVIF::start() {
 #ifdef WITH_GSOAP
   parse_onvif_options();
-  last_retry_time = std::chrono::system_clock::now();
   // Check if soap context already exists from a previous failed attempt
   // If so, clean up the stale subscription before creating a new one
   if (soap != nullptr) {
@@ -179,149 +178,8 @@ void ONVIF::start() {
   event_endpoint_url_ = url.str() + parent->onvif_events_path;
   proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
   
-  // Try to create subscription with digest authentication first
-  set_credentials(soap);
-  
-  bool use_wsa = parent->soap_wsa_compl;
-  int rc = SOAP_OK;
-  
-  if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
-    soap_destroy(soap);
-    soap_end(soap);
-    soap_free(soap);
-    soap = nullptr;
-    goto start_thread;
-  }
-  
-  Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s", proxyEvent.soap_endpoint);
-  rc = proxyEvent.CreatePullPointSubscription(&request, response);
+  attempt_subscription();
 
-  if (rc != SOAP_OK) {
-    const char *detail = soap_fault_detail(soap);
-    bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
-    
-    if (rc > 8) {
-      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, soap_fault_string(soap), detail ? detail : "null");
-    } else {
-      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
-          rc, SOAP_STRINGS[rc].c_str(),
-          soap_fault_string(soap), detail ? detail : "null");
-    }
-
-    // If authentication failed and we were using digest, try plain authentication
-    if (auth_error && !try_usernametoken_auth) {
-      Info("ONVIF: Digest authentication failed, trying plain UsernameToken authentication");
-      try_usernametoken_auth = true;
-      
-      // Clean up and retry
-      soap_destroy(soap);
-      soap_end(soap);
-      
-      // Set credentials with plain auth
-      set_credentials(soap);
-      
-      if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
-        soap_free(soap);
-        soap = nullptr;
-        goto start_thread;
-      }
-      
-      rc = proxyEvent.CreatePullPointSubscription(&request, response);
-      
-      if (rc != SOAP_OK) {
-        retry_count++;
-        Error("ONVIF: Plain authentication also failed (retry %d/%d). Error %d: %s", 
-              retry_count, max_retries, rc, soap_fault_string(soap));
-        
-        if (retry_count >= max_retries) {
-          Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
-        } else {
-          int delay = get_retry_delay();
-          Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
-               delay, retry_count + 1, max_retries);
-        }
-        
-        soap_destroy(soap);
-        soap_end(soap);
-        soap_free(soap);
-        soap = nullptr;
-        setHealthy(false);
-        goto start_thread;
-      }
-      
-      Info("ONVIF: Plain authentication succeeded");
-      retry_count = 0;  // Reset retry count on success
-    } else {
-      // Not an auth error or already tried plain auth
-      retry_count++;
-      
-      if (retry_count >= max_retries) {
-        Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
-      } else {
-        int delay = get_retry_delay();
-        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
-             delay, retry_count + 1, max_retries);
-      }
-      
-      soap_destroy(soap);
-      soap_end(soap);
-      soap_free(soap);
-      soap = nullptr;
-      setHealthy(false);
-      goto start_thread;
-    }
-  } else {
-    // Success - reset retry count
-    retry_count = 0;
-  
-    Debug(1, "ONVIF: Successfully created PullPoint subscription");
-
-    // Update renewal tracking times from initial subscription response
-    if (response.wsnt__TerminationTime != 0) {
-      update_renewal_times(response.wsnt__TerminationTime);
-      log_subscription_timing("subscription_created");
-    } else {
-      Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
-    }
-
-    // Empty the stored messages
-    // Clear any stale SOAP headers from previous requests/responses
-    soap->header = nullptr;
-    set_credentials(soap);
-
-    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
-      setHealthy(false);
-      goto start_thread;
-    }
-
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
-    tev__PullMessages.Timeout = pull_timeout_str.c_str();
-    tev__PullMessages.MessageLimit = 10;
-
-    Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
-        pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
-    if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-        (soap->error != SOAP_EOF)
-       ) { //SOAP_EOF could indicate no messages to pull.
-      Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      setHealthy(false);
-    } else {
-      Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      setHealthy(true);
-    }
-
-    // Perform initial renewal of the subscription
-    if (use_wsa) {  // Only if WS-Addressing is enabled
-      if (!Renew()) {
-        Debug(1, "ONVIF: Initial renewal failed, but continuing");
-      }
-    }
-  } // end else (success block)
-
-start_thread:
   // Start the polling thread if not already running
   // Thread will handle reconnection attempts if initial subscription failed
   if (!thread_.joinable()) {
@@ -334,6 +192,7 @@ start_thread:
 #endif
 }
 
+#ifdef WITH_GSOAP
 void ONVIF::Run() {
   Debug(1, "ONVIF: Polling thread started");
   while (!terminate_ && !zm_terminate) {
@@ -375,6 +234,150 @@ void ONVIF::Run() {
   }
   Debug(1, "ONVIF: Polling thread exiting");
 }
+void ONVIF::attempt_subscription() {
+  // Try to create subscription with digest authentication first
+  set_credentials(soap);
+  
+  bool use_wsa = parent->soap_wsa_compl;
+  int rc = SOAP_OK;
+  
+  if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
+    soap_destroy(soap);
+    soap_end(soap);
+    soap_free(soap);
+    soap = nullptr;
+    return;
+  }
+  
+  Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s", proxyEvent.soap_endpoint);
+  rc = proxyEvent.CreatePullPointSubscription(&request, response);
+
+  if (rc != SOAP_OK) {
+    const char *detail = soap_fault_detail(soap);
+    bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
+    
+    if (rc > 8) {
+      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
+          rc, soap_fault_string(soap), detail ? detail : "null");
+    } else {
+      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
+          rc, SOAP_STRINGS[rc].c_str(),
+          soap_fault_string(soap), detail ? detail : "null");
+    }
+
+    // If authentication failed and we were using digest, try plain authentication
+    if (auth_error && !try_usernametoken_auth) {
+      Info("ONVIF: Digest authentication failed, trying plain UsernameToken authentication");
+      try_usernametoken_auth = true;
+      
+      // Clean up and retry
+      soap_destroy(soap);
+      soap_end(soap);
+      
+      // Set credentials with plain auth
+      set_credentials(soap);
+      
+      if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
+        soap_free(soap);
+        soap = nullptr;
+        return;
+      }
+      
+      rc = proxyEvent.CreatePullPointSubscription(&request, response);
+      
+      if (rc != SOAP_OK) {
+        retry_count++;
+        Error("ONVIF: Plain authentication also failed (retry %d/%d). Error %d: %s", 
+              retry_count, max_retries, rc, soap_fault_string(soap));
+        
+        if (retry_count >= max_retries) {
+          Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
+        } else {
+          int delay = get_retry_delay();
+          Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+               delay, retry_count + 1, max_retries);
+        }
+        
+        soap_destroy(soap);
+        soap_end(soap);
+        soap_free(soap);
+        soap = nullptr;
+        setHealthy(false);
+        return;
+      }
+
+      Info("ONVIF: Plain authentication succeeded");
+      retry_count = 0;  // Reset retry count on success
+    } else {
+      // Not an auth error or already tried plain auth
+      retry_count++;
+      
+      if (retry_count >= max_retries) {
+        Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
+      } else {
+        int delay = get_retry_delay();
+        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+             delay, retry_count + 1, max_retries);
+      }
+      
+      soap_destroy(soap);
+      soap_end(soap);
+      soap_free(soap);
+      soap = nullptr;
+      setHealthy(false);
+      return;
+    }
+  } else {
+    // Success - reset retry count
+    retry_count = 0;
+  
+    Debug(1, "ONVIF: Successfully created PullPoint subscription");
+
+    // Update renewal tracking times from initial subscription response
+    if (response.wsnt__TerminationTime != 0) {
+      update_renewal_times(response.wsnt__TerminationTime);
+      log_subscription_timing("subscription_created");
+    } else {
+      Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+    }
+
+    // Empty the stored messages
+    // Clear any stale SOAP headers from previous requests/responses
+    soap->header = nullptr;
+    set_credentials(soap);
+
+    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
+      setHealthy(false);
+      return;
+    }
+
+    _tev__PullMessages tev__PullMessages;
+    _tev__PullMessagesResponse tev__PullMessagesResponse;
+    std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
+    tev__PullMessages.Timeout = pull_timeout_str.c_str();
+    tev__PullMessages.MessageLimit = 10;
+
+    Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
+        pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
+    if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+        (soap->error != SOAP_EOF)
+       ) { //SOAP_EOF could indicate no messages to pull.
+      Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      setHealthy(false);
+    } else {
+      Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      setHealthy(true);
+    }
+
+    // Perform initial renewal of the subscription
+    if (use_wsa) {  // Only if WS-Addressing is enabled
+      if (!Renew()) {
+        Debug(1, "ONVIF: Initial renewal failed, but continuing");
+      }
+    }
+  } // end else (success block)
+}
+#endif
 
 void ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
@@ -697,7 +700,7 @@ void ONVIF::cleanup_subscription() {
 // Supported options:
 //   pull_timeout=5 - Timeout in seconds for PullMessages requests (default: 5)
 //   subscription_timeout=300 - Timeout in seconds for subscription renewal (default: 300)
-//   max_retries=5 - Maximum retry attempts
+//   max_retries=10 - Maximum retry attempts
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
@@ -1416,6 +1419,16 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
   // handle or display the fault here with soap_stream_fault(soap, std::cerr);
   // return HTTP 202 Accepted
   return soap_send_empty_response(soap, SOAP_OK);
+}
+#else
+// Stub implementation when gSOAP is not available
+void ONVIF::Run() {
+  Debug(1, "ONVIF: Polling thread started but gSOAP not compiled in");
+  // Just wait for termination signal since we can't do anything without gSOAP
+  while (!terminate_ && !zm_terminate) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+  Debug(1, "ONVIF: Polling thread exiting");
 }
 #endif
 

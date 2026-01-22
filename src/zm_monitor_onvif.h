@@ -60,7 +60,6 @@ class ONVIF {
   int retry_count;  // Track retry attempts
   int max_retries;  // Maximum retry attempts before giving up
   std::string event_endpoint_url_;  // Store endpoint URL (must persist for proxyEvent.soap_endpoint)
-  SystemTimePoint last_retry_time;  // Time of last retry attempt
   bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
   std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic
 
@@ -82,6 +81,7 @@ class ONVIF {
   bool interpret_alarm_value(const std::string &value);  // Interpret alarm value from various formats
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
+  void attempt_subscription();
   void parse_onvif_options();  // Parse options from parent->onvif_options
   int get_retry_delay();  // Calculate exponential backoff delay
   void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times

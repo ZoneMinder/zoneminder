@@ -92,8 +92,8 @@ ONVIF::~ONVIF() {
     //We have lost ONVIF clear previous alarm topics
     alarms.clear();
     //Set alarmed to false so we don't get stuck recording
-    alarmed_.store(false, std::memory_order_release);
-    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true": "false");
+    setAlarmed(false);
+    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     set_credentials(soap);
@@ -175,8 +175,9 @@ void ONVIF::start() {
     url.path("/onvif/device_service");
     Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
   }
-  std::string full_url = url.str() + parent->onvif_events_path;
-  proxyEvent.soap_endpoint = full_url.c_str();
+  // Store URL in member variable so pointer remains valid for proxyEvent lifetime
+  event_endpoint_url_ = url.str() + parent->onvif_events_path;
+  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
   
   // Try to create subscription with digest authentication first
   set_credentials(soap);
@@ -199,10 +200,10 @@ void ONVIF::start() {
     bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
     
     if (rc > 8) {
-      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(),
+      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
           rc, soap_fault_string(soap), detail ? detail : "null");
     } else {
-      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
           rc, SOAP_STRINGS[rc].c_str(),
           soap_fault_string(soap), detail ? detail : "null");
     }
@@ -320,7 +321,7 @@ void ONVIF::start() {
   } // end else (success block)
 
   // Start the polling thread if initialization succeeded
-  if (healthy_.load(std::memory_order_acquire) && !thread_.joinable()) {
+  if (isHealthy() && !thread_.joinable()) {
     Debug(1, "ONVIF: Starting polling thread");
     terminate_ = false;
     thread_ = std::thread(&ONVIF::Run, this);
@@ -416,12 +417,6 @@ void ONVIF::WaitForMessage() {
             result, soap_fault_string(soap), detail ? detail : "null");
         
         // Don't clear alarms on timeout - they should remain active until explicitly cleared
-        // Only clear if Closes_Event is false (camera doesn't send close events)
-        // and we haven't received any messages for a long time
-        // For now, just leave alarms as-is on timeout
-        Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
-              alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
-        
         // Timeout is not an error, don't increment retry_count
       }
     } else {
@@ -480,9 +475,9 @@ void ONVIF::WaitForMessage() {
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
             Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
-                  alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
+                  alarms.size(), isAlarmed() ? "true" : "false");
             if (alarms.empty()) {
-              alarmed_.store(false, std::memory_order_release);
+              setAlarmed(false);
             }
             if (!closes_event) {
               closes_event = true;
@@ -509,8 +504,8 @@ void ONVIF::WaitForMessage() {
               // Camera reports an existing alarm we didn't know about
               Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = last_value;
-              if (!alarmed_.load(std::memory_order_acquire)) {
-                alarmed_.store(true, std::memory_order_release);
+              if (!isAlarmed()) {
+                setAlarmed(true);
                 Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
               }
             } else if (!state_is_active && alarms.count(last_topic) > 0) {
@@ -518,7 +513,7 @@ void ONVIF::WaitForMessage() {
               Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed_.store(false, std::memory_order_release);
+                setAlarmed(false);
               }
             }
 
@@ -536,9 +531,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               alarms.erase(last_topic);
               Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
-                    alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
+                    alarms.size(), isAlarmed() ? "true" : "false");
               if (alarms.empty()) {
-                alarmed_.store(false, std::memory_order_release);
+                setAlarmed(false);
               }
               if (!closes_event) {
                 closes_event = true;
@@ -549,9 +544,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed_.load(std::memory_order_acquire)) {
+                if (!isAlarmed()) {
                   Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
-                  alarmed_.store(true, std::memory_order_release);
+                  setAlarmed(true);
                 }
               } else {
                 // Update existing alarm value
@@ -568,20 +563,20 @@ void ONVIF::WaitForMessage() {
             if (!state_is_active) {
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed_.store(false, std::memory_order_release);
+                setAlarmed(false);
               }
             } else {
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed_.load(std::memory_order_acquire)) {
-                  alarmed_.store(true, std::memory_order_release);
+                if (!isAlarmed()) {
+                  setAlarmed(true);
                 }
               } else {
                 alarms[last_topic] = last_value;
               }
             }
           }
-          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed_.load(std::memory_order_acquire) ? "true" : "false");
+          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true" : "false");
         }  // end foreach msg
       } // end scope for lock
 

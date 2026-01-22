@@ -59,7 +59,7 @@ class ONVIF {
   bool try_usernametoken_auth;  // Track if we should try plain auth
   int retry_count;  // Track retry attempts
   int max_retries;  // Maximum retry attempts before giving up
-  std::string discovered_event_endpoint;  // Store discovered endpoint
+  std::string event_endpoint_url_;  // Store endpoint URL (must persist for proxyEvent.soap_endpoint)
   SystemTimePoint last_retry_time;  // Time of last retry attempt
   bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
   std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic

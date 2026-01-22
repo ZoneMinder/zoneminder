@@ -32,6 +32,7 @@ namespace {
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
   const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
+  const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
 
   // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
   inline std::string FormatDurationSeconds(int seconds) {
@@ -243,7 +244,7 @@ void ONVIF::start() {
         soap_end(soap);
         soap_free(soap);
         soap = nullptr;
-        healthy_.store(false, std::memory_order_release);
+        setHealthy(false);
         return;
       }
       
@@ -265,7 +266,7 @@ void ONVIF::start() {
       soap_end(soap);
       soap_free(soap);
       soap = nullptr;
-      healthy_.store(false, std::memory_order_release);
+      setHealthy(false);
       return;
     }
   } else {
@@ -288,7 +289,7 @@ void ONVIF::start() {
     set_credentials(soap);
 
     if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
-      healthy_.store(false, std::memory_order_release);
+      setHealthy(false);
       return;
     }
 
@@ -304,10 +305,10 @@ void ONVIF::start() {
         (soap->error != SOAP_EOF)
        ) { //SOAP_EOF could indicate no messages to pull.
       Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy_.store(false, std::memory_order_release);
+      setHealthy(false);
     } else {
       Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy_.store(true, std::memory_order_release);
+      setHealthy(true);
     }
 
     // Perform initial renewal of the subscription
@@ -332,13 +333,40 @@ void ONVIF::start() {
 void ONVIF::Run() {
   Debug(1, "ONVIF: Polling thread started");
   while (!terminate_ && !zm_terminate) {
-    if (healthy_.load(std::memory_order_acquire)) {
+    if (isHealthy()) {
       WaitForMessage();
     } else {
+      // Check if we've exceeded max_retries and need a longer cool-down
+      if (retry_count >= max_retries) {
+        Warning("ONVIF: Max retries (%d) exceeded, entering cool-down period of %d seconds before reset",
+                max_retries, ONVIF_COOLDOWN_RESET_SECONDS);
+
+        // Sleep for cool-down period in 1-second increments to remain responsive
+        for (int i = 0; i < ONVIF_COOLDOWN_RESET_SECONDS && !terminate_ && !zm_terminate; i++) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        // Reset retry count for fresh attempt
+        retry_count = 0;
+        Info("ONVIF: Cool-down complete, resetting retry count for fresh attempt");
+      }
+
       // Attempt to re-establish connection
-      Debug(1, "ONVIF: Unhealthy, attempting to restart subscription");
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      Debug(1, "ONVIF: Unhealthy, attempting to restart subscription (attempt %d/%d)",
+            retry_count + 1, max_retries);
       start();
+
+      // If still unhealthy after start attempt, use exponential backoff
+      if (!isHealthy()) {
+        int delay_seconds = get_retry_delay();
+        Info("ONVIF: Reconnection failed, waiting %d seconds before next attempt (retry %d/%d)",
+             delay_seconds, retry_count, max_retries);
+
+        // Sleep in 1-second increments to remain responsive to termination signals
+        for (int i = 0; i < delay_seconds && !terminate_ && !zm_terminate; i++) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+      }
     }
   }
   Debug(1, "ONVIF: Polling thread exiting");
@@ -381,7 +409,7 @@ void ONVIF::WaitForMessage() {
         } else {
           Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
-        healthy_.store(false, std::memory_order_release);
+        setHealthy(false);
       } else {
         // SOAP_EOF - this is just a timeout, not an error
         Debug(2, "ONVIF PullMessage timeout (SOAP_EOF) - no new messages. result=%d soap_fault_string=%s detail=%s",
@@ -876,7 +904,7 @@ bool ONVIF::Renew() {
   if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "RenewRequest")) {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
-    healthy_.store(false, std::memory_order_release);
+    setHealthy(false);
     return false;
   }
   
@@ -884,19 +912,19 @@ bool ONVIF::Renew() {
     Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
-      healthy_.store(true, std::memory_order_release);
+      setHealthy(true);
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
       Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
       cleanup_subscription();
-      healthy_.store(false, std::memory_order_release);
+      setHealthy(false);
       return false;
     }
   }
   
   Debug(2, "ONVIF: Subscription renewed successfully");
-  healthy_.store(true, std::memory_order_release);
+  setHealthy(true);
   
   // Update renewal times from renew response
   if (wsnt__RenewResponse.TerminationTime != 0) {

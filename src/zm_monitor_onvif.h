@@ -106,6 +106,7 @@ class ONVIF {
   bool isAlarmed() const { return alarmed_.load(std::memory_order_acquire); }
   void setAlarmed(bool p_alarmed) { alarmed_.store(p_alarmed, std::memory_order_release); }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
+  void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
 };
 

@@ -139,6 +139,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_users.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
+} else if ($tab == 'ai') {
+  include('_options_ai_classes.php');
 }  // $tab == API
   else { 
   $config = array();

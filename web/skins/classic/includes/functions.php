@@ -985,6 +985,7 @@ function getOptionsHTML($forLeftBar = false) {
     'display',
     'system',
     'auth',
+    'ai',
     'config',
     'dnsmasq',
     'API',

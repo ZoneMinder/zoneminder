@@ -32,6 +32,8 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Monitor;
 
+require HTTP::Request;
+
 our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
@@ -353,11 +355,26 @@ sub put {
   }
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(PUT => $url);
+
   my $content = shift;
-  if ( defined($content) ) {
-    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
-    $req->content($content);
+
+  $req->content($content) if defined($content);
+
+  my $options = shift if @_;
+  if ($options) {
+    foreach my $header (keys %$options) {
+      if ($req->can($header) ) {
+        $req->$header($$options{$header});
+      } else {
+        $req->header($header=>$$options{$header});
+      }
+    }
   }
+
+  #defaults
+  $req->header('Content-Length' => length $content) if !$$options{'Content-Length'};
+  $req->content_type('application/x-www-form-urlencoded; charset=UTF-8') if ! $$options{'Content-Type'};
+
   my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
     Error($res->status_line);
@@ -376,7 +393,7 @@ sub post {
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $content = shift if @_;
   my $headers = shift if @_;
-  my $req = HTTP::Request->new('POST', $url, $headers);
+  my $req = HTTP::Request->new('POST', $url);
   if ( defined($content) ) {
     if (ref $content eq 'HASH') {
       my $uri = $$self{uri};
@@ -386,11 +403,18 @@ sub post {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content($content);
   }
+
+  if (defined $headers) {
+    foreach my $key (keys %$headers) {
+      $req->header($key=>$$headers{$key});
+    }
+  }
+
   my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success
-  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  Debug('Response for '.$url.': '. $res->status_line . ' ' . $res->content);
   return $res;
 } # end sub post
 
@@ -434,32 +458,19 @@ sub guess_credentials {
     if ( $$self{host} =~ /([^:]+):(.+)/ ) {
       $$self{host} = $1;
       $$self{port} = $2 ? $2 : $$self{port};
+    } elsif ($uri->scheme() eq 'https') {
+      $$self{port} = 443;
     }
     $$self{uri} = $uri;
-    $$self{BaseURL} = $uri->scheme()."://$$self{host}:$$self{port}";
     $$self{BaseURL} = $uri->canonical();
-    #$uri->scheme()."://$$self{host}:$$self{port}";
     $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
-    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
-      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
-    } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
-      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
-      $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
-      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
-    }
-
-    if (!($$self{username} or $$self{password})) {
-      Debug("Still no username/password. Setting to ".join('/', $self->{Monitor}->{User}, $self->{Monitor}->{Pass}));
-      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User};
-      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
-    }
     $uri = URI->new($self->{Monitor}->{Path});
-    $uri->scheme('http');
-    $uri->port(80);
+    if ($uri->scheme() eq 'rtsp') {
+      $uri->scheme('http');
+      $uri->port(80);
+    }
     $uri->path_query('');
     if ( $uri->userinfo()) {
       @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
@@ -473,9 +484,8 @@ sub guess_credentials {
     $$self{host} = $uri->host();
     $$self{uri} = $uri;
     $$self{port} = $uri->port();
-    #$$self{BaseURL} = $uri->scheme().'://'.$$self{host}.($$self{port} ? ':'.$$self{port}:'');
-    $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
     $$self{BaseURL} = $uri->canonical();
+    $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
     Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
   } else {
     Debug('Unable to guess credentials');

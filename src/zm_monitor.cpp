@@ -2827,11 +2827,10 @@ bool Monitor::Decode() {
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
           if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
-            if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {
+            if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
               delete packet->image;
               packet->image = nullptr;
             }
-            av_frame_unref(dest_frame.get());
           } else {
             delete packet->image;
             packet->image = nullptr;
@@ -3417,7 +3416,6 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding != DECODING_NONE) {
-    if (!dest_frame) dest_frame = av_frame_ptr{av_frame_alloc()};
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");

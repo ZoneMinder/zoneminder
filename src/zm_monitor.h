@@ -628,7 +628,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 

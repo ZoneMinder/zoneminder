@@ -350,6 +350,19 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
+  # Calculate totals for footer display
+  $totalDiskSpace = 0;
+  $totalLength = 0;
+  foreach ($filtered_rows as $row) {
+    $totalDiskSpace += isset($row['DiskSpace']) ? $row['DiskSpace'] : 0;
+    $totalLength += isset($row['Length']) ? $row['Length'] : 0;
+  }
+  $data['footerData'] = array(
+    'DiskSpace' => human_filesize($totalDiskSpace),
+    'Length' => $totalLength,
+  );
+
   ZM\Debug("Done");
   return $data;
 }

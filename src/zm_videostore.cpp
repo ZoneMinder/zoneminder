@@ -581,13 +581,27 @@ void VideoStore::flush_codecs() {
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+    // First drain any pending packets before entering flush mode
+    // This prevents hangs when the encoder's internal buffer is full
+    Debug(1, "Draining pending packets before flush");
+    int ret;
+    while ((ret = avcodec_receive_packet(video_out_ctx, pkt.get())) >= 0) {
+      Debug(1, "Drained pending packet");
+      av_packet_guard pkt_guard{pkt};
+      av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
+      write_packet(pkt.get(), video_out_stream);
+    }
+
     // Put encoder into flushing mode
-    int ret = avcodec_send_frame(video_out_ctx, nullptr);
-    if (0 > ret) {
-      if (AVERROR(EAGAIN) != ret)
+    Debug(1, "Sending flush");
+    ret = avcodec_send_frame(video_out_ctx, nullptr);
+    if (ret < 0) {
+      if (ret != AVERROR_EOF)
         Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
     } else {
-      while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
+      Debug(1, "Receiving flushed packets");
+      while ((ret = avcodec_receive_packet(video_out_ctx, pkt.get())) >= 0) {
+        Debug(1, "Received flushed packet");
         av_packet_guard pkt_guard{pkt};
         av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
         write_packet(pkt.get(), video_out_stream);
@@ -600,6 +614,7 @@ void VideoStore::flush_codecs() {
     // The codec queues data.  We need to send a flush command and out
     // whatever we get. Failures are not fatal.
 
+    Debug(1, "Sending audio flush");
     int frame_size = audio_out_ctx->frame_size;
     /*
      * At the end of the file, we pass the remaining samples to
@@ -660,6 +675,7 @@ void VideoStore::flush_codecs() {
       write_packet(pkt.get(), audio_out_stream);
     }  // while have buffered frames
   }  // end if audio_out_codec
+Debug(1, "Done flushing");
 }  // end flush_codecs
 
 VideoStore::~VideoStore() {

@@ -146,6 +146,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
   Debug(2, "Go2RTC: PUT to %s with data: %s", endpoint.c_str(), postData.c_str());
   std::pair<CURLcode, std::string> response = CURL_PUT(endpoint, postData);
   if (response.first != CURLE_OK) {
+    curl_easy_cleanup(curl);
     Warning("Go2RTC: Failed to add primary stream (monitor ID)");
     return -1;
   }
@@ -186,6 +187,7 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
     Debug(2, "Go2RTC: No RTSP restream configured");
   }
 
+  curl_easy_cleanup(curl);
   Debug(1, "Go2RTC: Finished adding streams for monitor %d", parent->Id());
   return 0;
 }

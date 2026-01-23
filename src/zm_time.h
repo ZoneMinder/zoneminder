@@ -122,6 +122,7 @@ class TimeSegmentAdder {
 };
 
 std::string SystemTimePointToString(SystemTimePoint tp);
+std::string SystemTimePointToMysqlString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
 SystemTimePoint StringToSystemTimePoint(const std::string &stp);
 

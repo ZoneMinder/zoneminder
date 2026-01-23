@@ -648,6 +648,8 @@ void MonitorStream::runStream() {
       continue;
     }
     monitor->setLastViewed();
+    if (frame_type == FRAME_ANALYSIS)
+      monitor->setLastAnalysisViewed();
 
     if (paused) {
       if (!was_paused) {
@@ -1109,7 +1111,7 @@ void MonitorStream::SingleImage(int scale) {
 
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
-  ZMPacket *snap = monitor->getSnapshot();
+  std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -1134,7 +1136,7 @@ void MonitorStream::SingleImageZip(int scale) {
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
-  ZMPacket *snap = monitor->getSnapshot();
+  std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

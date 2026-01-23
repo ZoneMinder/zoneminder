@@ -34,6 +34,7 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#include "zm_monitor_onvif.h"
 #include "zm_mqtt.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
@@ -41,13 +42,6 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-#ifdef WITH_GSOAP
-#include <openssl/err.h>
-
-#include "plugin/wsaapi.h"
-#include "plugin/wsseapi.h"
-#include "soapPullPointSubscriptionBindingProxy.h"
-#endif
 
 #if HAVE_QUADRA
 extern "C" {
@@ -75,6 +69,7 @@ class MonitorLinkExpression;
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
+  friend class ONVIF;
 
  public:
   typedef enum { QUERY = 0, CAPTURE, ANALYSIS } Purpose;
@@ -274,7 +269,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256]; /* +152  */
+    union {                     /* +152  */
+      time_t last_analysis_viewed_time;
+      uint64_t extrapad6;
+    };
+    uint8_t control_state[256]; /* +160  */
 
     char alarm_cause[256];    /* 408 */
     char video_fifo_path[64]; /* 664 */
@@ -381,41 +380,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *monitor;
   };
 #endif
-
-  class ONVIF {
-   protected:
-    Monitor *parent;
-    bool alarmed;
-    bool healthy;
-    std::string last_topic;
-    std::string last_value;
-    void SetNoteSet(Event::StringSet &noteSet);
-#ifdef WITH_GSOAP
-    struct soap *soap = nullptr;
-    _tev__CreatePullPointSubscription request;
-    _tev__CreatePullPointSubscriptionResponse response;
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    _wsnt__Renew wsnt__Renew;
-    _wsnt__RenewResponse wsnt__RenewResponse;
-    PullPointSubscriptionBindingProxy proxyEvent;
-    void set_credentials(struct soap *soap);
-#endif
-    std::unordered_map<std::string, std::string> alarms;
-    std::mutex   alarms_mutex;
-   public:
-    explicit ONVIF(Monitor *parent_);
-    ~ONVIF();
-    void start();
-    void WaitForMessage();
-    bool isAlarmed() {
-      std::unique_lock<std::mutex> lck(alarms_mutex);
-      return alarmed;
-    };
-    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-    bool isHealthy() const { return healthy; };
-    void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
-  };
 
   class AmcrestAPI {
    private:
@@ -787,9 +751,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_ref;
   std::string diag_path_delta;
 
-  // ONVIF
-  bool Event_Poller_Closes_Event;
-
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
@@ -798,6 +759,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 #if HAVE_QUADRA
   //Quadra_Yolo *quadra;
   Quadra_Yolo *quadra_yolo;
+  int quadra_retries;
   std::mutex   quadra_mutex;
 #endif
 #if HAVE_MX_ACCL_H
@@ -881,12 +843,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   //Quadra_Yolo *getQuadra() const { return quadra; };
 #endif
 
-  inline bool has_out_of_order_packets() const {
-    return packetqueue.has_out_of_order_packets();
-  };
-  int get_max_keyframe_interval() const {
-    return packetqueue.get_max_keyframe_interval();
-  };
+  bool has_out_of_order_packets() { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() { return packetqueue.get_max_keyframe_interval(); };
 
   bool OnvifEnabled() { return onvif_event_listener; }
   int check_janus();  // returns 1 for healthy, 0 for success but missing
@@ -935,6 +893,28 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
                ((intNow - shared_data->last_viewed_time)) > 10))
                  ? false
                  : true;
+    }
+    return false;
+  }
+  int64_t getLastAnalysisViewed() {
+    if (shared_data && shared_data->valid)
+      return shared_data->last_analysis_viewed_time;
+    return 0;
+  }
+  void setLastAnalysisViewed() {
+    setLastAnalysisViewed(std::chrono::system_clock::now());
+  }
+  void setLastAnalysisViewed(SystemTimePoint new_time) {
+    if (shared_data && shared_data->valid)
+      shared_data->last_analysis_viewed_time =
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
+  }
+  bool hasAnalysisViewers() {
+    if (shared_data && shared_data->valid) {
+      SystemTimePoint now = std::chrono::system_clock::now();
+      int64 intNow = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count());
+      Debug(3, "Last analysis viewed %" PRId64 " seconds ago", intNow - shared_data->last_analysis_viewed_time);
+      return (((!shared_data->last_analysis_viewed_time) or ((intNow - shared_data->last_analysis_viewed_time)) > 10)) ? false : true;
     }
     return false;
   }
@@ -1027,7 +1007,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
 
   int GetImage(int32_t index=-1, int scale=100);
-  ZMPacket *getSnapshot( int index=-1 ) const;
+  std::shared_ptr<ZMPacket> getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();

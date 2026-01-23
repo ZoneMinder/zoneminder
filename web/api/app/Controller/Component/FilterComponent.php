@@ -84,7 +84,7 @@ class FilterComponent extends Component {
           continue;
         }
 				$matches = NULL;
-				if (preg_match('/^(?P<field>[a-z0-9]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
+				if (preg_match('/^(?P<field>[a-z0-9\.]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
 					throw new Exception('Invalid argument before `:`: ' . $lhs);
 				}
 				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
@@ -100,7 +100,7 @@ class FilterComponent extends Component {
           $value = explode(',', $value);
         }
 
-				$lhs = $matches['field'] . ' ' . $operator;
+				$lhs = $matches['field'] . ($operator?' ' . $operator:'');
 				// If the named param contains an array, we want to turn it into an IN condition
 				// Otherwise, we add it right into the $conditions array
 				if (is_array($value)) {

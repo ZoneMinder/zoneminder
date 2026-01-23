@@ -43,7 +43,7 @@ if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
-  $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
+  $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
   if ( $Filter->Background() )
     $filterNames[$Filter->Id()] .= '*';
   if ( $Filter->Concurrent() )
@@ -132,9 +132,9 @@ foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
   }
 }
 
-$availableTags = array(''=>translate('No Tag'));
-foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
-  $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
+$availableTags = array(['Id'=>'0', 'Name'=>translate('No Tag')], ['Id'=>'-1', 'Name'=>translate('Any Tag')]);
+foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') AS $tag ) {
+  $availableTags[] = ['Id'=>$tag['Id'] , 'Name'=>validHtmlStr($tag['Name'])];
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));

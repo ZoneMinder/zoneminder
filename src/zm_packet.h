@@ -149,9 +149,7 @@ class ZMPacketLock {
 
     ZMPacketLock() :
       packet_(nullptr),
-      locked(false) {
-       // Debug(1, "New empty");
-       };
+      locked(false) {};
 
     explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
       packet_(p),
@@ -161,7 +159,8 @@ class ZMPacketLock {
     };
 
     ~ZMPacketLock() {
-      if (locked) {
+      if (locked and packet_) {
+        // packet_ should never be null
         Debug(4, "Unlocking in destructor packet %d %p locked: %d owns: %d", packet_->image_index, this, locked, lck_.owns_lock());
         packet_->unlock(lck_);
       } else if (packet_) {

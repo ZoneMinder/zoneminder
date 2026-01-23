@@ -20,6 +20,7 @@
 #include "zm_logger.h"
 
 #include "zm_db.h"
+#include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 #include <libgen.h>
@@ -525,8 +526,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  "INSERT INTO `Logs` "
                                  "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
                                  " VALUES "
-                                 "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-                                 now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
+                                 "( %jd.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+                                 static_cast<intmax_t>(now_sec), static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
     }
@@ -540,6 +541,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   log_mutex.unlock();
   if (level <= FATAL) {
     mDatabaseLevel = NOLOG;
+    zm_terminate = true;
+    dbQueue.stop();
     zmDbClose();
     logTerm();
     if (level <= PANIC) abort();

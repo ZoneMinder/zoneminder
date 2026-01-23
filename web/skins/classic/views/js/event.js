@@ -1199,7 +1199,7 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
-  if (!eventData) return;
+  if (isEmpty(eventData)) return;
 
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
@@ -1267,9 +1267,11 @@ function getStat() {
         tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
-        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-        date.setSeconds(eventData[key]);
-        tdString = date.toISOString().substr(11, 8);
+        if (eventData[key]) {
+          const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+          date.setSeconds(eventData[key]);
+          tdString = date.toISOString().substr(11, 8);
+        }
         break;
       default:
         tdString = eventData[key];
@@ -1779,7 +1781,7 @@ function formatTag(tag) {
 }
 
 function addTag(tag) {
-  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           formatTag(tag);

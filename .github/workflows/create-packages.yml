@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   package:
+    if: github.repository == 'ZoneMinder/zoneminder'
     strategy:
       matrix:
         os_dist:

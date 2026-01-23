@@ -143,84 +143,42 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
   }
   if ( !$mimeType || ($mimeType == 'application/octet-stream') )
     $mimeType = 'video/'.$format;
-  if ( ZM_WEB_USE_OBJECT_TAGS ) {
-    switch( $mimeType ) {
-      case 'video/x-ms-asf' :
-      case 'video/x-msvideo' :
-      case 'video/mp4' :
-          if ( isWindows() ) {
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
-              classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-              codebase="'.ZM_BASE_PROTOCOL.'://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
-              standby="Loading Microsoft Windows Media Player components..."
-              type="'.$mimeType.'">
-              <param name="FileName" value="'.$src.'"/>
-              <param name="autoStart" value="1"/>
-              <param name="showControls" value="0"/>
-              <embed type="'.$mimeType.'"
-              pluginspage="'.ZM_BASE_PROTOCOL.'://www.microsoft.com/Windows/MediaPlayer/"
-              src="'.$src.'"
-              name="'.$title.'"
-              width="'.$width.'"
-              height="'.$height.'"
-              autostart="1"
-              showcontrols="0">
-              </embed>
-              </object>';
-          }
-      case 'video/quicktime' :
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
-            classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
-            codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
-            type="'.$mimeType.'">
-            <param name="src" value="'.$src.'"/>
-            <param name="autoplay" VALUE="true"/>
-            <param name="controller" VALUE="false"/>
-            <embed type="'.$mimeType.'"
-            src="'.$src.'"
-            pluginspage="'.ZM_BASE_PROTOCOL.'://www.apple.com/quicktime/download/"
-            name="'.$title.'" width="'.$width.'" height="'.$height.'"
-            autoplay="true"
-            controller="true">
-            </embed>
-            </object>';
-      case 'application/x-shockwave-flash' :
-            return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
-            classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-            codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
-            type="'.$mimeType.'">
-            <param name="movie" value="'.$src.'"/>
-            <param name="quality" value="high"/>
-            <param name="bgcolor" value="#ffffff"/>
-            <embed type="'.$mimeType.'"
-            pluginspage="'.ZM_BASE_PROTOCOL.'://www.macromedia.com/go/getflashplayer"
-            src="'.$src.'"
-            name="'.$title.'"
-            width="'.$width.'"
-            height="'.$height.'"
-            quality="high"
-            bgcolor="#ffffff">
-            </embed>
-            </object>';
-    } # end switch
-  } # end if use object tags
 
   switch ($mimeType) {
     case 'video/mp4' :
-      global $rates;
-      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
-        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
-            style="transform: matrix(1, 0, 0, 1, 0, 0);"
-            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
-              array_map(function($r){return $r/100;},
-                array_filter(
-                  array_keys($rates),
-                  function($r){return $r >= 0 ? true : false;}
-                ))).']}\' 
-          >
+      global $rates, $cspNonce;
+      $playbackRates = implode(',',
+        array_map(function($r){return $r/100;},
+          array_filter(
+            array_keys($rates),
+            function($r){return $r >= 0 ? true : false;}
+          )));
+      
+      return '<video id="videoobj" class="video-js"
+            controls autoplay preload="auto">
           <source src="'. $src.'" type="video/mp4">
           Your browser does not support the video tag.
-          </video>';
+        </video>
+        <script nonce="'.$cspNonce.'">
+          document.addEventListener("DOMContentLoaded", function() {
+            if (typeof videojs === "undefined") {
+              console.error("videojs is not loaded");
+              return;
+            }
+            var player = videojs("videoobj", {
+              controls: true,
+              autoplay: true,
+              preload: "auto",
+              fluid: true,
+              responsive: true,
+              playbackRates: [' . $playbackRates . ']
+            });
+            player.zoomrotate({
+              zoom: 1,
+              rotate: 0
+            });
+          });
+        </script>';
     default:
     return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"
@@ -244,10 +202,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if (canStreamIframe()) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
-      (($height and ($height != 'auto'))?' height:'.$height.';':'').
-      '" />';
+    return getImageStill($id, $src, $width, $height, $title);
   }
 }
 
@@ -282,9 +237,10 @@ function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
-    (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').' />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
+      '" />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -2423,6 +2379,11 @@ function extract_auth_values_from_url($url) {
 
   $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
+
+  // URL decode the credentials since they may contain encoded special characters
+  // from ONVIF probe or manual URL entry
+  $username = urldecode($username);
+  $password = urldecode($password);
 
   return array( $username, $password );
 }

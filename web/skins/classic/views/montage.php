@@ -276,7 +276,7 @@ if (canView('System')) {
 }
 ?>
       </div>
-      <form method="get" id="filters_form">
+      <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
       </form>
@@ -344,6 +344,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
   #ZM\Debug('Options: ' . print_r($monitor_options,true));
+  $monitor_options['scale'] = 50; # ensure defined value, but not 100 because this is montage... we assume at least 2 streams
 
   if ($monitor->Type() == 'WebSite') {
     echo getWebSiteUrl(
@@ -356,7 +357,8 @@ foreach ($monitors as $monitor) {
   } else {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'paused';
+    # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
+    $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();
     $browser_width = 1920;
     if (isset($_COOKIE['zmBrowserSizes'])) {
@@ -386,7 +388,7 @@ foreach ($monitors as $monitor) {
     }
     $monitor->initial_scale($monitor_options['scale']);
     echo $monitor->getStreamHTML($monitor_options);
-  }
+  } # end if monitor type == Website
 } # end foreach monitor
 ?>
       </div>

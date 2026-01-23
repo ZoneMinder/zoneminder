@@ -118,11 +118,12 @@ bool VideoStore::open() {
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-    } else if (monitor->has_out_of_order_packets()
-        and !monitor->WallClockTimestamps()
-        ) {
+    } else if (monitor->has_out_of_order_packets() and !monitor->WallClockTimestamps()) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+    } else {
+      Debug(1, "Not setting reorder_queue_size beacuse has_out_of_order_packet %d and ! wallclock %d",
+          monitor->has_out_of_order_packets(), monitor->WallClockTimestamps());
     }
   }
 
@@ -355,10 +356,15 @@ bool VideoStore::open() {
           Debug(1, "Try to open card %d", devid);
           av_opt_set(video_out_ctx->priv_data, "enc", std::to_string(devid).c_str(), 0);
         }
-#endif
         const AVDictionaryEntry *xcoder_params = av_dict_get(opts, "xcoder-params", nullptr, AV_DICT_MATCH_CASE);
         if (xcoder_params) {
           av_opt_set(video_out_ctx->priv_data, "xcoder-params", xcoder_params->value, 0);
+        }
+#endif
+        // movflags is an avformat parameter, not an avcodec
+        const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
+        if (movflags_entry) {
+          av_dict_set(&opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
         }
 
         zm_dump_codec(video_out_ctx);
@@ -575,12 +581,27 @@ void VideoStore::flush_codecs() {
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+    // First drain any pending packets before entering flush mode
+    // This prevents hangs when the encoder's internal buffer is full
+    Debug(1, "Draining pending packets before flush");
+    int ret;
+    while ((ret = avcodec_receive_packet(video_out_ctx, pkt.get())) >= 0) {
+      Debug(1, "Drained pending packet");
+      av_packet_guard pkt_guard{pkt};
+      av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
+      write_packet(pkt.get(), video_out_stream);
+    }
+
     // Put encoder into flushing mode
-    int ret = avcodec_send_frame(video_out_ctx, nullptr);
-    if (0 > ret) {
-      Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
+    Debug(1, "Sending flush");
+    ret = avcodec_send_frame(video_out_ctx, nullptr);
+    if (ret < 0) {
+      if (ret != AVERROR_EOF)
+        Error("Failure sending null to flush codec %d %s", ret, av_make_error_string(ret).c_str());
     } else {
-      while (avcodec_receive_packet(video_out_ctx, pkt.get()) > 0) {
+      Debug(1, "Receiving flushed packets");
+      while ((ret = avcodec_receive_packet(video_out_ctx, pkt.get())) >= 0) {
+        Debug(1, "Received flushed packet");
         av_packet_guard pkt_guard{pkt};
         av_packet_rescale_ts(pkt.get(), video_out_ctx->time_base, video_out_stream->time_base);
         write_packet(pkt.get(), video_out_stream);
@@ -593,6 +614,7 @@ void VideoStore::flush_codecs() {
     // The codec queues data.  We need to send a flush command and out
     // whatever we get. Failures are not fatal.
 
+    Debug(1, "Sending audio flush");
     int frame_size = audio_out_ctx->frame_size;
     /*
      * At the end of the file, we pass the remaining samples to
@@ -653,6 +675,7 @@ void VideoStore::flush_codecs() {
       write_packet(pkt.get(), audio_out_stream);
     }  // while have buffered frames
   }  // end if audio_out_codec
+Debug(1, "Done flushing");
 }  // end flush_codecs
 
 VideoStore::~VideoStore() {
@@ -1183,17 +1206,16 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
               );
         }
       } else if (zm_packet->ai_frame) {
-        Debug(1, "Want ai_frame");
         if (zm_packet->ai_frame->width == video_out_ctx->width
             and
             zm_packet->ai_frame->height == video_out_ctx->height
             and
             static_cast<AVPixelFormat>(zm_packet->ai_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          Debug(1, "Using ai_frame");
+          zm_dump_frame(frame.get(), "using aiframe, src is");
           av_frame_ref(frame.get(), zm_packet->ai_frame.get());
         } else {
-          Debug(1, "reating ai_frame");
+          Debug(1, "Creating ai_frame");
           av_frame_ref(frame.get(), zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt));
           //av_frame_copy_props(frame.get(), zm_packet->ai_frame.get());
 

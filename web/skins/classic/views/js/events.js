@@ -9,6 +9,7 @@ const downloadButton = $j('#downloadBtn');
 const deleteButton = $j('#deleteBtn');
 const table = $j('#eventTable');
 var ajax = null;
+var footerData = {DiskSpace: '', Length: 0};
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -57,6 +58,10 @@ function ajaxRequest(params) {
         return;
       }
       var rows = processRows(data.rows);
+      // Store footer totals data
+      if (data.footerData) {
+        footerData = data.footerData;
+      }
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
@@ -508,7 +513,8 @@ function initPage() {
     });
 
     const thumb_ndx = $j('#eventTable tr th').filter(function() {
-      return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
+      const data_field = $j(this).attr('data-field');
+      return data_field && data_field.toLowerCase().trim() == 'thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });
@@ -556,6 +562,25 @@ function filterEvents(clickedElement) {
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   table.bootstrapTable('refresh');
+}
+
+// Footer formatter for total duration
+function totalLengthFormatter(data) {
+  if (footerData.Length) {
+    const totalSeconds = Math.floor(footerData.Length);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return String(hours).padStart(2, '0') + ':' +
+           String(minutes).padStart(2, '0') + ':' +
+           String(seconds).padStart(2, '0');
+  }
+  return '';
+}
+
+// Footer formatter for total disk space
+function totalDiskSpaceFormatter(data) {
+  return footerData.DiskSpace || '';
 }
 
 $j(document).ready(function() {

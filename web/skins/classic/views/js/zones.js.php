@@ -2,8 +2,6 @@
 // Import constants
 //
 
-const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
-
 var monitorData = new Array();
 <?php
   global $monitors;

@@ -298,9 +298,11 @@ function parseRows(rows) {
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
       const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for (const key in availableTags) {
-        tagSelect.append('<option value="' + key + '">' + escapeHTML(availableTags[key]) + '</option>');
-      };
+      console.log(availableTags);
+      console.log(Object.keys(availableTags));
+      availableTags.forEach((tag) => {
+        tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
+      });
       const tagVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(tagSelect).children().val(tagVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ExistsInFileSystem' ) {

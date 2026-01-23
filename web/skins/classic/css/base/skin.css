@@ -268,12 +268,15 @@ ul.tabList li.active a {
 }
 
 body.sticky #content {
-/*
   flex: 1 1 auto;
+  /* whether or not #content is flex is a per-view thing
   display: flex;
   flex-flow: column;
-  overflow: hidden;*/
+  */
   height: 100%;
+  /* There shouldn't be any, but if there is, at least we can scroll it
+  overflow: hidden;
+  */
 }
 
 #inner-content {
@@ -640,8 +643,44 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+/* Clear button for filter selects (general pages, not in extruder) */
+.term-value-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-term-remove-all {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  z-index: 1011;
+}
+
 .btn-term-remove-all button {
-  padding: 4px 10px;
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.btn-term-remove-all button:hover .material-icons {
+  color: #333;
 }
 
 .btn-normal,
@@ -718,7 +757,7 @@ input[type=submit]:disabled,
     flex-direction: row;
   }
   .navbar-nav .nav-link,
-  #getHeaderFlipHTML a,
+  #getHeaderFlipHTML a
   {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
@@ -853,10 +892,18 @@ li.search-choice {
 
 .zoom,
 .zoom-console {
+  z-index: 1001;
+}
+
+.zoom {
+  position: sticky;
   transform-origin: 0% 00%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-  position: sticky;
-  z-index: 1001;
+}
+
+/* Console view zoom uses dynamic scaling and positioning via JavaScript */
+.zoom-console {
+  /* Position, transform and transform-origin are set dynamically via JavaScript */
 }
 
 #framesTable .zoom {
@@ -995,7 +1042,6 @@ a.flip {
 
 .tags-container {
   display: flex;
-  flex-wrap: wrap;
   border: 1px solid;
   border-color: #ccc;
   border-radius: 4px;
@@ -1240,6 +1286,7 @@ button.btn.btn-view-watch:hover {
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;
     -moz-appearance: none;
+    appearance: none;
     /*height: 21px;*/
     height: 18px;
     outline: none;
@@ -1382,10 +1429,12 @@ button.btn.btn-view-watch:hover {
   margin-top: 10px;*/
 }
 
-.noUi-target {
-  /*border: 1px solid var(--scrollbarBG);
-  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+/* 
+noUi-target {
+  border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;
 }
+*/
 
 .noUi-base, .noUi-touch-area {
   cursor: pointer;
@@ -1407,9 +1456,11 @@ button.btn.btn-view-watch:hover {
   height: 5px;
 }
 
+/*
 .noUi-round .noUi-connects {
-  /*background: #c0392b;*/
+  background: #c0392b;
 }
+*/
 
 .noUi-round .noUi-handle {
   height: 18px;
@@ -1419,6 +1470,10 @@ button.btn.btn-view-watch:hover {
   border-radius: 9px;
 }
 /* --- Volume сontrol --- */
+
+.rightInFlexContainer {
+  margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
+}
 
 video-stream {
   position: relative;
@@ -1440,13 +1495,13 @@ video-stream {
   padding:0;
 }
 
+/*
 .stream-info-status, .stream-info-mode {
-  /*
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
   padding: 0.3em;
-  */
 }
+*/
 
 /* +++ This block should always be located at the end! */
 .hidden {

@@ -47,12 +47,17 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $serial $primark_key $table $primary_key %fields $debug/;
+use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';
 $debug = 1;
 $table = 'Storage';
 $primary_key = 'Id';
 %fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme Enabled);
+
+%defaults = (
+  Type => 'local',
+  Scheme => 'Medium',
+);
 
 sub Path {
   if ( @_ > 1 ) {

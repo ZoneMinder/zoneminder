@@ -3,13 +3,21 @@ xhtmlHeaders(__FILE__, translate('Login'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div class="container">
+  <div id="content" class="container">
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
+  // Check for postLoginQuery in both $_GET (URL parameter) and $_SESSION
+  // Give priority to URL parameter as it's more immediate
+  $postLoginQuery = '';
+  if (isset($_GET['postLoginQuery'])) {
+    $postLoginQuery = validStr($_GET['postLoginQuery']);
+  } else if (isset($_SESSION['postLoginQuery'])) {
+    $postLoginQuery = validStr($_SESSION['postLoginQuery']);
+  }
 ?>
     <form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
       <input type="hidden" name="action" value="login"/>
-      <input type="hidden" name="postLoginQuery" value="<?php echo isset($_SESSION['postLoginQuery']) ? validHtmlStr($_SESSION['postLoginQuery']) : ''; ?>" />
+      <input type="hidden" name="postLoginQuery" value="<?php echo validHtmlStr($postLoginQuery); ?>" />
 
       <div id="loginError" class="hidden alarm" role="alert">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>

@@ -31,7 +31,6 @@ jobs:
         run: apt-get -qq update && apt-get -qq upgrade && apt-get -qq install software-properties-common
       - name: Install git
         run: |
-          add-apt-repository ppa:git-core/ppa
           apt-get -qq update
           apt-get -qq install git
       - uses: actions/checkout@v6

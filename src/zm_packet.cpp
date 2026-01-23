@@ -31,7 +31,6 @@ using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
-  //lck_(mutex_, std::defer_lock),
   locked(false),
   keyframe(0),
   stream(nullptr),
@@ -59,7 +58,6 @@ ZMPacket::ZMPacket() :
 }
 
 ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
-  //lck_(mutex_, std::defer_lock),
   locked(false),
   keyframe(0),
   stream(nullptr),
@@ -86,7 +84,6 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
 }
 
 ZMPacket::ZMPacket(ZMPacket &p) :
-  //lck_(mutex_, std::defer_lock),
   locked(false),
   keyframe(p.keyframe),
   stream(p.stream),
@@ -127,6 +124,23 @@ ssize_t ZMPacket::ram() {
          (analysis_image ? analysis_image->Size() : 0);
 }
 
+int ZMPacket::send_packet(AVCodecContext *ctx) {
+  // ret == 0 means EAGAIN
+  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
+  int ret = avcodec_send_packet(ctx, packet.get());
+  if (ret == AVERROR(EAGAIN)) {
+    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    //ret = avcodec_send_packet(ctx, packet.get());
+    return 0;
+  }
+  if (ret < 0) {
+    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
+  }
+  Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+  return 1;
+}
+
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
   av_frame_ptr receive_frame{av_frame_alloc()};
   if (!receive_frame) {
@@ -137,6 +151,9 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
   Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   if (ret == AVERROR(EAGAIN)) {
     return 0;
+  } else if (ret == AVERROR(EOF)) {
+    Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
   } else if (ret < 0) {
     Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
     return ret;
@@ -154,23 +171,6 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
-
-int ZMPacket::send_packet(AVCodecContext *ctx) {
-  // ret == 0 means EAGAIN
-  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
-  int ret = avcodec_send_packet(ctx, packet.get());
-  if (ret == AVERROR(EAGAIN)) {
-    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    //ret = avcodec_send_packet(ctx, packet.get());
-    return 0;
-  }
-  if (ret < 0) {
-    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
-  }
-  Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-  return 1;
-}
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success
  * This functions job is to populate in_frame with the image in an appropriate
@@ -386,21 +386,21 @@ std::unique_lock<std::mutex> ZMPacket::lock() {
   locked = true;
   Debug(4, "packet %d locked", image_index);
   return lck_;
-};
+}
 
 void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
   Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
-};
+}
 
 bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
   Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
   locked = lck_.try_lock();
   Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
   return locked;
-};
+}
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
   Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
@@ -408,10 +408,14 @@ void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
   lck_.unlock();
   Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
   condition_.notify_all();
-};
+}
 
 void ZMPacket::unlock() {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
-  our_lck_.unlock();
-};
+  if (locked) {
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    our_lck_.unlock();
+  } else {
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+  }
+}
 

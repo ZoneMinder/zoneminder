@@ -273,7 +273,7 @@ SwsContext *sws_convert_context;
   static Image *Merge( unsigned int n_images, Image *images[], double weight );
   static Image *Highlight(unsigned int n_images, Image *images[], Rgb threshold = kRGBBlack, Rgb ref_colour = kRGBRed);
   //Image *Delta( const Image &image ) const;
-  void Delta( const Image &image, Image* targetimage) const;
+  bool Delta( const Image &image, Image* targetimage) const;
 
   const Vector2 centreCoord(const char *text, const int size) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );

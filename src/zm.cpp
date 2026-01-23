@@ -18,6 +18,18 @@
 //
 
 #include "zm.h"
+#include "zm_db.h"
+#include "zm_image.h"
 
 /* This is our argv[0], we need it for backtrace */
 const char* self = nullptr;
+
+int exit_zm(int exit_code) {
+  Debug(1, "Terminating");
+  Image::Deinitialise();
+  dbQueue.stop();
+  zmDbClose();
+  logTerm();
+  exit(exit_code);
+  return exit_code;
+}

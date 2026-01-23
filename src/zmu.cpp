@@ -793,7 +793,7 @@ int main(int argc, char *argv[]) {
     printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
            "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
            "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
-    for (int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+    for (MYSQL_ROW dbrow = mysql_fetch_row(result); dbrow; dbrow = mysql_fetch_row(result)) {
       int monitor_id = atoi(dbrow[0]);
       if (mon_id and (monitor_id != mon_id)) continue;
       if (!user || user->canAccess(monitor_id)) {

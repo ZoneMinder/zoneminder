@@ -121,10 +121,10 @@ Configure::write('ZM_VERSION', '@VERSION@');
 Configure::write('ZM_API_VERSION', '@API_VERSION@');
 
 require_once(__DIR__ ."/../../../includes/config.php");
-global $zm_configvals;
+global $zm_config;
 
 # Now that our array our finalized, and the config has been defined.
 # Add them to the cakephp Config
-foreach( $zm_configvals as $key => $value) {
-  Configure::write($key, $value);
+foreach( $zm_config as $key => $config) {
+  Configure::write($key, $config['Value']);
 }

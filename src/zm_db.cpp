@@ -286,6 +286,7 @@ zmDbQueue::~zmDbQueue() {
 }
 
 void zmDbQueue::start() {
+  mTerminate = false;
   mThread = std::thread(&zmDbQueue::process, this);
 }
 

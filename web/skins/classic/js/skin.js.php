@@ -146,7 +146,7 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
-    if (!$c['Private']) {
+    if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;
       } else if (isset($c['Type']) and $c['Type'] == 'integer' and $c['Value'] != '') {

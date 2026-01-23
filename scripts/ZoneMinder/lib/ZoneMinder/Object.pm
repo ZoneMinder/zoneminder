@@ -133,7 +133,7 @@ sub load {
       $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=?", {}, $$self{$primary_key});
       if ( !$data ) {
         if ( $ZoneMinder::Database::dbh->errstr ) {
-          Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+          Error( "Failure to load Object record for $type id:$$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
         } else {
           Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
         } # end if
@@ -173,7 +173,7 @@ sub lock_and_load {
   my $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=? FOR UPDATE", {}, $$self{$primary_key});
   if ( ! $data ) {
     if ( $ZoneMinder::Database::dbh->errstr ) {
-      Error("Failure to load Object record for $$self{$primary_key}: Reason: ".$ZoneMinder::Database::dbh->errstr);
+      Error("Failure to load Object record for $type id:$$self{$primary_key}: Reason: ".$ZoneMinder::Database::dbh->errstr);
     } else {
       Debug("No Results Lock and Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
     } # end if
@@ -335,7 +335,7 @@ $log->debug("No serial") if $debug;
       } # end if
       if ( $debug or DEBUG_ALL ) {
         $command =~ s/\?/\%s/g;
-        $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? ( ref $_ eq 'ARRAY' ? join(',',@{$_}) : $_ ) : 'undef' } ( @sql{@keys}, @$self{@identified_by} ) ).'):' );
+        $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? ( ref $_ eq 'ARRAY' ? join(',',@{$_}) : '\''.$_.'\'' ) : 'NULL' } ( @sql{@keys}, @$self{@identified_by} ) ).'):' );
       } # end if
     } # end if
   } # end if

@@ -43,6 +43,8 @@ Info('Stats Daemon starting in '.START_DELAY.' seconds');
 sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
+$dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED');
+
 my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
 
 while (!$zm_terminate) {

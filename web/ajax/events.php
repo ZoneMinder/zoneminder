@@ -46,7 +46,7 @@ if (!empty($_REQUEST['MonitorId'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
 }
 if (!empty($_REQUEST['Tag'])) {
-  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>''));
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>$_REQUEST['Tag']));
 }
 
 // Search contains a user entered string to search on
@@ -350,6 +350,19 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
+  # Calculate totals for footer display
+  $totalDiskSpace = 0;
+  $totalLength = 0;
+  foreach ($filtered_rows as $row) {
+    $totalDiskSpace += isset($row['DiskSpace']) ? $row['DiskSpace'] : 0;
+    $totalLength += isset($row['Length']) ? $row['Length'] : 0;
+  }
+  $data['footerData'] = array(
+    'DiskSpace' => human_filesize($totalDiskSpace),
+    'Length' => $totalLength,
+  );
+
   ZM\Debug("Done");
   return $data;
 }

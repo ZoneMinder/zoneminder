@@ -265,6 +265,8 @@ echo $navbar ?>
             <th data-sortable="false" data-field="Thumbnail" class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>
             <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-visible="false" data-field="Manufacturer" class="colName"><?php echo translate('Manufacturer') ?></th>
+            <th data-sortable="true" data-visible="false" data-field="Model" class="colName"><?php echo translate('Model') ?></th>
             <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
@@ -295,7 +297,7 @@ echo $navbar ?>
   } // end foreach eventCounts
 ?>
             <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
-            <th data-sortable="true" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
+            <th data-sortable="true" data-visible="false" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
           </tr>
         </thead>
         <tbody id="consoleTableBody">

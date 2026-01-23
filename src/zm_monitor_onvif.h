@@ -20,8 +20,10 @@
 #ifndef ZM_MONITOR_ONVIF_H
 #define ZM_MONITOR_ONVIF_H
 
+#include <atomic>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include "zm_event.h"
 #include "zm_time.h"
@@ -42,8 +44,8 @@ class ONVIF {
 
  protected:
   Monitor *parent;
-  bool alarmed;
-  bool healthy;
+  std::atomic<bool> alarmed_;
+  std::atomic<bool> healthy_;
   bool closes_event;
   std::string last_topic;
   std::string last_value;
@@ -57,14 +59,14 @@ class ONVIF {
   bool try_usernametoken_auth;  // Track if we should try plain auth
   int retry_count;  // Track retry attempts
   int max_retries;  // Maximum retry attempts before giving up
-  std::string discovered_event_endpoint;  // Store discovered endpoint
-  SystemTimePoint last_retry_time;  // Time of last retry attempt
+  std::string event_endpoint_url_;  // Store endpoint URL (must persist for proxyEvent.soap_endpoint)
+  bool has_valid_subscription_;  // True only when we have an active subscription to unsubscribe from
   bool warned_initialized_repeat;  // Track if we've warned about repeated Initialized messages
   std::unordered_map<std::string, int> initialized_count;  // Track Initialized message count per topic
 
-  // Configurable timeout values (can be set via onvif_options)
-  std::string pull_timeout;  // Default "PT20S"
-  std::string subscription_timeout;  // Default "PT60S"
+  // Configurable timeout values in seconds (can be set via onvif_options)
+  int pull_timeout_seconds;  // Default 5 seconds
+  int subscription_timeout_seconds;  // Default 300 seconds (5 minutes)
   std::string soap_log_file;  // SOAP message logging file (empty = disabled)
   FILE *soap_log_fd;  // File descriptor for SOAP logging
 
@@ -80,6 +82,7 @@ class ONVIF {
   bool interpret_alarm_value(const std::string &value);  // Interpret alarm value from various formats
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
+  void attempt_subscription();
   void parse_onvif_options();  // Parse options from parent->onvif_options
   int get_retry_delay();  // Calculate exponential backoff delay
   void update_renewal_times(time_t termination_time);  // Update subscription renewal tracking times
@@ -91,17 +94,20 @@ class ONVIF {
 #endif
   std::unordered_map<std::string, std::string> alarms;
   std::mutex   alarms_mutex;
+
+  // Thread management
+  std::thread thread_;
+  std::atomic<bool> terminate_;
+  void Run();
  public:
   explicit ONVIF(Monitor *parent_);
   ~ONVIF();
   void start();
   void WaitForMessage();
-  bool isAlarmed() {
-    std::unique_lock<std::mutex> lck(alarms_mutex);
-    return alarmed;
-  };
-  void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
-  bool isHealthy() const { return healthy; };
+  bool isAlarmed() const { return alarmed_.load(std::memory_order_acquire); }
+  void setAlarmed(bool p_alarmed) { alarmed_.store(p_alarmed, std::memory_order_release); }
+  bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
+  void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
 };
 

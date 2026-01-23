@@ -19,10 +19,10 @@
 
 #include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
+#include "zm_utils.h"
 
 #include <cstring>
-#include <sstream>
-#include <vector>
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -31,125 +31,93 @@ namespace {
   const int ONVIF_MAX_RETRIES_LIMIT = 100;  // Upper limit for max_retries option
   const int ONVIF_RETRY_DELAY_CAP = 300;    // Cap retry delay at 5 minutes
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
-  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 10;  // Renew subscription N seconds before expiration
+  const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
+  const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
 
-  // Parse ISO 8601 duration string to seconds
-  // Supports formats like "PT20S", "PT1M", "PT1H30M45S"
-  // Returns -1 on parse error
-  int parse_iso8601_duration_seconds(const std::string& duration) {
-    if (duration.empty() || duration.size() < 3) {
-      return -1;
-    }
-    
-    // Must start with "PT" (Period of Time)
-    if (duration[0] != 'P' || duration[1] != 'T') {
-      return -1;
-    }
-    
-    int total_seconds = 0;
-    int current_value = 0;
-    bool has_digit = false;
-    
-    // Parse from position 2 onwards (after "PT")
-    for (size_t i = 2; i < duration.size(); i++) {
-      char c = duration[i];
-      
-      if (c >= '0' && c <= '9') {
-        current_value = current_value * 10 + (c - '0');
-        has_digit = true;
-      } else if (c == 'H' && has_digit) {
-        // Hours
-        total_seconds += current_value * 3600;
-        current_value = 0;
-        has_digit = false;
-      } else if (c == 'M' && has_digit) {
-        // Minutes
-        total_seconds += current_value * 60;
-        current_value = 0;
-        has_digit = false;
-      } else if (c == 'S' && has_digit) {
-        // Seconds
-        total_seconds += current_value;
-        current_value = 0;
-        has_digit = false;
-      } else {
-        // Invalid character
-        return -1;
-      }
-    }
-    
-    // If we still have unparsed digits, format is invalid
-    if (has_digit) {
-      return -1;
-    }
-    
-    return total_seconds;
+  // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
+  inline std::string FormatDurationSeconds(int seconds) {
+    return "PT" + std::to_string(seconds) + "S";
   }
 }
 #endif
 
 std::string SOAP_STRINGS[] = {
-  "SOAP_OK", // 0
-  "SOAP_CLI_FAULT", // 1
-  "SOAP_SVR_FAULT",//                  2
-  "SOAP_TAG_MISMATCH",//               3
-  "SOAP_TYPE",//                       4
-  "SOAP_SYNTAX_ERROR",//               5
-  "SOAP_NO_TAG",//                     6
-  "SOAP_IOB",//                        7
-  "SOAP_MUSTUNDERSTAND",//             8
-  "SOAP_NAMESPACE", //                  9
-  "SOAP_USER_ERROR", //                 10
-  "SOAP_FATAL_ERROR", //                11 
-  "SOAP_FAULT", //                      12
+    "SOAP_OK",              // 0
+    "SOAP_CLI_FAULT",       // 1
+    "SOAP_SVR_FAULT",       // 2
+    "SOAP_TAG_MISMATCH",    // 3
+    "SOAP_TYPE",            // 4
+    "SOAP_SYNTAX_ERROR",    // 5
+    "SOAP_NO_TAG",          // 6
+    "SOAP_IOB",             // 7
+    "SOAP_MUSTUNDERSTAND",  // 8
+    "SOAP_NAMESPACE",       // 9
+    "SOAP_USER_ERROR",      // 10
+    "SOAP_FATAL_ERROR",     // 11
+    "SOAP_FAULT",           // 12
 };
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed(false)
-  ,healthy(false)
+  ,alarmed_(false)
+  ,healthy_(false)
   ,closes_event(false)
 #ifdef WITH_GSOAP
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
   ,retry_count(0)
-  ,max_retries(5)
+  ,max_retries(10)
+  ,has_valid_subscription_(false)
   ,warned_initialized_repeat(false)
-  ,pull_timeout("PT5S")
-  ,subscription_timeout("PT300S")
+  ,pull_timeout_seconds(5)
+  ,subscription_timeout_seconds(300)
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
   ,next_renewal_time()
   ,use_absolute_time_for_renewal(false)
 #endif
+  ,terminate_(false)
 {
 }
 
 ONVIF::~ONVIF() {
+  // Stop the polling thread first
+  terminate_ = true;
+  if (thread_.joinable()) {
+    thread_.join();
+  }
+
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "ONVIF: Tearing Down");
     //We have lost ONVIF clear previous alarm topics
     alarms.clear();
     //Set alarmed to false so we don't get stuck recording
-    alarmed = false;
-    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
-    _wsnt__Unsubscribe wsnt__Unsubscribe;
-    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    set_credentials(soap);
-    
-    bool use_wsa = parent->soap_wsa_compl;
-    if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-      int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
-          &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-      // Check result and log warnings if unsubscribe failed
-      if (result != SOAP_OK) {
-        Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.", 
-            soap->error, soap_fault_string(soap), 
-            soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
-      } else {
-        Debug(1, "ONVIF: Successfully unsubscribed in destructor");
+    setAlarmed(false);
+    Debug(1, "ONVIF: Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true": "false");
+
+    // Only attempt unsubscribe if we have a valid subscription
+    if (has_valid_subscription_) {
+      _wsnt__Unsubscribe wsnt__Unsubscribe;
+      _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+      set_credentials(soap);
+
+      bool use_wsa = parent->soap_wsa_compl;
+      if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
+        int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
+            &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+        // Check result and log warnings if unsubscribe failed
+        if (result != SOAP_OK) {
+          Warning("ONVIF: Unsubscribe failed in destructor. Error %i %s, %s. Subscription may remain on camera.",
+              soap->error, soap_fault_string(soap),
+              soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+        } else {
+          Debug(1, "ONVIF: Successfully unsubscribed in destructor");
+        }
       }
+      has_valid_subscription_ = false;
+    } else {
+      Debug(2, "ONVIF: No valid subscription to unsubscribe in destructor");
     }
 
     disable_soap_logging();
@@ -164,7 +132,6 @@ ONVIF::~ONVIF() {
 void ONVIF::start() {
 #ifdef WITH_GSOAP
   parse_onvif_options();
-  last_retry_time = std::chrono::system_clock::now();
   // Check if soap context already exists from a previous failed attempt
   // If so, clean up the stale subscription before creating a new one
   if (soap != nullptr) {
@@ -179,20 +146,13 @@ void ONVIF::start() {
     soap = nullptr;
   }
   
-  // Validate pull_timeout before creating subscription
-  int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
-  if (pull_timeout_seconds < 0) {
-    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
-  }
-  
+  // Clamp pull_timeout_seconds to be less than renewal advance time
   if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
+    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
             pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout = "PT8S";
+    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
   }
-  
+
   soap = soap_new();
   soap->connect_timeout = 0;
   soap->recv_timeout = 0;
@@ -222,13 +182,72 @@ void ONVIF::start() {
     url.path("/onvif/device_service");
     Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
   }
-  std::string full_url = url.str() + parent->onvif_events_path;
-  proxyEvent.soap_endpoint = full_url.c_str();
+  // Store URL in member variable so pointer remains valid for proxyEvent lifetime
+  event_endpoint_url_ = url.str() + parent->onvif_events_path;
+  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
   
+  attempt_subscription();
+
+  // Start the polling thread if not already running
+  // Thread will handle reconnection attempts if initial subscription failed
+  if (!thread_.joinable()) {
+    Debug(1, "ONVIF: Starting polling thread (healthy=%s)", isHealthy() ? "true" : "false");
+    terminate_ = false;
+    thread_ = std::thread(&ONVIF::Run, this);
+  }
+#else
+  Error("zmc not compiled with GSOAP. ONVIF support not built in!");
+#endif
+}
+
+#ifdef WITH_GSOAP
+void ONVIF::Run() {
+  Debug(1, "ONVIF: Polling thread started");
+  while (!terminate_ && !zm_terminate) {
+    if (isHealthy()) {
+      WaitForMessage();
+    } else {
+      // Check if we've exceeded max_retries and need a longer cool-down
+      if (retry_count >= max_retries) {
+        Warning("ONVIF: Max retries (%d) exceeded, entering cool-down period of %d seconds before reset",
+                max_retries, ONVIF_COOLDOWN_RESET_SECONDS);
+
+        // Sleep for cool-down period in 1-second increments to remain responsive
+        for (int i = 0; i < ONVIF_COOLDOWN_RESET_SECONDS && !terminate_ && !zm_terminate; i++) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        // Reset retry count for fresh attempt
+        retry_count = 0;
+        Info("ONVIF: Cool-down complete, resetting retry count for fresh attempt");
+      }
+
+      // Attempt to re-establish connection
+      Debug(1, "ONVIF: Unhealthy, attempting to restart subscription (attempt %d/%d)",
+            retry_count + 1, max_retries);
+      start();
+
+      // If still unhealthy after start attempt, use exponential backoff
+      if (!isHealthy()) {
+        int delay_seconds = get_retry_delay();
+        Info("ONVIF: Reconnection failed, waiting %d seconds before next attempt (retry %d/%d)",
+             delay_seconds, retry_count, max_retries);
+
+        // Sleep in 1-second increments to remain responsive to termination signals
+        for (int i = 0; i < delay_seconds && !terminate_ && !zm_terminate; i++) {
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+      }
+    }
+  }
+  Debug(1, "ONVIF: Polling thread exiting");
+}
+void ONVIF::attempt_subscription() {
   // Try to create subscription with digest authentication first
   set_credentials(soap);
   
   bool use_wsa = parent->soap_wsa_compl;
+  int rc = SOAP_OK;
   
   if (use_wsa && !do_wsa_request(proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest")) {
     soap_destroy(soap);
@@ -239,17 +258,17 @@ void ONVIF::start() {
   }
   
   Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s", proxyEvent.soap_endpoint);
-  int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+  rc = proxyEvent.CreatePullPointSubscription(&request, response);
 
   if (rc != SOAP_OK) {
     const char *detail = soap_fault_detail(soap);
     bool auth_error = (rc == 401 || (detail && std::strstr(detail, "NotAuthorized")));
     
     if (rc > 8) {
-      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", full_url.c_str(),
+      Error("ONVIF: Couldn't create subscription at %s! %d, fault:%s, detail:%s", event_endpoint_url_.c_str(),
           rc, soap_fault_string(soap), detail ? detail : "null");
     } else {
-      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", full_url.c_str(),
+      Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s", event_endpoint_url_.c_str(),
           rc, SOAP_STRINGS[rc].c_str(),
           soap_fault_string(soap), detail ? detail : "null");
     }
@@ -291,83 +310,84 @@ void ONVIF::start() {
         soap_end(soap);
         soap_free(soap);
         soap = nullptr;
-        healthy = false;
+        setHealthy(false);
         return;
       }
-      
+
       Info("ONVIF: Plain authentication succeeded");
-      retry_count = 0;  // Reset retry count on success
+      // Fall through to success handling below
     } else {
       // Not an auth error or already tried plain auth
       retry_count++;
-      
+
       if (retry_count >= max_retries) {
         Error("ONVIF: Max retries (%d) reached, giving up on subscription", max_retries);
       } else {
         int delay = get_retry_delay();
-        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)", 
+        Info("ONVIF: Will retry subscription in %d seconds (attempt %d/%d)",
              delay, retry_count + 1, max_retries);
       }
-      
+
       soap_destroy(soap);
       soap_end(soap);
       soap_free(soap);
       soap = nullptr;
-      healthy = false;
+      setHealthy(false);
       return;
     }
+  }
+
+  // Success handling - reached by either:
+  // 1. First attempt succeeded (original rc == SOAP_OK)
+  // 2. Plain auth retry succeeded (rc == SOAP_OK after retry)
+  retry_count = 0;
+  has_valid_subscription_ = true;
+
+  Debug(1, "ONVIF: Successfully created PullPoint subscription");
+
+  // Update renewal tracking times from initial subscription response
+  if (response.wsnt__TerminationTime != 0) {
+    update_renewal_times(response.wsnt__TerminationTime);
+    log_subscription_timing("subscription_created");
   } else {
-    // Success - reset retry count
-    retry_count = 0;
-  
-    Debug(1, "ONVIF: Successfully created PullPoint subscription");
+    Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+  }
 
-    // Update renewal tracking times from initial subscription response
-    if (response.wsnt__TerminationTime != 0) {
-      update_renewal_times(response.wsnt__TerminationTime);
-      log_subscription_timing("subscription_created");
-    } else {
-      Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
+  // Clear any stale SOAP headers from previous requests/responses
+  soap->header = nullptr;
+  set_credentials(soap);
+
+  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
+    setHealthy(false);
+    return;
+  }
+
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
+  tev__PullMessages.Timeout = pull_timeout_str.c_str();
+  tev__PullMessages.MessageLimit = 10;
+
+  Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
+      pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
+  if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+      (soap->error != SOAP_EOF)
+     ) { //SOAP_EOF could indicate no messages to pull.
+    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    setHealthy(false);
+  } else {
+    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    setHealthy(true);
+  }
+
+  // Perform initial renewal of the subscription
+  if (use_wsa) {  // Only if WS-Addressing is enabled
+    if (!Renew()) {
+      Debug(1, "ONVIF: Initial renewal failed, but continuing");
     }
-
-    // Empty the stored messages
-    // Clear any stale SOAP headers from previous requests/responses
-    soap->header = nullptr;
-    set_credentials(soap);
-
-    if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
-      healthy = false;
-      return;
-    }
-
-    _tev__PullMessages tev__PullMessages;
-    _tev__PullMessagesResponse tev__PullMessagesResponse;
-    tev__PullMessages.Timeout = pull_timeout.c_str();
-    tev__PullMessages.MessageLimit = 10;
-
-    Debug(2, "ONVIF: Using pull_timeout=%s, subscription_timeout=%s at %s", 
-        pull_timeout.c_str(), subscription_timeout.c_str(), response.SubscriptionReference.Address);
-    if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-        (soap->error != SOAP_EOF)
-       ) { //SOAP_EOF could indicate no messages to pull.
-      Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy = false;
-    } else {
-      Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      healthy = true;
-    }
-
-    // Perform initial renewal of the subscription
-    if (use_wsa) {  // Only if WS-Addressing is enabled
-      if (!Renew()) {
-        Debug(1, "ONVIF: Initial renewal failed, but continuing");
-      }
-    }
-  } // end else (success block)
-#else
-  Error("zmc not compiled with GSOAP. ONVIF support not built in!");
-#endif
+  }
 }
+#endif
 
 void ONVIF::WaitForMessage() {
 #ifdef WITH_GSOAP
@@ -387,10 +407,11 @@ void ONVIF::WaitForMessage() {
   
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
-  tev__PullMessages.Timeout = pull_timeout.c_str();
+  std::string pull_timeout_str = FormatDurationSeconds(pull_timeout_seconds);
+  tev__PullMessages.Timeout = pull_timeout_str.c_str();
   tev__PullMessages.MessageLimit = 10;
-  Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%s, MessageLimit=%d ...",
-        pull_timeout.c_str(), tev__PullMessages.MessageLimit);
+  Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%ds, MessageLimit=%d ...",
+        pull_timeout_seconds, tev__PullMessages.MessageLimit);
   int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
@@ -405,19 +426,13 @@ void ONVIF::WaitForMessage() {
         } else {
           Info("ONVIF: PullMessages failed (attempt %d/%d), will continue trying", retry_count, max_retries);
         }
-        healthy = false;
+        setHealthy(false);
       } else {
         // SOAP_EOF - this is just a timeout, not an error
         Debug(2, "ONVIF PullMessage timeout (SOAP_EOF) - no new messages. result=%d soap_fault_string=%s detail=%s",
             result, soap_fault_string(soap), detail ? detail : "null");
         
         // Don't clear alarms on timeout - they should remain active until explicitly cleared
-        // Only clear if Closes_Event is false (camera doesn't send close events)
-        // and we haven't received any messages for a long time
-        // For now, just leave alarms as-is on timeout
-        Debug(3, "ONVIF: Timeout - keeping existing alarms. Current alarm count: %zu, alarmed: %s",
-              alarms.size(), alarmed ? "true" : "false");
-        
         // Timeout is not an error, don't increment retry_count
       }
     } else {
@@ -476,9 +491,9 @@ void ONVIF::WaitForMessage() {
             Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
             alarms.erase(last_topic);
             Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
-                  alarms.size(), alarmed ? "true" : "false");
+                  alarms.size(), isAlarmed() ? "true" : "false");
             if (alarms.empty()) {
-              alarmed = false;
+              setAlarmed(false);
             }
             if (!closes_event) {
               closes_event = true;
@@ -505,8 +520,8 @@ void ONVIF::WaitForMessage() {
               // Camera reports an existing alarm we didn't know about
               Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
               alarms[last_topic] = last_value;
-              if (!alarmed) {
-                alarmed = true;
+              if (!isAlarmed()) {
+                setAlarmed(true);
                 Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
               }
             } else if (!state_is_active && alarms.count(last_topic) > 0) {
@@ -514,7 +529,7 @@ void ONVIF::WaitForMessage() {
               Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed = false;
+                setAlarmed(false);
               }
             }
 
@@ -532,9 +547,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               alarms.erase(last_topic);
               Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
-                    alarms.size(), alarmed ? "true" : "false");
+                    alarms.size(), isAlarmed() ? "true" : "false");
               if (alarms.empty()) {
-                alarmed = false;
+                setAlarmed(false);
               }
               if (!closes_event) {
                 closes_event = true;
@@ -545,9 +560,9 @@ void ONVIF::WaitForMessage() {
               Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed) {
+                if (!isAlarmed()) {
                   Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
-                  alarmed = true;
+                  setAlarmed(true);
                 }
               } else {
                 // Update existing alarm value
@@ -564,32 +579,24 @@ void ONVIF::WaitForMessage() {
             if (!state_is_active) {
               alarms.erase(last_topic);
               if (alarms.empty()) {
-                alarmed = false;
+                setAlarmed(false);
               }
             } else {
               if (alarms.count(last_topic) == 0) {
                 alarms[last_topic] = last_value;
-                if (!alarmed) {
-                  alarmed = true;
+                if (!isAlarmed()) {
+                  setAlarmed(true);
                 }
               } else {
                 alarms[last_topic] = last_value;
               }
             }
           }
-          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true" : "false");
+          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true" : "false");
         }  // end foreach msg
       } // end scope for lock
 
-      // Log subscription timing before checking if renewal is needed
-      log_subscription_timing("before_renewal_check");
-
-      // Renew subscription if needed
-      if (IsRenewalNeeded()) {
-        if (!Renew()) {
-          Warning("ONVIF: Failed to renew subscription");
-        }
-      }
+      if (IsRenewalNeeded()) Renew();
     }  // end if SOAP OK/NOT OK
 #endif
   return;
@@ -660,137 +667,127 @@ void ONVIF::cleanup_subscription() {
     return;
   }
 
+  // Only attempt unsubscribe if we actually have a valid subscription
+  if (!has_valid_subscription_) {
+    Debug(2, "ONVIF: cleanup_subscription called but no valid subscription exists, skipping unsubscribe");
+    return;
+  }
+
   Debug(2, "ONVIF: Cleaning up existing subscription");
-  
+
   _wsnt__Unsubscribe wsnt__Unsubscribe;
   _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-  
+
   bool use_wsa = parent->soap_wsa_compl;
   int result = SOAP_OK;
-  
+
   // Attempt to unsubscribe from the existing subscription
   if (use_wsa) {
     if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
                                        &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
       // WS-Addressing setup failed - log the error details from soap_wsa_request
-      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s", 
-              soap->error, soap_fault_string(soap), 
+      Warning("ONVIF: Failed to set WS-Addressing headers for unsubscribe during cleanup. Error %i %s, %s",
+              soap->error, soap_fault_string(soap),
               soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
       // Don't attempt unsubscribe if WS-Addressing setup failed
       // Note: This is a limitation - subscription may remain active on camera
       // However, attempting unsubscribe with invalid WS-Addressing state would fail anyway
+      has_valid_subscription_ = false;
       return;
     }
   } else {
     Debug(2, "ONVIF: Unsubscribing without WS-Addressing during cleanup");
-    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr, 
+    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
                                      &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
   }
-  
+
   if (result != SOAP_OK) {
-    Warning("ONVIF: Unsubscribe failed during cleanup. Error %i %s, %s", 
-            soap->error, soap_fault_string(soap), 
+    Warning("ONVIF: Unsubscribe failed during cleanup. Error %i %s, %s",
+            soap->error, soap_fault_string(soap),
             soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
   } else {
     Debug(2, "ONVIF: Successfully unsubscribed during cleanup");
   }
+
+  // Mark subscription as invalid regardless of unsubscribe result
+  has_valid_subscription_ = false;
 }
 
 // Parse ONVIF options from the onvif_options string
 // Format: key1=value1,key2=value2
 // Supported options:
-//   pull_timeout=PT20S - Timeout for PullMessages requests
-//   subscription_timeout=PT60S - Timeout for subscription renewal
-//   max_retries=5 - Maximum retry attempts
+//   pull_timeout=5 - Timeout in seconds for PullMessages requests (default: 5)
+//   subscription_timeout=300 - Timeout in seconds for subscription renewal (default: 300)
+//   max_retries=10 - Maximum retry attempts
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
+    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
+         pull_timeout_seconds, subscription_timeout_seconds);
     return;
   }
-  
+
   Debug(2, "ONVIF: Parsing options: %s", parent->onvif_options.c_str());
-  
-  // Helper lambda to parse a single option
-  auto parse_option = [this](const std::string &option) {
-    size_t eq_pos = option.find('=');
-    if (eq_pos != std::string::npos) {
-      std::string key = option.substr(0, eq_pos);
-      std::string value = option.substr(eq_pos + 1);
-      
-      if (key == "pull_timeout") {
-        pull_timeout = value;
-        Debug(2, "ONVIF: Set pull_timeout to %s", pull_timeout.c_str());
-        
-        // Validate pull_timeout immediately
-        int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
-        if (pull_timeout_seconds < 0) {
-          Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-          pull_timeout = "PT8S";
-          pull_timeout_seconds = 8;
-        }
-        
-        if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-          Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
-                  pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-          pull_timeout = "PT8S";
-        }
-      } else if (key == "subscription_timeout") {
-        subscription_timeout = value;
-        Debug(2, "ONVIF: Set subscription_timeout to %s", subscription_timeout.c_str());
-      } else if (key == "max_retries") {
+
+  for (const std::string &option : Split(parent->onvif_options, ',')) {
+    auto [key, value] = PairSplit(option, '=');
+    if (key.empty()) continue;
+
+    if (key == "pull_timeout") {
+      if (StartsWith(value, "PT")) {
+        Warning("ONVIF: ISO 8601 duration format (e.g., 'PT5S') is no longer supported for pull_timeout. "
+                "Please use seconds (e.g., '5'). Using default %d seconds.", pull_timeout_seconds);
+      } else {
         try {
-          max_retries = std::stoi(value);
-          if (max_retries < 0) max_retries = 0;
-          if (max_retries > ONVIF_MAX_RETRIES_LIMIT) max_retries = ONVIF_MAX_RETRIES_LIMIT;
-          Debug(2, "ONVIF: Set max_retries to %d", max_retries);
+          int val = std::stoi(value);
+          if (val > 0) {
+            pull_timeout_seconds = val;
+            Debug(2, "ONVIF: Set pull_timeout to %d seconds", pull_timeout_seconds);
+          } else {
+            Warning("ONVIF: Invalid pull_timeout value '%s', using default %d seconds", value.c_str(), pull_timeout_seconds);
+          }
         } catch (const std::exception &e) {
-          Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
+          Warning("ONVIF: Invalid pull_timeout value '%s': %s. Using default %d seconds", value.c_str(), e.what(), pull_timeout_seconds);
         }
-      } else if (key == "soap_log") {
-        soap_log_file = value;
-        Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
-      } else if (option.find("closes_event") != std::string::npos) {
-        // Option to indicate that ONVIF will send a close event message
-        closes_event = true;
       }
+    } else if (key == "subscription_timeout") {
+      if (StartsWith(value, "PT")) {
+        Warning("ONVIF: ISO 8601 duration format (e.g., 'PT300S') is no longer supported for subscription_timeout. "
+                "Please use seconds (e.g., '300'). Using default %d seconds.", subscription_timeout_seconds);
+      } else {
+        try {
+          int val = std::stoi(value);
+          if (val > 0) {
+            subscription_timeout_seconds = val;
+            Debug(2, "ONVIF: Set subscription_timeout to %d seconds", subscription_timeout_seconds);
+          } else {
+            Warning("ONVIF: Invalid subscription_timeout value '%s', using default %d seconds", value.c_str(), subscription_timeout_seconds);
+          }
+        } catch (const std::exception &e) {
+          Warning("ONVIF: Invalid subscription_timeout value '%s': %s. Using default %d seconds", value.c_str(), e.what(), subscription_timeout_seconds);
+        }
+      }
+    } else if (key == "max_retries") {
+      try {
+        max_retries = std::stoi(value);
+        if (max_retries < 0) max_retries = 0;
+        if (max_retries > ONVIF_MAX_RETRIES_LIMIT) max_retries = ONVIF_MAX_RETRIES_LIMIT;
+        Debug(2, "ONVIF: Set max_retries to %d", max_retries);
+      } catch (const std::exception &e) {
+        Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
+      }
+    } else if (key == "soap_log") {
+      soap_log_file = value;
+      Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
+    } else if (key == "closes_event") {
+      closes_event = true;
     }
-  };
-  
-  std::string options = parent->onvif_options;
-  size_t start = 0;
-  size_t pos = 0;
-  
-  while ((pos = options.find(',', start)) != std::string::npos) {
-    std::string option = options.substr(start, pos - start);
-    parse_option(option);
-    start = pos + 1;
   }
-  
-  // Handle last option (no trailing comma)
-  if (start < options.length()) {
-    std::string option = options.substr(start);
-    parse_option(option);
-  }
-  
-  // Final validation of pull_timeout (in case it was not set in options and we're using default)
-  int pull_timeout_seconds = parse_iso8601_duration_seconds(pull_timeout);
-  if (pull_timeout_seconds < 0) {
-    Error("ONVIF: Invalid pull_timeout format: %s, adjusting to PT8S", pull_timeout.c_str());
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
-  }
-  
-  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout (%ds) must be less than renewal advance time (%ds) to ensure timely renewals. Adjusting to PT8S",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout = "PT8S";
-    pull_timeout_seconds = 8;
-  }
-  
-  Info("ONVIF: Using pull_timeout=%s (%d seconds), subscription_timeout=%s", 
-       pull_timeout.c_str(), pull_timeout_seconds, subscription_timeout.c_str());
+
+  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
+       pull_timeout_seconds, subscription_timeout_seconds);
 }
 
 // Calculate exponential backoff delay for retries
@@ -900,42 +897,35 @@ bool ONVIF::Renew() {
   _wsnt__Renew wsnt__Renew;
   _wsnt__RenewResponse wsnt__RenewResponse;
   
-  std::string absolute_time_str;
-  
+  std::string termination_time_str;
+
   if (use_absolute_time_for_renewal) {
     // Calculate absolute termination time: current time + subscription duration
-    int subscription_timeout_seconds = parse_iso8601_duration_seconds(subscription_timeout);
-    if (subscription_timeout_seconds < 0) {
-      Warning("ONVIF: Invalid subscription_timeout format: %s, using default 60 seconds", subscription_timeout.c_str());
-      subscription_timeout_seconds = 60;
-    } else {
-      Debug(3, "Have subscription timeout duration %dseconds", subscription_timeout_seconds);
-    }
-    
     time_t now = time(nullptr);
     time_t absolute_termination = now + subscription_timeout_seconds;
-    absolute_time_str = format_absolute_time_iso8601(absolute_termination);
-    
-    if (absolute_time_str.empty()) {
+    termination_time_str = format_absolute_time_iso8601(absolute_termination);
+
+    if (termination_time_str.empty()) {
       Error("ONVIF: Failed to format absolute time for renewal");
       return false;
     }
-    
-    wsnt__Renew.TerminationTime = &absolute_time_str;
-    Debug(1, "ONVIF: Setting renew termination time to absolute time: %s (camera requires absolute time format)", 
-          absolute_time_str.c_str());
+
+    Debug(1, "ONVIF: Setting renew termination time to absolute time: %s (camera requires absolute time format)",
+          termination_time_str.c_str());
   } else {
     // Use duration format (default behavior)
-    wsnt__Renew.TerminationTime = &subscription_timeout;
-    Debug(1, "ONVIF: Setting renew termination time to duration: %s", subscription_timeout.c_str());
+    termination_time_str = FormatDurationSeconds(subscription_timeout_seconds);
+    Debug(1, "ONVIF: Setting renew termination time to duration: %s", termination_time_str.c_str());
   }
+
+  wsnt__Renew.TerminationTime = &termination_time_str;
   
   bool use_wsa = parent->soap_wsa_compl;
   
   if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "RenewRequest")) {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
-    healthy = false;
+    setHealthy(false);
     return false;
   }
   
@@ -943,19 +933,19 @@ bool ONVIF::Renew() {
     Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
-      healthy = true;
+      setHealthy(true);
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
-      Debug(1, "ONVIF: Renewal failed, cleaning up subscription to prevent leak");
+      Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
       cleanup_subscription();
-      healthy = false;
+      setHealthy(false);
       return false;
     }
   }
   
   Debug(2, "ONVIF: Subscription renewed successfully");
-  healthy = true;
+  setHealthy(true);
   
   // Update renewal times from renew response
   if (wsnt__RenewResponse.TerminationTime != 0) {
@@ -1449,6 +1439,16 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
   // handle or display the fault here with soap_stream_fault(soap, std::cerr);
   // return HTTP 202 Accepted
   return soap_send_empty_response(soap, SOAP_OK);
+}
+#else
+// Stub implementation when gSOAP is not available
+void ONVIF::Run() {
+  Debug(1, "ONVIF: Polling thread started but gSOAP not compiled in");
+  // Just wait for termination signal since we can't do anything without gSOAP
+  while (!terminate_ && !zm_terminate) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+  Debug(1, "ONVIF: Polling thread exiting");
 }
 #endif
 

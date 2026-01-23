@@ -593,6 +593,8 @@ void MonitorStream::runStream() {
       continue;
     }
     monitor->setLastViewed();
+    if (frame_type == FRAME_ANALYSIS)
+      monitor->setLastAnalysisViewed();
 
     if (paused) {
       if (!was_paused) {
@@ -705,7 +707,6 @@ void MonitorStream::runStream() {
             SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
-          /*
           if ((frame_type == FRAME_ANALYSIS) &&
               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
@@ -714,7 +715,7 @@ void MonitorStream::runStream() {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
-          } else*/ {
+          } else {
             //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
@@ -955,7 +956,7 @@ void MonitorStream::SingleImage(int scale) {
 
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
-  ZMPacket *snap = monitor->getSnapshot();
+  std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -980,7 +981,7 @@ void MonitorStream::SingleImageZip(int scale) {
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
-  ZMPacket *snap = monitor->getSnapshot();
+  std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

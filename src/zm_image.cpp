@@ -162,6 +162,48 @@ Image::Image(const std::string &filename) {
   update_function_pointers();
 }
 
+Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer,
+    unsigned long p_allocation, unsigned int p_padding) :
+  width(p_width),
+  height(p_height),
+  colours(p_colours),
+  padding(p_padding),
+  subpixelorder(p_subpixelorder),
+  allocation(p_allocation),
+  buffer(p_buffer),
+  holdbuffer(0) {
+
+    if (!initialised)
+      Initialise();
+    pixels = width * height;
+
+    if (!subpixelorder and (colours>1)) {
+      Debug(1, "Defaulting to RGBA Cuz %d %d", subpixelorder, colours);
+      // Default to RGBA when no subpixelorder is specified.
+      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+    }
+
+    imagePixFormat = AVPixFormat();
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+    Debug(1, "Choosing pixformat %s", toString().c_str());
+
+    if (p_buffer) {
+      if (!allocation) allocation = size;
+      buffertype = ZM_BUFTYPE_DONTFREE;
+      buffer = p_buffer;
+    } else {
+
+      Debug(3, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+          av_image_get_linesize(imagePixFormat, width, 0),
+          width, linesize * height + padding, size);
+
+      AllocImgBuffer(size);
+    }
+
+    update_function_pointers();
+  }
+
 Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) :
   width(p_width),
   height(p_height),
@@ -371,6 +413,11 @@ Image::Image(const Image &p_image) {
 
 Image::~Image() {
   DumpImgBuffer();
+}
+
+const std::string Image::toString() {
+  return stringtf("%dx%d colours:%d pixfmt:%d %s size %d", width, height, colours,
+      imagePixFormat, av_get_pix_fmt_name(imagePixFormat), size);
 }
 
 /* Should be called as part of program shutdown to free everything */
@@ -1740,7 +1787,8 @@ void Image::Overlay( const Image &image ) {
       /* RGBA\BGRA subpixel order - Alpha byte is last */
       while ( prdest < max_ptr ) {
         if ( *psrc ) {
-          RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
+          RED_PTR_RGBA(prdest) = *psrc;
+          //RED_PTR_RGBA(prdest) = GREEN_PTR_RGBA(prdest) = BLUE_PTR_RGBA(prdest) = *psrc;
         }
         prdest++;
         psrc++;
@@ -1846,8 +1894,9 @@ void Image::Blend( const Image &image, int transparency ) {
          && colours == image.colours
          && subpixelorder == image.subpixelorder
        ) ) {
-    Panic("Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
+    Error("Attempt to blend different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
           width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder );
+    return;
   }
 
   if ( transparency <= 0 )
@@ -1973,16 +2022,17 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 }
 
 /* New function to allow buffer re-using instead of allocating memory for the delta image every time */
-void Image::Delta(const Image &image, Image* targetimage) const {
+bool Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
-    Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
+    Error( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
            width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
+    return false;
   }
 
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
-
   if ( pdiff == nullptr ) {
-    Panic("Failed requesting writeable buffer for storing the delta image");
+    Error("Failed requesting writeable buffer for storing the delta image");
+    return false;
   }
 
 #ifdef ZM_IMAGE_PROFILING
@@ -2032,6 +2082,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
         static_cast<int64>(diff.count()),
         mil_pixels);
 #endif
+  return true;
 }
 
 const Vector2 Image::centreCoord(const char *text, int size = 1) const {

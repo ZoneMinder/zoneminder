@@ -64,6 +64,7 @@ class ZMPacket {
   int codec_imgsize;
   int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
   bool decoded;
+  bool analyzed;
   std::vector<ZoneStats> zone_stats;
   std::string  alarm_cause;
 #if HAS_NLOHMANN_JSON
@@ -137,7 +138,7 @@ class ZMPacketLock {
 
     ZMPacketLock() :
       packet_(nullptr),
-      locked(false) { Debug(1, "New empty"); };
+      locked(false) {};
 
     explicit ZMPacketLock(std::shared_ptr<ZMPacket> p) :
       packet_(p),

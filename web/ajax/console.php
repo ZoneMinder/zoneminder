@@ -145,7 +145,7 @@ function queryRequest() {
   }
   
   // Build SQL query
-  $sql = 'SELECT M.*, S.*, E.*
+  $sql = 'SELECT M.*, S.*, E.*, (SELECT Name FROM Manufacturers WHERE Manufacturers.Id=M.ManufacturerId) AS Manufacturer, (SELECT Name FROM Models where Models.Id=M.ModelId) AS Model
     FROM Monitors AS M
     LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
     LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
@@ -293,6 +293,8 @@ function queryRequest() {
     $row['Name'] = validHtmlStr($monitor['Name']);
     $row['Function'] = $monitor['Function'];
     $row['Enabled'] = $monitor['Enabled'];
+    $row['Manufacturer'] = $monitor['Manufacturer'];
+    $row['Model'] = $monitor['Model'];
     $row['Sequence'] = isset($monitor['Sequence']) ? $monitor['Sequence'] : 0;
     
     // Status

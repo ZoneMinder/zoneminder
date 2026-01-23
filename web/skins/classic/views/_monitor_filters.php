@@ -18,21 +18,33 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-function addFilterSelect($name, $options) {
-  global $view;
-  
-  // Get selected value from cookie only
+// Helper function to get filter value from request or cookie
+// We get from request so that we can use bookmarks
+// Otherwise everything is done in js in cookies.
+function getFilterSelection($name) {
   $selectedValue = '';
+  $cookieValue = '';
+  $cookieName = 'zmFilter_'.$name;
+
   if (isset($_REQUEST[$name])) {
     $selectedValue = $_REQUEST[$name];
-  } else if (isset($_COOKIE['zmFilter_'.$name])) {
-    $cookieValue = $_COOKIE['zmFilter_'.$name];
+    $cookieValue = json_encode($selectedValue);
+    if (!isset($_COOKIE[$cookieName]) or ($_COOKIE[$cookieName] != $cookieValue)) {
+      zm_setcookie($cookieName, $cookieValue);
+    }
+  } else if (isset($_COOKIE[$cookieName])) {
+    $cookieValue = $_COOKIE[$cookieName];
     if ($cookieValue && $cookieValue !== '') {
       // Try to decode JSON for array values
       $decoded = json_decode($cookieValue, true);
       $selectedValue = ($decoded !== null) ? $decoded : $cookieValue;
     }
   }
+  return $selectedValue;
+}
+
+function addFilterSelect($name, $options, $selectedValue=null) {
+  if ($selectedValue == null) $selectedValue = getFilterSelection($name);
   
   $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
   $html .= '<span class="term-value-wrapper">';
@@ -70,21 +82,6 @@ function buildMonitorsFilters() {
   global $user, $Servers, $view;
   require_once('includes/Monitor.php');
   
-  // Helper function to get filter value from cookie
-  function getFilterSelection($var) {
-    if (isset($_REQUEST[$var]))
-      return $_REQUEST[$var];
-    $cookieName = 'zmFilter_'.$var;
-    if (isset($_COOKIE[$cookieName])) {
-      $cookieValue = $_COOKIE[$cookieName];
-      if ($cookieValue && $cookieValue !== '') {
-        // Try to decode JSON for array values
-        $decoded = json_decode($cookieValue, true);
-        return ($decoded !== null) ? $decoded : $cookieValue;
-      }
-    }
-    return null;
-  }
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -113,15 +110,9 @@ function buildMonitorsFilters() {
     }
 
     if (count($GroupsById)) {
-      $html .= '<span class="term" id="groupControl"><label>'. translate('Group') .'</label>';
-      $html .= '<span class="term-value-wrapper">';
-      # This will end up with the group_id of the deepest selection
       $group_id = getFilterSelection('GroupId');
-      $html .= ZM\Group::get_group_dropdown($view);
+      $html .= addFilterSelect('GroupId', ZM\Group::get_dropdown_options(), $group_id);
       $groupSql = ZM\Group::get_group_sql($group_id);
-      $html .= addButtonResetForFilterSelect('GroupId[]');
-      $html .= '</span>';
-      $html .= '</span>';
     }
   }
 
@@ -162,9 +153,9 @@ function buildMonitorsFilters() {
   $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'" data-on-input="monitorFilterOnChange"/></span>';
   $html .= '</span>'.PHP_EOL;
 
-  $html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));
-  $html .= addFilterSelect('Analysing', array('None'=>translate('None'), 'Always'=>translate('Always')));
-  $html .= addFilterSelect('Recording', array('None'=>translate('None'), 'OnMotion'=>translate('On Motion'),'Always'=>translate('Always')));
+  $html .= addFilterSelect('Capturing', ['None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')]);
+  $html .= addFilterSelect('Analysing', ['None'=>translate('None'), 'Always'=>translate('Always')]);
+  $html .= addFilterSelect('Recording', ['None'=>translate('None'), 'OnMotion'=>translate('On Motion'),'Always'=>translate('Always')]);
 
   if ( count($ServersById) > 1 ) {
     $html .= '<span class="term ServerFilter"><label>'. translate('Server').'</label>';

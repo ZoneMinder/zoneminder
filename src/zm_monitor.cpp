@@ -1087,7 +1087,7 @@ bool Monitor::connect() {
     Fatal("Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
   }
   mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
-  if ((int)mem_ptr == -1) {
+  if (static_cast<void *>(mem_ptr) == -1) {
     Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif // ZM_MEM_MAPPED
@@ -1194,7 +1194,14 @@ bool Monitor::connect() {
     }
 
     if (onvif_event_listener) {
+      // Clean up existing ONVIF object to prevent memory leak and duplicate threads
+      if (onvif) {
+        Debug(1, "Cleaning up existing ONVIF object before reconnect");
+        delete onvif;
+        onvif = nullptr;
+      }
       onvif = new ONVIF(this);
+      onvif->start();
     }  // End ONVIF Setup
 
 #if MOSQUITTOPP_FOUND
@@ -1368,7 +1375,7 @@ int Monitor::GetImage(int32_t index, int scale) {
   }
 }
 
-ZMPacket *Monitor::getSnapshot(int index) const {
+std::shared_ptr<ZMPacket> Monitor::getSnapshot(int index) const {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
@@ -1377,8 +1384,9 @@ ZMPacket *Monitor::getSnapshot(int index) const {
     return nullptr;
   }
   if (index != image_buffer_count) {
-    return new ZMPacket(image_buffer[index],
+    std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket> (image_buffer[index],
                         SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
+    return packet;
   } else {
     Error("Unable to generate image, no images in buffer");
   }
@@ -1386,7 +1394,7 @@ ZMPacket *Monitor::getSnapshot(int index) const {
 }
 
 SystemTimePoint Monitor::GetTimestamp(int index) const {
-  ZMPacket *packet = getSnapshot(index);
+  std::shared_ptr<ZMPacket> packet = getSnapshot(index);
   if (packet)
     return packet->timestamp;
 
@@ -1645,7 +1653,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
-    ZMPacket *packet = getSnapshot(index);
+    std::shared_ptr<ZMPacket>packet = getSnapshot(index);
     zone_image = new Image(*packet->image);
   } else {
     Debug(3, "Trying to load from event");
@@ -1735,7 +1743,7 @@ bool Monitor::CheckSignal(const Image *image) {
   int index = 0;
   for (int i = 0; i < signal_check_points; i++) {
     while (true) {
-      // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
+      // Why the casting to long long?
       index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
       if (!config.timestamp_on_capture || !label_format[0])
         break;
@@ -1884,9 +1892,9 @@ void Monitor::UpdateFPS() {
 }  // void Monitor::UpdateFPS()
 
 //Thread where ONVIF polling, and other similar status polling can happen.
-//Since these can be blocking, run here to avoid intefering with other processing
+//Since these can be blocking, run here to avoid intefering with other processing.
+//Loop runs every 10 seconds.
 bool Monitor::Poll() {
-  // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (use_Amcrest_API) {
@@ -1897,16 +1905,6 @@ bool Monitor::Poll() {
       Amcrest_Manager = new AmcrestAPI(this);
     }
   }
-
-  if (onvif) {
-    if (onvif->isHealthy()) {
-      onvif->WaitForMessage();
-    } else {
-      delete onvif;
-      onvif = new ONVIF(this);
-      onvif->start();
-    }
-  }  // end if Amcrest or not
 
   if (RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");
@@ -2029,9 +2027,11 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-            Debug(1, "assigning refimage from y-channel");
-            ref_image.Assign(*(packet->y_image));
+          if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+            if (packet->y_image) {
+              Debug(1, "assigning refimage from y-channel");
+              ref_image.Assign(*(packet->y_image));
+            }
           } else if (packet->image) {
             Debug(1, "assigning refimage from packet->image");
             ref_image.Assign(*(packet->image));
@@ -2124,27 +2124,30 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-                  ref_image.Assign(*(packet->y_image));
-                } else {
+                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+                  // If not decoding, y_image can be null
+                  if (packet->y_image) ref_image.Assign(*(packet->y_image));
+                } else if (packet->image) {
                   ref_image.Assign(*(packet->image));
+                } else {
+                  Debug(1, "No image to ref yet");
                 }
-                //alarm_image.Assign(*(packet->image));
+                alarm_image.Assign(*(packet->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
-                  Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
+                  Debug(1, "Detecting motion on image %d, image %p, y_image %p", packet->image_index, packet->image, packet->y_image);
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
                     motion_score += DetectMotion(*(packet->y_image), zoneSet);
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->y_image));
                   } else {
                     motion_score += DetectMotion(*(packet->image), zoneSet);
-                    if (!packet->analysis_image)
-                      packet->analysis_image = new Image(*(packet->image));
                   }
+
+                  // Instead of showing a greyscale image, let's use the full colour
+                  if (!packet->analysis_image)
+                    packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
                   packet->zone_stats.reserve(zones.size());
@@ -2163,7 +2166,6 @@ bool Monitor::Analyse() {
                     zone_scores[zone_index] = zone.Score();
                     zone_index ++;
                   }
-                  //alarm_image.Assign(*(packet->analysis_image));
                   Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                         score, last_motion_score, motion_score);
                   motion_frame_count += 1;
@@ -2180,9 +2182,15 @@ bool Monitor::Analyse() {
                   //score += last_motion_score;
                 }
 
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
+                if (hasAnalysisViewers()) {
+                  // These extra copies are expensive, so only do it if we have viewers.
+                  alarm_image.Assign(*(packet->analysis_image ? packet->analysis_image : packet->image));
+                }
+
+                if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   Debug(1, "Blending from y-channel");
-                  ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  if (packet->y_image)
+                    ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (packet->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),
@@ -2451,6 +2459,7 @@ bool Monitor::Analyse() {
       //packet->out_frame = nullptr;
     }
   }  // end scope for event_lock
+  packet->analyzed = true;
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it);
@@ -2839,31 +2848,35 @@ bool Monitor::Decode() {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
 
-  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-        ||
-        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-      ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
-    if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-      packet->y_image->Scale(camera_width, camera_height);
+  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+    if (packet->in_frame && (
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
+          ||
+          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
+          ) ) {
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
 
-    if (orientation != ROTATE_0) {
-      switch (orientation) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 :
-        packet->y_image->Rotate((orientation-1)*90);
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        packet->y_image->Flip(orientation==FLIP_HORI);
-        break;
-      }
-    } // end if have rotation
+      if (orientation != ROTATE_0) {
+        switch (orientation) {
+          case ROTATE_0 :
+            // No action required
+            break;
+          case ROTATE_90 :
+          case ROTATE_180 :
+          case ROTATE_270 :
+            packet->y_image->Rotate((orientation-1)*90);
+            break;
+          case FLIP_HORI :
+          case FLIP_VERT :
+            packet->y_image->Flip(orientation==FLIP_HORI);
+            break;
+        }
+      } // end if have rotation
+    } else if (decoding == DECODING_ALWAYS) {
+      Error("Want to use y-channel, but no in_frame or wrong format");
+    }
   }
 
   if (packet->image) {
@@ -3123,10 +3136,12 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
   if (zones.empty()) {
     Warning("No zones to check!");
-    return alarm;
+    return 0;
   }
 
-  ref_image.Delta(comp_image, &delta_image);
+  if (!ref_image.Delta(comp_image, &delta_image)) {
+    return 0;
+  }
 
   if (config.record_diag_images) {
     ref_image.WriteJpeg(diag_path_ref, config.record_diag_images_fifo);
@@ -3608,7 +3623,7 @@ std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if (!groups.size()) {
     std::string sql = stringtf(
-                        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
+                        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups`.`Id` IN "
                         "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
     MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {

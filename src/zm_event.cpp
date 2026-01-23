@@ -122,7 +122,7 @@ Event::Event(
     video_incomplete_file = "incomplete."+container;
   }
 
-  std::string now_str = SystemTimePointToString(now);
+  std::string now_str = SystemTimePointToMysqlString(now);
 
   std::string sql = stringtf(
                       "INSERT INTO `Events` "
@@ -166,10 +166,12 @@ Event::Event(
       " VALUES (%" PRId64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
+  /*
   sql = stringtf("INSERT INTO `Events_Year` (EventId,MonitorId,StartDateTime,DiskSpace)"
       " VALUES (%" PRId64 ",%u,'%s',NULL)",
       id, monitor->Id(), now_str.c_str());
   dbQueue.push(std::move(sql));
+  */
   sql = stringtf("INSERT INTO Event_Summaries "
       "(MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents)"
       " VALUES (%u,1,1,1,1,1) ON DUPLICATE KEY UPDATE"

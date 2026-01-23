@@ -96,6 +96,47 @@ ssize_t ZMPacket::ram() {
          (analysis_image ? analysis_image->Size() : 0);
 }
 
+int ZMPacket::send_packet(AVCodecContext *ctx) {
+  // ret == 0 means EAGAIN
+  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
+  int ret = avcodec_send_packet(ctx, packet.get());
+  if (ret == AVERROR(EAGAIN)) {
+    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    //ret = avcodec_send_packet(ctx, packet.get());
+    return 0;
+  }
+  if (ret < 0) {
+    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
+  }
+  Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+  return 1;
+}
+
+int ZMPacket::receive_frame(AVCodecContext *ctx) {
+  av_frame_ptr receive_frame{av_frame_alloc()};
+  if (!receive_frame) {
+    Error("Error allocating frame");
+    return 0;
+  }
+  int ret = avcodec_receive_frame(ctx, receive_frame.get());
+  Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+  if (ret == AVERROR(EAGAIN)) {
+    return 0;
+  } else if (ret == AVERROR(EOF)) {
+    Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
+  } else if (ret < 0) {
+    Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+    return ret;
+  }
+
+  in_frame = std::move(receive_frame);
+  //zm_dump_video_frame(in_frame.get(), "got frame");
+
+  return 1;
+}  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
+
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success
  * This functions job is to populate in_frame with the image in an appropriate
  * format. It MAY also populate image if able to.  In this case in_frame is populated
@@ -203,11 +244,6 @@ int ZMPacket::decode(AVCodecContext *ctx) {
             av_get_pix_fmt_name(ctx->pix_fmt),
             av_get_pix_fmt_name(ctx->sw_pix_fmt)
            );
-#if 0
-    if ( image ) {
-      image->Assign(in_frame);
-    }
-#endif
   return bytes_consumed;
 } // end ZMPacket::decode
 

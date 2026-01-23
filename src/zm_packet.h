@@ -80,6 +80,8 @@ class ZMPacket {
   ssize_t ram();
 
   int is_keyframe() { return keyframe; };
+  int send_packet(AVCodecContext *ctx);
+  int receive_frame(AVCodecContext *ctx);
   int decode(AVCodecContext *ctx);
   explicit ZMPacket(Image *image, SystemTimePoint tv);
   explicit ZMPacket(ZMPacket &packet);

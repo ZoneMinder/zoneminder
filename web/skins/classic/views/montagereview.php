@@ -250,6 +250,7 @@ if (isset($_REQUEST['displayinterval']))
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {
   if ($minTime >= $maxTime) {
+    if (!isset($error_message)) $error_message = '';
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
@@ -280,10 +281,10 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$html = '<a class="flip" href="#" 
-         data-flip-control-object="#mfbpanel" 
-         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-         data-flip-сontrol-run-after-complet-func="changeScale">
+$html = '<a class="flip" href="#"
+         data-flip-control-object="#mfbpanel"
+         data-flip-control-run-after-func="applyChosen drawGraph"
+         data-flip-control-run-after-complet-func="changeScale">
            <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
          </a>'.PHP_EOL;
 $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
@@ -314,7 +315,7 @@ if (count($filter->terms())) {
           <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
           <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
           <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
-          <button type="button" id="lasteight" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
+          <button type="button" id="last24" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
           <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
           <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
@@ -334,7 +335,7 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
-<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
+<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-control-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
             <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
           </button>
         </div>

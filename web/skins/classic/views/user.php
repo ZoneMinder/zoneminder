@@ -150,6 +150,97 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView());
             </tbody>
           </table>
         </div><!--end basic information-->
+
+<?php if (ZM_OPT_USE_API && $User->Id() && $User->APIEnabled()) {
+  // Determine profile name: ZM_WEB_TITLE if not default, else ZM_HOME_URL if not default, else 'ZoneMinder'
+  $profileName = 'ZoneMinder';
+  if (defined('ZM_WEB_TITLE') && ZM_WEB_TITLE !== 'ZoneMinder' && ZM_WEB_TITLE !== '') {
+    $profileName = ZM_WEB_TITLE;
+  } else if (defined('ZM_HOME_URL') && ZM_HOME_URL !== 'https://zoneminder.com' && ZM_HOME_URL !== '') {
+    $profileName = ZM_HOME_URL;
+  }
+
+  // Construct portal URL from current request
+  $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+  $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+  $path = dirname($_SERVER['SCRIPT_NAME']);
+  $portalUrl = $protocol . '://' . $host . $path;
+?>
+        <div class="zmNgOnboarding mt-4">
+          <fieldset>
+            <legend>
+              <a data-toggle="collapse" href="#zmNgQRSection" role="button" aria-expanded="false" aria-controls="zmNgQRSection">
+                <?php echo translate('zmNg Mobile App QR Code') ?> <i class="fa fa-chevron-down"></i>
+              </a>
+            </legend>
+            <div class="collapse" id="zmNgQRSection">
+              <p class="text-muted"><?php echo translate('Generate a QR code to quickly set up this user in the zmNg mobile app. Enter the user\'s password to generate the QR code.') ?></p>
+              <div class="form-group row">
+                <label for="zmng_password" class="col-sm-3 col-form-label"><?php echo translate('Password') ?></label>
+                <div class="col-sm-6">
+                  <input type="password" class="form-control" id="zmng_password" placeholder="<?php echo translate('Enter password for QR code') ?>"/>
+                  <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="zmng_password">visibility</span>
+                </div>
+                <div class="col-sm-3">
+                  <button type="button" class="btn btn-primary" id="generateQRBtn"><?php echo translate('Generate QR Code') ?></button>
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-sm-3"></div>
+                <div class="col-sm-9">
+                  <div id="zmNgQRCode" style="padding: 10px; background: white; display: inline-block;"></div>
+                  <div id="zmNgQRMessage" class="text-muted mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <script src="<?php echo cache_bust('js/qrcode.min.js') ?>" nonce="<?php echo $cspNonce ?>"></script>
+        <script nonce="<?php echo $cspNonce ?>">
+        document.addEventListener('DOMContentLoaded', function() {
+          var qrcode = null;
+          var profileName = <?php echo json_encode($profileName) ?>;
+          var portalUrl = <?php echo json_encode($portalUrl) ?>;
+          var username = <?php echo json_encode($User->Username()) ?>;
+
+          document.getElementById('generateQRBtn').addEventListener('click', function() {
+            var password = document.getElementById('zmng_password').value;
+            var qrContainer = document.getElementById('zmNgQRCode');
+            var qrMessage = document.getElementById('zmNgQRMessage');
+
+            if (!password) {
+              qrMessage.innerHTML = '<span class="text-warning"><?php echo translate('Please enter a password') ?></span>';
+              return;
+            }
+
+            // Clear previous QR code
+            qrContainer.innerHTML = '';
+            qrMessage.innerHTML = '';
+
+            // Create QR code data in zmNg format
+            var qrData = JSON.stringify({
+              n: profileName,
+              p: portalUrl,
+              u: username,
+              pw: password
+            });
+
+            // Generate QR code
+            qrcode = new QRCode(qrContainer, {
+              text: qrData,
+              width: 200,
+              height: 200,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.M
+            });
+
+            qrMessage.innerHTML = '<span class="text-success"><?php echo translate('Scan this QR code with the zmNg app to add this profile') ?></span>';
+          });
+        });
+        </script>
+<?php } ?>
+
 <?php
 if (canEdit('System')) {
 ?>

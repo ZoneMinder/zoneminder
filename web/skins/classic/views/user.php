@@ -169,22 +169,17 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView());
         <div class="zmNgOnboarding mt-4">
           <fieldset>
             <legend><?php echo translate('zmNg Mobile App QR Code') ?></legend>
-            <div id="zmNgQRSection">
-              <p class="text-muted"><?php echo translate('Generate a QR code to quickly set up this user in the zmNg mobile app. Optionally enter the user\'s password to include it in the QR code.') ?></p>
-              <div class="form-group row">
-                <label for="zmNgPassword" class="col-sm-3 col-form-label"><?php echo translate('Password') ?></label>
-                <div class="col-sm-6">
-                  <input type="password" class="form-control" id="zmNgPassword" placeholder="<?php echo translate('Enter password for QR code') ?>" style="width: 80%; display: inline;"/>
-                  <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="zmNgPassword">visibility</span>
-                </div>
+            <div id="zmNgQRSection" class="text-center py-3">
+              <div id="zmNgQRCode" style="padding: 15px; background: white; display: inline-block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></div>
+              <div id="zmNgQRMessage" class="text-muted mt-2 mb-3">
+                <small><?php echo translate('Scan this QR code with the zmNg app to add this profile') ?></small>
               </div>
-              <div class="form-group row">
-                <div class="col-sm-3"></div>
-                <div class="col-sm-9">
-                  <div id="zmNgQRCode" style="padding: 10px; background: white; display: inline-block;"></div>
-                  <div id="zmNgQRMessage" class="text-muted mt-2"></div>
-                </div>
+              <div class="form-inline justify-content-center">
+                <label for="zmNgPassword" class="mr-2"><?php echo translate('Password') ?>:</label>
+                <input type="password" class="form-control form-control-sm" id="zmNgPassword" placeholder="<?php echo translate('Optional') ?>" style="width: 200px;"/>
+                <span class="material-icons md-18 ml-1" style="cursor: pointer;" data-on-click-this="toggle_password_visibility" data-password-input="zmNgPassword">visibility</span>
               </div>
+              <div class="text-muted mt-2"><small><?php echo translate('Enter password to include it in the QR code') ?></small></div>
             </div>
           </fieldset>
         </div>

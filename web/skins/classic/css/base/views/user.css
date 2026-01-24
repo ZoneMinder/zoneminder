@@ -4,7 +4,7 @@
 }
 
 #GroupsPermissions,
-#MonitorsPermissions {
+#MonitorPermissions {
   clear:both;
 }
 
@@ -35,4 +35,10 @@
 }
 #contentButtons {
   margin-left: auto;
+}
+
+
+#GroupsPermissions .table th,
+#MonitorPermissions .table th {
+  text-align: left;
 }

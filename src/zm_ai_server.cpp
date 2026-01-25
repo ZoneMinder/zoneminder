@@ -56,6 +56,7 @@ and perform AI analysis on latest frames
 #include "zm_time.h"
 #include "zm_utils.h"
 
+#include <cstdint>
 #include <getopt.h>
 #include <iostream>
 #include <thread>
@@ -444,7 +445,7 @@ void AIThread::Run() {
     decoder_image_count = shared_data->decoder_image_count;
     while ((shared_data->last_decoder_index == image_buffer_count) and !(zm_terminate or terminate_)) {
       Microseconds delay = Microseconds(30000);
-      Debug(1, "Sleeping for %ld microseconds waiting for decoder last_decoder_index %d count %d", delay.count(),
+      Debug(1, "Sleeping for %jd microseconds waiting for decoder last_decoder_index %d count %d", static_cast<intmax_t>(delay.count()),
           shared_data->last_decoder_index, shared_data->decoder_image_count);
       std::this_thread::sleep_for(delay);
     }
@@ -487,7 +488,7 @@ void AIThread::Run() {
           Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / capture_fps));
           if (delay < Microseconds(3000)) delay = Microseconds(3000);
           if (delay > Microseconds(30000)) delay = Microseconds(30000);
-          Debug(4, "Sleeping for %ld microseconds after queuing", delay.count());
+          Debug(4, "Sleeping for %jd microseconds after queuing", static_cast<intmax_t>(delay.count()));
           std::this_thread::sleep_for(delay);
         }
       }
@@ -502,7 +503,7 @@ void AIThread::Run() {
         Microseconds delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / 2*capture_fps));
         if (delay < Microseconds(20000)) delay = Microseconds(20000);
         if (delay > Microseconds(300000)) delay = Microseconds(300000);
-        Debug(4, "Sleeping for %ld microseconds waiting for image", delay.count());
+        Debug(4, "Sleeping for %jd microseconds waiting for image", static_cast<intmax_t>(delay.count()));
         std::this_thread::sleep_for(delay);
       }
     }  // end if have a new image

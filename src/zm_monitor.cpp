@@ -3653,7 +3653,7 @@ int Monitor::Decode() {
           capture_image->Flip(orientation == FLIP_HORI);
           break;
       }
-      packet->image->PopulateFrame(packet->in_frame.get());
+      //packet->image->PopulateFrame(packet->in_frame.get());
     }  // end if have rotation
 
     if (privacy_bitmask) {

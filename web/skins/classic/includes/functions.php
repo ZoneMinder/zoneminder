@@ -426,6 +426,7 @@ function output_link_if_exists($files, $cache_bust=true, $param=false) {
 function output_script($files, $cache_bust=true, $must_exist=true) {
   global $skin;
   $html = array();
+  if (!is_array($files)) $files = [$files];
   foreach ( $files as $file ) {
     $found = false;
     if ( file_exists('skins/'.$skin.'/'.$file) ) {

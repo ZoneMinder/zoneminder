@@ -382,13 +382,6 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  av_frame_ptr dest_frame{av_frame_alloc()};
-  if (!dest_frame) {
-    Error("Unable to allocate destination frame");
-    return false;
-  }
-  Debug(1, "Getting convert ctx for %dx%d %d to %dx%d %d %p", frame->width, frame->height, frame->format,
-      width, height, format, sws_convert_context);
   sws_convert_context = sws_getCachedContext(
                           sws_convert_context,
                           frame->width, frame->height, (AVPixelFormat)frame->format,
@@ -399,12 +392,18 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
-  bool result = Assign(frame, sws_convert_context, dest_frame.get());
+  bool result = Assign(frame, sws_convert_context);
+  update_function_pointers();
   return result;
 }  // end Image::Assign(const AVFrame *frame)
 
-bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame) {
-  PopulateFrame(temp_frame);
+bool Image::Assign(const AVFrame *frame, SwsContext *convert_context) {
+  av_frame_ptr temp_frame{av_frame_alloc()};
+  if (!temp_frame) {
+    Error("Unable to allocate destination frame");
+    return false;
+  }
+  PopulateFrame(temp_frame.get());
   zm_dump_video_frame(frame, "source frame before convert");
   zm_dump_video_frame(temp_frame, "dest frame before convert");
   temp_frame->pts = frame->pts;

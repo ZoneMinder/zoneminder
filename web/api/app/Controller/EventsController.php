@@ -149,12 +149,17 @@ class EventsController extends AppController {
       'contain'=>[]
     );
 
-    if (isset($conditions['GroupId'])) {
-      $settings['joins'][] = [
-        'table' => 'Groups_Monitors',
-        'type' => 'inner',
-        'conditions' => ['Groups_Monitors.MonitorId = Event.MonitorId'],
-      ];
+    $settings['contain'] = [];
+    if ( isset($conditions['GroupId']) ) {
+      $settings['joins'] = array(
+        array(
+          'table' => 'Groups_Monitors',
+          'type' => 'inner',
+          'conditions' => array(
+            'Groups_Monitors.MonitorId = Event.MonitorId'
+          ),
+        ),
+      );
       $settings['contain'][] = 'Group';
     }
     if ($tag_filter_value !== null) {

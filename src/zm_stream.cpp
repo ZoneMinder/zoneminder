@@ -80,14 +80,18 @@ bool StreamBase::initContexts(int in_width, int in_height, AVPixelFormat format,
     mJpegCodecContext->pix_fmt = chosen_codec_data->sw_pix_fmt;
     mJpegCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
-    int quality = config.jpeg_file_quality;
+    // Convert libjpeg-style quality (1-100) to FFmpeg MJPEG qscale (1-31)
+    // Lower qscale = better quality. quality 100 -> qscale 2, quality 1 -> qscale 31
+    int qscale = 2 + ((100 - static_cast<int>(quality)) * 29 / 100);
+    if (qscale < 1) qscale = 1;
+    if (qscale > 31) qscale = 31;
 
-    //(alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
-    //config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
-    mJpegCodecContext->qcompress = quality/100.0; // 0-1
-    //mJpegCodecContext->qmax = 1;
-    //mJpegCodecContext->qmin = 1; //quality/100.0; // 0-1
-    mJpegCodecContext->global_quality = quality/100.0; // 0-1
+    mJpegCodecContext->flags |= AV_CODEC_FLAG_QSCALE;
+    mJpegCodecContext->global_quality = qscale * FF_QP2LAMBDA;
+    mJpegCodecContext->qmin = qscale;
+    mJpegCodecContext->qmax = qscale;
+    Debug(1, "MJPEG quality: input=%u, qscale=%d, global_quality=%d",
+        quality, qscale, mJpegCodecContext->global_quality);
 
     Debug(1, "Setting pix fmt to %d %s, sw_pix_fmt %d %s %dx%d",
         chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),

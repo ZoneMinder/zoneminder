@@ -22,6 +22,7 @@
 #include "zm_signal.h"
 #include "zm_utils.h"
 
+#include <cstdint>
 #include <cstring>
 #include "url.hpp"
 
@@ -75,6 +76,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,subscription_termination_time()
   ,next_renewal_time()
   ,use_absolute_time_for_renewal(false)
+  ,renewal_enabled(true)
 #endif
   ,terminate_(false)
 {
@@ -724,8 +726,8 @@ void ONVIF::cleanup_subscription() {
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
-    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
-         pull_timeout_seconds, subscription_timeout_seconds);
+    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s",
+         pull_timeout_seconds, subscription_timeout_seconds, renewal_enabled ? "true" : "false");
     return;
   }
 
@@ -783,11 +785,18 @@ void ONVIF::parse_onvif_options() {
       Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
     } else if (key == "closes_event") {
       closes_event = true;
+    } else if (key == "renewal_enabled") {
+      if (value == "false" || value == "0" || value == "no") {
+        renewal_enabled = false;
+        Info("ONVIF: Renewal disabled via option - will re-subscribe when subscription expires");
+      } else {
+        renewal_enabled = true;
+      }
     }
   }
 
-  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
-       pull_timeout_seconds, subscription_timeout_seconds);
+  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s",
+       pull_timeout_seconds, subscription_timeout_seconds, renewal_enabled ? "true" : "false");
 }
 
 // Calculate exponential backoff delay for retries
@@ -826,10 +835,12 @@ void ONVIF::update_renewal_times(time_t termination_time) {
           SystemTimePointToString(now).c_str());
       use_absolute_time_for_renewal = true;
     } else {
-      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, despite using absolute time for renewals.",
+      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, despite using absolute time. "
+          "Disabling renewal - will re-subscribe when subscription expires.",
           static_cast<long>(termination_time),
           SystemTimePointToString(subscription_termination_time).c_str(),
           SystemTimePointToString(now).c_str());
+      renewal_enabled = false;
     }
     return;
   }
@@ -861,15 +872,15 @@ void ONVIF::log_subscription_timing(const char* context) {
   auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
     next_renewal_time - now).count();
   
-  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
+  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %jds), renewal at %s (in %jds)",
        context, SystemTimePointToString(subscription_termination_time).c_str(),
-       seconds_until_termination,
+       static_cast<intmax_t>(seconds_until_termination),
        SystemTimePointToString(next_renewal_time).c_str(),
-       seconds_until_renewal);
+       static_cast<intmax_t>(seconds_until_renewal));
   
   // Warn if we're getting close to termination
   if (seconds_until_termination < ONVIF_RENEWAL_ADVANCE_SECONDS && seconds_until_termination > 0) {
-    Warning("ONVIF: Subscription terminating soon! Only %ld seconds remaining", seconds_until_termination);
+    Warning("ONVIF: Subscription terminating soon! Only %jd seconds remaining", static_cast<intmax_t>(seconds_until_termination));
   }
 #endif
 }
@@ -965,6 +976,12 @@ bool ONVIF::Renew() {
 // Returns true if renewal should be performed now, false if not yet needed
 bool ONVIF::IsRenewalNeeded() {
 #ifdef WITH_GSOAP
+  // Check if renewal is disabled (camera doesn't support it or returns invalid times)
+  if (!renewal_enabled) {
+    Debug(2, "ONVIF: Renewal disabled, will re-subscribe when subscription expires");
+    return false;
+  }
+
   // Check if we have valid renewal times set
   if (!is_renewal_tracking_initialized()) {
     // No renewal tracking set up yet, always renew (backward compatibility)
@@ -977,7 +994,7 @@ bool ONVIF::IsRenewalNeeded() {
     // Time to renew
     auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
       now - next_renewal_time).count();
-    Debug(1, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    Debug(1, "ONVIF: Subscription renewal needed (overdue by %jd seconds)", static_cast<intmax_t>(seconds_overdue));
     return true;
   }
   

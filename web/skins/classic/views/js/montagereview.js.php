@@ -45,6 +45,9 @@ var imageLoadTimesEvaluated=0;   // running count
 var imageLoadTimesNeeded=15;     // and how many we need
 var timeLabelsFractOfRow = 0.9;
 
+const events = {};
+const events_for_monitor = {};
+
 <?php
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
@@ -56,49 +59,6 @@ $anyAlarms = false;
 $maxScore = 0;
 
 if (!$liveMode) {
-  echo "const events = {\n";
-  $EventsById = array();
-
-if (0) {
-  $result = dbQuery($eventsSql);
-  if ($result) {
-    while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
-      $EventsById[$event['Id']] = $event;
-    }
-  }
-
-  $events_by_monitor_id = array();
-
-  $eventMaxSecs = 0;
-  foreach ($EventsById as $event_id=>$event) {
-    $StartTimeSecs = $event['StartTimeSecs'];
-    $EndTimeSecs = $event['EndTimeSecs'];
-
-    # It isn't neccessary to do this for each event. We should be able to just look at the first and last
-    if ( !$minTimeSecs or $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
-    if ( !$maxTimeSecs or $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
-    if ($StartTimeSecs > $eventMaxSecs) $eventMaxSecs = $StartTimeSecs;
-
-    $event_json = json_encode($event, JSON_PRETTY_PRINT|JSON_NUMERIC_CHECK);
-    echo " $event_id : $event_json,\n";
-
-    $index = $index + 1;
-    if ( $event['MaxScore'] > 0 ) {
-      if ( $event['MaxScore'] > $maxScore )
-        $maxScore = $event['MaxScore'];
-      $anyAlarms = true;
-    }
-    if (!isset($events_by_monitor_id[$event['MonitorId']]))
-      $events_by_monitor_id[$event['MonitorId']] = array();
-    array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
-  } # end foreach Event
-  if ($eventMaxSecs < $maxTimeSecs) $maxTimeSecs = $eventMaxSecs;
-}
-  echo ' };
-
-  const events_for_monitor = {};
-  '; #.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK).PHP_EOL;
-
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {
     if ( isset($minTime) && isset($maxTime) ) {

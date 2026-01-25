@@ -269,7 +269,27 @@ function refreshParentWindow() {
 }
 
 if ( currentView != 'none' && currentView != 'login' ) {
-  $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
+  const t = "AJAX execution error: ";
+  $j.ajaxSetup({
+    timeout: AJAX_TIMEOUT, //sets timeout for all getJSON.
+    error: function(jqXHR, exception) {
+      if (exception === 'parsererror') {
+        console.trace(t + '"Requested JSON parse failed."');
+      } else if (exception === 'timeout') {
+        console.trace(t + '"Time out error."');
+      } else if (jqXHR.status === 0 && exception !== 'timeout') {
+        console.trace(t + '"Not connection Verify Network."');
+      } else if (jqXHR.status == 404) {
+        console.trace(t + '"Requested page not found [404]."');
+      } else if (jqXHR.status == 500) {
+        console.trace(t + '"Internal Server Error [500]."');
+      } else {
+        console.trace(t + '"Uncaught Error."');
+        console.log('jqXHR.responseText:', jqXHR.responseText);
+        console.log('exception:', exception);
+      }
+    }
+  });
 
   $j(document).ready(function() {
     // List of functions that are allowed to be called via the value of an object's DOM attribute.

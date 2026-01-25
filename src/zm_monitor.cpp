@@ -3427,7 +3427,6 @@ int Monitor::Decode() {
     // Not fatal... because we can still record
     if ((!mVideoCodecContext) and camera->NeedsDecode()) {
       if (OpenDecoder() > 0) {
-      } // end if success opening codec
 
         // THe proper thing to do might be to remove packets until we hit a keyframe, then start inserting. 
         // If we don't enconter a keyframe, then.... keep popping off until we get one.
@@ -3456,6 +3455,14 @@ int Monitor::Decode() {
         } // end while packets in queue
         decoder_queue.clear();
         if (new_decoder_queue.size()) decoder_queue = std::move(new_decoder_queue);
+      } else {
+        // This
+        while (decoder_queue.size() and !zm_terminate) {
+          ZMPacketLock delayed_packet_lock = std::move(decoder_queue.front());
+          decoder_queue.pop_front();
+          delayed_packet_lock->packet_->decoded = true;
+        }
+      } // end if success opening codec
     } // end if ! mCodec
   } // end != DECODING_NONE
 
@@ -3692,7 +3699,7 @@ int Monitor::Decode() {
         image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
         image_buffer[index]->Assign(packet->ai_frame.get());
       } else if (packet->ai_image) {
-        Debug(1, "Assigning ai_frame for index %d", index);
+        Debug(1, "Assigning ai_image for index %d", index);
         image_buffer[index]->AVPixFormat(image_pixelformats[index] = static_cast<AVPixelFormat>(packet->ai_frame->format));
         image_buffer[index]->Assign(*(packet->ai_image));
       } else {

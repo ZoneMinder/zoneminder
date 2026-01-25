@@ -220,3 +220,4 @@ misc/nginx.conf
 misc/zm-sudo
 misc/zoneminder.desktop
 _codeql_detected_source_root
+.grepai/

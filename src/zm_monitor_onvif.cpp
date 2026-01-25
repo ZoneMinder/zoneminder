@@ -75,6 +75,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,subscription_termination_time()
   ,next_renewal_time()
   ,use_absolute_time_for_renewal(false)
+  ,renewal_enabled(true)
 #endif
   ,terminate_(false)
 {
@@ -724,8 +725,8 @@ void ONVIF::cleanup_subscription() {
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
-    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
-         pull_timeout_seconds, subscription_timeout_seconds);
+    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s",
+         pull_timeout_seconds, subscription_timeout_seconds, renewal_enabled ? "true" : "false");
     return;
   }
 
@@ -783,11 +784,18 @@ void ONVIF::parse_onvif_options() {
       Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
     } else if (key == "closes_event") {
       closes_event = true;
+    } else if (key == "renewal_enabled") {
+      if (value == "false" || value == "0" || value == "no") {
+        renewal_enabled = false;
+        Info("ONVIF: Renewal disabled via option - will re-subscribe when subscription expires");
+      } else {
+        renewal_enabled = true;
+      }
     }
   }
 
-  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds",
-       pull_timeout_seconds, subscription_timeout_seconds);
+  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s",
+       pull_timeout_seconds, subscription_timeout_seconds, renewal_enabled ? "true" : "false");
 }
 
 // Calculate exponential backoff delay for retries
@@ -826,10 +834,12 @@ void ONVIF::update_renewal_times(time_t termination_time) {
           SystemTimePointToString(now).c_str());
       use_absolute_time_for_renewal = true;
     } else {
-      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, despite using absolute time for renewals.",
+      Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, despite using absolute time. "
+          "Disabling renewal - will re-subscribe when subscription expires.",
           static_cast<long>(termination_time),
           SystemTimePointToString(subscription_termination_time).c_str(),
           SystemTimePointToString(now).c_str());
+      renewal_enabled = false;
     }
     return;
   }
@@ -965,6 +975,12 @@ bool ONVIF::Renew() {
 // Returns true if renewal should be performed now, false if not yet needed
 bool ONVIF::IsRenewalNeeded() {
 #ifdef WITH_GSOAP
+  // Check if renewal is disabled (camera doesn't support it or returns invalid times)
+  if (!renewal_enabled) {
+    Debug(2, "ONVIF: Renewal disabled, will re-subscribe when subscription expires");
+    return false;
+  }
+
   // Check if we have valid renewal times set
   if (!is_renewal_tracking_initialized()) {
     // No renewal tracking set up yet, always renew (backward compatibility)

@@ -74,6 +74,7 @@ class ONVIF {
   SystemTimePoint subscription_termination_time;  // When subscription expires
   SystemTimePoint next_renewal_time;  // When to perform next renewal (termination - 10s)
   bool use_absolute_time_for_renewal;  // Use absolute time instead of duration for renewals
+  bool renewal_enabled;  // Enable renewal attempts (some cameras don't support or return invalid times)
 
   // Helper methods
   void enable_soap_logging(const std::string &log_path);  // Enable SOAP message logging

@@ -3460,7 +3460,7 @@ int Monitor::Decode() {
         while (decoder_queue.size() and !zm_terminate) {
           ZMPacketLock delayed_packet_lock = std::move(decoder_queue.front());
           decoder_queue.pop_front();
-          delayed_packet_lock->packet_->decoded = true;
+          delayed_packet_lock.packet_->decoded = true;
         }
       } // end if success opening codec
     } // end if ! mCodec

@@ -163,7 +163,6 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-
     if (
         (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
         and
@@ -177,73 +176,29 @@ int ZMPacket::decode(AVCodecContext *ctx) {
             in_frame->format,
             av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
            );
-#if 0
-      if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
-        // Look for rgb0 in list of supported formats
-        enum AVPixelFormat *formats;
-        if ( 0 <= av_hwframe_transfer_get_formats(
-               ctx->hw_frames_ctx,
-               AV_HWFRAME_TRANSFER_DIRECTION_FROM,
-               &formats,
-               0
-             )	) {
-          for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
-            Debug(1, "Available dest formats %d %s",
-                  formats[i],
-                  av_get_pix_fmt_name(formats[i])
-                 );
-            if ( formats[i] == AV_PIX_FMT_RGB0 ) {
-              target_format = formats[i];
-              break;
-            }  // endif RGB0
-          }  // end foreach support format
-          av_freep(&formats);
-        }  // endif success getting list of formats
-      }  // end if target_format not set
-#endif
-
-      av_frame_ptr new_frame{av_frame_alloc()};
-#if 0
-      if ( target_format == AV_PIX_FMT_RGB0 ) {
-        if ( image ) {
-          if ( 0 > image->PopulateFrame(new_frame) ) {
-            delete new_frame;
-            new_frame = av_frame_alloc();
-            delete image;
-            image = nullptr;
-            new_frame->format = target_format;
-          }
-        }
-      }
-#endif
       /* retrieve data from GPU to CPU */
-      hw_frame = std::move(in_frame);
-      zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
-      ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
+      av_frame_ptr new_frame{av_frame_alloc()};
+      new_frame->format = ctx->sw_pix_fmt;
+      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
       if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
         return 0;
       }
-      ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
+      ret = av_frame_copy_props(new_frame.get(), in_frame.get());
       if (ret < 0) {
         Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
       }
 
       zm_dump_video_frame(new_frame.get(), "After hwtransfer");
-#if 0
-      if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
-        new_frame->format = AV_PIX_FMT_RGBA;
-        zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
-      }
-#endif
+      hw_frame = std::move(in_frame);
       in_frame = std::move(new_frame);
     } else
-#endif
-#endif
       Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
             av_get_pix_fmt_name(ctx->pix_fmt),
             av_get_pix_fmt_name(ctx->sw_pix_fmt)
            );
+#endif
+#endif
   return bytes_consumed;
 } // end ZMPacket::decode
 

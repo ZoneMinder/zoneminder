@@ -508,7 +508,7 @@ sub start {
         ."\n"
         );
 
-    if ( $daemon =~ /^${main::daemon_patt}$/ ) {
+    if ( $daemon =~ /^$daemon_patt$/ ) {
       $daemon = $Config{ZM_PATH_BIN}.'/'.$1;
     } else {
       Fatal("Invalid daemon '$daemon' specified");

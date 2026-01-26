@@ -100,11 +100,12 @@ class ONVIF {
   std::thread thread_;
   std::atomic<bool> terminate_;
   void Run();
+  void WaitForMessage();
+  void Subscribe();
  public:
   explicit ONVIF(Monitor *parent_);
   ~ONVIF();
   void start();
-  void WaitForMessage();
   bool isAlarmed() const { return alarmed_.load(std::memory_order_acquire); }
   void setAlarmed(bool p_alarmed) { alarmed_.store(p_alarmed, std::memory_order_release); }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }

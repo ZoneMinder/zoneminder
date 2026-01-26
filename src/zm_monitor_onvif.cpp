@@ -79,6 +79,47 @@ ONVIF::ONVIF(Monitor *parent_) :
 #endif
   ,terminate_(false)
 {
+  parse_onvif_options();
+
+  // Clamp pull_timeout_seconds to be less than renewal advance time
+  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
+    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
+            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
+    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
+  }
+
+  soap = soap_new();
+  soap->connect_timeout = 0;
+  soap->recv_timeout = 0;
+  soap->send_timeout = 0;
+  //soap->bind_flags |= SO_REUSEADDR;
+  soap_register_plugin(soap, soap_wsse);
+  // Always register WS-Addressing plugin to handle mustUnderstand headers in responses,
+  // even if we don't send WS-Addressing headers in requests
+  soap_register_plugin(soap, soap_wsa);
+  if (parent->soap_wsa_compl) {
+    Debug(2, "ONVIF: WS-Addressing enabled for requests");
+  } else {
+    Debug(2, "ONVIF: WS-Addressing disabled for requests (plugin still registered for responses)");
+  }
+
+  // Enable SOAP logging if configured
+  if (!soap_log_file.empty()) {
+    enable_soap_logging(soap_log_file);
+  }
+
+  proxyEvent = PullPointSubscriptionBindingProxy(soap);
+
+  Url url(parent->onvif_url);
+  if (parent->onvif_url.empty()) {
+    url = Url(parent->path);
+    url.scheme("http");
+    url.path("/onvif/device_service");
+    Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
+  }
+  // Store URL in member variable so pointer remains valid for proxyEvent lifetime
+  event_endpoint_url_ = url.str() + parent->onvif_events_path;
+  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
 }
 
 ONVIF::~ONVIF() {
@@ -132,69 +173,14 @@ ONVIF::~ONVIF() {
 
 void ONVIF::start() {
 #ifdef WITH_GSOAP
-  parse_onvif_options();
-  // Check if soap context already exists from a previous failed attempt
-  // If so, clean up the stale subscription before creating a new one
-  if (soap != nullptr) {
-    Debug(1, "ONVIF: Existing soap context found, cleaning up stale subscription before restart");
-    cleanup_subscription();
-    
-    // Clean up the old soap context
-    disable_soap_logging();
-    soap_destroy(soap);
-    soap_end(soap);
-    soap_free(soap);
-    soap = nullptr;
-  }
-  
-  // Clamp pull_timeout_seconds to be less than renewal advance time
-  if (pull_timeout_seconds >= ONVIF_RENEWAL_ADVANCE_SECONDS) {
-    Warning("ONVIF: pull_timeout %ds must be less than renewal advance time (%ds). Adjusting.",
-            pull_timeout_seconds, ONVIF_RENEWAL_ADVANCE_SECONDS);
-    pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
-  }
-
-  soap = soap_new();
-  soap->connect_timeout = 0;
-  soap->recv_timeout = 0;
-  soap->send_timeout = 0;
-  //soap->bind_flags |= SO_REUSEADDR;
-  soap_register_plugin(soap, soap_wsse);
-  // Always register WS-Addressing plugin to handle mustUnderstand headers in responses,
-  // even if we don't send WS-Addressing headers in requests
-  soap_register_plugin(soap, soap_wsa);
-  if (parent->soap_wsa_compl) {
-    Debug(2, "ONVIF: WS-Addressing enabled for requests");
-  } else {
-    Debug(2, "ONVIF: WS-Addressing disabled for requests (plugin still registered for responses)");
-  }
-
-  // Enable SOAP logging if configured
-  if (!soap_log_file.empty()) {
-    enable_soap_logging(soap_log_file);
-  }
-
-  proxyEvent = PullPointSubscriptionBindingProxy(soap);
-
-  Url url(parent->onvif_url);
-  if (parent->onvif_url.empty()) {
-    url = Url(parent->path);
-    url.scheme("http");
-    url.path("/onvif/device_service");
-    Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
-  }
-  // Store URL in member variable so pointer remains valid for proxyEvent lifetime
-  event_endpoint_url_ = url.str() + parent->onvif_events_path;
-  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
-  
-  attempt_subscription();
-
   // Start the polling thread if not already running
-  // Thread will handle reconnection attempts if initial subscription failed
+  // Thread will handle subscription setup and reconnection attempts
   if (!thread_.joinable()) {
-    Debug(1, "ONVIF: Starting polling thread (healthy=%s)", isHealthy() ? "true" : "false");
+    Debug(1, "ONVIF: Starting polling thread");
     terminate_ = false;
     thread_ = std::thread(&ONVIF::Run, this);
+  } else {
+    Debug(1, "ONVIF: Polling thread already running");
   }
 #else
   Error("zmc not compiled with GSOAP. ONVIF support not built in!");
@@ -203,6 +189,7 @@ void ONVIF::start() {
 
 #ifdef WITH_GSOAP
 void ONVIF::Run() {
+
   Debug(1, "ONVIF: Polling thread started");
   while (!terminate_ && !zm_terminate) {
     if (isHealthy()) {
@@ -226,7 +213,7 @@ void ONVIF::Run() {
       // Attempt to re-establish connection
       Debug(1, "ONVIF: Unhealthy, attempting to restart subscription (attempt %d/%d)",
             retry_count + 1, max_retries);
-      start();
+      Subscribe();
 
       // If still unhealthy after start attempt, use exponential backoff
       if (!isHealthy()) {
@@ -243,7 +230,8 @@ void ONVIF::Run() {
   }
   Debug(1, "ONVIF: Polling thread exiting");
 }
-void ONVIF::attempt_subscription() {
+
+void ONVIF::Subscribe() {
   // Try to create subscription with digest authentication first
   set_credentials(soap);
   
@@ -387,7 +375,7 @@ void ONVIF::attempt_subscription() {
       Debug(1, "ONVIF: Initial renewal failed, but continuing");
     }
   }
-}
+} // end ONVIF::Subscribe
 #endif
 
 void ONVIF::WaitForMessage() {

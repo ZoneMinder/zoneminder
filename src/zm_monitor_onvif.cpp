@@ -69,7 +69,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,max_retries(10)
   ,has_valid_subscription_(false)
   ,warned_initialized_repeat(false)
-  ,pull_timeout_seconds(5)
+  ,pull_timeout_seconds(1)
   ,subscription_timeout_seconds(300)
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()

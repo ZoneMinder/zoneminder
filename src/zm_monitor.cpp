@@ -2824,25 +2824,16 @@ bool Monitor::Decode() {
       if (ret == AVERROR_EOF) {
         //CloseDecoder();
       }
-      return 0; // re-opening will take long enough
+      return false; // re-opening will take long enough
     } else {
       Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
     } // else 0, EAGAIN, fall through and send a packet
-  } else if (mVideoCodecContext) {
-    Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
-    av_frame_ptr receive_frame{av_frame_alloc()};
-    if (!receive_frame) {
-      Error("Error allocating frame");
-      return 0;
-    }
-    int ret = avcodec_receive_frame(mVideoCodecContext, receive_frame.get());
-    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
   }
 
   // Might have to be keyframe interval
   if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > 2*static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
-    Debug(1, "Too many packets (%d) in queue. Sleeping", packetqueue.get_max_keyframe_interval());
-    return -1;
+    Debug(1, "Too many packets (%zu) in queue. Sleeping", decoder_queue.size());
+    return false;
   }
 
   // Didn't receive a frame, get a packet from packetqueue and send it.
@@ -2851,13 +2842,13 @@ bool Monitor::Decode() {
     packet = packet_lock.packet_;
     if (!packet) {
       Debug(1, "No packet from get_packet");
-      return -1;
+      return false;
     }
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
       Debug(3, "Not video, probably audio packet %d", packet->image_index);
       packetqueue.increment_it(decoder_it);
-      return 1; // Don't need decode
+      return true; // Don't need decode
     }
   }
 
@@ -2883,14 +2874,14 @@ bool Monitor::Decode() {
       }
 
       if (0 == ret) { // EAGAIN
-        return 0; //make it sleep? No
+        return true; // Decoder needs draining, come back soon
       } else if (ret < 0) {
         //CloseDecoder();
-        return -1;
+        return false;
       }  // end if ret from send_packet
       packetqueue.increment_it(decoder_it);
       decoder_queue.push_back(std::move(packet_lock));
-      return 0;
+      return true;  // Successfully sent packet to decoder
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
       packetqueue.increment_it(decoder_it);
@@ -2925,19 +2916,10 @@ bool Monitor::Decode() {
         y_image->Scale(camera_width, camera_height);
 
       if (orientation != ROTATE_0) {
-        switch (orientation) {
-          case ROTATE_0 :
-            // No action required
-            break;
-          case ROTATE_90 :
-          case ROTATE_180 :
-          case ROTATE_270 :
-            y_image->Rotate((orientation-1)*90);
-            break;
-          case FLIP_HORI :
-          case FLIP_VERT :
-            y_image->Flip(orientation==FLIP_HORI);
-            break;
+        if (orientation == ROTATE_90 || orientation == ROTATE_180 || orientation == ROTATE_270) {
+          y_image->Rotate((orientation-1)*90);
+        } else if (orientation == FLIP_HORI || orientation == FLIP_VERT) {
+          y_image->Flip(orientation == FLIP_HORI);
         }
       } // end if have rotation
     } else if (decoding == DECODING_ALWAYS) {
@@ -2986,19 +2968,10 @@ bool Monitor::Decode() {
 
     if (orientation != ROTATE_0) {
       Debug(3, "Doing rotation");
-      switch (orientation) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 :
+      if (orientation == ROTATE_90 || orientation == ROTATE_180 || orientation == ROTATE_270) {
         capture_image->Rotate((orientation-1)*90);
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        capture_image->Flip(orientation==FLIP_HORI);
-        break;
+      } else if (orientation == FLIP_HORI || orientation == FLIP_VERT) {
+        capture_image->Flip(orientation == FLIP_HORI);
       }
     } // end if have rotation
 
@@ -3017,7 +2990,7 @@ bool Monitor::Decode() {
     image_buffer[index]->Assign(*(packet->image));
     image_pixelformats[index] = packet->image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
-    shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
+    shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {

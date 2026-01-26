@@ -46,4 +46,21 @@ class Event_Summary extends AppModel {
 			),
 		),
 	);
+
+	public function beforeFind($queryData) {
+		$db = $this->getDataSource();
+		$result = $db->fetchAll(
+			"SELECT last_updated FROM Event_Summaries_Metadata WHERE table_name='Event_Summaries'"
+		);
+		if ($result) {
+			$row = $result[0];
+			$last_updated = isset($row['Event_Summaries_Metadata'])
+				? $row['Event_Summaries_Metadata']['last_updated']
+				: (isset($row[0]) ? $row[0]['last_updated'] : null);
+			if ($last_updated && (time() - strtotime($last_updated)) >= 60) {
+				$db->rawQuery("CALL Refresh_Summaries_SWR()");
+			}
+		}
+		return $queryData;
+	}
 }

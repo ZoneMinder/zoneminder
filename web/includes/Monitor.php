@@ -516,6 +516,7 @@ class Monitor extends ZM_Object {
       } # end if this->Id
       return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
+      ensureSummariesFresh();
       $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if (!$row) {

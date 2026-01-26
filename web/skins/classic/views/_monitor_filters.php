@@ -217,10 +217,12 @@ function buildMonitorsFilters() {
   $html .= '</span>';
   $html .= '</span>';
 
+  ensureSummariesFresh();
+
   $sqlAll = 'SELECT M.*, S.*, E.*
     FROM Monitors AS M
-    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
-    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id
     WHERE M.`Deleted`=false';
   $sqlSelected = $sqlAll . ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sqlSelected, null, $values);

@@ -380,6 +380,20 @@ function getTableDescription( $table, $asString=1 ) {
   return $columns;
 }
 
+function ensureSummariesFresh($max_age_seconds = 60) {
+  static $checked = false;
+  if ($checked) return;
+  $checked = true;
+
+  $row = dbFetchOne(
+    "SELECT last_updated FROM Event_Summaries_Metadata WHERE table_name='Event_Summaries'"
+  );
+  if ($row && (time() - strtotime($row['last_updated'])) < $max_age_seconds) {
+    return;
+  }
+  dbQuery("CALL Refresh_Summaries_SWR()");
+}
+
 function db_version() {
   return dbFetchOne('SELECT VERSION()', 'VERSION()');
 }

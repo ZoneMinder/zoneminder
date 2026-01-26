@@ -2028,9 +2028,10 @@ bool Monitor::Analyse() {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
           if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-            if (packet->y_image) {
+            Image *y_image = packet->get_y_image();
+            if (y_image) {
               Debug(1, "assigning refimage from y-channel");
-              ref_image.Assign(*(packet->y_image));
+              ref_image.Assign(*y_image);
             }
           } else if (packet->image) {
             Debug(1, "assigning refimage from packet->image");
@@ -2126,7 +2127,8 @@ bool Monitor::Analyse() {
                 Debug(1, "Assigning instead of Detecting");
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   // If not decoding, y_image can be null
-                  if (packet->y_image) ref_image.Assign(*(packet->y_image));
+                  Image *y_image = packet->get_y_image();
+                  if (y_image) ref_image.Assign(*y_image);
                 } else if (packet->image) {
                   ref_image.Assign(*(packet->image));
                 } else {
@@ -2137,10 +2139,11 @@ bool Monitor::Analyse() {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
-                  Debug(1, "Detecting motion on image %d, image %p, y_image %p", packet->image_index, packet->image, packet->y_image);
+                  Image *y_image = packet->get_y_image();
+                  Debug(1, "Detecting motion on image %d, image %p, y_image %p", packet->image_index, packet->image, y_image);
                   // Get new score.
-                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->y_image) {
-                    motion_score += DetectMotion(*(packet->y_image), zoneSet);
+                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && y_image) {
+                    motion_score += DetectMotion(*y_image, zoneSet);
                   } else {
                     motion_score += DetectMotion(*(packet->image), zoneSet);
                   }
@@ -2189,8 +2192,9 @@ bool Monitor::Analyse() {
 
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   Debug(1, "Blending from y-channel");
-                  if (packet->y_image)
-                    ref_image.Blend(*(packet->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  Image *y_image = packet->get_y_image();
+                  if (y_image)
+                    ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (packet->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),
@@ -2848,14 +2852,10 @@ bool Monitor::Decode() {
   }  // end if need_decoding
 
   if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-    if (packet->in_frame && (
-          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-          ||
-          ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-          ) ) {
-      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0, 0);
+    Image *y_image = packet->get_y_image();
+    if (y_image) {
       if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
-        packet->y_image->Scale(camera_width, camera_height);
+        y_image->Scale(camera_width, camera_height);
 
       if (orientation != ROTATE_0) {
         switch (orientation) {
@@ -2865,11 +2865,11 @@ bool Monitor::Decode() {
           case ROTATE_90 :
           case ROTATE_180 :
           case ROTATE_270 :
-            packet->y_image->Rotate((orientation-1)*90);
+            y_image->Rotate((orientation-1)*90);
             break;
           case FLIP_HORI :
           case FLIP_VERT :
-            packet->y_image->Flip(orientation==FLIP_HORI);
+            y_image->Flip(orientation==FLIP_HORI);
             break;
         }
       } // end if have rotation

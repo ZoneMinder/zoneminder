@@ -22,6 +22,10 @@
 #include "zm_image.h"
 #include "zm_logger.h"
 
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
@@ -225,6 +229,29 @@ Image *ZMPacket::set_image(Image *i) {
 
 Image *ZMPacket::get_y_image() {
   if (!y_image) {
+    if (!in_frame) {
+      Error("Can't get y_image without frame, maybe need to decode first");
+      return nullptr;
+    }
+
+    // Check if the pixel format has a Y channel accessible in data[0]
+    // This requires a planar YUV format (not RGB, not packed YUV)
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format));
+    if (!desc) {
+      Error("Unable to get pixel format descriptor for format %d", in_frame->format);
+      return nullptr;
+    }
+
+    // Must not be RGB (no Y channel) and must be planar (Y is in data[0])
+    if (desc->flags & AV_PIX_FMT_FLAG_RGB) {
+      Error("Cannot get Y image from RGB format %s", desc->name);
+      return nullptr;
+    }
+    if (!(desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
+      Error("Cannot get Y image from non-planar format %s (Y is interleaved)", desc->name);
+      return nullptr;
+    }
+
     y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
   }
   return y_image;

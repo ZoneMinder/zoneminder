@@ -580,7 +580,7 @@ sub send_stop {
       ."\n"
       );
   $process->{keepalive} = !$final;
-  $process->{term_sent_at} = time if ! $process->{term_sent_at};
+  $process->{term_sent_at} = time;  # Always update to reset the KILL_DELAY countdown
   $process->{pending} = 0;
   $terminating_processes{$command} = $process;
 
@@ -646,6 +646,13 @@ sub restart {
     start($daemon, @args);
     return;
   }
+
+  # If already terminating with keepalive set, restart is already scheduled
+  if ( $terminating_processes{$command} and $process->{keepalive} ) {
+    dPrint(ZoneMinder::Logger::DEBUG, "'$command' is already terminating and will restart, ignoring duplicate restart request\n");
+    return;
+  }
+
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {

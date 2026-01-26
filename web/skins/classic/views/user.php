@@ -194,7 +194,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
               <div class="form-inline justify-content-center">
                 <label for="zmNgPassword" class="mr-2"><?php echo translate('Password') ?>:</label>
                 <div class="input-group input-group-sm" style="width: 200px;">
-                  <input type="password" class="form-control" id="zmNgPassword" placeholder="<?php echo translate('Optional') ?>"/>
+                  <input type="password" class="form-control" id="zmNgPassword" placeholder="<?php echo translate('Optional') ?>" autocomplete="off"/>
                   <div class="input-group-append">
                     <span class="input-group-text material-icons md-18" style="cursor: pointer;" data-on-click-this="toggle_password_visibility" data-password-input="zmNgPassword">visibility</span>
                   </div>

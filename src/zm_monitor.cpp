@@ -2861,12 +2861,6 @@ bool Monitor::Decode() {
     }
   }
 
-  if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-    packet->decoded = true;
-    Debug(4, "Not video,probably audio");
-    return true; // Don't need decode
-  }
-
   if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
@@ -2899,12 +2893,14 @@ bool Monitor::Decode() {
       return 0;
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
+      packetqueue.increment_it(decoder_it);
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
+    packetqueue.increment_it(decoder_it);
   }  // end if need_decoding
      
-  if (packet->in_frame) {
+  if (packet->in_frame and !packet->image) {
     packet->transfer_hwframe(mVideoCodecContext);
 
     if (!packet->image) {
@@ -3032,7 +3028,6 @@ bool Monitor::Decode() {
   packet->decoded = true;
   return true;
 }  // end bool Monitor::Decode()
-
 
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";

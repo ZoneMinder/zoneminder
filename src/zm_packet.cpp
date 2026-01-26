@@ -140,71 +140,72 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
-
-/* returns < 0 on error, 0 on not ready, int bytes consumed on success
- * This functions job is to populate in_frame with the image in an appropriate
- * format. It MAY also populate image if able to.  In this case in_frame is populated
- * by the image buffer.
- */
-int ZMPacket::decode(AVCodecContext *ctx) {
-  Debug(4, "about to decode video, image_index is (%d)", image_index);
-
-  // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
-  //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
-
-  in_frame = av_frame_ptr{av_frame_alloc()};
-  int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
-  if (ret < 0) {
-    if (AVERROR(EAGAIN) != ret) {
-      Warning("Unable to receive frame : code %d %s.", ret, av_make_error_string(ret).c_str());
-    }
-    in_frame = nullptr;
-    return 0;
+  bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
+  if (!(ctx && in_frame.get())) {
+    Error("No ctx %p or in_frame %p", ctx, in_frame.get());
+    return false;
   }
-
-  zm_dump_video_frame(in_frame.get(), "got frame");
-  int bytes_consumed = packet->size;
-
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-    if (
-        (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
-        and
-        (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
-        ) {
-      Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
-            ctx->pix_fmt,
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            ctx->sw_pix_fmt,
-            av_get_pix_fmt_name(ctx->sw_pix_fmt),
-            in_frame->format,
-            av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
-           );
-      /* retrieve data from GPU to CPU */
-      av_frame_ptr new_frame{av_frame_alloc()};
-      new_frame->format = ctx->sw_pix_fmt;
-      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
-      if (ret < 0) {
-        Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
-        return 0;
-      }
-      ret = av_frame_copy_props(new_frame.get(), in_frame.get());
-      if (ret < 0) {
-        Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
-      }
+  if (
+      (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
+      and
+      (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
+     ) {
+    return true;
+  }
+#endif
+#endif
+  return false;
+} 
 
-      zm_dump_video_frame(new_frame.get(), "After hwtransfer");
-      hw_frame = std::move(in_frame);
-      in_frame = std::move(new_frame);
-    } else
-      Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            av_get_pix_fmt_name(ctx->sw_pix_fmt)
-           );
+int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
+  if (hw_frame) {
+    Error("Already have hw_frame in get_hwframe");
+    return 0;
+  }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+
+  if (needs_hw_transfer(ctx)) {
+    Debug(4, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
+        ctx->pix_fmt,
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        ctx->sw_pix_fmt,
+        av_get_pix_fmt_name(ctx->sw_pix_fmt),
+        in_frame->format,
+        av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
+        );
+
+    // Frame gets moved no matter what
+    hw_frame = std::move(in_frame);
+    zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
+
+    av_frame_ptr new_frame{av_frame_alloc()};
+    /* retrieve data from GPU to CPU */
+    int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
+    if (ret < 0) {
+      Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
+      in_frame = nullptr;
+      return ret;
+    }
+
+    ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
+    if (ret < 0) {
+      Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
+    }
+
+    in_frame = std::move(new_frame);
+    zm_dump_video_frame(in_frame.get(), "After hwtransfer");
+  } else
+    Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        av_get_pix_fmt_name(ctx->sw_pix_fmt)
+        );
 #endif
 #endif
-  return bytes_consumed;
-} // end ZMPacket::decode
+  return 1;
+} // end ZMPacket::transfer_hwframe
 
 Image *ZMPacket::get_image(Image *i) {
   if (!in_frame) {

@@ -54,6 +54,9 @@ class TagsController extends AppController {
         $conditions['Events.Id'] = array_map('intval', explode(',', $event_id_value));
       }
 
+      // Include EventId in the results
+      $find_array['fields'] = ['Tag.*', 'Events_Tags.EventId'];
+
       $find_array['joins'][]   = [
           'table' => 'Events_Tags',
           'type'  => 'inner',

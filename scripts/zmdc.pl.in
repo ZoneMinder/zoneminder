@@ -447,6 +447,10 @@ sub dPrint {
 
 sub start {
   my $daemon = shift;
+  if ( $daemon !~ /^$daemon_patt$/ ) {
+    Error("Invalid daemon '$daemon' specified");
+    return;
+  }
   my @args = @_;
 
   my $command = join(' ', $daemon, @args);

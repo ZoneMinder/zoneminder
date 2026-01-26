@@ -31,7 +31,6 @@ extern "C" {
 }
 
 TimePoint start_read_time;
-static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
 
 FfmpegCamera::FfmpegCamera(
   const Monitor *monitor,
@@ -89,9 +88,7 @@ FfmpegCamera::FfmpegCamera(
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   hw_pix_fmt = AV_PIX_FMT_NONE;
-#endif
 #endif
 
   /* Has to be located inside the constructor so other components such as zma
@@ -506,8 +503,11 @@ int FfmpegCamera::OpenFfmpeg() {
         if (ret < 0) {
           Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
           hw_pix_fmt = AV_PIX_FMT_NONE;
+          use_hwaccel = false;
         } else {
           Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
+          // Set opaque to point to our hw_pix_fmt so callback can access it
+          mVideoCodecContext->opaque = &hw_pix_fmt;
           mVideoCodecContext->get_format = get_hw_format;
           mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
         }

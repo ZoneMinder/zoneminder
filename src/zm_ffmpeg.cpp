@@ -149,23 +149,24 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
-static enum AVPixelFormat get_hw_format(
-  AVCodecContext *ctx,
-  const enum AVPixelFormat *pix_fmts
-) {
-  const enum AVPixelFormat *p;
 
-  for ( p = pix_fmts; *p != -1; p++ ) {
-    if ( *p == hw_pix_fmt )
-      return *p;
+// Callback to select hardware pixel format.
+// ctx->opaque must point to an AVPixelFormat containing the desired hw format.
+enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
+  if (!ctx->opaque) {
+    Error("get_hw_format called with null opaque pointer");
+    return AV_PIX_FMT_NONE;
   }
 
-  Error("Failed to get HW surface format for %s.",
-        av_get_pix_fmt_name(hw_pix_fmt));
-  for ( p = pix_fmts; *p != -1; p++ )
-    Error("Available HW surface format was %s.",
-          av_get_pix_fmt_name(*p));
+  const enum AVPixelFormat hw_pix_fmt = *static_cast<enum AVPixelFormat*>(ctx->opaque);
+
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+    if (*p == hw_pix_fmt) return *p;
+  }
+
+  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
+    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
 
   return AV_PIX_FMT_NONE;
 }
@@ -253,8 +254,6 @@ int setup_hwaccel(
 #endif
   return 0;
 } // end setup_hwaccel
-
-
 
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();

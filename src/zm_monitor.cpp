@@ -2801,9 +2801,65 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
 }
 
 bool Monitor::Decode() {
-  ZMPacketLock packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
-  std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
-  if (!packet) return false;
+
+  ZMPacketLock packet_lock;
+  std::shared_ptr<ZMPacket> packet;
+  AVCodecContext *mVideoCodecContext = camera->getVideoCodecContext();
+
+  if (decoder_queue.size()) {
+    Debug(1, "Have queued packets %zu, send them to be filled by decoder", decoder_queue.size());
+    // Try to decode, without feeding the decoder.
+    ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
+    auto delayed_packet = delayed_packet_lock->packet_;
+
+    int ret = delayed_packet->receive_frame(mVideoCodecContext);
+    if (ret > 0) {
+      //Debug(1, "Success");
+      // Success, pop and assign
+      packet_lock = std::move(decoder_queue.front());
+      decoder_queue.pop_front();
+      packet = delayed_packet;
+    } else if (ret < 0) {
+      Debug(1, "decoder Failed to get frame %d", ret);
+      if (ret == AVERROR_EOF) {
+        //CloseDecoder();
+      }
+      return 0; // re-opening will take long enough
+    } else {
+      Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
+    } // else 0, EAGAIN, fall through and send a packet
+  } else if (mVideoCodecContext) {
+    Debug(1, "Dont Have queued packets %zu", decoder_queue.size());
+    av_frame_ptr receive_frame{av_frame_alloc()};
+    if (!receive_frame) {
+      Error("Error allocating frame");
+      return 0;
+    }
+    int ret = avcodec_receive_frame(mVideoCodecContext, receive_frame.get());
+    Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
+  }
+
+  // Might have to be keyframe interval
+  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > 2*static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
+    Debug(1, "Too many packets (%d) in queue. Sleeping", packetqueue.get_max_keyframe_interval());
+    return -1;
+  }
+
+  // Didn't receive a frame, get a packet from packetqueue and send it.
+  if (!packet) {
+    packet_lock = packetqueue.get_packet(decoder_it);
+    packet = packet_lock.packet_;
+    if (!packet) {
+      Debug(1, "No packet from get_packet");
+      return -1;
+    }
+    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+      packet->decoded = true;
+      Debug(3, "Not video, probably audio packet %d", packet->image_index);
+      packetqueue.increment_it(decoder_it);
+      return 1; // Don't need decode
+    }
+  }
 
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     packet->decoded = true;
@@ -2821,35 +2877,46 @@ bool Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
 
-      // Allocate the image first so that it can be used by hwaccel
-      // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
-      //
-      //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-      int ret = packet->decode(camera->getVideoCodecContext());
-      if (ret > 0 and !zm_terminate) {
-        if (packet->in_frame and !packet->image) {
-          packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-
-          if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
-            if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
-              delete packet->image;
-              packet->image = nullptr;
-            }
-          } else {
-            delete packet->image;
-            packet->image = nullptr;
-          }  // end if have convert_context
-        }  // end if need transfer to image
+      SystemTimePoint starttime = std::chrono::system_clock::now();
+      int ret = packet->send_packet(mVideoCodecContext);
+      SystemTimePoint endtime = std::chrono::system_clock::now();
+      int fps = int(get_capture_fps());
+      if ((fps > 0) and (endtime - starttime > Milliseconds(1000/fps))) {
+        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interval is %d retval was %d",
+            packet->image_index, FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
       } else {
-        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
-        return 0;
+        Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
+
+      if (0 == ret) { // EAGAIN
+        return 0; //make it sleep? No
+      } else if (ret < 0) {
+        //CloseDecoder();
+        return -1;
+      }  // end if ret from send_packet
+      packetqueue.increment_it(decoder_it);
+      decoder_queue.push_back(std::move(packet_lock));
+      return 0;
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
+     
+  if (packet->in_frame and !packet->image) {
+    packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+
+    if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
+      if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
+        delete packet->image;
+        packet->image = nullptr;
+      }
+    } else {
+      delete packet->image;
+      packet->image = nullptr;
+    }  // end if have convert_context
+  }  // end if need transfer to image
 
   if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
     Image *y_image = packet->get_y_image();
@@ -3527,7 +3594,6 @@ int Monitor::Play() {
 int Monitor::Close() {
   Pause();
 
-  //ONVIF Teardown
   if (Poller) {
     Poller->Stop();
     Debug(1, "Poller stopped");

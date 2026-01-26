@@ -624,6 +624,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   std::unique_ptr<PollThread> Poller;
+  std::list<ZMPacketLock> decoder_queue;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;

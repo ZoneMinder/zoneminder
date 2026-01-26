@@ -223,6 +223,13 @@ Image *ZMPacket::set_image(Image *i) {
   return image;
 }
 
+Image *ZMPacket::get_y_image() {
+  if (!y_image) {
+    y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
+  }
+  return y_image;
+}
+
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
   if (zm_av_packet_ref(packet.get(), p) < 0) {
     Error("error refing packet");

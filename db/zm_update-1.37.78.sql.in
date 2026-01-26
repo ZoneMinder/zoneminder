@@ -1,0 +1,20 @@
+--
+-- Replace Events_Hour, Events_Day, Events_Week, Events_Month,
+-- Events_Archived, and Event_Summaries tables with views.
+-- These views query the Events table directly, eliminating the need
+-- for triggers and periodic reconciliation in zmaudit/zmstats.
+--
+
+-- Step 1: Drop triggers that maintained the old tables
+source @PKGDATADIR@/db/triggers.sql
+
+-- Step 2: Drop the old denormalized tables
+DROP TABLE IF EXISTS `Events_Hour`;
+DROP TABLE IF EXISTS `Events_Day`;
+DROP TABLE IF EXISTS `Events_Week`;
+DROP TABLE IF EXISTS `Events_Month`;
+DROP TABLE IF EXISTS `Events_Archived`;
+DROP TABLE IF EXISTS `Event_Summaries`;
+
+-- Step 3: Create views with the same names and a covering index
+source @PKGDATADIR@/db/views.sql

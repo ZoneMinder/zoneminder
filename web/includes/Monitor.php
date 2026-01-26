@@ -733,7 +733,6 @@ class Monitor extends ZM_Object {
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
-    dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
   } // end function destroy
 

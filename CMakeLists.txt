@@ -55,6 +55,8 @@ include(CheckPlatform)
 
 # Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
 if(ZM_SYSTEM_PROC MATCHES "^arm")
+  # Suppress warnings about ABI changes for passing/returning objects of aggregate type on 32-bit ARM
+  add_compile_options(-Wno-psabi)
   if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
     exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
     if(neonresult EQUAL 0)

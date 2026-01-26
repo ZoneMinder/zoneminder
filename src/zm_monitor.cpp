@@ -2904,19 +2904,23 @@ bool Monitor::Decode() {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
      
-  if (packet->in_frame and !packet->image) {
-    packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+  if (packet->in_frame) {
+    packet->transfer_hwframe(mVideoCodecContext);
 
-    if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
-      if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
+    if (!packet->image) {
+      packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+
+      if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
+        if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
+          delete packet->image;
+          packet->image = nullptr;
+        }
+      } else {
         delete packet->image;
         packet->image = nullptr;
-      }
-    } else {
-      delete packet->image;
-      packet->image = nullptr;
-    }  // end if have convert_context
-  }  // end if need transfer to image
+      }  // end if have convert_context
+    }  // end if need transfer to image
+  } // end if in_frame
 
   if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
     Image *y_image = packet->get_y_image();

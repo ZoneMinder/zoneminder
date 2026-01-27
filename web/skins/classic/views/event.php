@@ -431,6 +431,7 @@ if ($video_tag) {
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
                   <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
                   <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>
                   <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>

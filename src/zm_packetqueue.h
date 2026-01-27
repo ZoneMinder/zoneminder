@@ -77,7 +77,7 @@ class PacketQueue {
   void clearPackets(const std::shared_ptr<ZMPacket> &packet);
   int packet_count(int stream_id);
 
-  bool increment_it(packetqueue_iterator *it);
+  bool increment_it(packetqueue_iterator *it, bool wait);
   bool increment_it(packetqueue_iterator *it, int stream_id);
   ZMPacketLock get_packet(packetqueue_iterator *);
   ZMPacketLock get_packet_no_wait(packetqueue_iterator *);

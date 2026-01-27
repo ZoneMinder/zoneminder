@@ -2469,7 +2469,7 @@ bool Monitor::Analyse() {
   packet->analyzed = true;
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-  packetqueue.increment_it(analysis_it);
+  packetqueue.increment_it(analysis_it, false);
 
   return true;
 } // end Monitor::Analyse
@@ -2850,7 +2850,7 @@ bool Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       packet->decoded = true;
       Debug(3, "Not video, probably audio packet %d", packet->image_index);
-      packetqueue.increment_it(decoder_it);
+      packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
       return true; // Don't need decode
     }
   }
@@ -2882,16 +2882,16 @@ bool Monitor::Decode() {
         //CloseDecoder();
         return false;
       }  // end if ret from send_packet
-      packetqueue.increment_it(decoder_it);
       decoder_queue.push_back(std::move(packet_lock));
+      packetqueue.increment_it(decoder_it, false);
       return true;  // Successfully sent packet to decoder
     } else {
       Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
-      packetqueue.increment_it(decoder_it);
+      packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
     } // end if doing decoding
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
-    packetqueue.increment_it(decoder_it);
+    packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
   }  // end if need_decoding
      
   if (packet->in_frame and !packet->image) {
@@ -2959,7 +2959,7 @@ bool Monitor::Decode() {
             break;
           }
           //packetqueue.unlock(deinterlace_packet_lock);
-          packetqueue.increment_it(decoder_it);
+          packetqueue.increment_it(decoder_it, true);
         }
         if (zm_terminate) {
           return false;
@@ -3638,7 +3638,7 @@ void Monitor::get_ref_image() {
     if (packet_lock.packet_ and ! packet_lock.packet_->image) {
       packet_lock.unlock();
       // can't analyse it anyways, incremement
-      packetqueue.increment_it(analysis_it);
+      packetqueue.increment_it(analysis_it, true);
     }
   }
   if (zm_terminate)

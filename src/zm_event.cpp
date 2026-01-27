@@ -808,7 +808,7 @@ void Event::Run() {
         }
       } // end if packet->image
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
-      packetqueue->increment_it(packetqueue_it);
+      packetqueue->increment_it(packetqueue_it, true);
     } else {
       if (terminate_ or zm_terminate) return;
       usleep(10000);

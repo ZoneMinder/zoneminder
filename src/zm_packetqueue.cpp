@@ -584,12 +584,21 @@ void PacketQueue::unlock(ZMPacketLock *lp) {
   condition.notify_all();
 }
 
-bool PacketQueue::increment_it(packetqueue_iterator *it) {
-  std::lock_guard<std::mutex> lck(mutex);
+bool PacketQueue::increment_it(packetqueue_iterator *it, bool wait) {
+  std::unique_lock<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
-  if (((*it) == pktQueue.end()) or deleting) {
-    if (!deleting) Debug(1, "increment_it at end!");
-    return false;
+  if (wait) {
+    while ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
+      Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+      condition.wait(lck);
+      Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+    }
+    if (deleting or zm_terminate) return false;
+  } else {
+    if (((*it) == pktQueue.end()) or deleting) {
+      if (!deleting) Debug(1, "increment_it at end!");
+      return false;
+    }
   }
   ++(*it);
   if (*it != pktQueue.end()) {

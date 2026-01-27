@@ -1032,6 +1032,10 @@ bool ONVIF::do_wsa_request(const char* address, const char* action) {
 
 //ONVIF Set Credentials
 void ONVIF::set_credentials(struct soap *soap) {
+  if (!soap) {
+    Error("ONVIF: set_credentials called with null soap context");
+    return;
+  }
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, "Time", 10);
   

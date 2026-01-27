@@ -2974,7 +2974,7 @@ bool Monitor::Decode() {
   // PHASE 3: Convert decoded frame to Image
   // ===========================================================================
 
-  if (packet->in_frame && !packet->image) {
+  if (packet->in_frame) {
     // Handle hardware-accelerated frames
     packet->transfer_hwframe(context);
 
@@ -2992,23 +2992,23 @@ bool Monitor::Decode() {
         packet->image = nullptr;
       }
     }
-  }
 
-  // ===========================================================================
-  // PHASE 4: Prepare Y-channel image for analysis (if needed)
-  // ===========================================================================
+    // ===========================================================================
+    // PHASE 4: Prepare Y-channel image for analysis (if needed)
+    // ===========================================================================
 
-  if ((shared_data->analysing != ANALYSING_NONE) && (analysis_image == ANALYSISIMAGE_YCHANNEL)) {
-    Image *y_image = packet->get_y_image();
-    if (y_image) {
-      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height) {
-        y_image->Scale(camera_width, camera_height);
+    if ((shared_data->analysing != ANALYSING_NONE) && (analysis_image == ANALYSISIMAGE_YCHANNEL)) {
+      Image *y_image = packet->get_y_image();
+      if (y_image) {
+        if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height) {
+          y_image->Scale(camera_width, camera_height);
+        }
+        applyOrientation(y_image);
+      } else if (decoding == DECODING_ALWAYS) {
+        Error("Want to use y-channel, but no in_frame or wrong format");
       }
-      applyOrientation(y_image);
-    } else if (decoding == DECODING_ALWAYS) {
-      Error("Want to use y-channel, but no in_frame or wrong format");
     }
-  }
+  }  // end if packet->in_frame
 
   // ===========================================================================
   // PHASE 5: Process the RGB image (deinterlace, rotate, privacy, timestamp)

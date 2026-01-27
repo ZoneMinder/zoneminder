@@ -7,10 +7,6 @@ if (!empty($_REQUEST['task'])) {
   $task = $_REQUEST['task'];
   
   if ($task == 'query') {
-    if (!canView('Monitors')) {
-      ajaxError('Insufficient permissions for user '.$user->Username());
-      return;
-    }
     $data = queryRequest();
     ajaxResponse($data);
     return;

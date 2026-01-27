@@ -44,16 +44,17 @@ PacketQueue::PacketQueue():
  * Assumes first stream added will be the video stream
  */
 int PacketQueue::addStream() {
+  std::lock_guard<std::mutex> lck(mutex);
   deleting = false;
   if (max_stream_id == -1) {
     video_stream_id = 0;
     max_stream_id = 0;
   } else {
-    max_stream_id ++;
+    max_stream_id++;
   }
 
   packet_counts.reset(new int[max_stream_id + 1]);
-  for (int i=0; i <= max_stream_id; ++i)
+  for (int i = 0; i <= max_stream_id; ++i)
     packet_counts[i] = 0;
   return max_stream_id;
 }
@@ -74,6 +75,9 @@ PacketQueue::~PacketQueue() {
  */
 
 bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
+  std::unique_lock<std::mutex> lck(mutex);
+  if (deleting or zm_terminate) return false;
+
   if (iterators.empty()) {
     Debug(4, "No iterators so no one needs us to queue packets.");
     return false;
@@ -82,9 +86,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     Debug(4, "No video keyframe so no one needs us to queue packets.");
     return false;
   }
-  {
-    std::unique_lock<std::mutex> lck(mutex);
-    if (deleting or zm_terminate) return false;
 
     AVPacket *add_avpacket = add_packet->packet.get();  // because std::shared_ptr accesses are way more expensive
     if (!has_out_of_order_packets_ and (add_avpacket->dts != AV_NOPTS_VALUE)) {
@@ -182,10 +183,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     } else if (warned_count > 0) {
       warned_count--;
     }  // end if not able catch up
-    // We signal on every packet because someday we may analyze sound
-    Debug(4, "packetqueue queuepacket, unlocked signalling");
-    condition.notify_all();
-  }  // end lock scope
+  // We signal on every packet because someday we may analyze sound
+  Debug(4, "packetqueue queuepacket, unlocked signalling");
+  condition.notify_all();
 
   return true;
 }  // end bool PacketQueue::queuePacket(ZMPacket* zm_packet)
@@ -394,11 +394,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
 
 void PacketQueue::stop() {
-  {
-    std::lock_guard<std::mutex> lck(mutex);
-    deleting = true;
-    condition.notify_all();
-  }
+  std::lock_guard<std::mutex> lck(mutex);
+  deleting = true;
+  condition.notify_all();
   for (const auto &p : pktQueue) {
     p->notify_all();
   }
@@ -439,8 +437,6 @@ void PacketQueue::clear() {
     *iterator_it = pktQueue.begin();
   }  // end foreach iterator
 
-  packet_counts.reset(new int[max_stream_id + 1]);
-
   packet_counts.reset();
   max_stream_id = -1;
   max_keyframe_interval_ = 0;
@@ -468,12 +464,9 @@ int PacketQueue::packet_count(int stream_id) {
 }  // end int PacketQueue::packet_count(int stream_id)
 
 ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
-
-  Debug(4, "Locking in get_packet using it %p queue end? %d",
-      std::addressof(*it), (*it == pktQueue.end()));
-
   std::unique_lock<std::mutex> lck(mutex);
-  Debug(4, "Have Lock in get_packet");
+  Debug(4, "get_packet_no_wait using it %p queue end? %d",
+      std::addressof(*it), (*it == pktQueue.end()));
   if (deleting or zm_terminate)
     return ZMPacketLock();
   if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
@@ -497,13 +490,11 @@ ZMPacketLock PacketQueue::get_packet(packetqueue_iterator *it) {
   if (deleting or zm_terminate)
     return ZMPacketLock();
 
-  Debug(4, "Locking in get_packet using it %p queue end? %d",
-        std::addressof(*it), (*it == pktQueue.end()));
-
   {
     // scope for lock
     std::unique_lock<std::mutex> lck(mutex);
-    Debug(4, "Have Lock in get_packet");
+    Debug(4, "get_packet using it %p queue end? %d",
+          std::addressof(*it), (*it == pktQueue.end()));
     while (!(deleting or zm_terminate)) {
       while ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
         Debug(4, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
@@ -542,13 +533,11 @@ ZMPacketLock PacketQueue::get_packet_and_increment_it(packetqueue_iterator *it) 
   if (deleting or zm_terminate)
     return ZMPacketLock();
 
-  Debug(4, "Locking in get_packet using it %p queue end? %d",
-        std::addressof(*it), (*it == pktQueue.end()));
-
   {
     // scope for lock
     std::unique_lock<std::mutex> lck(mutex);
-    Debug(4, "Have Lock in get_packet");
+    Debug(4, "get_packet_and_increment_it using it %p queue end? %d",
+          std::addressof(*it), (*it == pktQueue.end()));
     while (!(deleting or zm_terminate)) {
       while ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
         Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
@@ -611,9 +600,9 @@ bool PacketQueue::increment_it(packetqueue_iterator *it, bool wait) {
 
 // Increment it only considering packets for a given stream
 bool PacketQueue::increment_it(packetqueue_iterator *it, int stream_id) {
+  std::lock_guard<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d", it, pktQueue.size(), (*it == pktQueue.end()));
 
-  std::lock_guard<std::mutex> lck(mutex);
   if (*it == pktQueue.end()) {
     return false;
   }
@@ -693,8 +682,8 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 }  // end packetqueue_iterator *PacketQueue::get_event_start_packet_it
 
 void PacketQueue::dumpQueue() {
-  std::list<std::shared_ptr<ZMPacket>>::reverse_iterator it;
-  for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
+  std::lock_guard<std::mutex> lck(mutex);
+  for (auto it = pktQueue.rbegin(); it != pktQueue.rend(); ++it) {
     std::shared_ptr<ZMPacket> zm_packet = *it;
     ZM_DUMP_PACKET(zm_packet->packet, is_there_an_iterator_pointing_to_packet(zm_packet) ? "*" : "");
   }
@@ -704,10 +693,10 @@ void PacketQueue::dumpQueue() {
  * nullptr if no keyframe video packet exists.
  */
 packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
+  std::unique_lock<std::mutex> lck(mutex);
+
   packetqueue_iterator *it = new packetqueue_iterator;
   iterators.push_back(it);
-
-  std::unique_lock<std::mutex> lck(mutex);
   *it = pktQueue.begin();
 
   if (wait) {
@@ -717,6 +706,8 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
       *it = pktQueue.begin();
     }
     if (deleting or zm_terminate) {
+      iterators.remove(it);
+      delete it;
       return nullptr;
     }
   }
@@ -725,6 +716,8 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
     std::shared_ptr<ZMPacket> zm_packet = *(*it);
     if (!zm_packet) {
       Error("Null zmpacket in queue!?");
+      iterators.remove(it);
+      delete it;
       return nullptr;
     }
     Debug(1, "Packet keyframe %d for stream %d, so returning the it to it",
@@ -775,12 +768,15 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<
 }
 
 void PacketQueue::setMaxVideoPackets(int p) {
+  std::lock_guard<std::mutex> lck(mutex);
   max_video_packet_count = p;
   Debug(1, "Setting max_video_packet_count to %d", p);
   if (max_video_packet_count < 0)
-    max_video_packet_count = 0 ;
+    max_video_packet_count = 0;
 }
+
 void PacketQueue::setPreEventVideoPackets(int p) {
+  std::lock_guard<std::mutex> lck(mutex);
   pre_event_video_packet_count = p;
   Debug(1, "Setting pre_event_video_packet_count to %d", p);
   if (pre_event_video_packet_count < 1)

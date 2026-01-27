@@ -2803,104 +2803,186 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   return (convert_context != nullptr);
 }
 
-bool Monitor::Decode() {
+void Monitor::applyOrientation(Image *image) {
+  if (orientation == ROTATE_0) return;
 
+  if (orientation == ROTATE_90 || orientation == ROTATE_180 || orientation == ROTATE_270) {
+    image->Rotate((orientation - 1) * 90);
+  } else if (orientation == FLIP_HORI || orientation == FLIP_VERT) {
+    image->Flip(orientation == FLIP_HORI);
+  }
+}
+
+bool Monitor::applyDeinterlacing(std::shared_ptr<ZMPacket> &packet, Image *capture_image) {
+  Debug(1, "Doing deinterlacing, value=%d", deinterlacing_value);
+
+  switch (deinterlacing_value) {
+    case 1:
+      capture_image->Deinterlace_Discard();
+      break;
+    case 2:
+      capture_image->Deinterlace_Linear();
+      break;
+    case 3:
+      capture_image->Deinterlace_Blend();
+      break;
+    case 4:
+      // 4-field deinterlacing requires next frame
+      while (!zm_terminate) {
+        ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
+        std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
+        if (!deinterlace_packet) {
+          return false;
+        }
+        if (deinterlace_packet->codec_type == packet->codec_type) {
+          if (!deinterlace_packet->image) {
+            Error("Can't de-interlace when we have to decode. De-interlacing should only be useful on old low res local cams");
+          } else {
+            capture_image->Deinterlace_4Field(deinterlace_packet->image, (deinterlacing >> 8) & 0xff);
+          }
+          break;
+        }
+        packetqueue.increment_it(decoder_it, true);
+      }
+      if (zm_terminate) {
+        return false;
+      }
+      break;
+    case 5:
+      capture_image->Deinterlace_Blend_CustomRatio((deinterlacing >> 8) & 0xff);
+      break;
+    default:
+      Warning("Unknown deinterlacing value: %d", deinterlacing_value);
+      break;
+  }
+  return true;
+}
+
+bool Monitor::Decode() {
+  AVCodecContext *context = camera->getVideoCodecContext();
   ZMPacketLock packet_lock;
   std::shared_ptr<ZMPacket> packet;
-  AVCodecContext *mVideoCodecContext = camera->getVideoCodecContext();
 
-  if (decoder_queue.size()) {
-    Debug(1, "Have queued packets %zu, send them to be filled by decoder", decoder_queue.size());
-    // Try to decode, without feeding the decoder.
-    ZMPacketLock *delayed_packet_lock = &decoder_queue.front();
-    auto delayed_packet = delayed_packet_lock->packet_;
+  // ===========================================================================
+  // PHASE 1: Try to receive a decoded frame from the decoder
+  // ===========================================================================
+  // We do receive BEFORE send (reverse of normal libavcodec workflow) because
+  // we need to maintain packet locks on packets while they're in the decoder.
+  // Packets in decoder_queue have been sent but not yet received.
 
-    int ret = delayed_packet->receive_frame(mVideoCodecContext);
+  if (!decoder_queue.empty()) {
+    Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
+    auto &front_lock = decoder_queue.front();
+    auto front_packet = front_lock.packet_;
+
+    int ret = front_packet->receive_frame(context);
     if (ret > 0) {
-      //Debug(1, "Success");
-      // Success, pop and assign
+      // Success - got a decoded frame, take ownership and process it
       packet_lock = std::move(decoder_queue.front());
       decoder_queue.pop_front();
-      packet = delayed_packet;
+      packet = front_packet;
+      Debug(2, "Received frame for packet %d", packet->image_index);
+      // Continue to PHASE 3 (frame processing)
     } else if (ret < 0) {
-      Debug(1, "decoder Failed to get frame %d", ret);
-      if (ret == AVERROR_EOF) {
-        //CloseDecoder();
-      }
-      return false; // re-opening will take long enough
+      // Decoder error
+      Debug(1, "receive_frame failed: %d", ret);
+      return false;
     } else {
-      Debug(1, "EAGAIN, fall through and send a packet to decoder, packet was %d", delayed_packet->image_index);
-    } // else 0, EAGAIN, fall through and send a packet
+      // EAGAIN - decoder needs more input, fall through to send another packet
+      Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+    }
   }
 
-  // Might have to be keyframe interval
-  if (!packet and (packetqueue.get_max_keyframe_interval()>0) and (decoder_queue.size() > 2*static_cast<unsigned int>(packetqueue.get_max_keyframe_interval()))) {
-    Debug(1, "Too many packets (%zu) in queue. Sleeping", decoder_queue.size());
-    return false;
-  }
+  // ===========================================================================
+  // PHASE 2: Get a new packet and send it to decoder (if needed)
+  // ===========================================================================
+  // Only if we didn't receive a frame above
 
-  // Didn't receive a frame, get a packet from packetqueue and send it.
   if (!packet) {
+    // Throttle: don't queue too many packets in the decoder
+    int max_keyframe = packetqueue.get_max_keyframe_interval();
+    if ((max_keyframe > 0) &&
+        (decoder_queue.size() > 2 * static_cast<size_t>(max_keyframe))) {
+      Debug(1, "Decoder queue full (%zu packets), throttling", decoder_queue.size());
+      return false;
+    }
+
+    // Get next packet from the main packet queue
     packet_lock = packetqueue.get_packet(decoder_it);
     packet = packet_lock.packet_;
     if (!packet) {
-      Debug(1, "No packet from get_packet");
+      Debug(2, "No packet available");
       return false;
     }
-    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-      packet->decoded = true;
-      Debug(3, "Not video, probably audio packet %d", packet->image_index);
-      packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
-      return true; // Don't need decode
-    }
-  }
 
-  if ((!packet->image) and packet->packet->size and !packet->in_frame) {
-    if ((decoding == DECODING_ALWAYS)
-        or
-        ((decoding == DECODING_ONDEMAND) and (this->hasViewers() or (shared_data->last_write_index == image_buffer_count)))
-        or
-        ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
-        or
-        ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
-       ) {
+    // Audio packets don't need video decoding
+    if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+      Debug(3, "Audio packet %d, marking decoded", packet->image_index);
+      packet->decoded = true;
+      packetqueue.increment_it(decoder_it, !decoder_queue.empty());
+      return true;
+    }
+
+    // Check if this packet needs to be sent to the decoder
+    bool dominated = packet->image || packet->in_frame || !packet->packet->size;
+    bool should_decode = !dominated && (
+      (decoding == DECODING_ALWAYS) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
+    );
+
+    if (should_decode) {
+      Debug(2, "Sending packet %d to decoder", packet->image_index);
 
       SystemTimePoint starttime = std::chrono::system_clock::now();
-      int ret = packet->send_packet(mVideoCodecContext);
+      int ret = packet->send_packet(context);
       SystemTimePoint endtime = std::chrono::system_clock::now();
-      int fps = int(get_capture_fps());
-      if ((fps > 0) and (endtime - starttime > Milliseconds(1000/fps))) {
-        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d queue size is %zu keyframe interval is %d retval was %d",
-            packet->image_index, FPSeconds(endtime - starttime).count(), fps, decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
+
+      // Warn if send_packet is taking too long
+      int fps = static_cast<int>(get_capture_fps());
+      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps))) {
+        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
+            packet->image_index, FPSeconds(endtime - starttime).count(), fps,
+            decoder_queue.size(), packetqueue.get_max_keyframe_interval(), ret);
       } else {
         Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
       }
 
-      if (0 == ret) { // EAGAIN
-        return true; // Decoder needs draining, come back soon
+      if (ret == 0) {
+        // EAGAIN - decoder's input buffer is full, need to drain first
+        Debug(2, "send_packet returned EAGAIN, will retry");
+        return true;
       } else if (ret < 0) {
-        //CloseDecoder();
+        // Error
+        Debug(1, "send_packet failed: %d", ret);
         return false;
-      }  // end if ret from send_packet
+      }
+
+      // Success - packet sent to decoder, queue it for receive later
       decoder_queue.push_back(std::move(packet_lock));
       packetqueue.increment_it(decoder_it, false);
-      return true;  // Successfully sent packet to decoder
-    } else {
-      Debug(1, "Not Decoding frame %d? %s", packet->image_index, Decoding_Strings[decoding].c_str());
-      packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
-    } // end if doing decoding
-  } else {
-    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
-    packetqueue.increment_it(decoder_it, (decoder_queue.size() > 0));
-  }  // end if need_decoding
-     
-  if (packet->in_frame and !packet->image) {
-    packet->transfer_hwframe(mVideoCodecContext);
+      return true;  // Frame will be received on a future call
+    }
+
+    // Packet doesn't need decoding (or already has frame/image)
+    Debug(2, "Packet %d doesn't need decoding: %s", packet->image_index, Decoding_Strings[decoding].c_str());
+    packetqueue.increment_it(decoder_it, !decoder_queue.empty());
+  }
+
+  // ===========================================================================
+  // PHASE 3: Convert decoded frame to Image
+  // ===========================================================================
+
+  if (packet->in_frame && !packet->image) {
+    // Handle hardware-accelerated frames
+    packet->transfer_hwframe(context);
 
     if (!packet->image) {
       packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-      if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
+      bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
+      if (have_converter) {
         if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
           delete packet->image;
           packet->image = nullptr;
@@ -2908,104 +2990,74 @@ bool Monitor::Decode() {
       } else {
         delete packet->image;
         packet->image = nullptr;
-      }  // end if have convert_context
-    }  // end if need transfer to image
-  } // end if in_frame
- 
+      }
+    }
+  }
+
+  // ===========================================================================
+  // PHASE 4: Prepare Y-channel image for analysis (if needed)
+  // ===========================================================================
+
   if ((shared_data->analysing != ANALYSING_NONE) && (analysis_image == ANALYSISIMAGE_YCHANNEL)) {
     Image *y_image = packet->get_y_image();
     if (y_image) {
-      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height) {
         y_image->Scale(camera_width, camera_height);
-
-      if (orientation != ROTATE_0) {
-        if (orientation == ROTATE_90 || orientation == ROTATE_180 || orientation == ROTATE_270) {
-          y_image->Rotate((orientation-1)*90);
-        } else if (orientation == FLIP_HORI || orientation == FLIP_VERT) {
-          y_image->Flip(orientation == FLIP_HORI);
-        }
-      } // end if have rotation
+      }
+      applyOrientation(y_image);
     } else if (decoding == DECODING_ALWAYS) {
       Error("Want to use y-channel, but no in_frame or wrong format");
     }
   }
 
+  // ===========================================================================
+  // PHASE 5: Process the RGB image (deinterlace, rotate, privacy, timestamp)
+  // ===========================================================================
+
   if (packet->image) {
-    Image* capture_image = packet->image;
+    Image *capture_image = packet->image;
 
-    /* Deinterlacing */
+    // Deinterlacing
     if (deinterlacing_value) {
-      Debug(1, "Doing deinterlacing");
-      if (deinterlacing_value == 1) {
-        capture_image->Deinterlace_Discard();
-      } else if (deinterlacing_value == 2) {
-        capture_image->Deinterlace_Linear();
-      } else if (deinterlacing_value == 3) {
-        capture_image->Deinterlace_Blend();
-      } else if (deinterlacing_value == 4) {
-        while (!zm_terminate) {
-          // ICON FIXME SHould we not clone decoder_it?
-          ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
-          std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
-          if (!deinterlace_packet) {
-            packet->decoded = true;
-            return false;
-          }
-          if (deinterlace_packet->codec_type == packet->codec_type) {
-            if (!deinterlace_packet->image) {
-              Error("Can't de-interlace when we have to decode.  De-Interlacing should only be useful on old low res local cams");
-            } else {
-              capture_image->Deinterlace_4Field(deinterlace_packet->image, (deinterlacing>>8)&0xff);
-            }
-            break;
-          }
-          //packetqueue.unlock(deinterlace_packet_lock);
-          packetqueue.increment_it(decoder_it, true);
-        }
-        if (zm_terminate) {
-          packet->decoded = true;
-          return false;
-        }
-      } else if (deinterlacing_value == 5) {
-        capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
+      if (!applyDeinterlacing(packet, capture_image)) {
+        packet->decoded = true;
+        return false;
       }
-    } // end if deinterlacing_value
+    }
 
-    if (orientation != ROTATE_0) {
-      Debug(3, "Doing rotation");
-      if (orientation == ROTATE_90 || orientation == ROTATE_180 || orientation == ROTATE_270) {
-        capture_image->Rotate((orientation-1)*90);
-      } else if (orientation == FLIP_HORI || orientation == FLIP_VERT) {
-        capture_image->Flip(orientation == FLIP_HORI);
-      }
-    } // end if have rotation
+    // Rotation/flip
+    applyOrientation(capture_image);
 
+    // Privacy masking
     if (privacy_bitmask) {
       capture_image->MaskPrivacy(privacy_bitmask);
     }
 
+    // Timestamp overlay
     if (config.timestamp_on_capture) {
       TimestampImage(capture_image, packet->timestamp);
     }
 
-    unsigned int index = shared_data->last_write_index;
-    index++;
-    index = index % image_buffer_count;
+    // Write to shared image buffer
+    unsigned int index = (shared_data->last_write_index + 1) % image_buffer_count;
     decoding_image_count++;
-    image_buffer[index]->Assign(*(packet->image));
-    image_pixelformats[index] = packet->image->AVPixFormat();
+    image_buffer[index]->Assign(*capture_image);
+    image_pixelformats[index] = capture_image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
     shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
-      Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
-              FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
+
+    // Warn if falling behind
+    auto lag = std::chrono::system_clock::now() - packet->timestamp;
+    if (lag > Seconds(ZM_WATCH_MAX_DELAY)) {
+      Warning("Decoding is not keeping up. %.2f seconds behind capture.", FPSeconds(lag).count());
     }
-  }  // end if have image
+  }
+
   packet->decoded = true;
   return true;
-}  // end bool Monitor::Decode()
+}
 
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";

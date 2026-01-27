@@ -588,7 +588,7 @@ bool PacketQueue::increment_it(packetqueue_iterator *it) {
   std::lock_guard<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
   if (((*it) == pktQueue.end()) or deleting) {
-    if (!deleting) Warning("increment_it at end!");
+    if (!deleting) Debug(1, "increment_it at end!");
     return false;
   }
   ++(*it);

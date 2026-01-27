@@ -2948,6 +2948,7 @@ bool Monitor::Decode() {
           ZMPacketLock deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
           std::shared_ptr<ZMPacket> deinterlace_packet = deinterlace_packet_lock.packet_;
           if (!deinterlace_packet) {
+            packet->decoded = true;
             return false;
           }
           if (deinterlace_packet->codec_type == packet->codec_type) {
@@ -2962,6 +2963,7 @@ bool Monitor::Decode() {
           packetqueue.increment_it(decoder_it, true);
         }
         if (zm_terminate) {
+          packet->decoded = true;
           return false;
         }
       } else if (deinterlacing_value == 5) {

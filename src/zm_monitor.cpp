@@ -2027,16 +2027,18 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
-            Image *y_image = packet->get_y_image();
-            if (y_image) {
-              Debug(1, "assigning refimage from y-channel");
-              ref_image.Assign(*y_image);
-            }
-          } else if (packet->image) {
-            Debug(1, "assigning refimage from packet->image");
-            ref_image.Assign(*(packet->image));
-          }
+          if (shared_data->analysing != ANALYSING_NONE) {
+            if  (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+              Image *y_image = packet->get_y_image();
+              if (y_image) {
+                Debug(1, "assigning refimage from y-channel");
+                ref_image.Assign(*y_image);
+              }
+            } else if (packet->image) {
+              Debug(1, "assigning refimage from packet->image");
+              ref_image.Assign(*(packet->image));
+            }  // end if y-image or full image
+          }  // end if doing analysing
         }
         shared_data->state = state = IDLE;
       }  // end if signal change
@@ -2125,6 +2127,7 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
+
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   // If not decoding, y_image can be null
                   Image *y_image = packet->get_y_image();
@@ -2139,12 +2142,13 @@ bool Monitor::Analyse() {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   motion_score = 0;
-                  Image *y_image = packet->get_y_image();
-                  Debug(1, "Detecting motion on image %d, image %p, y_image %p", packet->image_index, packet->image, y_image);
                   // Get new score.
-                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && y_image) {
-                    motion_score += DetectMotion(*y_image, zoneSet);
+                  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+                    Image *y_image = packet->get_y_image();
+                    Debug(1, "Detecting motion on image %d, y_image %p", packet->image_index, y_image);
+                    motion_score += DetectMotion(*y_image, zoneSet); // DetectMotion tests for null y_image
                   } else {
+                    Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
                     motion_score += DetectMotion(*(packet->image), zoneSet);
                   }
 
@@ -2193,8 +2197,7 @@ bool Monitor::Analyse() {
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   Debug(1, "Blending from y-channel");
                   Image *y_image = packet->get_y_image();
-                  if (y_image)
-                    ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (packet->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),
@@ -2908,8 +2911,8 @@ bool Monitor::Decode() {
       }  // end if have convert_context
     }  // end if need transfer to image
   } // end if in_frame
-
-  if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
+ 
+  if ((shared_data->analysing != ANALYSING_NONE) && (analysis_image == ANALYSISIMAGE_YCHANNEL)) {
     Image *y_image = packet->get_y_image();
     if (y_image) {
       if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)

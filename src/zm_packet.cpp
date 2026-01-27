@@ -102,37 +102,37 @@ ssize_t ZMPacket::ram() {
 
 int ZMPacket::send_packet(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN
-  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
-  if (ret == AVERROR(EAGAIN)) {
-    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    //ret = avcodec_send_packet(ctx, packet.get());
-    return 0;
-  }
   if (ret < 0) {
-    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      //ret = avcodec_send_packet(ctx, packet.get());
+      return 0;
+    } else {
+      Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
   }
   Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   return 1;
 }
 
+/* Returns < 0 on error, 0 for go again, > 0 for success */
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
   av_frame_ptr receive_frame{av_frame_alloc()};
   if (!receive_frame) {
     Error("Error allocating frame");
-    return 0;
+    return -1;
   }
   int ret = avcodec_receive_frame(ctx, receive_frame.get());
-  Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-  if (ret == AVERROR(EAGAIN)) {
-    return 0;
-  } else if (ret == AVERROR(EOF)) {
-    Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
-  } else if (ret < 0) {
-    Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
+  if (ret < 0) {
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return 0;
+    } else {
+      Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
   }
 
   in_frame = std::move(receive_frame);
@@ -140,7 +140,8 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
-  bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
+
+bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
   if (!(ctx && in_frame.get())) {
     Error("No ctx %p or in_frame %p", ctx, in_frame.get());
     return false;
@@ -157,7 +158,7 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 #endif
 #endif
   return false;
-} 
+}
 
 int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
   if (hw_frame) {

@@ -1174,93 +1174,97 @@ function manageChannelStream() {
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
-  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-  img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    const rect = img.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
 
-    // Find the table container to determine bounds
-    let tableTop = 0;
-    const table = img.closest('table');
-    if (table) {
-      const tableRect = table.getBoundingClientRect();
-      const thead = table.querySelector('thead');
-      if (thead) {
-        const theadRect = thead.getBoundingClientRect();
-        // Position below the table header
-        tableTop = theadRect.bottom;
-      } else {
-        tableTop = tableRect.top;
-      }
-    }
-
-    // Calculate available space to the right of the thumbnail
-    const availableRight = viewportWidth - rect.left;
-
-    // Use percentage-based width: 60% of viewport width, capped by available space
-    const targetWidth = Math.min(viewportWidth * 0.6, availableRight * 0.9);
-    const scale = targetWidth / rect.width;
-
-    // Calculate if scaled height would exceed viewport
-    const scaledHeight = rect.height * scale;
-    let finalScale = scale;
-
-    // Adjust scale if height would be too large (leave space from table header to bottom)
-    const availableHeight = viewportHeight - tableTop - 20; // 20px bottom margin
-    if (scaledHeight > availableHeight) {
-      finalScale = availableHeight / rect.height;
-    }
-
-    // Position the thumbnail: prefer below table header, but keep under cursor
-    let topPosition = Math.max(tableTop, rect.top);
-
-    // Ensure the enlarged thumbnail doesn't go off the bottom
-    if (topPosition + (rect.height * finalScale) > viewportHeight - 20) {
-      topPosition = viewportHeight - (rect.height * finalScale) - 20;
-    }
-
-    // Use fixed positioning to break out of container overflow restrictions
-    img.style.position = 'fixed';
-    img.style.left = rect.left + 'px';
-    img.style.top = topPosition + 'px';
-    img.style.width = rect.width + 'px';
-    img.style.height = rect.height + 'px';
-
-    // Set transform origin to top-left so it expands from there
-    img.style.transformOrigin = '0% 0%';
-    img.style.transform = 'scale(' + finalScale + ')';
+  // Determine the best source for the overlay: prefer mp4 video,
+  // fall back to MJPEG stream, use full-res still for frames view.
+  const videoSrc = img.getAttribute('video_src');
+  const useVideo = videoSrc && currentView != 'frames';
+  let overlaySrc;
+  if (useVideo) {
+    overlaySrc = videoSrc;
+  } else if (currentView == 'frames') {
+    overlaySrc = img.getAttribute('full_img_src');
+  } else {
+    const streamSrc = img.getAttribute('stream_src');
+    overlaySrc = streamSrc ? streamSrc.replace(/scale=\d+/, 'scale=32') : null;
   }
+  if (!overlaySrc) return;
+
+  const imgWidth = img.naturalWidth || img.width;
+  const imgHeight = img.naturalHeight || img.height;
+  if (!imgWidth || !imgHeight) return;
+
+  const aspectRatio = imgWidth / imgHeight;
+  const maxWidth = window.innerWidth * 0.6;
+  const maxHeight = window.innerHeight * 0.7;
+
+  let overlayWidth = maxWidth;
+  let overlayHeight = overlayWidth / aspectRatio;
+  if (overlayHeight > maxHeight) {
+    overlayHeight = maxHeight;
+    overlayWidth = overlayHeight * aspectRatio;
+  }
+
   thumbnail_timeout = setTimeout(function() {
-    img.classList.add(imgClass);
+    // Remove any existing overlay
+    const existing = document.getElementById('thumb-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'thumb-overlay';
+
+    // Container div with the cached still image as background so
+    // content is visible immediately while the stream loads.
+    const container = document.createElement('div');
+    container.className = 'thumb-overlay-img';
+    container.style.width = Math.round(overlayWidth) + 'px';
+    container.style.height = Math.round(overlayHeight) + 'px';
+    container.style.backgroundImage = 'url("' + img.src + '")';
+
+    if (useVideo) {
+      const overlayVideo = document.createElement('video');
+      overlayVideo.src = overlaySrc;
+      overlayVideo.autoplay = true;
+      overlayVideo.muted = true;
+      overlayVideo.playsInline = true;
+      overlayVideo.playbackRate = 5;
+      // Some browsers reset playbackRate when metadata loads
+      overlayVideo.addEventListener('loadedmetadata', function() {
+        this.playbackRate = 5;
+      });
+      container.appendChild(overlayVideo);
+    } else {
+      const overlayImg = document.createElement('img');
+      overlayImg.src = overlaySrc;
+      container.appendChild(overlayImg);
+    }
+
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
   }, 250);
 }
 
 function thumbnail_onmouseout(event) {
   clearTimeout(thumbnail_timeout);
-  var img = event.target;
-  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = img.getAttribute(imgAttr);
-  img.classList.remove(imgClass);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    img.style.position = '';
-    img.style.left = '';
-    img.style.top = '';
-    img.style.width = '';
-    img.style.height = '';
-    img.style.transform = '';
-    img.style.transformOrigin = '';
+  const overlay = document.getElementById('thumb-overlay');
+  if (overlay) {
+    const video = overlay.querySelector('video');
+    if (video) {
+      video.pause();
+      video.src = '';
+      video.load();
+    }
+    const streamImg = overlay.querySelector('img');
+    if (streamImg) streamImg.src = '';
+    overlay.remove();
   }
 }
 
 function initThumbAnimation() {
-  if ( ANIMATE_THUMBS ) {
+  if (ANIMATE_THUMBS) {
     $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+      this.addEventListener('mouseenter', thumbnail_onmouseover, false);
+      this.addEventListener('mouseleave', thumbnail_onmouseout, false);
     });
   }
 }

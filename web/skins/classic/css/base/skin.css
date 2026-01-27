@@ -890,24 +890,33 @@ li.search-choice {
   cursor: pointer;
 }
 
-.zoom,
-.zoom-console {
-  z-index: 1001;
+#thumb-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: none;
 }
 
-.zoom {
-  position: sticky;
-  transform-origin: 0% 00%;
-  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
+.thumb-overlay-img {
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
-/* Console view zoom uses dynamic scaling and positioning via JavaScript */
-.zoom-console {
-  /* Position, transform and transform-origin are set dynamically via JavaScript */
-}
-
-#framesTable .zoom {
-  transform-origin: 100% 0%;
+.thumb-overlay-img img,
+.thumb-overlay-img video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 a.flip {

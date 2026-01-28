@@ -880,6 +880,19 @@ function delCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+// Preview rate for thumbnail hover overlay. Cookie stores value as hundredths (e.g., 500 = 5x speed).
+function getPreviewRate() {
+  const rate = getCookie('zmPreviewRate');
+  return rate ? parseInt(rate, 10) / 100 : 5;
+}
+
+function changePreviewRate() {
+  const select = document.getElementById('previewRate');
+  if (select) {
+    setCookie('zmPreviewRate', select.value);
+  }
+}
+
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
@@ -1242,13 +1255,14 @@ function thumbnail_onmouseover(event) {
 
     if (useVideo) {
       const overlayVideo = document.createElement('video');
+      const previewRate = getPreviewRate();
       overlayVideo.src = overlaySrc;
       overlayVideo.autoplay = true;
       overlayVideo.muted = true;
       overlayVideo.playsInline = true;
-      overlayVideo.playbackRate = 5;
+      overlayVideo.playbackRate = previewRate;
       overlayVideo.addEventListener('loadedmetadata', function() {
-        this.playbackRate = 5; // Some browsers reset playbackRate on metadata load
+        this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
       });
       container.appendChild(overlayVideo);
     } else if (useGo2rtc) {

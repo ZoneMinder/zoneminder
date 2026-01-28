@@ -52,7 +52,7 @@ RETSIGTYPE zm_die_handler(int signal)
     Fatal("Got signal %d (%s), crashing", signal, strsignal(signal));
   zm_panic = true;
   Error("Got signal %d (%s), crashing", signal, strsignal(signal));
-#if (defined(__i386__) || defined(__x86_64__))
+#if (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
   // Get more information if available
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
   void *ip = nullptr;
@@ -73,13 +73,17 @@ RETSIGTYPE zm_die_handler(int signal)
 #else
     ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 #endif
-#else
+#elif defined(__i386__)
 #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
     ip = (void *)(uc->uc_mcontext.mc_eip);
 #else
     ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);
 #endif
-#endif				// defined(__x86_64__)
+#elif defined(__aarch64__)
+    ip = (void *)(uc->uc_mcontext.pc);
+#elif defined(__arm__)
+    ip = (void *)(uc->uc_mcontext.arm_pc);
+#endif
 
     // Print the signal address and instruction pointer if available
     if ( ip ) {
@@ -89,7 +93,7 @@ RETSIGTYPE zm_die_handler(int signal)
     }
   }
 #endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-#endif                          // (defined(__i386__) || defined(__x86_64__)
+#endif                          // (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
 
 
   // Print backtrace if enabled and available

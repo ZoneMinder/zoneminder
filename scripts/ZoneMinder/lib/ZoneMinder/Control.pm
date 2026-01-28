@@ -407,8 +407,12 @@ sub post {
   }
 
   if (defined $headers) {
-    foreach my $key (keys %$headers) {
-      $req->header($key=>$$headers{$key});
+    if (ref $headers eq 'HASH') {
+      foreach my $key (keys %$headers) {
+        $req->header($key=>$$headers{$key});
+      }
+    } else {
+      Debug("WHat is headers? ".Data::Dumper::Dumper($headers));
     }
   }
 
@@ -470,9 +474,9 @@ sub parse_ControlAddress {
       $$self{port} = 443;
       $uri->port($$self{port});
     }
-    $$self{address} = $uri->host_port();
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->canonical();
+    while (substr($$self{BaseURL}, -1, 1) eq '/') { chop($$self{BaseURL}); }
     $self->{ua}->credentials($uri->host_port(), $$self{realm}, $$self{username}, $$self{password});
     Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
     return 1;
@@ -505,6 +509,7 @@ sub parse_Path {
   $$self{uri} = $uri;
   $$self{port} = $uri->port();
   $$self{BaseURL} = $uri->canonical();
+  while (substr($$self{BaseURL}, -1, 1) eq '/') { chop($$self{BaseURL}); }
   $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
   Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
   return 1;
@@ -538,8 +543,8 @@ sub get_realm {
         if ( $tokens{realm} ) {
           if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
-            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
-            $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+            Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
+            $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
             $response = $self->get($url);
             if ( !$response->is_success() ) {
               Debug('Authentication still failed after updating REALM' . $response->status_line);

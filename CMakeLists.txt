@@ -55,6 +55,7 @@ include(CheckPlatform)
 
 # Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
 if(ZM_SYSTEM_PROC MATCHES "^arm")
+  # Suppress warnings about ABI changes for passing/returning objects of aggregate type on 32-bit ARM
   add_compile_options(-Wno-psabi)
   if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
     exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
@@ -344,16 +345,6 @@ if(NOT ZM_NO_CURL)
   else()
     set(optlibsnotfound "${optlibsnotfound} cURL")
   endif()
-endif()
-
-find_file(HAVE_UNTETHER_H uai_untether.h /opt/untether/speedai/include)
-if(HAVE_UNTETHER_H)
-  include_directories(/opt/untether/speedai/include/)
-  list(APPEND ZM_BIN_LIBS untether)
-  link_directories(/opt/untether/speedai/lib)
-  set(optlibsfound "${optlibsfound} untether")
-else()
-  set(optlibsnotfound "${optlibsnotfound} untether")
 endif()
 
 find_file(HAVE_MEMX_H memx.h /usr/include/memx)

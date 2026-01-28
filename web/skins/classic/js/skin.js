@@ -40,7 +40,9 @@ var icons = {
 
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
-var shifted = ctrled = alted = false;
+var shifted = false;
+var ctrled = false;
+var alted = false;
 var mainContent = document.getElementById('content');
 
 const showExtruderPanelOnMouseHover = false;
@@ -892,7 +894,9 @@ function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
-        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .done(function() {
+          window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
+        })
         .fail(logAjaxFail);
   });
 }
@@ -949,7 +953,7 @@ function getStateModal() {
 function manageStateModalBtns() {
   // Enable or disable the Delete button depending on the selected run state
   $j("#runState").change(function() {
-    runstate = $j(this).val();
+    var runstate = $j(this).val();
 
     if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
       $j("#btnDelete").prop("disabled", true);
@@ -960,7 +964,7 @@ function manageStateModalBtns() {
 
   // Enable or disable the Save button when entering a new state
   $j("#newState").keyup(function() {
-    length = $j(this).val().length;
+    var length = $j(this).val().length;
     if ( length < 1 ) {
       $j("#btnSave").prop("disabled", true);
     } else {
@@ -1041,7 +1045,7 @@ function getModal(id, parameters, buttonconfig=null) {
 
         insertModalHtml(id, data.html);
         buttonconfig ? buttonconfig() : manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
+        var modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
         }
@@ -1098,7 +1102,8 @@ function human_filesize(size, precision = 2) {
     size = size / step;
     i++;
   }
-  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+  var factor = Math.pow(10, precision);
+  return (Math.round(size * factor) / factor) + units[i];
 }
 
 
@@ -1377,7 +1382,9 @@ function destroyChosen(selector = '') {
 
 function applyChosen(selector = '') {
   const limit_search_threshold = 10;
-  var [obj_1, obj_2, obj_3] = '';
+  var obj_1;
+  var obj_2;
+  var obj_3;
   destroyChosen(selector);
   if (typeof selector === 'string') {
     obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
@@ -2189,13 +2196,18 @@ function initPageGeneral() {
   });
 
   function addListenerGlobalBeforeunload(event) {
+    /* Due to bfcache etc, we should really limit any changes we might make.  We will have to undo them if we then get a back button click */
     //window.removeEventListener('beforeunload', addListenerGlobalBeforeunload);
     //event.preventDefault();
     if (navbar_type == 'left') {
-      closeMbExtruder(updateCookie = true);
+      closeMbExtruder(true);
     }
 
-    if (event.target.activeElement.href && (event.target.activeElement.href.indexOf('view=archive') != -1 || event.target.activeElement.href.indexOf('view=download') != -1) || event.target.activeElement.id == 'exportButton') { // Clicked on the link to download the generated file in the modal window on the Events page or when automatic download of generated files was enabled
+    const href = event.target.activeElement.href;
+    if (href && (href.indexOf('view=archive') != -1 || href.indexOf('view=download') != -1)
+      || event.target.activeElement.id == 'exportButton') {
+      // Clicked on the link to download the generated file in the modal window
+      // on the Events page or when automatic download of generated files was enabled
       return;
     }
 

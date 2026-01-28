@@ -32,7 +32,6 @@ extern "C" {
 
 TimePoint start_read_time;
 
-
 FfmpegCamera::FfmpegCamera(
   const Monitor *monitor,
   const std::string &p_path,
@@ -81,6 +80,11 @@ FfmpegCamera::FfmpegCamera(
   if ( capture ) {
     FFMPEGInit();
   }
+
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  hw_device_ctx = nullptr;
+  hw_pix_fmt = AV_PIX_FMT_NONE;
+#endif
 
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */

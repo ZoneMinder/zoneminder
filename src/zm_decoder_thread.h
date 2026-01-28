@@ -20,6 +20,7 @@ class DecoderThread {
 
  private:
   void Run();
+  bool Decode();
 
   Monitor *monitor_;
   std::atomic<bool> terminate_;

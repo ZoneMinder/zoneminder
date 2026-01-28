@@ -16,9 +16,7 @@ FFmpeg_Input::FFmpeg_Input() :
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
-  if (input_format_context) {
-    Close();
-  }
+  Close();
 }  // end ~FFmpeg_Input()
 
 /* Takes streams provided from elsewhere.  They might not come from the same source
@@ -29,6 +27,12 @@ int FFmpeg_Input::Open(
   const AVStream * audio_in_stream,
   const AVCodecContext * audio_in_ctx
 ) {
+  // Clean up any previous state
+  if (streams) {
+    delete[] streams;
+    streams = nullptr;
+  }
+
   int max_stream_index = video_stream_id = video_in_stream->index;
 
   if (audio_in_stream) {
@@ -36,11 +40,20 @@ int FFmpeg_Input::Open(
     audio_stream_id = audio_in_stream->index;
   }
   streams = new stream[max_stream_index+1];
+  // Initialize all stream structs to safe values
+  for (int i = 0; i <= max_stream_index; i++) {
+    streams[i].context = nullptr;
+    streams[i].codec = nullptr;
+    streams[i].frame_count = 0;
+  }
   return 1;
 }
 
 int FFmpeg_Input::Open(const char *filepath) {
   int error;
+
+  // Clean up any previous state
+  Close();
 
   /** Open the input file to read from it. */
   error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
@@ -143,10 +156,8 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
 
     if (!streams[i].context) {
-      //avformat_close_input(&input_format_context);
-      //input_format_context = nullptr;
+      // Failed to open codec for this stream, skip it
       continue;
-      return error;
     }
     zm_dump_codec(streams[i].context);
     if (0 and !(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
@@ -165,25 +176,45 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 int FFmpeg_Input::Close( ) {
-  if (streams) {
+  // Free codec contexts - only if we have input_format_context to know stream count
+  if (streams && input_format_context) {
     for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
-      //avcodec_close(streams[i].context);
       avcodec_free_context(&streams[i].context);
       streams[i].context = nullptr;
     }
+  }
+
+  // Free streams array
+  if (streams) {
     delete[] streams;
     streams = nullptr;
   }
 
+  // Free format context
   if (input_format_context) {
     avformat_close_input(&input_format_context);
     input_format_context = nullptr;
   }
+
+  // Free hardware device context
+  if (hw_device_ctx) {
+    av_buffer_unref(&hw_device_ctx);
+    hw_device_ctx = nullptr;
+  }
+
+  // Reset stream IDs
+  video_stream_id = -1;
+  audio_stream_id = -1;
+  last_seek_request = -1;
+
   return 1;
 } // end int FFmpeg_Input::Close()
 
+// WARNING: Returns a raw pointer to an internally managed frame.
+// The returned pointer becomes invalid after the next call to get_frame().
+// Callers must not store this pointer across multiple get_frame() calls.
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
-  if (!streams[stream_id].context) {
+  if (!streams || !streams[stream_id].context) {
     Error("No context for stream %d", stream_id);
     return nullptr;
   }
@@ -267,7 +298,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 }  // end AVFrame *FFmpeg_Input::get_frame
 
 /* at is FPSeconds */
+// WARNING: Returns a raw pointer to an internally managed frame.
+// The returned pointer becomes invalid after the next call to get_frame().
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
+  if (!input_format_context || !streams) {
+    Error("get_frame called without valid input context");
+    return nullptr;
+  }
   Debug(1, "Getting frame from stream %d at %f", stream_id, at);
 
   int64_t seek_target = (int64_t)(at * AV_TIME_BASE);

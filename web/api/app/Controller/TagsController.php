@@ -48,12 +48,21 @@ class TagsController extends AppController {
     );
 
     if (isset($conditions['Events.Id'])) {
-      $find_array['joins'][]   = [ 
+      // Support comma-separated Event IDs for querying tags across multiple events
+      $event_id_value = $conditions['Events.Id'];
+      if (!is_array($event_id_value) && strpos($event_id_value, ',') !== false) {
+        $conditions['Events.Id'] = array_map('intval', explode(',', $event_id_value));
+      }
+
+      // Include EventId in the results
+      $find_array['fields'] = ['Tag.*', 'Events_Tags.EventId'];
+
+      $find_array['joins'][]   = [
           'table' => 'Events_Tags',
           'type'  => 'inner',
           'conditions' => ['Events_Tags.TagId = Tag.Id'],
       ];
-      $find_array['joins'][]   = [ 
+      $find_array['joins'][]   = [
           'table' => 'Events',
           'type'  => 'inner',
           'conditions' => ['Events.Id = Events_Tags.EventId'],

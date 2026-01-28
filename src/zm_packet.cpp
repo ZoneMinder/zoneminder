@@ -27,6 +27,10 @@
 #include "libavutil/hwcontext_ni_quad.h"
 #endif
 
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
@@ -126,37 +130,37 @@ ssize_t ZMPacket::ram() {
 
 int ZMPacket::send_packet(AVCodecContext *ctx) {
   // ret == 0 means EAGAIN
-  // We only send a packet if we have a delayed_packet, otherwise packet is the delayed_packet
   int ret = avcodec_send_packet(ctx, packet.get());
-  if (ret == AVERROR(EAGAIN)) {
-    Debug(2, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    //ret = avcodec_send_packet(ctx, packet.get());
-    return 0;
-  }
   if (ret < 0) {
-    Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      //ret = avcodec_send_packet(ctx, packet.get());
+      return 0;
+    } else {
+      Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
   }
   Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   return 1;
 }
 
+/* Returns < 0 on error, 0 for go again, > 0 for success */
 int ZMPacket::receive_frame(AVCodecContext *ctx) {
   av_frame_ptr receive_frame{av_frame_alloc()};
   if (!receive_frame) {
     Error("Error allocating frame");
-    return 0;
+    return -1;
   }
   int ret = avcodec_receive_frame(ctx, receive_frame.get());
-  Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-  if (ret == AVERROR(EAGAIN)) {
-    return 0;
-  } else if (ret == AVERROR(EOF)) {
-    Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
-  } else if (ret < 0) {
-    Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
-    return ret;
+  if (ret < 0) {
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return 0;
+    } else {
+      Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
   }
 
   in_frame = std::move(receive_frame);
@@ -171,30 +175,6 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
-
-/* returns < 0 on error, 0 on not ready, int bytes consumed on success
- * This functions job is to populate in_frame with the image in an appropriate
- * format. It MAY also populate image if able to.  In this case in_frame is populated
- * by the image buffer.
- */
-int ZMPacket::decode(AVCodecContext *ctx, std::shared_ptr<ZMPacket> delayed_packet) {
-  Debug(4, "about to decode video, image_index is (%d)", image_index);
-
-  int ret = send_packet(ctx);
-
-  av_frame_ptr receive_frame{av_frame_alloc()};
-  ret = avcodec_receive_frame(ctx, receive_frame.get());
-  Debug(1, "Ret from receive_frame %d %s", ret, av_make_error_string(ret).c_str());
-  if (ret == AVERROR(EAGAIN)) {
-    return 0;
-  } else if (ret < 0) {
-    return ret;
-  }
-
-  delayed_packet->in_frame = std::move(receive_frame);
-  zm_dump_video_frame(delayed_packet->in_frame.get(), "got frame");
-  return 1;
-}
 
 bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
   if (!(ctx && in_frame.get())) {
@@ -215,9 +195,9 @@ bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
   return false;
 }
 
-int ZMPacket::get_hwframe(AVCodecContext *ctx) {
+int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
   if (hw_frame) {
-    Error("Already have hw_frame in get_hwframe");
+    Error("Already have hw_frame in transfer_hwframe");
     return 0;
   }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
@@ -245,7 +225,6 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
       in_frame = nullptr;
       return ret;
     }
-    
     ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
     if (ret < 0) {
       Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
@@ -254,14 +233,14 @@ int ZMPacket::get_hwframe(AVCodecContext *ctx) {
     in_frame = std::move(new_frame);
     zm_dump_video_frame(in_frame.get(), "After hwtransfer");
   } else
-#endif
-#endif
     Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
+#endif
+#endif
   return 1;
-} // end ZMPacket::get_hwframe
+} // end ZMPacket::transfer_hwframe
 
 Image *ZMPacket::get_ai_image() {
   if (!ai_frame) {
@@ -298,6 +277,29 @@ Image *ZMPacket::set_image(Image *i) {
 
 Image *ZMPacket::get_y_image() {
   if (!y_image) {
+    if (!in_frame) {
+      Error("Can't get y_image without frame, maybe need to decode first");
+      return nullptr;
+    }
+
+    // Check if the pixel format has a Y channel accessible in data[0]
+    // This requires a planar YUV format (not RGB, not packed YUV)
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format));
+    if (!desc) {
+      Error("Unable to get pixel format descriptor for format %d", in_frame->format);
+      return nullptr;
+    }
+
+    // Must not be RGB (no Y channel) and must be planar (Y is in data[0])
+    if (desc->flags & AV_PIX_FMT_FLAG_RGB) {
+      Error("Cannot get Y image from RGB format %s", desc->name);
+      return nullptr;
+    }
+    if (!(desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
+      Error("Cannot get Y image from non-planar format %s (Y is interleaved)", desc->name);
+      return nullptr;
+    }
+
     y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
   }
   return y_image;

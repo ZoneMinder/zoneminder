@@ -18,6 +18,8 @@
 #include "zm_catch2.h"
 #include "zm_time.h"
 #include <chrono>
+#include <string>
+#include <unordered_map>
 
 // Test the ONVIF subscription renewal timing logic
 TEST_CASE("ONVIF Subscription Renewal Timing") {
@@ -207,10 +209,10 @@ TEST_CASE("ONVIF Absolute Time Formatting") {
   SECTION("Verify ISO 8601 format components") {
     time_t test_time = 1705151696;  // 2024-01-13 13:14:56 UTC
     std::string result = format_absolute_time_iso8601(test_time);
-    
+
     // Check year
     REQUIRE(result.substr(0, 4) == "2024");
-    
+
     // Check separators
     REQUIRE(result[4] == '-');  // After year
     REQUIRE(result[7] == '-');  // After month
@@ -219,5 +221,148 @@ TEST_CASE("ONVIF Absolute Time Formatting") {
     REQUIRE(result[16] == ':'); // After minute
     REQUIRE(result[19] == '.'); // After second
     REQUIRE(result[23] == 'Z'); // UTC indicator
+  }
+}
+
+// Standalone AlarmEntry struct matching the one in zm_monitor_onvif.h.
+// We replicate it here so tests don't depend on gSOAP headers.
+namespace onvif_test {
+struct AlarmEntry {
+  std::string value;
+  SystemTimePoint termination_time;
+};
+
+using AlarmMap = std::unordered_map<std::string, AlarmEntry>;
+
+// Mirror of ONVIF::expire_stale_alarms logic for unit testing.
+// Returns true if the map became empty (caller should setAlarmed(false)).
+bool expire_stale_alarms(AlarmMap &alarms, const SystemTimePoint &now) {
+  auto it = alarms.begin();
+  while (it != alarms.end()) {
+    // Skip entries with no termination time set (epoch = uninitialized)
+    if (it->second.termination_time.time_since_epoch().count() == 0) {
+      ++it;
+      continue;
+    }
+    if (it->second.termination_time <= now) {
+      it = alarms.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  return alarms.empty();
+}
+}  // namespace onvif_test
+
+// Test per-topic TerminationTime alarm expiry logic
+TEST_CASE("ONVIF Per-Topic Alarm Expiry") {
+  using namespace onvif_test;
+  auto now = std::chrono::system_clock::now();
+
+  SECTION("Expired alarms are removed by sweep") {
+    AlarmMap alarms;
+    // Alarm with TerminationTime 10 seconds in the past
+    alarms["PeopleDetect"] = AlarmEntry{"true", now - std::chrono::seconds(10)};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.empty());
+    REQUIRE(empty);
+  }
+
+  SECTION("Future alarms are retained by sweep") {
+    AlarmMap alarms;
+    // Alarm with TerminationTime 60 seconds in the future
+    alarms["MotionAlarm"] = AlarmEntry{"true", now + std::chrono::seconds(60)};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.size() == 1);
+    REQUIRE_FALSE(empty);
+  }
+
+  SECTION("Mixed expired and future alarms") {
+    AlarmMap alarms;
+    alarms["PeopleDetect"] = AlarmEntry{"true", now - std::chrono::seconds(10)};
+    alarms["MotionAlarm"] = AlarmEntry{"true", now + std::chrono::seconds(60)};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.size() == 1);
+    REQUIRE(alarms.count("MotionAlarm") == 1);
+    REQUIRE(alarms.count("PeopleDetect") == 0);
+    REQUIRE_FALSE(empty);
+  }
+
+  SECTION("Re-triggering an alarm updates its TerminationTime") {
+    AlarmMap alarms;
+    // Initial alarm with TerminationTime 5 seconds from now
+    SystemTimePoint initial_term = now + std::chrono::seconds(5);
+    alarms["PeopleDetect"] = AlarmEntry{"true", initial_term};
+
+    // Simulate re-trigger with new TerminationTime 65 seconds from now
+    SystemTimePoint new_term = now + std::chrono::seconds(65);
+    alarms["PeopleDetect"] = AlarmEntry{"true", new_term};
+
+    // Sweep at now+10s - alarm should NOT be expired because it was refreshed
+    SystemTimePoint sweep_time = now + std::chrono::seconds(10);
+    bool empty = expire_stale_alarms(alarms, sweep_time);
+    REQUIRE(alarms.size() == 1);
+    REQUIRE_FALSE(empty);
+
+    // Verify the termination time was updated
+    REQUIRE(alarms["PeopleDetect"].termination_time == new_term);
+  }
+
+  SECTION("Alarms with epoch termination time (uninitialized) are not expired") {
+    AlarmMap alarms;
+    // Alarm with default-constructed (epoch) termination time
+    alarms["SomeAlarm"] = AlarmEntry{"true", SystemTimePoint{}};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.size() == 1);
+    REQUIRE_FALSE(empty);
+  }
+
+  SECTION("TerminationTime exactly equal to now is expired") {
+    AlarmMap alarms;
+    alarms["PeopleDetect"] = AlarmEntry{"true", now};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.empty());
+    REQUIRE(empty);
+  }
+
+  SECTION("Multiple expired alarms are all removed") {
+    AlarmMap alarms;
+    alarms["PeopleDetect"] = AlarmEntry{"true", now - std::chrono::seconds(30)};
+    alarms["VehicleDetect"] = AlarmEntry{"true", now - std::chrono::seconds(20)};
+    alarms["DogCatDetect"] = AlarmEntry{"true", now - std::chrono::seconds(10)};
+
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(alarms.empty());
+    REQUIRE(empty);
+  }
+
+  SECTION("Empty alarms map is handled gracefully") {
+    AlarmMap alarms;
+    bool empty = expire_stale_alarms(alarms, now);
+    REQUIRE(empty);
+  }
+
+  SECTION("AlarmEntry stores value correctly") {
+    AlarmEntry entry{"true", now + std::chrono::seconds(60)};
+    REQUIRE(entry.value == "true");
+
+    AlarmEntry entry2{"false", now};
+    REQUIRE(entry2.value == "false");
+  }
+
+  SECTION("Alarm value accessible via map for SetNoteSet") {
+    AlarmMap alarms;
+    alarms["MyRuleDetector/PeopleDetect"] = AlarmEntry{"true", now + std::chrono::seconds(60)};
+
+    // Simulate SetNoteSet logic: iterate and access .value
+    for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+      std::string note = it->first + "/" + it->second.value;
+      REQUIRE(note == "MyRuleDetector/PeopleDetect/true");
+    }
   }
 }

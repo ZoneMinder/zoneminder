@@ -353,5 +353,6 @@ int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBuffe
 int ni_get_cardno(const AVCodecContext *ctx);
 #endif
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
+enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);
 
 #endif // ZM_FFMPEG_H

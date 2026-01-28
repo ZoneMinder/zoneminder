@@ -23,7 +23,9 @@ class FFmpeg_Input {
     const AVStream *,
     const AVCodecContext *);
   int Close();
+  // WARNING: Returned pointer is invalidated by subsequent get_frame() calls
   AVFrame *get_frame(int stream_id=-1);
+  // WARNING: Returned pointer is invalidated by subsequent get_frame() calls
   AVFrame *get_frame(int stream_id, double at);
   int get_video_stream_id() const {
     return video_stream_id;

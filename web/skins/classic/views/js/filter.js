@@ -154,22 +154,33 @@ function resetFilter( element ) {
   $j('#contentForm')[0].reset();
 }
 
+function serializeFormExcludingCsrf(form) {
+  return $j(form).find('input, select, textarea').not('[name="__csrf_magic"]').serialize();
+}
+
 function submitToEvents(element) {
   const form = element.form;
   form.elements['action'].value='';
-  window.location.assign('?view=events&'+$j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=events&' + formData);
 }
 
 function submitToMontageReview(element) {
   const form = element.form;
-  form.action = thisUrl + '?view=montagereview';
-  window.location.assign('?view=montagereview&live=0&'+$j(form).serialize());
-  history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=montagereview&live=0&' + formData);
 }
 
 function submitToExport(element) {
   const form = element.form;
-  window.location.assign('?view=export&'+$j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=export&' + formData);
 }
 
 function submitAction(button) {

@@ -456,12 +456,10 @@ LocalCamera::LocalCamera(
   } else {
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
-  if (capture and device_prime)
-    Initialise();
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
-  if (device_prime && capture)
+  if (device_prime && capture && vid_fd >= 0)
     Terminate();
 
   /* Clean up swscale stuff */
@@ -469,10 +467,17 @@ LocalCamera::~LocalCamera() {
     sws_freeContext(imgConversionContext);
     imgConversionContext = nullptr;
   }
+
+  // Decrement counters so recreated cameras get proper device_prime/channel_prime
+  if (device_prime)
+    camera_count--;
+  if (channel_prime)
+    channel_count--;
 } // end LocalCamera::~LocalCamera
 
 int LocalCamera::Close() {
-  if (device_prime && capture)
+  Debug(1, "Close: device_prime=%d, capture=%d, vid_fd=%d", device_prime, capture, vid_fd);
+  if (device_prime && capture && vid_fd >= 0)
     Terminate();
   return 0;
 };
@@ -777,9 +782,16 @@ void LocalCamera::Terminate() {
       if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
+
+    // Free arrays allocated in Initialise() so they can be reallocated on re-init
+    delete[] v4l2_data.buffers;
+    v4l2_data.buffers = nullptr;
+    delete[] capturePictures;
+    capturePictures = nullptr;
   }
 
   close(vid_fd);
+  vid_fd = -1;
   primed = mIsPrimed = false;
 } // end LocalCamera::Terminate
 
@@ -1239,6 +1251,13 @@ int LocalCamera::Contrast(int p_contrast) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
+
+  // Initialize the device if not already done
+  Debug(1, "PrimeCapture: device_prime=%d, vid_fd=%d", device_prime, vid_fd);
+  if (device_prime && vid_fd < 0) {
+    Initialise();
+  }
+
   if (primed) {
     Debug(1, "Calling PrimeCapture while already primed...");
     return 1;

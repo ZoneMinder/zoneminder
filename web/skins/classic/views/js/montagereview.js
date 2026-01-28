@@ -61,18 +61,21 @@ function evaluateLoadTimes() {
   }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
   // The larger this is (positive) the faster we can go
-  if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1); // we can go much faster
-  else if (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
-  else if (avgFrac >= 0.7) currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
-  else if (avgFrac >= 0.6) currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
-  else if (avgFrac >= 0.5) currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
-  else if (avgFrac >= 0.4) currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
-  else if (avgFrac >= 0.35) currentDisplayInterval = (currentDisplayInterval * 0.90).toFixed(1);
-  else if (avgFrac >= 0.3) currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
-  else if (avgFrac >= 0.25) currentDisplayInterval = (currentDisplayInterval * 1.20).toFixed(1);
-  else if (avgFrac >= 0.2) currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
-  else if (avgFrac >= 0.1) currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
-  else currentDisplayInterval = (currentDisplayInterval * 2.50).toFixed(1);
+  // Note: multiply then round to 1 decimal place, keeping result as number
+  let multiplier;
+  if (avgFrac >= 0.9) multiplier = 0.50; // we can go much faster
+  else if (avgFrac >= 0.8) multiplier = 0.55;
+  else if (avgFrac >= 0.7) multiplier = 0.60;
+  else if (avgFrac >= 0.6) multiplier = 0.65;
+  else if (avgFrac >= 0.5) multiplier = 0.70;
+  else if (avgFrac >= 0.4) multiplier = 0.80;
+  else if (avgFrac >= 0.35) multiplier = 0.90;
+  else if (avgFrac >= 0.3) multiplier = 1.00;
+  else if (avgFrac >= 0.25) multiplier = 1.20;
+  else if (avgFrac >= 0.2) multiplier = 1.50;
+  else if (avgFrac >= 0.1) multiplier = 2.00;
+  else multiplier = 2.50;
+  currentDisplayInterval = Math.round(currentDisplayInterval * multiplier * 10) / 10;
   // limit this from about 40fps to .1 fps
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
@@ -1394,7 +1397,7 @@ function wait_for_events() {
 }
 
 function takeSnapshot() {
-  monitor_ids = [];
+  const monitor_ids = [];
   for (const key in monitorIndex) {
     monitor_ids[monitor_ids.length] = key;
   }
@@ -1479,8 +1482,8 @@ function loadFrames(zm_events) {
             } // end if there are frames
             resolve();
           },
-          error: function() {
-            logAjaxFail;
+          error: function(jqXHR) {
+            logAjaxFail(jqXHR);
             reject(Error("There was an error"));
           }
         }); // end ajax

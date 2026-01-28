@@ -15,6 +15,8 @@ extern "C" {
 #include "netint_network.h"
 
 #include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
 
 #define NI_TRANSCODE_FRAME_NUM 3
 #define NI_SAME_CENTER_THRESH 2
@@ -28,6 +30,8 @@ class Quadra_Yolo {
     int model_width;
     int model_height;
     int model_format;
+    bool model_bgr;  // true if model expects BGR channel order, false for RGB
+    std::vector<std::string> class_names;  // Class labels loaded from .names file
     float obj_thresh = 0.25;
     float nms_thresh = 0.45;
     NiNetworkContext *network_ctx;
@@ -39,6 +43,13 @@ class Quadra_Yolo {
     av_frame_ptr scaled_frame;
     //SWScale swscale;
     SwsContext *sw_scale_ctx;
+
+    // Letterbox parameters for aspect ratio preservation
+    int letterbox_offset_x = 0;  // X offset of scaled image within model frame
+    int letterbox_offset_y = 0;  // Y offset of scaled image within model frame
+    int letterbox_width = 0;     // Width of scaled image (without padding)
+    int letterbox_height = 0;    // Height of scaled image (without padding)
+    float letterbox_scale = 1.0f; // Scale factor applied to original image
 
     filter_worker hwdl_filter;
 
@@ -83,6 +94,9 @@ class Quadra_Yolo {
     int process_roi(AVFrame *frame, AVFrame **filt_frame);
     int check_movement( AVRegionOfInterest cur_roi, AVRegionOfInterestNetintExtra cur_roi_extra);
     int ni_read_roi(AVFrame *out, int frame_count);
+    bool parse_model_file(const std::string &nbg_file);
+    bool load_class_names(const std::string &nbg_file);
+    const std::string& get_class_name(int class_id) const;
 };
 
 #endif

@@ -52,6 +52,12 @@ class FfmpegCamera : public Camera {
 
   _AVPIXELFORMAT      imagePixFormat;
 
+  bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  AVBufferRef *hw_device_ctx = nullptr;
+  AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;  // Per-instance hw pixel format for get_hw_format callback
+#endif
+
   // Used to store the incoming packet, it will get copied when queued.
   // We only ever need one at a time, so instead of constantly allocating
   // and freeing this structure, we will just make it a member of the object.

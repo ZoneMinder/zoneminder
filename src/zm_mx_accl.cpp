@@ -214,8 +214,8 @@ int MxAccl::send_frame(MxAccl::Job *job, AVFrame *avframe) {
   int ret = sws_scale(job->sw_scale_ctx, (const uint8_t * const *)avframe->data,
       avframe->linesize, 0, avframe->height, job->scaled_frame->data, job->scaled_frame->linesize);
   if (ret < 0) {
-    Error("cannot do sw scale: inframe data 0x%lx, linesize %d/%d/%d/%d, height %d to %d linesize",
-        (unsigned long)avframe->data, avframe->linesize[0], avframe->linesize[1],
+    Error("cannot do sw scale: inframe data %p, linesize %d/%d/%d/%d, height %d to %d linesize",
+        static_cast<void*>(avframe->data), avframe->linesize[0], avframe->linesize[1],
         avframe->linesize[2], avframe->linesize[3], avframe->height, job->scaled_frame->linesize[0]);
     return -1;
   }

@@ -842,7 +842,7 @@ void Image::AssignDirect(
 
   if ( holdbuffer && buffer ) {
     if ( new_buffer_size > allocation ) {
-      Error("Held buffer is undersized for assigned buffer new_buffer_size %ld > allocation %ld ", new_buffer_size, allocation);
+      Error("Held buffer is undersized for assigned buffer new_buffer_size %zu > allocation %lu ", new_buffer_size, allocation);
       return;
     } else {
       /* Copy into the held buffer */
@@ -956,13 +956,13 @@ void Image::Assign(const Image &image) {
 
     if ( holdbuffer && buffer ) {
       if ( new_size > allocation ) {
-        Error("Held buffer is undersized allocation: %ld for assigned buffer %d", allocation, new_size);
+        Error("Held buffer is undersized allocation: %lu for assigned buffer %d", allocation, new_size);
         return;
       }
     } else {
       if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
-        Debug(1, "New size %d > allocation %ld", new_size, allocation);
+        Debug(1, "New size %d > allocation %lu", new_size, allocation);
         AllocImgBuffer(new_size);
       }
     }
@@ -1943,7 +1943,7 @@ bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size ) {
     return false;
   }
   if ( zip_size != (unsigned int)size ) {
-    Error("Unzip failed, size mismatch, expected %d bytes, got %ld", size, zip_size);
+    Error("Unzip failed, size mismatch, expected %d bytes, got %lu", size, zip_size);
     return false;
   }
   return true;

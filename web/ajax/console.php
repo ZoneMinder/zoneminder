@@ -418,23 +418,48 @@ function queryRequest() {
     // Thumbnail
     $row['Thumbnail'] = '';
     if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
-      $options = array();
       $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 1;
-      $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
-      $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
-      $options['scale'] = $Monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100;
-      $options['mode'] = 'jpeg';
-      $options['frames'] = 1;
-      
+      $options = array(
+        'width'  => ZM_WEB_LIST_THUMB_WIDTH,
+        'height' => ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH * $ratio_factor,
+        'scale'  => $Monitor->ViewWidth() ? intval(100 * ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100,
+        'mode'   => 'jpeg',
+        'frames' => 1,
+      );
+
       $stillSrc = $Monitor->getStreamSrc($options);
-      $streamSrc = $Monitor->getStreamSrc(array('scale'=>($options['scale'] > 20 ? 100 : $options['scale']*5)));
-      
-      $thmbWidth = ($options['width']) ? 'width:'.$options['width'].'px;' : '';
-      $thmbHeight = ($options['height']) ? 'height:'.$options['height'].'px;' : '';
-      
+      $streamSrc = $Monitor->getStreamSrc(array('scale' => ($options['scale'] > 20 ? 100 : $options['scale'] * 5)));
+      $videoAttr = '';
+      $go2rtcAttr = '';
+
+      // When not analysing or decoding, fall back to the most recent event
+      if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
+        $event = ZM\Event::find_one(
+          array('MonitorId' => $monitor['Id']),
+          array('order' => 'Id DESC')
+        );
+        if ($event) {
+          $stillSrc = $event->getThumbnailSrc(array(), '&amp;');
+          $scale = $event->Width() ? intval(5 * 100 * ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
+          $streamSrc = $event->getStreamSrc(array(
+            'mode' => 'jpeg', 'scale' => $scale, 'maxfps' => ZM_WEB_VIDEO_MAXFPS,
+            'replay' => 'single', 'rate' => '400'), '&amp;');
+          if ($event->DefaultVideo()) {
+            $videoSrc = $event->getStreamSrc(array('mode' => 'mp4'), '&amp;');
+            $videoAttr = ' video_src="'.$videoSrc.'"';
+          }
+        }
+      } else if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
+        // Live monitor: add go2rtc stream source
+        $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
+      }
+
+      $thmbWidth = $options['width'] ? 'width:'.$options['width'].'px;' : '';
+      $thmbHeight = $options['height'] ? 'height:'.$options['height'].'px;' : '';
+
       $row['Thumbnail'] = '<div class="colThumbnail" style="'.$thmbHeight.'"><a href="?view=watch&amp;mid='.$monitor['Id'].'">'.
         '<img id="thumbnail'.$Monitor->Id().'" src="'.$stillSrc.'" style="'.$thmbWidth.$thmbHeight.
-        '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.
+        '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.$videoAttr.$go2rtcAttr.
         ($options['width'] ? ' width="'.$options['width'].'"' : '').
         ($options['height'] ? ' height="'.$options['height'].'"' : '').
         ' loading="lazy" /></a></div>';

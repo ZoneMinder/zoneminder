@@ -1171,17 +1171,38 @@ function manageChannelStream() {
   }
 }
 
+// Lazy-load the video-stream custom element for go2rtc overlay support.
+var _videoStreamLoaded = null;
+function ensureVideoStreamLoaded() {
+  if (!_videoStreamLoaded) {
+    _videoStreamLoaded = customElements.get('video-stream') ?
+      Promise.resolve() :
+      import('js/video-stream.js').catch(function(e) {
+        console.warn('Failed to load video-stream module:', e);
+        _videoStreamLoaded = null;
+      });
+  }
+  return _videoStreamLoaded;
+}
+
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   const img = event.target;
 
-  // Determine the best source for the overlay: prefer mp4 video,
-  // fall back to MJPEG stream, use full-res still for frames view.
+  const go2rtcSrc = img.getAttribute('go2rtc_src');
+  const go2rtcMid = img.getAttribute('go2rtc_mid');
+  const useGo2rtc = go2rtcSrc && go2rtcMid;
+
+  if (useGo2rtc) ensureVideoStreamLoaded();
+
+  // Overlay source priority: mp4 video > go2rtc live > MJPEG stream (or full-res still for frames view)
   const videoSrc = img.getAttribute('video_src');
   const useVideo = videoSrc && currentView != 'frames';
   let overlaySrc;
   if (useVideo) {
     overlaySrc = videoSrc;
+  } else if (useGo2rtc) {
+    overlaySrc = 'go2rtc';
   } else if (currentView == 'frames') {
     overlaySrc = img.getAttribute('full_img_src');
   } else {
@@ -1206,15 +1227,13 @@ function thumbnail_onmouseover(event) {
   }
 
   thumbnail_timeout = setTimeout(function() {
-    // Remove any existing overlay
     const existing = document.getElementById('thumb-overlay');
     if (existing) existing.remove();
 
     const overlay = document.createElement('div');
     overlay.id = 'thumb-overlay';
 
-    // Container div with the cached still image as background so
-    // content is visible immediately while the stream loads.
+    // Use the cached still image as background so content shows immediately while the stream loads
     const container = document.createElement('div');
     container.className = 'thumb-overlay-img';
     container.style.width = Math.round(overlayWidth) + 'px';
@@ -1228,11 +1247,41 @@ function thumbnail_onmouseover(event) {
       overlayVideo.muted = true;
       overlayVideo.playsInline = true;
       overlayVideo.playbackRate = 5;
-      // Some browsers reset playbackRate when metadata loads
       overlayVideo.addEventListener('loadedmetadata', function() {
-        this.playbackRate = 5;
+        this.playbackRate = 5; // Some browsers reset playbackRate on metadata load
       });
       container.appendChild(overlayVideo);
+    } else if (useGo2rtc) {
+      ensureVideoStreamLoaded().then(function() {
+        if (!document.getElementById('thumb-overlay')) return;
+
+        const url = new URL(go2rtcSrc);
+        url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
+        url.pathname += '/ws';
+        url.search = 'src=' + go2rtcMid + '_0';
+
+        const stream = document.createElement('video-stream');
+        stream.style.width = '100%';
+        stream.style.height = '100%';
+        stream.style.display = 'block';
+        stream.background = true;
+        stream.src = url.href;
+        container.appendChild(stream);
+
+        // Fallback: if go2rtc doesn't produce video within 3s, switch to MJPEG
+        stream._fallbackTimer = setTimeout(function() {
+          const innerVideo = stream.querySelector('video');
+          if (!innerVideo || innerVideo.readyState < 2) {
+            const streamSrc = img.getAttribute('stream_src');
+            if (streamSrc) {
+              stream.remove();
+              const fallbackImg = document.createElement('img');
+              fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+              container.appendChild(fallbackImg);
+            }
+          }
+        }, 3000);
+      });
     } else {
       const overlayImg = document.createElement('img');
       overlayImg.src = overlaySrc;
@@ -1247,25 +1296,35 @@ function thumbnail_onmouseover(event) {
 function thumbnail_onmouseout(event) {
   clearTimeout(thumbnail_timeout);
   const overlay = document.getElementById('thumb-overlay');
-  if (overlay) {
+  if (!overlay) return;
+
+  const videoStream = overlay.querySelector('video-stream');
+  if (videoStream) {
+    if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+    videoStream.close();
+  } else {
     const video = overlay.querySelector('video');
     if (video) {
       video.pause();
       video.src = '';
       video.load();
     }
-    const streamImg = overlay.querySelector('img');
-    if (streamImg) streamImg.src = '';
-    overlay.remove();
   }
+  const streamImg = overlay.querySelector('.thumb-overlay-img > img');
+  if (streamImg) streamImg.src = '';
+  overlay.remove();
 }
 
 function initThumbAnimation() {
   if (ANIMATE_THUMBS) {
+    let hasGo2rtc = false;
     $j('.colThumbnail img').each(function() {
       this.addEventListener('mouseenter', thumbnail_onmouseover, false);
       this.addEventListener('mouseleave', thumbnail_onmouseout, false);
+      if (this.getAttribute('go2rtc_src')) hasGo2rtc = true;
     });
+    // Preload the video-stream module so it's ready when the user hovers
+    if (hasGo2rtc) ensureVideoStreamLoaded();
   }
 }
 

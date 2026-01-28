@@ -516,6 +516,7 @@ class Monitor extends ZM_Object {
       } # end if this->Id
       return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
+      ensureSummariesFresh();
       $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if (!$row) {
@@ -733,7 +734,6 @@ class Monitor extends ZM_Object {
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
-    dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
   } // end function destroy
 

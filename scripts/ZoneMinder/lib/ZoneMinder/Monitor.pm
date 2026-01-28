@@ -393,6 +393,7 @@ sub Event_Summary {
   my $self = shift;
   $$self{Event_Summary} = shift if @_;
   if ( ! $$self{Event_Summary} ) {
+    ZoneMinder::Event_Summary::ensureSummariesFresh();
     $$self{Event_Summary} = ZoneMinder::Event_Summary->find_one(MonitorId=>$$self{Id});
   }
   return $$self{Event_Summary};

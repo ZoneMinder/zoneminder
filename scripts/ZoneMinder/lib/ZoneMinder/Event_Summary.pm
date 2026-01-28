@@ -68,6 +68,16 @@ $serial = $primary_key = 'MonitorId';
     ArchivedEventDiskSpace =>  undef,
     );
 
+my $_last_checked = 0;
+
+sub ensureSummariesFresh {
+  return if (time() - $_last_checked) < 60;
+  $_last_checked = time();
+
+  require ZoneMinder::Database;
+  ZoneMinder::Database::zmDbDo("CALL Refresh_Summaries_SWR()");
+}
+
 sub Monitor {
 	return new ZoneMinder::Monitor( $_[0]{MonitorId} );
 } # end sub Monitor

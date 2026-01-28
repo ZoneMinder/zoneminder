@@ -451,11 +451,55 @@ function queryRequest() {
                        round($footer_totals['total_analysis_fps'], 2).' fps',
     'total_zones' => $footer_totals['total_zones']
   );
-  
-  // Add formatted event totals to footer
+
+  // Build filter querystrings for footer event totals (matching header behavior)
+  $eventCountsFooter = array(
+    'Total' => array(
+      'filter' => array('Query' => array('terms' => array()))
+    ),
+    'Hour' => array(
+      'filter' => array('Query' => array('terms' => array(
+        array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour')
+      )))
+    ),
+    'Day' => array(
+      'filter' => array('Query' => array('terms' => array(
+        array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 day')
+      )))
+    ),
+    'Week' => array(
+      'filter' => array('Query' => array('terms' => array(
+        array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-7 day')
+      )))
+    ),
+    'Month' => array(
+      'filter' => array('Query' => array('terms' => array(
+        array('cnj' => 'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 month')
+      )))
+    ),
+    'Archived' => array(
+      'filter' => array('Query' => array('terms' => array(
+        array('cnj' => 'and', 'attr' => 'Archived', 'op' => '=', 'val' => '1')
+      )))
+    )
+  );
+
+  // Add formatted event totals to footer with filter querystrings
   foreach (array('Total', 'Hour', 'Day', 'Week', 'Month', 'Archived') as $period) {
     $data['footer'][$period.'Events'] = $footer_totals['event_totals'][$period]['events'];
     $data['footer'][$period.'EventDiskSpace'] = human_filesize($footer_totals['event_totals'][$period]['diskspace']);
+
+    // Generate filter querystring for footer (include monitor filter if monitors are filtered)
+    $filter = $eventCountsFooter[$period]['filter'];
+    if (count($monitor_ids) > 0) {
+      $filter = addFilterTerm(
+        $filter,
+        count($filter['Query']['terms']),
+        array('cnj' => 'and', 'attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids))
+      );
+    }
+    parseFilter($filter);
+    $data['footer'][$period.'FilterQuery'] = $filter['querystring'];
   }
   
   return $data;

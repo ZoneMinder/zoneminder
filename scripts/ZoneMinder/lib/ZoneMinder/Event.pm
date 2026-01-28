@@ -418,11 +418,10 @@ sub delete {
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
     $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
 
-    my $storage = $event->Storage();
-    if ($event->DiskSpace() and $storage->Id()) {
-      $storage->lock_and_load();
-      $storage->save({DiskSpace=>$storage->DiskSpace()-$event->DiskSpace()});
-    }
+    # Note: We intentionally do NOT update Storage.DiskSpace here.
+    # Event creation (in C++) does not add to Storage.DiskSpace, so subtracting
+    # on deletion causes drift to negative values. Let zmaudit recalculate
+    # Storage.DiskSpace periodically from SUM(Events.DiskSpace) instead.
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {

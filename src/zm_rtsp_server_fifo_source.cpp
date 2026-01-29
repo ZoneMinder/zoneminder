@@ -160,8 +160,9 @@ int ZoneMinderFifoSource::getNextFrame() {
   int bytes_read = m_buffer.read_into(m_fd, 4096);
   //int bytes_read = m_buffer.read_into(m_fd, 4096, {1,0});
   if (bytes_read == 0) {
-    Debug(3, "No bytes read");
-    sleep(1);
+    Debug(1, "EOF on fifo %s, closing to allow reopen", m_fifo.c_str());
+    ::close(m_fd);
+    m_fd = -1;
     return -1;
   }
   if (bytes_read < 0) {

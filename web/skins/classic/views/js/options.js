@@ -48,6 +48,12 @@ function AddNewUser(el) {
   window.location.assign(url);
 }
 
+// Manage the Add New Role button
+function AddNewRole(el) {
+  url = el.getAttribute('data-url');
+  window.location.assign(url);
+}
+
 function initPage() {
   const NewStorageBtn = $j('#NewStorageBtn');
   const NewServerBtn = $j('#NewServerBtn');

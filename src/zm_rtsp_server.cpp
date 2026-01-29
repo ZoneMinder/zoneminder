@@ -324,7 +324,9 @@ int main(int argc, char *argv[]) {
     sleep(10);
 
     if (zm_reload) {
+      Info("Reloading configuration");
       logTerm();
+      zmLoadDBConfig();
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload

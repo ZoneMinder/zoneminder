@@ -42,21 +42,34 @@ function updateFooter(footer) {
       var innerDiv = cell.find('.th-inner');
       var target = innerDiv.length ? innerDiv : cell;
 
-      var link = target.find('a');
-      if (link.length) {
-        // Preserve the link but update the count
-        var newHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
-                      footer[period + 'EventDiskSpace'] + '</div>';
-        link.html(newHtml);
+      var contentHtml = footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
+                        footer[period + 'EventDiskSpace'] + '</div>';
+
+      // Create or update link with filter querystring
+      if (canView.Events && footer[period + 'FilterQuery']) {
+        var link = target.find('a');
+        if (link.length) {
+          // Update existing link href and content
+          link.attr('href', '?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery']);
+          link.html(contentHtml);
+        } else {
+          // Create new link
+          target.html('<a href="?view=' + ZM_WEB_EVENTS_VIEW + footer[period + 'FilterQuery'] + '">' +
+                      contentHtml + '</a>');
+        }
       } else {
-        target.html(footer[period + 'Events'] + '<br/><div class="small text-nowrap text-muted">' +
-                    footer[period + 'EventDiskSpace'] + '</div>');
+        // No permission or no filter query, just show text
+        target.html(contentHtml);
       }
     }
   });
 
-  // Update zone count
-  updateCell('td.colZones, th.colZones', footer.total_zones);
+  // Update zone count with link (matching header)
+  if (canView.Monitors) {
+    updateCell('td.colZones, th.colZones', '<a href="?view=zones">' + footer.total_zones + '</a>');
+  } else {
+    updateCell('td.colZones, th.colZones', footer.total_zones);
+  }
 }
 
 // Called by bootstrap-table to retrieve monitor data

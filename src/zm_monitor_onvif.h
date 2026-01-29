@@ -93,7 +93,13 @@ class ONVIF {
   bool IsRenewalNeeded();  // Check if subscription renewal is needed now
   bool do_wsa_request(const char* address, const char* action);  // Setup WS-Addressing headers for SOAP request
 #endif
-  std::unordered_map<std::string, std::string> alarms;
+  struct AlarmEntry {
+    std::string value;
+    SystemTimePoint termination_time;
+  };
+  std::unordered_map<std::string, AlarmEntry> alarms;
+  bool expire_alarms_enabled;  // Enable per-topic TerminationTime expiry (default: true)
+  void expire_stale_alarms(const SystemTimePoint &now);  // Sweep and expire alarms past TerminationTime
   std::mutex   alarms_mutex;
 
   // Thread management

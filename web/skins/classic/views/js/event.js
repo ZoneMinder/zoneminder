@@ -477,6 +477,9 @@ function getCmdResponse(respObj, respText) {
     streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  var clockTime = new Date(eventData.StartDateTime);
+  clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
+  $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
   const pz = zmPanZoom.panZoom[eventData.MonitorId];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
@@ -970,7 +973,8 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
-    var progressDate = new Date(currentTime);
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
     if (!streamStatus) return;
     var currentTime = streamStatus.progress;
@@ -983,6 +987,7 @@ function updateProgressBar() {
 
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
+  $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
@@ -1358,6 +1363,9 @@ function initPage() {
 
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+      var clockTime = new Date(eventData.StartDateTime);
+      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
+      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1390,6 +1398,7 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  $j('#currentTimeValue').html(new Date(eventData.StartDateTime).toLocaleTimeString());
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {

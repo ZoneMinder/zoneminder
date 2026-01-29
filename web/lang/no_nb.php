@@ -482,6 +482,7 @@ $SLANG = array(
     'PostEventImageBuffer'  => 'Etter Hendelse Bildeantall',
     'PreEventImageBuffer'   => 'Før Hendelse Bildeantall',
     'PreserveAspect'        => 'Bevar sideforhold',
+    'PreviewRate'           => 'Forhåndsvisningshastighet',
     'PreviousMonitor'       => 'Forrige Monitor',
     'PrivacyAbout'          => 'Om',
     'PrivacyAboutText'      => 'Siden 2002 har ZoneMinder vært den ledende gratis og åpen kildekode Video Management System (VMS)-løsningen for Linux-plattformer. ZoneMinder støttes av fellesskapet og administreres av de som velger å bruke fritiden sin til prosjektet. Den beste måten å forbedre ZoneMinder på er å engasjere seg.',

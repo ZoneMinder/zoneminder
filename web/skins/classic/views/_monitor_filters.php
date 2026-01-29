@@ -78,6 +78,31 @@ function addButtonResetForFilterSelect($nameSelect) {
   return $html;
 }
 
+// Preview rate options for thumbnail hover playback speed
+function getPreviewRateOptions() {
+  return array(
+    100  => '1x',
+    200  => '2x',
+    500  => '5x',
+    1000 => '10x',
+    1600 => '16x',
+  );
+}
+
+function getSelectedPreviewRate() {
+  return isset($_COOKIE['zmPreviewRate']) ? intval($_COOKIE['zmPreviewRate']) : 500;
+}
+
+function buildPreviewRateSelect() {
+  $html = '<span class="term PreviewRateFilter"><label>'.translate('PreviewRate').'</label>';
+  $html .= '<span class="term-value-wrapper">';
+  $html .= htmlSelect('PreviewRate', getPreviewRateOptions(), getSelectedPreviewRate(),
+    array('id' => 'previewRate', 'data-on-change' => 'changePreviewRate'));
+  $html .= '</span>';
+  $html .= '</span>';
+  return $html;
+}
+
 function buildMonitorsFilters() {
   global $user, $Servers, $view;
   require_once('includes/Monitor.php');
@@ -321,6 +346,9 @@ function buildMonitorsFilters() {
   $html .= addButtonResetForFilterSelect('MonitorId[]');
   $html .= '</span>';
   $html .= '</span>';
+
+  $html .= buildPreviewRateSelect();
+
   $html .= '</div>';
 
   return [

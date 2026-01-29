@@ -580,6 +580,7 @@ $SLANG = array(
     'PostEventImageBuffer' => 'Nb d\'image(s) post-événement',
     'PreEventImageBuffer'  => 'Nb d\'image(s) pré-événement',
     'PreserveAspect'       => 'Préserver les proportions',
+    'PreviewRate'          => 'Vitesse de prévisualisation',
     'Preset'               => 'Préréglage',
     'Presets'              => 'Préréglages',
     'Prev'                 => 'Précédent',

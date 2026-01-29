@@ -596,6 +596,7 @@ $SLANG = array(
     'PostEventImageBuffer' => 'Pozáznamový bufer',
     'PreEventImageBuffer'  => 'Předzáznamový bufer',
     'PreserveAspect'       => 'Preserve Aspect Ratio',
+    'PreviewRate'          => 'Rychlost náhledu',
     'Preset'               => 'Předvolba',
     'Presets'              => 'Předvolby',
     'Prev'                 => 'Zpět',

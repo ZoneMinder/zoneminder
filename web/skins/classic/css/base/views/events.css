@@ -1,5 +1,5 @@
 .archived {
-    background-color: #ffc107;;
+    background-color: #ffc107;
 }
 
 #contentTable.major .colTime {
@@ -86,4 +86,21 @@ body.sticky #eventTable thead {
 }
 #toolbar .row >div {
   padding: 0;
+}
+
+.previewRateControl {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  gap: 5px;
+}
+
+.previewRateControl label {
+  margin: 0;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.previewRateControl select {
+  padding: 2px 5px;
 }

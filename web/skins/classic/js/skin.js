@@ -1386,6 +1386,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
+    stream.muted = getCookie('zmWatchMuted') !== 'false';
     stream.src = url.href;
     container.appendChild(stream);
 
@@ -1413,7 +1414,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     const video = document.createElement('video');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = true;
-    video.muted = true;
+    video.muted = getCookie('zmWatchMuted') !== 'false';
     video.playsInline = true;
     container.appendChild(video);
 
@@ -1456,7 +1457,7 @@ function createVideoElement(container, src, eventStart, statusBar) {
   const previewRate = getPreviewRate();
   video.src = src;
   video.autoplay = true;
-  video.muted = true;
+  video.muted = getCookie('zmWatchMuted') !== 'false';
   video.playsInline = true;
   video.playbackRate = previewRate;
   video.addEventListener('loadedmetadata', function() {

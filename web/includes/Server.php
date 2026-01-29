@@ -125,7 +125,20 @@ class Server extends ZM_Object {
       return $_SERVER['HTTP_X_FORWARDED_PORT'];
     }
 
-    return $_SERVER['SERVER_PORT'];
+    // Try to extract port from HTTP_HOST (more reliable with nginx/reverse proxies)
+    if ( isset($_SERVER['HTTP_HOST']) ) {
+      if ( preg_match('/^(?:\[[^\]]+\]|[^:]+):(\d+)$/', $_SERVER['HTTP_HOST'], $matches) ) {
+        return $matches[1];
+      }
+    }
+
+    // Fall back to SERVER_PORT, but check it's valid (nginx+php-fpm can return wrong values)
+    if ( isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] ) {
+      return $_SERVER['SERVER_PORT'];
+    }
+
+    // Default to standard ports based on protocol
+    return $this->Protocol() == 'https' ? 443 : 80;
   }
 
   public function PathToZMS( $new = null ) {

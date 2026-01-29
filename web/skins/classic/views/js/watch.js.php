@@ -107,4 +107,6 @@ var translate = {
   "seconds": "<?php echo translate('seconds') ?>",
   "Fullscreen": "<?php echo translate('Fullscreen') ?>",
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
+  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
 };

@@ -2,11 +2,13 @@ var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
+var analyseBtn = $j('#analyseBtn');
 var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+var analyse_frames = false;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -1126,6 +1128,22 @@ function watchFullscreen() {
 
 function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
+}
+
+function toggleAnalyseFrames() {
+  analyse_frames = !analyse_frames;
+  if (analyse_frames) {
+    analyseBtn.addClass('btn-primary');
+    analyseBtn.removeClass('btn-secondary');
+    analyseBtn.attr('title', translate['Showing Analysis']);
+  } else {
+    analyseBtn.removeClass('btn-primary');
+    analyseBtn.addClass('btn-secondary');
+    analyseBtn.attr('title', translate['Show Analysis']);
+  }
+  if (monitorStream) {
+    monitorStream.show_analyse_frames(analyse_frames);
+  }
 }
 
 var cycleIntervalId;

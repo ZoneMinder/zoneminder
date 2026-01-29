@@ -40,6 +40,12 @@ if ( $action == 'delete' ) {
           dbQuery('DELETE FROM Storage WHERE Id=?', array($Id));
       }
       $refreshParent = true;
+    } else if ( $_REQUEST['object'] == 'role' ) {
+      if ( !empty($_REQUEST['markRids']) ) {
+        foreach( $_REQUEST['markRids'] as $Id )
+          dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id));
+      }
+      $redirect = '?view=options&tab=roles';
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users

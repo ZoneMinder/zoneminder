@@ -1002,6 +1002,7 @@ function getOptionsHTML($forLeftBar = false) {
     'medband',
     'lowband',
     'users',
+    'roles',
     'groups',
     'control',
     'privacy',

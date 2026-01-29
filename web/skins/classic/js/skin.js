@@ -1412,6 +1412,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
     const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
 
     const video = document.createElement('video');
+    video.removeAttribute('controls');
     video.style.cssText = 'width: 100%; height: 100%;';
     video.autoplay = true;
     video.muted = getCookie('zmWatchMuted') !== 'false';
@@ -2223,8 +2224,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video && !video.closest('#videoobj')) {
-      // We do not touch the video.js object, since it has its own controls.
+    if (video && !video.closest('#videoobj') && !video.closest('#thumb-overlay')) {
+      // We do not touch the video.js object or thumbnail overlay videos, since they have their own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {

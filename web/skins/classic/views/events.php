@@ -25,7 +25,6 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 
 require_once('includes/Event.php');
 require_once('includes/Filter.php');
-include_once('_monitor_filters.php');
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if (count($user->unviewableMonitorIds())) {

@@ -924,25 +924,6 @@ class Filter extends ZM_Object {
     return self::$archiveTypes;
   }
 
-  // Helper to generate Preview Rate control for event thumbnail playback speed
-  private static function previewRateHtml() {
-    $options = array(
-      100  => '1x',
-      200  => '2x',
-      500  => '5x',
-      1000 => '10x',
-      1600 => '16x',
-    );
-    $selected = isset($_COOKIE['zmPreviewRate']) ? intval($_COOKIE['zmPreviewRate']) : 500;
-    return '<span class="term PreviewRate">' .
-      '<span class="term-label-wrapper"><label>' . translate('PreviewRate') . '</label></span>' .
-      '<span class="term-value-wrapper">' .
-      htmlSelect('PreviewRate', $options, $selected,
-        array('id' => 'previewRate', 'class' => 'chosen', 'data-on-change' => 'changePreviewRate')) .
-      '</span>' .
-      '</span>';
-  }
-
   //
   // This displays filters from the filters page.
   //
@@ -1346,7 +1327,6 @@ class Filter extends ZM_Object {
 
       $html .= '</span>';
     } # end foreach term
-    $html .= self::previewRateHtml();
     $html .= '</div>';
     // Error($html);
     return $html;

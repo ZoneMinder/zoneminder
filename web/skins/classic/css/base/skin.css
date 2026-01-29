@@ -926,42 +926,46 @@ li.search-choice {
 }
 
 .thumb-overlay-status {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   color: #fff;
-  padding: 8px 16px;
-  margin-top: 8px;
-  border-radius: 4px;
+  padding: 10px 20px;
+  margin-top: 16px;
+  border-radius: 6px;
   font-family: monospace;
-  font-size: 14px;
-  min-height: 20px;
+  font-size: 18px;
+  min-height: 24px;
 }
 
 .live-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: bold;
   color: #ff4444;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  font-size: 20px;
 }
 
 .live-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   background: #ff4444;
   border-radius: 50%;
-  animation: live-pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  animation: live-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes live-pulse {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
   }
   50% {
-    opacity: 0.5;
-    transform: scale(1.2);
+    opacity: 0.7;
+    transform: scale(1.4);
+    box-shadow: 0 0 16px rgba(255, 68, 68, 0.9);
   }
 }
 

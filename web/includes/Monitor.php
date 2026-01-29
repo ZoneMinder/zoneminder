@@ -1190,7 +1190,7 @@ class Monitor extends ZM_Object {
       $html .= '<video id="liveStream'.$this->Id().'" style="'.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
         ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
-        '" autoplay muted controls playsinline=""></video>';
+        '" autoplay muted playsinline=""></video>';
     } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);

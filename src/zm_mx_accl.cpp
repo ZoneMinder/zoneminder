@@ -21,6 +21,7 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 #include "zm_monitor.h"
+#include "zm_object_classes.h"
 #include "zm_signal.h"
 #include "zm_vector2.h"
 
@@ -39,16 +40,9 @@
 #define BATCH_SIZE 10
 
 #ifdef HAVE_MX_ACCL_H
-static const char *coco_classes[] = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-  "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-  "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
-  "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
-  "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
-  "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-  "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-  "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote",
-  "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
-  "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
+
+// Shared object class names for detection results
+static ObjectClasses object_classes;
 
 MxAccl::MxAccl() :
   accl(),
@@ -275,7 +269,7 @@ const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold
     std::array<float, 4> cv_bbox = {l, t, r, b};
 
     // map class_id to class name
-    std::string class_name = coco_classes[bbox.class_index];
+    const std::string &class_name = object_classes.getClassName(bbox.class_index);
     predictions.push_back({{"class", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
   }
 

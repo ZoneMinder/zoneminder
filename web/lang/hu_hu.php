@@ -607,6 +607,7 @@ $SLANG = array(
     'PostEventImageBuffer' => 'Esemény utáni képkockák a pufferben',
     'PreEventImageBuffer'  => 'Esemény elötti képkockák a pufferben',
     'PreserveAspect'       => 'Méretarány megtartása',
+    'PreviewRate'          => 'Előnézet sebesség',
     'Preset'               => 'Előre beállított profil',
     'Presets'              => 'Előre beállított profilok',
     'Prev'                 => 'Előző',

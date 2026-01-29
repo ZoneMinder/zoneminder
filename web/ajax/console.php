@@ -419,25 +419,89 @@ function queryRequest() {
     // Thumbnail
     $row['Thumbnail'] = '';
     if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
-      $options = array();
       $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 1;
-      $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
-      $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
-      $options['scale'] = $Monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100;
-      $options['mode'] = 'jpeg';
-      $options['frames'] = 1;
-      
+      $options = array(
+        'width'  => ZM_WEB_LIST_THUMB_WIDTH,
+        'height' => ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH * $ratio_factor,
+        'scale'  => $Monitor->ViewWidth() ? intval(100 * ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100,
+        'mode'   => 'jpeg',
+        'frames' => 1,
+      );
+
       $stillSrc = $Monitor->getStreamSrc($options);
+      // Use master's improved scale computation
       $options['scale'] = ($options['scale'] > 20 ? 100 : $options['scale']*5);
       unset($options['frames']);
       $streamSrc = $Monitor->getStreamSrc($options);
-      
+
+      $videoAttr = '';
+      $go2rtcAttr = '';
+      $liveStreamAttr = '';
+
+      // Debug info for troubleshooting
+      $debugInfo = 'Analysing='.$monitor['Analysing'].',Decoding='.$monitor['Decoding'].
+        ',Go2RTC='.$Monitor->Go2RTCEnabled().
+        ',ZM_GO2RTC_PATH='.(defined('ZM_GO2RTC_PATH') ? ZM_GO2RTC_PATH : 'undefined');
+      $debugAttr = ' data-debug="'.htmlspecialchars($debugInfo).'"';
+
+      // STILL THUMBNAIL: When not analysing/decoding, use the most recent event thumbnail
+      // (ZM's nph-zms can't produce frames when not decoding)
+      if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
+        $debugAttr .= ' data-debug-still="event"';
+        $event = ZM\Event::find_one(
+          array('MonitorId' => $monitor['Id']),
+          array('order' => 'Id DESC')
+        );
+        if ($event) {
+          $stillSrc = $event->getThumbnailSrc(array(), '&amp;');
+          // Default stream/video sources from event (may be overridden by live streaming below)
+          $scale = $event->Width() ? intval(5 * 100 * ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
+          $streamSrc = $event->getStreamSrc(array(
+            'mode' => 'jpeg', 'scale' => $scale, 'maxfps' => ZM_WEB_VIDEO_MAXFPS,
+            'replay' => 'single', 'rate' => '400'), '&amp;');
+          if ($event->DefaultVideo()) {
+            $videoSrc = $event->getStreamSrc(array('mode' => 'mp4'), '&amp;');
+            $videoAttr = ' video_src="'.$videoSrc.'" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
+          }
+        }
+      } else {
+        $debugAttr .= ' data-debug-still="monitor"';
+      }
+
+      // HOVER OVERLAY: Check for external streaming methods (these work independently of ZM's decode/analyze)
+      // Priority: go2rtc > rtsp2web > janus > event replay > ZM native stream
+      if ($Monitor->Go2RTCEnabled() && defined('ZM_GO2RTC_PATH') && ZM_GO2RTC_PATH) {
+        $liveStreamAttr = ' data-stream-type="go2rtc"'.
+          ' data-go2rtc-src="'.htmlspecialchars(ZM_GO2RTC_PATH).'"'.
+          ' data-monitor-id="'.$monitor['Id'].'"';
+        $go2rtcAttr = ' go2rtc_src="'.htmlspecialchars(ZM_GO2RTC_PATH).'" go2rtc_mid="'.$monitor['Id'].'"';
+        $debugAttr .= ' data-debug-overlay="go2rtc"';
+      } else if ($Monitor->RTSP2WebEnabled() && defined('ZM_RTSP2WEB_PATH') && ZM_RTSP2WEB_PATH) {
+        $liveStreamAttr = ' data-stream-type="rtsp2web"'.
+          ' data-rtsp2web-src="'.htmlspecialchars(ZM_RTSP2WEB_PATH).'"'.
+          ' data-rtsp2web-stream="'.($Monitor->RTSP2WebStream() ?: 'Primary').'"'.
+          ' data-monitor-id="'.$monitor['Id'].'"';
+        $debugAttr .= ' data-debug-overlay="rtsp2web"';
+      } else if ($Monitor->JanusEnabled()) {
+        $janusPath = defined('ZM_JANUS_PATH') && ZM_JANUS_PATH ? ZM_JANUS_PATH : '';
+        $liveStreamAttr = ' data-stream-type="janus"'.
+          ' data-janus-src="'.htmlspecialchars($janusPath).'"'.
+          ' data-monitor-id="'.$monitor['Id'].'"';
+        $debugAttr .= ' data-debug-overlay="janus"';
+      } else if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
+        // No external streaming and ZM not running - overlay will use event replay (already set above)
+        $debugAttr .= ' data-debug-overlay="event-replay"';
+      } else {
+        // Use native ZM streaming (zms) - Analysing or Decoding is running
+        $debugAttr .= ' data-debug-overlay="zm-native"';
+      }
+
       $thmbWidth = ($options['width']) ? 'width:'.$options['width'].'px;' : '';
       $thmbHeight = ($options['height']) ? 'height:'.$options['height'].'px;' : '';
-      
+
       $row['Thumbnail'] = '<div class="colThumbnail" style="'.$thmbHeight.'"><a href="?view=watch&amp;mid='.$monitor['Id'].'">'.
         '<img id="thumbnail'.$Monitor->Id().'" src="'.$stillSrc.'" style="'.$thmbWidth.$thmbHeight.
-        '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.
+        '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.$videoAttr.$go2rtcAttr.$liveStreamAttr.$debugAttr.
         ($options['width'] ? ' width="'.$options['width'].'"' : '').
         ($options['height'] ? ' height="'.$options['height'].'"' : '').
         ' loading="lazy" /></a></div>';

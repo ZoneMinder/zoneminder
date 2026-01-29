@@ -882,6 +882,19 @@ function delCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+// Preview rate for thumbnail hover overlay. Cookie stores value as hundredths (e.g., 500 = 5x speed).
+function getPreviewRate() {
+  const rate = getCookie('zmPreviewRate');
+  return rate ? parseInt(rate, 10) / 100 : 5;
+}
+
+function changePreviewRate() {
+  const select = document.getElementById('previewRate');
+  if (select) {
+    setCookie('zmPreviewRate', select.value);
+  }
+}
+
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
@@ -1178,97 +1191,338 @@ function manageChannelStream() {
   }
 }
 
+// Lazy-load the video-stream custom element for go2rtc overlay support
+var _videoStreamLoaded = null;
+function ensureVideoStreamLoaded() {
+  if (_videoStreamLoaded) return _videoStreamLoaded;
+
+  if (customElements.get('video-stream')) {
+    _videoStreamLoaded = Promise.resolve();
+  } else {
+    _videoStreamLoaded = import('../js/video-stream.js').catch(function(e) {
+      console.warn('Failed to load video-stream module:', e);
+      _videoStreamLoaded = null;
+    });
+  }
+  return _videoStreamLoaded;
+}
+
+// Lazy-load HLS.js for RTSP2Web HLS streaming
+var _hlsLoaded = null;
+function ensureHlsLoaded() {
+  if (_hlsLoaded) return _hlsLoaded;
+
+  if (typeof Hls !== 'undefined') {
+    _hlsLoaded = Promise.resolve();
+  } else {
+    _hlsLoaded = new Promise(function(resolve, reject) {
+      const script = document.createElement('script');
+      script.src = '../js/hls-1.6.13/hls.min.js';
+      script.onload = resolve;
+      script.onerror = function() {
+        _hlsLoaded = null;
+        reject(new Error('Failed to load HLS.js'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return _hlsLoaded;
+}
+
 var thumbnail_timeout;
+
 function thumbnail_onmouseover(event) {
   const img = event.target;
-  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-  img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    const rect = img.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+  const streamType = img.dataset.streamType;
+  const monitorId = img.dataset.monitorId;
 
-    // Find the table container to determine bounds
-    let tableTop = 0;
-    const table = img.closest('table');
-    if (table) {
-      const tableRect = table.getBoundingClientRect();
-      const thead = table.querySelector('thead');
-      if (thead) {
-        const theadRect = thead.getBoundingClientRect();
-        // Position below the table header
-        tableTop = theadRect.bottom;
-      } else {
-        tableTop = tableRect.top;
-      }
-    }
+  // Legacy go2rtc attributes for backwards compatibility
+  const go2rtcSrc = img.getAttribute('go2rtc_src') || img.dataset.go2rtcSrc;
+  const go2rtcMid = img.getAttribute('go2rtc_mid') || monitorId;
+  const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
 
-    // Calculate available space to the right of the thumbnail
-    const availableRight = viewportWidth - rect.left;
-
-    // Use percentage-based width: 60% of viewport width, capped by available space
-    const targetWidth = Math.min(viewportWidth * 0.6, availableRight * 0.9);
-    const scale = targetWidth / rect.width;
-
-    // Calculate if scaled height would exceed viewport
-    const scaledHeight = rect.height * scale;
-    let finalScale = scale;
-
-    // Adjust scale if height would be too large (leave space from table header to bottom)
-    const availableHeight = viewportHeight - tableTop - 20; // 20px bottom margin
-    if (scaledHeight > availableHeight) {
-      finalScale = availableHeight / rect.height;
-    }
-
-    // Position the thumbnail: prefer below table header, but keep under cursor
-    let topPosition = Math.max(tableTop, rect.top);
-
-    // Ensure the enlarged thumbnail doesn't go off the bottom
-    if (topPosition + (rect.height * finalScale) > viewportHeight - 20) {
-      topPosition = viewportHeight - (rect.height * finalScale) - 20;
-    }
-
-    // Use fixed positioning to break out of container overflow restrictions
-    img.style.position = 'fixed';
-    img.style.left = rect.left + 'px';
-    img.style.top = topPosition + 'px';
-    img.style.width = rect.width + 'px';
-    img.style.height = rect.height + 'px';
-
-    // Set transform origin to top-left so it expands from there
-    img.style.transformOrigin = '0% 0%';
-    img.style.transform = 'scale(' + finalScale + ')';
+  // Pre-load required modules
+  if (useGo2rtc) {
+    ensureVideoStreamLoaded();
+  } else if (streamType === 'rtsp2web') {
+    ensureHlsLoaded();
   }
+
+  // Determine overlay source (priority: live stream > mp4 video > MJPEG/still)
+  const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc);
+  if (!overlaySrc) return;
+
+  const overlayDimensions = calculateOverlayDimensions(img);
+  if (!overlayDimensions) return;
+
   thumbnail_timeout = setTimeout(function() {
-    img.classList.add(imgClass);
+    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc);
   }, 250);
+}
+
+function determineOverlaySrc(img, streamType, monitorId, useGo2rtc) {
+  const useLiveStream = streamType && monitorId;
+  if (useLiveStream || useGo2rtc) return 'live';
+
+  const videoSrc = img.getAttribute('video_src');
+  if (videoSrc && currentView !== 'frames') return videoSrc;
+
+  if (currentView === 'frames') return img.getAttribute('full_img_src');
+
+  const streamSrc = img.getAttribute('stream_src');
+  return streamSrc ? streamSrc.replace(/scale=\d+/, 'scale=32') : null;
+}
+
+function calculateOverlayDimensions(img) {
+  const imgWidth = img.naturalWidth || img.width;
+  const imgHeight = img.naturalHeight || img.height;
+  if (!imgWidth || !imgHeight) return null;
+
+  const aspectRatio = imgWidth / imgHeight;
+  const maxWidth = window.innerWidth * 0.6;
+  const maxHeight = window.innerHeight * 0.7;
+
+  let width = maxWidth;
+  let height = width / aspectRatio;
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = height * aspectRatio;
+  }
+
+  return {width: Math.round(width), height: Math.round(height)};
+}
+
+function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
+  const existing = document.getElementById('thumb-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'thumb-overlay';
+
+  // Wrapper contains video container and status bar
+  const wrapper = document.createElement('div');
+  wrapper.className = 'thumb-overlay-wrapper';
+
+  // Container uses cached still image as background while stream loads
+  const container = document.createElement('div');
+  container.id = 'monitor-thumb-overlay'; // video-stream.js expects parent with id starting with "monitor"
+  container.className = 'thumb-overlay-img';
+  container.style.width = dimensions.width + 'px';
+  container.style.height = dimensions.height + 'px';
+  container.style.backgroundImage = 'url("' + img.src + '")';
+
+  const fallbackToMjpeg = function() {
+    const streamSrc = img.getAttribute('stream_src');
+    if (streamSrc) {
+      const fallbackImg = document.createElement('img');
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+      container.appendChild(fallbackImg);
+    }
+  };
+
+  // Determine if this is a live stream or recorded video
+  const isLive = (overlaySrc === 'live');
+  const eventStart = img.dataset.eventStart;
+
+  // Create status bar (only if there's content to show)
+  let statusBar = null;
+  if (isLive || eventStart) {
+    statusBar = document.createElement('div');
+    statusBar.className = 'thumb-overlay-status';
+
+    if (isLive) {
+      // Live indicator with pulsing dot
+      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE</span>';
+    } else if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+        formatDateTime(new Date(eventStart)) + '</span></span>';
+    }
+  }
+
+  if (isLive && useGo2rtc) {
+    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+  } else if (streamType === 'rtsp2web') {
+    createRtsp2webStream(container, img, monitorId, fallbackToMjpeg);
+  } else if (streamType === 'janus') {
+    // Janus requires complex initialization; fall back to MJPEG
+    fallbackToMjpeg();
+  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    createVideoElement(container, overlaySrc, eventStart, statusBar);
+  } else {
+    const overlayImg = document.createElement('img');
+    overlayImg.src = overlaySrc;
+    container.appendChild(overlayImg);
+  }
+
+  wrapper.appendChild(container);
+  if (statusBar) wrapper.appendChild(statusBar);
+  overlay.appendChild(wrapper);
+  document.body.appendChild(overlay);
+}
+
+// Format date/time for display in status bar
+function formatDateTime(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  return date.toLocaleString(undefined, options);
+}
+
+function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+  ensureVideoStreamLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const url = new URL(src);
+    url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
+    url.pathname += '/ws';
+    url.search = 'src=' + mid + '_0';
+
+    const stream = document.createElement('video-stream');
+    stream.style.cssText = 'width: 100%; height: 100%; display: block;';
+    stream.background = true;
+    stream.muted = getCookie('zmWatchMuted') !== 'false';
+    stream.src = url.href;
+    container.appendChild(stream);
+
+    // Fallback if go2rtc doesn't produce video within 3s
+    stream._fallbackTimer = setTimeout(function() {
+      const innerVideo = stream.querySelector('video');
+      if (!innerVideo || innerVideo.readyState < 2) {
+        stream.remove();
+        fallbackToMjpeg();
+      }
+    }, 3000);
+  }).catch(fallbackToMjpeg);
+}
+
+function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
+  const rtsp2webSrc = img.dataset.rtsp2webSrc;
+  const channel = img.dataset.rtsp2webStream === 'Secondary' ? 1 : 0;
+
+  ensureHlsLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const url = new URL(rtsp2webSrc);
+    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+
+    const video = document.createElement('video');
+    video.removeAttribute('controls');
+    video.style.cssText = 'width: 100%; height: 100%;';
+    video.autoplay = true;
+    video.muted = getCookie('zmWatchMuted') !== 'false';
+    video.playsInline = true;
+    container.appendChild(video);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, function() {
+        hls.destroy();
+        video.remove();
+        fallbackToMjpeg();
+      });
+      video._hls = hls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      video.addEventListener('error', function() {
+        video.remove();
+        fallbackToMjpeg();
+      });
+    } else {
+      video.remove();
+      fallbackToMjpeg();
+      return;
+    }
+
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        if (video._hls) video._hls.destroy();
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+  }).catch(fallbackToMjpeg);
+}
+
+function createVideoElement(container, src, eventStart, statusBar) {
+  const video = document.createElement('video');
+  const previewRate = getPreviewRate();
+  video.src = src;
+  video.autoplay = true;
+  video.muted = getCookie('zmWatchMuted') !== 'false';
+  video.playsInline = true;
+  video.playbackRate = previewRate;
+  video.addEventListener('loadedmetadata', function() {
+    this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
+  });
+
+  // Update wall clock time as video plays
+  if (eventStart && statusBar) {
+    const startTime = new Date(eventStart).getTime();
+    const timeDisplay = statusBar.querySelector('.time-display');
+    if (timeDisplay && !isNaN(startTime)) {
+      video.addEventListener('timeupdate', function() {
+        const currentTime = startTime + (video.currentTime * 1000);
+        timeDisplay.textContent = formatDateTime(new Date(currentTime));
+      });
+    }
+  }
+
+  container.appendChild(video);
 }
 
 function thumbnail_onmouseout(event) {
   clearTimeout(thumbnail_timeout);
-  var img = event.target;
-  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = img.getAttribute(imgAttr);
-  img.classList.remove(imgClass);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    img.style.position = '';
-    img.style.left = '';
-    img.style.top = '';
-    img.style.width = '';
-    img.style.height = '';
-    img.style.transform = '';
-    img.style.transformOrigin = '';
+  const overlay = document.getElementById('thumb-overlay');
+  if (!overlay) return;
+
+  cleanupVideoStream(overlay.querySelector('video-stream'));
+  cleanupVideoElement(overlay.querySelector('video'));
+
+  const streamImg = overlay.querySelector('.thumb-overlay-img > img');
+  if (streamImg) streamImg.src = '';
+  overlay.remove();
+}
+
+function cleanupVideoStream(videoStream) {
+  if (!videoStream) return;
+  if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  videoStream.close();
+}
+
+function cleanupVideoElement(video) {
+  if (!video) return;
+  if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
+  if (video._hls) {
+    video._hls.destroy();
+    video._hls = null;
   }
+  video.pause();
+  video.src = '';
+  video.load();
 }
 
 function initThumbAnimation() {
-  if ( ANIMATE_THUMBS ) {
+  if (ANIMATE_THUMBS) {
+    let hasGo2rtc = false;
     $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+      this.addEventListener('mouseenter', thumbnail_onmouseover, false);
+      this.addEventListener('mouseleave', thumbnail_onmouseout, false);
+      if (this.getAttribute('go2rtc_src')) hasGo2rtc = true;
     });
+    // Preload the video-stream module so it's ready when the user hovers
+    if (hasGo2rtc) ensureVideoStreamLoaded();
   }
 }
 
@@ -1972,8 +2226,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video && !video.closest('#videoobj')) {
-      // We do not touch the video.js object, since it has its own controls.
+    if (video && !video.closest('#videoobj') && !video.closest('#thumb-overlay')) {
+      // We do not touch the video.js object or thumbnail overlay videos, since they have their own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {

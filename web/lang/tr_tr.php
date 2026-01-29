@@ -446,6 +446,7 @@ $SLANG = array(
 	'PostEventImageBuffer'=> 'Etkinlik Sonrası Görüntü Sayısı',
 	'PreEventImageBuffer'=> 'Etkinlik Öncesi Görüntü Sayısı',
 	'PreserveAspect'=> 'En Boy Oranını Koru',
+	'PreviewRate'=> 'Önizleme Hızı',
 	'PreviousMonitor'=> 'Önceki Monitör',
 	'PrivacyAbout'=> 'Hakkında',
 	'PrivacyAboutText'=> 'ZoneMinder, 2002\'den beri Linux platformları için en iyi ücretsiz ve açık kaynaklı Video Yönetim Sistemi (VMS) çözümüdür. ZoneMinder topluluk tarafından desteklenir ve projeye boş zamanlarını gönüllü olarak vermeyi seçenler tarafından yönetilir. ZoneMinder\'ı geliştirmenin en iyi yolu dahil olmaktır.',

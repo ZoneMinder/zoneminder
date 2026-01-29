@@ -196,7 +196,7 @@ bool DecoderThread::Decode() {
 
       // Warn if send_packet is taking too long
       int fps = static_cast<int>(monitor_->get_capture_fps());
-      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps))) {
+      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps)) and Logger::fetch()->debugOn()) {
         Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
             packet->image_index, FPSeconds(endtime - starttime).count(), fps,
             monitor_->decoder_queue.size(), monitor_->packetqueue.get_max_keyframe_interval(), ret);

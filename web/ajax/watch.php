@@ -87,8 +87,14 @@ if ($rows) {
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
+    $videoAttr = '';
+    if ($event->DefaultVideo()) {
+      $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
+      $videoAttr = ' video_src="' .$videoSrc. '"';
+    }
+
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' loading="lazy" />';
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Length'] = gmdate('H:i:s', intval($row['Length']));
 

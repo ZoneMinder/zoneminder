@@ -358,8 +358,7 @@ sub put {
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(PUT => $url);
 
-  my $content = shift;
-
+  my $content = shift if @_;
   $req->content($content) if defined($content);
 
   my $options = shift if @_;
@@ -379,7 +378,7 @@ sub put {
 
   my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
-    Error($res->status_line);
+    Error("Result for $url " . $res->status_line);
   } # end unless res->is_success
   Debug('Response: '. $res->status_line . ' ' . $res->content);
   return $res;
@@ -395,7 +394,9 @@ sub post {
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $content = shift if @_;
   my $headers = shift if @_;
-  my $req = HTTP::Request->new('POST', $url);
+  $headers = [ %$headers ] if defined $headers and (ref $headers eq 'HASH');
+
+  my $req = HTTP::Request->new('POST', $url, $headers);
   if ( defined($content) ) {
     if (ref $content eq 'HASH') {
       my $uri = $$self{uri};
@@ -404,16 +405,6 @@ sub post {
     }
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content($content);
-  }
-
-  if (defined $headers) {
-    if (ref $headers eq 'HASH') {
-      foreach my $key (keys %$headers) {
-        $req->header($key=>$$headers{$key});
-      }
-    } else {
-      Debug("WHat is headers? ".Data::Dumper::Dumper($headers));
-    }
   }
 
   my $res = $self->{ua}->request($req);

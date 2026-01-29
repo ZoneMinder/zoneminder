@@ -499,6 +499,7 @@ $SLANG = array(
     'PostEventImageBuffer'  => 'イベント後の画像数',
     'PreEventImageBuffer'   => 'イベント前の画像数',
     'PreserveAspect'        => 'アスペクト比を保持',
+    'PreviewRate'           => 'プレビュー速度',
     'PreviousMonitor'       => '前のモニター',
     'PrivacyAbout'          => 'プライバシーについて',
     'PrivacyAboutText'      => '2002年から、ZoneMinderはLinuxプラットフォーム向けの無料およびオープンソースのビデオ管理システム（VMS）ソリューションとして最前線に立っています。ZoneMinderはコミュニティによってサポートされ、プロジェクトに余暇を費やすボランティアによって管理されています。ZoneMinderを改善する最良の方法は、参加することです。',

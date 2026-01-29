@@ -5,6 +5,7 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 #include "zm_monitor.h"
+#include "zm_object_classes.h"
 #include "zm_vector2.h"
 
 #include "zm_netint_yolo.h"
@@ -18,46 +19,6 @@ constexpr size_t NB_MODEL_NAME_OFFSET = 0x0C;
 constexpr size_t NB_MODEL_NAME_MAX_LEN = 64;
 constexpr size_t NB_WIDTH_OFFSET = 0x208;
 constexpr size_t NB_HEIGHT_OFFSET = 0x20C;
-
-// Default COCO dataset class names (80 classes) - used as fallback if no .names file found
-static const std::vector<std::string> coco_class_names = {
-  "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
-  "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-  "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
-  "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
-  "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
-  "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
-  "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
-  "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote",
-  "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book",
-  "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
-};
-
-static const std::string unknown_class = "unknown";
-
-// Helper functions for consistent detection box colors based on class
-// Person (class 0) = Blue, Vehicles (1-8) = Green, Animals (14-23) = Orange, Others = Red
-static Rgb get_detection_box_color(int class_id) {
-  if (class_id == 0) {
-    return kRGBBlue;    // Person
-  } else if (class_id >= 1 && class_id <= 8) {
-    return kRGBGreen;   // Vehicles: bicycle, car, motorcycle, airplane, bus, train, truck, boat
-  } else if (class_id >= 14 && class_id <= 23) {
-    return kRGBOrange;  // Animals: bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe
-  }
-  return kRGBRed;       // Everything else
-}
-
-static const char* get_detection_color_string(int class_id) {
-  if (class_id == 0) {
-    return "blue";
-  } else if (class_id >= 1 && class_id <= 8) {
-    return "green";
-  } else if (class_id >= 14 && class_id <= 23) {
-    return "orange";
-  }
-  return "red";
-}
 
 #define SOFTWARE_DRAWBOX 1
 
@@ -180,59 +141,6 @@ bool Quadra_Yolo::parse_model_file(const std::string &nbg_file) {
   return true;
 }
 
-bool Quadra_Yolo::load_class_names(const std::string &nbg_file) {
-  // Try to find a .names file alongside the model file
-  // e.g., /path/to/model.nb -> /path/to/model.names
-  std::string names_file = nbg_file;
-  size_t dot_pos = names_file.rfind('.');
-  if (dot_pos != std::string::npos) {
-    names_file = names_file.substr(0, dot_pos) + ".names";
-  } else {
-    names_file += ".names";
-  }
-
-  std::ifstream file(names_file);
-  if (!file.is_open()) {
-    // Try looking for coco.names in the same directory
-    size_t slash_pos = nbg_file.rfind('/');
-    if (slash_pos != std::string::npos) {
-      names_file = nbg_file.substr(0, slash_pos + 1) + "coco.names";
-      file.open(names_file);
-    }
-  }
-
-  if (!file.is_open()) {
-    Debug(1, "No .names file found for %s, using COCO defaults", nbg_file.c_str());
-    class_names = coco_class_names;
-    return false;
-  }
-
-  class_names.clear();
-  std::string line;
-  while (std::getline(file, line)) {
-    // Trim whitespace
-    size_t start = line.find_first_not_of(" \t\r\n");
-    size_t end = line.find_last_not_of(" \t\r\n");
-    if (start != std::string::npos && end != std::string::npos) {
-      class_names.push_back(line.substr(start, end - start + 1));
-    } else if (line.empty() || start == std::string::npos) {
-      // Skip empty lines but preserve index
-      class_names.push_back("");
-    }
-  }
-
-  Debug(1, "Loaded %zu class names from %s", class_names.size(), names_file.c_str());
-  return true;
-}
-
-const std::string& Quadra_Yolo::get_class_name(int class_id) const {
-  if (class_id >= 0 && static_cast<size_t>(class_id) < class_names.size()) {
-    return class_names[class_id];
-  }
-  Warning("Class ID %d out of range (0-%zu)", class_id, class_names.size() - 1);
-  return unknown_class;
-}
-
 bool Quadra_Yolo::setup(
     AVStream *p_dec_stream,
     AVCodecContext *decoder_ctx,
@@ -257,7 +165,7 @@ bool Quadra_Yolo::setup(
   bool parsed_from_file = parse_model_file(nbg_file);
 
   // Load class names from .names file (falls back to COCO if not found)
-  load_class_names(nbg_file);
+  object_classes_.loadFromFile(nbg_file);
 
   // Set model interface based on detected type
   if (model_name == "yolov4") {
@@ -542,7 +450,7 @@ int Quadra_Yolo::draw_roi_box_in_place(
     AVRegionOfInterestNetintExtra roi_extra,
     int line_width=1) {
 
-  Rgb box_color = get_detection_box_color(roi_extra.cls);
+  Rgb box_color = ObjectClasses::getDetectionBoxColor(roi_extra.cls);
   Image in_image(inframe);
 
   for (int i=0; i<line_width; i++) {
@@ -560,7 +468,7 @@ int Quadra_Yolo::draw_roi_box(
 
   SystemTimePoint starttime = std::chrono::system_clock::now();
 
-  const char *color = get_detection_color_string(roi_extra.cls);
+  const char *color = ObjectClasses::getDetectionColorString(roi_extra.cls);
 
   for (int i=0; i<line_width; i++) {
     int x = roi.left + i;
@@ -644,7 +552,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
 
   for (int i = 0; i < num; i++) {
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
-    detections.push_back({{"class", get_class_name(roi_extra[i].cls)}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
+    detections.push_back({{"class", object_classes_.getClassName(roi_extra[i].cls)}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
 
     AVFrame *output = nullptr;
     annotate(input, &output, roi[i], roi_extra[i]);
@@ -746,7 +654,7 @@ int Quadra_Yolo::annotate(
 
   if (drawtext) {
     SystemTimePoint starttime = std::chrono::system_clock::now();
-    std::string text = stringtf("%s %.1f%%", get_class_name(roi_extra.cls).c_str(), 100*roi_extra.prob);
+    std::string text = stringtf("%s %.1f%%", object_classes_.getClassName(roi_extra.cls).c_str(), 100*roi_extra.prob);
 #if SOFTWARE_DRAWBOX
     Image img(input);
     img.Annotate(text.c_str(), Vector2(roi.left, roi.top), monitor->LabelSize(), kRGBWhite, kRGBTransparent);
@@ -886,7 +794,7 @@ int Quadra_Yolo::ni_read_roi(AVFrame *out, int frame_count) {
     for (i = 0; i < roi_num; i++) {
       pr_err("frame count %d roi %d: top %d, bottom %d, left %d, right %d, class %d name %s prob %f\n",
           frame_count, i, roi_box[i].top, roi_box[i].bottom, roi_box[i].left,
-          roi_box[i].right, roi_box[i].class, get_class_name(roi_box[i].class).c_str(), roi_box[i].prob);
+          roi_box[i].right, roi_box[i].class, object_classes_.getClassName(roi_box[i].class).c_str(), roi_box[i].prob);
     }
   }
   for (i = 0; i < roi_num; i++) {

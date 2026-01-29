@@ -321,6 +321,7 @@ function buildMonitorsFilters() {
   $html .= addButtonResetForFilterSelect('MonitorId[]');
   $html .= '</span>';
   $html .= '</span>';
+
   $html .= '</div>';
 
   return [

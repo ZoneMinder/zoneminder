@@ -1297,6 +1297,10 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   const overlay = document.createElement('div');
   overlay.id = 'thumb-overlay';
 
+  // Wrapper contains video container and status bar
+  const wrapper = document.createElement('div');
+  wrapper.className = 'thumb-overlay-wrapper';
+
   // Container uses cached still image as background while stream loads
   const container = document.createElement('div');
   container.id = 'monitor-thumb-overlay'; // video-stream.js expects parent with id starting with "monitor"
@@ -1314,23 +1318,60 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     }
   };
 
-  if (overlaySrc === 'live' && useGo2rtc) {
+  // Determine if this is a live stream or recorded video
+  const isLive = (overlaySrc === 'live');
+  const eventStart = img.dataset.eventStart;
+
+  // Create status bar (only if there's content to show)
+  let statusBar = null;
+  if (isLive || eventStart) {
+    statusBar = document.createElement('div');
+    statusBar.className = 'thumb-overlay-status';
+
+    if (isLive) {
+      // Live indicator with pulsing dot
+      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE</span>';
+    } else if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+        formatDateTime(new Date(eventStart)) + '</span></span>';
+    }
+  }
+
+  if (isLive && useGo2rtc) {
     createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg);
   } else if (streamType === 'janus') {
     // Janus requires complex initialization; fall back to MJPEG
     fallbackToMjpeg();
-  } else if (overlaySrc !== 'live' && img.getAttribute('video_src') && currentView !== 'frames') {
-    createVideoElement(container, overlaySrc);
+  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    createVideoElement(container, overlaySrc, eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
     overlayImg.src = overlaySrc;
     container.appendChild(overlayImg);
   }
 
-  overlay.appendChild(container);
+  wrapper.appendChild(container);
+  if (statusBar) wrapper.appendChild(statusBar);
+  overlay.appendChild(wrapper);
   document.body.appendChild(overlay);
+}
+
+// Format date/time for display in status bar
+function formatDateTime(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  return date.toLocaleString(undefined, options);
 }
 
 function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
@@ -1410,7 +1451,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
   }).catch(fallbackToMjpeg);
 }
 
-function createVideoElement(container, src) {
+function createVideoElement(container, src, eventStart, statusBar) {
   const video = document.createElement('video');
   const previewRate = getPreviewRate();
   video.src = src;
@@ -1421,6 +1462,19 @@ function createVideoElement(container, src) {
   video.addEventListener('loadedmetadata', function() {
     this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
   });
+
+  // Update wall clock time as video plays
+  if (eventStart && statusBar) {
+    const startTime = new Date(eventStart).getTime();
+    const timeDisplay = statusBar.querySelector('.time-display');
+    if (timeDisplay && !isNaN(startTime)) {
+      video.addEventListener('timeupdate', function() {
+        const currentTime = startTime + (video.currentTime * 1000);
+        timeDisplay.textContent = formatDateTime(new Date(currentTime));
+      });
+    }
+  }
+
   container.appendChild(video);
 }
 

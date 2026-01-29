@@ -919,6 +919,67 @@ li.search-choice {
   object-fit: cover;
 }
 
+.thumb-overlay-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.thumb-overlay-status {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px 16px;
+  margin-top: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  min-height: 20px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  color: #ff4444;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.live-dot {
+  width: 10px;
+  height: 10px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.time-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+}
+
+.time-indicator .fa {
+  color: #888;
+}
+
+.time-display {
+  font-variant-numeric: tabular-nums;
+}
+
 a.flip {
   float: right;
   padding-right: 5px;

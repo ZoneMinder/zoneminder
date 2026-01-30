@@ -324,6 +324,10 @@ void ONVIF::Subscribe() {
   retry_count = 0;
   has_valid_subscription_ = true;
 
+  // Clear tracking state from previous subscription
+  initialized_count.clear();
+  warned_initialized_repeat = false;
+
   Debug(1, "ONVIF: Successfully created PullPoint subscription");
 
   // Update renewal tracking times from initial subscription response
@@ -360,6 +364,10 @@ void ONVIF::Subscribe() {
     Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     setHealthy(true);
   }
+
+  // Clean up gSOAP allocated memory from initial PullMessages
+  soap_destroy(soap);
+  soap_end(soap);
 
   // Perform initial renewal of the subscription
   if (use_wsa) {  // Only if WS-Addressing is enabled
@@ -612,6 +620,12 @@ void ONVIF::WaitForMessage() {
 
       if (IsRenewalNeeded()) Renew();
     }  // end if SOAP OK/NOT OK
+
+  // Clean up gSOAP allocated memory from PullMessages response
+  // This must be called after every SOAP operation to prevent memory growth
+  soap_destroy(soap);
+  soap_end(soap);
+
   return;
 }
 
@@ -969,10 +983,14 @@ bool ONVIF::Renew() {
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
       setHealthy(true);
+      soap_destroy(soap);
+      soap_end(soap);
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
       Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
+      soap_destroy(soap);
+      soap_end(soap);
       cleanup_subscription();
       setHealthy(false);
       return false;
@@ -989,6 +1007,10 @@ bool ONVIF::Renew() {
   } else {
     Debug(1, "No TerminationTime in RenewResponse");
   }
+
+  // Clean up gSOAP allocated memory from Renew response
+  soap_destroy(soap);
+  soap_end(soap);
 
   return true;
 }  // bool ONVIF::Renew()

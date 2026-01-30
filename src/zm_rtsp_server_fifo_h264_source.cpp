@@ -10,6 +10,8 @@
 
 #include "zm_config.h"
 #include "zm_logger.h"
+#include "xop/H264Source.h"
+#include "xop/H265Source.h"
 #include <iomanip>
 #include <sstream>
 
@@ -39,49 +41,31 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
   size_t size = 0;
   unsigned char* buffer = this->extractFrame(frame, bufSize, size);
   while ( buffer != nullptr ) {
-#if 0
-    bool updateAux = false;
+    // Extract SPS/PPS from the stream and update xop source
     switch ( m_frameType & 0x1F ) {
-    case 7:
-      Debug(4, "SPS_Size: %d bufSize %d", size, bufSize);
+    case 7:  // SPS
+      Debug(4, "H264 SPS: size=%zu bufSize=%zu", size, bufSize);
       m_sps.assign((char*)buffer, size);
-      updateAux = true;
-      break;
-    case 8:
-      Debug(4, "PPS_Size: %d bufSize %d", size, bufSize);
-      m_pps.assign((char*)buffer, size);
-      updateAux = true;
-      break;
-    case 5:
-      Debug(4, "IDR_Size: %d bufSize %d", size, bufSize);
-      if ( m_repeatConfig && !m_sps.empty() && !m_pps.empty() ) {
-        frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
-        frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
+      if (m_h264Source && !m_sps.empty()) {
+        m_h264Source->SetSPS((const uint8_t*)m_sps.data(), m_sps.size());
+        Debug(2, "H264: Set SPS on xop source (%zu bytes)", m_sps.size());
       }
+      break;
+    case 8:  // PPS
+      Debug(4, "H264 PPS: size=%zu bufSize=%zu", size, bufSize);
+      m_pps.assign((char*)buffer, size);
+      if (m_h264Source && !m_pps.empty()) {
+        m_h264Source->SetPPS((const uint8_t*)m_pps.data(), m_pps.size());
+        Debug(2, "H264: Set PPS on xop source (%zu bytes)", m_pps.size());
+      }
+      break;
+    case 5:  // IDR
+      Debug(4, "H264 IDR: size=%zu bufSize=%zu", size, bufSize);
       break;
     default:
       break;
     }
 
-    if ( updateAux and !m_sps.empty() and !m_pps.empty() ) {
-      u_int32_t profile_level_id = 0;
-      if ( m_sps.size() >= 4 ) profile_level_id = (m_sps[1]<<16)|(m_sps[2]<<8)|m_sps[3];
-
-      char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
-      char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());
-
-      std::ostringstream os;
-      os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
-      os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64 << "\r\n";
-      if (!(m_width and m_height))
-        os << "a=x-dimensions:" << m_width << "," <<  m_height  << "\r\n";
-      m_auxLine.assign(os.str());
-      Debug(3, "auxLine: %s", m_auxLine.c_str());
-
-      delete [] sps_base64;
-      delete [] pps_base64;
-    }
-#endif
     frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
     if (!bufSize) break;
 
@@ -112,56 +96,40 @@ H265_ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) 
   size_t size = 0;
   unsigned char* buffer = this->extractFrame(frame, bufSize, size);
   while ( buffer != nullptr ) {
-#if 0
-    bool updateAux = false;
+    // Extract VPS/SPS/PPS from the stream and update xop source
     switch ((m_frameType&0x7E)>>1) {
-    case 32:
-      Debug(4, "VPS_Size: %d bufSize %d", size, bufSize);
-      m_vps.assign((char*)buffer,size);
-      updateAux = true;
-      break;
-    case 33:
-      Debug(4, "SPS_Size: %d bufSize %d", size, bufSize);
-      m_sps.assign((char*)buffer,size);
-      updateAux = true;
-      break;
-    case 34:
-      Debug(4, "PPS_Size: %d bufSize %d", size, bufSize);
-      m_pps.assign((char*)buffer,size);
-      updateAux = true;
-      break;
-    case 19:
-    case 20:
-      Debug(4, "IDR_Size: %d bufSize %d", size, bufSize);
-      if ( m_repeatConfig && !m_vps.empty() && !m_sps.empty() && !m_pps.empty() ) {
-        frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_vps.c_str(), m_vps.size()));
-        frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_sps.c_str(), m_sps.size()));
-        frameList.push_back(std::pair<unsigned char*,size_t>((unsigned char*)m_pps.c_str(), m_pps.size()));
+    case 32:  // VPS
+      Debug(4, "H265 VPS: size=%zu bufSize=%zu", size, bufSize);
+      m_vps.assign((char*)buffer, size);
+      if (m_h265Source && !m_vps.empty()) {
+        m_h265Source->SetVPS((const uint8_t*)m_vps.data(), m_vps.size());
+        Debug(2, "H265: Set VPS on xop source (%zu bytes)", m_vps.size());
       }
       break;
+    case 33:  // SPS
+      Debug(4, "H265 SPS: size=%zu bufSize=%zu", size, bufSize);
+      m_sps.assign((char*)buffer, size);
+      if (m_h265Source && !m_sps.empty()) {
+        m_h265Source->SetSPS((const uint8_t*)m_sps.data(), m_sps.size());
+        Debug(2, "H265: Set SPS on xop source (%zu bytes)", m_sps.size());
+      }
+      break;
+    case 34:  // PPS
+      Debug(4, "H265 PPS: size=%zu bufSize=%zu", size, bufSize);
+      m_pps.assign((char*)buffer, size);
+      if (m_h265Source && !m_pps.empty()) {
+        m_h265Source->SetPPS((const uint8_t*)m_pps.data(), m_pps.size());
+        Debug(2, "H265: Set PPS on xop source (%zu bytes)", m_pps.size());
+      }
+      break;
+    case 19:  // IDR_W_RADL
+    case 20:  // IDR_N_LP
+      Debug(4, "H265 IDR: size=%zu bufSize=%zu", size, bufSize);
+      break;
     default:
-      //Debug(4, "Unknown frametype!? %d %d", m_frameType, ((m_frameType & 0x7E) >> 1));
       break;
     }
 
-    if ( updateAux and !m_vps.empty() and !m_sps.empty() and !m_pps.empty() ) {
-      char* vps_base64 = base64Encode(m_vps.c_str(), m_vps.size());
-      char* sps_base64 = base64Encode(m_sps.c_str(), m_sps.size());
-      char* pps_base64 = base64Encode(m_pps.c_str(), m_pps.size());
-
-      std::ostringstream os;
-      os << "sprop-vps=" << vps_base64;
-      os << ";sprop-sps=" << sps_base64;
-      os << ";sprop-pps=" << pps_base64;
-      os << "\r\n" << "a=x-dimensions:" << m_width << "," <<  m_height  << "\r\n";
-      m_auxLine.assign(os.str());
-      Debug(1, "Assigned h265 auxLine to %s", m_auxLine.c_str());
-
-      delete [] vps_base64;
-      delete [] sps_base64;
-      delete [] pps_base64;
-    }
-#endif
     frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
 
     buffer = this->extractFrame(&buffer[size], bufSize, size);

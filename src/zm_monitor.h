@@ -395,10 +395,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       bool Use_RTSP_Restream;
       std::string Go2RTC_endpoint;
       std::string rtsp_restream_path;
+      std::string rtsp_restream_base_path;  // Path without auth parameter
       std::string rtsp_username;
       std::string rtsp_password;
       std::string rtsp_path;
       std::string rtsp_second_path;
+      SystemTimePoint last_auth_refresh;    // Track when auth was last refreshed
 
     public:
       explicit Go2RTCManager(Monitor *parent_);
@@ -407,6 +409,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      bool refresh_auth_if_needed();        // Refresh auth_hash if expired
   };
 
   class JanusManager {

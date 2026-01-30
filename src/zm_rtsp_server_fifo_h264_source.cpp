@@ -229,7 +229,7 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
     size -= outsize;
     Debug(4, "Have frame type: %d size %zu, keepmarker %d", m_frameType, outsize, m_keepMarker);
   } else if ( size >= sizeof(H264shortmarker) ) {
-    Info("No marker found size %zu", size);
+    Debug(1, "No marker found size %zu", size);
   }
 
   return outFrame;

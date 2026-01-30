@@ -459,7 +459,10 @@ function queryRequest() {
       if ($monitor['Analysing'] == 'None' && $monitor['Decoding'] == 'None') {
         $debugAttr .= ' data-debug-still="event"';
         $event = ZM\Event::find_one(
-          array('MonitorId' => $monitor['Id']),
+          array(
+            'MonitorId' => $monitor['Id'],
+            'EndDateTime' => 'NOT NULL'
+          ),
           array('order' => 'Id DESC')
         );
         if ($event) {

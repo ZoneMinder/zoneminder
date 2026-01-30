@@ -801,8 +801,12 @@ function getRamHTML() {
     $contents = file_get_contents('/proc/meminfo');
     preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
     $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+    if (!isset($meminfo['MemTotal'])) {
+      ZM\Debug(print_r($meminfo, true));
+      return '';
+    }
     $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
-    $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+    $mem_used_percent = $meminfo['MemTotal'] ? (int)(100*$mem_used/$meminfo['MemTotal']) : 0;
     $used_class = '';
     if ($mem_used_percent > 95) {
       $used_class = 'text-danger';

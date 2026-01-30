@@ -19,6 +19,7 @@
 #cmakedefine HAVE_SENDFILE 1
 #cmakedefine HAVE_DECL_BACKTRACE 1
 #cmakedefine HAVE_DECL_BACKTRACE_SYMBOLS 1
+#cmakedefine HAVE_LIBUNWIND 1
 #cmakedefine HAVE_POSIX_MEMALIGN 1
 #cmakedefine HAVE_SIGINFO_T 1
 #cmakedefine HAVE_UCONTEXT_T 1

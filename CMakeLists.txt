@@ -307,6 +307,18 @@ if(HAVE_EXECINFO_H)
   endif()
   check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 endif()
+
+# libunwind provides better backtraces than glibc's backtrace(), especially on ARM
+find_package(LibUnwind)
+if(LIBUNWIND_FOUND)
+  set(HAVE_LIBUNWIND 1)
+  list(APPEND ZM_BIN_LIBS "${LIBUNWIND_LIBRARIES}")
+  include_directories("${LIBUNWIND_INCLUDE_DIR}")
+  set(optlibsfound "${optlibsfound} libunwind")
+else()
+  set(optlibsnotfound "${optlibsnotfound} libunwind")
+endif()
+
 check_include_file("ucontext.h" HAVE_UCONTEXT_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)

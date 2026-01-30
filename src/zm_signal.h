@@ -24,7 +24,10 @@
 #include <csignal>
 #include <atomic>
 
-#if HAVE_EXECINFO_H
+#if HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+#elif HAVE_EXECINFO_H
 #include <execinfo.h>
 #endif
 #if HAVE_UCONTEXT_H

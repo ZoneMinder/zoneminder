@@ -184,7 +184,7 @@ if (isset($_REQUEST['streamQuality'])) {
 }
 $streamQualitySelected = validHtmlStr($streamQualitySelected);
 
-$streamChannelSelected = $monitor->RTSP2WebStream();
+$streamChannelSelected = $monitor->StreamChannel();
 if (isset($_REQUEST['streamChannel'])) {
   $streamChannelSelected = $_REQUEST['streamChannel'];
 } else if (isset($_COOKIE['zmStreamChannel'])) {
@@ -303,7 +303,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getStreamChannelOptions(), $monitor->StreamChannel(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen'));
           ?>
         </span>

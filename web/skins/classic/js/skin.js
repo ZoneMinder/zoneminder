@@ -1156,14 +1156,19 @@ function manageShutdownBtns(element) {
 /* Controls the availability of options for selection*/
 function manageChannelStream() {
   let select = null;
+  let primaryPath_ = null;
   let secondPath_ = null;
+  let restream = null;
+
   if (currentView == 'watch') {
     if (typeof monitorData !== 'undefined') {
       const monitor = monitorData.find((o) => {
         return parseInt(o["id"]) === monitorId;
       });
       if (monitor) {
+        primaryPath_ = monitor['Path'];
         secondPath_ = monitor['SecondPath'];
+        restream = monitor['Restream'];
       }
       select = document.querySelector('select[name="streamChannel"]');
     } else {
@@ -1171,21 +1176,46 @@ function manageChannelStream() {
     }
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
+    const PathInput = document.querySelector('input[name="newMonitor[Path]"]');
+    if (PathInput) {
+      primaryPath_ = PathInput.value;
+    }
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
     if (SecondPathInput) {
       secondPath_ = SecondPathInput.value;
     }
-    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+    const RestreamInput = document.querySelector('input[name="newMonitor[Restream]"]');
+    if (RestreamInput) {
+      restream = RestreamInput.checked;
+    }
+    select = document.querySelector('select[name="newMonitor[StreamChannel]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary' || el.value == 'CameraDirectSecondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream' || el.value == 'ZoneMinderPrimary') {
+        el.disabled = !restream;
+      } else if (el.value == 'CameraDirectPrimary') {
+        el.disabled = !primaryPath_;
       }
-      applyChosen(select);
     });
+
+    // If current selection is disabled, auto-select first available option
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.disabled) {
+      // Prefer CameraDirectPrimary, then first enabled option
+      const cameraDirectPrimary = select.querySelector('option[value="CameraDirectPrimary"]:not([disabled])');
+      if (cameraDirectPrimary) {
+        select.value = 'CameraDirectPrimary';
+      } else {
+        const firstEnabled = select.querySelector('option:not([disabled])');
+        if (firstEnabled) {
+          select.value = firstEnabled.value;
+        }
+      }
+    }
+    applyChosen(select);
   }
 }
 

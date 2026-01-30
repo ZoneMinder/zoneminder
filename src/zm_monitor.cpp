@@ -82,7 +82,7 @@ std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
   "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
+  "`RTSP2WebEnabled`, `RTSP2WebType`, `StreamChannel`+0,"
   "`Go2RTCEnabled`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
   "`Restream`, `RTSP_User`, `Janus_RTSP_Session_Timeout`, "
@@ -353,7 +353,7 @@ Monitor::Monitor() :
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
    "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-   " RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   " RTSP2WebEnabled, RTSP2WebType, `StreamChannel`+0,"
    " GO2RTCEnabled, "
    "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Restream, RTSP_User, Janus_RTSP_Session_Timeout,"
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
@@ -430,7 +430,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]);
   col++;
-  RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]) ;
+  stream_channel = (StreamChannelOption)atoi(dbrow[col]) ;
   col++;
 
   Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;

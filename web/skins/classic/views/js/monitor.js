@@ -416,25 +416,25 @@ function initPage() {
 
   if (RTSP2WebEnabled || Go2RTCEnabled) {
     if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebStream").hidden = false;
+      document.getElementById("StreamChannel").hidden = false;
     } else {
-      document.getElementById("RTSP2WebStream").hidden = true;
+      document.getElementById("StreamChannel").hidden = true;
     }
 
     Go2RTCEnabled.addEventListener('change', function() {
       if (this.checked || RTSP2WebEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
       updateRestreamVisibility();
     });
 
     RTSP2WebEnabled.addEventListener('change', function() {
       if (this.checked || Go2RTCEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
       updateRestreamVisibility();
     });

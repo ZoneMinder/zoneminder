@@ -1,48 +1,54 @@
-
-
-SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.STATISTICS
-  WHERE table_name = 'Monitor_Status'
-  AND table_schema = DATABASE()
-  AND index_name = 'Monitor_Status_UpdatedOn_idx'
-  ) > 0,
-"SELECT 'UpdateOn Index already exists on Monitor_Status table'",
-"CREATE INDEX Monitor_Status_UpdatedOn_idx on Monitor_Status(UpdatedOn)"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
-
 --
--- Rename Janus-specific restream fields to be more generic
--- These fields are now used by Go2RTC and RTSP2Web as well
+-- Rename RTSP2WebStream to StreamChannel and update enum values
+-- This applies to Go2RTC, Janus, and RTSP2Web streaming
 --
 
 SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE table_name = 'Monitors'
-  AND table_schema = DATABASE()
-  AND column_name = 'Janus_Use_RTSP_Restream'
-  ) > 0,
-"ALTER TABLE Monitors CHANGE `Janus_Use_RTSP_Restream` `Restream` BOOLEAN NOT NULL DEFAULT false",
-"SELECT 'Restream column already exists or Janus_Use_RTSP_Restream not found'"
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'StreamChannel'
+    ) > 0,
+"SELECT 'Column StreamChannel already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `StreamChannel` enum('Restream','CameraDirectPrimary','CameraDirectSecondary') NOT NULL DEFAULT 'Restream' AFTER `RTSP2WebType`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Migrate data from RTSP2WebStream to StreamChannel if RTSP2WebStream exists
+--
 
 SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE table_name = 'Monitors'
-  AND table_schema = DATABASE()
-  AND column_name = 'Janus_RTSP_User'
-  ) > 0,
-"ALTER TABLE Monitors CHANGE `Janus_RTSP_User` `RTSP_User` INT(10)",
-"SELECT 'RTSP_User column already exists or Janus_RTSP_User not found'"
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'RTSP2WebStream'
+    ) > 0,
+"UPDATE `Monitors` SET `StreamChannel` = CASE
+    WHEN `RTSP2WebStream` = 'Secondary' THEN 'CameraDirectSecondary'
+    ELSE 'Restream'
+END",
+"SELECT 'Column RTSP2WebStream does not exist, skipping migration'"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Drop old RTSP2WebStream column if it exists
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'RTSP2WebStream'
+    ) > 0,
+"ALTER TABLE `Monitors` DROP COLUMN `RTSP2WebStream`",
+"SELECT 'Column RTSP2WebStream does not exist, nothing to drop'"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

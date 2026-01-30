@@ -495,7 +495,7 @@ function queryRequest() {
       } else if ($Monitor->RTSP2WebEnabled() && defined('ZM_RTSP2WEB_PATH') && ZM_RTSP2WEB_PATH) {
         $liveStreamAttr = ' data-stream-type="rtsp2web"'.
           ' data-rtsp2web-src="'.htmlspecialchars(ZM_RTSP2WEB_PATH).'"'.
-          ' data-rtsp2web-stream="'.($Monitor->RTSP2WebStream() ?: 'Primary').'"'.
+          ' data-stream-channel="'.($Monitor->StreamChannel() ?: 'Restream').'"'.
           ' data-monitor-id="'.$monitor['Id'].'"';
         $debugAttr .= ' data-debug-overlay="rtsp2web"';
       } else if ($Monitor->JanusEnabled()) {

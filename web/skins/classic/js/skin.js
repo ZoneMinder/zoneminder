@@ -1268,7 +1268,7 @@ function determineOverlaySrc(img, streamType, monitorId, useGo2rtc) {
   if (currentView === 'frames') return img.getAttribute('full_img_src');
 
   const streamSrc = img.getAttribute('stream_src');
-  return streamSrc ? streamSrc.replace(/scale=\d+/, 'scale=32') : null;
+  return streamSrc;
 }
 
 function calculateOverlayDimensions(img) {

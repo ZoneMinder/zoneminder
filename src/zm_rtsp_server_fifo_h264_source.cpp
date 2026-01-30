@@ -143,7 +143,8 @@ unsigned char * H26X_ZoneMinderFifoSource::findMarker(
 ) {
   //Debug(1, "findMarker %p %d", frame, size);
   unsigned char *start = nullptr;
-  for ( size_t i = 0; i < size-2; i += 1 ) {
+  if (size < 3) return nullptr;
+  for ( size_t i = 0; i < size - 2; i += 1 ) {
     //Debug(1, "%d: %d %d %d", i, frame[i], frame[i+1], frame[i+2]);
     if ( (frame[i] == 0) and (frame[i+1]) == 0 and (frame[i+2] == 1) ) {
       if ( i and (frame[i-1] == 0) ) {
@@ -174,12 +175,12 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
     Debug(4, "startFrame: %p marker Length %zu", startFrame, markerLength);
     m_frameType = startFrame[markerLength];
 
-    int remainingSize = size-(startFrame-frame+markerLength);
+    size_t remainingSize = size - (startFrame - frame + markerLength);
     unsigned char *endFrame = nullptr;
     if ( remainingSize > 3 ) {
       endFrame = this->findMarker(startFrame+markerLength, remainingSize, endMarkerLength);
     }
-    Debug(4, "endFrame: %p marker Length %zu, remaining size %d", endFrame, endMarkerLength, remainingSize);
+    Debug(4, "endFrame: %p marker Length %zu, remaining size %zu", endFrame, endMarkerLength, remainingSize);
 
     if ( m_keepMarker ) {
       size -=  startFrame-frame;

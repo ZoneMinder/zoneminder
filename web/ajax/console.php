@@ -428,8 +428,19 @@ function queryRequest() {
       );
 
       $stillSrc = $Monitor->getStreamSrc($options);
-      // Use master's improved scale computation
-      $options['scale'] = ($options['scale'] > 20 ? 100 : $options['scale']*5);
+      // Calculate optimal scale for the popup stream based on browser width
+      // The JS overlay uses 60% of window.innerWidth (see calculateOverlayDimensions in skin.js)
+      $browser_width = 1920; // Default fallback
+      if (isset($_COOKIE['zmBrowserSizes'])) {
+        $zmBrowserSizes = jsonDecode($_COOKIE['zmBrowserSizes']);
+        if (!empty($zmBrowserSizes['innerWidth'])) {
+          $browser_width = validInt($zmBrowserSizes['innerWidth']);
+        }
+      }
+      $target_width = $browser_width * 0.6; // Match JS overlay sizing (60% of viewport)
+      $options['scale'] = $Monitor->ViewWidth() ? intval(100 * $target_width / $Monitor->ViewWidth()) : 100;
+      if ($options['scale'] > 100) $options['scale'] = 100;
+      else if ($options['scale'] < 10) $options['scale'] = 10;
       unset($options['frames']);
       $streamSrc = $Monitor->getStreamSrc($options);
 
@@ -454,9 +465,12 @@ function queryRequest() {
         if ($event) {
           $stillSrc = $event->getThumbnailSrc(array(), '&amp;');
           // Default stream/video sources from event (may be overridden by live streaming below)
-          $scale = $event->Width() ? intval(5 * 100 * ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
+          // Use browser width for optimal scale (same as live stream calculation above)
+          $event_scale = $event->Width() ? intval(100 * $target_width / $event->Width()) : 100;
+          if ($event_scale > 100) $event_scale = 100;
+          else if ($event_scale < 10) $event_scale = 10;
           $streamSrc = $event->getStreamSrc(array(
-            'mode' => 'jpeg', 'scale' => $scale, 'maxfps' => ZM_WEB_VIDEO_MAXFPS,
+            'mode' => 'jpeg', 'scale' => $event_scale, 'maxfps' => ZM_WEB_VIDEO_MAXFPS,
             'replay' => 'single', 'rate' => '400'), '&amp;');
           if ($event->DefaultVideo()) {
             $videoSrc = $event->getStreamSrc(array('mode' => 'mp4'), '&amp;');

@@ -258,14 +258,22 @@ int main(int argc, char *argv[]) {
         ZoneMinderFifoVideoSource *videoSource = nullptr;
 
         if (std::string::npos != videoFifoPath.find("h264")) {
-          session->AddSource(xop::channel_0, xop::H264Source::CreateNew());
-          videoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          xop::H264Source *h264Source = xop::H264Source::CreateNew();
+          h264Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, h264Source);
+          H264_ZoneMinderFifoSource *h264FifoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h264FifoSource->setH264Source(h264Source);  // Allow FIFO source to set SPS/PPS
+          videoSource = h264FifoSource;
         } else if (
           std::string::npos != videoFifoPath.find("hevc")
           or
           std::string::npos != videoFifoPath.find("h265")) {
-          session->AddSource(xop::channel_0, xop::H265Source::CreateNew());
-          videoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          xop::H265Source *h265Source = xop::H265Source::CreateNew();
+          h265Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, h265Source);
+          H265_ZoneMinderFifoSource *h265FifoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          h265FifoSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
+          videoSource = h265FifoSource;
         } else {
           Warning("Unknown format in %s", videoFifoPath.c_str());
         }

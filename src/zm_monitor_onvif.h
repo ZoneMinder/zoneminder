@@ -70,6 +70,7 @@ class ONVIF {
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
   PullPointSubscriptionBindingProxy proxyEvent;
+  std::string subscription_address_;  // Cached copy of response.SubscriptionReference.Address
 
   // Authentication
   void set_credentials(struct soap *soap);
@@ -112,6 +113,7 @@ class ONVIF {
 
   // Private methods
   void Run();
+  bool InitSoapContext();
   void Subscribe();
   void WaitForMessage();
   void SetNoteSet(Event::StringSet &noteSet);

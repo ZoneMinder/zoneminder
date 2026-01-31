@@ -1315,17 +1315,17 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
-            <li id="FunctionJanusUseRTSPRestream">
-              <label><?php echo translate('Janus Use RTSP Restream') ?></label>
-              <input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+            <li id="FunctionRestream">
+              <label><?php echo translate('Use RTSP Restream') ?></label>
+              <input type="checkbox" name="newMonitor[Restream]" value="1"<?php echo $monitor->Restream() ? ' checked="checked"' : '' ?>/>
 <?php
-  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
+  if ( isset($OLANG['FUNCTION_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_RESTREAM']['Help'].'</div>';
   }
 ?>
-              
+
             </li>
-            <li id="Janus_RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Janus_Use_RTSP_Restream()) ? 'style="display:none;"' : ''?>>
+            <li id="RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Restream()) ? 'style="display:none;"' : ''?>>
               <label><?php echo translate('User for RTSP Server Auth') ?></label>
               <?php
                 $users = array(''=>translate('None'));
@@ -1334,7 +1334,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }
-                echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
+                echo htmlSelect("newMonitor[RTSP_User]", $users, $monitor->RTSP_User());
 ?>
               
             </li>

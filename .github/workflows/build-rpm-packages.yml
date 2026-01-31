@@ -115,6 +115,7 @@ jobs:
           set -eux
           VERSION=$(cat version.txt)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          git config --global --add safe.directory /__w/zoneminder/zoneminder
 
           # Calculate snapshot version
           versionhash=$(git log -n1 --pretty=format:%h version.txt)

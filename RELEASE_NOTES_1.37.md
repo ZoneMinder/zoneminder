@@ -1,5 +1,16 @@
 # ZoneMinder 1.37.x Release Notes
 
+## TL;DR - Key Highlights
+
+- 🔐 **Role-Based Access Control** - Enterprise-grade permission system with user roles
+- 🎥 **Modern Streaming** - WebRTC, Go2RTC, RTSP2Web support with hardware acceleration
+- 🎬 **Multi-Stream Architecture** - Dual-stream capture with flexible routing
+- 📡 **Enhanced Protocols** - ONVIF Events, MQTT, Amcrest API integration
+- 🏷️ **Event Tagging** - Flexible labeling and organization system
+- 📊 **Server Monitoring** - Real-time CPU, memory, and performance metrics
+- 🌍 **Geolocation** - Geographic tracking for events and servers
+- ⚡ **Hardware Encoding** - GPU acceleration for video encoding
+
 ## Overview
 
 ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing significant architectural improvements, new streaming capabilities, enhanced security features, and extensive monitoring enhancements. This release focuses on modernizing the platform with support for contemporary streaming protocols, implementing enterprise-grade access control, and improving performance and scalability.

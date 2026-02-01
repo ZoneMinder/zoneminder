@@ -63,7 +63,7 @@ jobs:
       - name: Install build tools
         run: |
           set -eux
-          dnf -y install \
+          dnf -y --nobest install \
             git \
             rpm-build \
             rpmdevtools \

@@ -64,6 +64,7 @@ jobs:
         run: |
           set -eux
           dnf -y --nobest install \
+            arp-scan \
             git \
             rpm-build \
             rpmdevtools \

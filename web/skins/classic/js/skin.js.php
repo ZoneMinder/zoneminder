@@ -47,8 +47,7 @@ const serverId = <?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '0' ?>;
 const Servers = [];
 <?php
 // Fall back to get Server paths, etc when no using multi-server mode
-$Server = ZM\Server::find_one();
-if (!$Server) $Server = new ZM\Server(1);
+$Server = new ZM\Server();
 echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
 global $Servers;
 foreach ( $Servers as $Server ) {

@@ -542,12 +542,12 @@ int main(int argc, char *argv[]) {
           strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &tm_info));
         }
         if ( image_idx == -1 )
-          printf("Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000);
+          printf("Time of last image capture: %s.%02" __PRI64_PREFIX "d\n", timestamp_str, timestamp.tv_usec/10000);
         else
-          printf("Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000);
+          printf("Time of image %d capture: %s.%02" __PRI64_PREFIX "d\n", image_idx, timestamp_str, timestamp.tv_usec/10000);
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000);
+        printf("%" __PRI64_PREFIX "d.%02" __PRI64_PREFIX "d", timestamp.tv_sec, timestamp.tv_usec/10000);
         have_output = true;
       }
     }
@@ -777,7 +777,7 @@ int main(int argc, char *argv[]) {
             std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
             if ( monitor && monitor->connect() ) {
               struct timeval tv = monitor->GetTimestamp();
-              printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
+              printf( "%4d%5d%6d%9d%11" __PRI64_PREFIX "d.%02" __PRI64_PREFIX "d%6d%6d%8" PRIu64 "%8.2f\n",
                 monitor->Id(),
                 monitor_function,
                 monitor->GetState(),
@@ -791,7 +791,7 @@ int main(int argc, char *argv[]) {
             }
           } else {
             struct timeval tv = { 0, 0 };
-            printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+            printf("%4d%5d%6d%9d%11" __PRI64_PREFIX "d.%02" __PRI64_PREFIX "d%6d%6d%8d%8.2f\n",
               mon_id,
               function,
               0,

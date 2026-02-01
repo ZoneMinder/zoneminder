@@ -93,7 +93,7 @@ Event::Event(
     localtime_r(&now.tv_sec, &tm_info);
     strftime(buffer_now, 26, "%Y:%m:%d %H:%M:%S", &tm_info);
 
-    Error("StartDateTime in the future starttime %ld.%06ld >? now %ld.%06ld difference %" PRIi64 "\nstarttime: %s\nnow: %s",
+    Error("StartDateTime in the future starttime %" __PRI64_PREFIX "d.%06" __PRI64_PREFIX "d >? now %" __PRI64_PREFIX "d.%06" __PRI64_PREFIX "d difference %" PRIi64 "\nstarttime: %s\nnow: %s",
           start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
           static_cast<int64>(now.tv_sec - start_time.tv_sec),
           buffer, buffer_now);
@@ -116,7 +116,7 @@ Event::Event(
       "INSERT INTO `Events` "
       "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
       " VALUES "
-      "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+      "( %d, %d, 'New Event', from_unixtime( %" __PRI64_PREFIX "d ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,

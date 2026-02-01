@@ -187,7 +187,7 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if (map_stat.st_size < mem_size) {
-      Error("Got unexpected memory map file size %ld, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
+      Error("Got unexpected memory map file size %jd, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
       disconnect();
       return false;
     }
@@ -949,19 +949,19 @@ bool Monitor::connect() {
         return false;
       }
     } else if (map_stat.st_size == 0) {
-      Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size);
+      Error("Got empty memory map file size %" __PRI64_PREFIX "d, is the zmc process for this monitor running?", map_stat.st_size);
       close(map_fd);
       map_fd = -1;
       return false;
     } else {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %" __PRI64_PREFIX "d, expected %jd", map_stat.st_size, mem_size);
       close(map_fd);
       map_fd = -1;
       return false;
     }
   }  // end if map_stat.st_size != mem_size
 
-  Debug(3, "MMap file size is %ld", map_stat.st_size);
+  Debug(3, "MMap file size is %" __PRI64_PREFIX "d", map_stat.st_size);
 #ifdef MAP_LOCKED
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if (mem_ptr == MAP_FAILED) {
@@ -2236,7 +2236,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
     while ( 1 ) {
       dest_ptr = link_id_str;
       while ( *src_ptr >= '0' && *src_ptr <= '9' ) {
-        if ( (dest_ptr-link_id_str) < (unsigned int)(sizeof(link_id_str)-1) ) {
+        if ( (size_t)(dest_ptr-link_id_str) < (sizeof(link_id_str)-1) ) {
           *dest_ptr++ = *src_ptr++;
         } else {
           break;
@@ -2625,7 +2625,7 @@ bool Monitor::Decode() {
   gettimeofday(&now, nullptr);
   shared_data->last_write_time = now.tv_sec;
   if (now.tv_sec - packet->timestamp.tv_sec > ZM_WATCH_MAX_DELAY) {
-    Warning("Decoding is not keeping up. We are %ld seconds behind capture.",
+    Warning("Decoding is not keeping up. We are %" __PRI64_PREFIX "d seconds behind capture.",
         now.tv_sec - packet->timestamp.tv_sec);
   }
 
@@ -2644,7 +2644,7 @@ void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
   char label_text[1024];
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;
-  while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
+  while ( *s_ptr && ((size_t)(d_ptr-label_text) < sizeof(label_text)) ) {
     if ( *s_ptr == config.timestamp_code_char[0] ) {
       bool found_macro = false;
       switch ( *(s_ptr+1) ) {
@@ -2657,7 +2657,7 @@ void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
           found_macro = true;
           break;
         case 'f' :
-          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time.tv_usec/10000);
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02" __PRI64_PREFIX "d", ts_time.tv_usec/10000);
           found_macro = true;
           break;
       }

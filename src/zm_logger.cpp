@@ -445,7 +445,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     char *timePtr = timeString;
     tm now_tm = {};
     timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&timeVal.tv_sec, &now_tm));
-    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
+    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06" __PRI64_PREFIX "d", timeVal.tv_usec);
 #if 0
   }
 #endif

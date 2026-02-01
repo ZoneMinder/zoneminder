@@ -4,7 +4,7 @@
 
 - 🔐 **Role-Based Access Control** - Enterprise-grade permission system with user roles
 - 🎥 **Modern Streaming** - WebRTC, Go2RTC, RTSP2Web support with hardware acceleration
-- 🎬 **Multi-Stream Architecture** - Dual-stream capture with flexible routing
+- ⚙️ **Monitor Function Redesign** - Granular control with separate Capturing, Analysing, and Recording settings
 - 📡 **Enhanced Protocols** - ONVIF Events, MQTT, Amcrest API integration
 - 🏷️ **Event Tagging** - Flexible labeling and organization system
 - 📊 **Server Monitoring** - Real-time CPU, memory, and performance metrics
@@ -44,13 +44,59 @@ ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing 
 - Human-readable codec names replacing integer-based codec selection
 - Optimized encoding for reduced CPU usage
 
-**Multi-Stream Architecture**
-- Dual-stream capture with independent primary and secondary streams
-- Flexible stream source routing: camera direct streams vs. restreaming
-- Per-stream recording and analysis configuration
-- Configurable decoding modes: KeyFrames, KeyFrames+Ondemand, Always
+### 3. Monitor Function Redesign
 
-### 3. Enhanced Camera Integration
+One of the most significant architectural changes in 1.37.x is the redesign of the monitor `Function` field into three independent control parameters. This provides much more granular control over monitor behavior.
+
+**Legacy Function Field (1.36.x and earlier)**
+
+The traditional `Function` field was a single enum that controlled all aspects of a monitor's operation:
+- `None` - Monitor disabled
+- `Monitor` - Capture video only (no recording, no motion detection)
+- `Modect` - Motion detection with recording on motion
+- `Record` - Continuous recording without motion detection
+- `Mocord` - Continuous recording with motion detection
+- `Nodect` - Recording on external trigger, no built-in motion detection
+
+**New Granular Control (1.37.x)**
+
+The `Function` field has been split into three independent settings, allowing fine-grained control:
+
+**`Capturing` enum (None/Ondemand/Always)**
+- Controls whether the monitor captures video from the camera
+- `None` - No video capture (monitor effectively disabled)
+- `Ondemand` - Capture only when needed (e.g., when viewing live or triggered by events)
+- `Always` - Continuous video capture from the camera
+
+**`Analysing` enum (None/Always)**
+- Controls whether motion detection and analysis is performed
+- `None` - No motion detection or analysis (equivalent to Monitor or Record modes)
+- `Always` - Perform motion detection and analysis (equivalent to Modect or Mocord modes)
+
+**`Recording` enum (None/OnMotion/Always)**
+- Controls when video is saved to disk
+- `None` - No recording (live viewing only)
+- `OnMotion` - Record only when motion is detected or triggered
+- `Always` - Continuous recording
+
+**Migration from Legacy Functions**
+
+The database automatically migrates old Function values to the new settings:
+- `None` → Capturing: None, Analysing: None, Recording: None
+- `Monitor` → Capturing: Always, Analysing: None, Recording: None
+- `Modect` → Capturing: Always, Analysing: Always, Recording: OnMotion
+- `Record` → Capturing: Always, Analysing: None, Recording: Always
+- `Mocord` → Capturing: Always, Analysing: Always, Recording: Always
+- `Nodect` → Capturing: Always, Analysing: None, Recording: OnMotion
+
+**Benefits of the New Design**
+- More flexible monitor configurations (e.g., analyze but don't record, or record without analysis)
+- Better resource management by independently controlling capture, analysis, and storage
+- Clearer separation of concerns for troubleshooting
+- Foundation for future enhancements like conditional recording policies
+- Easier to understand monitor behavior at a glance
+
+### 4. Enhanced Camera Integration
 
 **Extended Protocol Support**
 - ONVIF Event Listener for direct camera event notifications
@@ -64,7 +110,7 @@ ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing 
 - SOAP WS-Addressing compliance for enterprise cameras
 - Configurable ONVIF events endpoints
 
-### 4. Advanced Event Management
+### 5. Advanced Event Management
 
 **Event Tagging System**
 - Flexible event labeling with custom tags
@@ -83,7 +129,7 @@ ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing 
 - Maximum score frame tracking to identify peak detection moments
 - Enhanced event reporting system with historical analytics
 
-### 5. Performance & Infrastructure
+### 6. Performance & Infrastructure
 
 **Server Monitoring**
 - Comprehensive server statistics tracking
@@ -97,7 +143,7 @@ ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing 
 - Analysis image channel optimization (Full Color vs. Y-Channel)
 - Improved monitor soft delete with logical deletion flags
 
-### 6. Display & User Interface
+### 7. Display & User Interface
 
 **Montage Enhancements**
 - Expanded grid layouts: 1/2/4/5/6/7/8/9/10/12/16 Wide configurations
@@ -110,27 +156,34 @@ ZoneMinder 1.37.x represents a major evolution from version 1.36.x, introducing 
 - Enhanced video playback controls
 - Improved event viewing experience
 
-### 7. Storage & Recording
+### 8. Storage & Recording
 
-**Flexible Recording Options**
-- Independent recording source control (Primary/Secondary/Both streams)
-- Analysis source selection separate from recording
-- Capturing modes: None/Ondemand/Always
-- Recording modes: None/OnMotion/Always
+**Granular Recording Control**
+
+With the redesign of the monitor Function field (see section 3), recording behavior is now controlled independently through the `Recording`, `Capturing`, and `Analysing` settings. This provides much greater flexibility:
+
+- **Recording modes**: None/OnMotion/Always
+- **Capturing modes**: None/Ondemand/Always  
+- **Analysis modes**: None/Always
+
+This allows configurations that weren't possible with the old Function field, such as:
+- Capture and analyze without recording (for alerting only)
+- Record without analysis (for compliance/archival)
+- On-demand capture with triggered recording
 
 **Email Notifications**
 - Email format options: Individual or Summary
 - Improved event notification formatting
 - Configurable alert delivery
 
-### 8. Geographic & Metadata Features
+### 9. Geographic & Metadata Features
 
 **Geolocation Support**
 - Geographic coordinates for monitors, events, and servers
 - High-precision decimal storage (11,8) for latitude/longitude
 - Location-based event tracking and analysis
 
-### 9. Development & Integration
+### 10. Development & Integration
 
 **API Improvements**
 - Enhanced RESTful API capabilities

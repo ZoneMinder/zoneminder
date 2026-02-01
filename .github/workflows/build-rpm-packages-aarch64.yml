@@ -72,6 +72,7 @@ jobs:
             rpmlint \
             gnupg2 \
             curl \
+            iproute2 \
             wget \
             rsync \
             openssh-clients \

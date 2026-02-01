@@ -22,6 +22,9 @@ require_once('session.php');
 require_once('User.php');
 require_once('Group_Permission.php');
 require_once('Monitor_Permission.php');
+require_once('User_Role.php');
+require_once('Role_Group_Permission.php');
+require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
@@ -261,6 +264,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
 
 $group_permissions = null;
 $monitor_permissions = null; # hash indexed by MonitorId
+$role_group_permissions = null;
+$role_monitor_permissions = null;
+
 function visibleMonitor($mid) {
   global $user;
   if (!$user) return false;
@@ -275,7 +281,7 @@ function visibleMonitor($mid) {
   if (isset($monitor_permissions[$mid])) {
     $permission = $monitor_permissions[$mid]->Permission();
     if ($permission != 'Inherit') {
-      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid");
+      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid from user monitor permission");
       return ($permission == 'None' ? false : true);
     }
   }
@@ -284,18 +290,58 @@ function visibleMonitor($mid) {
   if ($group_permissions === null)
     $group_permissions = $user->Group_Permissions();
 
-  # If denied view in any group, then can't view it.
+  # Check user's group permissions
   $group_permission_value = 'Inherit';
   foreach ($group_permissions as $permission) {
     $value = $permission->MonitorPermission($mid);
     if ($value == 'None') {
-      ZM\Debug("Can't view monitor $mid because of group ".$permission->Group()->Name().' '.$permission->Permission());
+      ZM\Debug("Can't view monitor $mid because of user group ".$permission->Group()->Name().' '.$permission->Permission());
       return false;
     } else if ($value == 'View' or $value == 'Edit') {
       $group_permission_value = $value;
     }
   }
   if ($group_permission_value != 'Inherit') return true;
+
+  # Check role permissions if user has a role
+  $role = $user->Role();
+  if ($role) {
+    global $role_monitor_permissions;
+    if ($role_monitor_permissions === null) {
+      $role_monitor_permissions = array_to_hash_by_key('MonitorId', $role->Monitor_Permissions());
+    }
+
+    if (isset($role_monitor_permissions[$mid])) {
+      $permission = $role_monitor_permissions[$mid]->Permission();
+      if ($permission != 'Inherit') {
+        ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid from role monitor permission");
+        return ($permission == 'None' ? false : true);
+      }
+    }
+
+    global $role_group_permissions;
+    if ($role_group_permissions === null)
+      $role_group_permissions = $role->Group_Permissions();
+
+    # Check role's group permissions
+    $role_group_permission_value = 'Inherit';
+    foreach ($role_group_permissions as $permission) {
+      $value = $permission->MonitorPermission($mid);
+      if ($value == 'None') {
+        ZM\Debug("Can't view monitor $mid because of role group ".$permission->Group()->Name().' '.$permission->Permission());
+        return false;
+      } else if ($value == 'View' or $value == 'Edit') {
+        $role_group_permission_value = $value;
+      }
+    }
+    if ($role_group_permission_value != 'Inherit') return true;
+
+    # Check role's base Monitors permission if user's is 'None'
+    if ($user->Monitors() == 'None' and $role->Monitors() != 'None') {
+      ZM\Debug("Using role Monitors permission ".$role->Monitors()." for monitor $mid");
+      return true;
+    }
+  }
 
   return ($user->Monitors() != 'None');
 }
@@ -304,7 +350,19 @@ function canView($area, $mid=false) {
   global $user;
   if (!$user) return false;
   if ($mid) return visibleMonitor($mid);
-  return ($user->$area() && ($user->$area() != 'None'));
+
+  # Check user's direct permission first
+  if ($user->$area() && ($user->$area() != 'None')) {
+    return true;
+  }
+
+  # If user's permission is 'None', check role permission
+  $role = $user->Role();
+  if ($role && $role->$area() && ($role->$area() != 'None')) {
+    return true;
+  }
+
+  return false;
 }
 
 function editableMonitor($mid) {
@@ -320,27 +378,66 @@ function editableMonitor($mid) {
   if ($monitor_permissions === null) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
   }
-  if (isset($monitor_permissions[$mid]) and 
-    ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View')
-  ) {
-    //ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
-    return false;
+  if (isset($monitor_permissions[$mid])) {
+    $permission = $monitor_permissions[$mid]->Permission();
+    if ($permission == 'None' or $permission == 'View') {
+      return false;
+    } else if ($permission == 'Edit') {
+      return true;
+    }
   }
 
   global $group_permissions;
   if ($group_permissions === null)
     $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user->Id()));
 
-  # If denied view in any group, then can't view it.
+  # Check user's group permissions
   foreach ($group_permissions as $permission) {
     $perm_value = $permission->MonitorPermission($mid);
-    //ZM\Debug("Have group permission $perm_value");
     if ($perm_value == 'Edit') {
       return true;
     }
   }
 
-  #ZM\Debug("Monitors permission is ".$user->Monitors());
+  # Check role permissions if user has a role
+  $role = $user->Role();
+  if ($role) {
+    global $role_monitor_permissions;
+    if ($role_monitor_permissions === null) {
+      $role_monitor_permissions = array_to_hash_by_key('MonitorId', $role->Monitor_Permissions());
+    }
+
+    if (isset($role_monitor_permissions[$mid])) {
+      $permission = $role_monitor_permissions[$mid]->Permission();
+      if ($permission == 'None' or $permission == 'View') {
+        return false;
+      } else if ($permission == 'Edit') {
+        return true;
+      }
+    }
+
+    global $role_group_permissions;
+    if ($role_group_permissions === null)
+      $role_group_permissions = $role->Group_Permissions();
+
+    # Check role's group permissions
+    foreach ($role_group_permissions as $permission) {
+      $perm_value = $permission->MonitorPermission($mid);
+      if ($perm_value == 'Edit') {
+        return true;
+      }
+    }
+
+    # Check role's base Monitors permission if user's doesn't allow edit
+    $user_monitors = $user->Monitors();
+    if ($user_monitors != 'Edit' && $user_monitors != 'Create') {
+      $role_monitors = $role->Monitors();
+      if ($role_monitors == 'Edit' || $role_monitors == 'Create') {
+        return true;
+      }
+    }
+  }
+
   return (($user->Monitors() == 'Edit') || ($user->Monitors() == 'Create'));
 }
 
@@ -349,13 +446,37 @@ function canEdit($area, $mid=false) {
 
   if (!$user) return false;
   if ($mid) return editableMonitor($mid);
-  return ($user->$area() == 'Edit' or $user->$area() == 'Create');
+
+  # Check user's direct permission first
+  if ($user->$area() == 'Edit' or $user->$area() == 'Create') {
+    return true;
+  }
+
+  # If user's permission doesn't allow edit, check role permission
+  $role = $user->Role();
+  if ($role && ($role->$area() == 'Edit' or $role->$area() == 'Create')) {
+    return true;
+  }
+
+  return false;
 }
 
 function canCreate($area) {
   global $user;
+  if (!$user) return false;
 
-  return ( $user && ($user->$area() == 'Create') );
+  # Check user's direct permission first
+  if ($user->$area() == 'Create') {
+    return true;
+  }
+
+  # If user's permission doesn't allow create, check role permission
+  $role = $user->Role();
+  if ($role && $role->$area() == 'Create') {
+    return true;
+  }
+
+  return false;
 }
 
 function userFromSession() {

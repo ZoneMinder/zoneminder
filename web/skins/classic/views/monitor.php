@@ -869,6 +869,7 @@ $decoders = array(
   'hevc_cuvid' => 'hevc_cuvid',
   'hevc_nvmpi' => 'hevc_nvmpi',
   'hevc_qsv' => 'hevc_qsv',
+  'hevc_vaapi' => 'hevc_vaapi',
   'vp8_nvmpi' => 'vp8_nvmpi',
   'libvpx-vp9' => 'libvpx-vp9',
   'vp9_qsv' => 'vp9-qsv',

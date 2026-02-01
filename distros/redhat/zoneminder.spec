@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     ec9035ea8b393243608def4e9237209653554e8d
+%global rtspserver_commit     24e6b7153aa561ecc4123cc7c8fc1b530cde0bc9
 # CxxUrl is configured as a git submodule
 %global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
@@ -20,7 +20,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.77
+Version: 1.37.79
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons

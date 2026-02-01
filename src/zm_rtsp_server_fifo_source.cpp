@@ -16,6 +16,7 @@
 #include "zm_logger.h"
 #include "zm_signal.h"
 
+#include <climits>
 #include <fcntl.h>
 #include <sys/file.h>
 
@@ -56,7 +57,7 @@ void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
   while (!stop_ and !zm_terminate) {
     if (getNextFrame() < 0) {
-      if (!stop_ and !zm_terminate) return;
+      if (stop_ or zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
@@ -83,7 +84,7 @@ void ZoneMinderFifoSource::WriteRun() {
     }
 
     if (nal) {
-      if (1 and (nal->size() > maxNalSize)) {
+      if (nal->size() > maxNalSize) {
         Debug(3, "Splitting NAL %zu", nal->size());
         size_t nalRemaining = nal->size();
         u_int8_t *nalSrc = nal->buffer();
@@ -160,8 +161,9 @@ int ZoneMinderFifoSource::getNextFrame() {
   int bytes_read = m_buffer.read_into(m_fd, 4096);
   //int bytes_read = m_buffer.read_into(m_fd, 4096, {1,0});
   if (bytes_read == 0) {
-    Debug(3, "No bytes read");
-    sleep(1);
+    Debug(1, "EOF on fifo %s, closing to allow reopen", m_fifo.c_str());
+    ::close(m_fd);
+    m_fd = -1;
     return -1;
   }
   if (bytes_read < 0) {
@@ -210,7 +212,15 @@ int ZoneMinderFifoSource::getNextFrame() {
       }
       *pts_ptr = '\0';
       pts_ptr ++;
-      data_size = atoi(content_length_ptr);
+      char *endptr = nullptr;
+      unsigned long parsed_size = strtoul(content_length_ptr, &endptr, 10);
+      if (endptr == content_length_ptr || parsed_size > INT_MAX) {
+        Debug(1, "Invalid content length: %s", content_length_ptr);
+        m_buffer.consume((header_start - m_buffer.head()) + 2);
+        delete[] header;
+        return 0;
+      }
+      data_size = static_cast<unsigned int>(parsed_size);
       pts = strtoll(pts_ptr, nullptr, 10);
       Debug(4, "ZM Packet %s header_size %d packet size %u pts %s %" PRId64, header, header_size, data_size, pts_ptr, pts);
       delete[] header;

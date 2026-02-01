@@ -1,0 +1,238 @@
+name: build-rpm-packages-signed
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: write
+
+env:
+  GPG_KEY_ID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
+  GPG_PASSPHRASE: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY_B64: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY_B64 }}
+  TZ: America/New_York
+
+jobs:
+  build-rpm:
+    name: Build & sign RPM (${{ matrix.distro }})
+    if: github.repository == 'ZoneMinder/zoneminder'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: "rockylinux:9"
+            releasever: "9"
+            family: "el"
+          - distro: "rockylinux:8"
+            releasever: "8"
+            family: "el"
+          - distro: "fedora:rawhide"
+            releasever: "rawhide"
+            family: "fedora"
+          - distro: "fedora:42"
+            releasever: "42"
+            family: "fedora"
+          - distro: "fedora:41"
+            releasever: "41"
+            family: "fedora"
+    container:
+      image: ${{ matrix.distro }}
+
+    steps:
+      - name: Enable EPEL and RPMFusion (EL)
+        if: matrix.family == 'el'
+        run: |
+          set -eux
+          dnf -y install dnf-plugins-core epel-release
+          dnf -y install "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm"
+          if [ "${{ matrix.releasever }}" == "8" ]; then
+            dnf config-manager --set-enabled powertools
+          else
+            dnf config-manager --set-enabled crb
+          fi
+
+      - name: Enable RPMFusion (Fedora)
+        if: matrix.family == 'fedora'
+        run: |
+          set -eux
+          dnf -y install dnf-plugins-core
+          dnf -y install "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${{ matrix.releasever }}.noarch.rpm"
+
+      - name: Install build tools
+        run: |
+          set -eux
+          dnf -y install \
+            git \
+            rpm-build \
+            rpmdevtools \
+            rpmlint \
+            gnupg2 \
+            curl \
+            wget \
+            rsync \
+            openssh-clients \
+            ca-certificates \
+            createrepo_c
+
+      - name: Setup RPM build directory
+        run: |
+          set -eux
+          rpmdev-setuptree
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
+          git_user_signingkey: false
+          git_commit_gpgsign: false
+
+      - name: Configure RPM signing
+        run: |
+          set -eux
+          cat > ~/.rpmmacros << EOF
+          %_signature gpg
+          %_gpg_name ${GPG_KEY_ID}
+          %__gpg /usr/bin/gpg2
+          %__gpg_sign_cmd %{__gpg} gpg --batch --verbose --no-armor --no-secmem-warning -u "%{_gpg_name}" -sbo %{__signature_filename} --digest-algo sha256 %{__plaintext_filename}'
+          EOF
+
+      - name: Install build dependencies
+        run: |
+          set -eux
+          dnf -y builddep distros/redhat/zoneminder.spec
+
+      - name: Determine version and prepare sources
+        id: version
+        run: |
+          set -eux
+          VERSION=$(cat version.txt)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          git config --global --add safe.directory /__w/zoneminder/zoneminder
+
+          # Calculate snapshot version
+          versionhash=$(git log -n1 --pretty=format:%h version.txt)
+          numcommits=$(git rev-list ${versionhash}..HEAD --count)
+          SNAPSHOT="$(date +%Y%m%d).${numcommits}"
+          echo "snapshot=${SNAPSHOT}" >> $GITHUB_OUTPUT
+
+          # Update version in spec file
+          sed -i "s/^Version:.*/Version: ${VERSION}/" distros/redhat/zoneminder.spec
+          sed -i "s/^Release:.*/Release: 0.${SNAPSHOT}%{?dist}/" distros/redhat/zoneminder.spec
+
+          # Copy spec file to SPECS
+          cp distros/redhat/zoneminder.spec ~/rpmbuild/SPECS/
+
+      - name: Download submodule sources
+        run: |
+          set -eux
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Read submodule versions from spec file
+          CRUD_VERSION=$(grep '%global crud_version' distros/redhat/zoneminder.spec | awk '{print $3}')
+          CEB_VERSION=$(grep '%global ceb_version' distros/redhat/zoneminder.spec | awk '{print $3}')
+          RTSP_COMMIT=$(grep '%global rtspserver_commit' distros/redhat/zoneminder.spec | awk '{print $3}')
+          CXXURL_VERSION=$(grep '%global CxxUrl_version' distros/redhat/zoneminder.spec | awk '{print $3}')
+
+          # Download main ZoneMinder source tarball
+          git archive --format=tar.gz --prefix=zoneminder-${VERSION}/ HEAD > ~/rpmbuild/SOURCES/zoneminder-${VERSION}.tar.gz
+
+          # Download Crud
+          curl -L -o ~/rpmbuild/SOURCES/crud-${CRUD_VERSION}.tar.gz \
+            "https://github.com/FriendsOfCake/crud/archive/v${CRUD_VERSION}.tar.gz"
+
+          # Download CakePHP-Enum-Behavior
+          curl -L -o ~/rpmbuild/SOURCES/cakephp-enum-behavior-${CEB_VERSION}.tar.gz \
+            "https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEB_VERSION}.tar.gz"
+
+          # Download RtspServer
+          curl -L -o ~/rpmbuild/SOURCES/RtspServer-${RTSP_COMMIT}.tar.gz \
+            "https://github.com/ZoneMinder/RtspServer/archive/${RTSP_COMMIT}.tar.gz"
+
+          # Download CxxUrl
+          curl -L -o ~/rpmbuild/SOURCES/CxxUrl-${CXXURL_VERSION}.tar.gz \
+            "https://github.com/chmike/CxxUrl/archive/${CXXURL_VERSION}.tar.gz"
+
+          # List sources
+          ls -la ~/rpmbuild/SOURCES/
+
+      - name: Build SRPM
+        run: |
+          set -eux
+          rpmbuild -bs ~/rpmbuild/SPECS/zoneminder.spec
+          ls -la ~/rpmbuild/SRPMS/
+
+      - name: Build RPMs
+        env:
+          SMPFLAGS: "-j$(nproc)"
+        run: |
+          set -eux
+          rpmbuild --rebuild ~/rpmbuild/SRPMS/zoneminder-*.src.rpm
+          ls -la ~/rpmbuild/RPMS/
+
+      - name: Sign RPMs
+        run: |
+          set -eux
+          # Sign all RPM packages
+          echo "${GPG_PASSPHRASE}" | gpg2 --batch --yes --passphrase-fd 0 \
+            --pinentry-mode loopback -ab ~/rpmbuild/SRPMS/*.src.rpm || true
+
+          for rpm in ~/rpmbuild/RPMS/*/*.rpm; do
+            echo "${GPG_PASSPHRASE}" | rpm --addsign "$rpm" || echo "Warning: Failed to sign $rpm"
+          done
+
+          # Verify signatures
+          rpm -K ~/rpmbuild/RPMS/*/*.rpm || true
+
+      - name: Collect RPM artifacts
+        run: |
+          set -eux
+          mkdir -p artifacts/rpm
+          cp ~/rpmbuild/SRPMS/*.src.rpm artifacts/rpm/ || true
+          cp ~/rpmbuild/RPMS/*/*.rpm artifacts/rpm/ || true
+          ls -la artifacts/rpm/
+
+      - name: Sanitize artifact name
+        id: prep_artifact_name
+        run: |
+          sanitized_distro_name=$(echo -n "${{ matrix.distro }}" | sed -e 's/[;\\\/:<>"|*?]/_/g' -e 's/__*/_/g')
+          echo "artifact_name=rpm-${sanitized_distro_name}" >> $GITHUB_ENV
+
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          path: artifacts/rpm
+          name: ${{ env.artifact_name }}
+
+      - name: Publish to ZMREPO
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: artifacts/rpm/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
+
+  release:
+    name: Create GitHub Release (on tag)
+    needs: build-rpm
+    if: github.repository == 'ZoneMinder/zoneminder' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*

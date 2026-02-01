@@ -87,28 +87,7 @@ ONVIF::ONVIF(Monitor *parent_) :
     pull_timeout_seconds = ONVIF_RENEWAL_ADVANCE_SECONDS - 1;
   }
 
-  soap = soap_new();
-  soap->connect_timeout = 0;
-  soap->recv_timeout = 0;
-  soap->send_timeout = 0;
-  //soap->bind_flags |= SO_REUSEADDR;
-  soap_register_plugin(soap, soap_wsse);
-  // Always register WS-Addressing plugin to handle mustUnderstand headers in responses,
-  // even if we don't send WS-Addressing headers in requests
-  soap_register_plugin(soap, soap_wsa);
-  if (parent->soap_wsa_compl) {
-    Debug(2, "ONVIF: WS-Addressing enabled for requests");
-  } else {
-    Debug(2, "ONVIF: WS-Addressing disabled for requests (plugin still registered for responses)");
-  }
-
-  // Enable SOAP logging if configured
-  if (!soap_log_file.empty()) {
-    enable_soap_logging(soap_log_file);
-  }
-
-  proxyEvent = PullPointSubscriptionBindingProxy(soap);
-
+  // Build endpoint URL before initializing soap context (InitSoapContext needs it)
   Url url(parent->onvif_url);
   if (parent->onvif_url.empty()) {
     url = Url(parent->path);
@@ -116,9 +95,18 @@ ONVIF::ONVIF(Monitor *parent_) :
     url.path("/onvif/device_service");
     Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
   }
-  // Store URL in member variable so pointer remains valid for proxyEvent lifetime
   event_endpoint_url_ = url.str() + parent->onvif_events_path;
-  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
+
+  if (!InitSoapContext()) {
+    Error("ONVIF: Failed to initialize SOAP context in constructor");
+    return;
+  }
+
+  if (parent->soap_wsa_compl) {
+    Debug(2, "ONVIF: WS-Addressing enabled for requests");
+  } else {
+    Debug(2, "ONVIF: WS-Addressing disabled for requests (plugin still registered for responses)");
+  }
 }
 
 ONVIF::~ONVIF() {
@@ -143,8 +131,8 @@ ONVIF::~ONVIF() {
       set_credentials(soap);
 
       bool use_wsa = parent->soap_wsa_compl;
-      if (!use_wsa || do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-        int result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
+      if (!use_wsa || do_wsa_request(subscription_address_.c_str(), "UnsubscribeRequest")) {
+        int result = proxyEvent.Unsubscribe(subscription_address_.c_str(), nullptr,
             &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
         // Check result and log warnings if unsubscribe failed
         if (result != SOAP_OK) {
@@ -223,8 +211,41 @@ void ONVIF::Run() {
   Debug(1, "ONVIF: Polling thread exiting");
 }
 
+bool ONVIF::InitSoapContext() {
+  if (soap != nullptr) {
+    return true;
+  }
+
+  Debug(1, "ONVIF: Initializing SOAP context");
+
+  soap = soap_new();
+  if (soap == nullptr) {
+    Error("ONVIF: Failed to allocate SOAP context");
+    return false;
+  }
+
+  soap->connect_timeout = 0;
+  soap->recv_timeout = 0;
+  soap->send_timeout = 0;
+  soap_register_plugin(soap, soap_wsse);
+  soap_register_plugin(soap, soap_wsa);
+
+  if (!soap_log_file.empty()) {
+    enable_soap_logging(soap_log_file);
+  }
+
+  proxyEvent = PullPointSubscriptionBindingProxy(soap);
+  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
+
+  return true;
+}
+
 void ONVIF::Subscribe() {
-  // Try to create subscription with digest authentication first
+  if (!InitSoapContext()) {
+    setHealthy(false);
+    return;
+  }
+
   set_credentials(soap);
 
   bool use_wsa = parent->soap_wsa_compl;
@@ -324,7 +345,15 @@ void ONVIF::Subscribe() {
   retry_count = 0;
   has_valid_subscription_ = true;
 
+  // Clear tracking state from previous subscription
+  initialized_count.clear();
+  warned_initialized_repeat = false;
+
   Debug(1, "ONVIF: Successfully created PullPoint subscription");
+
+  // Cache the subscription address before any soap_end() calls free the response memory
+  subscription_address_ = response.SubscriptionReference.Address;
+  Debug(2, "ONVIF: Cached subscription address: %s", subscription_address_.c_str());
 
   // Update renewal tracking times from initial subscription response
   if (response.wsnt__TerminationTime != 0) {
@@ -338,7 +367,7 @@ void ONVIF::Subscribe() {
   soap->header = nullptr;
   set_credentials(soap);
 
-  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "PullPointSubscription/PullMessagesRequest")) {
+  if (use_wsa && !do_wsa_request(subscription_address_.c_str(), "PullPointSubscription/PullMessagesRequest")) {
     setHealthy(false);
     return;
   }
@@ -350,8 +379,8 @@ void ONVIF::Subscribe() {
   tev__PullMessages.MessageLimit = 10;
 
   Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
-      pull_timeout_seconds, subscription_timeout_seconds, response.SubscriptionReference.Address);
-  if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+      pull_timeout_seconds, subscription_timeout_seconds, subscription_address_.c_str());
+  if ((proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
       (soap->error != SOAP_EOF)
      ) { //SOAP_EOF could indicate no messages to pull.
     Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
@@ -360,6 +389,10 @@ void ONVIF::Subscribe() {
     Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     setHealthy(true);
   }
+
+  // Clean up gSOAP allocated memory from initial PullMessages
+  soap_destroy(soap);
+  soap_end(soap);
 
   // Perform initial renewal of the subscription
   if (use_wsa) {  // Only if WS-Addressing is enabled
@@ -377,7 +410,7 @@ void ONVIF::WaitForMessage() {
   bool use_wsa = parent->soap_wsa_compl;
 
   if (use_wsa) {
-    if (!do_wsa_request(response.SubscriptionReference.Address, "PullMessageRequest")) {
+    if (!do_wsa_request(subscription_address_.c_str(), "PullMessageRequest")) {
       return;
     }
   } else {
@@ -391,7 +424,7 @@ void ONVIF::WaitForMessage() {
   tev__PullMessages.MessageLimit = 10;
   Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%ds, MessageLimit=%d ...",
         pull_timeout_seconds, tev__PullMessages.MessageLimit);
-  int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, nullptr, &tev__PullMessages, tev__PullMessagesResponse);
+  int result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
 
@@ -612,6 +645,12 @@ void ONVIF::WaitForMessage() {
 
       if (IsRenewalNeeded()) Renew();
     }  // end if SOAP OK/NOT OK
+
+  // Clean up gSOAP allocated memory from PullMessages response
+  // This must be called after every SOAP operation to prevent memory growth
+  soap_destroy(soap);
+  soap_end(soap);
+
   return;
 }
 
@@ -695,8 +734,8 @@ void ONVIF::cleanup_subscription() {
 
   // Attempt to unsubscribe from the existing subscription
   if (use_wsa) {
-    if (do_wsa_request(response.SubscriptionReference.Address, "UnsubscribeRequest")) {
-      result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
+    if (do_wsa_request(subscription_address_.c_str(), "UnsubscribeRequest")) {
+      result = proxyEvent.Unsubscribe(subscription_address_.c_str(), nullptr,
                                        &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
       // WS-Addressing setup failed - log the error details from soap_wsa_request
@@ -711,7 +750,7 @@ void ONVIF::cleanup_subscription() {
     }
   } else {
     Debug(2, "ONVIF: Unsubscribing without WS-Addressing during cleanup");
-    result = proxyEvent.Unsubscribe(response.SubscriptionReference.Address, nullptr,
+    result = proxyEvent.Unsubscribe(subscription_address_.c_str(), nullptr,
                                      &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
   }
 
@@ -957,22 +996,26 @@ bool ONVIF::Renew() {
 
   bool use_wsa = parent->soap_wsa_compl;
 
-  if (use_wsa && !do_wsa_request(response.SubscriptionReference.Address, "RenewRequest")) {
+  if (use_wsa && !do_wsa_request(subscription_address_.c_str(), "RenewRequest")) {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
     setHealthy(false);
     return false;
   }
 
-  if (proxyEvent.Renew(response.SubscriptionReference.Address, nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
+  if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
     Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
       setHealthy(true);
+      soap_destroy(soap);
+      soap_end(soap);
       return true;  // Not a fatal error
     } else {
       // Renewal failed - clean up the subscription to prevent leaks
       Warning("ONVIF: Renewal failed, cleaning up subscription to prevent leak");
+      soap_destroy(soap);
+      soap_end(soap);
       cleanup_subscription();
       setHealthy(false);
       return false;
@@ -989,6 +1032,10 @@ bool ONVIF::Renew() {
   } else {
     Debug(1, "No TerminationTime in RenewResponse");
   }
+
+  // Clean up gSOAP allocated memory from Renew response
+  soap_destroy(soap);
+  soap_end(soap);
 
   return true;
 }  // bool ONVIF::Renew()

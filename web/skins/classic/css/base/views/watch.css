@@ -43,8 +43,6 @@
   margin: 0 auto;
 }
 
-.monitor .imageFeed,
-.monitor .imageFeed,
 .monitor .imageFeed {
   border: 2px solid #999999;
 }
@@ -195,10 +193,6 @@ span.alert {
 
 body.sticky #content {
   overflow-y: auto;
-}
-
-.zoom {
-  transform-origin: 100% 00%;
 }
 
 button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {

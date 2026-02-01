@@ -2146,7 +2146,12 @@ bool Monitor::Analyse() {
                   if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                     Image *y_image = packet->get_y_image();
                     Debug(1, "Detecting motion on image %d, y_image %p", packet->image_index, y_image);
-                    motion_score += DetectMotion(*y_image, zoneSet); // DetectMotion tests for null y_image
+                    if (y_image) {
+                      motion_score += DetectMotion(*y_image, zoneSet);
+                    } else {
+                      // y_image unavailable (e.g., LocalCamera without in_frame) - skip motion detection
+                      Debug(1, "y_image unavailable, skipping motion detection");
+                    }
                   } else {
                     Debug(1, "Detecting motion on image %d, image %p", packet->image_index, packet->image);
                     motion_score += DetectMotion(*(packet->image), zoneSet);
@@ -2197,7 +2202,11 @@ bool Monitor::Analyse() {
                 if (analysis_image == ANALYSISIMAGE_YCHANNEL) {
                   Debug(1, "Blending from y-channel");
                   Image *y_image = packet->get_y_image();
-                  ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  if (y_image) {
+                    ref_image.Blend(*y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  } else {
+                    Debug(1, "y_image unavailable, skipping blend");
+                  }
                 } else if (packet->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                         analysis_image, packet->in_frame.get(),

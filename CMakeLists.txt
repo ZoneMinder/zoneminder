@@ -58,7 +58,11 @@ if(ZM_SYSTEM_PROC MATCHES "^arm")
   # Suppress warnings about ABI changes for passing/returning objects of aggregate type on 32-bit ARM
   add_compile_options(-Wno-psabi)
   if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-    exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+    execute_process(
+      COMMAND grep " neon " "/proc/cpuinfo"
+      OUTPUT_VARIABLE neonoutput
+      RESULT_VARIABLE neonresult
+      OUTPUT_QUIET ERROR_QUIET)
     if(neonresult EQUAL 0)
       set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
       set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
@@ -174,7 +178,7 @@ set(ZM_PATH_IP "" CACHE PATH
   "Full path to compatible ip binary. Leave empty for automatic detection.")
 set(ZM_PATH_IFCONFIG "" CACHE PATH
   "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
-set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
+set(ZM_CONFIG_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/zm" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
   "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
@@ -200,6 +204,8 @@ set(ZM_NO_PCRE "OFF" CACHE BOOL
   "Set to ON to skip libpcre2 checks and force building ZM without libpcre2. default: OFF")
 set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
+set(ZM_NO_MQTT "OFF" CACHE BOOL
+  "Set to ON to skip MQTT (Mosquitto) checks and force building ZM without MQTT support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
   "By default, ZoneMinder's Perl modules are installed into the Vendor folders,
 	as defined by your installation of Perl. You can change that here. Consult Perl's 
@@ -307,6 +313,18 @@ if(HAVE_EXECINFO_H)
   endif()
   check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 endif()
+
+# libunwind provides better backtraces than glibc's backtrace(), especially on ARM
+find_package(LibUnwind)
+if(LIBUNWIND_FOUND)
+  set(HAVE_LIBUNWIND 1)
+  list(APPEND ZM_BIN_LIBS "${LIBUNWIND_LIBRARIES}")
+  include_directories("${LIBUNWIND_INCLUDE_DIR}")
+  set(optlibsfound "${optlibsfound} libunwind")
+else()
+  set(optlibsnotfound "${optlibsnotfound} libunwind")
+endif()
+
 check_include_file("ucontext.h" HAVE_UCONTEXT_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)
@@ -428,8 +446,8 @@ else()
   message(FATAL_ERROR "ZoneMinder requires pthread but it was not found on your system")
 endif()
 
-# Do not check for cURL if ZM_NO_CURL is on
-if(NOT ZM_NO_PRCE)
+# Do not check for pcre if ZM_NO_PCRE is on
+if(NOT ZM_NO_PCRE)
   # pcre (using find_library and find_path)
   find_library(PCRE_LIBRARIES pcre2-8)
   if(PCRE_LIBRARIES)
@@ -592,7 +610,7 @@ endif()
 
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
-if(HAVE_LIBPCRE AND HAVE_PCRE_H)
+if(HAVE_LIBPCRE AND HAVE_PCRE2_H)
   set(ZM_PCRE 1)
 endif()
 
@@ -679,14 +697,13 @@ if(ZM_PATH_ARP STREQUAL "")
     set(ZM_PATH_ARP "${ARP_EXECUTABLE}")
     mark_as_advanced(ARP_EXECUTABLE)
   else()
-    find_program(ARP_EXECUTABLE ip)
-    if(ARP_EXECUTABLE)
-      set(ZM_PATH_ARP "${ARP_EXECUTABLE} neigh")
-      mark_as_advanced(ARP_EXECUTABLE)
+    find_program(IP_FOR_ARP_EXECUTABLE ip)
+    if(IP_FOR_ARP_EXECUTABLE)
+      set(ZM_PATH_ARP "${IP_FOR_ARP_EXECUTABLE} neigh")
+      mark_as_advanced(IP_FOR_ARP_EXECUTABLE)
+    else()
+      message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
     endif()
-  endif()
-  if(ARP_EXECUTABLE-NOTFOUND)
-    message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
   endif()
 endif()
 
@@ -696,8 +713,7 @@ if(ZM_PATH_ARP_SCAN STREQUAL "")
   if(ARP_SCAN_EXECUTABLE)
     set(ZM_PATH_ARP_SCAN "${ARP_SCAN_EXECUTABLE}")
     mark_as_advanced(ARP_SCAN_EXECUTABLE)
-  endif()
-  if(ARP_SCAN_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
   endif()
 endif()
@@ -708,8 +724,7 @@ if(ZM_PATH_RM STREQUAL "")
   if(RM_EXECUTABLE)
     set(ZM_PATH_RM "${RM_EXECUTABLE}")
     mark_as_advanced(RM_EXECUTABLE)
-  endif()
-  if(RM_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible rm binary.")
   endif()
 endif()
@@ -720,32 +735,29 @@ if(ZM_PATH_UNAME STREQUAL "")
   if(UNAME_EXECUTABLE)
     set(ZM_PATH_UNAME "${UNAME_EXECUTABLE}")
     mark_as_advanced(UNAME_EXECUTABLE)
-  endif()
-  if(UNAME_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible uname binary.")
   endif()
 endif()
 
-# Find the path to a uname compatible executable
+# Find the path to an ip compatible executable
 if(ZM_PATH_IP STREQUAL "")
   find_program(IP_EXECUTABLE ip)
   if(IP_EXECUTABLE)
     set(ZM_PATH_IP "${IP_EXECUTABLE}")
     mark_as_advanced(IP_EXECUTABLE)
-  endif()
-  if(IP_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible ip binary.")
   endif()
 endif()
 
-# Find the path to a ifconfig compatible executable
+# Find the path to an ifconfig compatible executable
 if(ZM_PATH_IFCONFIG STREQUAL "")
   find_program(IFCONFIG_EXECUTABLE ifconfig)
   if(IFCONFIG_EXECUTABLE)
     set(ZM_PATH_IFCONFIG "${IFCONFIG_EXECUTABLE}")
     mark_as_advanced(IFCONFIG_EXECUTABLE)
-  endif()
-  if(IFCONFIG_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible ifconfig binary.")
   endif()
 endif()
@@ -807,7 +819,7 @@ endif()
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   add_subdirectory(distros/redhat)
-elseif()
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
   add_subdirectory(distros/opensuse)
 endif()
 

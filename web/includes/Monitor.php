@@ -1150,8 +1150,8 @@ class Monitor extends ZM_Object {
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
                   <div class="block-button-center">
                     <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
-                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
-                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>'.
+                    ($this->canEdit() ? '<button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>' : '').'
                   </div>
                 </div>
                 <div class="zoompan">';
@@ -1185,7 +1185,7 @@ class Monitor extends ZM_Object {
       $html .= '<video id="liveStream'.$this->Id().'" style="'.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
         ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
-        '" autoplay muted controls playsinline=""></video>';
+        '" autoplay muted playsinline=""></video>';
     } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);

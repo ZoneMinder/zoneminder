@@ -917,12 +917,14 @@ function setChannelStream() {
   manageChannelStream();
 
   if (-1 === monitorStream.activePlayer.indexOf('zms')) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.StreamChannel && currentMonitor.SecondPath);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
-    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+    let streamChannelValue = getCookie('zmStreamChannel') || currentMonitor.StreamChannel;
+    streamChannel.value = streamChannelValue;
 
+    // If the selected option is disabled, find the first enabled option
     if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
-      streamChannelValue = 'Restream';
+      const firstEnabled = streamChannel.querySelector('option:not([disabled])');
+      streamChannelValue = firstEnabled ? firstEnabled.value : 'Restream';
     }
     monitorStream.currentChannelStream = streamChannelValue;
     streamChannel.value = streamChannelValue;

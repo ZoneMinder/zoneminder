@@ -390,7 +390,7 @@ function MonitorStream(monitorData) {
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
     if (streamChannel == 'default') {
-      streamChannel = (this.StreamChannel == 'CameraDirectSecondary') ? 'CameraDirectSecondary' : 'Restream';
+      streamChannel = this.StreamChannel ? this.StreamChannel : 'Restream';
     }
     this.streamListenerBind = streamListener.bind(null, this);
 

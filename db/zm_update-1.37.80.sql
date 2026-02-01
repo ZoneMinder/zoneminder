@@ -38,6 +38,41 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 --
--- Note: We intentionally keep Janus_Use_RTSP_Restream column to allow
--- reverting to older versions. It can be removed in a future major release.
+-- Add new RTSP_User column if it doesn't exist (renamed from Janus_RTSP_User)
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'RTSP_User'
+    ) > 0,
+"SELECT 'Column RTSP_User already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `RTSP_User` INT(10) AFTER `Restream`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Copy data from Janus_RTSP_User to RTSP_User if old column exists
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'Janus_RTSP_User'
+    ) > 0,
+"UPDATE `Monitors` SET `RTSP_User` = `Janus_RTSP_User`",
+"SELECT 'Column Janus_RTSP_User does not exist, skipping data migration'"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Note: We intentionally keep Janus_Use_RTSP_Restream and Janus_RTSP_User
+-- columns to allow reverting to older versions. They can be removed in a
+-- future major release.
 --

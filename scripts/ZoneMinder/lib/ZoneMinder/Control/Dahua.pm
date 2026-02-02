@@ -91,6 +91,7 @@ sub open
     );
     $self->{ua}->agent("ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
+    $self->{ssl_verified} = 1;  # Track if we're using SSL verification
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
@@ -100,13 +101,14 @@ sub open
     my $res = $self->{ua}->request($req);
 
     # If SSL verification failed, retry without verification
-    if (!$res->is_success && $res->status_line =~ /SSL|certificate|verify/i) {
+    if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
         Warning("SSL certificate verification failed for $url (" . $res->status_line . "), retrying without verification");
         $self->{ua}->ssl_opts(
           verify_hostname => 0,
           SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
           SSL_hostname => ''
         );
+        $self->{ssl_verified} = 0;
         $res = $self->{ua}->request($req);
     }
 
@@ -184,6 +186,18 @@ sub _sendGetRequest {
     my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(GET => $url);
     my $res = $self->{ua}->request($req);
+
+    # If SSL verification failed, retry without verification
+    if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
+        Warning("SSL certificate verification failed for $url (" . $res->status_line . "), retrying without verification");
+        $self->{ua}->ssl_opts(
+          verify_hostname => 0,
+          SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+          SSL_hostname => ''
+        );
+        $self->{ssl_verified} = 0;
+        $res = $self->{ua}->request($req);
+    }
 
     if ($res->is_success) {
         return 1;

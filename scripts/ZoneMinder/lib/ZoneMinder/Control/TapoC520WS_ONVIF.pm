@@ -229,7 +229,6 @@ sub sendCmd {
   # If SSL verification failed, retry without verification
   if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
     Warning("SSL certificate verification failed for $server_endpoint (" . $res->status_line . "), retrying without verification");
-    use IO::Socket::SSL;
     $self->{ua}->ssl_opts(
       verify_hostname => 0,
       SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
@@ -273,7 +272,6 @@ sub getCamParams {
   # If SSL verification failed, retry without verification
   if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
     Warning("SSL certificate verification failed for $server_endpoint (" . $res->status_line . "), retrying without verification");
-    use IO::Socket::SSL;
     $self->{ua}->ssl_opts(
       verify_hostname => 0,
       SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,

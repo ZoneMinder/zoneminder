@@ -280,9 +280,10 @@ function curl($method, $url, $username, $password) {
       $error = curl_error($ch);
       $errno = curl_errno($ch);
       // SSL certificate problem errors
+      // Note: CURLE_PEER_FAILED_VERIFICATION (51) may not be defined in all PHP versions
       if ($errno == CURLE_SSL_CACERT || $errno == CURLE_SSL_PEER_CERTIFICATE || 
           $errno == CURLE_SSL_CACERT_BADFILE || $errno == CURLE_SSL_CERTPROBLEM ||
-          $errno == CURLE_PEER_FAILED_VERIFICATION || strpos($error, 'SSL') !== false) {
+          $errno == 51 || strpos($error, 'SSL') !== false) {
         ZM\Warning("SSL certificate verification failed for $url ($error), retrying without verification");
         curl_close($ch);
         

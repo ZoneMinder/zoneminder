@@ -65,7 +65,7 @@ jobs:
       - name: Install build tools
         run: |
           set -eux
-          dnf -y install \
+          dnf -y --nobest --skip-broken install \
             arp-scan \
             git \
             rpm-build \

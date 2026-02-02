@@ -63,14 +63,13 @@ jobs:
       - name: Install build tools
         run: |
           set -eux
-          dnf -y --nobest install \
+          dnf -y install \
             arp-scan \
             git \
             rpm-build \
             rpmdevtools \
             rpmlint \
             gnupg2 \
-            curl \
             iproute \
             wget \
             rsync \

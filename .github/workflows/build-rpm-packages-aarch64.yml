@@ -72,7 +72,6 @@ jobs:
             rpmdevtools \
             rpmlint \
             gnupg2 \
-            curl \
             iproute \
             wget \
             rsync \

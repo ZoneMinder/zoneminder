@@ -2414,11 +2414,24 @@ bool Monitor::Analyse() {
         }  // end if event
 
         if (!event) {
-          if (
-            (shared_data->recording == RECORDING_ALWAYS)
-            or
-            ((shared_data->recording == RECORDING_ONMOTION) and (state == ALARM))
-          ) {
+          // Check if we should open a new event:
+          // - RECORDING_ALWAYS: Always record
+          // - RECORDING_ONMOTION: Record when in ALARM state OR when external triggers (ONVIF/Amcrest) are active
+          bool should_record = (shared_data->recording == RECORDING_ALWAYS);
+          if (shared_data->recording == RECORDING_ONMOTION) {
+            bool external_trigger_active = false;
+#ifdef WITH_GSOAP
+            if (onvif and onvif->isAlarmed()) {
+              external_trigger_active = true;
+            }
+            if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {
+              external_trigger_active = true;
+            }
+#endif
+            should_record = (state == ALARM) or external_trigger_active;
+          }
+          
+          if (should_record) {
             Info("%s: %03d - Opening event timestamp %" PRIi64 " %% %" PRIi64,
                  name.c_str(),
                  packet->image_index,

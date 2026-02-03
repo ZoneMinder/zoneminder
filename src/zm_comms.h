@@ -198,9 +198,9 @@ class Socket : public CommsBase {
     mLocalAddr(nullptr),
     mRemoteAddr(nullptr) {
     if (socket.mLocalAddr)
-      mLocalAddr = SockAddr::newSockAddr(mLocalAddr);
+      mLocalAddr = SockAddr::newSockAddr(socket.mLocalAddr);
     if (socket.mRemoteAddr)
-      mRemoteAddr = SockAddr::newSockAddr(mRemoteAddr);
+      mRemoteAddr = SockAddr::newSockAddr(socket.mRemoteAddr);
   }
 
   virtual ~Socket() {
@@ -246,9 +246,9 @@ class Socket : public CommsBase {
 
   virtual ssize_t recv(std::string &msg) const {
     msg.reserve(ZM_NETWORK_BUFSIZ);
-    std::vector<char> buffer(msg.capacity());
+    std::vector<char> buffer(msg.capacity() + 1);  // +1 for null terminator
     ssize_t nBytes;
-    if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {
+    if ((nBytes = ::recv(mSd, buffer.data(), buffer.size() - 1, 0)) < 0) {
       Debug(1, "Recv of %zd bytes max to string on sd %d failed: %s", msg.size(), mSd, strerror(errno));
       return nBytes;
     }
@@ -258,9 +258,9 @@ class Socket : public CommsBase {
   }
 
   virtual ssize_t recv(std::string &msg, size_t maxLen) const {
-    std::vector<char> buffer(maxLen);
+    std::vector<char> buffer(maxLen + 1);  // +1 for null terminator
     ssize_t nBytes;
-    if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {
+    if ((nBytes = ::recv(mSd, buffer.data(), maxLen, 0)) < 0) {
       Debug(1, "Recv of %zd bytes max to string on sd %d failed: %s", maxLen, mSd, strerror(errno));
       return nBytes;
     }

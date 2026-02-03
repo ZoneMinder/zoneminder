@@ -60,7 +60,7 @@ void User::Copy(const User &u) {
   system = u.system;
   monitor_permissions_loaded = u.monitor_permissions_loaded;
   monitor_permissions = u.monitor_permissions;
-  group_permissions_loaded = u.monitor_permissions_loaded;
+  group_permissions_loaded = u.group_permissions_loaded;
   group_permissions = u.group_permissions;
 }
 
@@ -202,11 +202,12 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   std::string remote_addr;
 
   if ( use_remote_addr ) {
-    remote_addr = std::string(getenv("REMOTE_ADDR"));
-    if (remote_addr == "") {
-      Warning("Can't determine remote address, using null");
-    } else {
+    const char *remote_addr_env = getenv("REMOTE_ADDR");
+    if (remote_addr_env) {
+      remote_addr = remote_addr_env;
       key += remote_addr;
+    } else {
+      Warning("Can't determine remote address, using null");
     }
   }
 

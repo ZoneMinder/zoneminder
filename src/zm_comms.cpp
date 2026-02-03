@@ -328,7 +328,7 @@ bool zm::Socket::getBlocking(bool &blocking) {
     Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
     return false;
   }
-  blocking = flags & O_NONBLOCK;
+  blocking = !(flags & O_NONBLOCK);
   return true;
 }
 
@@ -721,7 +721,7 @@ int zm::Select::wait() {
       }
     }
     for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-      if (FD_ISSET((*iter)->getWriteDesc(), &rfds)) {
+      if (FD_ISSET((*iter)->getWriteDesc(), &wfds)) {
         mWriteable.push_back(*iter);
       }
     }

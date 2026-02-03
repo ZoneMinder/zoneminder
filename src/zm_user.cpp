@@ -135,13 +135,16 @@ User *User::find(const std::string &username) {
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
                              escaped_username.c_str());
   MYSQL_RES *result = zmDbFetch(sql);
-  if (result && mysql_num_rows(result) == 1 ) {
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
-    User *user = new User(dbrow);
+  if (!result)
+    return nullptr;
+  if (mysql_num_rows(result) != 1) {
     mysql_free_result(result);
-    return user;
+    return nullptr;
   }
-  return nullptr;
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
+  User *user = new User(dbrow);
+  mysql_free_result(result);
+  return user;
 }
 
 User *User::find(int id) {
@@ -150,13 +153,16 @@ User *User::find(int id) {
                              " FROM `Users` WHERE `Id` = %d AND `Enabled` = 1",
                              id);
   MYSQL_RES *result = zmDbFetch(sql);
-  if (result && mysql_num_rows(result) == 1 ) {
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
-    User *user = new User(dbrow);
+  if (!result)
+    return nullptr;
+  if (mysql_num_rows(result) != 1) {
     mysql_free_result(result);
-    return user;
+    return nullptr;
   }
-  return nullptr;
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
+  User *user = new User(dbrow);
+  mysql_free_result(result);
+  return user;
 }
 
 std::string User::getAuthHash() {

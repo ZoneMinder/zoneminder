@@ -231,7 +231,7 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
     socklen_t len = sizeof(error);
     int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);
     if (retval != 0) {
-      Debug(1, "error getting socket error code %s", strerror(retval));
+      Debug(1, "error getting socket error code %s", strerror(errno));
     }
     if (error != 0) {
       return -1;
@@ -263,7 +263,7 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
         socklen_t len = sizeof(error);
         int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);
         if (retval != 0) {
-          Debug(1, "error getting socket error code %s", strerror(retval));
+          Debug(1, "error getting socket error code %s", strerror(errno));
         }
         if (error != 0) {
           return -1;

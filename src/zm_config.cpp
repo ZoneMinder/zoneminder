@@ -131,7 +131,6 @@ void process_configfile(char const *configFile) {
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
     while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
       *temp_ptr-- = '\0';
-      temp_ptr--;
     }
 
     // Now look for the '=' in the middle of the line
@@ -231,21 +230,25 @@ ConfigItem::ConfigItem(const ConfigItem &item) {
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 void ConfigItem::Copy(const ConfigItem &item) {
-  if (name) delete name;
+  delete[] name;
   name = new char[strlen(item.name)+1];
   strcpy(name, item.name);
-  if (value) delete value;
+  delete[] value;
   value = new char[strlen(item.value)+1];
   strcpy(value, item.value);
-  if (type) delete type;
+  delete[] type;
   type = new char[strlen(item.type)+1];
   strcpy(type, item.type);
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 
 ConfigItem::~ConfigItem() {

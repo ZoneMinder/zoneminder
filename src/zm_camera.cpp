@@ -98,10 +98,10 @@ AVStream *Camera::getVideoStream() {
       mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
       Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);
+      mVideoStreamId = mVideoStream->index;
     } else {
       Error("Can't create video stream");
     }
-    mVideoStreamId = mVideoStream->index;
   }
   return mVideoStream;
 }

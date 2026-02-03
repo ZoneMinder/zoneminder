@@ -56,5 +56,7 @@ layouts[<?php echo $layout->Id() ?>] = {
 <?php
 } // end foreach layout
 global $AutoLayoutName;
-echo 'const autoLayoutName="'.$AutoLayoutName.'";'
+echo 'const autoLayoutName="'.$AutoLayoutName.'";'.PHP_EOL;
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 ?>

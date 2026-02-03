@@ -123,7 +123,7 @@ Event::Event(
     video_incomplete_file = "incomplete."+container;
   }
 
-  std::string now_str = SystemTimePointToMysqlString(now);
+  std::string now_str = SystemTimePointToMysqlString(start_time);
 
   std::string sql = stringtf(
                       "INSERT INTO `Events` "

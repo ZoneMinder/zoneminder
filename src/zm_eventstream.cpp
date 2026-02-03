@@ -160,8 +160,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
   event_data->frames_duration =
     std::chrono::duration_cast<Microseconds>(dbrow[6] ? FPSeconds(atof(dbrow[6])) : FPSeconds(0.0));
-  event_data->video_file = std::string(dbrow[7]);
-  std::string scheme_str = std::string(dbrow[8]);
+  event_data->video_file = dbrow[7] ? std::string(dbrow[7]) : std::string();
+  std::string scheme_str = dbrow[8] ? std::string(dbrow[8]) : std::string();
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
   } else if ( scheme_str == "Medium" ) {
@@ -611,7 +611,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
             curr_frame_id,
             FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
            );
-      while ((curr_frame_id--) && (event_data->frames[curr_frame_id - 1].offset > offset)) {
+      while ((curr_frame_id > 1) && (event_data->frames[curr_frame_id - 2].offset > offset)) {
+        curr_frame_id--;
         Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
               FPSeconds(offset).count(),
               curr_frame_id,
@@ -1261,8 +1262,15 @@ void EventStream::setStreamStart(
 void EventStream::setStreamStart(
   uint64_t init_event_id, SystemTimePoint event_time
   ) {
-  loadInitialEventData(init_event_id, event_time);
-}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
+  // Load event data first, then seek to the specified time
+  loadEventData(init_event_id);
+  if (event_time.time_since_epoch() != Seconds(0)) {
+    seek(event_time);
+  } else {
+    curr_stream_time = event_data->start_time;
+    curr_frame_id = 1;
+  }
+}  // end void EventStream::setStreamStart(init_event_id, event_time)
 
 void EventStream::setStreamStart(int monitor_id, SystemTimePoint event_time) {
   loadInitialEventData(monitor_id, event_time);

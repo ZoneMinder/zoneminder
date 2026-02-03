@@ -315,7 +315,8 @@ int Image::PopulateFrame(AVFrame *frame) const {
                                       0 /* flags */
                                      );
   if (!ref) {
-    Warning("Failed to create av_buffer");
+    Error("Failed to create av_buffer");
+    return -1;
   }
   frame->buf[0] = ref;
 

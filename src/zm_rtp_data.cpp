@@ -48,10 +48,10 @@ bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
         ntohl(rtpHeader->ssrcN));
 
   //unsigned short seq = ntohs(rtpHeader->seqN);
-  unsigned long ssrc = ntohl(rtpHeader->ssrcN);
+  uint32_t ssrc = ntohl(rtpHeader->ssrcN);
 
   if ( mRtpSource.getSsrc() && (ssrc != mRtpSource.getSsrc()) ) {
-    Warning("Discarding packet for unrecognised ssrc %lx", ssrc);
+    Warning("Discarding packet for unrecognised ssrc %x", ssrc);
     return false;
   }
 
@@ -93,8 +93,8 @@ void RtpDataThread::Run() {
     }
     for (zm::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
       if ( zm::UdpInetServer *socket = dynamic_cast<zm::UdpInetServer *>(*iter) ) {
-        int nBytes = socket->recv(buffer, sizeof(buffer));
-        Debug(4, "Got %d bytes on sd %d", nBytes, socket->getReadDesc());
+        ssize_t nBytes = socket->recv(buffer, sizeof(buffer));
+        Debug(4, "Got %zd bytes on sd %d", nBytes, socket->getReadDesc());
         if ( nBytes ) {
           recvPacket(buffer, nBytes);
         } else {

@@ -344,13 +344,13 @@ void StreamBase::openComms() {
     }
 
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
-    if ( lock_fd <= 0 ) {
+    if ( lock_fd < 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
-      lock_fd = 0;
+      lock_fd = -1;
     } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
-      lock_fd = 0;
+      lock_fd = -1;
     } else {
       Debug(1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
     }
@@ -405,7 +405,7 @@ void StreamBase::closeComms() {
       sd = -1;
     }
     // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
-    if ( lock_fd > 0 ) {
+    if ( lock_fd >= 0 ) {
       close(lock_fd); //close it rather than unlock it in case it got deleted.
     }
   }

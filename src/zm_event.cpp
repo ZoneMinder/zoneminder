@@ -227,10 +227,10 @@ Event::~Event() {
   uint64_t video_size = 0;
   DIR *video_dir;
   if ((video_dir = opendir(path.c_str())) != NULL) {
-    struct dirent *video_file;
-    while ((video_file = readdir(video_dir)) != NULL) {
+    struct dirent *dir_entry;
+    while ((dir_entry = readdir(video_dir)) != NULL) {
       struct stat vf_stat;
-      if (stat((path + "/" + video_file->d_name).c_str(), &vf_stat) == 0 &&
+      if (stat((path + "/" + dir_entry->d_name).c_str(), &vf_stat) == 0 &&
           S_ISREG(vf_stat.st_mode))
         video_size += vf_stat.st_size;
     }
@@ -392,7 +392,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
       Tag *tag = nullptr;
       auto tag_it = tags.find(cls);
       if (tag_it == tags.end()) {
-        Debug(1, "Tag not foudn %s", cls.c_str());
+        Debug(1, "Tag not found %s", cls.c_str());
         tag = Tag::find(cls);
         if (!tag) {
           tag = new Tag();
@@ -400,10 +400,13 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
           tags.emplace(std::make_pair(cls, *tag));
+          int tag_id = tag->Id();
+          delete tag;  // Delete after copying into map
+          tag = nullptr;
 
-          if (tag->Id()) {
-            // Store 
-            Event_Tag event_tag(tag->Id(), id, packet->timestamp);
+          if (tag_id) {
+            // Store
+            Event_Tag event_tag(tag_id, id, packet->timestamp);
             event_tag.save();
           }
         } else {

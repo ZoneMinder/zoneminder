@@ -91,12 +91,12 @@ void zmLoadDBConfig() {
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
     }
+  }
 
-    if (staticConfig.SERVER_ID) {
-      Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
-    } else {
-      Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
-    }
+  if (staticConfig.SERVER_ID) {
+    Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
+  } else {
+    Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
   }
 
   staticConfig.capture_file_format = stringtf("%%s/%%0%dd-capture.jpg", config.event_image_digits);
@@ -148,7 +148,7 @@ void process_configfile(char const *configFile) {
     do {
       *temp_ptr = '\0';
       temp_ptr--;
-    } while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+    } while ( temp_ptr >= name_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t') );
 
     // Remove leading white space and leading quotes from the value part
     white_len = strspn(val_ptr, " \t");

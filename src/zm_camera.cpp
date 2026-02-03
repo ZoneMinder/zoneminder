@@ -86,8 +86,13 @@ Camera::~Camera() {
 
 AVStream *Camera::getVideoStream() {
   if ( !mVideoStream ) {
-    if ( !mFormatContext )
+    if ( !mFormatContext ) {
       mFormatContext = avformat_alloc_context();
+      if ( !mFormatContext ) {
+        Error("Failed to allocate AVFormatContext");
+        return nullptr;
+      }
+    }
     Debug(1, "Allocating avstream");
     mVideoStream = avformat_new_stream(mFormatContext, nullptr);
     if ( mVideoStream ) {

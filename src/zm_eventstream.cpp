@@ -55,10 +55,12 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
 
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
+    mysql_free_result(result);
     return false;
   }
   if (!mysql_num_rows(result)) {
     Error("Unable to load event using %s", sql.c_str());
+    mysql_free_result(result);
     return false;
   }
 
@@ -277,7 +279,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     // Fill in data between bulk frames
     if (id_diff > 1) {
       for (int i = last_id + 1; i < id; i++) {
-        auto frame = event_data->frames.emplace_back(
+        auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
                        std::chrono::duration_cast<Microseconds>((last_frame->timestamp - event_data->start_time) + delta),
@@ -293,7 +295,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
               frame.in_db);
       }
     }
-    auto frame = event_data->frames.emplace_back(id, timestamp, offset, delta, true);
+    auto &frame = event_data->frames.emplace_back(id, timestamp, offset, delta, true);
     last_frame = &frame;
     last_id = id;
     last_offset = offset;
@@ -311,7 +313,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if (!last_frame) {
       // There were no frames in db
       delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
-      auto frame = event_data->frames.emplace_back(
+      auto &frame = event_data->frames.emplace_back(
                      1,
                      event_data->start_time,
                      Microseconds(0),
@@ -339,7 +341,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         if (event_data->end_time < last_timestamp) break;
         last_id ++;
 
-        auto frame = event_data->frames.emplace_back(
+        auto &frame = event_data->frames.emplace_back(
                        last_id,
                        last_timestamp,
                        last_frame->offset + delta,

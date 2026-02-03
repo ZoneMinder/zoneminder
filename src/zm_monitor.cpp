@@ -1260,12 +1260,12 @@ bool Monitor::disconnect() {
     return false;
   }
 
-  shm_id = 0;
-
   if ((shm_data.shm_nattch <= 1) and (shmctl(shm_id, IPC_RMID, 0) < 0)) {
     Debug(3, "Can't shmctl: %s", strerror(errno));
     return false;
   }
+
+  shm_id = 0;
 
   if (shmdt(mem_ptr) < 0) {
     Debug(3, "Can't shmdt: %s", strerror(errno));

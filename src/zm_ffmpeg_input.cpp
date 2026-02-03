@@ -144,7 +144,6 @@ int FFmpeg_Input::Open(const char *filepath) {
       //avformat_close_input(&input_format_context);
       //input_format_context = nullptr;
       continue;
-      return error;
     }
     zm_dump_codec(streams[i].context);
     if (0 and !(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
@@ -163,7 +162,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 int FFmpeg_Input::Close( ) {
-  if (streams) {
+  if (streams && input_format_context) {
     for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
       //avcodec_close(streams[i].context);
       avcodec_free_context(&streams[i].context);

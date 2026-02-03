@@ -303,6 +303,11 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
 
   mFormatContext = avformat_alloc_context();
+  if (!mFormatContext) {
+    Error("Unable to allocate format context");
+    av_dict_free(&opts);
+    return -1;
+  }
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
@@ -399,8 +404,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
       if (!mVideoCodec) {
         // Try and get the codec from the codec context
-        //Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-        Error("Can't find codec for video stream from ");
+        Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
         continue;
       }
     }

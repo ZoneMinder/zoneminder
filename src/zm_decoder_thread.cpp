@@ -14,6 +14,7 @@ DecoderThread::~DecoderThread() {
 }
 
 void DecoderThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);

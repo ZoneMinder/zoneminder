@@ -14,6 +14,7 @@ PollThread::~PollThread() {
 }
 
 void PollThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   Debug(3, "Starting polling thread");

@@ -46,7 +46,8 @@ Event_Tag::Event_Tag(const MYSQL_ROW &dbrow) {
   tag_id = atoll(dbrow[index++]);
   event_id = atoll(dbrow[index++]);
   assigned_on = StringToSystemTimePoint(dbrow[index++]);
-  assigned_by = atoi(dbrow[index++]);
+  assigned_by = dbrow[index] ? atoi(dbrow[index]) : 0;
+  index++;
 }
 
 Event_Tag::Event_Tag(uint64_t p_tag_id, uint64_t p_event_id, SystemTimePoint p_assigned_on, unsigned int p_assigned_by ) :

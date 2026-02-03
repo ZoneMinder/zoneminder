@@ -15,6 +15,7 @@ AnalysisThread::~AnalysisThread() {
 }
 
 void AnalysisThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   Debug(3, "Starting analysis thread");

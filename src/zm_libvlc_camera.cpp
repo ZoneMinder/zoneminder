@@ -200,7 +200,8 @@ void LibvlcCamera::Initialise() {
 }
 
 void LibvlcCamera::Terminate() {
-  (*libvlc_media_player_stop_f)(mLibvlcMediaPlayer);
+  if (libvlc_media_player_stop_f && mLibvlcMediaPlayer)
+    (*libvlc_media_player_stop_f)(mLibvlcMediaPlayer);
   if ( mLibvlcData.buffer ) {
     zm_freealigned(mLibvlcData.buffer);
     mLibvlcData.buffer = nullptr;

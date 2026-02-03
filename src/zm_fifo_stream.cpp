@@ -85,7 +85,7 @@ bool FifoStream::sendMJEGFrames() {
   }
 
   if ( fwrite(buffer, total_read, 1, stdout) != 1 ) {
-    Error("Problem during reading: %s", strerror(errno));
+    Error("Problem during writing: %s", strerror(errno));
     return false;
   }
   fprintf(stdout, "\r\n\r\n");
@@ -102,6 +102,11 @@ void FifoStream::setStreamStart(const std::string &path) {
 void FifoStream::setStreamStart(int monitor_id, const char *format) {
   std::string diag_path;
   std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+
+  if (!monitor) {
+    Error("Unable to load monitor %d", monitor_id);
+    return;
+  }
 
   if (!strcmp(format, "reference")) {
     diag_path = stringtf("%s/diagpipe-r-%u.jpg", staticConfig.PATH_SOCKS.c_str(), monitor->Id());

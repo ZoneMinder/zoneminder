@@ -183,7 +183,7 @@ bool VideoStore::open() {
         av_stream_add_side_data(video_out_stream,
             AV_PKT_DATA_DISPLAYMATRIX,
 					(uint8_t *)displaymatrix,
-					sizeof(*displaymatrix));
+					sizeof(int32_t) * 9);
 #endif
 #endif
         if (orientation == Monitor::ROTATE_0) {
@@ -228,8 +228,8 @@ bool VideoStore::open() {
           video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
           video_out_ctx->qmin = video_in_ctx->qmin;
           video_out_ctx->qmax = video_in_ctx->qmax;
-          video_out_ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
-          //video_out_ctx->pix_fmt = chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+          // In passthrough mode, use the input context's pix_fmt
+          video_out_ctx->sw_pix_fmt = video_in_ctx->pix_fmt;
 
           if (!av_dict_get(opts, "crf", nullptr, AV_DICT_MATCH_CASE)) {
             if (av_dict_set(&opts, "crf", "23", 0)<0)

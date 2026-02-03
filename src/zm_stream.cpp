@@ -158,7 +158,7 @@ Image *StreamBase::prepareImage(Image *image) {
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ or last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
 
     double x_percent = static_cast<double>(x * ZM_SCALE_BASE) / base_image_width;
     double y_percent = static_cast<double>(y * ZM_SCALE_BASE) / base_image_height;

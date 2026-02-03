@@ -9,12 +9,10 @@
 #include <string.h>
 
 MQTT::MQTT(Monitor *monitor) :
+  mosqpp::mosquittopp(("ZoneMinder"+std::to_string(monitor->Id())).c_str()),
   monitor_(monitor),
   connected_(false)
 {
-  std::string name="ZoneMinder"+std::to_string(monitor->Id());
-  mosquittopp(name.c_str());
-
   mosqpp::lib_init();
   connect();
 }

@@ -37,7 +37,7 @@ Monitor::JanusManager::~JanusManager() {
 
 void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
-  Use_RTSP_Restream = parent->janus_use_rtsp_restream;
+  Use_RTSP_Restream = parent->restream;
   profile_override = parent->janus_profile_override;
   rtsp_session_timeout = parent->janus_rtsp_session_timeout;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
@@ -59,8 +59,8 @@ void Monitor::JanusManager::load_from_monitor() {
     }
     rtsp_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     if (ZM_OPT_USE_AUTH) {
-      if (parent->janus_rtsp_user) {
-        User *rtsp_user = User::find(parent->janus_rtsp_user);
+      if (parent->rtsp_user) {
+        User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
         rtsp_path += "?auth=" + auth_key;
       } else {

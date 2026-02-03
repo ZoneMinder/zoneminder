@@ -27,7 +27,7 @@ monitorData[monitorData.length] = {
   'scale': '<?php echo $monitor->initial_scale() ?>',
   'RTSP2WebEnabled':<?php echo $monitor->RTSP2WebEnabled() ?>,
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
-  'RTSP2WebStream':'<?php echo $monitor->RTSP2WebStream() ?>',
+  'StreamChannel':'<?php echo $monitor->StreamChannel() ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

@@ -53,6 +53,7 @@ and provide that stream over rtsp
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
 #include "zm_rtsp_server_fifo_h264_source.h"
+#include "zm_rtsp_server_fifo_av1_source.h"
 #include "zm_rtsp_server_fifo_adts_source.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -274,6 +275,13 @@ int main(int argc, char *argv[]) {
           H265_ZoneMinderFifoSource *h265FifoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
           h265FifoSource->setH265Source(h265Source);  // Allow FIFO source to set VPS/SPS/PPS
           videoSource = h265FifoSource;
+        } else if (std::string::npos != videoFifoPath.find("av1")) {
+          xop::AV1Source *av1Source = xop::AV1Source::CreateNew();
+          av1Source->SetResolution(monitor->Width(), monitor->Height());
+          session->AddSource(xop::channel_0, av1Source);
+          AV1_ZoneMinderFifoSource *av1FifoSource = new AV1_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+          av1FifoSource->setAV1Source(av1Source);  // Allow FIFO source to set sequence header
+          videoSource = av1FifoSource;
         } else {
           Warning("Unknown format in %s", videoFifoPath.c_str());
         }

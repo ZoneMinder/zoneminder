@@ -267,11 +267,42 @@ function curl($method, $url, $username, $password) {
     curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    // Try with SSL verification enabled first
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_HEADER, 1);
     curl_setopt($ch, CURLOPT_COOKIESESSION, true);
 
     $res = curl_exec($ch);
+    
+    // If SSL verification failed, retry without verification
+    if ($res === false) {
+      $error = curl_error($ch);
+      $errno = curl_errno($ch);
+      // SSL certificate problem errors
+      // Note: CURLE_PEER_FAILED_VERIFICATION (51) may not be defined in all PHP versions
+      if ($errno == CURLE_SSL_CACERT || $errno == CURLE_SSL_PEER_CERTIFICATE || 
+          $errno == CURLE_SSL_CACERT_BADFILE || $errno == CURLE_SSL_CERTPROBLEM ||
+          $errno == 51 || strpos($error, 'SSL') !== false) {
+        ZM\Warning("SSL certificate verification failed for $url ($error), retrying without verification");
+        curl_close($ch);
+        
+        // Retry without SSL verification
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+        curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+        
+        $res = curl_exec($ch);
+      }
+    }
+    
     ZM\Debug($res);
     $status = curl_getinfo($ch);
     ZM\Debug(print_r($status, true));

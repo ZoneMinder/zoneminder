@@ -197,15 +197,16 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
-  protected static $RTSP2WebStreamOptions = null;
-  public static function getRTSP2WebStreamOptions() {
-    if (!isset($RTSP2WebStreamOptions)) {
-      $RTSP2WebStreamOptions = array(
-        'Primary' => translate('Primary'),
-        'Secondary' => translate('Secondary')
+  protected static $StreamChannelOptions = null;
+  public static function getStreamChannelOptions() {
+    if (!isset($StreamChannelOptions)) {
+      $StreamChannelOptions = array(
+        'Restream' => translate('Restream'),
+        'CameraDirectPrimary' => translate('Camera Direct Primary'),
+        'CameraDirectSecondary' => translate('Camera Direct Secondary')
       );
     }
-    return $RTSP2WebStreamOptions;
+    return $StreamChannelOptions;
   }
 
   protected $defaults = array(
@@ -228,13 +229,13 @@ class Monitor extends ZM_Object {
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
-    'RTSP2WebStream'   => 'Primary',
+    'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
-    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
-    'Janus_RTSP_User'           => null,
+    'Restream'   => array('type'=>'boolean','default'=>0),
+    'RTSP_User'           => null,
     'Janus_RTSP_Session_Timeout'  => array('type'=>'integer','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),

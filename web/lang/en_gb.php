@@ -1013,10 +1013,11 @@ None: No frames will be decoded, live view and thumbnails will not be available~
       Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
       for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
   ),
-  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+  'FUNCTION_RESTREAM' => array(
     'Help' => '
-      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
-      RTSP restream as the Janus source.'
+      Enable this to use the ZoneMinder RTSP restream as the source for streaming services
+      (Janus, Go2RTC, RTSP2Web) instead of the camera directly. Useful if your camera does not
+      work with a streaming service directly.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
     'Help' => '

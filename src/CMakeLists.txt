@@ -66,6 +66,7 @@ set(ZM_BIN_SRC_FILES
   zm_rtsp_server_fifo_source.cpp
   zm_rtsp_server_fifo_adts_source.cpp
   zm_rtsp_server_fifo_h264_source.cpp
+  zm_rtsp_server_fifo_av1_source.cpp
   zm_rtsp_server_fifo_audio_source.cpp
   zm_rtsp_server_fifo_video_source.cpp
   zm_sdp.cpp

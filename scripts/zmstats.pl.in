@@ -84,12 +84,20 @@ while (!$zm_terminate) {
   }
 
   # Clear out statuses for Monitors that aren't updating themselves.
-  zmDbDo('DELETE FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))');
+  my $monitor_ids = $dbh->selectcol_arrayref('SELECT MonitorId FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))');
+  zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN ('.join(',', map { '?' } @$monitor_ids).')', @$monitor_ids) if $monitor_ids and @$monitor_ids;
 
-  zmDbDo('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
-  zmDbDo('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
-  zmDbDo('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)');
-  zmDbDo('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
+  my $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
+  zmDbDo('DELETE FROM Events_Hour WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+
+  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
+  zmDbDo('DELETE FROM Events_Day WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+
+  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)');
+  zmDbDo('DELETE FROM Events_Week WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
+
+  $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
+  zmDbDo('DELETE FROM Events_Month WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

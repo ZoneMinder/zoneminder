@@ -95,6 +95,8 @@ jobs:
           git config --global --add safe.directory /__w/zoneminder/ZoneMinder_ZoneMinder.git/.git
           #git submodule init
           #git submodule update --init --recursive
+          # Cleanup previous builds
+          rm -rf ZoneMinder_zoneminder_release
           curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 

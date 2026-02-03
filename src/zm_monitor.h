@@ -114,9 +114,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   } RTSP2WebOption;
 
   typedef enum {
-    PRIMARY=1,
-    SECONDARY
-  } RTSP2WebStreamOption;
+    RESTREAM=1,
+    CAMERA_DIRECT_PRIMARY,
+    CAMERA_DIRECT_SECONDARY
+  } StreamChannelOption;
 
   typedef enum {
     LOCAL=1,
@@ -461,14 +462,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
-  RTSP2WebStreamOption RTSP2Web_stream;      // Whether we use the primary or secondary URL for the stream
+  StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
-  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
+  bool            restream;  // Point streaming services (Janus/Go2RTC/RTSP2Web) at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
-  int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             rtsp_user;          // User Id of a user to use for auth to RTSP_Server
   int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   std::string protocol;

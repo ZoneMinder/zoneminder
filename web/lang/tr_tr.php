@@ -885,10 +885,10 @@ ancak kameranız tarayıcı tarafından desteklenmeyen bir ses biçimi gönderir
       Bir tarayıcının belirli bir akışı oynatmayı denemesini sağlayabilecek bir Profil Kimliğini manuel olarak ayarlayın. Evrensel olarak desteklenen bir değer için "42e01f"
 değerini deneyin veya kaynak tarafından belirtilen Profil Kimliğini kullanmak için bunu boş bırakın.'
   ),
-  'FUNCTION_JANUS_USE_RTSP_RESTREAM'=> array(
+  'FUNCTION_RESTREAM'=> array(
     'Help'=> '
-      Kameranız Janus altında başka hiçbir seçenekle çalışmıyorsa, bunu etkinleştirerek ZoneMinder
-RTSP yeniden akışını Janus kaynağı olarak kullanın.'
+      Akış hizmetleri (Janus, Go2RTC, RTSP2Web) için kaynak olarak kamera yerine ZoneMinder RTSP yeniden akışını
+kullanmak için bunu etkinleştirin. Kameranız doğrudan bir akış hizmetiyle çalışmıyorsa yararlıdır.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT'=> array(
     'Help'=> '

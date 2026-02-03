@@ -138,14 +138,15 @@ sub open {
   $self->parseControlAddress($self->{Monitor}->{ControlAddress});
 
   $self->{ua} = LWP::UserAgent->new;
+  # Try with SSL verification enabled first
   $self->{ua}->ssl_opts(
-      verify_hostname => 0,
-      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
-      SSL_hostname => ''
+      verify_hostname => 1,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER,
     );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   $self->{state} = 'open';
+  $self->{ssl_verified} = 1;  # Track if we're using SSL verification
 }
 
 sub parseControlAddress {
@@ -224,6 +225,19 @@ sub sendCmd {
   $req->content($msg);
 
   my $res = $self->{ua}->request($req);
+  
+  # If SSL verification failed, retry without verification
+  if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
+    Warning("SSL certificate verification failed for $server_endpoint (" . $res->status_line . "), retrying without verification");
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+      SSL_hostname => ''
+    );
+    $self->{ssl_verified} = 0;
+    $res = $self->{ua}->request($req);
+  }
+  
   if ( $res->is_success ) {
     Debug("Success sending PTZ command, :".$res->content);
     $result = !undef;
@@ -254,6 +268,18 @@ sub getCamParams {
   $req->content($msg);
 
   my $res = $self->{ua}->request($req);
+
+  # If SSL verification failed, retry without verification
+  if (!$res->is_success && $self->{ssl_verified} && $res->status_line =~ /SSL|certificate|verify/i) {
+    Warning("SSL certificate verification failed for $server_endpoint (" . $res->status_line . "), retrying without verification");
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+      SSL_hostname => ''
+    );
+    $self->{ssl_verified} = 0;
+    $res = $self->{ua}->request($req);
+  }
 
   if ( $res->is_success ) {
     # We should really use an xml or soap library to parse the xml tags

@@ -994,9 +994,6 @@ function MonitorStream(monitorData) {
   this.destroyVolumeSlider = function() {
     const volumeSlider = this.getVolumeSlider();
     const iconMute = this.getIconMute();
-    if (volumeSlider) {
-      volumeSlider.innerText = "";
-    }
     if (iconMute) iconMute.innerText = "";
     if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
   };

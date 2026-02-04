@@ -208,7 +208,7 @@ class Zone {
   };
 
   bool CheckAlarms(const Image *delta_image);
-  bool DumpSettings(char *output, bool verbose) const;
+  std::string DumpSettings(bool verbose) const;
 
   static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
   static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );

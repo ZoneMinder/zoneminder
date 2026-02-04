@@ -2298,9 +2298,9 @@ bool Monitor::Analyse() {
         } // end if score or not
 
         if (event) {
-          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
+          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                std::chrono::duration_cast<FPSeconds>(event->Duration()).count(),
                 event_close_mode
                );
           if (event->Duration() >= min_section_length) {
@@ -2894,7 +2894,6 @@ bool Monitor::Decode() {
       // Continue to PHASE 3 (frame processing)
     } else if (ret < 0) {
       // Decoder error
-      Debug(1, "receive_frame failed: %d", ret);
       return false;
     } else {
       // EAGAIN - decoder needs more input, fall through to send another packet
@@ -3376,91 +3375,89 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
 // TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {
-  output[0] = 0;
+  // Use std::string for safe concatenation, then copy to output buffer
+  std::string result;
+  result.reserve(8192);
 
-  sprintf( output+strlen(output), "Id : %u\n", id );
-  sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
-  sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
+  result += stringtf("Id : %u\n", id);
+  result += stringtf("Name : %s\n", name.c_str());
+  result += stringtf("Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File"));
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
-    sprintf( output+strlen(output), "Device : %s\n", cam->Device().c_str() );
-    sprintf( output+strlen(output), "Channel : %d\n", cam->Channel() );
-    sprintf( output+strlen(output), "Standard : %d\n", cam->Standard() );
+    result += stringtf("Device : %s\n", cam->Device().c_str());
+    result += stringtf("Channel : %d\n", cam->Channel());
+    result += stringtf("Standard : %d\n", cam->Standard());
   } else
 #endif // ZM_HAS_V4L2
     if ( camera->IsRemote() ) {
       RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
-      sprintf( output+strlen(output), "Protocol : %s\n", cam->Protocol().c_str() );
-      sprintf( output+strlen(output), "Host : %s\n", cam->Host().c_str() );
-      sprintf( output+strlen(output), "Port : %s\n", cam->Port().c_str() );
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Protocol : %s\n", cam->Protocol().c_str());
+      result += stringtf("Host : %s\n", cam->Host().c_str());
+      result += stringtf("Port : %s\n", cam->Port().c_str());
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     } else if ( camera->IsFile() ) {
       FileCamera* cam = static_cast<FileCamera*>(camera.get());
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     } else if ( camera->IsFfmpeg() ) {
       FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     }
-  sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
-  sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
+  result += stringtf("Width : %u\n", camera->Width());
+  result += stringtf("Height : %u\n", camera->Height());
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
-    sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
+    result += stringtf("Palette : %d\n", cam->Palette());
   }
 #endif  // ZM_HAS_V4L2
-  sprintf(output + strlen(output), "Colours : %u\n", camera->Colours());
-  sprintf(output + strlen(output), "Subpixel Order : %u\n",
-          camera->SubpixelOrder());
-  sprintf(output + strlen(output), "Event Prefix : %s\n", event_prefix.c_str());
-  sprintf(output + strlen(output), "Label Format : %s\n", label_format.c_str());
-  sprintf(output + strlen(output), "Label Coord : %d,%d\n", label_coord.x_,
-          label_coord.y_);
-  sprintf(output + strlen(output), "Label Size : %d\n", label_size);
-  sprintf(output + strlen(output), "Image Buffer Count : %d\n",
-          image_buffer_count);
-  sprintf(output + strlen(output), "Warmup Count : %d\n", warmup_count);
-  sprintf(output + strlen(output), "Pre Event Count : %d\n", pre_event_count);
-  sprintf(output + strlen(output), "Post Event Count : %d\n", post_event_count);
-  sprintf(output + strlen(output), "Stream Replay Buffer : %d\n",
-          stream_replay_buffer);
-  sprintf(output + strlen(output), "Alarm Frame Count : %d\n",
-          alarm_frame_count);
-  sprintf(output + strlen(output), "Section Length : %" PRIi64 "\n",
+  result += stringtf("Colours : %u\n", camera->Colours());
+  result += stringtf("Subpixel Order : %u\n", camera->SubpixelOrder());
+  result += stringtf("Event Prefix : %s\n", event_prefix.c_str());
+  result += stringtf("Label Format : %s\n", label_format.c_str());
+  result += stringtf("Label Coord : %d,%d\n", label_coord.x_, label_coord.y_);
+  result += stringtf("Label Size : %d\n", label_size);
+  result += stringtf("Image Buffer Count : %d\n", image_buffer_count);
+  result += stringtf("Warmup Count : %d\n", warmup_count);
+  result += stringtf("Pre Event Count : %d\n", pre_event_count);
+  result += stringtf("Post Event Count : %d\n", post_event_count);
+  result += stringtf("Stream Replay Buffer : %d\n", stream_replay_buffer);
+  result += stringtf("Alarm Frame Count : %d\n", alarm_frame_count);
+  result += stringtf("Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(section_length).count()));
-  sprintf(output + strlen(output), "Min Section Length : %" PRIi64 "\n",
+  result += stringtf("Min Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(
-      output + strlen(output), "Maximum FPS : %.2f\n",
+  result += stringtf("Maximum FPS : %.2f\n",
       capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
-  sprintf(output + strlen(output), "Alarm Maximum FPS : %.2f\n",
+  result += stringtf("Alarm Maximum FPS : %.2f\n",
           alarm_capture_delay != Seconds(0)
               ? 1 / FPSeconds(alarm_capture_delay).count()
               : 0.0);
-  sprintf(output + strlen(output), "Reference Blend %%ge : %d\n",
-          ref_blend_perc);
-  sprintf(output + strlen(output), "Alarm Reference Blend %%ge : %d\n",
-          alarm_ref_blend_perc);
-  sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
+  result += stringtf("Reference Blend %%ge : %d\n", ref_blend_perc);
+  result += stringtf("Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
+  result += stringtf("Track Motion : %d\n", track_motion);
+  result += stringtf("Capturing %d - %s\n", capturing,
           Capturing_Strings[shared_data->capturing].c_str());
-  sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
+  result += stringtf("Analysing %d - %s\n", analysing,
           Analysing_Strings[analysing].c_str());
-  sprintf(output + strlen(output), "Recording %d - %s\n", recording,
+  result += stringtf("Recording %d - %s\n", recording,
           Recording_Strings[recording].c_str());
-  sprintf(output + strlen(output), "Zones : %zu\n", zones.size());
+  result += stringtf("Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
-    zone.DumpSettings(output+strlen(output), verbose);
+    result += zone.DumpSettings(verbose);
   }
-  sprintf(output+strlen(output), "Capturing Enabled? %s\n",
+  result += stringtf("Capturing Enabled? %s\n",
           (shared_data->capturing != CAPTURING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n",
+  result += stringtf("Motion Detection Enabled? %s\n",
           (shared_data->analysing != ANALYSING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Recording Enabled? %s\n",
+  result += stringtf("Recording Enabled? %s\n",
           (shared_data->recording != RECORDING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n",
+  result += stringtf("Events Enabled (!TRIGGER_OFF)? %s\n",
           (trigger_data->trigger_state == TRIGGER_OFF) ? "disabled" : "enabled");
+
+  // Copy to output buffer (caller provides 16KB buffer)
+  strncpy(output, result.c_str(), 16382 - 1);
+  output[16382 - 1] = '\0';
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 

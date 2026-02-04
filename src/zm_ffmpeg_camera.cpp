@@ -566,9 +566,16 @@ int FfmpegCamera::OpenFfmpeg() {
       }  // end if opened
     }  // end if found decoder
   } else if (!monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
+    std::string secondPath = mSecondPath;
+    if (mUser.length() > 0 && mSecondPath.length() > 7) {
+      // Apply credentials to secondary path like we do for the primary path
+      std::string secondProtocol = mSecondPath.substr(0, mSecondPath.find("://"));
+      secondPath = StringToLower(secondProtocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedSecondPath.substr(secondProtocol.length() + 3);
+      Debug(1, "Rebuilt secondary URI with encoded parameters");
+    }
     mSecondInput = zm::make_unique<FFmpeg_Input>();
-    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+    if (mSecondInput->Open(secondPath.c_str()) > 0) {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();

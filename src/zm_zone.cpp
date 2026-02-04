@@ -949,12 +949,13 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   return zones;
 } // end std::vector<Zone> Zone::Load(Monitor *monitor)
 
-bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
-  output[0] = 0;
+std::string Zone::DumpSettings(bool /*verbose*/) const {
+  std::string result;
+  result.reserve(1024);
 
-  sprintf(output+strlen(output), "  Id : %u\n", id );
-  sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
-  sprintf(output+strlen(output), "  Type: %d - %s\n", type,
+  result += stringtf("  Id : %u\n", id);
+  result += stringtf("  Label : %s\n", label.c_str());
+  result += stringtf("  Type: %d - %s\n", type,
           type==ACTIVE?"Active":(
             type==INCLUSIVE?"Inclusive":(
               type==EXCLUSIVE?"Exclusive":(
@@ -962,28 +963,28 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
                   type==INACTIVE?"Inactive":(
                     type==PRIVACY?"Privacy":"Unknown"
                   ))))));
-  sprintf( output+strlen(output), "  Shape : %zu points\n", polygon.GetVertices().size() );
+  result += stringtf("  Shape : %zu points\n", polygon.GetVertices().size());
   for (size_t i = 0; i < polygon.GetVertices().size(); i++) {
-    sprintf(output + strlen(output), "  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
+    result += stringtf("  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
   }
-  sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
-  sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
+  result += stringtf("  Alarm RGB : %06x\n", alarm_rgb);
+  result += stringtf("  Check Method: %d - %s\n", check_method,
            check_method==ALARMED_PIXELS?"Alarmed Pixels":(
              check_method==FILTERED_PIXELS?"FilteredPixels":(
                check_method==BLOBS?"Blobs":"Unknown"
              )));
-  sprintf( output+strlen(output), "  Min Pixel Threshold : %d\n", min_pixel_threshold );
-  sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
-  sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
-  sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
-  sprintf(output+strlen(output), "  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_ );
-  sprintf( output+strlen(output), "  Min Filter Pixels : %d\n", min_filter_pixels );
-  sprintf( output+strlen(output), "  Max Filter Pixels : %d\n", max_filter_pixels );
-  sprintf( output+strlen(output), "  Min Blob Pixels : %d\n", min_blob_pixels );
-  sprintf( output+strlen(output), "  Max Blob Pixels : %d\n", max_blob_pixels );
-  sprintf( output+strlen(output), "  Min Blobs : %d\n", min_blobs );
-  sprintf( output+strlen(output), "  Max Blobs : %d\n", max_blobs );
-  return true;
+  result += stringtf("  Min Pixel Threshold : %d\n", min_pixel_threshold);
+  result += stringtf("  Max Pixel Threshold : %d\n", max_pixel_threshold);
+  result += stringtf("  Min Alarm Pixels : %d\n", min_alarm_pixels);
+  result += stringtf("  Max Alarm Pixels : %d\n", max_alarm_pixels);
+  result += stringtf("  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_);
+  result += stringtf("  Min Filter Pixels : %d\n", min_filter_pixels);
+  result += stringtf("  Max Filter Pixels : %d\n", max_filter_pixels);
+  result += stringtf("  Min Blob Pixels : %d\n", min_blob_pixels);
+  result += stringtf("  Max Blob Pixels : %d\n", max_blob_pixels);
+  result += stringtf("  Min Blobs : %d\n", min_blobs);
+  result += stringtf("  Max Blobs : %d\n", max_blobs);
+  return result;
 }
 
 void Zone::std_alarmedpixels(

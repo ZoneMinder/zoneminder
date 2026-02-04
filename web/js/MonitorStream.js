@@ -356,7 +356,7 @@ function MonitorStream(monitorData) {
       const container = fromEl.parentNode;
       newEl = document.createElement(toTypeEl);
       this.copyAllAttributes(fromEl, newEl);
-      fromEl.parentNode.removeChild(fromEl); 
+      fromEl.parentNode.removeChild(fromEl);
       container.appendChild(newEl);
     }
     return newEl;
@@ -532,7 +532,7 @@ function MonitorStream(monitorData) {
               maxBufferLength: 10,
               maxMaxBufferLength: 30,
             });
-            this.hls.on(Hls.Events.MEDIA_ATTACHED, function (event, data) {
+            this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
               this.getTracksFromStream(); //HLS
@@ -568,7 +568,7 @@ function MonitorStream(monitorData) {
     }
 
     // zms stream
-    const stream = this.element = this.replaceDOMElement(this.getElement(), 'img'); 
+    const stream = this.element = this.replaceDOMElement(this.getElement(), 'img');
     if (!stream) return;
 
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
@@ -1007,7 +1007,7 @@ function MonitorStream(monitorData) {
   */
   this.changeVolumeSlider = function(volume) {
     const volumeControls = this.getVolumeControls();
-    const controlMute = document.querySelector('[id ^= "controlMute'+this.id+'"]');
+    //const controlMute = document.querySelector('[id ^= "controlMute'+this.id+'"]');
     const volumeSlider = this.getVolumeSlider();
 
     if (volumeSlider) {
@@ -1031,7 +1031,6 @@ function MonitorStream(monitorData) {
   * mode: switch, on, off
   */
   this.controlMute = function(mode = 'switch') {
-    const mid = this.id;
     let volumeSlider = this.getVolumeSlider();
     const audioStream = this.getAudioStream();
     const volumeControls = this.getVolumeControls();
@@ -1094,7 +1093,7 @@ function MonitorStream(monitorData) {
         volumeSlider.noUiSlider.enable();
       }
     }
-  }
+  };
 
   /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
   // https://habr.com/ru/companies/timeweb/articles/667148/
@@ -1105,7 +1104,7 @@ function MonitorStream(monitorData) {
     const el = (-1 !== this.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+this.id+'"] video') : this.getElement();
     let stream = null;
 
-    // We should NOT call captureStream again, as there may be problems with capturing the stream! 
+    // We should NOT call captureStream again, as there may be problems with capturing the stream!
     let moz = false; // Detecting Firefox
     if ("captureStream" in el) {
       stream = await el.captureStream();
@@ -1127,7 +1126,7 @@ function MonitorStream(monitorData) {
         const dest = ctx.createMediaStreamSource(stream);
         dest.connect(ctx.destination);
       }
-    } else if (!streamCaptureNotSupported){
+    } else if (!streamCaptureNotSupported) {
       console.warn(`Failed to capture stream for monitor ID=${this.id} while receiving tracks.`);
     }
 
@@ -1137,7 +1136,7 @@ function MonitorStream(monitorData) {
     (this.audioTrack || streamCaptureNotSupported) ? this.volumeControlsHandler('enable') : this.volumeControlsHandler('disable');
 
     //this.connectAudioMotion();
-  }
+  };
 
   this.setStateClass = function(jobj, stateClass) {
     if (!jobj) {
@@ -1965,8 +1964,8 @@ function startRTSP2WebPlay(videoEl, url, stream) {
 
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
-  stream.updateStreamInfo('', ''); //WEBRTC
-  stream.getTracksFromStream(); //WEBRTC
+    stream.updateStreamInfo('', ''); //WEBRTC
+    stream.getTracksFromStream(); //WEBRTC
     console.log(`${webrtcSendChannel.label} for camera ID=${stream.id} has opened`);
     webrtcSendChannel.send('ping');
   };

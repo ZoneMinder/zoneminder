@@ -571,6 +571,8 @@ function MonitorStream(monitorData) {
     const stream = this.element = this.replaceDOMElement(this.getElement(), 'img');
     if (!stream) return;
 
+    this.destroyVolumeSlider();
+
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
@@ -988,6 +990,16 @@ function MonitorStream(monitorData) {
       });
     }
   };
+
+  this.destroyVolumeSlider = function() {
+    const volumeSlider = this.getVolumeSlider();
+    const iconMute = this.getIconMute();
+    if (volumeSlider) {
+      volumeSlider.innerText = "";
+    }
+    if (iconMute) iconMute.innerText = "";
+    if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
+  }
 
   /*
   * volume: on || off

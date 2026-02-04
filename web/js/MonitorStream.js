@@ -999,7 +999,7 @@ function MonitorStream(monitorData) {
     }
     if (iconMute) iconMute.innerText = "";
     if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
-  }
+  };
 
   /*
   * volume: on || off

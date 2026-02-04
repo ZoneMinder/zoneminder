@@ -1543,6 +1543,15 @@ noUi-target {
   right: -9px; /* half the width */
   border-radius: 9px;
 }
+
+.disabled .audio-control-mute {
+  color: var(--disabled);
+  cursor: not-allowed !important;
+}
+
+[id^="volumeControls"].disabled {
+  opacity: 0.4;
+}
 /* --- Volume сontrol --- */
 
 .rightInFlexContainer {

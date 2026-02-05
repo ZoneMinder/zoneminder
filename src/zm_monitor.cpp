@@ -2927,6 +2927,7 @@ bool Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       Debug(3, "Audio packet %d, marking decoded", packet->image_index);
       packet->decoded = true;
+      packetqueue.notify_all();  // Wake up analysis thread
       packetqueue.increment_it(decoder_it, !decoder_queue.empty());
       return true;
     }
@@ -3029,6 +3030,7 @@ bool Monitor::Decode() {
     if (deinterlacing_value) {
       if (!applyDeinterlacing(packet, capture_image)) {
         packet->decoded = true;
+        packetqueue.notify_all();  // Wake up analysis thread
         return false;
       }
     }
@@ -3064,6 +3066,7 @@ bool Monitor::Decode() {
   }
 
   packet->decoded = true;
+  packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets
   return true;
 }
 

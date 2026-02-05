@@ -578,17 +578,18 @@ void MonitorStream::runStream() {
         zm_terminate = true;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        rc= sendTextFrame("Waiting for capture");
+        rc = sendTextFrame("Waiting for capture");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
         rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
         rc = sendTextFrame("Unable to stream");
       }
-      if (!rc) {
-        Debug(1, "Failed Send unable to stream");
+      if (rc <= 0) {
+        Debug(1, "Failed Send unable to stream. rc=%d", rc);
         zm_terminate = true;
         continue;
       }
+      Debug(1, "Sleeping for %ds", MAX_SLEEP);
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }

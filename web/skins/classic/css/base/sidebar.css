@@ -317,6 +317,10 @@ body #sidebarMain .sub-menu-list {
   position: relative; /* Enable absolute positioning for child */
 }
 
+.extruder .extruder-content .controlHeader .chosen-choices {
+  padding-right: 30px;
+}
+
 .extruder .extruder-content .btn-term-remove-all {
   position: absolute;
   top: 50%;

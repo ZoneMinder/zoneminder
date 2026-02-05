@@ -600,6 +600,7 @@ function initPage() {
   form.presetSelector.disabled = true;
   form.presetSelector.onblur = window['presetSelectorBlur'].bind(form.presetSelector, form.presetSelector);
   //form.elements['newZone[Units]'].disabled = true;
+  let CheckMethod;
   if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
     CheckMethod.disabled = true;
     CheckMethod.onchange = window['applyCheckMethod'].bind(CheckMethod, CheckMethod);
@@ -669,6 +670,7 @@ function initPage() {
   playBtn.click(streamCmdPlay);
   playBtn.hide(); // hide pause initially
 
+  let el;
   if ( el = saveBtn[0] ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
@@ -689,7 +691,7 @@ function initPage() {
         analyseBtn.removeClass('btn-secondary');
         analyseBtn.attr('title', translate['Showing Analysis']);
       } else {
-        analyseBtn.removeClass('btn-primaryary');
+        analyseBtn.removeClass('btn-primary');
         analyseBtn.addClass('btn-secondary');
         analyseBtn.attr('title', translate['Not Showing Analysis']);
       }

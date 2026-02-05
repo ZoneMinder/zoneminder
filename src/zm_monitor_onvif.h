@@ -106,6 +106,7 @@ class ONVIF {
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
   bool expire_alarms_enabled;
+  int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;
 
   // Thread management

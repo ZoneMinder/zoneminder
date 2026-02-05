@@ -2985,7 +2985,14 @@ bool Monitor::Decode() {
 
   if (packet->in_frame) {
     // Handle hardware-accelerated frames
-    packet->transfer_hwframe(context);
+    int hw_ret = packet->transfer_hwframe(context);
+    if (hw_ret < 0) {
+      // Hardware transfer failed - frame is unusable
+      Debug(1, "Hardware frame transfer failed for packet %d", packet->image_index);
+      packet->decoded = true;
+      packetqueue.notify_all();
+      return false;
+    }
 
     if (!packet->image) {
       packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());

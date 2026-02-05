@@ -483,6 +483,7 @@ function startMonitors() {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
+      monitor.setPlayer(monitor.player);
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
@@ -678,6 +679,7 @@ function initPage() {
                   for (let i=0, length = monitors.length; i < length; i++) {
                     const monitor = monitors[i];
                     if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
+                      monitor.setPlayer(monitor.player);
                       monitor.start();
                     }
                   }
@@ -1069,6 +1071,7 @@ document.onvisibilitychange = () => {
 
         const isOut = isOutOfViewport(monitor.getElement());
         if ((!isOut.all) && !monitor.started) {
+          monitor.setPlayer(monitor.player);
           monitor.start();
         }
       } // end foreach monitor

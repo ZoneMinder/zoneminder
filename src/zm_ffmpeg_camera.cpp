@@ -514,10 +514,6 @@ int FfmpegCamera::OpenFfmpeg() {
           mVideoCodecContext->opaque = &hw_pix_fmt;
           mVideoCodecContext->get_format = get_hw_format;
           mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-          // Allocate extra surfaces for reference frames - HEVC can use up to 16
-          mVideoCodecContext->extra_hw_frames = 16;
-          // Use single-threaded decoding for hardware decoders
-          mVideoCodecContext->thread_count = 1;
         }
       } else {
         Debug(1, "Failed to find suitable hw_pix_fmt.");

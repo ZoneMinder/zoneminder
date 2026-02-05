@@ -2960,8 +2960,9 @@ bool Monitor::Decode() {
 
       if (ret == 0) {
         // EAGAIN - decoder's input buffer is full, need to drain first
-        Debug(2, "send_packet returned EAGAIN, will retry");
-        return true;
+        // Return false to let caller wait before retrying
+        Debug(2, "send_packet returned EAGAIN, waiting before retry");
+        return false;
       } else if (ret < 0) {
         // Error
         Debug(1, "send_packet failed: %d", ret);

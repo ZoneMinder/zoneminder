@@ -1030,6 +1030,16 @@ function strip_html(string) {
   return string.replace(/<[^>]+>/g, '');
 }
 
+function escapeHTML(text) {
+  if (!text) return text;
+  return text.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
   if (jqxhr.statusText == 'abort') {
     console.log('request aborted');

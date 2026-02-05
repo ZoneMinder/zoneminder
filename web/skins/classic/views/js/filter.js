@@ -197,12 +197,6 @@ function deleteFilter(element) {
   }
 }
 
-var escape = document.createElement('textarea');
-function escapeHTML(html) {
-  escape.textContent = html;
-  return escape.innerHTML;
-}
-
 function parseRows(rows) {
   for ( let rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     const queryPrefix = 'filter[Query][terms][';

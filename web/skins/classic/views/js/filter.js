@@ -113,8 +113,8 @@ function updateButtons(element) {
 }
 
 function click_AutoEmail(element) {
-  updateButtons(this);
-  if ( this.checked ) {
+  updateButtons(element);
+  if ( element.checked ) {
     $j('#EmailOptions').show();
   } else {
     $j('#EmailOptions').hide();
@@ -122,20 +122,20 @@ function click_AutoEmail(element) {
 }
 
 function click_automove(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoMoveTo]']).hide();
+    $j(element.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
 function click_autocopy(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoCopyTo]']).hide();
+    $j(element.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 
@@ -303,8 +303,6 @@ function parseRows(rows) {
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
       const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      console.log(availableTags);
-      console.log(Object.keys(availableTags));
       availableTags.forEach((tag) => {
         tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
       });
@@ -350,7 +348,6 @@ function parseRows(rows) {
     } else {
       if ( ! opVal ) {
         // Default to equals so that something gets selected
-        console.log("No value for operator. Defaulting to =");
         opVal = '=';
       }
       for ( const key in opTypes ) {
@@ -368,7 +365,6 @@ function parseRows(rows) {
 
     const attr_element = inputTds.find("[name$='attr\\]']"); // Set attr list id and name
     const term = attr_element.attr('name').split(/[[\]]{1,2}/);
-    console.log(term);
     term.length--;
     term.shift();
     term[2] = rowNum;

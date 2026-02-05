@@ -222,8 +222,8 @@ function parseRows(rows) {
     if ( brackets > 0 ) { // add bracket select to all rows
       const obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       const cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
-      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
-      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
+      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
+      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
       for ( let i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');

@@ -255,8 +255,8 @@ function parseRows(rows) {
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'AlarmedZoneId' ) {
       const zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for ( monitor_id in monitors ) {
-        for ( zone_id in zones ) {
+      for ( const monitor_id in monitors ) {
+        for ( const zone_id in zones ) {
           const zone = zones[zone_id];
           if ( monitor_id == zone.MonitorId ) {
             zoneSelect.append('<option value="' + zone_id + '">' + zone.Name + '</option>');

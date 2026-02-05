@@ -1347,11 +1347,11 @@ function MonitorStream(monitorData) {
 
       this.setAlarmState(monitor.Status);
 
-      if (respObj.auth_hash) {
-        if (auth_hash != respObj.auth_hash) {
+      if (respObj.auth) {
+        if (auth_hash != respObj.auth) {
           // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-          console.log("Changed auth from " + auth_hash + " to " + respObj.auth_hash);
-          auth_hash = respObj.auth_hash;
+          console.log("Changed auth from " + auth_hash + " to " + respObj.auth);
+          auth_hash = respObj.auth;
           auth_relay = respObj.auth_relay;
         }
       } // end if have a new auth hash

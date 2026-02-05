@@ -114,7 +114,7 @@ jobs:
       - name: Install build dependencies
         run: |
           set -eux
-          dnf -y -allowerasing builddep distros/redhat/zoneminder.spec
+          dnf -y --allowerasing builddep distros/redhat/zoneminder.spec
 
       - name: Determine version and prepare sources
         id: version

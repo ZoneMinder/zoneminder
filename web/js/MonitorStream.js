@@ -1418,7 +1418,7 @@ function MonitorStream(monitorData) {
   };
 
   this.streamCmdQuery = function(resent) {
-    if (this.type != 'WebSite') {
+    if (this.type != 'WebSite' && this.started) {
       // Websites don't have streaming
       // Can't use streamCommand because it aborts
 
@@ -1428,6 +1428,10 @@ function MonitorStream(monitorData) {
   };
 
   this.streamCommand = function(command) {
+    if (!this.started) {
+      console.log('Not sending command, stream not started', command);
+      return;
+    }
     const params = Object.assign({}, this.streamCmdParms);
     if (typeof(command) == 'object') {
       for (const key in command) params[key] = command[key];

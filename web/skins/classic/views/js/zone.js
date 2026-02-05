@@ -294,7 +294,7 @@ function unsetActivePoint(index) {
 
 function getCoordString() {
   var coords = [];
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
   return coords.join(' ');
@@ -304,7 +304,7 @@ function updateZoneImage() {
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
     Point.y = zone['Points'][i].y;
@@ -445,7 +445,7 @@ function saveChanges(element) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
-    for (var i = 0, length = monitors.length; i < length; i++) {
+    for (let i = 0, length = monitors.length; i < length; i++) {
       monitors[i].stop();
     }
     return true;
@@ -491,7 +491,7 @@ function drawZonePoints() {
   var tables = $j('#zonePoints table table');
   tables.find('tbody').empty();
 
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     var row = document.createElement('tr');
     row.id = 'row'+i;
     $j(row).mouseover(highlightOn.bind(i, i));
@@ -559,7 +559,7 @@ function drawZonePoints() {
 } // end drawZonePoints()
 
 function streamCmdPause() {
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].pause();
   }
   pauseBtn.hide();
@@ -567,7 +567,7 @@ function streamCmdPause() {
 }
 
 function streamCmdPlay() {
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].play();
   }
   pauseBtn.show();
@@ -674,7 +674,7 @@ function initPage() {
   }
   if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      for (var i = 0, length = monitors.length; i < length; i++) {
+      for (let i = 0, length = monitors.length; i < length; i++) {
         monitors[i].stop();
       }
       window.history.back();
@@ -693,7 +693,7 @@ function initPage() {
         analyseBtn.addClass('btn-secondary');
         analyseBtn.attr('title', translate['Not Showing Analysis']);
       }
-      for ( var i = 0, length = monitors.length; i < length; i++ ) {
+      for ( let i = 0, length = monitors.length; i < length; i++ ) {
         monitors[i].show_analyse_frames(analyse_frames);
       }
     };
@@ -701,7 +701,7 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);

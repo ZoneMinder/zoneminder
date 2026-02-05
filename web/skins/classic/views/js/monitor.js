@@ -67,7 +67,7 @@ function loadLocations( element ) {
 
   var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
   if ( returnLocationOptions ) {
-    for ( var i = 0; i < returnLocationOptions.length; i++ ) {
+    for ( let i = 0; i < returnLocationOptions.length; i++ ) {
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
@@ -633,7 +633,7 @@ function change_WebColour() {
 function getRandomColour() {
   var letters = '0123456789ABCDEF';
   var colour = '#';
-  for (var i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i++) {
     colour += letters[Math.floor(Math.random() * 16)];
   }
   return colour;

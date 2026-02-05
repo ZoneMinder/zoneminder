@@ -553,7 +553,7 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for (var i = 0; i < arrRatioMonitors.length; i++) {
+  for (let i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
   const avg = total / arrRatioMonitors.length;

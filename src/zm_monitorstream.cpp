@@ -589,7 +589,6 @@ void MonitorStream::runStream() {
         zm_terminate = true;
         continue;
       }
-      Debug(1, "Sleeping for %ds", MAX_SLEEP);
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }

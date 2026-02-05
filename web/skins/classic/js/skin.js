@@ -2373,6 +2373,18 @@ function resetSelectElement(el) {
   selectElement.change();
 }
 
+function getMonitorStream(mid) {
+  let monitorStream_ = null;
+  if (currentView == 'watch') {
+    monitorStream_ = monitorStream;
+  } else if (currentView == 'montage') {
+    monitorStream_ = monitors.find((o) => {
+      return parseInt(o["id"]) === mid;
+    });
+  }
+  return monitorStream_;
+}
+
 function initPageGeneral() {
   $j(document).on('keyup.global keydown.global', function handleKey(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;

@@ -182,7 +182,7 @@ function applyPreset() {
     form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
 
     applyCheckMethod();
-    form.elements['newZone[TempArea]'].value = 100;
+    form.elements['newZone[Area]'].value = 100;
   }
 }
 
@@ -214,7 +214,7 @@ function applyZoneUnits() {
 
   var form = document.zoneForm;
   if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[TempArea]'].value = area;
+    form.elements['newZone[Area]'].value = area;
     toPixels(form.elements['newZone[MinAlarmPixels]'], area);
     toPixels(form.elements['newZone[MaxAlarmPixels]'], area);
     toPixels(form.elements['newZone[MinFilterPixels]'], area);
@@ -222,7 +222,7 @@ function applyZoneUnits() {
     toPixels(form.elements['newZone[MinBlobPixels]'], area);
     toPixels(form.elements['newZone[MaxBlobPixels]'], area);
   } else {
-    form.elements['newZone[TempArea]'].value = Math.round(area/monitorArea * 100);
+    form.elements['newZone[Area]'].value = Math.round(area/monitorArea * 100);
     toPercent(form.elements['newZone[MinAlarmPixels]'], area);
     toPercent(form.elements['newZone[MaxAlarmPixels]'], area);
     toPercent(form.elements['newZone[MinFilterPixels]'], area);
@@ -259,7 +259,11 @@ function limitArea(field) {
   if ( document.zoneForm.elements['newZone[Units]'].value == 'Percent' ) {
     maxValue = 100;
   }
-  limitRange(field, minValue, maxValue);
+  if (maxValue > 0) {
+    limitRange(field, minValue, maxValue);
+  } else {
+    console.error("No value for area");
+  }
 }
 
 function highlightOn(index) {
@@ -290,7 +294,7 @@ function unsetActivePoint(index) {
 
 function getCoordString() {
   var coords = [];
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
   return coords.join(' ');
@@ -300,7 +304,7 @@ function updateZoneImage() {
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
     Point.y = zone['Points'][i].y;
@@ -382,13 +386,12 @@ function limitPointValue(point, loVal, hiVal) {
 
 function updateArea( ) {
   const area = Polygon_calcArea(zone['Points']);
-  zone.Area = area;
   const form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
+    form.elements['newZone[Area]'].value = Math.round( area/monitorArea*100 );
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
-    form.elements['newZone[TempArea]'].value = area;
+    form.elements['newZone[Area]'].value = area;
   } else {
     alert('Unknown units: ' + form.elements['newZone[Units]'].value);
   }
@@ -442,7 +445,7 @@ function saveChanges(element) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
-    for (var i = 0, length = monitors.length; i < length; i++) {
+    for (let i = 0, length = monitors.length; i < length; i++) {
       monitors[i].stop();
     }
     return true;
@@ -488,7 +491,7 @@ function drawZonePoints() {
   var tables = $j('#zonePoints table table');
   tables.find('tbody').empty();
 
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
+  for ( let i = 0; i < zone['Points'].length; i++ ) {
     var row = document.createElement('tr');
     row.id = 'row'+i;
     $j(row).mouseover(highlightOn.bind(i, i));
@@ -556,7 +559,7 @@ function drawZonePoints() {
 } // end drawZonePoints()
 
 function streamCmdPause() {
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].pause();
   }
   pauseBtn.hide();
@@ -564,7 +567,7 @@ function streamCmdPause() {
 }
 
 function streamCmdPlay() {
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].play();
   }
   pauseBtn.show();
@@ -597,6 +600,7 @@ function initPage() {
   form.presetSelector.disabled = true;
   form.presetSelector.onblur = window['presetSelectorBlur'].bind(form.presetSelector, form.presetSelector);
   //form.elements['newZone[Units]'].disabled = true;
+  let CheckMethod;
   if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
     CheckMethod.disabled = true;
     CheckMethod.onchange = window['applyCheckMethod'].bind(CheckMethod, CheckMethod);
@@ -666,12 +670,13 @@ function initPage() {
   playBtn.click(streamCmdPlay);
   playBtn.hide(); // hide pause initially
 
+  let el;
   if ( el = saveBtn[0] ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
   if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      for (var i = 0, length = monitors.length; i < length; i++) {
+      for (let i = 0, length = monitors.length; i < length; i++) {
         monitors[i].stop();
       }
       window.history.back();
@@ -686,11 +691,11 @@ function initPage() {
         analyseBtn.removeClass('btn-secondary');
         analyseBtn.attr('title', translate['Showing Analysis']);
       } else {
-        analyseBtn.removeClass('btn-primaryary');
+        analyseBtn.removeClass('btn-primary');
         analyseBtn.addClass('btn-secondary');
         analyseBtn.attr('title', translate['Not Showing Analysis']);
       }
-      for ( var i = 0, length = monitors.length; i < length; i++ ) {
+      for ( let i = 0, length = monitors.length; i < length; i++ ) {
         monitors[i].show_analyse_frames(analyse_frames);
       }
     };
@@ -698,7 +703,7 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
@@ -765,7 +770,7 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitors when closing or hiding page
       for (let i = 0, length = monitorData.length; i < length; i++) {
-        monitors[i].kill();
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {

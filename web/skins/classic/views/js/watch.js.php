@@ -15,7 +15,6 @@
 // Import constants
 //
 
-var ZM_DIR_SOUNDS = "<?php echo ZM_DIR_SOUNDS ?>";
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
@@ -44,9 +43,11 @@ monitorData[monitorData.length] = {
   'height':<?php echo $m->ViewHeight() ?>,
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
   'DefaultPlayer':'<?php echo $m->DefaultPlayer() ?>',
-  'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
+  'StreamChannel':'<?php echo $m->StreamChannel() ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
-  'SecondPath':'<?php echo $m->SecondPath() ?>',
+  'Path':'<?php echo validJsStr($m->Path()) ?>',
+  'SecondPath':'<?php echo validJsStr($m->SecondPath()) ?>',
+  'Restream':<?php echo $m->Restream() ? 'true' : 'false' ?>,
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $m->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
@@ -108,4 +109,6 @@ var translate = {
   "seconds": "<?php echo translate('seconds') ?>",
   "Fullscreen": "<?php echo translate('Fullscreen') ?>",
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
+  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
 };

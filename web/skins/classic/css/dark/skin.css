@@ -295,7 +295,7 @@ ul.nav.nav-pills.flex-column {
   background:#444444;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
   background-color: #222222;
 }
 

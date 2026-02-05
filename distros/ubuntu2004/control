@@ -34,7 +34,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev, gsoap
               ,libmosquittopp-dev
-              ,nlohmann-json3-dev
+              ,nlohmann-json3-dev|nlohmann-json-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -78,8 +78,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
-        ,arp-scan, iproute2
-        ,libcrypt-eksblowfish-perl
+        ,arp-scan, net-tools, iproute2
+        ,libcrypt-eksblowfish-perl, libcryptx-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0

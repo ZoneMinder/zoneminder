@@ -52,6 +52,7 @@ Event::Event(
 ) :
   id(0),
   monitor(p_monitor),
+  storage(nullptr),
   packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time(p_start_time),
@@ -113,7 +114,7 @@ Event::Event(
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
-  Storage *storage = monitor->getStorage();
+  storage = monitor->getStorage();
   if (monitor->GetOptVideoWriter() != 0) {
     container = monitor->OutputContainer();
     if (container == "auto" || container == "") {
@@ -122,14 +123,16 @@ Event::Event(
     video_incomplete_file = "incomplete."+container;
   }
 
+  std::string now_str = SystemTimePointToMysqlString(start_time);
+
   std::string sql = stringtf(
                       "INSERT INTO `Events` "
                       "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme`, `Latitude`, `Longitude` )"
                       " VALUES "
-                      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%f', '%f' )",
+                      "( %d, %d, 'New Event', '%s', %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%f', '%f' )",
                       monitor->Id(),
                       storage->Id(),
-                      static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
+                      now_str.c_str(),
                       monitor->Width(),
                       monitor->Height(),
                       cause.c_str(),
@@ -146,6 +149,40 @@ Event::Event(
   do {
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
+
+  /* None of these are crucial, and are simple when done as individual transactions */
+  sql = stringtf("INSERT INTO `Events_Hour` (EventId,MonitorId,StartDateTime,DiskSpace)"
+      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      id, monitor->Id(), now_str.c_str());
+  dbQueue.push(std::move(sql));
+  sql = stringtf("INSERT INTO `Events_Day` (EventId,MonitorId,StartDateTime,DiskSpace)"
+      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      id, monitor->Id(), now_str.c_str());
+  dbQueue.push(std::move(sql));
+  sql = stringtf("INSERT INTO `Events_Week` (EventId,MonitorId,StartDateTime,DiskSpace)"
+      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      id, monitor->Id(), now_str.c_str());
+  dbQueue.push(std::move(sql));
+  sql = stringtf("INSERT INTO `Events_Month` (EventId,MonitorId,StartDateTime,DiskSpace)"
+      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      id, monitor->Id(), now_str.c_str());
+  dbQueue.push(std::move(sql));
+  /*
+  sql = stringtf("INSERT INTO `Events_Year` (EventId,MonitorId,StartDateTime,DiskSpace)"
+      " VALUES (%" PRId64 ",%u,'%s',NULL)",
+      id, monitor->Id(), now_str.c_str());
+  dbQueue.push(std::move(sql));
+  */
+  sql = stringtf("INSERT INTO Event_Summaries "
+      "(MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents)"
+      " VALUES (%u,1,1,1,1,1) ON DUPLICATE KEY UPDATE"
+      " HourEvents = COALESCE(HourEvents,0)+1,"
+      " DayEvents = COALESCE(DayEvents,0)+1,"
+      " WeekEvents = COALESCE(WeekEvents,0)+1,"
+      " MonthEvents = COALESCE(MonthEvents,0)+1,"
+      " TotalEvents = COALESCE(TotalEvents,0)+1",
+      monitor->Id());
+  dbQueue.push(std::move(sql));
 
   thread_ = std::thread(&Event::Run, this);
 }
@@ -168,7 +205,7 @@ Event::~Event() {
     videoStore = nullptr;
     int result = rename(video_incomplete_path.c_str(), video_path.c_str());
     if (result != 0) {
-      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(result));
+      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
       // So that we don't update the event record
       video_file = video_incomplete_file;
     }
@@ -190,10 +227,10 @@ Event::~Event() {
   uint64_t video_size = 0;
   DIR *video_dir;
   if ((video_dir = opendir(path.c_str())) != NULL) {
-    struct dirent *video_file;
-    while ((video_file = readdir(video_dir)) != NULL) {
+    struct dirent *dir_entry;
+    while ((dir_entry = readdir(video_dir)) != NULL) {
       struct stat vf_stat;
-      if (stat((path + "/" + video_file->d_name).c_str(), &vf_stat) == 0 &&
+      if (stat((path + "/" + dir_entry->d_name).c_str(), &vf_stat) == 0 &&
           S_ISREG(vf_stat.st_mode))
         video_size += vf_stat.st_size;
     }
@@ -201,8 +238,8 @@ Event::~Event() {
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
@@ -213,8 +250,8 @@ Event::~Event() {
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
-        std::chrono::system_clock::to_time_t(end_time),
+        "UPDATE Events SET EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
+        static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
@@ -223,6 +260,11 @@ Event::~Event() {
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
+
+  if (storage && storage->Id()) {
+    sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
+    zmDbDoUpdate(sql);
+  }
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
@@ -350,7 +392,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
       Tag *tag = nullptr;
       auto tag_it = tags.find(cls);
       if (tag_it == tags.end()) {
-        Debug(1, "Tag not foudn %s", cls.c_str());
+        Debug(1, "Tag not found %s", cls.c_str());
         tag = Tag::find(cls);
         if (!tag) {
           tag = new Tag();
@@ -358,10 +400,13 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
           tags.emplace(std::make_pair(cls, *tag));
+          int tag_id = tag->Id();
+          delete tag;  // Delete after copying into map
+          tag = nullptr;
 
-          if (tag->Id()) {
-            // Store 
-            Event_Tag event_tag(tag->Id(), id, packet->timestamp);
+          if (tag_id) {
+            // Store
+            Event_Tag event_tag(tag_id, id, packet->timestamp);
             event_tag.save();
           }
         } else {
@@ -392,10 +437,10 @@ void Event::WriteDbFrames() {
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %.2f, %d ),",
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %jd ), %.2f, %d ),",
                                  id, frame->frame_id,
                                  frame_type_names[frame->type],
-                                 std::chrono::system_clock::to_time_t(frame->timestamp),
+                                 static_cast<intmax_t>(std::chrono::system_clock::to_time_t(frame->timestamp)),
                                  std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
                                  frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
@@ -731,14 +776,24 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (!terminate_ and !zm_terminate) {
-    ZMLockedPacket *packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
-    if (packet_lock) {
-      std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+    ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
+    std::shared_ptr<ZMPacket> packet = packet_lock.packet_;
+    if (packet) {
       if (!packet->decoded) {
-        delete packet_lock;
+        Debug(1, "Not decoded");
+        packet_lock.unlock();
         // Stay behind decoder
         Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
         Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
+      if (!packet->analyzed) {
+        Debug(1, "Not analyzed");
+        packet_lock.unlock();
+        // Stay behind ai
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
@@ -761,10 +816,8 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
-      Debug(1, "Deleting packet lock");
-      delete packet_lock;
       // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
-      packetqueue->increment_it(packetqueue_it);
+      packetqueue->increment_it(packetqueue_it, true);
     } else {
       if (terminate_ or zm_terminate) return;
       usleep(10000);

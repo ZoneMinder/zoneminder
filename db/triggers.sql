@@ -124,10 +124,16 @@ BEGIN
   declare diff BIGINT default 0;
   set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
 
-  UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-  UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+  IF ( diff ) THEN
+    UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+    UPDATE Event_Summaries
+      SET
+        TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
+      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+  END IF;
 
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
@@ -153,12 +159,6 @@ BEGIN
     UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 
-  IF ( diff ) THEN
-    UPDATE Event_Summaries
-      SET
-        TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
-      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
-  END IF;
 END;
 
 //
@@ -168,6 +168,7 @@ DROP TRIGGER IF EXISTS event_insert_trigger//
 /* The assumption is that when an Event is inserted, it has no size yet, so don't bother updating the DiskSpace, just the count.
  * The DiskSpace will get update in the Event Update Trigger
  */
+/*
 CREATE TRIGGER event_insert_trigger AFTER INSERT ON Events
 FOR EACH ROW
   BEGIN
@@ -185,6 +186,7 @@ FOR EACH ROW
   TotalEvents = COALESCE(TotalEvents,0)+1;
 END;
 //
+*/
 
 DROP TRIGGER IF EXISTS event_delete_trigger//
 

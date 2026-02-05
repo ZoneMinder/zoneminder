@@ -477,6 +477,9 @@ function getCmdResponse(respObj, respText) {
     streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  var clockTime = new Date(eventData.StartDateTime);
+  clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
+  $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
   const pz = zmPanZoom.panZoom[eventData.MonitorId];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
@@ -970,7 +973,8 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
-    var progressDate = new Date(currentTime);
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
     if (!streamStatus) return;
     var currentTime = streamStatus.progress;
@@ -983,6 +987,7 @@ function updateProgressBar() {
 
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
+  $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
@@ -1199,7 +1204,7 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
-  if (!eventData) return;
+  if (isEmpty(eventData)) return;
 
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
@@ -1267,9 +1272,11 @@ function getStat() {
         tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
-        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-        date.setSeconds(eventData[key]);
-        tdString = date.toISOString().substr(11, 8);
+        if (eventData[key]) {
+          const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+          date.setSeconds(eventData[key]);
+          tdString = date.toISOString().substr(11, 8);
+        }
         break;
       default:
         tdString = eventData[key];
@@ -1329,12 +1336,13 @@ function initPage() {
     onStatsResize(eventData.Width);
     wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
+  if (eventData.DefaultVideo) {
+    canPlayCodec(eventData.DefaultVideo);
+  }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   const video_element = document.getElementById('videoobj');
   if (video_element) {
-    canPlayCodec(eventData.DefaultVideo);
-
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
@@ -1355,6 +1363,9 @@ function initPage() {
 
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+      var clockTime = new Date(eventData.StartDateTime);
+      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
+      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1387,6 +1398,7 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  $j('#currentTimeValue').html(new Date(eventData.StartDateTime).toLocaleTimeString());
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
@@ -1778,7 +1790,7 @@ function formatTag(tag) {
 }
 
 function addTag(tag) {
-  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+  if (tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           formatTag(tag);

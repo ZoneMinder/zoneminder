@@ -184,7 +184,7 @@ if (isset($_REQUEST['streamQuality'])) {
 }
 $streamQualitySelected = validHtmlStr($streamQualitySelected);
 
-$streamChannelSelected = $monitor->RTSP2WebStream();
+$streamChannelSelected = $monitor->StreamChannel();
 if (isset($_REQUEST['streamChannel'])) {
   $streamChannelSelected = $_REQUEST['streamChannel'];
 } else if (isset($_COOKIE['zmStreamChannel'])) {
@@ -298,12 +298,12 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
         </span>
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
+          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale','class'=>'chosen') ); ?>
         </span>
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getStreamChannelOptions(), $monitor->StreamChannel(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen'));
           ?>
         </span>
@@ -440,11 +440,14 @@ echo $monitor->getStreamHTML($options);
               <i class="material-icons md-18">zoom_out</i>
               </button>
           </div><!--dvrControls-->
-          <div class="buttons" id="extButton"> 
+          <div class="buttons" id="extButton">
+            <button type="button" id="analyseBtn" class="btn btn-secondary" title="<?php echo translate('Show Analysis') ?>" data-on-click="toggleAnalyseFrames">
+            <i class="material-icons md-18">assessment</i>
+            </button>
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
             <i class="material-icons md-18">fullscreen</i>
             </button>
-            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?> 
+            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?>
             </button>
 <?php 
 $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :

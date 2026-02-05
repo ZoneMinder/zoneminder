@@ -37,10 +37,14 @@ create_update_user () {
 
 update_db () {
 
-  zmupdate.pl -s --nointeractive
+  zmupdate.pl --nointeractive
   if [ $? -ne 0 ]; then
-    echo "Error updating db."
-    exit 1;
+    echo "Error updating db. Trying with super-user privileges"
+    zmupdate.pl -s --nointeractive
+    if [ $? -ne 0 ]; then
+      echo "Failed updating db. Please try manually by running: sudo zmupdate.pl"
+      exit 1;
+    fi
   fi
   zmupdate.pl --nointeractive -f
   if [ $? -ne 0 ]; then
@@ -145,7 +149,7 @@ else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
 fi
 
-if [ ! -f /etc/apt/sources.list.d/zoneminder.list ]; then
+if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.list.d/zoneminder.sources ]; then
   wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
   DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
 

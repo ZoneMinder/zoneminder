@@ -165,7 +165,7 @@ sub Sql {
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $fields .= ', (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
           $self->{Sql} .= 'T.Id';
           $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
@@ -346,8 +346,10 @@ sub Sql {
               $self->{Sql} .= ' LIKE '.$value;
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
-            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq '') {
+            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq 0) {
               $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq '=' or $term->{op} eq 'IS') and $term->{val} eq -1) {
+              $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
             } else {
               $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }
@@ -490,7 +492,10 @@ sub getLoad {
 sub strtotime {
   my $dt_str = shift;
   require Date::Manip;
-  return Date::Manip::UnixDate($dt_str, '%s');
+
+  Date::Manip::Date_Init("SetDate=now,".$ZoneMinder::Config{ZM_TIMEZONE}) if $ZoneMinder::Config{ZM_TIMEZONE};
+  my $dt = Date::Manip::ParseDate($dt_str);
+  return Date::Manip::UnixDate($dt, '%s');
 }
 
 #

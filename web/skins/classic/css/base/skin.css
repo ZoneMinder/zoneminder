@@ -268,12 +268,15 @@ ul.tabList li.active a {
 }
 
 body.sticky #content {
-/*
   flex: 1 1 auto;
+  /* whether or not #content is flex is a per-view thing
   display: flex;
   flex-flow: column;
-  overflow: hidden;*/
+  */
   height: 100%;
+  /* There shouldn't be any, but if there is, at least we can scroll it
+  overflow: hidden;
+  */
 }
 
 #inner-content {
@@ -640,8 +643,44 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+/* Clear button for filter selects (general pages, not in extruder) */
+.term-value-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-term-remove-all {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  z-index: 1011;
+}
+
 .btn-term-remove-all button {
-  padding: 4px 10px;
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.btn-term-remove-all button:hover .material-icons {
+  color: #333;
 }
 
 .btn-normal,
@@ -717,10 +756,16 @@ input[type=submit]:disabled,
   .navbar-nav {
     flex-direction: row;
   }
-  .navbar-nav .nav-link {
+  .navbar-nav .nav-link,
+  #getHeaderFlipHTML a
+  {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+}
+#getHeaderFlipHTML a {
+  display: block;
+  padding: .5rem 1rem;
 }
 
 .navbar-btn {
@@ -845,16 +890,98 @@ li.search-choice {
   cursor: pointer;
 }
 
-.zoom,
-.zoom-console {
-  transform-origin: 0% 00%;
-  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-  position: sticky;
-  z-index: 1001;
+#thumb-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: none;
 }
 
-#framesTable .zoom {
-  transform-origin: 100% 0%;
+.thumb-overlay-img {
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.thumb-overlay-img img,
+.thumb-overlay-img video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.thumb-overlay-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.thumb-overlay-status {
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 10px 20px;
+  margin-top: 16px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 18px;
+  min-height: 24px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  color: #ff4444;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 20px;
+}
+
+.live-dot {
+  width: 14px;
+  height: 14px;
+  background: #ff4444;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  animation: live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.4);
+    box-shadow: 0 0 16px rgba(255, 68, 68, 0.9);
+  }
+}
+
+.time-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+}
+
+.time-indicator .fa {
+  color: #888;
+}
+
+.time-display {
+  font-variant-numeric: tabular-nums;
 }
 
 a.flip {
@@ -989,7 +1116,6 @@ a.flip {
 
 .tags-container {
   display: flex;
-  flex-wrap: wrap;
   border: 1px solid;
   border-color: #ccc;
   border-radius: 4px;
@@ -1234,6 +1360,7 @@ button.btn.btn-view-watch:hover {
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;
     -moz-appearance: none;
+    appearance: none;
     /*height: 21px;*/
     height: 18px;
     outline: none;
@@ -1384,10 +1511,12 @@ button.btn.btn-view-watch:hover {
   margin-top: 10px;*/
 }
 
-.noUi-target {
-  /*border: 1px solid var(--scrollbarBG);
-  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+/* 
+noUi-target {
+  border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;
 }
+*/
 
 .noUi-base, .noUi-touch-area {
   cursor: pointer;
@@ -1409,9 +1538,11 @@ button.btn.btn-view-watch:hover {
   height: 5px;
 }
 
+/*
 .noUi-round .noUi-connects {
-  /*background: #c0392b;*/
+  background: #c0392b;
 }
+*/
 
 .noUi-round .noUi-handle {
   height: 18px;
@@ -1421,6 +1552,10 @@ button.btn.btn-view-watch:hover {
   border-radius: 9px;
 }
 /* --- Volume сontrol --- */
+
+.rightInFlexContainer {
+  margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
+}
 
 video-stream {
   position: relative;
@@ -1442,13 +1577,13 @@ video-stream {
   padding:0;
 }
 
+/*
 .stream-info-status, .stream-info-mode {
-  /*
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
   padding: 0.3em;
-  */
 }
+*/
 
 /* +++ This block should always be located at the end! */
 .hidden {

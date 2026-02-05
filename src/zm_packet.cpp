@@ -22,10 +22,15 @@
 #include "zm_image.h"
 #include "zm_logger.h"
 
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
+  locked(false),
   keyframe(0),
   stream(nullptr),
   image(nullptr),
@@ -36,11 +41,13 @@ ZMPacket::ZMPacket() :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(false) {
+  decoded(false),
+  analyzed(false) {
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
 ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
+  locked(false),
   keyframe(0),
   stream(nullptr),
   timestamp(tv),
@@ -52,23 +59,26 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(false) {
+  decoded(false),
+  analyzed(false) {
   packet = av_packet_ptr{av_packet_alloc()};
 }
 
 ZMPacket::ZMPacket(ZMPacket &p) :
-  keyframe(0),
-  stream(nullptr),
+  locked(false),
+  keyframe(p.keyframe),
+  stream(p.stream),
   timestamp(p.timestamp),
-  image(nullptr),
-  y_image(nullptr),
-  analysis_image(nullptr),
-  score(-1),
+  image(p.image),
+  y_image(p.y_image),
+  analysis_image(p.analysis_image),
+  score(p.score),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
-  image_index(-1),
+  image_index(p.image_index),
   codec_imgsize(0),
-  pts(0),
-  decoded(false) {
+  pts(p.pts),
+  decoded(p.decoded),
+  analyzed(p.analyzed) {
   packet = av_packet_ptr{av_packet_alloc()};
 
   if (av_packet_ref(packet.get(), p.packet.get()) < 0) {
@@ -90,125 +100,159 @@ ssize_t ZMPacket::ram() {
          (analysis_image ? analysis_image->Size() : 0);
 }
 
-/* returns < 0 on error, 0 on not ready, int bytes consumed on success
- * This functions job is to populate in_frame with the image in an appropriate
- * format. It MAY also populate image if able to.  In this case in_frame is populated
- * by the image buffer.
- */
-int ZMPacket::decode(AVCodecContext *ctx) {
-  Debug(4, "about to decode video, image_index is (%d)", image_index);
-
-  if (in_frame) {
-    Error("Already have a frame?");
-  } else {
-    in_frame = av_frame_ptr{av_frame_alloc()};
-  }
-
-  // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
-  //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
-
-  int ret = zm_send_packet_receive_frame(ctx, in_frame.get(), *packet);
+int ZMPacket::send_packet(AVCodecContext *ctx) {
+  // ret == 0 means EAGAIN
+  int ret = avcodec_send_packet(ctx, packet.get());
   if (ret < 0) {
-    if (AVERROR(EAGAIN) != ret) {
-      Warning("Unable to receive frame : code %d %s.",
-              ret, av_make_error_string(ret).c_str());
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      //ret = avcodec_send_packet(ctx, packet.get());
+      return 0;
+    } else {
+      Error("Unable to send packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
     }
-    in_frame = nullptr;
-    return 0;
   }
-  int bytes_consumed = ret;
-  if (ret > 0) {
-    zm_dump_video_frame(in_frame.get(), "got frame");
+  Debug(3, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+  return 1;
+}
 
+/* Returns < 0 on error, 0 for go again, > 0 for success */
+int ZMPacket::receive_frame(AVCodecContext *ctx) {
+  av_frame_ptr receive_frame{av_frame_alloc()};
+  if (!receive_frame) {
+    Error("Error allocating frame");
+    return -1;
+  }
+  int ret = avcodec_receive_frame(ctx, receive_frame.get());
+  if (ret < 0) {
+    if (ret == AVERROR(EAGAIN)) {
+      Debug(1, "Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return 0;
+    } else {
+      Error("Ret from receive_frame ret: %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
+  }
+
+  // For hardware frames, do the transfer immediately while the context is valid
+  // The nvidia-vaapi-driver can have issues if there's a delay between decode and transfer
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  if (receive_frame->hw_frames_ctx) {
+    Debug(2, "Hardware frame received, transferring immediately");
+    av_frame_ptr sw_frame{av_frame_alloc()};
+    ret = av_hwframe_transfer_data(sw_frame.get(), receive_frame.get(), 0);
+    if (ret < 0) {
+      Error("Immediate hw transfer failed: %s, packet %d", av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
+    ret = av_frame_copy_props(sw_frame.get(), receive_frame.get());
+    if (ret < 0) {
+      Warning("Failed to copy frame props: %s", av_make_error_string(ret).c_str());
+    }
+    // Release GPU surface immediately - we have the software frame now
+    // Keeping hw_frame would hold GPU memory and exhaust the surface pool
+    // receive_frame goes out of scope here and releases the surface
+    in_frame = std::move(sw_frame);
+    zm_dump_video_frame(in_frame.get(), "After immediate hwtransfer");
+  } else {
+    in_frame = std::move(receive_frame);
+  }
+#else
+  in_frame = std::move(receive_frame);
+#endif
+#else
+  in_frame = std::move(receive_frame);
+#endif
+
+  return 1;
+}  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
+
+bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
+  if (!(ctx && in_frame.get())) {
+    Error("No ctx %p or in_frame %p", ctx, in_frame.get());
+    return false;
+  }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  // If frame has no hw_frames_ctx, it's already a software frame
+  if (!in_frame->hw_frames_ctx) {
+    return false;
+  }
+  if (
+      (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
+      and
+      (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))
+     ) {
+    return true;
+  }
+#endif
+#endif
+  return false;
+}
+
+int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
+  if (hw_frame) {
+    // Already transferred in receive_frame
+    Debug(2, "Hardware frame already transferred");
+    return 1;
+  }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if ((ctx->sw_pix_fmt != AV_PIX_FMT_NONE) and (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))) {
-      Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
-            ctx->pix_fmt,
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            ctx->sw_pix_fmt,
-            av_get_pix_fmt_name(ctx->sw_pix_fmt),
-            in_frame->format,
-            av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
-           );
-#if 0
-      if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
-        // Look for rgb0 in list of supported formats
-        enum AVPixelFormat *formats;
-        if ( 0 <= av_hwframe_transfer_get_formats(
-               ctx->hw_frames_ctx,
-               AV_HWFRAME_TRANSFER_DIRECTION_FROM,
-               &formats,
-               0
-             )	) {
-          for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
-            Debug(1, "Available dest formats %d %s",
-                  formats[i],
-                  av_get_pix_fmt_name(formats[i])
-                 );
-            if ( formats[i] == AV_PIX_FMT_RGB0 ) {
-              target_format = formats[i];
-              break;
-            }  // endif RGB0
-          }  // end foreach support format
-          av_freep(&formats);
-        }  // endif success getting list of formats
-      }  // end if target_format not set
-#endif
+  if (needs_hw_transfer(ctx)) {
+    Debug(4, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
+        ctx->pix_fmt,
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        ctx->sw_pix_fmt,
+        av_get_pix_fmt_name(ctx->sw_pix_fmt),
+        in_frame->format,
+        av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
+        );
 
-      av_frame_ptr new_frame{av_frame_alloc()};
-#if 0
-      if ( target_format == AV_PIX_FMT_RGB0 ) {
-        if ( image ) {
-          if ( 0 > image->PopulateFrame(new_frame) ) {
-            delete new_frame;
-            new_frame = av_frame_alloc();
-            delete image;
-            image = nullptr;
-            new_frame->format = target_format;
-          }
-        }
-      }
-#endif
-      /* retrieve data from GPU to CPU */
-      zm_dump_video_frame(in_frame.get(), "Before hwtransfer");
-      ret = av_hwframe_transfer_data(new_frame.get(), in_frame.get(), 0);
-      if (ret < 0) {
-        Error("Unable to transfer frame: %s, continuing",
-              av_make_error_string(ret).c_str());
-        in_frame = nullptr;
-        return 0;
-      }
-      ret = av_frame_copy_props(new_frame.get(), in_frame.get());
-      if (ret < 0) {
-        Error("Unable to copy props: %s, continuing",
-              av_make_error_string(ret).c_str());
-      }
+    // Frame gets moved no matter what
+    hw_frame = std::move(in_frame);
+    zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
 
-      zm_dump_video_frame(new_frame.get(), "After hwtransfer");
-#if 0
-      if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
-        new_frame->format = AV_PIX_FMT_RGBA;
-        zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
-      }
-#endif
-      in_frame = std::move(new_frame);
-    } else
-#endif
-#endif
-      Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
-            av_get_pix_fmt_name(ctx->pix_fmt),
-            av_get_pix_fmt_name(ctx->sw_pix_fmt)
-           );
-#if 0
-    if ( image ) {
-      image->Assign(in_frame);
+    // Verify hw_frames_ctx is valid before attempting transfer
+    if (!hw_frame->hw_frames_ctx) {
+      Error("Hardware frame has no hw_frames_ctx, cannot transfer");
+      hw_frame = nullptr;
+      in_frame = nullptr;
+      return -1;
     }
+
+    av_frame_ptr new_frame{av_frame_alloc()};
+    // Don't set format - let FFmpeg use the hw_frames_ctx default format
+    // (nvidia-vaapi-driver only supports nv12/p010 transfer, not yuvj420p)
+    // The later swscale conversion will handle format conversion
+
+    /* retrieve data from GPU to CPU */
+    int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
+    if (ret < 0) {
+      Error("Unable to transfer frame: %s", av_make_error_string(ret).c_str());
+      hw_frame = nullptr;
+      in_frame = nullptr;
+      return ret;
+    }
+
+    ret = av_frame_copy_props(new_frame.get(), hw_frame.get());
+    if (ret < 0) {
+      Error("Unable to copy props: %s, continuing", av_make_error_string(ret).c_str());
+    }
+
+    in_frame = std::move(new_frame);
+    zm_dump_video_frame(in_frame.get(), "After hwtransfer");
+  } else
+    Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        av_get_pix_fmt_name(ctx->sw_pix_fmt)
+        );
 #endif
-  } // end if if ( ret > 0 ) {
-  return bytes_consumed;
-} // end ZMPacket::decode
+#endif
+  return 1;
+} // end ZMPacket::transfer_hwframe
 
 Image *ZMPacket::get_image(Image *i) {
   if (!in_frame) {
@@ -229,6 +273,36 @@ Image *ZMPacket::get_image(Image *i) {
 Image *ZMPacket::set_image(Image *i) {
   image = i;
   return image;
+}
+
+Image *ZMPacket::get_y_image() {
+  if (!y_image) {
+    if (!in_frame) {
+      Error("Can't get y_image without frame, maybe need to decode first");
+      return nullptr;
+    }
+
+    // Check if the pixel format has a Y channel accessible in data[0]
+    // This requires a planar YUV format (not RGB, not packed YUV)
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format));
+    if (!desc) {
+      Error("Unable to get pixel format descriptor for format %d", in_frame->format);
+      return nullptr;
+    }
+
+    // Must not be RGB (no Y channel) and must be planar (Y is in data[0])
+    if (desc->flags & AV_PIX_FMT_FLAG_RGB) {
+      Error("Cannot get Y image from RGB format %s", desc->name);
+      return nullptr;
+    }
+    if (!(desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
+      Error("Cannot get Y image from non-planar format %s (Y is interleaved)", desc->name);
+      return nullptr;
+    }
+
+    y_image = new Image(in_frame->width, in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0, 0);
+  }
+  return y_image;
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
@@ -280,3 +354,44 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
   }
   return out_frame.get();
 } // end AVFrame *ZMPacket::get_out_frame( AVCodecContext *ctx );
+
+std::unique_lock<std::mutex> ZMPacket::lock() {
+  std::unique_lock<std::mutex> lck_(mutex_, std::defer_lock);
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  lck_.lock();
+  locked = true;
+  Debug(4, "packet %d locked", image_index);
+  return lck_;
+};
+
+void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  lck_.lock();
+  locked = true;
+  Debug(4, "packet %d locked", image_index);
+};
+
+bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
+  locked = lck_.try_lock();
+  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
+  return locked;
+};
+
+void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  locked = false;
+  lck_.unlock();
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  condition_.notify_all();
+};
+
+void ZMPacket::unlock() {
+  if (locked) {
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    our_lck_.unlock();
+  } else {
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+  }
+}
+

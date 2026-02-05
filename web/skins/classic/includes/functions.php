@@ -426,6 +426,7 @@ function output_link_if_exists($files, $cache_bust=true, $param=false) {
 function output_script($files, $cache_bust=true, $must_exist=true) {
   global $skin;
   $html = array();
+  if (!is_array($files)) $files = [$files];
   foreach ( $files as $file ) {
     $found = false;
     if ( file_exists('skins/'.$skin.'/'.$file) ) {
@@ -800,8 +801,12 @@ function getRamHTML() {
     $contents = file_get_contents('/proc/meminfo');
     preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
     $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+    if (!isset($meminfo['MemTotal'])) {
+      ZM\Debug(print_r($meminfo, true));
+      return '';
+    }
     $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
-    $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+    $mem_used_percent = $meminfo['MemTotal'] ? (int)(100*$mem_used/$meminfo['MemTotal']) : 0;
     $used_class = '';
     if ($mem_used_percent > 95) {
       $used_class = 'text-danger';
@@ -981,12 +986,16 @@ function getOptionsHTML($forLeftBar = false) {
   $result = '';
 
   // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
-  $zmMenu::buildSubMenuOptions($categoryDisplayOrder = [
+  $categoryDisplayOrder = [
     'display',
     'system',
     'auth',
     'config',
-    'dnsmasq',
+  ];
+  if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
+    $categoryDisplayOrder[] = 'dnsmasq';
+  }
+  $categoryDisplayOrder = array_merge($categoryDisplayOrder, [
     'API',
     'servers',
     'storage',
@@ -996,11 +1005,16 @@ function getOptionsHTML($forLeftBar = false) {
     'network',
     'mail',
     'upload',
-    'x10',
+  ]);
+  if (defined('ZM_OPT_X10') and ZM_OPT_X10) {
+    $categoryDisplayOrder[] = 'x10';
+  }
+  $categoryDisplayOrder = array_merge($categoryDisplayOrder, [
     'highband',
     'medband',
     'lowband',
     'users',
+    'roles',
     'groups',
     'control',
     'privacy',
@@ -1008,6 +1022,7 @@ function getOptionsHTML($forLeftBar = false) {
     'telemetry',
     'version'
   ]);
+  $zmMenu::buildSubMenuOptions($categoryDisplayOrder);
 
   if ( canView('System') ) {
     if ($forLeftBar) {
@@ -1425,7 +1440,7 @@ function getHeaderFlipHTML() {
   $result = '';
   
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
   
   return $result;
 }

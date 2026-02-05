@@ -322,7 +322,8 @@ int main(int argc, char *argv[]) {
           break;
         }
         if (monitors[i]->Capture() < 0) {
-          logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
+          if (!zm_terminate)
+            logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;

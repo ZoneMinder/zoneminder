@@ -137,6 +137,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_dnsmasq.php');
 } else if ($tab == 'users') {
   include('_options_users.php');
+} else if ($tab == 'roles') {
+  include('_options_roles.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
 }  // $tab == API

@@ -113,8 +113,8 @@ function updateButtons(element) {
 }
 
 function click_AutoEmail(element) {
-  updateButtons(this);
-  if ( this.checked ) {
+  updateButtons(element);
+  if ( element.checked ) {
     $j('#EmailOptions').show();
   } else {
     $j('#EmailOptions').hide();
@@ -122,20 +122,20 @@ function click_AutoEmail(element) {
 }
 
 function click_automove(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoMoveTo]']).hide();
+    $j(element.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
 function click_autocopy(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoCopyTo]']).hide();
+    $j(element.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 
@@ -154,22 +154,33 @@ function resetFilter( element ) {
   $j('#contentForm')[0].reset();
 }
 
+function serializeFormExcludingCsrf(form) {
+  return $j(form).find('input, select, textarea').not('[name="__csrf_magic"]').serialize();
+}
+
 function submitToEvents(element) {
   const form = element.form;
   form.elements['action'].value='';
-  window.location.assign('?view=events&'+$j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=events&' + formData);
 }
 
 function submitToMontageReview(element) {
   const form = element.form;
-  form.action = thisUrl + '?view=montagereview';
-  window.location.assign('?view=montagereview&live=0&'+$j(form).serialize());
-  history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=montagereview&live=0&' + formData);
 }
 
 function submitToExport(element) {
   const form = element.form;
-  window.location.assign('?view=export&'+$j(form).serialize());
+  const formData = serializeFormExcludingCsrf(form);
+  // Save current filter state to URL before navigating, so back button restores it
+  history.replaceState(null, null, '?view=filter&' + formData);
+  window.location.assign('?view=export&' + formData);
 }
 
 function submitAction(button) {
@@ -184,12 +195,6 @@ function deleteFilter(element) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
-}
-
-var escape = document.createElement('textarea');
-function escapeHTML(html) {
-  escape.textContent = html;
-  return escape.innerHTML;
 }
 
 function parseRows(rows) {
@@ -211,8 +216,8 @@ function parseRows(rows) {
     if ( brackets > 0 ) { // add bracket select to all rows
       const obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       const cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
-      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
-      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
+      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
+      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
       for ( let i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
@@ -244,8 +249,8 @@ function parseRows(rows) {
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'AlarmedZoneId' ) {
       const zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for ( monitor_id in monitors ) {
-        for ( zone_id in zones ) {
+      for ( const monitor_id in monitors ) {
+        for ( const zone_id in zones ) {
           const zone = zones[zone_id];
           if ( monitor_id == zone.MonitorId ) {
             zoneSelect.append('<option value="' + zone_id + '">' + zone.Name + '</option>');
@@ -298,9 +303,9 @@ function parseRows(rows) {
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
       const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for (const key in availableTags) {
-        tagSelect.append('<option value="' + key + '">' + escapeHTML(availableTags[key]) + '</option>');
-      };
+      availableTags.forEach((tag) => {
+        tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
+      });
       const tagVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(tagSelect).children().val(tagVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ExistsInFileSystem' ) {
@@ -343,7 +348,6 @@ function parseRows(rows) {
     } else {
       if ( ! opVal ) {
         // Default to equals so that something gets selected
-        console.log("No value for operator. Defaulting to =");
         opVal = '=';
       }
       for ( const key in opTypes ) {
@@ -361,7 +365,6 @@ function parseRows(rows) {
 
     const attr_element = inputTds.find("[name$='attr\\]']"); // Set attr list id and name
     const term = attr_element.attr('name').split(/[[\]]{1,2}/);
-    console.log(term);
     term.length--;
     term.shift();
     term[2] = rowNum;

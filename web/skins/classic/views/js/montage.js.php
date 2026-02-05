@@ -4,8 +4,6 @@
 
 const COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
 const POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
-const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
-
 const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 const canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
@@ -26,10 +24,10 @@ monitorData[monitorData.length] = {
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
-  'scale':<?php echo $monitor->initial_scale() ?>,
+  'scale': '<?php echo $monitor->initial_scale() ?>',
   'RTSP2WebEnabled':<?php echo $monitor->RTSP2WebEnabled() ?>,
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
-  'RTSP2WebStream':'<?php echo $monitor->RTSP2WebStream() ?>',
+  'StreamChannel':'<?php echo $monitor->StreamChannel() ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
@@ -54,9 +52,11 @@ foreach ( $layouts as $layout ) {
 layouts[<?php echo $layout->Id() ?>] = {
   "Name":"<?php echo $layout->Name()?>",
   "UserId":"<?php echo $layout->UserId()?>",
-  "Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
+  "Positions":<?php echo ($layout->Positions() and json_decode($layout->Positions()))?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
 global $AutoLayoutName;
-echo 'const autoLayoutName="'.$AutoLayoutName.'";'
+echo 'const autoLayoutName="'.$AutoLayoutName.'";'.PHP_EOL;
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 ?>

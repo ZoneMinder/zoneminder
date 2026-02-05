@@ -5,6 +5,8 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
+build/
+_build/
 cmake/cmake_uninstall.cmake
 cmake_install.cmake
 compile
@@ -216,3 +218,5 @@ misc/com.zoneminder.arp-scan.rules
 misc/nginx.conf
 misc/zm-sudo
 misc/zoneminder.desktop
+_codeql_detected_source_root
+.grepai/

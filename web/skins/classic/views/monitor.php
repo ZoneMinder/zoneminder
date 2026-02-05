@@ -296,9 +296,6 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
-$devices = [''=>translate('Other')];
-foreach (glob('/dev/video*') as $device) 
-  $devices[$device] = $device;
 
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
@@ -456,6 +453,7 @@ if (canEdit('Monitors')) {
     <!-- BEGIN ITEM LIST -->
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
+        <input type="password" name="dummy_password" style="display:none;"/><?php #to prevent chrome from saving passwords ?>
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
@@ -515,7 +513,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Manufacturer]"
                     placeholder="enter new manufacturer name"
                     autocomplete="new_manufacturer"
-                    value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
+                    <?php echo $monitor->ManufacturerId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Manufacturer_onchange"
                   />
               </li>
@@ -524,8 +522,16 @@ switch ($name) {
 <?php 
   require_once('includes/Model.php');
   $models = array(''=>translate('Unknown'));
+  # We still do the query even if manufacturerId is empty so that it lists models with no manufacturer
   foreach ( ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()), array('order'=>'lower(Name)')) as $Model ) {
     $models[$Model->Id()] = $Model->Name();
+  }
+  # This is to handle a case where the model's manufacturerId didn't get set, or somehow is no longer valid
+  if ($monitor->ModelId() and !isset($models[$monitor->ModelId()])) {
+    $model = $monitor->Model();
+    if (!$model->ManufacturerId() or !ZM\Manufacturer::find_one(['Id'=>$model->ManufacturerId()])) {
+      $model->save(['ManufacturerId'=>$monitor->ManufacturerId()]);
+    }
   }
   echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(),
       array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
@@ -533,7 +539,7 @@ switch ($name) {
                   <input type="text" name="newMonitor[Model]"
                     placeholder="enter new model name"
                     autocomplete="new_model"
-                    value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
+                    <?php echo $monitor->ModelId() ? ' style="display:none" disabled="disabled"' : '' ?>
                     data-on-input-this="Model_onchange"
                     />
               </li>
@@ -653,12 +659,17 @@ switch ($name) {
             </li>
 <?php
       if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
+        $devices = [''=>translate('Other')];
+        foreach (glob('/dev/video*') as $device) 
+          $devices[$device] = $device;
+        if ($monitor->Device() and !isset($devices[$monitor->Device()]))
+          $devices[$monitor->Device()] = $monitor->Device();
 ?>
           <li class="Device">
             <label><?php echo translate('DevicePath') ?></label>
 <?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
             <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
-<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+<?php echo (count($devices) > 1) ? 'style="display: none;"' : '' ?> autocomplete="off"
             />
           </li>
 <?php
@@ -855,9 +866,11 @@ $decoders = array(
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'hevc' => 'hevc',
   'hevc_cuvid' => 'hevc_cuvid',
   'hevc_nvmpi' => 'hevc_nvmpi',
   'hevc_qsv' => 'hevc_qsv',
+  'hevc_vaapi' => 'hevc_vaapi',
   'vp8_nvmpi' => 'vp8_nvmpi',
   'libvpx-vp9' => 'libvpx-vp9',
   'vp9_qsv' => 'vp9-qsv',
@@ -1290,9 +1303,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
-            <li id="RTSP2WebStream">
+            <li id="StreamChannel">
               <label><?php echo translate('Stream source') ?> </label>
-              <?php echo htmlSelect('newMonitor[RTSP2WebStream]', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream()); ?>
+              <?php echo htmlSelect('newMonitor[StreamChannel]', ZM\Monitor::getStreamChannelOptions(), $monitor->StreamChannel()); ?>
             </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>
@@ -1330,17 +1343,17 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
-            <li id="FunctionJanusUseRTSPRestream">
-              <label><?php echo translate('Janus Use RTSP Restream') ?></label>
-              <input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+            <li id="FunctionRestream">
+              <label><?php echo translate('Use RTSP Restream') ?></label>
+              <input type="checkbox" name="newMonitor[Restream]" value="1"<?php echo $monitor->Restream() ? ' checked="checked"' : '' ?>/>
 <?php
-  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
+  if ( isset($OLANG['FUNCTION_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_RESTREAM']['Help'].'</div>';
   }
 ?>
-              
+
             </li>
-            <li id="Janus_RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Janus_Use_RTSP_Restream()) ? 'style="display:none;"' : ''?>>
+            <li id="RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Restream()) ? 'style="display:none;"' : ''?>>
               <label><?php echo translate('User for RTSP Server Auth') ?></label>
               <?php
                 $users = array(''=>translate('None'));
@@ -1349,7 +1362,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }
-                echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
+                echo htmlSelect("newMonitor[RTSP_User]", $users, $monitor->RTSP_User());
 ?>
               
             </li>

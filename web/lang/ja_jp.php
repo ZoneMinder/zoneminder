@@ -499,6 +499,7 @@ $SLANG = array(
     'PostEventImageBuffer'  => 'イベント後の画像数',
     'PreEventImageBuffer'   => 'イベント前の画像数',
     'PreserveAspect'        => 'アスペクト比を保持',
+    'PreviewRate'           => 'プレビュー速度',
     'PreviousMonitor'       => '前のモニター',
     'PrivacyAbout'          => 'プライバシーについて',
     'PrivacyAboutText'      => '2002年から、ZoneMinderはLinuxプラットフォーム向けの無料およびオープンソースのビデオ管理システム（VMS）ソリューションとして最前線に立っています。ZoneMinderはコミュニティによってサポートされ、プロジェクトに余暇を費やすボランティアによって管理されています。ZoneMinderを改善する最良の方法は、参加することです。',
@@ -1465,9 +1466,9 @@ $OLANG = array(
         'Help' => '
       プロファイル ID を手動で設定し、ブラウザに指定されたストリームを再生させることができます。普遍的にサポートされる値として "42e01f" を試すか、空白のままにしてソースによって指定されたプロファイル ID を使用します。'
     ),
-    'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+    'FUNCTION_RESTREAM' => array(
         'Help' => '
-      他のオプションで Janus が機能しない場合は、ZoneMinder の RTSP リストリームを Janus のソースとして使用するためにこのオプションを有効にします。'
+      ストリーミングサービス（Janus、Go2RTC、RTSP2Web）のソースとしてカメラではなく ZoneMinder の RTSP リストリームを使用する場合に有効にします。カメラがストリーミングサービスで直接動作しない場合に便利です。'
     ),
     'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
         'Help' => '

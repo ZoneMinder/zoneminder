@@ -197,15 +197,16 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
-  protected static $RTSP2WebStreamOptions = null;
-  public static function getRTSP2WebStreamOptions() {
-    if (!isset($RTSP2WebStreamOptions)) {
-      $RTSP2WebStreamOptions = array(
-        'Primary' => translate('Primary'),
-        'Secondary' => translate('Secondary')
+  protected static $StreamChannelOptions = null;
+  public static function getStreamChannelOptions() {
+    if (!isset($StreamChannelOptions)) {
+      $StreamChannelOptions = array(
+        'Restream' => translate('Restream'),
+        'CameraDirectPrimary' => translate('Camera Direct Primary'),
+        'CameraDirectSecondary' => translate('Camera Direct Secondary')
       );
     }
-    return $RTSP2WebStreamOptions;
+    return $StreamChannelOptions;
   }
 
   protected $defaults = array(
@@ -228,14 +229,14 @@ class Monitor extends ZM_Object {
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
-    'RTSP2WebStream'   => 'Primary',
+    'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     //'ZMSEnabled'   => array('type'=>'integer','default'=>1),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
-    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
-    'Janus_RTSP_User'           => null,
+    'Restream'   => array('type'=>'boolean','default'=>0),
+    'RTSP_User'           => null,
     'Janus_RTSP_Session_Timeout'  => array('type'=>'integer','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
@@ -1043,10 +1044,10 @@ class Monitor extends ZM_Object {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
-      <div class="stream-info">
-          <div class="stream-info-status"></div>
-          <div class="stream-info-mode"></div>
-      </div>
+  <div class="stream-info">
+    <div class="stream-info-status"></div>
+    <div class="stream-info-mode"></div>
+  </div>
 <span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
@@ -1124,7 +1125,9 @@ class Monitor extends ZM_Object {
     }
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
+
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+
     $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
 </select></div>' : '';
     $html = '
@@ -1149,8 +1152,8 @@ class Monitor extends ZM_Object {
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
                   <div class="block-button-center">
                     <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
-                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
-                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>'.
+                    ($this->canEdit() ? '<button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>' : '').'
                   </div>
                 </div>
                 <div class="zoompan">';
@@ -1181,10 +1184,11 @@ class Monitor extends ZM_Object {
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
-      $html .= '<video id="liveStream'.$this->Id().'" '.
-        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
-        ' autoplay muted controls playsinline=""></video>';
-    } else if ( $options['mode'] == 'stream' and canStream() ) {
+      $html .= '<video id="liveStream'.$this->Id().'" style="'.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
+        ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
+        '" autoplay muted playsinline=""></video>';
+    } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
@@ -1195,6 +1199,7 @@ class Monitor extends ZM_Object {
       if ($options['mode'] == 'stream') {
         Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
       }
+      Warning("Using deprecated single stream mode {$options['mode']}");
       $options['mode'] = 'single';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,

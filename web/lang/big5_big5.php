@@ -600,6 +600,7 @@ $SLANG = array(
     'PostEventImageBuffer' => '後置事件影像緩衝',
     'PreEventImageBuffer'  => '前置事件影像緩衝',
     'PreserveAspect'       => 'Preserve Aspect Ratio',
+    'PreviewRate'          => '預覽速度',
     'Preset'               => 'Preset',
     'Presets'              => 'Presets',
     'Prev'                 => '上一事件',

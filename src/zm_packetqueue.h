@@ -19,13 +19,16 @@
 #ifndef ZM_PACKETQUEUE_H
 #define ZM_PACKETQUEUE_H
 
+#include "zm_time.h"
+
 #include <condition_variable>
 #include <list>
 #include <mutex>
 #include <memory>
 
+class Monitor;
 class ZMPacket;
-class ZMLockedPacket;
+class ZMPacketLock;
 
 typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 
@@ -39,7 +42,7 @@ class PacketQueue {
   // This is now a hard limit on the # of video packets to keep in the queue so that we can limit ram
   int pre_event_video_packet_count; // Was max_video_packet_count
   int max_stream_id;
-  int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
+  std::unique_ptr<int[]> packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
   bool deleting;
   bool keep_keyframes;
   std::list<packetqueue_iterator *> iterators;
@@ -50,6 +53,7 @@ class PacketQueue {
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
   int frames_since_last_keyframe_;
+  Monitor *monitor_;
 
  public:
   PacketQueue();
@@ -61,6 +65,7 @@ class PacketQueue {
   void setMaxVideoPackets(int p);
   void setPreEventVideoPackets(int p);
   void setKeepKeyframes(bool k) { keep_keyframes = k; };
+  void setMonitor(Monitor *m) { monitor_ = m; };
 
   bool queuePacket(std::shared_ptr<ZMPacket> packet);
   void stop();
@@ -69,17 +74,19 @@ class PacketQueue {
   void dumpQueue();
   unsigned int size();
   unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
-  bool has_out_of_order_packets() const { return has_out_of_order_packets_; };
+  bool has_out_of_order_packets() {
+    std::unique_lock<std::mutex> lck(mutex);
+    return has_out_of_order_packets_; };
   int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
   void clearPackets(const std::shared_ptr<ZMPacket> &packet);
   int packet_count(int stream_id);
 
-  bool increment_it(packetqueue_iterator *it);
+  bool increment_it(packetqueue_iterator *it, bool wait);
   bool increment_it(packetqueue_iterator *it, int stream_id);
-  ZMLockedPacket *get_packet(packetqueue_iterator *);
-  ZMLockedPacket *get_packet_no_wait(packetqueue_iterator *);
-  ZMLockedPacket *get_packet_and_increment_it(packetqueue_iterator *);
+  ZMPacketLock get_packet(packetqueue_iterator *);
+  ZMPacketLock get_packet_no_wait(packetqueue_iterator *);
+  ZMPacketLock get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
   packetqueue_iterator *get_stream_it(int stream_id);
   void free_it(packetqueue_iterator *);
@@ -89,9 +96,10 @@ class PacketQueue {
     unsigned int pre_event_count
   );
   bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet);
-  void unlock(ZMLockedPacket *lp);
+  void unlock(ZMPacketLock *lp);
   void notify_all();
   void wait();
+  void wait_for(Microseconds duration);
  private:
   packetqueue_iterator deletePacket(packetqueue_iterator it);
 };

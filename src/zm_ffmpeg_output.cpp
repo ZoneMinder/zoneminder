@@ -53,6 +53,11 @@ int FFmpeg_Output::Open( const char *filepath ) {
 
     streams[i].frame_count = 0;
     streams[i].context = avcodec_alloc_context3(nullptr);
+    if (!streams[i].context) {
+      Error("Could not allocate codec context for stream %d", i);
+      avformat_close_input(&input_format_context);
+      return AVERROR(ENOMEM);
+    }
     avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
 
     if ( !(streams[i].codec = avcodec_find_decoder(streams[i].context->codec_id)) ) {
@@ -151,7 +156,7 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
         ret = avcodec_receive_frame( context, frame.get() );
         if ( ret < 0 ) {
           av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
+          Error( "Unable to receive frame at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
           continue;
         }
 

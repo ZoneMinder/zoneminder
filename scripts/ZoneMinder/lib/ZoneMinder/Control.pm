@@ -32,6 +32,10 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Monitor;
 
+require URI;
+require URI::Escape;
+require HTTP::Request;
+
 our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
@@ -338,7 +342,7 @@ sub get {
     Error('No url specified in get');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $response = $self->{ua}->get($url);
   Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
   return $response;
@@ -351,13 +355,28 @@ sub put {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $req = HTTP::Request->new(PUT => $url);
+
   my $content = shift;
-  if ( defined($content) ) {
-    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
-    $req->content($content);
+
+  $req->content($content) if defined($content);
+
+  my $options = shift if @_;
+  if ($options) {
+    foreach my $header (keys %$options) {
+      if ($req->can($header) ) {
+        $req->$header($$options{$header});
+      } else {
+        $req->header($header=>$$options{$header});
+      }
+    }
   }
+
+  #defaults
+  $req->header('Content-Length' => length $content) if !$$options{'Content-Length'};
+  $req->content_type('application/x-www-form-urlencoded; charset=UTF-8') if ! $$options{'Content-Type'};
+
   my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
     Error($res->status_line);
@@ -373,18 +392,31 @@ sub post {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
-  my $req = HTTP::Request->new(POST => $url);
-  my $content = shift;
+  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  my $content = shift if @_;
+  my $headers = shift if @_;
+  my $req = HTTP::Request->new('POST', $url);
   if ( defined($content) ) {
+    if (ref $content eq 'HASH') {
+      my $uri = $$self{uri};
+      $uri->query_form(%{$content});
+      $content = $uri->query;
+    }
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content($content);
   }
+
+  if (defined $headers) {
+    foreach my $key (keys %$headers) {
+      $req->header($key=>$$headers{$key});
+    }
+  }
+
   my $res = $self->{ua}->request($req);
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success
-  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  Debug('Response for '.$url.': '. $res->status_line . ' ' . $res->content);
   return $res;
 } # end sub post
 
@@ -401,59 +433,91 @@ sub credentials {
   @$self{'username', 'password'} = @_;
 }
 
-sub guess_credentials {
+sub parse_ControlAddress {
   my $self = shift;
-
-  require URI;
-  my $uri;
-
+  my $monitor = $self->{Monitor};
   # Extract the username/password host/port from ControlAddress
-  if ($self->{Monitor}{ControlAddress}
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+  if ($$monitor{ControlAddress}
+      and $$monitor{ControlAddress} ne 'user:pass@ip'
+      and $$monitor{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
-    $uri = URI->new($self->{Monitor}->{ControlAddress});
-    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    my $address = $$monitor{ControlAddress};
+    Debug("Using ControlAddress for credentials: $address");
+    if ($address !~ /^\w+:\/\//) {
+      # Has no scheme at the beginning, so won't parse as a URI
+      $address = 'http://'.$address;
+    }
+    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses
+    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/) {
+      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD})).'@' : '').$+{ADDRESS};
+    }
+    my $uri = URI->new($address);
+    $uri = URI->new('http://'.$address) if ref($uri) eq 'URI::_foreign';
     $$self{host} = $uri->host();
-    if ( $uri->userinfo()) {
+
+    if ($uri->userinfo()) {
       @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
-    } else {
-      $$self{username} = $self->{Monitor}->{User};
-      $$self{password} = $self->{Monitor}->{Pass};
+      $$self{password} = URI::Escape::uri_unescape($$self{password});
     }
     # Check if it is a host and port or just a host
     if ( $$self{host} =~ /([^:]+):(.+)/ ) {
       $$self{host} = $1;
       $$self{port} = $2 ? $2 : $$self{port};
+    } elsif ($uri->scheme() eq 'http') {
+      $$self{port} = 80;
+      $uri->port($$self{port});
+    } elsif ($uri->scheme() eq 'https') {
+      $$self{port} = 443;
+      $uri->port($$self{port});
     }
+    $$self{address} = $uri->host_port();
     $$self{uri} = $uri;
-  } elsif ($self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
-    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
-      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
-    } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
-      $$self{host} = $+{ADDRESS} if $+{ADDRESS};
-      $$self{username} = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
-      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
-    } else {
-      $$self{username}= $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$$self{username};
-      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$$self{password};
-    }
-    $uri = URI->new($self->{Monitor}->{Path});
+    $$self{BaseURL} = $uri->canonical();
+    $self->{ua}->credentials($uri->host_port(), $$self{realm}, $$self{username}, $$self{password});
+    Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+    return 1;
+  }
+  return 0;
+}
+
+sub parse_Path {
+  my $self = shift;
+  my $monitor = $self->{Monitor};
+  Debug("Using Path for credentials: $$monitor{Path}");
+  my $uri = URI->new($$monitor{Path});
+  return 0 if !$uri->has_recognized_scheme;
+
+  if ($uri->scheme() eq 'rtsp') {
     $uri->scheme('http');
     $uri->port(80);
-    $uri->path('');
-    $$self{host} = $uri->host();
-    $$self{uri} = $uri;
-  } else {
-    Debug('Unable to guess credentials');
   }
-  return $uri;
+  $uri->path_query('');
+  if ( $uri->userinfo()) {
+    @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+  } else {
+    $$self{username} = $$monitor{User};
+    $$self{password} = $$monitor{Pass};
+    # This will put it into canonical
+    $uri->userinfo($$self{username}.':'.$$self{password});
+  }
+  $$self{address} = $uri->host_port();
+  $$self{host} = $uri->host();
+  $$self{uri} = $uri;
+  $$self{port} = $uri->port();
+  $$self{BaseURL} = $uri->canonical();
+  $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
+  Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+  return 1;
+}
+
+sub guess_credentials {
+  my $self = shift;
+
+  if (!($self->parse_ControlAddress() or $self->parse_Path())) {
+    Debug('Unable to guess credentials');
+    return 0;
+  }
+  return 1;
 }
 
 sub get_realm {
@@ -472,9 +536,9 @@ sub get_realm {
         my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
         my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
         if ( $tokens{realm} ) {
-          if ( $$self{realm} ne $tokens{realm} ) {
+          if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
-            Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
+            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
             $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
             $response = $self->get($url);
             if ( !$response->is_success() ) {

@@ -93,7 +93,7 @@ echo getNavBarHTML();
               <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
               <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
               <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
-        <a class="btn" href="#" data-flip-control-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
+              <a class="btn" href="#" data-flip-control-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
             </div>
           </div> <!-- .col-sm-1-->
           <div class="col-sm-9">
@@ -153,6 +153,7 @@ echo getNavBarHTML();
           data-check-on-init="true"
           data-mobile-responsive="true"
           data-min-width="562"
+          data-show-footer="true"
           class="table-sm table-borderless table"
           style="display:none;"
         >
@@ -170,7 +171,7 @@ echo getNavBarHTML();
               <th data-sortable="true" data-field="Tags" class="Tags"><?php echo translate('Tags') ?></th>
               <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
-              <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
+              <th data-sortable="true" data-field="Length" data-footer-formatter="totalLengthFormatter" class="Length"><?php echo translate('Duration') ?></th>
 <?php if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) { ?>
               <th data-sortable="true" data-field="Location" class="Location"><?php echo translate('Location') ?></th>
 <?php } ?>
@@ -180,7 +181,7 @@ echo getNavBarHTML();
               <th data-sortable="true" data-field="AvgScore" class="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="true" data-field="MaxScore" class="MaxScore"><?php echo translate('MaxBrScore') ?></th>
               <th data-sortable="false" data-field="Storage" class="Storage"><?php echo translate('Storage') ?></th>
-              <th data-sortable="true" data-field="DiskSpace" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
+              <th data-sortable="true" data-field="DiskSpace" data-footer-formatter="totalDiskSpaceFormatter" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
             </tr>
           </thead>
           <tbody>

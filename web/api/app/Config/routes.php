@@ -39,6 +39,8 @@
 	Router::mapResources('server_stats');
 	Router::mapResources('snapshots');
 	Router::mapResources('states');
+	Router::mapResources('tags');
+	Router::mapResources('roles');
 	Router::mapResources('users');
 	Router::mapResources('user_preference');
 	Router::mapResources('zonepresets');

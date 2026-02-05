@@ -50,10 +50,12 @@ Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
     } else {
       rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
     }
-     if (rtsp_second_path.find("rtsp://") == 0) {
-      rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
-    } else {
-      rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
+    if (!rtsp_second_path.empty()) {
+      if (rtsp_second_path.find("rtsp://") == 0) {
+        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
+      } else {
+        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
+      }
     }
   }  // end if !user.empty
   Debug(1, "Monitor %u rtsp url is %s", parent->id, rtsp_path.c_str());
@@ -76,10 +78,27 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
   //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
   CURLcode res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+  
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
@@ -131,9 +150,27 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
   res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+  
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
@@ -168,10 +205,27 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
 
   CURLcode res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+
   if (res != CURLE_OK) {
     Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
   } else {

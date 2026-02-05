@@ -32,39 +32,42 @@ require_once('includes/User.php');
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
-$filter = NULL;
 
+# Get filter ID from request
 $fid = 0;
-if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
+if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
   $fid = validInt($_REQUEST['Id']);
-} else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
-  # $_REQUEST['filter']['Id'] get used later in populating filter object, so need to sanitise it
+} else if (isset($_REQUEST['filter']['Id'])) {
   $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
 }
-$filter = null;
-foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
-  $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
-  if ( $Filter->Background() )
-    $filterNames[$Filter->Id()] .= '*';
-  if ( $Filter->Concurrent() )
-    $filterNames[$Filter->Id()] .= '&';
 
-  if ( $fid == $Filter->Id() ) {
-    $filter = $Filter;
-  }
+# Build filter names list for dropdown
+foreach (ZM\Filter::find(null, array('order'=>'lower(Name)')) as $Filter) {
+  $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
+  if ($Filter->Background()) $filterNames[$Filter->Id()] .= '*';
+  if ($Filter->Concurrent()) $filterNames[$Filter->Id()] .= '&';
 }
-if ( !$filter )  {
+
+# Determine how to populate the filter:
+# - If we have Query data in request (e.g. from back button), use that instead of DB
+# - Otherwise load from DB if we have a matching ID
+# - Otherwise create empty filter with default term
+$have_query_params = isset($_REQUEST['filter']['Query']);
+
+if ($have_query_params) {
+  ZM\Debug('Populating filter from query params');
   $filter = new ZM\Filter();
-  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=> '=', 'val'=>''));
+  $filter->set($_REQUEST['filter']);
+} else if ($fid and isset($filterNames[$fid])) {
+  ZM\Debug("Loading filter $fid from database");
+  $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else {
+  ZM\Debug('Creating new empty filter');
+  $filter = new ZM\Filter();
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'=', 'val'=>''));
 }
 
-ZM\Debug('filter: ' . print_r($filter,true));
-if ( isset($_REQUEST['filter']) ) {
-  # Update our filter object with whatever changes we have made before saving
-  $filter->set($_REQUEST['filter']);
-  ZM\Debug("Setting filter from " . print_r($_REQUEST['filter'], true));
-}
-ZM\Debug('filter: ' . print_r($filter,true));
+ZM\Debug('filter: ' . print_r($filter, true));
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 
@@ -132,9 +135,9 @@ foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
   }
 }
 
-$availableTags = array(''=>translate('No Tag'));
-foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
-  $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
+$availableTags = array(['Id'=>'0', 'Name'=>translate('No Tag')], ['Id'=>'-1', 'Name'=>translate('Any Tag')]);
+foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') AS $tag ) {
+  $availableTags[] = ['Id'=>$tag['Id'] , 'Name'=>validHtmlStr($tag['Name'])];
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));

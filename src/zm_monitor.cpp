@@ -2880,25 +2880,47 @@ bool Monitor::Decode() {
   // Packets in decoder_queue have been sent but not yet received.
 
   if (!decoder_queue.empty()) {
-    Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
-    auto &front_lock = decoder_queue.front();
-    auto front_packet = front_lock.packet_;
+    // If decoding is on-demand and no longer needed, flush rather than
+    // trying to receive stale frames from the decoder.
+    bool needs_decoding =
+      (decoding == DECODING_ALWAYS) ||
+      (decoding == DECODING_KEYFRAMES) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
 
-    int ret = front_packet->receive_frame(context);
-    if (ret > 0) {
-      // Success - got a decoded frame, take ownership and process it
-      packet_lock = std::move(decoder_queue.front());
-      decoder_queue.pop_front();
-      packet = front_packet;
-      Debug(2, "Received frame for packet %d", packet->image_index);
-      // Continue to PHASE 3 (frame processing)
-    } else if (ret < 0) {
-      // Decoder error
-      return false;
+    if (!needs_decoding) {
+      Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+      // Fall through to Phase 2 which will skip decoding for the current packet
     } else {
-      // EAGAIN - decoder needs more input, fall through to send another packet
-      Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
-    }
+      Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
+      auto &front_lock = decoder_queue.front();
+      auto front_packet = front_lock.packet_;
+
+      int ret = front_packet->receive_frame(context);
+      if (ret > 0) {
+        // Success - got a decoded frame, take ownership and process it
+        packet_lock = std::move(decoder_queue.front());
+        decoder_queue.pop_front();
+        packet = front_packet;
+        Debug(2, "Received frame for packet %d", packet->image_index);
+        // Continue to PHASE 3 (frame processing)
+      } else if (ret < 0) {
+        // Decoder error
+        return false;
+      } else {
+        // EAGAIN - decoder needs more input, fall through to send another packet
+        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+      }
+    }  // end if needs_decoding
   }
 
   // ===========================================================================
@@ -2933,13 +2955,29 @@ bool Monitor::Decode() {
     }
 
     // Check if this packet needs to be sent to the decoder
-    bool dominated = packet->image || packet->in_frame || !packet->packet->size;
-    bool should_decode = !dominated && (
+    bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
+    bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
       ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
       ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
     );
+
+    if (!should_decode && !decoder_queue.empty()) {
+      // Viewer stopped (or decoding no longer needed) while packets were
+      // queued in the decoder.  Flush the codec so we don't carry stale
+      // state, and release all queued packet locks.
+      Debug(1, "Flushing decoder: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+    }
 
     if (should_decode) {
       Debug(2, "Sending packet %d to decoder", packet->image_index);

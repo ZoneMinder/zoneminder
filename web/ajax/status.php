@@ -268,6 +268,22 @@ function collectData() {
     else
       $id = array_values($_REQUEST['id']);
 
+  # Early per-object permission check before processing elements.
+  # This must happen before the element loop because func/zmu elements
+  # execute immediately and would bypass the post-SQL canView() check.
+  if (isset($entitySpec['object']) && $id) {
+    $object_name = 'ZM\\'.$entitySpec['object'];
+    $object = new $object_name($id[0]);
+    if (!$object->Id()) {
+      ajaxError('Not found: '.$entity.' id '.$id[0]);
+      return;
+    }
+    if (!$object->canView()) {
+      ajaxError('Insufficient permissions for '.$entity.' id '.$id[0]);
+      return;
+    }
+  }
+
   if ( !isset($_REQUEST['element']) )
     $_REQUEST['element'] = array_keys($elements);
   else if ( !is_array($_REQUEST['element']) )

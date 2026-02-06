@@ -546,7 +546,7 @@ function getNearEvents() {
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
   WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  '.($sortOrder=='ASC'?'>=':'<=').' ?';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }

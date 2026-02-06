@@ -1510,7 +1510,7 @@ noUi-target {
 }
 */
 
-.noUi-base, .noUi-touch-area {
+[id^="volumeControls"]:not(.disabled) .noUi-base, [id^="volumeControls"]:not(.disabled) .noUi-touch-area {
   cursor: pointer;
 }
 

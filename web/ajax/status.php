@@ -525,7 +525,7 @@ function getNearFrame() {
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
-  $eventId = $_REQUEST['id'];
+  $eventId = validCardinal($_REQUEST['id']);
   $NearEvents = array('EventId'=>$eventId);
 
   $event = dbFetchOne('SELECT * FROM Events WHERE Id=?', NULL, array($eventId));

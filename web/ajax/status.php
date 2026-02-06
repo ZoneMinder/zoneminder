@@ -337,25 +337,40 @@ function collectData() {
     if ( $groupSql )
       $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
     if ( !empty($_REQUEST['sort']) ) {
-      $sql .= ' ORDER BY ';
       $sort_fields = explode(',', $_REQUEST['sort']);
+      $order_clauses = array();
       foreach ( $sort_fields as $sort_field ) {
-        preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
-        if ( count($matches) ) {
-          if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
-            $sql .= $matches[1];
-          } else {
-            ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
-          }
-          if ( count($matches) > 2 ) {
-            $sql .= ' '.strtoupper($matches[2]);
-            if ( count($matches) > 3 )
-              $sql .= ' '.strtoupper($matches[3]);
-          }
-        } else {
+        if (!preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches)) {
           ZM\Error('Sort field didn\'t match regexp '.$sort_field);
+          continue;
         }
+        // Check that the field name is one we are actually selecting.
+        // $fieldSql entries may be bare (`Name`), backtick-wrapped (`Name`),
+        // or aliased (expression as Name), so match against all forms.
+        $field = $matches[1];
+        $found = false;
+        foreach ($fieldSql as $f) {
+          if ($f === $field || $f === '`'.$field.'`' || preg_match('/\bas\s+`?'.$field.'`?$/i', $f)) {
+            $found = true;
+            break;
+          }
+        }
+        if (!$found) {
+          ZM\Error('Sort field '.$field.' from '.$sort_field.' not in SQL Fields: '.join(',', $fieldSql));
+          continue;
+        }
+        $clause = '`'.$field.'`';
+        if (!empty($matches[2])) {
+          $clause .= ' '.strtoupper($matches[2]);
+        }
+        if (!empty($matches[3])) {
+          $clause .= ' '.strtoupper(trim($matches[3]));
+        }
+        $order_clauses[] = $clause;
       } # end foreach sort field
+      if ($order_clauses) {
+        $sql .= ' ORDER BY '.join(', ', $order_clauses);
+      }
     } # end if has sort
     if ( !empty($entitySpec['limit']) )
       $limit = $entitySpec['limit'];
@@ -521,7 +536,7 @@ function getNearEvents() {
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
   WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  '.($sortOrder=='ASC'?'<=':'>=').' ?';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
@@ -531,7 +546,7 @@ function getNearEvents() {
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -556,7 +571,7 @@ function getNearEvents() {
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

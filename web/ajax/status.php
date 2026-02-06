@@ -507,8 +507,8 @@ function getFrameImage() {
 }
 
 function getNearFrame() {
-  $eventId = $_REQUEST['id'][0];
-  $frameId = $_REQUEST['id'][1];
+  $eventId = validCardinal($_REQUEST['id'][0]);
+  $frameId = validCardinal($_REQUEST['id'][1]);
 
   $sql = 'SELECT FrameId FROM Frames WHERE EventId = ? AND FrameId <= ? ORDER BY FrameId DESC LIMIT 1';
   if ( !$nearFrameId = dbFetchOne($sql, 'FrameId', array($eventId, $frameId)) ) {

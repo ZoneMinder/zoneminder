@@ -1530,6 +1530,10 @@ noUi-target {
   height: 5px;
 }
 
+.noUi-handle:after {
+  left: 16px;
+}
+
 /*
 .noUi-round .noUi-connects {
   background: #c0392b;

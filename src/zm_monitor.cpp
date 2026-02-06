@@ -3016,6 +3016,14 @@ bool Monitor::Decode() {
     // Packet doesn't need decoding (or already has frame/image)
     Debug(2, "Packet %d doesn't need decoding: %s", packet->image_index, Decoding_Strings[decoding].c_str());
     packetqueue.increment_it(decoder_it, !decoder_queue.empty());
+
+    // Update last_write_time even when not decoding so that zmwatch
+    // doesn't think the monitor has stalled.  This matters for modes
+    // like KEYFRAMESONDEMAND where non-keyframe packets are skipped
+    // between keyframe decodes.
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    }
   }
 
   // ===========================================================================

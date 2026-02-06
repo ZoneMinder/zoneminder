@@ -37,9 +37,9 @@ $statusData = array(
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
       'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
-      'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
-      'Load' => array( 'func' => 'getLoad()' ),
-      'Disk' => array( 'func' => 'getDiskPercent()' ),
+      'State' => array( 'func' => function() { return daemonCheck() ? translate('Running') : translate('Stopped'); } ),
+      'Load' => array( 'func' => function() { return getLoad(); } ),
+      'Disk' => array( 'func' => function() { return getDiskPercent(); } ),
     ),
   ),
   'monitor' => array(
@@ -220,15 +220,15 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
-    'func' => 'getFrameImage()'
+    'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
-    'func' => 'getNearFrame()'
+    'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
-    'func' => 'getNearEvents()'
+    'func' => 'getNearEvents'
   )
 );
 
@@ -246,8 +246,7 @@ function collectData() {
   }
 
   if ( !empty($entitySpec['func']) ) {
-    $data = eval('return('.$entitySpec['func'].');');
-    return $data;
+    return call_user_func($entitySpec['func']);
   }
 
   $data = array();
@@ -288,7 +287,7 @@ function collectData() {
       continue;
     }
     if (isset($elementData['func'])) {
-      $data[$element] = eval('return( '.$elementData['func'].' );');
+      $data[$element] = call_user_func($elementData['func']);
     } else if ( isset($elementData['postFunc']) ) {
       $postFuncs[$element] = $elementData['postFunc'];
     } else if ( isset($elementData['postFunction']) ) {
@@ -394,7 +393,7 @@ function collectData() {
           }
         }
         foreach ( $postFuncs as $element=>$func )
-          $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+          $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
           $sqlData[$element] = $function($sqlData);
         $data = array_merge($data, $sqlData);
@@ -412,7 +411,7 @@ function collectData() {
         }
 
         foreach ( $postFuncs as $element=>$func )
-          $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+          $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
           $sqlData[$element] = $function($sqlData);
         $data[] = $sqlData;

@@ -404,7 +404,7 @@ function collectData() {
           $object = new $object_name($sqlData);
           ZM\Debug("Canview:".$object->canView());
           if (!$object->canView()) {
-            ajaxError('Unrecognised action or insufficient permissions for '.$entity.' '.print_r($object, true));
+            ajaxError('Insufficient permissions for '.$entity.' id '.$sqlData['Id']);
             return;
           }
         }

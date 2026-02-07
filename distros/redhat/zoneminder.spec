@@ -47,6 +47,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-connector-c-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
+BuildRequires: cjson-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel

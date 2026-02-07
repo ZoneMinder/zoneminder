@@ -156,15 +156,11 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
     // receive_frame goes out of scope here and releases the surface
     in_frame = std::move(sw_frame);
     zm_dump_video_frame(in_frame.get(), "After immediate hwtransfer");
-  } else {
-    in_frame = std::move(receive_frame);
+    return 1;
   }
-#else
-  in_frame = std::move(receive_frame);
 #endif
-#else
-  in_frame = std::move(receive_frame);
 #endif
+  in_frame = std::move(receive_frame);
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)

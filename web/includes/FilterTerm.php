@@ -345,14 +345,14 @@ class FilterTerm {
       $sql .= '('.implode(' OR ', $subterms).')';
     } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       // "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
-      if ($this->op === '!=') {
+      if ($this->op === '!=' || $this->op === 'IS NOT') {
         $sql .= 'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
       } else {
         $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
       }
     } elseif (($this->attr === 'Tags') && ($values[0] === "'-1'")) {
       // "Any Tag": = means has tags (EXISTS), != means no tags (NOT EXISTS)
-      if ($this->op === '!=') {
+      if ($this->op === '!=' || $this->op === 'IS NOT') {
         $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
       } else {
         $sql .= 'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';

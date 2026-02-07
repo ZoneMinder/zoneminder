@@ -322,14 +322,14 @@ sub Sql {
           if ( $term->{op} ) {
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
-            if ( $term->{attr} eq 'Tags' and $term->{val} eq '0' ) {
+            if ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
               # "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
               if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               } else {
                 $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               }
-            } elsif ( $term->{attr} eq 'Tags' and $term->{val} eq '-1' ) {
+            } elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '-1' ) {
               # "Any Tag": = means has tags (EXISTS), != means no tags (NOT EXISTS)
               if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
                 $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';

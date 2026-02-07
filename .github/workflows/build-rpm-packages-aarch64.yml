@@ -65,6 +65,9 @@ jobs:
       - name: Install build tools
         run: |
           set -eux
+          # Install systemd to resolve conflicts with systemd-standalone-tmpfiles
+          # in container images (needed by net-tools, mosquitto, etc.)
+          dnf -y --allowerasing install systemd
           dnf -y install \
             arp-scan \
             git \

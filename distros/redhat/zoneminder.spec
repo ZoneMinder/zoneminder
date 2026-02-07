@@ -55,7 +55,9 @@ BuildRequires: pcre2-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
-BuildRequires: net-tools
+# net-tools intentionally omitted from BuildRequires to avoid
+# systemd conflicts in container build environments.
+# Paths are pre-defined in the cmake call below instead.
 BuildRequires: perl
 BuildRequires: perl-generators
 BuildRequires: perl(Archive::Tar)
@@ -225,6 +227,10 @@ mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
+        -DZM_PATH_ARP="/usr/sbin/ip neigh" \
+        -DZM_PATH_ARP_SCAN="/usr/sbin/arp-scan" \
+        -DZM_PATH_IP="/usr/sbin/ip" \
+        -DZM_PATH_IFCONFIG="/usr/sbin/ifconfig" \
         .
 
 %cmake_build

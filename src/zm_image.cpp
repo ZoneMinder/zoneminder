@@ -2383,13 +2383,12 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
 
 /* RGB32 compatible: complete */
 void Image::DeColourise() {
-  colours = ZM_COLOUR_GRAY8;
-  subpixelorder = ZM_SUBPIX_ORDER_NONE;
-  size = width * height;
+  const unsigned int src_colours = colours;
+  const unsigned int src_subpixelorder = subpixelorder;
 
-  if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
+  if ( src_colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
     /* Use SSSE3 functions */
-    switch (subpixelorder) {
+    switch (src_subpixelorder) {
     case ZM_SUBPIX_ORDER_BGRA:
       ssse3_convert_bgra_gray8(buffer,buffer,pixels);
       break;
@@ -2406,9 +2405,9 @@ void Image::DeColourise() {
     }
   } else {
     /* Use standard functions */
-    if ( colours == ZM_COLOUR_RGB32 ) {
+    if ( src_colours == ZM_COLOUR_RGB32 ) {
       if ( pixels % 16 ) {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
           std_convert_bgra_gray8(buffer,buffer,pixels);
           break;
@@ -2424,7 +2423,7 @@ void Image::DeColourise() {
           break;
         }
       } else {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
           fast_convert_bgra_gray8(buffer,buffer,pixels);
           break;
@@ -2443,7 +2442,7 @@ void Image::DeColourise() {
     } else {
       /* Assume RGB24 */
       if ( pixels % 12 ) {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGR:
           std_convert_bgr_gray8(buffer,buffer,pixels);
           break;
@@ -2453,7 +2452,7 @@ void Image::DeColourise() {
           break;
         }
       } else {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGR:
           fast_convert_bgr_gray8(buffer,buffer,pixels);
           break;
@@ -2465,6 +2464,10 @@ void Image::DeColourise() {
       } // end if pixels % 12 to use loop unrolled functions
     }
   }
+
+  colours = ZM_COLOUR_GRAY8;
+  subpixelorder = ZM_SUBPIX_ORDER_NONE;
+  size = width * height;
 }
 
 /* RGB32 compatible: complete */

@@ -416,7 +416,7 @@ if ( $version ) {
 
     if ( $response =~ /^[yY]$/ ) {
       my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-      my $command = 'mysqldump';
+      my $command = findDbCommand('mysqldump');
       if ($super) {
         $command .= ' --defaults-file=/etc/mysql/debian.cnf';
       } elsif ($dbUser) {
@@ -1007,7 +1007,7 @@ sub patchDB {
   my $version = shift;
 
   my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ ) if $Config{ZM_DB_HOST};
-  my $command = 'mysql';
+  my $command = findDbCommand('mysql');
   if ($super) {
     $command .= ' --defaults-file=/etc/mysql/debian.cnf';
   } elsif ($dbUser) {

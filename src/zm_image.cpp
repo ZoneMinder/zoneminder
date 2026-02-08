@@ -135,7 +135,9 @@ Image::Image() :
   allocation(0),
   buffer(nullptr),
   buffertype(ZM_BUFTYPE_DONTFREE),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   if (!initialised)
     Initialise();
   // Update blend to fast function determined by Initialise, I'm sure this can be improve.
@@ -158,6 +160,8 @@ Image::Image(const std::string &filename) {
   buffer = 0;
   buffertype = ZM_BUFTYPE_DONTFREE;
   holdbuffer = 0;
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   ReadJpeg(filename, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   update_function_pointers();
 }
@@ -171,7 +175,9 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   subpixelorder(p_subpixelorder),
   allocation(p_allocation),
   buffer(p_buffer),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
 
     if (!initialised)
       Initialise();
@@ -211,7 +217,9 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   padding(p_padding),
   subpixelorder(p_subpixelorder),
   buffer(p_buffer),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
 
   if (!initialised)
     Initialise();
@@ -251,7 +259,9 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   colours(p_colours),
   padding(p_padding),
   subpixelorder(p_subpixelorder),
-  buffer(p_buffer) {
+  buffer(p_buffer),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   if ( !initialised )
     Initialise();
   pixels = width*height;
@@ -280,7 +290,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   subpixelorder(ZM_SUBPIX_ORDER_RGBA),
   imagePixFormat(AV_PIX_FMT_RGBA),
   buffer(0),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   width = (p_width == -1 ? frame->width : p_width);
   height = (p_height == -1 ? frame->height : p_height);
   pixels = width * height;
@@ -298,6 +310,8 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
 }
 
 Image::Image(const AVFrame *frame) {
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   AssignDirect(frame);
 }
 
@@ -405,6 +419,8 @@ Image::Image(const Image &p_image) {
   size = p_image.size; // allocation is set in AllocImgBuffer
   buffer = nullptr;
   holdbuffer = 0;
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
   annotation_ = p_image.annotation_;
@@ -414,6 +430,11 @@ Image::Image(const Image &p_image) {
 
 Image::~Image() {
   DumpImgBuffer();
+  if (blend_buffer_) {
+    zm_freealigned(blend_buffer_);
+    blend_buffer_ = nullptr;
+    blend_buffer_size_ = 0;
+  }
 }
 
 const std::string Image::toString() {
@@ -1903,14 +1924,19 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
-  uint8_t* new_buffer = AllocBuffer(size);
+  // Reuse persistent blend buffer to avoid per-frame alloc/free
+  if (blend_buffer_size_ < size) {
+    if (blend_buffer_) zm_freealigned(blend_buffer_);
+    blend_buffer_ = AllocBuffer(size);
+    blend_buffer_size_ = size;
+  }
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
-  (*blend)(buffer, image.buffer, new_buffer, size, transparency);
+  (*blend)(buffer, image.buffer, blend_buffer_, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -1923,7 +1949,12 @@ void Image::Blend( const Image &image, int transparency ) {
         mil_pixels);
 #endif
 
-  AssignDirect(width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
+  if (holdbuffer) {
+    (*fptr_imgbufcpy)(buffer, blend_buffer_, size);
+  } else {
+    std::swap(buffer, blend_buffer_);
+    buffertype = ZM_BUFTYPE_ZM;
+  }
 }
 
 Image *Image::Merge(unsigned int n_images, Image *images[]) {

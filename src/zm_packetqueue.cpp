@@ -653,6 +653,11 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   }
 
   // it either points to beginning or we have seen pre_event_count video packets.
+  // The loop above doesn't count the begin packet, so check it now.
+  if (pre_event_count and (packet->packet->stream_index == video_stream_id)) {
+    pre_event_count--;
+  }
+
   if (pre_event_count) {
     if (packet->image_index < (int)pre_event_count) {
       // probably just starting up

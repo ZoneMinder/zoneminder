@@ -28,6 +28,7 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <filesystem>
 
 #ifdef __FreeBSD__
@@ -88,18 +89,42 @@ bool EventStream::seek(SystemTimePoint event_time) {
     return false;
   }
 
-  for (int i=0; i < event_data->frame_count; i++) {
-    //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
-    if (event_data->frames[i].timestamp >= event_time || 
-        event_data->frames[i].timestamp + event_data->frames[i].delta >=event_time) {
-      curr_frame_id = i + 1;
-      curr_stream_time = event_time;
-      Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",
-          FPSeconds(curr_stream_time.time_since_epoch()).count(),
-          curr_frame_id);
-      return true;
+  // Binary search: frames are sorted by timestamp (ascending).
+  // Find the first frame whose timestamp >= event_time.
+  auto it = std::lower_bound(
+    event_data->frames.begin(),
+    event_data->frames.end(),
+    event_time,
+    [](const FrameData &frame, const SystemTimePoint &t) {
+      return frame.timestamp < t;
+    });
+
+  // If event_time is past all frame timestamps (e.g. at event end_time),
+  // step back to the last frame so the delta check below can evaluate it.
+  if (it == event_data->frames.end() && it != event_data->frames.begin()) {
+    --it;
+  }
+
+  // Check if the previous frame's time window covers event_time.
+  // Original logic: timestamp + delta >= event_time allows a frame whose
+  // timestamp is before the target to match if its display window extends
+  // past it.
+  if (it != event_data->frames.begin()) {
+    auto prev = std::prev(it);
+    if (prev->timestamp + prev->delta >= event_time) {
+      it = prev;
     }
-  } // end foreach frame
+  }
+
+  if (it != event_data->frames.end() &&
+      (it->timestamp >= event_time || it->timestamp + it->delta >= event_time)) {
+    curr_frame_id = static_cast<int>(std::distance(event_data->frames.begin(), it)) + 1;
+    curr_stream_time = event_time;
+    Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",
+        FPSeconds(curr_stream_time.time_since_epoch()).count(),
+        curr_frame_id);
+    return true;
+  }
     Warning("Requested an event time less than the start of the event. event_time %" PRIi64 " < start_time %" PRIi64,
         static_cast<int64>(std::chrono::duration_cast<Seconds>(event_time.time_since_epoch()).count()),
         static_cast<int64>(std::chrono::duration_cast<Seconds>(event_data->start_time.time_since_epoch()).count()));
@@ -597,47 +622,21 @@ void EventStream::processCommand(const CmdMsg *msg) {
     }
 
     std::scoped_lock lck{mutex};
-    // This should get us close, but not all frames will have the same duration
-    curr_frame_id = (int) (event_data->frame_count * offset / event_data->duration) + 1;
-    if (curr_frame_id < 1) {
-      Debug(1, "curr_frame_id = %d, so setting to 1", curr_frame_id);
-      curr_frame_id = 1;
-    } else if (curr_frame_id > event_data->last_frame_id) {
-      curr_frame_id = event_data->last_frame_id;
-    }
+    // Binary search: frames are sorted by offset (ascending).
+    // Find the last frame whose offset <= the target offset.
+    auto it = std::upper_bound(
+      event_data->frames.begin(),
+      event_data->frames.end(),
+      offset,
+      [](const FPSeconds &o, const FrameData &frame) {
+        return o < frame.offset;
+      });
 
-    // TODO Replace this with a binary search
-    if (event_data->frames[curr_frame_id - 1].offset > offset) {
-      Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
-            FPSeconds(offset).count(),
-            curr_frame_id,
-            FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
-           );
-      while ((curr_frame_id > 1) && (event_data->frames[curr_frame_id - 2].offset > offset)) {
-        curr_frame_id--;
-        Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
-              FPSeconds(offset).count(),
-              curr_frame_id,
-              FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
-             );
-      }
-    } else if (event_data->frames[curr_frame_id - 1].offset < offset) {
-      while ((curr_frame_id++ < event_data->last_frame_id) && (event_data->frames[curr_frame_id - 1].offset < offset)) {
-        Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
-              FPSeconds(offset).count(),
-              curr_frame_id,
-              FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
-             );
-      }
-      curr_frame_id--;
-    }
+    // upper_bound gives first frame with offset > target; step back one
+    if (it != event_data->frames.begin())
+      --it;
 
-    if (curr_frame_id < 1) {
-      Debug(1, "curr_frame_id = %d, so setting to 1", curr_frame_id);
-      curr_frame_id = 1;
-    } else if (curr_frame_id > event_data->last_frame_id) {
-      curr_frame_id = event_data->last_frame_id;
-    }
+    curr_frame_id = static_cast<int>(std::distance(event_data->frames.begin(), it)) + 1;
 
     curr_stream_time = event_data->frames[curr_frame_id-1].timestamp;
     Debug(1, "Got SEEK command, to %f s (new current frame id: %d offset %f s)",

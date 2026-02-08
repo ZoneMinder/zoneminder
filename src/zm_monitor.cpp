@@ -2166,11 +2166,10 @@ bool Monitor::Analyse() {
                   int zone_index = 0;
                   for (const Zone &zone : zones) {
                     const ZoneStats &stats = zone.GetStats();
-                    stats.DumpToLog("After detect motion");
                     packet->zone_stats.push_back(stats);
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
-                      packet->alarm_cause += std::string(zone.Label());
+                      packet->alarm_cause += zone.Label();
                       if (zone.AlarmImage())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
@@ -2185,7 +2184,9 @@ bool Monitor::Analyse() {
 
                   if (motion_score) {
                     if (!cause.empty()) cause += ", ";
-                    cause += MOTION_CAUSE + std::string(":") + packet->alarm_cause;
+                    cause += MOTION_CAUSE;
+                    cause += ':';
+                    cause += packet->alarm_cause;
                     noteSetMap[MOTION_CAUSE] = zoneSet;
                     score += motion_score;
                   } // end if motion_score

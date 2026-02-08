@@ -1941,16 +1941,13 @@ Image *Image::Merge(unsigned int n_images, Image *images[]) {
 
   Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
   unsigned int size = result->size;
+  uint8_t *pdest = result->buffer;
   for ( unsigned int i = 0; i < size; i++ ) {
     unsigned int total = 0;
-    uint8_t *pdest = result->buffer;
     for ( unsigned int j = 0; j < n_images; j++ ) {
-      uint8_t *psrc = images[j]->buffer;
-      total += *psrc;
-      psrc++;
+      total += images[j]->buffer[i];
     }
-    *pdest = total/n_images;
-    pdest++;
+    *pdest++ = total/n_images;
   }
   return result;
 }
@@ -1998,25 +1995,24 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   }
 
   Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
-  unsigned int size = result->size;
+  unsigned int n_pixels = result->pixels;
   for ( unsigned int c = 0; c < colours; c++ ) {
     unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
+    unsigned int threshold_val = RGB_VAL(threshold,c);
 
-    for ( unsigned int i = 0; i < size; i++ ) {
+    uint8_t *pdest = result->buffer + c;
+    for ( unsigned int i = 0; i < n_pixels; i++, pdest += colours ) {
       unsigned int count = 0;
-      uint8_t *pdest = result->buffer+c;
       for ( unsigned int j = 0; j < n_images; j++ ) {
-        uint8_t *psrc = images[j]->buffer+c;
+        uint8_t psrc_val = images[j]->buffer[i*colours + c];
 
-        unsigned int diff = ((*psrc)-ref_colour_rgb) > 0 ? (*psrc)-ref_colour_rgb : ref_colour_rgb - (*psrc);
+        unsigned int diff = (psrc_val > ref_colour_rgb) ? psrc_val - ref_colour_rgb : ref_colour_rgb - psrc_val;
 
-        if (diff >= RGB_VAL(threshold,c)) {
+        if (diff >= threshold_val) {
           count++;
         }
-        psrc += colours;
       }
       *pdest = (count*255)/n_images;
-      pdest += 3;
     }
   }
   return result;

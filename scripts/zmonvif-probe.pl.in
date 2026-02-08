@@ -49,6 +49,7 @@ sub HELP_MESSAGE {
     profiles  - print the device's supported stream configurations
     metadata  - print some of the device's configuration settings
     move      - move the device (only ptz cameras)
+    events    - check if the device supports ONVIF events
   Common parameters:
     -v        - increase verbosity
   Device access parameters (for all commands but 'probe'):
@@ -122,6 +123,8 @@ if ( $action eq 'probe' ) {
     ZoneMinder::ONVIF::move($client, $dir);
   } elsif ( $action eq 'metadata' ) {
     ZoneMinder::ONVIF::metadata($client);
+  } elsif ( $action eq 'events' ) {
+    ZoneMinder::ONVIF::events($client);
   } else {
     my $media = $client->get_endpoint('media');
     if ( ! $media ) {
@@ -158,6 +161,7 @@ zmonvif-probe.pl - ZoneMinder ONVIF probing tool
     profiles  - print the device's supported stream configurations
     metadata  - print some of the device's configuration settings
     move      - move the device (only ptz cameras)
+    events    - check if the device supports ONVIF events
     other     - Any command supported by the ONVIF Media element.
 
   Common parameters:

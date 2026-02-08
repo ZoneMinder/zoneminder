@@ -25,7 +25,7 @@
 #include "zm_packet.h"
 #include "zm_signal.h"
 
-#include <algorithm>
+#include <climits>
 #include <vector>
 
 PacketQueue::PacketQueue():
@@ -39,7 +39,8 @@ PacketQueue::PacketQueue():
   warned_count(0),
   has_out_of_order_packets_(false),
   max_keyframe_interval_(0),
-  frames_since_last_keyframe_(0)
+  frames_since_last_keyframe_(0),
+  next_queue_index_(0)
 {
 }
 
@@ -125,6 +126,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       Debug(1, "Not video stream %d", add_avpacket->stream_index);
     }
 
+    add_packet->queue_index = next_queue_index_++;
     pktQueue.push_back(add_packet);
 
     /* Any iterators that are pointing to the end will now point to the newly pushed packet */
@@ -259,15 +261,17 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   }
   Debug(1, "Tail count is %d, queue size is %zu, video_packets %d", tail_count, pktQueue.size(), packet_counts[video_stream_id]);
 
-  // Build set of packets that iterators point to (typically 2-3 iterators).
-  // This replaces per-packet is_there_an_iterator_pointing_to_packet() calls
-  // in the scan loops below, turning O(packets * iterators) into O(iterators).
-  std::vector<std::shared_ptr<ZMPacket>> iterator_packets;
-  iterator_packets.reserve(iterators.size());
+  // Find the earliest queue_index that any iterator points to.  Since every
+  // packet now carries a monotonic queue_index assigned at enqueue time, this
+  // single integer comparison per packet replaces the previous per-packet
+  // is_there_an_iterator_pointing_to_packet() scan over all iterators.
+  uint64_t min_iterator_queue_index = UINT64_MAX;
   for (auto iterators_it = iterators.begin(); iterators_it != iterators.end(); ++iterators_it) {
     packetqueue_iterator *iterator_it = *iterators_it;
     if (*iterator_it != pktQueue.end()) {
-      iterator_packets.push_back(*(*iterator_it));
+      uint64_t qi = (*(*iterator_it))->queue_index;
+      if (qi < min_iterator_queue_index)
+        min_iterator_queue_index = qi;
     }
   }
 
@@ -278,7 +282,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
 
-      if (std::find(iterator_packets.begin(), iterator_packets.end(), zm_packet) != iterator_packets.end()) {
+      if (zm_packet->queue_index >= min_iterator_queue_index) {
         Debug(1, "Found iterator at beginning of queue.");
         break;
       }
@@ -316,7 +320,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   int keyframe_interval_count = 0;
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
-  if (std::find(iterator_packets.begin(), iterator_packets.end(), zm_packet) != iterator_packets.end()) {
+  if (zm_packet->queue_index >= min_iterator_queue_index) {
     Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
         video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
     return;
@@ -328,7 +332,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   while (*it != add_packet) {
     zm_packet = *it;
 
-    if (std::find(iterator_packets.begin(), iterator_packets.end(), zm_packet) != iterator_packets.end()) {
+    if (zm_packet->queue_index >= min_iterator_queue_index) {
       Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
           video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
       break;

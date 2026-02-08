@@ -53,6 +53,7 @@ class PacketQueue {
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
   int frames_since_last_keyframe_;
+  uint64_t next_queue_index_;
   Monitor *monitor_;
 
  public:

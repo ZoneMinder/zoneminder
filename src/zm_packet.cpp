@@ -39,6 +39,7 @@ ZMPacket::ZMPacket() :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
+  queue_index(0),
   codec_imgsize(0),
   pts(0),
   decoded(false),
@@ -57,6 +58,7 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
+  queue_index(0),
   codec_imgsize(0),
   pts(0),
   decoded(false),
@@ -75,6 +77,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   score(p.score),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(p.image_index),
+  queue_index(p.queue_index),
   codec_imgsize(0),
   pts(p.pts),
   decoded(p.decoded),
@@ -156,15 +159,11 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
     // receive_frame goes out of scope here and releases the surface
     in_frame = std::move(sw_frame);
     zm_dump_video_frame(in_frame.get(), "After immediate hwtransfer");
-  } else {
-    in_frame = std::move(receive_frame);
+    return 1;
   }
-#else
-  in_frame = std::move(receive_frame);
 #endif
-#else
-  in_frame = std::move(receive_frame);
 #endif
+  in_frame = std::move(receive_frame);
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)

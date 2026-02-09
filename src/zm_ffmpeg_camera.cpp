@@ -137,7 +137,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
 
-  if ( mSecondFormatContext and
+  if ( mSecondFormatContext and mAudioStream and
        (
          av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q)
          <

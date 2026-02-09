@@ -839,7 +839,9 @@ function streamSeek(offset) {
     vid.currentTime(offset);
   } else {
     if (zmsBroke) {
-      restartZmsStream(function() { streamSeek(offset); });
+      restartZmsStream(function() {
+        streamSeek(offset);
+      });
     } else {
       streamReq({command: CMD_SEEK, offset: offset});
     }

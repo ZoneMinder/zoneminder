@@ -55,10 +55,12 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
 
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
+    mysql_free_result(result);
     return false;
   }
   if (!mysql_num_rows(result)) {
     Error("Unable to load event using %s", sql.c_str());
+    mysql_free_result(result);
     return false;
   }
 
@@ -160,8 +162,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
   event_data->frames_duration =
     std::chrono::duration_cast<Microseconds>(dbrow[6] ? FPSeconds(atof(dbrow[6])) : FPSeconds(0.0));
-  event_data->video_file = std::string(dbrow[7]);
-  std::string scheme_str = std::string(dbrow[8]);
+  event_data->video_file = dbrow[7] ? std::string(dbrow[7]) : std::string();
+  std::string scheme_str = dbrow[8] ? std::string(dbrow[8]) : std::string();
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
   } else if ( scheme_str == "Medium" ) {
@@ -277,7 +279,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     // Fill in data between bulk frames
     if (id_diff > 1) {
       for (int i = last_id + 1; i < id; i++) {
-        auto frame = event_data->frames.emplace_back(
+        auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
                        std::chrono::duration_cast<Microseconds>((last_frame->timestamp - event_data->start_time) + delta),
@@ -293,7 +295,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
               frame.in_db);
       }
     }
-    auto frame = event_data->frames.emplace_back(id, timestamp, offset, delta, true);
+    auto &frame = event_data->frames.emplace_back(id, timestamp, offset, delta, true);
     last_frame = &frame;
     last_id = id;
     last_offset = offset;
@@ -311,7 +313,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if (!last_frame) {
       // There were no frames in db
       delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
-      auto frame = event_data->frames.emplace_back(
+      auto &frame = event_data->frames.emplace_back(
                      1,
                      event_data->start_time,
                      Microseconds(0),
@@ -339,7 +341,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         if (event_data->end_time < last_timestamp) break;
         last_id ++;
 
-        auto frame = event_data->frames.emplace_back(
+        auto &frame = event_data->frames.emplace_back(
                        last_id,
                        last_timestamp,
                        last_frame->offset + delta,
@@ -611,7 +613,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
             curr_frame_id,
             FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
            );
-      while ((curr_frame_id--) && (event_data->frames[curr_frame_id - 1].offset > offset)) {
+      while ((curr_frame_id > 1) && (event_data->frames[curr_frame_id - 2].offset > offset)) {
+        curr_frame_id--;
         Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
               FPSeconds(offset).count(),
               curr_frame_id,
@@ -1261,8 +1264,15 @@ void EventStream::setStreamStart(
 void EventStream::setStreamStart(
   uint64_t init_event_id, SystemTimePoint event_time
   ) {
-  loadInitialEventData(init_event_id, event_time);
-}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
+  // Load event data first, then seek to the specified time
+  loadEventData(init_event_id);
+  if (event_time.time_since_epoch() != Seconds(0)) {
+    seek(event_time);
+  } else {
+    curr_stream_time = event_data->start_time;
+    curr_frame_id = 1;
+  }
+}  // end void EventStream::setStreamStart(init_event_id, event_time)
 
 void EventStream::setStreamStart(int monitor_id, SystemTimePoint event_time) {
   loadInitialEventData(monitor_id, event_time);

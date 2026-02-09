@@ -39,6 +39,7 @@ ZMPacket::ZMPacket() :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
+  queue_index(0),
   codec_imgsize(0),
   pts(0),
   decoded(false),
@@ -57,6 +58,7 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
+  queue_index(0),
   codec_imgsize(0),
   pts(0),
   decoded(false),
@@ -75,6 +77,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   score(p.score),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(p.image_index),
+  queue_index(p.queue_index),
   codec_imgsize(0),
   pts(p.pts),
   decoded(p.decoded),
@@ -113,7 +116,7 @@ int ZMPacket::send_packet(AVCodecContext *ctx) {
       return ret;
     }
   }
-  Debug(1, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
+  Debug(3, "Ret from send_packet %d %s, packet %d", ret, av_make_error_string(ret).c_str(), image_index);
   return 1;
 }
 
@@ -135,8 +138,32 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
     }
   }
 
+  // For hardware frames, do the transfer immediately while the context is valid
+  // The nvidia-vaapi-driver can have issues if there's a delay between decode and transfer
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  if (receive_frame->hw_frames_ctx) {
+    Debug(2, "Hardware frame received, transferring immediately");
+    av_frame_ptr sw_frame{av_frame_alloc()};
+    ret = av_hwframe_transfer_data(sw_frame.get(), receive_frame.get(), 0);
+    if (ret < 0) {
+      Error("Immediate hw transfer failed: %s, packet %d", av_make_error_string(ret).c_str(), image_index);
+      return ret;
+    }
+    ret = av_frame_copy_props(sw_frame.get(), receive_frame.get());
+    if (ret < 0) {
+      Warning("Failed to copy frame props: %s", av_make_error_string(ret).c_str());
+    }
+    // Release GPU surface immediately - we have the software frame now
+    // Keeping hw_frame would hold GPU memory and exhaust the surface pool
+    // receive_frame goes out of scope here and releases the surface
+    in_frame = std::move(sw_frame);
+    zm_dump_video_frame(in_frame.get(), "After immediate hwtransfer");
+    return 1;
+  }
+#endif
+#endif
   in_frame = std::move(receive_frame);
-  //zm_dump_video_frame(in_frame.get(), "got frame");
 
   return 1;
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
@@ -148,6 +175,10 @@ bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
   }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  // If frame has no hw_frames_ctx, it's already a software frame
+  if (!in_frame->hw_frames_ctx) {
+    return false;
+  }
   if (
       (ctx->sw_pix_fmt != AV_PIX_FMT_NONE)
       and
@@ -162,8 +193,9 @@ bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
 
 int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
   if (hw_frame) {
-    Error("Already have hw_frame in get_hwframe");
-    return 0;
+    // Already transferred in receive_frame
+    Debug(2, "Hardware frame already transferred");
+    return 1;
   }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -182,11 +214,24 @@ int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
     hw_frame = std::move(in_frame);
     zm_dump_video_frame(hw_frame.get(), "Before hwtransfer");
 
+    // Verify hw_frames_ctx is valid before attempting transfer
+    if (!hw_frame->hw_frames_ctx) {
+      Error("Hardware frame has no hw_frames_ctx, cannot transfer");
+      hw_frame = nullptr;
+      in_frame = nullptr;
+      return -1;
+    }
+
     av_frame_ptr new_frame{av_frame_alloc()};
+    // Don't set format - let FFmpeg use the hw_frames_ctx default format
+    // (nvidia-vaapi-driver only supports nv12/p010 transfer, not yuvj420p)
+    // The later swscale conversion will handle format conversion
+
     /* retrieve data from GPU to CPU */
     int ret = av_hwframe_transfer_data(new_frame.get(), hw_frame.get(), 0);
     if (ret < 0) {
-      Error("Unable to transfer frame: %s, continuing", av_make_error_string(ret).c_str());
+      Error("Unable to transfer frame: %s", av_make_error_string(ret).c_str());
+      hw_frame = nullptr;
       in_frame = nullptr;
       return ret;
     }

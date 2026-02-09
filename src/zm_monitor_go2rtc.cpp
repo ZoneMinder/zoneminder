@@ -52,8 +52,8 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     rtsp_restream_base_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     rtsp_restream_path = rtsp_restream_base_path;
     if (ZM_OPT_USE_AUTH) {
-      if (parent->janus_rtsp_user) {
-        User *rtsp_user = User::find(parent->janus_rtsp_user);
+      if (parent->rtsp_user) {
+        User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
         rtsp_restream_path += "?auth=" + auth_key;
         last_auth_refresh = std::chrono::system_clock::now();
@@ -118,9 +118,25 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
   CURLcode res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
   curl_easy_cleanup(curl);
 
   response = remove_newlines(response);
@@ -146,7 +162,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
 bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   // Only refresh if using RTSP restream with auth
-  if (!Use_RTSP_Restream || !ZM_OPT_USE_AUTH || !parent->janus_rtsp_user) {
+  if (!Use_RTSP_Restream || !ZM_OPT_USE_AUTH || !parent->rtsp_user) {
     return false;
   }
 
@@ -161,9 +177,9 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
 
   Debug(1, "Go2RTC: Auth hash is %ld minutes old, refreshing", age.count());
 
-  User *rtsp_user = User::find(parent->janus_rtsp_user);
+  User *rtsp_user = User::find(parent->rtsp_user);
   if (!rtsp_user) {
-    Warning("Go2RTC: Could not find RTSP user %d for auth refresh", parent->janus_rtsp_user);
+    Warning("Go2RTC: Could not find RTSP user %d for auth refresh", parent->rtsp_user);
     return false;
   }
 
@@ -272,10 +288,28 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
 
   CURLcode res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+  
   if (res != CURLE_OK) {
     Warning("Go2RTC: Delete failed - attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
   } else {
@@ -317,9 +351,28 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  // Try with SSL verification enabled first
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
   CURLcode res = curl_easy_perform(curl);
+  
+  // If SSL verification failed, retry without verification
+  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
+      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+            endpoint.c_str(), curl_easy_strerror(res));
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+  
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {

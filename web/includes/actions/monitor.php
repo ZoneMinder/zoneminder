@@ -102,7 +102,7 @@ if ($action == 'save') {
       'Go2RTCEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
-      'Janus_Use_RTSP_Restream' => 0,
+      'Restream' => 0,
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,

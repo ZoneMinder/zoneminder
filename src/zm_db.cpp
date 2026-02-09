@@ -64,7 +64,7 @@ bool zmDbConnect() {
   } else {
     std::string dbHost = staticConfig.DB_HOST.substr(0, colonIndex);
     std::string dbPortOrSocket = staticConfig.DB_HOST.substr(colonIndex+1);
-    if ( dbPortOrSocket[0] == '/' ) {
+    if ( !dbPortOrSocket.empty() && dbPortOrSocket[0] == '/' ) {
       if ( !mysql_real_connect(
              &dbconn,
              nullptr,
@@ -211,11 +211,15 @@ int zmDbDo(const std::string &query) {
         // If we failed. Sleeping 1 sec may be way too much.
         sleep(1);
       }
-      if (zm_terminate) return 0;
+      if (zm_terminate) {
+        logger->databaseLevel(oldLevel);
+        return 0;
+      }
     } else {
       // Not a connection error
       Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
       if (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) {
+        logger->databaseLevel(oldLevel);
         return rc;
       }
     } // end if !connected

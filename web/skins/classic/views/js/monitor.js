@@ -67,23 +67,52 @@ function loadLocations( element ) {
 
   var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
   if ( returnLocationOptions ) {
-    for ( var i = 0; i < returnLocationOptions.length; i++ ) {
+    for ( let i = 0; i < returnLocationOptions.length; i++ ) {
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
 }
 
-function Janus_Use_RTSP_Restream_onclick(e) {
-  Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
-  if (Janus_Use_RTSP_Restream.length) {
-    const Janus_RTSP_User = $j('#Janus_RTSP_User');
-    if (Janus_Use_RTSP_Restream[0].checked) {
-      Janus_RTSP_User.show();
+function Restream_onclick(e) {
+  const Restream = $j('[name="newMonitor[Restream]"]');
+  if (Restream.length) {
+    const RTSP_User = $j('#RTSP_User');
+    if (Restream[0].checked) {
+      RTSP_User.show();
     } else {
-      Janus_RTSP_User.hide();
+      RTSP_User.hide();
     }
   } else {
-    console.log("Didn't find newMonitor[Janus_Use_RTSP_Restream]");
+    console.log("Didn't find newMonitor[Restream]");
+  }
+}
+
+function updateRestreamVisibility() {
+  const form = document.getElementById('contentForm');
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
+  const go2rtcEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  const rtsp2webEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+
+  const anyStreamingEnabled =
+    (janusEnabled && janusEnabled.checked) ||
+    (go2rtcEnabled && go2rtcEnabled.checked) ||
+    (rtsp2webEnabled && rtsp2webEnabled.checked);
+
+  const showRestream = rtspServer && rtspServer.checked && anyStreamingEnabled;
+
+  const restreamEl = document.getElementById('FunctionRestream');
+  if (restreamEl) restreamEl.hidden = !showRestream;
+
+  // Hide RTSP_User if restream not visible or restream not checked
+  const rtspUser = document.getElementById('RTSP_User');
+  if (rtspUser) {
+    const restream = form.elements['newMonitor[Restream]'];
+    if (!showRestream || !restream || !restream.checked) {
+      rtspUser.style.display = 'none';
+    } else {
+      rtspUser.style.display = '';
+    }
   }
 }
 
@@ -102,6 +131,12 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
+    // Clear password field values before any native form submission so
+    // Chrome doesn't offer to save them.  The values are already in the
+    // database and will be repopulated when the page reloads.
+    this.querySelectorAll('input[type="password"]').forEach(function(el) {
+      el.value = '';
+    });
     if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
@@ -332,8 +367,18 @@ function initPage() {
   }
 
   // Manage the SAVE Button
-  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+  document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
     saveMonitorData();
+  });
+
+  // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
+  // submit so Chrome doesn't trigger its "save password" prompt.
+  document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
+    const form = document.getElementById('contentForm');
+    if (validateForm(form)) {
+      $j('#contentButtons').hide();
+      saveMonitorData('?view=console');
+    }
   });
 
   const form = document.getElementById('contentForm');
@@ -346,12 +391,10 @@ function initPage() {
     if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
       document.getElementById("FunctionJanusProfileOverride").hidden = true;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
 
@@ -359,20 +402,26 @@ function initPage() {
       if (this.checked) {
         document.getElementById("FunctionJanusAudioEnabled").hidden = false;
         document.getElementById("FunctionJanusProfileOverride").hidden = false;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
       } else {
         document.getElementById("FunctionJanusAudioEnabled").hidden = true;
         document.getElementById("FunctionJanusProfileOverride").hidden = true;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
       }
+      updateRestreamVisibility();
     });
+  }
 
-    const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream) {
-      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
-    }
+  // Manage the Restream checkbox (visible when RTSPServer enabled AND any streaming option)
+  const Restream = form.elements['newMonitor[Restream]'];
+  if (Restream) {
+    Restream.onclick = Restream_onclick;
+  }
+
+  // Add event listeners for RTSPServer and streaming options to update Restream visibility
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  if (rtspServer) {
+    rtspServer.addEventListener('change', updateRestreamVisibility);
   }
 
   //Manage the RTSP2Web settings div
@@ -383,28 +432,33 @@ function initPage() {
 
   if (RTSP2WebEnabled || Go2RTCEnabled) {
     if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebStream").hidden = false;
+      document.getElementById("StreamChannel").hidden = false;
     } else {
-      document.getElementById("RTSP2WebStream").hidden = true;
+      document.getElementById("StreamChannel").hidden = true;
     }
 
     Go2RTCEnabled.addEventListener('change', function() {
       if (this.checked || RTSP2WebEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
+      updateRestreamVisibility();
     });
 
     RTSP2WebEnabled.addEventListener('change', function() {
       if (this.checked || Go2RTCEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
+      updateRestreamVisibility();
     });
   }
   update_players();
+
+  // Initialize restream visibility on page load
+  updateRestreamVisibility();
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
@@ -595,7 +649,7 @@ function change_WebColour() {
 function getRandomColour() {
   var letters = '0123456789ABCDEF';
   var colour = '#';
-  for (var i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i++) {
     colour += letters[Math.floor(Math.random() * 16)];
   }
   return colour;
@@ -843,3 +897,12 @@ function ControlList_onClick() {
 }
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+// Clear password field values when navigating away from the page so
+// Chrome doesn't offer to save/update credentials.  These are camera
+// credentials, not user login credentials.
+window.addEventListener('pagehide', function() {
+  document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
+    el.value = '';
+  });
+});

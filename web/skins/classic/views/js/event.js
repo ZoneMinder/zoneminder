@@ -501,7 +501,11 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    auth_hash = streamStatus.auth;
+    if (streamStatus.auth != auth_hash) {
+      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
+      auth_hash = streamStatus.auth;
+      auth_relay = streamStatus.auth_relay;
+    }
   } // end if have a new auth hash
 } // end function getCmdResponse( respObj, respText )
 

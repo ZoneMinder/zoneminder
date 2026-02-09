@@ -303,6 +303,11 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
 
   mFormatContext = avformat_alloc_context();
+  if (!mFormatContext) {
+    Error("Unable to allocate format context");
+    av_dict_free(&opts);
+    return -1;
+  }
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
@@ -399,8 +404,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
       if (!mVideoCodec) {
         // Try and get the codec from the codec context
-        //Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-        Error("Can't find codec for video stream from ");
+        Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
         continue;
       }
     }
@@ -562,9 +566,16 @@ int FfmpegCamera::OpenFfmpeg() {
       }  // end if opened
     }  // end if found decoder
   } else if (!monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
+    std::string secondPath = mSecondPath;
+    if (mUser.length() > 0 && mSecondPath.length() > 7) {
+      // Apply credentials to secondary path like we do for the primary path
+      std::string secondProtocol = mSecondPath.substr(0, mSecondPath.find("://"));
+      secondPath = StringToLower(secondProtocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedSecondPath.substr(secondProtocol.length() + 3);
+      Debug(1, "Rebuilt secondary URI with encoded parameters");
+    }
     mSecondInput = zm::make_unique<FFmpeg_Input>();
-    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+    if (mSecondInput->Open(secondPath.c_str()) > 0) {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();

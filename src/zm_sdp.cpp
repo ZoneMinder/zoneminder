@@ -280,6 +280,10 @@ SessionDescriptor::~SessionDescriptor() {
 
 AVFormatContext *SessionDescriptor::generateFormatContext() const {
   AVFormatContext *formatContext = avformat_alloc_context();
+  if (!formatContext) {
+    Error("Failed to allocate AVFormatContext");
+    return nullptr;
+  }
 
 #if (LIBAVFORMAT_VERSION_CHECK(58, 12, 0, 0, 100))
   formatContext->url = av_strdup(mUrl.c_str());
@@ -297,9 +301,17 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
   for ( unsigned int i = 0; i < mMediaList.size(); i++ ) {
     const MediaDescriptor *mediaDesc = mMediaList[i];
     AVStream *stream = avformat_new_stream(formatContext, nullptr);
+    if (!stream) {
+      Error("Failed to allocate AVStream for media %d", i);
+      continue;
+    }
     stream->id = i;
 
     AVCodecContext *codec_context = avcodec_alloc_context3(nullptr);
+    if (!codec_context) {
+      Error("Failed to allocate AVCodecContext for media %d", i);
+      continue;
+    }
 
     std::string type = mediaDesc->getType();
     Debug(1, "Looking for codec for %s payload type %d / %s",
@@ -331,7 +343,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
       for ( unsigned int j = 0; j < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); j++ ) {
         if ( smDynamicPayloads[j].payloadName == mediaDesc->getPayloadDesc() ) {
           Debug(1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[j].payloadName);
-          codec_name = std::string(smStaticPayloads[j].payloadName);
+          codec_name = std::string(smDynamicPayloads[j].payloadName);
           codec_context->codec_type = smDynamicPayloads[j].codecType;
           codec_context->codec_id = smDynamicPayloads[j].codecId;
           codec_context->sample_rate = mediaDesc->getClock();
@@ -402,6 +414,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
       }
     }
     avcodec_parameters_from_context(stream->codecpar, codec_context);
+    avcodec_free_context(&codec_context);
   }  // end foreach mediaList
 
   return formatContext;

@@ -34,6 +34,7 @@ namespace {
   const int ONVIF_RETRY_EXPONENT_LIMIT = 9; // 2^9 = 512, cap before overflow
   const int ONVIF_RENEWAL_ADVANCE_SECONDS = 60;  // Renew subscription N seconds before expiration
   const int ONVIF_COOLDOWN_RESET_SECONDS = 300;  // Reset retry_count after 5 minutes of failure
+  const int ONVIF_DEFAULT_TIMESTAMP_VALIDITY = 60;  // WS-Security timestamp validity in seconds
 
   // Format seconds as ISO 8601 duration string (e.g., 5 -> "PT5S")
   inline std::string FormatDurationSeconds(int seconds) {
@@ -75,7 +76,9 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,next_renewal_time()
   ,use_absolute_time_for_renewal(false)
   ,renewal_enabled(true)
+  ,camera_clock_offset(0)
   ,expire_alarms_enabled(true)
+  ,timestamp_validity_seconds(ONVIF_DEFAULT_TIMESTAMP_VALIDITY)
   ,terminate_(false)
 {
   parse_onvif_options();
@@ -357,7 +360,7 @@ void ONVIF::Subscribe() {
 
   // Update renewal tracking times from initial subscription response
   if (response.wsnt__TerminationTime != 0) {
-    update_renewal_times(response.wsnt__TerminationTime);
+    update_renewal_times(response.wsnt__CurrentTime, response.wsnt__TerminationTime);
     log_subscription_timing("subscription_created");
   } else {
     Debug(1, "ONVIF: Initial subscription response has no TerminationTime, renewal tracking not set");
@@ -427,10 +430,27 @@ void ONVIF::WaitForMessage() {
   int result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
+      const char *fault_string = soap_fault_string(soap);
 
       if (soap->error != SOAP_EOF) { //Ignore the timeout error
-        Error("Failed to get ONVIF messages! result=%d soap->error %d, soap_fault_string=%s detail=%s",
-            result, soap->error, soap_fault_string(soap), (detail ? detail : "null"));
+        // Check if this is an authorization failure (SOAP_FAULT with auth-related message)
+        bool is_auth_error = (result == SOAP_FAULT &&
+            fault_string && (std::strstr(fault_string, "authorization") ||
+                            std::strstr(fault_string, "authorized") ||
+                            std::strstr(fault_string, "NotAuthorized")));
+
+        if (is_auth_error) {
+          // Authorization failure - likely due to clock drift or expired credentials
+          // Log with more context to help debugging
+          Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
+                "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
+                "(timestamp_validity=%ds, camera_clock_offset=%lds)",
+              result, soap->error, fault_string, (detail ? detail : "null"),
+              timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+        } else {
+          Error("Failed to get ONVIF messages! result=%d soap->error %d, soap_fault_string=%s detail=%s",
+              result, soap->error, fault_string, (detail ? detail : "null"));
+        }
 
         retry_count++;
         if (retry_count >= max_retries) {
@@ -463,13 +483,23 @@ void ONVIF::WaitForMessage() {
 
       // Extract TerminationTime from PullMessagesResponse for per-topic alarm expiry.
       // This is the camera's indication of how long the current subscription/response is valid.
+      // Apply the camera clock offset to account for timezone/clock differences.
       SystemTimePoint response_termination;
       bool have_response_termination = false;
       if (tev__PullMessagesResponse.TerminationTime != 0) {
-        response_termination = std::chrono::system_clock::from_time_t(tev__PullMessagesResponse.TerminationTime);
+        // Update clock offset from CurrentTime if available
+        if (tev__PullMessagesResponse.CurrentTime != 0) {
+          time_t our_current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+          camera_clock_offset = our_current_time - tev__PullMessagesResponse.CurrentTime;
+        }
+        // Apply offset to termination time
+        time_t adjusted_termination = tev__PullMessagesResponse.TerminationTime + camera_clock_offset;
+        response_termination = std::chrono::system_clock::from_time_t(adjusted_termination);
         have_response_termination = true;
-        Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld (%s)",
+        Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld adjusted=%ld (offset=%ld) (%s)",
               static_cast<long>(tev__PullMessagesResponse.TerminationTime),
+              static_cast<long>(adjusted_termination),
+              static_cast<long>(camera_clock_offset),
               SystemTimePointToString(response_termination).c_str());
       }
 
@@ -769,14 +799,18 @@ void ONVIF::cleanup_subscription() {
 // Parse ONVIF options from the onvif_options string
 // Format: key1=value1,key2=value2
 // Supported options:
-//   pull_timeout=5 - Timeout in seconds for PullMessages requests (default: 5)
+//   pull_timeout=5 - Timeout in seconds for PullMessages requests (default: 1)
 //   subscription_timeout=300 - Timeout in seconds for subscription renewal (default: 300)
-//   max_retries=10 - Maximum retry attempts
+//   max_retries=10 - Maximum retry attempts (default: 10)
+//   timestamp_validity=60 - WS-Security timestamp validity in seconds (default: 60, range: 10-600)
+//                          Increase if getting auth errors due to clock drift between ZM and camera
 //   soap_log=/path/to/logfile - Enable SOAP message logging
+//   renewal_enabled=false - Disable subscription renewal
+//   expire_alarms=false - Disable per-topic alarm expiry
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
-    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s, expire_alarms=%s",
-         pull_timeout_seconds, subscription_timeout_seconds,
+    Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, timestamp_validity=%ds, renewal_enabled=%s, expire_alarms=%s",
+         pull_timeout_seconds, subscription_timeout_seconds, timestamp_validity_seconds,
          renewal_enabled ? "true" : "false",
          expire_alarms_enabled ? "true" : "false");
     return;
@@ -850,11 +884,24 @@ void ONVIF::parse_onvif_options() {
       } else {
         expire_alarms_enabled = true;
       }
+    } else if (key == "timestamp_validity") {
+      try {
+        int val = std::stoi(value);
+        if (val >= 10 && val <= 600) {  // Allow 10 seconds to 10 minutes
+          timestamp_validity_seconds = val;
+          Debug(2, "ONVIF: Set timestamp_validity to %d seconds", timestamp_validity_seconds);
+        } else {
+          Warning("ONVIF: timestamp_validity %d out of range (10-600), using default %d",
+                  val, timestamp_validity_seconds);
+        }
+      } catch (const std::exception &e) {
+        Warning("ONVIF: Invalid timestamp_validity value '%s': %s", value.c_str(), e.what());
+      }
     }
   }
 
-  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, renewal_enabled=%s, expire_alarms=%s",
-       pull_timeout_seconds, subscription_timeout_seconds,
+  Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, timestamp_validity=%ds, renewal_enabled=%s, expire_alarms=%s",
+       pull_timeout_seconds, subscription_timeout_seconds, timestamp_validity_seconds,
        renewal_enabled ? "true" : "false",
        expire_alarms_enabled ? "true" : "false");
 }
@@ -874,19 +921,44 @@ int ONVIF::get_retry_delay() {
 }
 
 // Update subscription renewal tracking times based on TerminationTime from ONVIF response
+// camera_current_time: Camera's current time from the ONVIF response
 // termination_time: Unix timestamp (time_t) indicating when subscription expires
-void ONVIF::update_renewal_times(time_t termination_time) {
+void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_time) {
   if (termination_time <= 0) {
     Warning("ONVIF: Received invalid TerminationTime (%ld), not updating renewal tracking",
             static_cast<long>(termination_time));
     return;
   }
 
-  // Convert time_t to SystemTimePoint
-  subscription_termination_time = std::chrono::system_clock::from_time_t(termination_time);
-
-  // Validate that termination time is in the future
+  // Calculate clock offset between camera and our system
+  // This handles timezone differences and clock drift
   auto now = std::chrono::system_clock::now();
+  time_t our_current_time = std::chrono::system_clock::to_time_t(now);
+
+  if (camera_current_time > 0) {
+    camera_clock_offset = our_current_time - camera_current_time;
+    if (std::abs(camera_clock_offset) > 5) {  // More than 5 seconds difference
+      Debug(1, "ONVIF: Clock offset detected: %ld seconds (camera is %s our clock)",
+            static_cast<long>(camera_clock_offset),
+            camera_clock_offset > 0 ? "behind" : "ahead of");
+    }
+  } else {
+    Debug(2, "ONVIF: No CurrentTime in response, using previous offset of %ld seconds",
+          static_cast<long>(camera_clock_offset));
+  }
+
+  // Adjust termination time by the clock offset
+  time_t adjusted_termination = termination_time + camera_clock_offset;
+
+  // Convert adjusted time_t to SystemTimePoint
+  subscription_termination_time = std::chrono::system_clock::from_time_t(adjusted_termination);
+
+  Debug(2, "ONVIF: TerminationTime raw=%ld adjusted=%ld (offset=%ld)",
+        static_cast<long>(termination_time),
+        static_cast<long>(adjusted_termination),
+        static_cast<long>(camera_clock_offset));
+
+  // Validate that termination time is in the future (now was computed above)
   if (subscription_termination_time <= now) {
     if (!use_absolute_time_for_renewal) {
       Warning("ONVIF: Received TerminationTime in the past %ld %s < %s, switching to absolute time for future renewals",
@@ -909,7 +981,7 @@ void ONVIF::update_renewal_times(time_t termination_time) {
   next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
 
   log_subscription_timing("Updated subscription");
-}  // end void ONVIF::update_renewal_times(time_t termination_time)
+}  // end void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_time)
 
 // Check if renewal tracking has been initialized
 // Returns false if tracking times are at epoch (uninitialized), true otherwise
@@ -935,17 +1007,14 @@ void ONVIF::log_subscription_timing(const char* context) {
        context, SystemTimePointToString(subscription_termination_time).c_str(),
        seconds_until_termination,
        SystemTimePointToString(next_renewal_time).c_str(),
-       seconds_until_renewal);
-
-  // Warn if we're getting close to termination and renewal is enabled
-  // If renewal is disabled, this is expected behavior - just log at debug level
+       static_cast<intmax_t>(seconds_until_renewal));
+  // Log at debug level when we're getting close to termination
+  // This is informational - actual renewal failures are logged as Error/Warning in Renew()
+  // If renewal is enabled, we will renew or re-subscribe. If disabled, we will re-subscribe.
   if (seconds_until_termination < ONVIF_RENEWAL_ADVANCE_SECONDS && seconds_until_termination > 0) {
-    if (renewal_enabled) {
-      Warning("ONVIF: Subscription terminating soon! Only %ld seconds remaining", seconds_until_termination);
-    } else {
-      Debug(1, "ONVIF: Subscription terminating in %ld seconds (renewal disabled, will re-subscribe)",
-            seconds_until_termination);
-    }
+    Debug(1, "ONVIF: Subscription terminating in %jd seconds%s",
+          static_cast<intmax_t>(seconds_until_termination),
+          renewal_enabled ? ", will renew" : " (renewal disabled, will re-subscribe)");
   }
 }
 
@@ -1004,7 +1073,7 @@ bool ONVIF::Renew() {
   }
 
   if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
-    Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
       setHealthy(true);
@@ -1026,8 +1095,10 @@ bool ONVIF::Renew() {
   setHealthy(true);
 
   // Update renewal times from renew response
+  // CurrentTime is optional (time_t*) in RenewResponse
   if (wsnt__RenewResponse.TerminationTime != 0) {
-    update_renewal_times(wsnt__RenewResponse.TerminationTime);
+    time_t current_time = wsnt__RenewResponse.CurrentTime ? *wsnt__RenewResponse.CurrentTime : 0;
+    update_renewal_times(current_time, wsnt__RenewResponse.TerminationTime);
     log_subscription_timing("renewed");
   } else {
     Debug(1, "No TerminationTime in RenewResponse");
@@ -1106,7 +1177,10 @@ void ONVIF::set_credentials(struct soap *soap) {
     return;
   }
   soap_wsse_delete_Security(soap);
-  soap_wsse_add_Timestamp(soap, "Time", 10);
+  // Use configurable timestamp validity (default 60 seconds) to handle clock drift
+  // between ZoneMinder and the camera. The old value of 10 seconds was too short
+  // and caused "not authorized" errors when clocks were slightly out of sync.
+  soap_wsse_add_Timestamp(soap, "Time", timestamp_validity_seconds);
 
   const char *username = parent->onvif_username.empty() ? parent->user.c_str() : parent->onvif_username.c_str();
   const char *password = parent->onvif_username.empty() ? parent->pass.c_str() : parent->onvif_password.c_str();

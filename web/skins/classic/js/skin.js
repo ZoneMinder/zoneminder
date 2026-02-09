@@ -50,14 +50,15 @@ const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with stati
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
+const PLACEHOLDER_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI="; // Transparent GIF 1 pixel
 
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
-      var w = window.outerWidth;
-      var prevW = w;
-      var h = window.outerHeight;
-      var prevH = h;
+      let w = window.outerWidth;
+      const prevW = w;
+      let h = window.outerHeight;
+      const prevH = h;
       if (h > screen.availHeight) {
         h = screen.availHeight;
       }
@@ -87,14 +88,14 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
   document.querySelectorAll(".zmlink").forEach(function(el) {
     el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
+      const element = this;
+      let url;
+      if ( element.hasAttribute("href") ) {
         // <a>
-        url = el.getAttribute("href");
+        url = element.getAttribute("href");
       } else {
         // buttons
-        url = el.getAttribute("data-url");
+        url = element.getAttribute("data-url");
       }
       evt.preventDefault();
       window.location.assign(url);
@@ -644,7 +645,7 @@ function configureDeleteButton( element ) {
   var form = element.form;
   var checked = element.checked;
   if ( !checked ) {
-    for ( var i = 0; i < form.elements.length; i++ ) {
+    for ( let i = 0; i < form.elements.length; i++ ) {
       if ( form.elements[i].name == element.name ) {
         if ( form.elements[i].checked ) {
           checked = true;
@@ -720,7 +721,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   startTime = moment(startTime);
 
   // In Video.js 8, we need to add cues using the addCue method
-  for (var i = 0; i <= duration; i++) {
+  for (let i = 0; i <= duration; i++) {
     var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
     cue.id = i;
     try {
@@ -785,8 +786,8 @@ window.onresize = endOfResize;
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  if (!container) container = $j('#content');
-  if (!container) {
+  if (!container || !container.length) container = $j('#content');
+  if (!container.length) {
     console.error("No container found");
     return;
   }
@@ -797,10 +798,16 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   var bottomLoc = 0;
   if (bottomEl !== false) {
     if (!bottomEl || !bottomEl.length) {
-      bottomEl = $j(container[0].lastElementChild);
+      if (container[0] && container[0].lastElementChild) {
+        bottomEl = $j(container[0].lastElementChild);
+      } else {
+        bottomEl = false;
+      }
     }
-    bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-    console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    if (bottomEl && bottomEl.length) {
+      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+      console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    }
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   let newWidth = ratio * newHeight;
@@ -841,7 +848,7 @@ function isJSON(str) {
   } catch (e) {
     return false; // This is also not JSON
   }
-};
+}
 
 function setCookie(name, value, seconds) {
   var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
@@ -864,7 +871,7 @@ function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
   var ca = document.cookie.split(';');
-  for (var i=0; i < ca.length; i++) {
+  for (let i=0; i < ca.length; i++) {
     if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
@@ -1030,6 +1037,16 @@ function strip_html(string) {
   return string.replace(/<[^>]+>/g, '');
 }
 
+function escapeHTML(text) {
+  if (!text) return text;
+  return text.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
   if (jqxhr.statusText == 'abort') {
     console.log('request aborted');
@@ -1156,14 +1173,19 @@ function manageShutdownBtns(element) {
 /* Controls the availability of options for selection*/
 function manageChannelStream() {
   let select = null;
+  let primaryPath_ = null;
   let secondPath_ = null;
+  let restream = null;
+
   if (currentView == 'watch') {
     if (typeof monitorData !== 'undefined') {
       const monitor = monitorData.find((o) => {
         return parseInt(o["id"]) === monitorId;
       });
       if (monitor) {
+        primaryPath_ = monitor['Path'];
         secondPath_ = monitor['SecondPath'];
+        restream = monitor['Restream'];
       }
       select = document.querySelector('select[name="streamChannel"]');
     } else {
@@ -1171,21 +1193,46 @@ function manageChannelStream() {
     }
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
+    const PathInput = document.querySelector('input[name="newMonitor[Path]"]');
+    if (PathInput) {
+      primaryPath_ = PathInput.value;
+    }
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
     if (SecondPathInput) {
       secondPath_ = SecondPathInput.value;
     }
-    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+    const RestreamInput = document.querySelector('input[name="newMonitor[Restream]"]');
+    if (RestreamInput) {
+      restream = RestreamInput.checked;
+    }
+    select = document.querySelector('select[name="newMonitor[StreamChannel]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary' || el.value == 'CameraDirectSecondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream' || el.value == 'ZoneMinderPrimary') {
+        el.disabled = !restream;
+      } else if (el.value == 'CameraDirectPrimary') {
+        el.disabled = !primaryPath_;
       }
-      applyChosen(select);
     });
+
+    // If current selection is disabled, auto-select first available option
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.disabled) {
+      // Prefer CameraDirectPrimary, then first enabled option
+      const cameraDirectPrimary = select.querySelector('option[value="CameraDirectPrimary"]:not([disabled])');
+      if (cameraDirectPrimary) {
+        select.value = 'CameraDirectPrimary';
+      } else {
+        const firstEnabled = select.querySelector('option:not([disabled])');
+        if (firstEnabled) {
+          select.value = firstEnabled.value;
+        }
+      }
+    }
+    applyChosen(select);
   }
 }
 
@@ -1675,7 +1722,7 @@ function thisClickOnStreamObject(clickObj) {
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
     if (clickObj.closest('video-stream')) return true;
-  };
+  }
   return false;
 }
 
@@ -2084,17 +2131,17 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
     foundScrollLeft = true;
   }
   if (obj.offsetParent) {
-    var pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
+    const pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
     curleft += pos[0];
     curtop += pos[1];
   } else if (obj.ownerDocument) {
-    var thewindow = obj.ownerDocument.defaultView;
+    let thewindow = obj.ownerDocument.defaultView;
     if (!thewindow && obj.ownerDocument.parentWindow) thewindow = obj.ownerDocument.parentWindow;
     if (thewindow) {
       if (!foundScrollTop && thewindow.scrollY && thewindow.scrollY > 0) curtop -= parseInt(thewindow.scrollY);
       if (!foundScrollLeft && thewindow.scrollX && thewindow.scrollX > 0) curleft -= parseInt(thewindow.scrollX);
       if (thewindow.frameElement) {
-        var pos = findPos(thewindow.frameElement);
+        const pos = findPos(thewindow.frameElement);
         curleft += pos[0];
         curtop += pos[1];
       }

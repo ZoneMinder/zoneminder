@@ -17,7 +17,7 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = null;
-  this.RTSP2WebStream = monitorData.RTSP2WebStream;
+  this.StreamChannel = monitorData.StreamChannel;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
@@ -345,12 +345,52 @@ function MonitorStream(monitorData) {
   };
 
   /*
-  * streamChannel = 0 || Primary; 1 || Secondary.
+  * streamChannel options:
+  *   'default' or 'Primary' - Main stream (uses monitor ID, which is ZM restream if RTSPServer enabled)
+  *   'Secondary' or 'CameraDirectSecondary' - Secondary camera stream
+  *   'Restream' or 'ZoneMinderPrimary' - ZoneMinder RTSP restream
+  *   'CameraDirectPrimary' - Direct camera primary stream
+  * Legacy numeric values (0, 1, 2) are mapped to new names for backward compatibility
   */
+  this.getStreamSuffix = function(channel) {
+    // Map legacy numeric values and string names to go2rtc stream suffixes
+    const channelMap = {
+      'default': '', // Just monitor ID
+      'Primary': '', // Just monitor ID (primary based on RTSPServer setting)
+      'Secondary': '_CameraDirectSecondary',
+      'CameraDirectSecondary': '_CameraDirectSecondary',
+      'Restream': '_ZoneMinderPrimary',
+      'ZoneMinderPrimary': '_ZoneMinderPrimary',
+      'CameraDirectPrimary': '_CameraDirectPrimary',
+      '0': '', // Legacy: Primary
+      '1': '_CameraDirectSecondary', // Legacy: Secondary
+      '2': '_ZoneMinderPrimary' // Legacy: Restream
+    };
+    return channelMap[channel] !== undefined ? channelMap[channel] : '';
+  };
+
+  // For RTSP2Web which still uses numeric channel IDs
+  this.getNumericChannel = function(channel) {
+    const channelMap = {
+      'default': 0,
+      'Primary': 0,
+      'Secondary': 1,
+      'CameraDirectSecondary': 1,
+      'Restream': 2,
+      'ZoneMinderPrimary': 2,
+      'CameraDirectPrimary': 0,
+      '0': 0,
+      '1': 1,
+      '2': 2
+    };
+    return channelMap[channel] !== undefined ? channelMap[channel] : 0;
+  };
+
   this.start = function(streamChannel = 'default') {
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
-    if (!['default', 0, 1].includes(streamChannel)) {
-      streamChannel = (streamChannel.toLowerCase() == 'primary') ? 0 : 1;
+    // Normalize channel name for internal tracking
+    if (streamChannel == 'default') {
+      streamChannel = this.StreamChannel ? this.StreamChannel : 'Restream';
     }
     this.streamListenerBind = streamListener.bind(null, this);
 
@@ -369,11 +409,12 @@ function MonitorStream(monitorData) {
         //stream.muted = this.muted;
         const Go2RTCModUrl = url;
         const webrtcUrl = Go2RTCModUrl;
-        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = streamChannel;
+        const streamSuffix = this.getStreamSuffix(streamChannel);
+        console.log('go2rtc stream:', this.id + streamSuffix);
         webrtcUrl.protocol = (url.protocol=='https:') ? 'wss:' : 'ws';
         webrtcUrl.pathname += "/ws";
-        //webrtcUrl.search = 'src='+this.id;
-        webrtcUrl.search = 'src='+this.id+'_'+this.currentChannelStream;
+        webrtcUrl.search = 'src=' + this.id + streamSuffix;
         stream.src = webrtcUrl.href;
         const stream_container = old_stream.parentNode;
 
@@ -461,10 +502,11 @@ function MonitorStream(monitorData) {
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-        this.currentChannelStream = (streamChannel == 'default') ? ((this.RTSP2WebStream == 'Secondary') ? 1 : 0) : streamChannel;
+        this.currentChannelStream = streamChannel;
+        const numericChannel = this.getNumericChannel(streamChannel);
         if (-1 !== this.player.indexOf('hls')) {
           const hlsUrl = rtsp2webModUrl;
-          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/hls/live/index.m3u8";
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/hls/live/index.m3u8";
           /*
           if (useSSL) {
             hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
@@ -483,13 +525,13 @@ function MonitorStream(monitorData) {
         } else if (-1 !== this.player.indexOf('mse')) {
           const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
-          mseUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/mse";
-          mseUrl.search = "uuid=" + this.id + "&channel=" + this.currentChannelStream + "";
+          mseUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/mse";
+          mseUrl.search = "uuid=" + this.id + "&channel=" + numericChannel + "";
           startMsePlay(this, stream, mseUrl.href);
           this.activePlayer = 'rtsp2web_mse';
         } else if (!this.player || (-1 !== this.player.indexOf('webrtc'))) {
           const webrtcUrl = rtsp2webModUrl;
-          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + this.currentChannelStream + "/webrtc";
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/" + numericChannel + "/webrtc";
           startRTSP2WebPlay(stream, webrtcUrl.href, this);
           this.activePlayer = 'rtsp2web_webrtc';
         }
@@ -1305,11 +1347,11 @@ function MonitorStream(monitorData) {
 
       this.setAlarmState(monitor.Status);
 
-      if (respObj.auth_hash) {
-        if (auth_hash != respObj.auth_hash) {
+      if (respObj.auth) {
+        if (auth_hash != respObj.auth) {
           // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-          console.log("Changed auth from " + auth_hash + " to " + respObj.auth_hash);
-          auth_hash = respObj.auth_hash;
+          console.log("Changed auth from " + auth_hash + " to " + respObj.auth);
+          auth_hash = respObj.auth;
           auth_relay = respObj.auth_relay;
         }
       } // end if have a new auth hash
@@ -1376,7 +1418,7 @@ function MonitorStream(monitorData) {
   };
 
   this.streamCmdQuery = function(resent) {
-    if (this.type != 'WebSite') {
+    if (this.type != 'WebSite' && this.started) {
       // Websites don't have streaming
       // Can't use streamCommand because it aborts
 
@@ -1386,6 +1428,10 @@ function MonitorStream(monitorData) {
   };
 
   this.streamCommand = function(command) {
+    if (!this.started) {
+      console.log('Not sending command, stream not started', command);
+      return;
+    }
     const params = Object.assign({}, this.streamCmdParms);
     if (typeof(command) == 'object') {
       for (const key in command) params[key] = command[key];

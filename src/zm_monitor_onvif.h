@@ -97,6 +97,7 @@ class ONVIF {
   SystemTimePoint next_renewal_time;
   bool use_absolute_time_for_renewal;
   bool renewal_enabled;
+  time_t camera_clock_offset;  // Offset in seconds: our_time - camera_time
 
   // Alarm tracking
   struct AlarmEntry {
@@ -105,6 +106,7 @@ class ONVIF {
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
   bool expire_alarms_enabled;
+  int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;
 
   // Thread management
@@ -125,7 +127,7 @@ class ONVIF {
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
   int get_retry_delay();
-  void update_renewal_times(time_t termination_time);
+  void update_renewal_times(time_t camera_current_time, time_t termination_time);
   bool is_renewal_tracking_initialized() const;
   void log_subscription_timing(const char* context);
   bool Renew();

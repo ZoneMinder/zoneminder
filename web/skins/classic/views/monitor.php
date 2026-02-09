@@ -453,7 +453,6 @@ if (canEdit('Monitors')) {
     <!-- BEGIN ITEM LIST -->
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
-        <input type="password" name="dummy_password" style="display:none;"/><?php #to prevent chrome from saving passwords ?>
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
@@ -866,6 +865,7 @@ $decoders = array(
   'h264_vaapi' => 'h264_vaapi',
   'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
+  'hevc' => 'hevc',
   'hevc_cuvid' => 'hevc_cuvid',
   'hevc_nvmpi' => 'hevc_nvmpi',
   'hevc_qsv' => 'hevc_qsv',
@@ -1275,9 +1275,9 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
-            <li id="RTSP2WebStream">
+            <li id="StreamChannel">
               <label><?php echo translate('Stream source') ?> </label>
-              <?php echo htmlSelect('newMonitor[RTSP2WebStream]', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream()); ?>
+              <?php echo htmlSelect('newMonitor[StreamChannel]', ZM\Monitor::getStreamChannelOptions(), $monitor->StreamChannel()); ?>
             </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>
@@ -1315,17 +1315,17 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
             </li>
-            <li id="FunctionJanusUseRTSPRestream">
-              <label><?php echo translate('Janus Use RTSP Restream') ?></label>
-              <input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+            <li id="FunctionRestream">
+              <label><?php echo translate('Use RTSP Restream') ?></label>
+              <input type="checkbox" name="newMonitor[Restream]" value="1"<?php echo $monitor->Restream() ? ' checked="checked"' : '' ?>/>
 <?php
-  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
+  if ( isset($OLANG['FUNCTION_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_RESTREAM']['Help'].'</div>';
   }
 ?>
-              
+
             </li>
-            <li id="Janus_RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Janus_Use_RTSP_Restream()) ? 'style="display:none;"' : ''?>>
+            <li id="RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Restream()) ? 'style="display:none;"' : ''?>>
               <label><?php echo translate('User for RTSP Server Auth') ?></label>
               <?php
                 $users = array(''=>translate('None'));
@@ -1334,7 +1334,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }
-                echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
+                echo htmlSelect("newMonitor[RTSP_User]", $users, $monitor->RTSP_User());
 ?>
               
             </li>
@@ -1678,7 +1678,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 </div><!--tab-content-->
         <div id="contentButtons" class="pr-3">
           <button type="button" id="saveBtn" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? ($thisNewMonitor === true ? ' disabled="disabled"' : '') : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-          <button type="submit" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? '' : ' disabled="disabled"' ?>><?php echo translate('SaveAndClose') ?></button>
+          <button type="button" id="saveAndCloseBtn" name="action" value="save"<?php echo canEdit('Monitors', $mid) ? '' : ' disabled="disabled"' ?>><?php echo translate('SaveAndClose') ?></button>
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

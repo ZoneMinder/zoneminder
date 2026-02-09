@@ -553,7 +553,7 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for (var i = 0; i < arrRatioMonitors.length; i++) {
+  for (let i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
   const avg = total / arrRatioMonitors.length;
@@ -593,39 +593,29 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+  document.querySelectorAll(".grid-monitor").forEach(function(el) {
     // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
     el.addEventListener('mouseout', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) { // This will prevent the code below from being executed if we navigate within a single monitor block.
+        if (!event.relatedTarget || (event.relatedTarget && !event.relatedTarget.closest('#m'+id))) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+          }
+          hideСontrolElementsOnStream(el);
         }
-      }
-      if (!event.relatedTarget) {
-        hideСontrolElementsOnStream(el);
-        return;
-      }
-      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
-        }
-        hideСontrolElementsOnStream(el);
       }
     });
 
     el.addEventListener('mouseover', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) {
+        if (event.target.closest('#m'+id)) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+          }
+          showСontrolElementsOnStream(el);
         }
-      }
-      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
-        }
-        showСontrolElementsOnStream(el);
       }
     });
   });

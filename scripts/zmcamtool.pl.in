@@ -64,6 +64,7 @@ use bytes;
 @EXTRA_PERL_LIB@
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
+use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use DBI;
 use Getopt::Long;
@@ -344,7 +345,7 @@ sub importsql {
 sub exportsql {
 
   my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-  my $command = 'mysqldump -t --skip-opt --compact -h'.$host;
+  my $command = findDbCommand('mysqldump').' -t --skip-opt --compact -h'.$host;
   $command .= ' -P'.$port if defined($port);
   if ( $dbUser ) {
     $command .= ' -u\''.$dbUser.'\'';

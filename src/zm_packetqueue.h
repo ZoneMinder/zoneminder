@@ -19,11 +19,14 @@
 #ifndef ZM_PACKETQUEUE_H
 #define ZM_PACKETQUEUE_H
 
+#include "zm_time.h"
+
 #include <condition_variable>
 #include <list>
 #include <mutex>
 #include <memory>
 
+class Monitor;
 class ZMPacket;
 class ZMPacketLock;
 
@@ -50,6 +53,8 @@ class PacketQueue {
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
   int frames_since_last_keyframe_;
+  uint64_t next_queue_index_;
+  Monitor *monitor_;
 
  public:
   PacketQueue();
@@ -61,6 +66,7 @@ class PacketQueue {
   void setMaxVideoPackets(int p);
   void setPreEventVideoPackets(int p);
   void setKeepKeyframes(bool k) { keep_keyframes = k; };
+  void setMonitor(Monitor *m) { monitor_ = m; };
 
   bool queuePacket(std::shared_ptr<ZMPacket> packet);
   void stop();
@@ -94,6 +100,7 @@ class PacketQueue {
   void unlock(ZMPacketLock *lp);
   void notify_all();
   void wait();
+  void wait_for(Microseconds duration);
  private:
   packetqueue_iterator deletePacket(packetqueue_iterator it);
 };

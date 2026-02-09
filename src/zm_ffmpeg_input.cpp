@@ -314,12 +314,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
   last_seek_request = seek_target;
 
-  // Normally it is likely just the next packet. Need a heuristic for seeking, something like duration * keyframe interval
-#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-  if (frame->pts + 10*input_format_context->streams[stream_id]->time_base.den * frame->duration < seek_target)
-#else
-  if (frame->pts + 10*input_format_context->streams[stream_id]->time_base.den * frame->pkt_duration < seek_target)
-#endif
+  // If more than 5 seconds behind seek target, use av_seek_frame to jump
+  // ahead instead of decoding packets sequentially (which is very slow for
+  // large gaps). 5 seconds is well beyond a typical GOP, making seek
+  // worthwhile even after decoding forward from the nearest keyframe.
+  int64_t seek_threshold = av_rescale_q(5 * AV_TIME_BASE, AV_TIME_BASE_Q,
+                                        input_format_context->streams[stream_id]->time_base);
+  if (frame->pts + seek_threshold < seek_target)
   {
     Debug(1, "Jumping ahead to %" PRId64, seek_target);
     if (( ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME) ) < 0) {

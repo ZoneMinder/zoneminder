@@ -25,6 +25,7 @@
 #include "zm_sendfile.h"
 #include "zm_signal.h"
 #include "zm_storage.h"
+#include <algorithm>
 #include <arpa/inet.h>
 #include <sys/stat.h>
 
@@ -88,9 +89,9 @@ bool EventStream::seek(SystemTimePoint event_time) {
     return false;
   }
 
-  for (int i=0; i < event_data->frame_count; i++) {
+  for (int i=0; i < (int)event_data->frames.size(); i++) {
     //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
-    if (event_data->frames[i].timestamp >= event_time || 
+    if (event_data->frames[i].timestamp >= event_time ||
         event_data->frames[i].timestamp + event_data->frames[i].delta >=event_time) {
       curr_frame_id = i + 1;
       curr_stream_time = event_time;
@@ -113,8 +114,8 @@ bool EventStream::loadInitialEventData(
   loadEventData(init_event_id);
 
   if ( init_frame_id ) {
-    if ( init_frame_id >= event_data->frame_count ) {
-      Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count);
+    if ( init_frame_id < 1 || init_frame_id > (int)event_data->frames.size() ) {
+      Error("Invalid frame id specified. %d not in [1..%zu]", init_frame_id, event_data->frames.size());
       curr_stream_time = event_data->start_time;
       curr_frame_id = 1;
     } else {
@@ -259,7 +260,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   int last_id = 0;
   SystemTimePoint last_timestamp = event_data->start_time;
   Microseconds last_offset = Seconds(0);
-  const FrameData *last_frame = nullptr;
+  int last_frame_idx = -1;
 
   // Here are the issues: if showing jpegs, need FrameId.
   // Delta is the time since last frame, not since beginning of Event
@@ -282,11 +283,11 @@ bool EventStream::loadEventData(uint64_t event_id) {
         auto &frame = event_data->frames.emplace_back(
                        i,
                        last_timestamp + ((i - last_id) * delta),
-                       std::chrono::duration_cast<Microseconds>((last_frame->timestamp - event_data->start_time) + delta),
+                       std::chrono::duration_cast<Microseconds>((event_data->frames[last_frame_idx].timestamp - event_data->start_time) + delta),
                        delta,
                        false
                      );
-        last_frame = &frame;
+        last_frame_idx = event_data->frames.size() - 1;
         Debug(4, "Frame %d %d timestamp (%f s), offset (%f s) delta (%f s), in_db (%d)",
               i, frame.id,
               FPSeconds(frame.timestamp.time_since_epoch()).count(),
@@ -296,7 +297,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
       }
     }
     auto &frame = event_data->frames.emplace_back(id, timestamp, offset, delta, true);
-    last_frame = &frame;
+    last_frame_idx = event_data->frames.size() - 1;
     last_id = id;
     last_offset = offset;
     last_timestamp = timestamp;
@@ -310,7 +311,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   if (event_data->end_time.time_since_epoch() != Seconds(0) and event_data->duration != Seconds(0) and event_data->frame_count > last_id) {
     Microseconds delta;
-    if (!last_frame) {
+    if (last_frame_idx < 0) {
       // There were no frames in db
       delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
       auto &frame = event_data->frames.emplace_back(
@@ -320,7 +321,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
                      Microseconds(0),
                      false
                    );
-      last_frame = &frame;
+      last_frame_idx = event_data->frames.size() - 1;
       last_id ++;
       last_timestamp = event_data->start_time;
       event_data->frame_count ++;
@@ -344,11 +345,11 @@ bool EventStream::loadEventData(uint64_t event_id) {
         auto &frame = event_data->frames.emplace_back(
                        last_id,
                        last_timestamp,
-                       last_frame->offset + delta,
+                       event_data->frames[last_frame_idx].offset + delta,
                        delta,
                        false
                      );
-        last_frame = &frame;
+        last_frame_idx = event_data->frames.size() - 1;
         Debug(3, "Trailing Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
               last_id,
               FPSeconds(frame.timestamp.time_since_epoch()).count(),
@@ -384,10 +385,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   // Not sure about this
   if ( forceEventChange || mode == MODE_ALL_GAPLESS ) {
-    if ( replay_rate > 0 )
+    if (event_data->frames.empty()) {
+      curr_stream_time = event_data->start_time;
+    } else if ( replay_rate > 0 ) {
       curr_stream_time = event_data->frames[0].timestamp;
-    else
-      curr_stream_time = event_data->frames[event_data->last_frame_id-1].timestamp;
+    } else {
+      curr_stream_time = event_data->frames[event_data->frames.size()-1].timestamp;
+    }
   }
   Debug(2, "Event: %" PRIu64 ", Frames: %d, Last Frame ID (%d, Duration: %.2f s Frames Duration: %.2f s",
         event_data->event_id,
@@ -416,7 +420,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     if (
       (mode == MODE_SINGLE || mode == MODE_NONE)
       &&
-      (curr_frame_id == event_data->last_frame_id)
+      (curr_frame_id >= (int)event_data->frames.size())
     ) {
       Debug(1, "Was in single or no replay mode, and at last frame, so jumping to 1st frame");
       curr_frame_id = 1;
@@ -480,7 +484,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = 1;
-    if (curr_frame_id < event_data->last_frame_id)
+    if (curr_frame_id < (int)event_data->frames.size())
       curr_frame_id += 1;
     Debug(1, "Got SLOWFWD command new frame id %d", curr_frame_id);
     break;
@@ -571,13 +575,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_PREV :
     Debug(1, "Got PREV command");
-    curr_frame_id = replay_rate >= 0 ? 1 : event_data->last_frame_id+1;
+    curr_frame_id = replay_rate >= 0 ? 0 : (int)event_data->frames.size()+1;
     paused = false;
     forceEventChange = true;
     break;
   case CMD_NEXT :
     Debug(1, "Got NEXT command");
-    curr_frame_id = replay_rate >= 0 ? event_data->last_frame_id+1 : 1;
+    curr_frame_id = replay_rate >= 0 ? (int)event_data->frames.size()+1 : 0;
     paused = false;
     forceEventChange = true;
     break;
@@ -597,13 +601,22 @@ void EventStream::processCommand(const CmdMsg *msg) {
     }
 
     std::scoped_lock lck{mutex};
+
+    if (event_data->frames.empty()) {
+      Debug(1, "No frames in event, can't seek");
+      curr_frame_id = 1;
+      curr_stream_time = event_data->start_time;
+      break;
+    }
+
     // This should get us close, but not all frames will have the same duration
-    curr_frame_id = (int) (event_data->frame_count * offset / event_data->duration) + 1;
+    int num_frames = (int)event_data->frames.size();
+    curr_frame_id = (int) (num_frames * offset / event_data->duration) + 1;
     if (curr_frame_id < 1) {
       Debug(1, "curr_frame_id = %d, so setting to 1", curr_frame_id);
       curr_frame_id = 1;
-    } else if (curr_frame_id > event_data->last_frame_id) {
-      curr_frame_id = event_data->last_frame_id;
+    } else if (curr_frame_id > num_frames) {
+      curr_frame_id = num_frames;
     }
 
     // TODO Replace this with a binary search
@@ -622,7 +635,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
              );
       }
     } else if (event_data->frames[curr_frame_id - 1].offset < offset) {
-      while ((curr_frame_id++ < event_data->last_frame_id) && (event_data->frames[curr_frame_id - 1].offset < offset)) {
+      while ((curr_frame_id++ < num_frames) && (event_data->frames[curr_frame_id - 1].offset < offset)) {
         Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
               FPSeconds(offset).count(),
               curr_frame_id,
@@ -635,8 +648,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
     if (curr_frame_id < 1) {
       Debug(1, "curr_frame_id = %d, so setting to 1", curr_frame_id);
       curr_frame_id = 1;
-    } else if (curr_frame_id > event_data->last_frame_id) {
-      curr_frame_id = event_data->last_frame_id;
+    } else if (curr_frame_id > num_frames) {
+      curr_frame_id = num_frames;
     }
 
     curr_stream_time = event_data->frames[curr_frame_id-1].timestamp;
@@ -683,7 +696,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
     //status_data.duration = event_data->duration;
     status_data.duration = FPSeconds(event_data->duration).count();
     //status_data.progress = event_data->frames[curr_frame_id-1].offset;
-    status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
+    status_data.progress = (!event_data->frames.empty() && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size())
+      ? std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count()
+      : 0.0;
     status_data.rate = replay_rate;
     status_data.zoom = zoom;
     status_data.scale = scale;
@@ -735,12 +750,13 @@ bool EventStream::checkEventLoaded() {
     sql = stringtf(
             "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
             event_data->monitor_id, event_data->event_id);
-  } else if (curr_frame_id > event_data->last_frame_id) {
+  } else if (curr_frame_id > (int)event_data->frames.size()) {
     if (event_data->end_time.time_since_epoch() == Seconds(0)) {
       // We are viewing an in-process event, so just reload it.
       loadEventData(event_data->event_id);
-      if (curr_frame_id > event_data->last_frame_id)
-        curr_frame_id = event_data->last_frame_id;
+      int num_frames = (int)event_data->frames.size();
+      if (num_frames == 0 || curr_frame_id > num_frames)
+        curr_frame_id = num_frames > 0 ? num_frames : 1;
       return false;
     }
     sql = stringtf(
@@ -748,8 +764,8 @@ bool EventStream::checkEventLoaded() {
             event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
-    Debug(4, "No event change required, as curr frame %d <=> event frames %d",
-          curr_frame_id, event_data->frame_count);
+    Debug(4, "No event change required, as curr frame %d <=> event frames %zu",
+          curr_frame_id, event_data->frames.size());
     return false;
   }
 
@@ -776,14 +792,16 @@ bool EventStream::checkEventLoaded() {
 
       loadEventData(event_id);
 
-      curr_frame_id = replay_rate < 0 ? event_data->last_frame_id : 1;
+      int num_frames = (int)event_data->frames.size();
+      curr_frame_id = replay_rate < 0 ? (num_frames > 0 ? num_frames : 1) : 1;
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
       mysql_free_result(result);
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
-      curr_frame_id = curr_frame_id <= 0 ? 1 : event_data->frame_count;
+      int num_frames = (int)event_data->frames.size();
+      curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
       paused = true;
       sendTextFrame("No more event data found");
     }  // end if found a new event or not
@@ -791,7 +809,8 @@ bool EventStream::checkEventLoaded() {
     forceEventChange = false;
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
-    curr_frame_id = curr_frame_id <= 0 ? 1 : event_data->last_frame_id;
+    int num_frames = (int)event_data->frames.size();
+    curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
     paused = true;
   }
   return false;
@@ -806,6 +825,17 @@ Image * EventStream::getImage( ) {
 
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
+
+  if (event_data->frames.empty()) {
+    Debug(1, "No frames in event, can't send frame");
+    return true;  // Not fatal, just nothing to send yet
+  }
+
+  if (curr_frame_id < 1 || curr_frame_id > (int)event_data->frames.size()) {
+    Debug(1, "curr_frame_id %d out of range [1..%zu], clamping",
+          curr_frame_id, event_data->frames.size());
+    curr_frame_id = std::clamp(curr_frame_id, 1, (int)event_data->frames.size());
+  }
 
   std::string filepath;
   struct stat filestat = {};
@@ -1066,22 +1096,24 @@ void EventStream::runStream() {
     {
       std::scoped_lock lck{mutex};
 
-      if (!paused) {
+      if (!paused && !event_data->frames.empty()
+          && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {
         // Get current frame data, curr_frame_id may have changed
         FrameData *last_frame_data = &event_data->frames[curr_frame_id-1];
         curr_stream_time = last_frame_data->timestamp;
         curr_frame_id += (replay_rate > 0 ? frame_mod : -1*frame_mod);
 
-        // we incremented by replay_rate, so might have jumped past frame_count
+        // we incremented by replay_rate, so might have jumped past frames.size()
+        int num_frames = (int)event_data->frames.size();
         if ((mode == MODE_SINGLE) && (
-              (curr_frame_id < 1 ) || (curr_frame_id >= event_data->frame_count)
+              (curr_frame_id < 1 ) || (curr_frame_id > num_frames)
             )
            ) {
           Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
           curr_frame_id = 1;
         }
 
-        if (curr_frame_id <= event_data->frame_count) {
+        if (curr_frame_id >= 1 && curr_frame_id <= num_frames) {
           const FrameData *next_frame_data = &event_data->frames[curr_frame_id-1];
           Debug(3, "Have Frame %d %d timestamp (%f s), offset (%f s) delta (%f s), in_db (%d)",
                 curr_frame_id, next_frame_data->id,
@@ -1163,7 +1195,9 @@ void EventStream::runStream() {
 
         // This next bit is to determine if we are in the current event time wise
         // and whether to show an image saying how long until the next event.
-        if (replay_rate > 0) {
+        if (event_data->frames.empty()) {
+          Debug(1, "New event has no frames yet, skipping time_to_event calculation");
+        } else if (replay_rate > 0) {
           // This doesn't make sense unless we have hit the end of the event.
           time_to_event = event_data->frames[0].timestamp - curr_stream_time;
           Debug(1, "replay rate (%d) time_to_event (%f s) = frame timestamp (%f s) - curr_stream_time (%f s)",
@@ -1173,12 +1207,12 @@ void EventStream::runStream() {
                 FPSeconds(curr_stream_time.time_since_epoch()).count());
 
         } else if (replay_rate < 0) {
-          time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
+          time_to_event = curr_stream_time - event_data->frames[event_data->frames.size()-1].timestamp;
           Debug(1, "replay rate (%d), time_to_event(%f s) = curr_stream_time (%f s) - frame timestamp (%f s)",
                 replay_rate,
                 FPSeconds(time_to_event).count(),
                 FPSeconds(curr_stream_time.time_since_epoch()).count(),
-                FPSeconds(event_data->frames[event_data->frame_count - 1].timestamp.time_since_epoch()).count());
+                FPSeconds(event_data->frames[event_data->frames.size() - 1].timestamp.time_since_epoch()).count());
         }  // end if forward or reverse
       }  // end if checkEventLoaded
     }  // end scope for lock

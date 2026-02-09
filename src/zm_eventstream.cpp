@@ -812,6 +812,10 @@ bool EventStream::checkEventLoaded() {
     int num_frames = (int)event_data->frames.size();
     curr_frame_id = curr_frame_id <= 0 ? 1 : (num_frames > 0 ? num_frames : 1);
     paused = true;
+    // Reset last_frame_sent so the next loop iteration sends a keepalive
+    // immediately, rather than leaving a 5-second gap (MAX_STREAM_DELAY)
+    // during which the HTTP connection can time out and break the pipe.
+    last_frame_sent = {};
   }
   return false;
 }  // void EventStream::checkEventLoaded()

@@ -548,14 +548,7 @@ function playClicked( ) {
     }
   } else {
     if (zmsBroke) {
-      // The assumption is that the command failed because zms exited, so restart the stream.
-      const img = document.getElementById('evtStream');
-      const src = img.src;
-      const url = new URL(src);
-      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
-      img.src = '';
-      img.src = url;
-      zmsBroke = false;
+      restartZmsStream();
     } else {
       streamReq({command: CMD_PLAY});
     }
@@ -823,11 +816,33 @@ function streamPan(x, y) {
 }
 */
 
+// Restart the zms stream by resetting the <img> src. The browser makes a
+// new CGI request to zms (same connkey), spawning a fresh process. When the
+// new zms delivers its first MJPEG frame, img.onload fires as a reliable
+// signal that the command socket is ready. Optional onReady callback is
+// invoked at that point to send queued commands (e.g. CMD_SEEK).
+function restartZmsStream(onReady) {
+  const img = document.getElementById('evtStream');
+  const url = new URL(img.src);
+  url.searchParams.set('scale', currentScale);
+  img.src = '';
+  img.onload = function() {
+    img.onload = null;
+    zmsBroke = false;
+    if (onReady) onReady();
+  };
+  img.src = url.href;
+}
+
 function streamSeek(offset) {
   if (vid) {
     vid.currentTime(offset);
   } else {
-    streamReq({command: CMD_SEEK, offset: offset});
+    if (zmsBroke) {
+      restartZmsStream(function() { streamSeek(offset); });
+    } else {
+      streamReq({command: CMD_SEEK, offset: offset});
+    }
   }
 }
 

@@ -1079,22 +1079,18 @@ void EventStream::runStream() {
 
         continue;
       }  // end if !in_event
-    }  // end scope for mutex lock
 
-    if (send_frame) {
-      if (!sendFrame(delta)) {
-        zm_terminate = true;
-        break;
+      if (send_frame) {
+        if (!sendFrame(delta)) {
+          zm_terminate = true;
+          break;
+        }
+        if (send_twice and !sendFrame(delta)) {
+          zm_terminate = true;
+          break;
+        }
+        frame_count++;
       }
-      if (send_twice and !sendFrame(delta)) {
-        zm_terminate = true;
-        break;
-      }
-      frame_count++;
-    }
-
-    {
-      std::scoped_lock lck{mutex};
 
       if (!paused && !event_data->frames.empty()
           && curr_frame_id >= 1 && curr_frame_id <= (int)event_data->frames.size()) {

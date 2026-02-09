@@ -226,7 +226,7 @@ sub zmDbGetMonitorAndControl {
     INNER JOIN Controls as C on (M.ControlId = C.Id)
     WHERE M.Id = ?'
     ;
-  return zmDbFetchOne($sql);
+  return zmDbFetchOne($sql, $id);
 }
 
 sub start_transaction {
@@ -255,7 +255,7 @@ sub zmDbDo {
   my $rows = $dbh->do($sql, undef, @_);
 	if ( ! defined $rows ) {
 		$sql =~ s/\?/'%s'/;
-		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
+		Error("Failed $sql : @_ " . $dbh->errstr());
   } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
     ($rows) = $rows =~ /^(.*)$/; # de-taint
     $sql =~ s/\?/'%s'/g;

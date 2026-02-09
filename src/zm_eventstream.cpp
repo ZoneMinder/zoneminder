@@ -131,8 +131,7 @@ bool EventStream::loadInitialEventData(
 bool EventStream::loadEventData(uint64_t event_id) {
   std::string sql = stringtf(
                       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
-                      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, Length, "
-                      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
+                      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, `Length`, "
                       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -160,10 +159,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
   event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
   event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
-  event_data->frames_duration =
-    std::chrono::duration_cast<Microseconds>(dbrow[6] ? FPSeconds(atof(dbrow[6])) : FPSeconds(0.0));
-  event_data->video_file = dbrow[7] ? std::string(dbrow[7]) : std::string();
-  std::string scheme_str = dbrow[8] ? std::string(dbrow[8]) : std::string();
+  event_data->video_file = dbrow[6] ? std::string(dbrow[6]) : std::string();
+  std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
   } else if ( scheme_str == "Medium" ) {
@@ -171,8 +168,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
-  event_data->SaveJPEGs = dbrow[9] == nullptr ? 0 : atoi(dbrow[9]);
-  event_data->Orientation = (Monitor::Orientation)(dbrow[10] == nullptr ? 0 : atoi(dbrow[10]));
+  event_data->SaveJPEGs = dbrow[8] == nullptr ? 0 : atoi(dbrow[8]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[9] == nullptr ? 0 : atoi(dbrow[9]));
   mysql_free_result(result);
 
   if (!monitor) {
@@ -389,12 +386,28 @@ bool EventStream::loadEventData(uint64_t event_id) {
     else
       curr_stream_time = event_data->frames[event_data->last_frame_id-1].timestamp;
   }
-  Debug(2, "Event: %" PRIu64 ", Frames: %d, Last Frame ID (%d, Duration: %.2f s Frames Duration: %.2f s",
-        event_data->event_id,
-        event_data->frame_count,
-        event_data->last_frame_id,
-        FPSeconds(event_data->duration).count(),
-        FPSeconds(event_data->frames_duration).count());
+  if (logLevel() >= Logger::DEBUG2) {
+    // Query actual frame-span duration from the Frames table and compare
+    // against Event Length to diagnose DB queue lag, unclean shutdowns,
+    // clock jumps, or bulk frame gaps.
+    double frames_duration = 0.0;
+    std::string fdsql = stringtf(
+      "SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId` = %" PRIu64,
+      event_data->event_id);
+    MYSQL_RES *fdresult = zmDbFetch(fdsql);
+    if (fdresult) {
+      MYSQL_ROW fdrow = mysql_fetch_row(fdresult);
+      if (fdrow && fdrow[0])
+        frames_duration = atof(fdrow[0]);
+      mysql_free_result(fdresult);
+    }
+    Debug(2, "Event: %" PRIu64 ", Frames: %d, Last Frame ID (%d, Duration: %.2f s Frames Duration: %.2f s",
+          event_data->event_id,
+          event_data->frame_count,
+          event_data->last_frame_id,
+          FPSeconds(event_data->duration).count(),
+          frames_duration);
+  }
 
   return true;
 } // bool EventStream::loadEventData( int event_id )

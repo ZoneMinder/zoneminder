@@ -364,6 +364,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool RTSP2Web_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
@@ -394,6 +395,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
+      mutable bool ssl_verification_failed = false;
       std::string Go2RTC_endpoint;
       std::string rtsp_restream_path;
       std::string rtsp_restream_base_path;  // Path without auth parameter
@@ -421,6 +423,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;

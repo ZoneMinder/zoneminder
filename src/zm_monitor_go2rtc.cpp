@@ -118,16 +118,22 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  // Try with SSL verification enabled first
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   CURLcode res = curl_easy_perform(curl);
-  
-  // If SSL verification failed, retry without verification
-  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
-      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
-    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+
+  // If SSL verification failed, retry without verification and remember for future calls
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
             endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
@@ -288,17 +294,23 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  // Try with SSL verification enabled first
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
 
   CURLcode res = curl_easy_perform(curl);
-  
-  // If SSL verification failed, retry without verification
-  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
-      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
-    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+
+  // If SSL verification failed, retry without verification and remember for future calls
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
             endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
@@ -351,16 +363,22 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-  // Try with SSL verification enabled first
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   CURLcode res = curl_easy_perform(curl);
-  
-  // If SSL verification failed, retry without verification
-  if (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE || 
-      res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION) {
-    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification", 
+
+  // If SSL verification failed, retry without verification and remember for future calls
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
             endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());

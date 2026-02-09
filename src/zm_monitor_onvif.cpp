@@ -67,6 +67,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,try_usernametoken_auth(false)
   ,retry_count(0)
   ,max_retries(10)
+  ,warned_pull_auth_failure(false)
   ,has_valid_subscription_(false)
   ,warned_initialized_repeat(false)
   ,pull_timeout_seconds(1)
@@ -413,7 +414,7 @@ void ONVIF::WaitForMessage() {
   bool use_wsa = parent->soap_wsa_compl;
 
   if (use_wsa) {
-    if (!do_wsa_request(subscription_address_.c_str(), "PullMessageRequest")) {
+    if (!do_wsa_request(subscription_address_.c_str(), "PullPointSubscription/PullMessagesRequest")) {
       return;
     }
   } else {
@@ -441,12 +442,20 @@ void ONVIF::WaitForMessage() {
 
         if (is_auth_error) {
           // Authorization failure - likely due to clock drift or expired credentials
-          // Log with more context to help debugging
-          Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
-                "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
-                "(timestamp_validity=%ds, camera_clock_offset=%lds)",
-              result, soap->error, fault_string, (detail ? detail : "null"),
-              timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+          // Only log as Error the first time, then demote to Debug to avoid flooding logs
+          if (!warned_pull_auth_failure) {
+            Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
+                  "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
+                  "(timestamp_validity=%ds, camera_clock_offset=%lds)",
+                result, soap->error, fault_string, (detail ? detail : "null"),
+                timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+            warned_pull_auth_failure = true;
+          } else {
+            Debug(1, "ONVIF: Authorization failed for PullMessages (repeated). result=%d soap->error=%d "
+                  "(timestamp_validity=%ds, camera_clock_offset=%lds)",
+                result, soap->error,
+                timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+          }
         } else {
           Error("Failed to get ONVIF messages! result=%d soap->error %d, soap_fault_string=%s detail=%s",
               result, soap->error, fault_string, (detail ? detail : "null"));
@@ -474,11 +483,12 @@ void ONVIF::WaitForMessage() {
         }
       }
     } else {
-      // Success - reset retry count
+      // Success - reset retry count and warning flags
       if (retry_count > 0) {
         Info("ONVIF: PullMessages succeeded after %d failed attempts", retry_count);
         retry_count = 0;
       }
+      warned_pull_auth_failure = false;
       Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
 
       // Extract TerminationTime from PullMessagesResponse for per-topic alarm expiry.

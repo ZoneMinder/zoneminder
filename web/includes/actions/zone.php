@@ -32,13 +32,15 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     }
 
     if ( $_REQUEST['newZone']['Units'] == 'Percent' ) {
+      // Convert percentage thresholds to pixel counts using actual monitor pixel area
+      $pixelArea = $monitor->ViewWidth() * $monitor->ViewHeight();
 			foreach (array(
 						'MinAlarmPixels','MaxAlarmPixels',
 						'MinFilterPixels','MaxFilterPixels',
 						'MinBlobPixels','MaxBlobPixels'
 						) as $field ) {
 				if ( isset($_REQUEST['newZone'][$field]) and $_REQUEST['newZone'][$field] )
-					$_REQUEST['newZone'][$field] = intval(($_REQUEST['newZone'][$field]*$_REQUEST['newZone']['Area'])/100);
+					$_REQUEST['newZone'][$field] = intval(($_REQUEST['newZone'][$field]*$pixelArea)/100);
 			}
 		}
 

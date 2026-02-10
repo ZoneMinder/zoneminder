@@ -55,9 +55,9 @@ foreach ( getEnumValues('Zones', 'CheckMethod') as $optCheckMethod ) {
 $monitor = new ZM\Monitor($mid);
 
 $minX = 0;
-$maxX = $monitor->ViewWidth()-1;
+$maxX = 100;
 $minY = 0;
-$maxY = $monitor->ViewHeight()-1;
+$maxY = 100;
 
 if ( !isset($zone) ) {
   if ( $zid > 0 ) {
@@ -67,11 +67,11 @@ if ( !isset($zone) ) {
       'Id' => 0,
       'Name' => translate('New'),
       'Type'  =>  'Active',
-			'Units'	=>	'Pixels',
+			'Units'	=>	'Percent',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
-      'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
-      'Area' => $monitor->ViewWidth() * $monitor->ViewHeight(),
+      'Coords' => '0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+      'Area' => 10000,
       'AlarmRGB' => 0xff0000,
       'CheckMethod' => 'Blobs',
       'MinPixelThreshold' => '',
@@ -142,7 +142,7 @@ echo getNavBarHTML();
               <?php echo 
 $monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true));
 ?>
-              <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
+              <svg id="zoneSVG" class="zones" viewBox="0 0 100 100" preserveAspectRatio="none">
 <?php
 if ( $zone['Id'] ) {
   $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));

@@ -23,6 +23,8 @@
 #include "zm_fifo_debug.h"
 #include "zm_monitor.h"
 
+#include <cstdlib>
+
 void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
@@ -792,6 +794,47 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
+bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, unsigned int height, Polygon &polygon) {
+  double mon_w = static_cast<double>(width);
+  double mon_h = static_cast<double>(height);
+  std::vector<Vector2> vertices;
+  const char *str = poly_string;
+
+  while (*str != '\0') {
+    const char *cp = strchr(str, ',');
+    if (!cp) {
+      Error("Bogus coordinate %s found in polygon string", str);
+      break;
+    }
+
+    double pct_x = strtod(str, nullptr);
+    double pct_y = strtod(cp + 1, nullptr);
+    int32 px_x = static_cast<int32>(std::lround(pct_x * mon_w / 100.0));
+    int32 px_y = static_cast<int32>(std::lround(pct_y * mon_h / 100.0));
+
+    // Clamp to monitor bounds
+    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width));
+    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height));
+
+    Debug(3, "Percentage coord %.2f,%.2f -> pixel %d,%d", pct_x, pct_y, px_x, px_y);
+    vertices.emplace_back(px_x, px_y);
+
+    const char *ws = strchr(cp + 2, ' ');
+    if (ws) {
+      str = ws + 1;
+    } else {
+      break;
+    }
+  }
+
+  if (vertices.size() > 2) {
+    polygon = Polygon(vertices);
+    return true;
+  }
+  Error("Not enough coordinates to form a polygon from '%s'", poly_string);
+  return false;
+}  // end bool Zone::ParsePercentagePolygon
+
 bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
@@ -891,48 +934,22 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
-    Debug(5, "Parsing polygon %s", Coords);
+    Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if ( !ParsePolygonString(Coords, polygon) ) {
-      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name());
-      continue;
-    }
-
-    if (polygon.Extent().Lo().x_ < 0
-        ||
-        polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
-        ||
-        polygon.Extent().Lo().y_ < 0
-        ||
-        polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
-            Id,
-            Name,
-            monitor->Name(),
-            polygon.Extent().Lo().x_,
-            polygon.Extent().Lo().y_,
-            polygon.Extent().Hi().x_,
-            polygon.Extent().Hi().y_,
-            monitor->Width(),
-            monitor->Height());
-
-      auto n_coords = polygon.GetVertices().size();
-      polygon.Clip(Box(
-      {0, 0},
-      {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
-                   ));
-      if (polygon.GetVertices().size() != n_coords) {
-        Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
+    if (!strcmp(Units, "Pixels")) {
+      // Legacy pixel-based coordinates: parse as integer pixel values
+      if (!ParsePolygonString(Coords, polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+              Coords, Id, Name, monitor->Name());
+        continue;
       }
-    }
-
-    if ( false && !strcmp( Units, "Percent" ) ) {
-      MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
-      MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
-      MinFilterPixels = (MinFilterPixels*polygon.Area())/100;
-      MaxFilterPixels = (MaxFilterPixels*polygon.Area())/100;
-      MinBlobPixels = (MinBlobPixels*polygon.Area())/100;
-      MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
+    } else {
+      // Percentage-based coordinates (default): convert to pixels using monitor dimensions
+      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+              Coords, Id, Name, monitor->Name());
+        continue;
+      }
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {

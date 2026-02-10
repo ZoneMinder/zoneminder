@@ -18,6 +18,7 @@ function MonitorStream(monitorData) {
   this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
   this.RTSP2WebType = null;
   this.StreamChannel = monitorData.StreamChannel;
+  this.RTSPServer = monitorData.RTSPServer;
   this.Go2RTCEnabled = monitorData.Go2RTCEnabled;
   this.Go2RTCMSEBufferCleared = true;
   this.currentChannelStream = null;
@@ -366,7 +367,14 @@ function MonitorStream(monitorData) {
       '1': '_CameraDirectSecondary', // Legacy: Secondary
       '2': '_ZoneMinderPrimary' // Legacy: Restream
     };
-    return channelMap[channel] !== undefined ? channelMap[channel] : '';
+    const suffix = channelMap[channel] !== undefined ? channelMap[channel] : '';
+    // _ZoneMinderPrimary stream is only registered when RTSPServer is enabled.
+    // Fall back to _CameraDirectPrimary if RTSPServer is not enabled.
+    if (suffix === '_ZoneMinderPrimary' && !this.RTSPServer) {
+      console.log('RTSPServer not enabled, falling back from _ZoneMinderPrimary to _CameraDirectPrimary');
+      return '_CameraDirectPrimary';
+    }
+    return suffix;
   };
 
   // For RTSP2Web which still uses numeric channel IDs

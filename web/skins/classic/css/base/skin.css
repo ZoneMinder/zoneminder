@@ -1577,6 +1577,11 @@ video-stream {
 }
 */
 
+/* Fix bootstrap-table */
+.fixed-table-loading {
+  overflow: hidden;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

@@ -2609,4 +2609,22 @@ function isEmpty(obj) {
   return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
 }
 
+function copyAllAttributesDOMElement(fromEl, toEl) {
+  for (const attr of fromEl.attributes) {
+    toEl.setAttribute(attr.name, attr.value);
+  }
+};
+
+function replaceDOMElement(fromEl, toTypeEl) {
+  let newEl = fromEl;
+  if (fromEl.nodeName != toTypeEl.toUpperCase()) {
+    const container = fromEl.parentNode;
+    newEl = document.createElement(toTypeEl);
+    copyAllAttributesDOMElement(fromEl, newEl);
+    fromEl.parentNode.removeChild(fromEl);
+    container.appendChild(newEl);
+  }
+  return newEl;
+};
+
 $j( window ).on("load", initPageGeneral);

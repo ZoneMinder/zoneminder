@@ -181,27 +181,22 @@ if ($action == 'save') {
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
 
+          // Zone coords are stored as percentages, so they don't need rescaling
+          // on resolution change. Only handle rotation (swap x/y) and rescale
+          // threshold pixel counts.
+          $newA = $newW * $newH;
+          $oldA = $oldMonitor->Width() * $oldMonitor->Height();
+
           if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
+            // Rotation: swap x,y percentage coords
             foreach ( $zones as $zone ) {
-              $newZone = $zone;
-              # Rotation, no change to area etc just swap the coords
               $newZone = $zone;
               $points = coordsToPoints($zone['Coords']);
               for ( $i = 0; $i < count($points); $i++ ) {
                 $x = $points[$i]['x'];
                 $points[$i]['x'] = $points[$i]['y'];
                 $points[$i]['y'] = $x;
-
-                if ( $points[$i]['x'] > ($newW-1) ) {
-                  ZM\Warning("Correcting x {$points[$i]['x']} > $newW of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = ($newW-1);
-                }
-                if ( $points[$i]['y'] > ($newH-1) ) {
-                  ZM\Warning("Correcting y {$points[$i]['y']} $newH of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = ($newH-1);
-                }
               }
-
               $newZone['Coords'] = pointsToCoords($points);
               $changes = getFormChanges($zone, $newZone, $types);
 
@@ -210,33 +205,17 @@ if ($action == 'save') {
                   array($mid, $zone['Id']));
               }
             } # end foreach zone
-          } else {
-            $newA = $newW * $newH;
-            $oldA = $oldMonitor->Width() * $oldMonitor->Height();
-
+          } else if ($oldA > 0 && $newA != $oldA) {
+            // Non-rotation resize: coords stay the same (percentages),
+            // but rescale threshold pixel counts by area ratio
             foreach ( $zones as $zone ) {
               $newZone = $zone;
-              $points = coordsToPoints($zone['Coords']);
-              for ( $i = 0; $i < count($points); $i++ ) {
-                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldMonitor->Width()-1));
-                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldMonitor->Height()-1));
-                if ( $points[$i]['x'] > ($newW-1) ) {
-                  ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = ($newW-1);
-                }
-                if ( $points[$i]['y'] > ($newH-1) ) {
-                  ZM\Warning("Correcting y of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = ($newH-1);
-                }
-              }
-              $newZone['Coords'] = pointsToCoords($points);
-              $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
-              $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
-              $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
-              $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
-              $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
-              $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
-              $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
+              $newZone['MinAlarmPixels'] = intval(round(($zone['MinAlarmPixels']*$newA)/$oldA));
+              $newZone['MaxAlarmPixels'] = intval(round(($zone['MaxAlarmPixels']*$newA)/$oldA));
+              $newZone['MinFilterPixels'] = intval(round(($zone['MinFilterPixels']*$newA)/$oldA));
+              $newZone['MaxFilterPixels'] = intval(round(($zone['MaxFilterPixels']*$newA)/$oldA));
+              $newZone['MinBlobPixels'] = intval(round(($zone['MinBlobPixels']*$newA)/$oldA));
+              $newZone['MaxBlobPixels'] = intval(round(($zone['MaxBlobPixels']*$newA)/$oldA));
 
               $changes = getFormChanges($zone, $newZone, $types);
 
@@ -261,26 +240,20 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        // Adjust zone dimensions if monitor has rotation applied
+        // Zone coords are now stored as percentages (0-100)
         $zoneWidth = $newMonitor['Width'];
         $zoneHeight = $newMonitor['Height'];
         if (isset($newMonitor['Orientation']) &&
             ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
-          // Swap dimensions for 90/270 degree rotations
           $zoneWidth = $newMonitor['Height'];
           $zoneHeight = $newMonitor['Width'];
         }
         $zoneArea = $zoneWidth * $zoneHeight;
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
-          sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-            $zoneWidth-1,
-            0,
-            $zoneWidth-1,
-            $zoneHeight-1,
-            0,
-            $zoneHeight-1),
-          'Area'=>$zoneArea,
+        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+          'Units'=>'Percent',
+          'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+          'Area'=>10000,
           'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
           'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
           'MinFilterPixels'=>intval(($zoneArea*.05)/100),

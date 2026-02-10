@@ -1384,96 +1384,16 @@ function _CompareX($a, $b) {
 }
 
 function getPolyArea($points) {
-  global $debug;
-
-  $n_coords = count($points);
-  $global_edges = array();
-  for ( $j = 0, $i = $n_coords-1; $j < $n_coords; $i = $j++ ) {
-    $x1 = $points[$i]['x'];
-    $x2 = $points[$j]['x'];
-    $y1 = $points[$i]['y'];
-    $y2 = $points[$j]['y'];
-
-    //printf( "x1:%d,y1:%d x2:%d,y2:%d\n", x1, y1, x2, y2 );
-    if ( $y1 == $y2 )
-      continue;
-
-    $dx = $x2 - $x1;
-    $dy = $y2 - $y1;
-
-    $global_edges[] = array(
-        'min_y' => $y1<$y2?$y1:$y2,
-        'max_y' => ($y1<$y2?$y2:$y1)+1,
-        'min_x' => $y1<$y2?$x1:$x2,
-        '_1_m' => $dx/$dy,
-        );
-  }
-
-  usort($global_edges, '_CompareXY');
-
-  if ( $debug ) {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      printf('%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-        $i,
-        $global_edges[$i]['min_y'],
-        $global_edges[$i]['max_y'],
-        $global_edges[$i]['min_x'],
-        $global_edges[$i]['_1_m']);
-    }
-  }
-
+  // Shoelace formula - works correctly with both integer and float coordinates
+  $n = count($points);
   $area = 0.0;
-  $active_edges = array();
-  $y = $global_edges[0]['min_y'];
-  do {
-    for ( $i = 0; $i < count($global_edges); $i++ ) {
-      if ( $global_edges[$i]['min_y'] == $y ) {
-        if ( $debug ) printf('Moving global edge<br>');
-        $active_edges[] = $global_edges[$i];
-        array_splice($global_edges, $i, 1);
-        $i--;
-      } else {
-        break;
-      }
-    }
-    usort($active_edges, '_CompareX');
-    if ( $debug ) {
-      for ( $i = 0; $i < count($active_edges); $i++ ) {
-        printf('%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f<br>',
-          $y, $i,
-          $active_edges[$i]['min_y'],
-          $active_edges[$i]['max_y'],
-          $active_edges[$i]['min_x'],
-          $active_edges[$i]['_1_m']);
-      }
-    }
-    $last_x = 0;
-    $row_area = 0;
-    $parity = false;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      $x = intval(round($active_edges[$i]['min_x']));
-      if ( $parity ) {
-        $row_area += ($x - $last_x)+1;
-        $area += $row_area;
-      }
-      if ( $active_edges[$i]['max_y'] != $y )
-        $parity = !$parity;
-      $last_x = $x;
-    }
-    if ( $debug ) printf('%d: Area:%d<br>', $y, $row_area);
-    $y++;
-    for ( $i = 0; $i < count($active_edges); $i++ ) {
-      if ( $y >= $active_edges[$i]['max_y'] ) { // Or >= as per sheets
-        if ( $debug ) printf('Deleting active_edge<br>');
-        array_splice($active_edges, $i, 1);
-        $i--;
-      } else {
-        $active_edges[$i]['min_x'] += $active_edges[$i]['_1_m'];
-      }
-    }
-  } while ( count($global_edges) || count($active_edges) );
-  if ( $debug ) printf('Area:%d<br>', $area);
-  return $area;
+  for ($i = 0; $i < $n - 1; $i++) {
+    $area += ((float)$points[$i]['x'] * (float)$points[$i+1]['y']
+            - (float)$points[$i+1]['x'] * (float)$points[$i]['y']);
+  }
+  $area += ((float)$points[$n-1]['x'] * (float)$points[0]['y']
+          - (float)$points[0]['x'] * (float)$points[$n-1]['y']);
+  return round(abs($area) / 2.0);
 }
 
 function getPolyAreaOld($points) {
@@ -1502,7 +1422,7 @@ function getPolyAreaOld($points) {
 }
 
 function mapCoords($a) {
-  return $a['x'].','.$a['y'];
+  return number_format((float)$a['x'], 2, '.', '').','.number_format((float)$a['y'], 2, '.', '');
 }
 
 function pointsToCoords($points) {
@@ -1511,10 +1431,10 @@ function pointsToCoords($points) {
 
 function coordsToPoints($coords) {
   $points = array();
-  if ( preg_match_all('/(\d+,\d+)+/', $coords, $matches) ) {
+  if ( preg_match_all('/([\d.]+,[\d.]+)+/', $coords, $matches) ) {
     for ( $i = 0; $i < count($matches[1]); $i++ ) {
-      if ( preg_match('/(\d+),(\d+)/', $matches[1][$i], $cmatches) ) {
-        $points[] = array('x'=>$cmatches[1], 'y'=>$cmatches[2]);
+      if ( preg_match('/([\d.]+),([\d.]+)/', $matches[1][$i], $cmatches) ) {
+        $points[] = array('x'=>(float)$cmatches[1], 'y'=>(float)$cmatches[2]);
       } else {
         echo('Bogus coordinates ('.$matches[$i].')');
         return false;

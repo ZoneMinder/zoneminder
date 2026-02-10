@@ -306,8 +306,8 @@ function curl($method, $url, $username, $password) {
     ZM\Debug($res);
     $status = curl_getinfo($ch);
     ZM\Debug(print_r($status, true));
-    curl_close($ch);
     $headerSize = curl_getinfo( $ch , CURLINFO_HEADER_SIZE );
+    curl_close($ch);
     $headerStr = substr( $res , 0 , $headerSize );
     $bodyStr = substr( $res , $headerSize );
     return $bodyStr;
@@ -868,11 +868,13 @@ function probeNetwork() {
         }
       } else {
         ZM\Debug("No probe function for {$macBase['type']}");
-        $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
+        $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor'],
+          'monitor'=>['Type'=>'Ffmpeg', 'Path'=>'rtsp://'.$ip.'/']]];
       }
     } else {
       ZM\Debug("No match for $ip $macRoot");
-      $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>'Unknown']];
+      $cameras[$mac] = [['ip'=>$ip, 'Manufacturer'=>'Unknown',
+        'monitor'=>['Type'=>'Ffmpeg', 'Path'=>'rtsp://'.$ip.'/']]];
     }
     if (connection_aborted()) exit();
   } # end foreach output line
@@ -910,12 +912,14 @@ function probeNetwork() {
               ZM\Debug("DIdn't find any cameras");
             }
           } else {
-            $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]];
+            $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor'],
+              'monitor'=>['Type'=>'Ffmpeg', 'Path'=>'rtsp://'.$ip.'/']]];
             ZM\Debug("No probe function for {$macBase['type']} {$macBase['vendor']}");
           }
         } else {
           ZM\Debug("No match for $macRoot");
-          $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>'Unknown']];
+          $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>'Unknown',
+            'monitor'=>['Type'=>'Ffmpeg', 'Path'=>'rtsp://'.$ip.'/']]];
         }
         if (connection_aborted()) exit();
       } # end foreach output line

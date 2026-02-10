@@ -590,6 +590,13 @@ function MonitorStream(monitorData) {
       if (-1 == src.search('mode=')) {
         src += '&mode=jpeg';
       }
+      // Preserve maxfps from the PHP-rendered src if present
+      if (-1 == src.search('maxfps=')) {
+        const match = stream.src.match(/maxfps=([^&]+)/);
+        if (match) {
+          src += '&maxfps='+match[1];
+        }
+      }
       if (stream.src != src) {
         //console.log("Setting src.src", stream.src, src);
         stream.src = '';

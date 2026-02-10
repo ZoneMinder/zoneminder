@@ -201,10 +201,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  if (image)
-    delete image;
-  // Get the difference image
-  Image *diff_image = image = new Image(*delta_image);
+  // Reuse diff image buffer — dimensions are constant per zone, so Assign()
+  // just does a memcpy into the existing allocation instead of free+malloc.
+  if (!image) {
+    image = new Image(*delta_image);
+  } else {
+    image->Assign(*delta_image);
+  }
+  Image *diff_image = image;
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;

@@ -35,7 +35,7 @@ function probe(params) {
           const stream = data.Streams[i];
           if (stream.Monitor) {
             stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          } else if (user.Monitors == 'Create') {
+          } else if (stream.url && user.Monitors == 'Create') {
             stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
           }
           if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
@@ -45,7 +45,9 @@ function probe(params) {
           } else {
             console.log(stream.camera);
           }
-          ProbeResults[stream.url] = stream;
+          if (stream.url) {
+            ProbeResults[stream.url] = stream;
+          }
         } // end for each Stream
 
         const rows = data.Streams;

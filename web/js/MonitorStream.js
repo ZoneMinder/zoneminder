@@ -345,24 +345,6 @@ function MonitorStream(monitorData) {
     if (statusEl) statusEl.innerText = status;
   };
 
-  this.copyAllAttributes = function(fromEl, toEl) {
-    for (const attr of fromEl.attributes) {
-      toEl.setAttribute(attr.name, attr.value);
-    }
-  };
-
-  this.replaceDOMElement = function(fromEl, toTypeEl) {
-    let newEl = fromEl;
-    if (fromEl.nodeName != toTypeEl.toUpperCase()) {
-      const container = fromEl.parentNode;
-      newEl = document.createElement(toTypeEl);
-      this.copyAllAttributes(fromEl, newEl);
-      fromEl.parentNode.removeChild(fromEl);
-      container.appendChild(newEl);
-    }
-    return newEl;
-  };
-
   /*
   * streamChannel options:
   *   'default' or 'Primary' - Main stream (uses monitor ID, which is ZM restream if RTSPServer enabled)
@@ -428,7 +410,7 @@ function MonitorStream(monitorData) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
-        const stream = this.element = this.replaceDOMElement(this.getElement(), 'video-stream');
+        const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         //stream.muted = this.muted;
         const Go2RTCModUrl = url;
@@ -468,7 +450,7 @@ function MonitorStream(monitorData) {
 
     if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
-      const stream = this.element = this.replaceDOMElement(this.getElement(), 'video');
+      const stream = this.element = replaceDOMElement(this.getElement(), 'video');
       stream.setAttribute("autoplay", "");
       stream.setAttribute("muted", this.muted);
       const video_el = document.querySelector('#liveStream'+this.id);
@@ -505,7 +487,7 @@ function MonitorStream(monitorData) {
     // FIXME auto mode doesn't work properly here. Ideally it would try each until one succeeds
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
-        const stream = this.element = this.replaceDOMElement(this.getElement(), 'video');
+        const stream = this.element = replaceDOMElement(this.getElement(), 'video');
         stream.setAttribute("autoplay", "");
         stream.setAttribute("muted", this.muted);
         stream.setAttribute("playsinline", "");
@@ -576,7 +558,7 @@ function MonitorStream(monitorData) {
     }
 
     // zms stream
-    const stream = this.element = this.replaceDOMElement(this.getElement(), 'img');
+    const stream = this.element = replaceDOMElement(this.getElement(), 'img');
     if (!stream) return;
 
     this.destroyVolumeSlider();

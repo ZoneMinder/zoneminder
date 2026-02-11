@@ -1,34 +1,23 @@
-# CMakeLists.txt for the ZoneMinder perl module.
+# CMakeLists.txt for the ZoneMinder Perl modules.
 
-# If this is an out-of-source build, copy the files we need to the binary directory
-if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/Changes" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/Makefile.PL" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/MANIFEST" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/META.yml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/README" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/t" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/lib" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}" PATTERN "*.in" EXCLUDE)
-endif()
+# Create configured .pm files from .pm.in templates
+configure_file(lib/ZoneMinder/Base.pm.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Base.pm" @ONLY)
+configure_file(lib/ZoneMinder/Config.pm.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Config.pm" @ONLY)
+configure_file(lib/ZoneMinder/Memory.pm.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Memory.pm" @ONLY)
+configure_file(lib/ZoneMinder/ConfigData.pm.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ConfigData.pm" @ONLY)
+configure_file(lib/ZoneMinder/ONVIF.pm.in
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ONVIF.pm" @ONLY)
 
-# Create files from the .in files
-configure_file(lib/ZoneMinder/Base.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Base.pm" @ONLY)
-configure_file(lib/ZoneMinder/Config.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Config.pm" @ONLY)
-configure_file(lib/ZoneMinder/Memory.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Memory.pm" @ONLY)
-configure_file(lib/ZoneMinder/ConfigData.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ConfigData.pm" @ONLY)
-configure_file(lib/ZoneMinder/ONVIF.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ONVIF.pm" @ONLY)
+# Install static .pm files from source tree
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/"
+  DESTINATION "${ZM_PERL_INSTALL_PATH}"
+  FILES_MATCHING PATTERN "*.pm")
 
-if(CMAKE_VERBOSE_MAKEFILE)
-  set(MAKEMAKER_NOECHO_COMMAND "")
-else()
-  set(MAKEMAKER_NOECHO_COMMAND "NOECHO=\"1>/dev/null\"")
-endif()
-
-# Add build target for the perl modules
-add_custom_target(zmperlmodules ALL "${PERL_EXECUTABLE}" Makefile.PL ${ZM_PERL_MM_PARMS_FULL} FIRST_MAKEFILE=MakefilePerl DESTDIR="${CMAKE_CURRENT_BINARY_DIR}/output" ${MAKEMAKER_NOECHO_COMMAND} COMMAND make -f MakefilePerl pure_install COMMENT "Building ZoneMinder perl modules")
-
-# Add install target for the perl modules
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/output/" DESTINATION "/")
-
-# Add additional files and directories to make clean
-set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "output;blib;pm_to_blib;MakefilePerl")
+# Install configured .pm files from build tree
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib/"
+  DESTINATION "${ZM_PERL_INSTALL_PATH}"
+  FILES_MATCHING PATTERN "*.pm")

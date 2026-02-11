@@ -89,7 +89,7 @@ mark_as_advanced(
   ZM_MYSQL_ENGINE
   ZM_NO_MMAP
   CMAKE_INSTALL_FULL_BINDIR
-  ZM_PERL_MM_PARMS
+  ZM_PERL_INSTALL_PATH
   ZM_PERL_SEARCH_PATH
   ZM_TARGET_DISTRO
   ZM_PATH_MAP
@@ -206,16 +206,10 @@ set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
 set(ZM_NO_MQTT "OFF" CACHE BOOL
   "Set to ON to skip MQTT (Mosquitto) checks and force building ZM without MQTT support. default: OFF")
-set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
-  "By default, ZoneMinder's Perl modules are installed into the Vendor folders,
-	as defined by your installation of Perl. You can change that here. Consult Perl's 
-	MakeMaker documentation for a definition of acceptable parameters. If you set this 
-	to something that causes the modules to be installed outside Perl's normal search 
-	path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly.")
 set(ZM_PERL_SEARCH_PATH "" CACHE PATH
   "Use to add a folder to your Perl's search path. This will need to be set in cases
-	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
-	installed outside Perl's default search path.")
+	where ZM_PERL_INSTALL_PATH has been overridden such that ZoneMinder's Perl modules
+	are installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
   "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
@@ -278,17 +272,12 @@ elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
   set(ZM_CONFIG_SUBDIR "/usr/local/etc/zm/conf.d")
   set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
   set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
-  set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
 endif()
 
 if(BUILD_MAN)
   message(STATUS "Building man pages: Yes (default)")
-  set(ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS})
 else()
   message(STATUS "Building man pages: No")
-  list(APPEND ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS}
-    "INSTALLMAN1DIR=none"
-    "INSTALLMAN3DIR=none")
 endif()
 
 # Required for certain checks to work
@@ -642,13 +631,38 @@ if(NOT PERL_FOUND)
   message(FATAL_ERROR "ZoneMinder requires Perl 5.6.0 or newer but it was not found on your system")
 endif()
 
+# Detect Perl module installation path
+# Prefer vendorlib (standard for distro packages), fall back to sitelib
+# (used on FreeBSD and systems without vendorlib configured)
+execute_process(
+  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+  OUTPUT_VARIABLE _perl_lib_default
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _perl_result)
+if(NOT _perl_result EQUAL 0 OR _perl_lib_default STREQUAL "")
+  execute_process(
+    COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{sitelib}"
+    OUTPUT_VARIABLE _perl_lib_default
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _perl_result)
+  if(NOT _perl_result EQUAL 0 OR _perl_lib_default STREQUAL "")
+    message(FATAL_ERROR
+      "Could not detect Perl vendorlib or sitelib path. "
+      "Set ZM_PERL_INSTALL_PATH manually.")
+  endif()
+  message(STATUS "Perl vendorlib not configured, using sitelib")
+endif()
+set(ZM_PERL_INSTALL_PATH "${_perl_lib_default}" CACHE PATH
+  "Install path for ZoneMinder Perl modules. Override for non-standard locations (also set ZM_PERL_SEARCH_PATH).")
+message(STATUS "Perl module install path: ${ZM_PERL_INSTALL_PATH}")
+
 # Checking for perl modules requires FindPerlModules.cmake
 # Check all required modules at once
 # TODO: Add checking for the optional modules
 find_package(
   PerlModules COMPONENTS Sys::Syslog DBI DBD::mysql
   Getopt::Long Time::HiRes Date::Manip LWP::UserAgent
-  ExtUtils::MakeMaker ${ZM_MMAP_PERLPACKAGE})
+  ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
   message(WARNING "Not all required perl modules were found on your system")
 endif()

@@ -49,6 +49,7 @@ package.json
 package-lock.json
 scripts/CMakeFiles/
 scripts/ZoneMinder/CMakeFiles/
+scripts/ZoneMinder/man3/
 scripts/ZoneMinder/cmake_install.cmake
 scripts/ZoneMinder/lib/ZoneMinder/Base.pm
 scripts/ZoneMinder/lib/ZoneMinder/Config.pm

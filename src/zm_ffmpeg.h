@@ -328,5 +328,7 @@ struct CodecData {
 std::list<const CodecData*> get_encoder_data(const std::string & wanted_codec, const std::string &wanted_coder) ;
 std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
+int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
+enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);
 
 #endif // ZM_FFMPEG_H

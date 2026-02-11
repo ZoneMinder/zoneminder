@@ -36,7 +36,7 @@ class EventsController extends AppController {
    * This also creates a thumbnail for each event.
    */
   public function index() {
-    $this->Event->recursive = -1;
+    $this->Event->recursive = 0;
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
@@ -50,7 +50,22 @@ class EventsController extends AppController {
 
     $this->FilterComponent = $this->Components->load('Filter');
     $named_params = $this->request->params['named'];
+    $tag_filter_value = null;
+    $tag_filter_field = null;
     if ($named_params) {
+      if (isset($named_params['TagId'])) {
+        $tag_filter_value = $named_params['TagId'];
+        $tag_filter_field = 'Id';
+        unset($named_params['TagId']);
+      } else if (isset($named_params['Tag'])) {
+        $tag_filter_value = $named_params['Tag'];
+        $tag_filter_field = 'Name';
+        unset($named_params['Tag']);
+      } else if (isset($named_params['Tags'])) {
+        $tag_filter_value = $named_params['Tags'];
+        $tag_filter_field = 'Name';
+        unset($named_params['Tags']);
+      }
       # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
       # This hack renames the query string params
       foreach ( $named_params as $k=>$v ) {
@@ -101,7 +116,21 @@ class EventsController extends AppController {
       #ZM\Debug(print_r($conditions, true));
 
     } else {
-      $conditions = $this->FilterComponent->buildFilter($_REQUEST);
+      $raw_params = $_REQUEST;
+      if (isset($raw_params['TagId'])) {
+        $tag_filter_value = $raw_params['TagId'];
+        $tag_filter_field = 'Id';
+        unset($raw_params['TagId']);
+      } else if (isset($raw_params['Tag'])) {
+        $tag_filter_value = $raw_params['Tag'];
+        $tag_filter_field = 'Name';
+        unset($raw_params['Tag']);
+      } else if (isset($raw_params['Tags'])) {
+        $tag_filter_value = $raw_params['Tags'];
+        $tag_filter_field = 'Name';
+        unset($raw_params['Tags']);
+      }
+      $conditions = $this->FilterComponent->buildFilter($raw_params);
     }
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
@@ -116,8 +145,11 @@ class EventsController extends AppController {
       // TODO: Implement request based limits.
 
       'paramType' => 'querystring',
+      'joins'=>[],
+      'contain'=>[]
     );
 
+    $settings['contain'] = [];
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
         array(
@@ -128,8 +160,50 @@ class EventsController extends AppController {
           ),
         ),
       );
-      $settings['contain'] = array('Group');
+      $settings['contain'][] = 'Group';
     }
+    if ($tag_filter_value !== null) {
+      #$settings['contain'][] = 'Tag';
+      if (!isset($settings['joins'])) {
+        $settings['joins'] = array();
+      }
+      $settings['joins'][] = array(
+        'table' => 'Events_Tags',
+        'type' => 'inner',
+        'conditions' => array(
+          'Events_Tags.EventId = Event.Id'
+        ),
+      );
+      $settings['joins'][] = array(
+        'table' => 'Tags',
+        'type' => 'inner',
+        'conditions' => array(
+          'Tags.Id = Events_Tags.TagId'
+        ),
+      );
+      if ($tag_filter_field === 'Id') {
+        $tag_ids = is_array($tag_filter_value) ? $tag_filter_value : explode(',', $tag_filter_value);
+        $tag_ids = array_map('intval', $tag_ids);
+        $conditions[] = array('Tags.Id' => $tag_ids);
+      } else {
+        $conditions[] = array('Tags.Name' => $tag_filter_value);
+      }
+      $settings['group'] = 'Event.Id';
+    }
+    if (isset($conditions['Tags.Id'])) {
+      $settings['joins'][] = [
+        'table' => 'Events_Tags',
+        'type'  => 'inner',
+        'conditions' => ['Events_Tags.EventId = Event.Id'],
+      ];
+      $settings['joins'][] = [
+        'table' => 'Tags',
+        'type'  => 'inner',
+        'conditions' => ['Tags.Id = Events_Tags.TagId'],
+      ];
+      //$settings['contain'][] = 'Tag';
+    }
+
     $settings['conditions'] = array($conditions, $mon_options);
 
     $this->Paginator->settings = $settings;

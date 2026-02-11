@@ -23,6 +23,24 @@ if ( !canView('System') ) {
   return;
 }
 
+// Calculate default page size based on browser height
+$defaultPageSize = 25; // Fallback default
+if (isset($_COOKIE['zmBrowserSizes'])) {
+  $zmBrowserSizes = jsonDecode($_COOKIE['zmBrowserSizes']);
+  if (!empty($zmBrowserSizes['innerHeight'])) {
+    $browserHeight = validInt($zmBrowserSizes['innerHeight']);
+    if ($browserHeight) {
+      // Subtract approximate overhead: navbar(56) + summary(30) + toolbar(66) + table header(40) + pagination(58) + margins(44)
+
+      $availableHeight = $browserHeight - 56 /* navbar */ - 18 /* (summary) */ - 66 /* toolbar */ - 25 /*table header */ - 58 /* pageination block */ - 0 /* margins */;
+      // Estimate ~32px per row // icon on mine is 26.5
+      $calculatedRows = floor($availableHeight / 27);
+      // Clamp between 10 and 100
+      $defaultPageSize = max(10, min(100, $calculatedRows));
+    }
+  }
+}
+
 xhtmlHeaders(__FILE__, translate('SystemLog'));
 getBodyTopHTML();
   echo getNavBarHTML() ?>
@@ -108,6 +126,7 @@ echo '</span>';
       data-side-pagination="server"
       data-ajax="ajaxRequest"
       data-pagination="true"
+      data-page-size="<?php echo $defaultPageSize ?>"
       data-page-list="[10, 25, 50, 100, 200, 300, 400, 500]"
       data-search="true"
       data-advanced-search="true"

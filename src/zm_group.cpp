@@ -67,7 +67,7 @@ Group::~Group() {
 std::vector<int> Group::MonitorIds() {
   std::vector<int> monitor_ids;
   if (!id) {
-    Warning("Calling MoniotorIds on a group with no id");
+    Warning("Calling MonitorIds on a group with no id");
     return monitor_ids;
   }
 

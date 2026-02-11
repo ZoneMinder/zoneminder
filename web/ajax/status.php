@@ -37,9 +37,9 @@ $statusData = array(
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
       'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
-      'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
-      'Load' => array( 'func' => 'getLoad()' ),
-      'Disk' => array( 'func' => 'getDiskPercent()' ),
+      'State' => array( 'func' => function() { return daemonCheck() ? translate('Running') : translate('Stopped'); } ),
+      'Load' => array( 'func' => function() { return getLoad(); } ),
+      'Disk' => array( 'func' => function() { return getDiskPercent(); } ),
     ),
   ),
   'monitor' => array(
@@ -220,15 +220,15 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
-    'func' => 'getFrameImage()'
+    'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
-    'func' => 'getNearFrame()'
+    'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
-    'func' => 'getNearEvents()'
+    'func' => 'getNearEvents'
   )
 );
 
@@ -246,8 +246,7 @@ function collectData() {
   }
 
   if ( !empty($entitySpec['func']) ) {
-    $data = eval('return('.$entitySpec['func'].');');
-    return $data;
+    return call_user_func($entitySpec['func']);
   }
 
   $data = array();
@@ -269,6 +268,22 @@ function collectData() {
     else
       $id = array_values($_REQUEST['id']);
 
+  # Early per-object permission check before processing elements.
+  # This must happen before the element loop because func/zmu elements
+  # execute immediately and would bypass the post-SQL canView() check.
+  if (isset($entitySpec['object']) && $id) {
+    $object_name = 'ZM\\'.$entitySpec['object'];
+    $object = new $object_name($id[0]);
+    if (!$object->Id()) {
+      ajaxError('Not found: '.$entity.' id '.$id[0]);
+      return;
+    }
+    if (!$object->canView()) {
+      ajaxError('Insufficient permissions for '.$entity.' id '.$id[0]);
+      return;
+    }
+  }
+
   if ( !isset($_REQUEST['element']) )
     $_REQUEST['element'] = array_keys($elements);
   else if ( !is_array($_REQUEST['element']) )
@@ -288,7 +303,7 @@ function collectData() {
       continue;
     }
     if (isset($elementData['func'])) {
-      $data[$element] = eval('return( '.$elementData['func'].' );');
+      $data[$element] = call_user_func($elementData['func']);
     } else if ( isset($elementData['postFunc']) ) {
       $postFuncs[$element] = $elementData['postFunc'];
     } else if ( isset($elementData['postFunction']) ) {
@@ -337,25 +352,40 @@ function collectData() {
     if ( $groupSql )
       $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
     if ( !empty($_REQUEST['sort']) ) {
-      $sql .= ' ORDER BY ';
       $sort_fields = explode(',', $_REQUEST['sort']);
+      $order_clauses = array();
       foreach ( $sort_fields as $sort_field ) {
-        preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
-        if ( count($matches) ) {
-          if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
-            $sql .= $matches[1];
-          } else {
-            ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
-          }
-          if ( count($matches) > 2 ) {
-            $sql .= ' '.strtoupper($matches[2]);
-            if ( count($matches) > 3 )
-              $sql .= ' '.strtoupper($matches[3]);
-          }
-        } else {
+        if (!preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches)) {
           ZM\Error('Sort field didn\'t match regexp '.$sort_field);
+          continue;
         }
+        // Check that the field name is one we are actually selecting.
+        // $fieldSql entries may be bare (`Name`), backtick-wrapped (`Name`),
+        // or aliased (expression as Name), so match against all forms.
+        $field = $matches[1];
+        $found = false;
+        foreach ($fieldSql as $f) {
+          if ($f === $field || $f === '`'.$field.'`' || preg_match('/\bas\s+`?'.$field.'`?$/i', $f)) {
+            $found = true;
+            break;
+          }
+        }
+        if (!$found) {
+          ZM\Error('Sort field '.$field.' from '.$sort_field.' not in SQL Fields: '.join(',', $fieldSql));
+          continue;
+        }
+        $clause = '`'.$field.'`';
+        if (!empty($matches[2])) {
+          $clause .= ' '.strtoupper($matches[2]);
+        }
+        if (!empty($matches[3])) {
+          $clause .= ' '.strtoupper(trim($matches[3]));
+        }
+        $order_clauses[] = $clause;
       } # end foreach sort field
+      if ($order_clauses) {
+        $sql .= ' ORDER BY '.join(', ', $order_clauses);
+      }
     } # end if has sort
     if ( !empty($entitySpec['limit']) )
       $limit = $entitySpec['limit'];
@@ -374,12 +404,12 @@ function collectData() {
           $object = new $object_name($sqlData);
           ZM\Debug("Canview:".$object->canView());
           if (!$object->canView()) {
-            ajaxError('Unrecognised action or insufficient permissions for '.$entity.' '.print_r($object, true));
+            ajaxError('Insufficient permissions for '.$entity.' id '.$sqlData['Id']);
             return;
           }
         }
         foreach ( $postFuncs as $element=>$func )
-          $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+          $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
           $sqlData[$element] = $function($sqlData);
         $data = array_merge($data, $sqlData);
@@ -397,7 +427,7 @@ function collectData() {
         }
 
         foreach ( $postFuncs as $element=>$func )
-          $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+          $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
           $sqlData[$element] = $function($sqlData);
         $data[] = $sqlData;
@@ -477,8 +507,8 @@ function getFrameImage() {
 }
 
 function getNearFrame() {
-  $eventId = $_REQUEST['id'][0];
-  $frameId = $_REQUEST['id'][1];
+  $eventId = validCardinal($_REQUEST['id'][0]);
+  $frameId = validCardinal($_REQUEST['id'][1]);
 
   $sql = 'SELECT FrameId FROM Frames WHERE EventId = ? AND FrameId <= ? ORDER BY FrameId DESC LIMIT 1';
   if ( !$nearFrameId = dbFetchOne($sql, 'FrameId', array($eventId, $frameId)) ) {
@@ -495,7 +525,7 @@ function getNearFrame() {
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
-  $eventId = $_REQUEST['id'];
+  $eventId = validCardinal($_REQUEST['id']);
   $NearEvents = array('EventId'=>$eventId);
 
   $event = dbFetchOne('SELECT * FROM Events WHERE Id=?', NULL, array($eventId));
@@ -521,7 +551,7 @@ function getNearEvents() {
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
   WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  '.($sortOrder=='ASC'?'<=':'>=').' ?';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
@@ -531,7 +561,7 @@ function getNearEvents() {
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -546,7 +576,7 @@ function getNearEvents() {
   LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
   LEFT JOIN Tags AS T ON T.Id = ET.TagId
   WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  '.($sortOrder=='ASC'?'>=':'<=').' ?';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
@@ -556,7 +586,7 @@ function getNearEvents() {
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event['StartDateTime']]);
+  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

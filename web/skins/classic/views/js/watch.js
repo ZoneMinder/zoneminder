@@ -2,11 +2,13 @@ var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
-var table = $j('#eventList');
+var analyseBtn = $j('#analyseBtn');
+var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+var analyse_frames = false;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -655,7 +657,7 @@ function processClicks(event, field, value, row, $element) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
-            table.bootstrapTable('refresh');
+            eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
     } else {
@@ -684,7 +686,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
-          table.bootstrapTable('refresh');
+          eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
@@ -697,7 +699,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function refresh_events_table() {
-  table.bootstrapTable('refresh');
+  eventListTable.bootstrapTable('refresh');
 }
 
 function controlSetClicked() {
@@ -759,9 +761,9 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
-      table.bootstrapTable({icons: icons});
+      eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         $j('#eventList tr:contains("New Event")').addClass('recent');
         $j('.objDetectLink').click(function(evt) {
           evt.preventDefault();
@@ -770,17 +772,17 @@ function streamPrepareStart(monitor=null) {
       });
 
       // Take appropriate action when the user clicks on a cell
-      table.on('click-cell.bs.table', processClicks);
+      eventListTable.on('click-cell.bs.table', processClicks);
 
       // Some toolbar events break the thumbnail animation, so re-init eventlistener
-      table.on('all.bs.table', initThumbAnimation);
+      eventListTable.on('all.bs.table', initThumbAnimation);
 
       // Update table links each time after new data is loaded
-      table.on('post-body.bs.table', function(data) {
+      eventListTable.on('post-body.bs.table', function(data) {
         const thumb_ndx = $j('#eventList tr th').filter(function() {
           return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
         }).index();
-        table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
+        eventListTable.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
@@ -833,6 +835,7 @@ function streamStart(monitor = null) {
 
   monitorStream.setPlayer($j('#player').val());
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
   monitorStream.manageAvailablePlayers();
   setChannelStream();
   // Start the fps and status updates. give a random delay so that we don't assault the server
@@ -893,6 +896,13 @@ function streamReStart(oldId, newId) {
   //Change main monitor block
   monitor_div.innerHTML = currentMonitor.streamHTML;
 
+  const volumeControls = document.getElementById('volumeControls'+oldId);
+  if (volumeControls) volumeControls.id = 'volumeControls'+newId;
+  const volumeSlider = document.getElementById('volumeSlider'+oldId);
+  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  const controlMute = document.getElementById('controlMute'+oldId);
+  if (controlMute) controlMute.id = 'controlMute'+newId;
+
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
@@ -900,7 +910,7 @@ function streamReStart(oldId, newId) {
   //Set global variables from the current monitor
   streamMode = currentMonitor.streamMode;
 
-  table.bootstrapTable('destroy');
+  eventListTable.bootstrapTable('destroy');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
@@ -914,14 +924,16 @@ function setChannelStream() {
   manageChannelStream();
 
   if (-1 === monitorStream.activePlayer.indexOf('zms')) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
-    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+    let streamChannelValue = getCookie('zmStreamChannel') || currentMonitor.StreamChannel;
+    streamChannel.value = streamChannelValue;
 
+    // If the selected option is disabled, find the first enabled option
     if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
-      streamChannelValue = 'Primary';
+      const firstEnabled = streamChannel.querySelector('option:not([disabled])');
+      streamChannelValue = firstEnabled ? firstEnabled.value : 'Restream';
     }
-    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    monitorStream.currentChannelStream = streamChannelValue;
     streamChannel.value = streamChannelValue;
   }
 }
@@ -1125,6 +1137,22 @@ function watchFullscreen() {
 
 function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
+}
+
+function toggleAnalyseFrames() {
+  analyse_frames = !analyse_frames;
+  if (analyse_frames) {
+    analyseBtn.addClass('btn-primary');
+    analyseBtn.removeClass('btn-secondary');
+    analyseBtn.attr('title', translate['Showing Analysis']);
+  } else {
+    analyseBtn.removeClass('btn-primary');
+    analyseBtn.addClass('btn-secondary');
+    analyseBtn.attr('title', translate['Show Analysis']);
+  }
+  if (monitorStream) {
+    monitorStream.show_analyse_frames(analyse_frames);
+  }
 }
 
 var cycleIntervalId;

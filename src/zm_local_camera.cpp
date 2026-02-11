@@ -139,7 +139,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   //case V4L2_PIX_FMT_PJPG :
   //case V4L2_PIX_FMT_YVYU :
   default : {
-    Fatal("Can't find swscale format for palette %u", palette);
+    Error("Can't find swscale format for palette %u", palette);
     break;
 #if 0
     // These are all spare and may match some of the above
@@ -456,12 +456,10 @@ LocalCamera::LocalCamera(
   } else {
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
-  if (capture and device_prime)
-    Initialise();
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
-  if (device_prime && capture)
+  if (device_prime && capture && vid_fd >= 0)
     Terminate();
 
   /* Clean up swscale stuff */
@@ -469,37 +467,56 @@ LocalCamera::~LocalCamera() {
     sws_freeContext(imgConversionContext);
     imgConversionContext = nullptr;
   }
+
+  // Decrement counters so recreated cameras get proper device_prime/channel_prime
+  if (device_prime)
+    camera_count--;
+  if (channel_prime)
+    channel_count--;
 } // end LocalCamera::~LocalCamera
 
 int LocalCamera::Close() {
-  if (device_prime && capture)
+  Debug(1, "Close: device_prime=%d, capture=%d, vid_fd=%d", device_prime, capture, vid_fd);
+  if (device_prime && capture && vid_fd >= 0)
     Terminate();
   return 0;
 };
 
-void LocalCamera::Initialise() {
+int LocalCamera::Initialise() {
   Debug(3, "Opening video device %s", device.c_str());
-  if ((vid_fd = open(device.c_str(), O_RDWR, 0)) < 0)
-    Fatal("Failed to open video device %s: %s", device.c_str(), strerror(errno));
+  if ((vid_fd = open(device.c_str(), O_RDWR, 0)) < 0) {
+    Error("Failed to open video device %s: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
   struct stat st;
-  if (stat(device.c_str(), &st) < 0)
-    Fatal("Failed to stat video device %s: %s", device.c_str(), strerror(errno));
+  if (stat(device.c_str(), &st) < 0) {
+    Error("Failed to stat video device %s: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
-  if (!S_ISCHR(st.st_mode))
-    Fatal("File %s is not device file: %s", device.c_str(), strerror(errno));
+  if (!S_ISCHR(st.st_mode)) {
+    Error("File %s is not device file: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
   struct v4l2_capability vid_cap;
 
   Debug(3, "Checking video device capabilities");
-  if ( vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0 )
-    Fatal("Failed to query video device: %s", strerror(errno));
+  if (vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0) {
+    Error("Failed to query video device: %s", strerror(errno));
+    return -1;
+  }
 
-  if ( !(vid_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) )
-    Fatal("Video device is not video capture device");
+  if (!(vid_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+    Error("Video device is not video capture device");
+    return -1;
+  }
 
-  if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
-    Fatal("Video device does not support streaming i/o");
+  if (!(vid_cap.capabilities & V4L2_CAP_STREAMING)) {
+    Error("Video device does not support streaming i/o");
+    return -1;
+  }
 
   struct v4l2_input input;
   v4l2_std_id stdId;
@@ -508,7 +525,8 @@ void LocalCamera::Initialise() {
   input.index = channel;
 
   if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
-    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+    Error("Failed to enumerate input %d: %s", channel, strerror(errno));
+    return -1;
   }
 
   v4l2_standard enum_standard = {};
@@ -549,8 +567,10 @@ void LocalCamera::Initialise() {
   memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
   v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-  if ( vidioctl( vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt ) < 0 )
-    Fatal("Failed to get video format: %s", strerror(errno));
+  if (vidioctl(vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt) < 0) {
+    Error("Failed to get video format: %s", strerror(errno));
+    return -1;
+  }
 
   Debug(4,
         " v4l2_data.fmt.type = %08x\n"
@@ -596,7 +616,8 @@ void LocalCamera::Initialise() {
         Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
         v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
         if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-          Fatal("Failed to set video format: %s", strerror(errno));
+          Error("Failed to set video format: %s", strerror(errno));
+          return -1;
         }
       }
     } else {
@@ -605,8 +626,11 @@ void LocalCamera::Initialise() {
         if (v4l2_data.fmt.fmt.pix.field != V4L2_FIELD_ANY) {
           v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
           if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-            Fatal("Failed to set video format: %s", strerror(errno));
+            Error("Failed to set video format after field fallback: %s", strerror(errno));
+            return -1;
           }
+        } else {
+          return -1;
         }
       }
     }
@@ -702,14 +726,17 @@ void LocalCamera::Initialise() {
 
   if (vidioctl(vid_fd, VIDIOC_REQBUFS, &v4l2_data.reqbufs) < 0) {
     if (errno == EINVAL) {
-      Fatal("Unable to initialise memory mapping, unsupported in device");
+      Error("Unable to initialise memory mapping, unsupported in device");
     } else {
-      Fatal("Unable to initialise memory mapping: %s", strerror(errno));
+      Error("Unable to initialise memory mapping: %s", strerror(errno));
     }
+    return -1;
   }
 
-  if (v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1))
-    Fatal("Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count);
+  if (v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1)) {
+    Error("Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count);
+    return -1;
+  }
 
   Debug(3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %d",
         channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
@@ -729,21 +756,26 @@ void LocalCamera::Initialise() {
     vid_buf.index = i;
     Debug(1, "buf_type for %d  %d =? %d, memory %d =? %d", i, vid_buf.type, V4L2_BUF_TYPE_VIDEO_CAPTURE, vid_buf.memory, V4L2_MEMORY_MMAP);
 
-    if (vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0)
-      Fatal("Unable to query video buffer: %s", strerror(errno));
+    if (vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0) {
+      Error("Unable to query video buffer: %s", strerror(errno));
+      return -1;
+    }
 
     v4l2_data.buffers[i].length = vid_buf.length;
     v4l2_data.buffers[i].start = mmap(nullptr, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
 
-    if (v4l2_data.buffers[i].start == MAP_FAILED)
-      Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
+    if (v4l2_data.buffers[i].start == MAP_FAILED) {
+      Error("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
-
+      return -1;
+    }
 
     capturePictures[i] = av_frame_ptr{av_frame_alloc()};
 
-    if (!capturePictures[i])
-      Fatal("Could not allocate picture");
+    if (!capturePictures[i]) {
+      Error("Could not allocate picture");
+      return -1;
+    }
 
     av_image_fill_arrays(
       capturePictures[i]->data,
@@ -759,6 +791,7 @@ void LocalCamera::Initialise() {
   Brightness(brightness);
   Hue(hue);
   Colour(colour);
+  return 0;
 } // end LocalCamera::Initialize
 
 void LocalCamera::Terminate() {
@@ -777,9 +810,16 @@ void LocalCamera::Terminate() {
       if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
+
+    // Free arrays allocated in Initialise() so they can be reallocated on re-init
+    delete[] v4l2_data.buffers;
+    v4l2_data.buffers = nullptr;
+    delete[] capturePictures;
+    capturePictures = nullptr;
   }
 
   close(vid_fd);
+  vid_fd = -1;
   primed = mIsPrimed = false;
 } // end LocalCamera::Terminate
 
@@ -1239,6 +1279,15 @@ int LocalCamera::Contrast(int p_contrast) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
+
+  // Initialize the device if not already done
+  Debug(1, "PrimeCapture: device_prime=%d, vid_fd=%d", device_prime, vid_fd);
+  if (device_prime && vid_fd < 0) {
+    if (Initialise() < 0) {
+      return -1;
+    }
+  }
+
   if (primed) {
     Debug(1, "Calling PrimeCapture while already primed...");
     return 1;
@@ -1366,8 +1415,9 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     bytes += buffer_bytesused;
 
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
-      Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
+      Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+      return -1;
     } else if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height)) {
       Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);

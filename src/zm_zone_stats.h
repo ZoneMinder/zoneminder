@@ -51,7 +51,7 @@ class ZoneStats {
   }
 
   void DumpToLog(const char *prefix) const {
-    Debug(1,
+    Debug(4,
           "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
           prefix,
           zone_id_,

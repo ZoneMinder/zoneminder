@@ -279,6 +279,7 @@ sub countQuery {
   my $table = shift;
 
   my $sql = "SELECT count(*) FROM `$table`";
+  $sql .= ' WHERE `Deleted`=false' if $table eq 'Monitors';
   my $sth = $dbh->prepare_cached($sql) or die "Can't prepare '$sql': ".$dbh->errstr();
   my $res = $sth->execute() or die 'Can\'t execute: '.$sth->errstr();
   my $count = $sth->fetchrow_array();

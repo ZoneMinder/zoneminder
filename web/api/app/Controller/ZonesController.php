@@ -45,8 +45,8 @@ class ZonesController extends AppController {
     $this->Zone->recursive = -1;
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(),NULL, PREG_SPLIT_NO_EMPTY) : null;
-    if ( $allowedMonitors ) {
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
+    if (count($allowedMonitors)) {
       $mon_options = array('Zones.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';

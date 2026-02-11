@@ -40,7 +40,9 @@ var icons = {
 
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
-var shifted = ctrled = alted = false;
+var shifted = false;
+var ctrled = false;
+var alted = false;
 var mainContent = document.getElementById('content');
 
 const showExtruderPanelOnMouseHover = false;
@@ -48,14 +50,15 @@ const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with stati
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
+const PLACEHOLDER_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI="; // Transparent GIF 1 pixel
 
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
-      var w = window.outerWidth;
-      var prevW = w;
-      var h = window.outerHeight;
-      var prevH = h;
+      let w = window.outerWidth;
+      const prevW = w;
+      let h = window.outerHeight;
+      const prevH = h;
       if (h > screen.availHeight) {
         h = screen.availHeight;
       }
@@ -85,14 +88,14 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
   document.querySelectorAll(".zmlink").forEach(function(el) {
     el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
+      const element = this;
+      let url;
+      if ( element.hasAttribute("href") ) {
         // <a>
-        url = el.getAttribute("href");
+        url = element.getAttribute("href");
       } else {
         // buttons
-        url = el.getAttribute("data-url");
+        url = element.getAttribute("data-url");
       }
       evt.preventDefault();
       window.location.assign(url);
@@ -269,7 +272,27 @@ function refreshParentWindow() {
 }
 
 if ( currentView != 'none' && currentView != 'login' ) {
-  $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
+  const t = "AJAX execution error: ";
+  $j.ajaxSetup({
+    timeout: AJAX_TIMEOUT, //sets timeout for all getJSON.
+    error: function(jqXHR, exception) {
+      if (exception === 'parsererror') {
+        console.trace(t + '"Requested JSON parse failed."');
+      } else if (exception === 'timeout') {
+        console.trace(t + '"Time out error."');
+      } else if (jqXHR.status === 0 && exception !== 'timeout') {
+        console.trace(t + '"Not connection Verify Network."');
+      } else if (jqXHR.status == 404) {
+        console.trace(t + '"Requested page not found [404]."');
+      } else if (jqXHR.status == 500) {
+        console.trace(t + '"Internal Server Error [500]."');
+      } else {
+        console.trace(t + '"Uncaught Error."');
+        console.log('jqXHR.responseText:', jqXHR.responseText);
+        console.log('exception:', exception);
+      }
+    }
+  });
 
   $j(document).ready(function() {
     // List of functions that are allowed to be called via the value of an object's DOM attribute.
@@ -560,17 +583,21 @@ function submitTab(evt) {
 function submitThisForm(param = null) {
   var form = this.form;
   var filter = null; // The filter that we previously moved to the left sidebar menu
-  if (!form && param && typeof param === 'object' && ('tagName' in param && param.tagName == 'FORM')) { // A form can be passed as a parameter.
-    form = param;
+  if (!form && param && typeof param === 'object' && 'tagName' in param) {
+    if (param.tagName == 'FORM') { // A form can be passed as a parameter.
+      form = param;
+    } else if (param.form) {
+      form = param.form;
+    }
   }
   if (navbar_type == 'left' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
-      form = document.querySelector('form[name="monitorForm"]');
+      form = document.getElementById('monitorFiltersForm');
       // We get a filter
       filter = document.getElementById('fbpanel');
     } else if (currentView == 'montage') {
-      form = document.getElementById('filters_form');
+      form = document.getElementById('monitorFiltersForm');
       // Filter is inside the form.
     } else if (currentView == 'montagereview') {
       form = document.getElementById('montagereview_form');
@@ -581,7 +608,7 @@ function submitThisForm(param = null) {
   }
 
   if ( ! form ) {
-    console.log("No this.form.  element with onchange is not in a form");
+    console.log("No this.form.  element with onchange is not in a form", this, param);
     return;
   }
   if (filter && navbar_type == 'left') {
@@ -618,7 +645,7 @@ function configureDeleteButton( element ) {
   var form = element.form;
   var checked = element.checked;
   if ( !checked ) {
-    for ( var i = 0; i < form.elements.length; i++ ) {
+    for ( let i = 0; i < form.elements.length; i++ ) {
       if ( form.elements[i].name == element.name ) {
         if ( form.elements[i].checked ) {
           checked = true;
@@ -678,13 +705,30 @@ function convertLabelFormat(LabelFormat, monitorName) {
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
-//This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
-  var cues = vid.textTracks()[0].cues();
+  // Updated for Video.js 8.x API
+  if (!vid || !vid.textTracks || !vid.textTracks().length) {
+    console.warn('addVideoTimingTrack: No text tracks available');
+    return;
+  }
+
+  var track = vid.textTracks()[0];
+  if (!track) {
+    console.warn('addVideoTimingTrack: Text track not found');
+    return;
+  }
+
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for ( var i = 0; i <= duration; i++ ) {
-    cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
+  // In Video.js 8, we need to add cues using the addCue method
+  for (let i = 0; i <= duration; i++) {
+    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    cue.id = i;
+    try {
+      track.addCue(cue);
+    } catch (e) {
+      console.warn('Failed to add cue:', e);
+    }
     startTime.add(1, 's');
   }
 }
@@ -742,8 +786,8 @@ window.onresize = endOfResize;
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   //$j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  if (!container) container = $j('#content');
-  if (!container) {
+  if (!container || !container.length) container = $j('#content');
+  if (!container.length) {
     console.error("No container found");
     return;
   }
@@ -754,10 +798,16 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   var bottomLoc = 0;
   if (bottomEl !== false) {
     if (!bottomEl || !bottomEl.length) {
-      bottomEl = $j(container[0].lastElementChild);
+      if (container[0] && container[0].lastElementChild) {
+        bottomEl = $j(container[0].lastElementChild);
+      } else {
+        bottomEl = false;
+      }
     }
-    bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-    console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    if (bottomEl && bottomEl.length) {
+      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+      console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+    }
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   let newWidth = ratio * newHeight;
@@ -798,7 +848,7 @@ function isJSON(str) {
   } catch (e) {
     return false; // This is also not JSON
   }
-};
+}
 
 function setCookie(name, value, seconds) {
   var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
@@ -821,7 +871,7 @@ function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
   var ca = document.cookie.split(';');
-  for (var i=0; i < ca.length; i++) {
+  for (let i=0; i < ca.length; i++) {
     if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
@@ -839,6 +889,19 @@ function delCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+// Preview rate for thumbnail hover overlay. Cookie stores value as hundredths (e.g., 500 = 5x speed).
+function getPreviewRate() {
+  const rate = getCookie('zmPreviewRate');
+  return rate ? parseInt(rate, 10) / 100 : 5;
+}
+
+function changePreviewRate() {
+  const select = document.getElementById('previewRate');
+  if (select) {
+    setCookie('zmPreviewRate', select.value);
+  }
+}
+
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
@@ -851,7 +914,9 @@ function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
-        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .done(function() {
+          window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
+        })
         .fail(logAjaxFail);
   });
 }
@@ -908,7 +973,7 @@ function getStateModal() {
 function manageStateModalBtns() {
   // Enable or disable the Delete button depending on the selected run state
   $j("#runState").change(function() {
-    runstate = $j(this).val();
+    var runstate = $j(this).val();
 
     if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
       $j("#btnDelete").prop("disabled", true);
@@ -919,7 +984,7 @@ function manageStateModalBtns() {
 
   // Enable or disable the Save button when entering a new state
   $j("#newState").keyup(function() {
-    length = $j(this).val().length;
+    var length = $j(this).val().length;
     if ( length < 1 ) {
       $j("#btnSave").prop("disabled", true);
     } else {
@@ -972,6 +1037,16 @@ function strip_html(string) {
   return string.replace(/<[^>]+>/g, '');
 }
 
+function escapeHTML(text) {
+  if (!text) return text;
+  return text.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+}
+
 function logAjaxFail(jqxhr, textStatus, error) {
   if (jqxhr.statusText == 'abort') {
     console.log('request aborted');
@@ -1000,7 +1075,7 @@ function getModal(id, parameters, buttonconfig=null) {
 
         insertModalHtml(id, data.html);
         buttonconfig ? buttonconfig() : manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
+        var modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
         }
@@ -1057,7 +1132,8 @@ function human_filesize(size, precision = 2) {
     size = size / step;
     i++;
   }
-  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+  var factor = Math.pow(10, precision);
+  return (Math.round(size * factor) / factor) + units[i];
 }
 
 
@@ -1097,14 +1173,19 @@ function manageShutdownBtns(element) {
 /* Controls the availability of options for selection*/
 function manageChannelStream() {
   let select = null;
+  let primaryPath_ = null;
   let secondPath_ = null;
+  let restream = null;
+
   if (currentView == 'watch') {
     if (typeof monitorData !== 'undefined') {
       const monitor = monitorData.find((o) => {
         return parseInt(o["id"]) === monitorId;
       });
       if (monitor) {
+        primaryPath_ = monitor['Path'];
         secondPath_ = monitor['SecondPath'];
+        restream = monitor['Restream'];
       }
       select = document.querySelector('select[name="streamChannel"]');
     } else {
@@ -1112,62 +1193,381 @@ function manageChannelStream() {
     }
   } else if (currentView == 'monitor') {
     // Local source doesn't have second path
+    const PathInput = document.querySelector('input[name="newMonitor[Path]"]');
+    if (PathInput) {
+      primaryPath_ = PathInput.value;
+    }
     const SecondPathInput = document.querySelector('input[name="newMonitor[SecondPath]"]');
     if (SecondPathInput) {
       secondPath_ = SecondPathInput.value;
     }
-    select = document.querySelector('select[name="newMonitor[RTSP2WebStream]"]');
+    const RestreamInput = document.querySelector('input[name="newMonitor[Restream]"]');
+    if (RestreamInput) {
+      restream = RestreamInput.checked;
+    }
+    select = document.querySelector('select[name="newMonitor[StreamChannel]"]');
   }
   if (select) {
     select.querySelectorAll("option").forEach(function(el) {
-      if (el.value == 'Secondary' && !secondPath_) {
-        el.disabled = true;
-      } else {
-        el.disabled = false;
+      if (el.value == 'Secondary' || el.value == 'CameraDirectSecondary') {
+        el.disabled = !secondPath_;
+      } else if (el.value == 'Restream' || el.value == 'ZoneMinderPrimary') {
+        el.disabled = !restream;
+      } else if (el.value == 'CameraDirectPrimary') {
+        el.disabled = !primaryPath_;
       }
-      applyChosen(select);
     });
+
+    // If current selection is disabled, auto-select first available option
+    const selectedOption = select.options[select.selectedIndex];
+    if (selectedOption && selectedOption.disabled) {
+      // Prefer CameraDirectPrimary, then first enabled option
+      const cameraDirectPrimary = select.querySelector('option[value="CameraDirectPrimary"]:not([disabled])');
+      if (cameraDirectPrimary) {
+        select.value = 'CameraDirectPrimary';
+      } else {
+        const firstEnabled = select.querySelector('option:not([disabled])');
+        if (firstEnabled) {
+          select.value = firstEnabled.value;
+        }
+      }
+    }
+    applyChosen(select);
   }
 }
 
+// Lazy-load the video-stream custom element for go2rtc overlay support
+var _videoStreamLoaded = null;
+function ensureVideoStreamLoaded() {
+  if (_videoStreamLoaded) return _videoStreamLoaded;
+
+  if (customElements.get('video-stream')) {
+    _videoStreamLoaded = Promise.resolve();
+  } else {
+    _videoStreamLoaded = import('../js/video-stream.js').catch(function(e) {
+      console.warn('Failed to load video-stream module:', e);
+      _videoStreamLoaded = null;
+    });
+  }
+  return _videoStreamLoaded;
+}
+
+// Lazy-load HLS.js for RTSP2Web HLS streaming
+var _hlsLoaded = null;
+function ensureHlsLoaded() {
+  if (_hlsLoaded) return _hlsLoaded;
+
+  if (typeof Hls !== 'undefined') {
+    _hlsLoaded = Promise.resolve();
+  } else {
+    _hlsLoaded = new Promise(function(resolve, reject) {
+      const script = document.createElement('script');
+      script.src = '../js/hls-1.6.13/hls.min.js';
+      script.onload = resolve;
+      script.onerror = function() {
+        _hlsLoaded = null;
+        reject(new Error('Failed to load HLS.js'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return _hlsLoaded;
+}
+
 var thumbnail_timeout;
+
 function thumbnail_onmouseover(event) {
   const img = event.target;
-  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-  img.src = img.getAttribute(imgAttr);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    const rect = img.getBoundingClientRect();
-    const zoomHeight = rect.height * 5; // scale factor defined in css
-    if ( rect.bottom + (zoomHeight - rect.height) > window.innerHeight ) {
-      img.style.transformOrigin = '0% 100%';
-    } else {
-      img.style.transformOrigin = '0% 0%';
+  const streamType = img.dataset.streamType;
+  const monitorId = img.dataset.monitorId;
+
+  // Legacy go2rtc attributes for backwards compatibility
+  const go2rtcSrc = img.getAttribute('go2rtc_src') || img.dataset.go2rtcSrc;
+  const go2rtcMid = img.getAttribute('go2rtc_mid') || monitorId;
+  const useGo2rtc = streamType === 'go2rtc' || (!streamType && go2rtcSrc && go2rtcMid);
+
+  // Pre-load required modules
+  if (useGo2rtc) {
+    ensureVideoStreamLoaded();
+  } else if (streamType === 'rtsp2web') {
+    ensureHlsLoaded();
+  }
+
+  // Determine overlay source (priority: live stream > mp4 video > MJPEG/still)
+  const overlaySrc = determineOverlaySrc(img, streamType, monitorId, useGo2rtc);
+  if (!overlaySrc) return;
+
+  const overlayDimensions = calculateOverlayDimensions(img);
+  if (!overlayDimensions) return;
+
+  thumbnail_timeout = setTimeout(function() {
+    createThumbnailOverlay(img, overlaySrc, overlayDimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc);
+  }, 250);
+}
+
+function determineOverlaySrc(img, streamType, monitorId, useGo2rtc) {
+  const useLiveStream = streamType && monitorId;
+  if (useLiveStream || useGo2rtc) return 'live';
+
+  const videoSrc = img.getAttribute('video_src');
+  if (videoSrc && currentView !== 'frames') return videoSrc;
+
+  if (currentView === 'frames') return img.getAttribute('full_img_src');
+
+  const streamSrc = img.getAttribute('stream_src');
+  return streamSrc;
+}
+
+function calculateOverlayDimensions(img) {
+  const imgWidth = img.naturalWidth || img.width;
+  const imgHeight = img.naturalHeight || img.height;
+  if (!imgWidth || !imgHeight) return null;
+
+  const aspectRatio = imgWidth / imgHeight;
+  const maxWidth = window.innerWidth * 0.6;
+  const maxHeight = window.innerHeight * 0.7;
+
+  let width = maxWidth;
+  let height = width / aspectRatio;
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = height * aspectRatio;
+  }
+
+  return {width: Math.round(width), height: Math.round(height)};
+}
+
+function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
+  const existing = document.getElementById('thumb-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'thumb-overlay';
+
+  // Wrapper contains video container and status bar
+  const wrapper = document.createElement('div');
+  wrapper.className = 'thumb-overlay-wrapper';
+
+  // Container uses cached still image as background while stream loads
+  const container = document.createElement('div');
+  container.id = 'monitor-thumb-overlay'; // video-stream.js expects parent with id starting with "monitor"
+  container.className = 'thumb-overlay-img';
+  container.style.width = dimensions.width + 'px';
+  container.style.height = dimensions.height + 'px';
+  container.style.backgroundImage = 'url("' + img.src + '")';
+
+  const fallbackToMjpeg = function() {
+    const streamSrc = img.getAttribute('stream_src');
+    if (streamSrc) {
+      const fallbackImg = document.createElement('img');
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+      container.appendChild(fallbackImg);
+    }
+  };
+
+  // Determine if this is a live stream or recorded video
+  const isLive = (overlaySrc === 'live');
+  const eventStart = img.dataset.eventStart;
+
+  // Create status bar (only if there's content to show)
+  let statusBar = null;
+  if (isLive || eventStart) {
+    statusBar = document.createElement('div');
+    statusBar.className = 'thumb-overlay-status';
+
+    if (isLive) {
+      // Live indicator with pulsing dot
+      statusBar.innerHTML = '<span class="live-indicator"><span class="live-dot"></span>LIVE</span>';
+    } else if (eventStart) {
+      // Wall clock time for recorded video with clock icon
+      statusBar.innerHTML = '<span class="time-indicator"><i class="fa fa-clock-o"></i><span class="time-display">' +
+        formatDateTime(new Date(eventStart)) + '</span></span>';
     }
   }
-  thumbnail_timeout = setTimeout(function() {
-    img.classList.add(imgClass);
-  }, 250);
+
+  if (isLive && useGo2rtc) {
+    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+  } else if (streamType === 'rtsp2web') {
+    createRtsp2webStream(container, img, monitorId, fallbackToMjpeg);
+  } else if (streamType === 'janus') {
+    // Janus requires complex initialization; fall back to MJPEG
+    fallbackToMjpeg();
+  } else if (!isLive && img.getAttribute('video_src') && currentView !== 'frames') {
+    createVideoElement(container, overlaySrc, eventStart, statusBar);
+  } else {
+    const overlayImg = document.createElement('img');
+    overlayImg.src = overlaySrc;
+    container.appendChild(overlayImg);
+  }
+
+  wrapper.appendChild(container);
+  if (statusBar) wrapper.appendChild(statusBar);
+  overlay.appendChild(wrapper);
+  document.body.appendChild(overlay);
+}
+
+// Format date/time for display in status bar
+function formatDateTime(date) {
+  if (!(date instanceof Date) || isNaN(date)) return '';
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  };
+  return date.toLocaleString(undefined, options);
+}
+
+function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+  ensureVideoStreamLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const url = new URL(src);
+    url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
+    url.pathname += '/ws';
+    url.search = 'src=' + mid + '_0';
+
+    const stream = document.createElement('video-stream');
+    stream.style.cssText = 'width: 100%; height: 100%; display: block;';
+    stream.background = true;
+    stream.muted = getCookie('zmWatchMuted') !== 'false';
+    stream.src = url.href;
+    container.appendChild(stream);
+
+    // Fallback if go2rtc doesn't produce video within 3s
+    stream._fallbackTimer = setTimeout(function() {
+      const innerVideo = stream.querySelector('video');
+      if (!innerVideo || innerVideo.readyState < 2) {
+        stream.remove();
+        fallbackToMjpeg();
+      }
+    }, 3000);
+  }).catch(fallbackToMjpeg);
+}
+
+function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg) {
+  const rtsp2webSrc = img.dataset.rtsp2webSrc;
+  const channel = img.dataset.rtsp2webStream === 'Secondary' ? 1 : 0;
+
+  ensureHlsLoaded().then(function() {
+    if (!document.getElementById('thumb-overlay')) return;
+
+    const url = new URL(rtsp2webSrc);
+    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+
+    const video = document.createElement('video');
+    video.removeAttribute('controls');
+    video.style.cssText = 'width: 100%; height: 100%;';
+    video.autoplay = true;
+    video.muted = getCookie('zmWatchMuted') !== 'false';
+    video.playsInline = true;
+    container.appendChild(video);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, function() {
+        hls.destroy();
+        video.remove();
+        fallbackToMjpeg();
+      });
+      video._hls = hls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      video.src = hlsUrl;
+      video.addEventListener('error', function() {
+        video.remove();
+        fallbackToMjpeg();
+      });
+    } else {
+      video.remove();
+      fallbackToMjpeg();
+      return;
+    }
+
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        if (video._hls) video._hls.destroy();
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+  }).catch(fallbackToMjpeg);
+}
+
+function createVideoElement(container, src, eventStart, statusBar) {
+  const video = document.createElement('video');
+  const previewRate = getPreviewRate();
+  video.src = src;
+  video.autoplay = true;
+  video.muted = getCookie('zmWatchMuted') !== 'false';
+  video.playsInline = true;
+  video.playbackRate = previewRate;
+  video.addEventListener('loadedmetadata', function() {
+    this.playbackRate = previewRate; // Some browsers reset playbackRate on metadata load
+  });
+
+  // Update wall clock time as video plays
+  if (eventStart && statusBar) {
+    const startTime = new Date(eventStart).getTime();
+    const timeDisplay = statusBar.querySelector('.time-display');
+    if (timeDisplay && !isNaN(startTime)) {
+      video.addEventListener('timeupdate', function() {
+        const currentTime = startTime + (video.currentTime * 1000);
+        timeDisplay.textContent = formatDateTime(new Date(currentTime));
+      });
+    }
+  }
+
+  container.appendChild(video);
 }
 
 function thumbnail_onmouseout(event) {
   clearTimeout(thumbnail_timeout);
-  var img = event.target;
-  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-  var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = img.getAttribute(imgAttr);
-  img.classList.remove(imgClass);
-  if ( currentView == 'console' || currentView == 'monitor' ) {
-    img.style.transformOrigin = '';
+  const overlay = document.getElementById('thumb-overlay');
+  if (!overlay) return;
+
+  cleanupVideoStream(overlay.querySelector('video-stream'));
+  cleanupVideoElement(overlay.querySelector('video'));
+
+  const streamImg = overlay.querySelector('.thumb-overlay-img > img');
+  if (streamImg) streamImg.src = '';
+  overlay.remove();
+}
+
+function cleanupVideoStream(videoStream) {
+  if (!videoStream) return;
+  if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  videoStream.close();
+}
+
+function cleanupVideoElement(video) {
+  if (!video) return;
+  if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
+  if (video._hls) {
+    video._hls.destroy();
+    video._hls = null;
   }
+  video.pause();
+  video.src = '';
+  video.load();
 }
 
 function initThumbAnimation() {
-  if ( ANIMATE_THUMBS ) {
+  if (ANIMATE_THUMBS) {
+    let hasGo2rtc = false;
     $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+      this.addEventListener('mouseenter', thumbnail_onmouseover, false);
+      this.addEventListener('mouseleave', thumbnail_onmouseout, false);
+      if (this.getAttribute('go2rtc_src')) hasGo2rtc = true;
     });
+    // Preload the video-stream module so it's ready when the user hovers
+    if (hasGo2rtc) ensureVideoStreamLoaded();
   }
 }
 
@@ -1281,7 +1681,9 @@ function destroyChosen(selector = '') {
 
 function applyChosen(selector = '') {
   const limit_search_threshold = 10;
-  var [obj_1, obj_2, obj_3] = '';
+  var obj_1;
+  var obj_2;
+  var obj_3;
   destroyChosen(selector);
   if (typeof selector === 'string') {
     obj_1 = $j(selector + '.chosen').not('.hidden, .hidden-shift, .chosen-full-width, .chosen-auto-width');
@@ -1320,7 +1722,7 @@ function thisClickOnStreamObject(clickObj) {
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
     if (clickObj.closest('video-stream')) return true;
-  };
+  }
   return false;
 }
 
@@ -1491,6 +1893,7 @@ function canPlayCodec(filename) {
     else {
       console.log('matches didnt match'+matches[1]);
     }
+    video.muted = true;
 
     const can = video.canPlayType('video/mp4; codecs="'+matches[1]+'"');
     if (can == "probably") {
@@ -1564,7 +1967,7 @@ function insertControlModuleMenu() {
     filter = document.querySelector('#fbpanel');
   } else if (currentView == 'montage') {
     destroyChosen();
-    filter = document.querySelector('#filters_form');
+    filter = document.querySelector('#monitorFiltersForm');
   } else if (currentView == 'montagereview') {
     destroyChosen();
     filter = document.createElement('div');
@@ -1728,17 +2131,17 @@ function findPos(obj, foundScrollLeft, foundScrollTop) {
     foundScrollLeft = true;
   }
   if (obj.offsetParent) {
-    var pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
+    const pos = findPos(obj.offsetParent, foundScrollLeft, foundScrollTop);
     curleft += pos[0];
     curtop += pos[1];
   } else if (obj.ownerDocument) {
-    var thewindow = obj.ownerDocument.defaultView;
+    let thewindow = obj.ownerDocument.defaultView;
     if (!thewindow && obj.ownerDocument.parentWindow) thewindow = obj.ownerDocument.parentWindow;
     if (thewindow) {
       if (!foundScrollTop && thewindow.scrollY && thewindow.scrollY > 0) curtop -= parseInt(thewindow.scrollY);
       if (!foundScrollLeft && thewindow.scrollX && thewindow.scrollX > 0) curleft -= parseInt(thewindow.scrollX);
       if (thewindow.frameElement) {
-        var pos = findPos(thewindow.frameElement);
+        const pos = findPos(thewindow.frameElement);
         curleft += pos[0];
         curtop += pos[1];
       }
@@ -1868,8 +2271,8 @@ function manageVisibilityVideoPlayerControlPanel(evt, action) {
     if (!video) {
       video = evt.target.getAttribute('tagName');
     }
-    if (video && !video.closest('#videoobj')) {
-      // We do not touch the video.js object, since it has its own controls.
+    if (video && !video.closest('#videoobj') && !video.closest('#thumb-overlay')) {
+      // We do not touch the video.js object or thumbnail overlay videos, since they have their own controls.
       if (action == 'hide') {
         video.removeAttribute('controls');
       } else if (action == 'show') {
@@ -1977,19 +2380,26 @@ function closeMbExtruder(updateCookie = false) {
 * If many options were selected in the filter, then deleting them one by one takes a long time; it is easier to delete everything with one button.
 */
 function resetSelectElement(el) {
-  console.log("clearSelectMultiply_el=>", el);
-  const selectElement = document.querySelector('select[name="'+el.getAttribute('data-select-target')+'"]');
-  if (!selectElement) return;
-  Array.from(selectElement.options).forEach((option) => {
-    option.selected = false;
-  });
-  applyChosen(selectElement);
-
-  if (currentView == 'events') {
-    filterEvents(clickedElement = selectElement);
-  } else {
-    submitThisForm(this.closest('form'));
+  const selectElement = $j('select[name="'+el.getAttribute('data-select-target')+'"]');
+  if (!selectElement.length) {
+    console.log('No element found for select[name="'+el.getAttribute('data-select-target')+'"]');
+    return;
   }
+  selectElement.val('');
+  applyChosen(selectElement);
+  selectElement.change();
+}
+
+function getMonitorStream(mid) {
+  let monitorStream_ = null;
+  if (currentView == 'watch') {
+    monitorStream_ = monitorStream;
+  } else if (currentView == 'montage') {
+    monitorStream_ = monitors.find((o) => {
+      return parseInt(o["id"]) === mid;
+    });
+  }
+  return monitorStream_;
 }
 
 function initPageGeneral() {
@@ -2097,10 +2507,19 @@ function initPageGeneral() {
   });
 
   function addListenerGlobalBeforeunload(event) {
+    /* Due to bfcache etc, we should really limit any changes we might make.  We will have to undo them if we then get a back button click */
     //window.removeEventListener('beforeunload', addListenerGlobalBeforeunload);
     //event.preventDefault();
     if (navbar_type == 'left') {
-      closeMbExtruder(updateCookie = true);
+      closeMbExtruder(true);
+    }
+
+    const href = event.target.activeElement.href;
+    if (href && (href.indexOf('view=archive') != -1 || href.indexOf('view=download') != -1)
+      || event.target.activeElement.id == 'exportButton') {
+      // Clicked on the link to download the generated file in the modal window
+      // on the Events page or when automatic download of generated files was enabled
+      return;
     }
 
     if (mainContent) {
@@ -2135,5 +2554,77 @@ function initPageGeneral() {
     });
   });
 }
+
+// Called when monitor filters change - refreshes table via AJAX instead of full page reload
+function monitorFilterOnChange(element) {
+  // Save filter values to cookies for persistence
+  var form = (element && element.form) ? element.form : document.forms['monitorFiltersForm'];
+  if (form) {
+    // Define filter fields to save (using var names without [] suffix for consistency)
+    var filterFields = [
+      {name: 'GroupId[]', cookieName: 'GroupId'},
+      {name: 'ServerId[]', cookieName: 'ServerId'},
+      {name: 'StorageId[]', cookieName: 'StorageId'},
+      {name: 'Status[]', cookieName: 'Status'},
+      {name: 'Capturing[]', cookieName: 'Capturing'},
+      {name: 'Analysing[]', cookieName: 'Analysing'},
+      {name: 'Recording[]', cookieName: 'Recording'},
+      {name: 'MonitorId[]', cookieName: 'MonitorId'},
+      {name: 'MonitorName', cookieName: 'MonitorName'},
+      {name: 'Source', cookieName: 'Source'}
+    ];
+
+    filterFields.forEach(function(fieldInfo) {
+      var field = form.elements[fieldInfo.name];
+      if (field) {
+        // Check if it's a multi-value field (ends with [] or is select-multiple)
+        var isMultiValue = fieldInfo.name.endsWith('[]') || field.multiple || field.type === 'select-multiple';
+
+        if (isMultiValue) {
+          // Handle multi-select dropdowns and array fields
+          var selected = $j(field).val();
+          if (selected && selected.length > 0) {
+            setCookie('zmFilter_' + fieldInfo.cookieName, JSON.stringify(selected));
+          } else {
+            setCookie('zmFilter_' + fieldInfo.cookieName, '');
+          }
+        } else if (field.type === 'text') {
+          // Handle text inputs
+          setCookie('zmFilter_' + fieldInfo.cookieName, field.value);
+        }
+      }
+    });
+  }
+
+  // On console view with bootstrap-table, just refresh the table
+  if (typeof table !== 'undefined' && table.length) {
+    table.bootstrapTable('refresh');
+  } else {
+    // Fall back to full page reload on other views
+    submitThisForm(element);
+  }
+}
+
+function isEmpty(obj) {
+  return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
+}
+
+function copyAllAttributesDOMElement(fromEl, toEl) {
+  for (const attr of fromEl.attributes) {
+    toEl.setAttribute(attr.name, attr.value);
+  }
+};
+
+function replaceDOMElement(fromEl, toTypeEl) {
+  let newEl = fromEl;
+  if (fromEl.nodeName != toTypeEl.toUpperCase()) {
+    const container = fromEl.parentNode;
+    newEl = document.createElement(toTypeEl);
+    copyAllAttributesDOMElement(fromEl, newEl);
+    fromEl.parentNode.removeChild(fromEl);
+    container.appendChild(newEl);
+  }
+  return newEl;
+};
 
 $j( window ).on("load", initPageGeneral);

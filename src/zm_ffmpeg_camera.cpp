@@ -32,57 +32,6 @@ extern "C" {
 
 TimePoint start_read_time;
 
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-static enum AVPixelFormat hw_pix_fmt;
-static enum AVPixelFormat get_hw_format(
-  AVCodecContext *ctx,
-  const enum AVPixelFormat *pix_fmts
-) {
-  const enum AVPixelFormat *p;
-
-  for ( p = pix_fmts; *p != -1; p++ ) {
-    if ( *p == hw_pix_fmt )
-      return *p;
-  }
-
-  Error("Failed to get HW surface format for %s.",
-        av_get_pix_fmt_name(hw_pix_fmt));
-  for ( p = pix_fmts; *p != -1; p++ )
-    Error("Available HW surface format was %s.",
-          av_get_pix_fmt_name(*p));
-
-  return AV_PIX_FMT_NONE;
-}
-#if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
-  switch (type) {
-  case AV_HWDEVICE_TYPE_VAAPI:
-        return AV_PIX_FMT_VAAPI;
-  case AV_HWDEVICE_TYPE_DXVA2:
-    return AV_PIX_FMT_DXVA2_VLD;
-  case AV_HWDEVICE_TYPE_D3D11VA:
-    return AV_PIX_FMT_D3D11;
-  case AV_HWDEVICE_TYPE_VDPAU:
-    return AV_PIX_FMT_VDPAU;
-  case AV_HWDEVICE_TYPE_CUDA:
-    return AV_PIX_FMT_CUDA;
-  case AV_HWDEVICE_TYPE_QSV:
-    return AV_PIX_FMT_VAAPI;
-#ifdef AV_HWDEVICE_TYPE_MMAL
-  case AV_HWDEVICE_TYPE_MMAL:
-    return AV_PIX_FMT_MMAL;
-#endif
-  case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-    return AV_PIX_FMT_VIDEOTOOLBOX;
-  default:
-    return AV_PIX_FMT_NONE;
-  }
-}
-#endif
-#endif
-#endif
-
 FfmpegCamera::FfmpegCamera(
   const Monitor *monitor,
   const std::string &p_path,
@@ -139,9 +88,7 @@ FfmpegCamera::FfmpegCamera(
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   hw_pix_fmt = AV_PIX_FMT_NONE;
-#endif
 #endif
 
   /* Has to be located inside the constructor so other components such as zma
@@ -190,7 +137,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
 
-  if ( mSecondFormatContext and
+  if ( mSecondFormatContext and mAudioStream and
        (
          av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q)
          <
@@ -356,6 +303,11 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
 
   mFormatContext = avformat_alloc_context();
+  if (!mFormatContext) {
+    Error("Unable to allocate format context");
+    av_dict_free(&opts);
+    return -1;
+  }
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
@@ -436,147 +388,167 @@ int FfmpegCamera::OpenFfmpeg() {
         mVideoStreamId, mAudioStreamId);
 
   const AVCodec *mVideoCodec = nullptr;
-  if (!monitor->DecoderName().empty() and (monitor->DecoderName() != "auto")) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name(monitor->DecoderName().c_str())) == nullptr) {
-      Debug(1, "Failed to find decoder %s, falling back to auto", monitor->DecoderName().c_str());
-    } else {
-      Debug(1, "Success finding decoder %s", monitor->DecoderName().c_str());
-    }
+  std::list<const CodecData *>codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, monitor->DecoderName().c_str());
+  if (codec_data.size() == 0 and (!monitor->DecoderName().empty() and (monitor->DecoderName() != "auto"))) {
+    Warning("No decoder for codec %d found with name %s. Trying auto.", mVideoStream->codecpar->codec_id, monitor->DecoderName().c_str());
+    codec_data = get_decoder_data(mVideoStream->codecpar->codec_id, "auto");
   }
 
-  if (!mVideoCodec) {
-    // Try and get the codec from the codec context
-    mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    const CodecData *chosen_codec_data = *it;
+    Debug(1, "Found codec %s", chosen_codec_data->codec_name);
+
+    mVideoCodec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+
     if (!mVideoCodec) {
-      Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
-      return -1;
+      mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+      if (!mVideoCodec) {
+        // Try and get the codec from the codec context
+        Error("Can't find codec for video stream from %s", mMaskedPath.c_str());
+        continue;
+      }
     }
-  }
 
-  mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
-  avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
+    mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
+    avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
+    mVideoCodecContext->framerate = mVideoStream->r_frame_rate;
+    mVideoCodecContext->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
-#ifdef CODEC_FLAG2_FAST
-  mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
-#endif
+    // Set default options for this codec
+    if (chosen_codec_data->options_defaults) {
+      AVDictionary *opts_defaults = nullptr;
+      av_dict_parse_string(&opts_defaults, chosen_codec_data->options_defaults, "=", ",", 0);
+      AVDictionaryEntry *e = nullptr;
+      while ((e = av_dict_get(opts_defaults, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+        const AVDictionaryEntry *entry = av_dict_get(opts, e->key, nullptr, AV_DICT_MATCH_CASE);
+        if (!entry) {
+          int ret;
+          if ((ret = av_dict_set(&opts, e->key, e->value, 0)) < 0) {
+            Error("Couldn't set default Option %s set to %s", e->key, e->value);
+          }
+          Debug(1, "Option %s set to %s from default", e->key, e->value);
+        }
+      }
+      av_dict_free(&opts_defaults);
+    }
 
-  zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
+    //Set user-specified options, which may override codec defaults
+    if (!mOptions.empty()) {
+      av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+      const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+      if (entry) {
+        mVideoCodecContext->thread_count = std::stoul(entry->value);
+        Debug(1, "Setting codec thread_count to %d", mVideoCodecContext->thread_count);
+        av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+      }
+      // reorder_queparse for avforpts, mOpcodec
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+    }
 
-  if (use_hwaccel && (hwaccel_name != "")) {
+    if (use_hwaccel && (hwaccel_name != "")) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-    // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
+      // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
 #if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
-    // Print out available types
-    enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
-    while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
-      Debug(1, "%s", av_hwdevice_get_type_name(type));
+      // Print out available types
+      enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
+      while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
+        Debug(1, "%s", av_hwdevice_get_type_name(type));
 
-    const char *hw_name = hwaccel_name.c_str();
-    type = av_hwdevice_find_type_by_name(hw_name);
-    if (type == AV_HWDEVICE_TYPE_NONE) {
-      Debug(1, "Device type %s is not supported.", hw_name);
-    } else {
-      Debug(1, "Found hwdevice %s", av_hwdevice_get_type_name(type));
-    }
+      const char *hw_name = hwaccel_name.c_str();
+      type = av_hwdevice_find_type_by_name(hw_name);
+      if (type == AV_HWDEVICE_TYPE_NONE) {
+        Debug(1, "Device type %s is not supported.", hw_name);
+      } else {
+        Debug(1, "Found hwdevice %s", av_hwdevice_get_type_name(type));
+      }
 
 #if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-    // Get hw_pix_fmt
-    for (int i = 0;; i++) {
-      const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
-      if (!config) {
-        Debug(1, "Decoder %s does not support config %d.",
+      // Get hw_pix_fmt
+      for (int i = 0;; i++) {
+        const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
+        if (!config) {
+          Debug(1, "Decoder %s does not support config %d.",
               mVideoCodec->name, i);
-        break;
-      }
-      if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
-          && (config->device_type == type)
-         ) {
-        hw_pix_fmt = config->pix_fmt;
-        Debug(1, "Decoder %s does support our type %s.",
+          break;
+        }
+        if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+            && (config->device_type == type)
+           ) {
+          hw_pix_fmt = config->pix_fmt;
+          Debug(1, "Decoder %s does support our type %s.",
               mVideoCodec->name, av_hwdevice_get_type_name(type));
-        //break;
-      } else {
-        Debug(1, "Decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
+          //break;
+        } else {
+          Debug(1, "Decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
               mVideoCodec->name,
               av_hwdevice_get_type_name(type),
               av_hwdevice_get_type_name(config->device_type),
               av_get_pix_fmt_name(config->pix_fmt)
-             );
-      }
-    }  // end foreach hwconfig
+              );
+        }
+      }  // end foreach hwconfig
 #else
-    hw_pix_fmt = find_fmt_by_hw_type(type);
+      hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
-    if (hw_pix_fmt != AV_PIX_FMT_NONE) {
-      Debug(1, "Selected hw_pix_fmt %d %s",
+      if (hw_pix_fmt != AV_PIX_FMT_NONE) {
+        Debug(1, "Selected hw_pix_fmt %d %s",
             hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
-      mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
-      //if (!lavc_param->check_hw_profile)
-      mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
+        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
+        //if (!lavc_param->check_hw_profile)
+        mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
 
-      ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
-                                   (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
-      if (ret < 0 and hwaccel_device != "") {
-        ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
-      }
-      if (ret < 0) {
-        Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
-        hw_pix_fmt = AV_PIX_FMT_NONE;
+        ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
+            (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
+        if (ret < 0 and hwaccel_device != "") {
+          ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+        }
+        if (ret < 0) {
+          Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
+          hw_pix_fmt = AV_PIX_FMT_NONE;
+          use_hwaccel = false;
+        } else {
+          Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
+          // Set opaque to point to our hw_pix_fmt so callback can access it
+          mVideoCodecContext->opaque = &hw_pix_fmt;
+          mVideoCodecContext->get_format = get_hw_format;
+          mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        }
       } else {
-        Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
-        mVideoCodecContext->get_format = get_hw_format;
-        mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        Debug(1, "Failed to find suitable hw_pix_fmt.");
       }
-    } else {
-      Debug(1, "Failed to find suitable hw_pix_fmt.");
-    }
 #else
-    Debug(1, "AVCodec not new enough for hwaccel");
+      Debug(1, "AVCodec not new enough for hwaccel");
 #endif
 #else
-    Warning("HWAccel support not compiled in.");
+      Warning("HWAccel support not compiled in.");
 #endif
-  }  // end if hwaccel_name
+    }  // end if hwaccel_name
 
-  // set codec to automatically determine how many threads suits best for the decoding job
-#if 0
-  mVideoCodecContext->thread_count = 0;
+    ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
-  if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
-    mVideoCodecContext->thread_type = FF_THREAD_FRAME;
-  } else if (mVideoCodec->capabilities | AV_CODEC_CAP_SLICE_THREADS) {
-    mVideoCodecContext->thread_type = FF_THREAD_SLICE;
-  } else {
-    mVideoCodecContext->thread_count = 1; //don't use multithreading
-  }
-#endif
-
-  if (!mOptions.empty()) {
-    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
-    const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
-    if (entry) {
-      mVideoCodecContext->thread_count = std::stoul(entry->value);
-      Debug(1, "Setting codec thread_count to %d", mVideoCodecContext->thread_count);
-      av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+    e = nullptr;
+    while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+      Warning("Option %s not recognized by ffmpeg", e->key);
     }
-    // reorder_queue is for avformat not codec
-    av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-    av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
-  }
-  ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+    av_dict_free(&opts);
 
-  e = nullptr;
-  while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-    Warning("Option %s not recognized by ffmpeg", e->key);
-  }
-  av_dict_free(&opts);
-  if (ret < 0) {
-    Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+    if (ret < 0) {
+      Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
+      avcodec_free_context(&mVideoCodecContext);
+      mVideoCodecContext = nullptr;
+      continue;
+    }
+    Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
+    zm_dump_codec(mVideoCodecContext);
+    break;
+  } // end foreach codec
+
+  if (!mVideoCodecContext) {
+    Warning("Failed to open codec");
     return -1;
   }
-  Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
-  zm_dump_codec(mVideoCodecContext);
 
   if (mAudioStreamId >= 0) {
     const AVCodec *mAudioCodec = nullptr;
@@ -594,9 +566,16 @@ int FfmpegCamera::OpenFfmpeg() {
       }  // end if opened
     }  // end if found decoder
   } else if (!monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
+    std::string secondPath = mSecondPath;
+    if (mUser.length() > 0 && mSecondPath.length() > 7) {
+      // Apply credentials to secondary path like we do for the primary path
+      std::string secondProtocol = mSecondPath.substr(0, mSecondPath.find("://"));
+      secondPath = StringToLower(secondProtocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedSecondPath.substr(secondProtocol.length() + 3);
+      Debug(1, "Rebuilt secondary URI with encoded parameters");
+    }
     mSecondInput = zm::make_unique<FFmpeg_Input>();
-    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+    if (mSecondInput->Open(secondPath.c_str()) > 0) {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();

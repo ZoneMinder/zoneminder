@@ -237,7 +237,7 @@ export class VideoRTC extends HTMLElement {
      */
     oninit() {
         this.video = document.createElement('video');
-        this.video.controls = true;
+        this.video.controls = false;
         this.video.playsInline = true;
         this.video.preload = 'auto';
 
@@ -335,8 +335,10 @@ export class VideoRTC extends HTMLElement {
                 for (const mode in this.onmessage) {
                     this.onmessage[mode](msg);
                 }
-            } else {
+            } else if (this.ondata) {
                 this.ondata(ev.data);
+            } else {
+              console.log('No ondata to handle', ev);
             }
         });
 

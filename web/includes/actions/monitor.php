@@ -102,7 +102,7 @@ if ($action == 'save') {
       'Go2RTCEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
-      'Janus_Use_RTSP_Restream' => 0,
+      'Restream' => 0,
 //       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
@@ -261,16 +261,25 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        // Adjust zone dimensions if monitor has rotation applied
+        $zoneWidth = $newMonitor['Width'];
+        $zoneHeight = $newMonitor['Height'];
+        if (isset($newMonitor['Orientation']) &&
+            ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
+          // Swap dimensions for 90/270 degree rotations
+          $zoneWidth = $newMonitor['Height'];
+          $zoneHeight = $newMonitor['Width'];
+        }
+        $zoneArea = $zoneWidth * $zoneHeight;
         $zone = new ZM\Zone();
         if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
           sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-            $newMonitor['Width']-1,
+            $zoneWidth-1,
             0,
-            $newMonitor['Width']-1,
-            $newMonitor['Height']-1,
+            $zoneWidth-1,
+            $zoneHeight-1,
             0,
-            $newMonitor['Height']-1),
+            $zoneHeight-1),
           'Area'=>$zoneArea,
           'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
           'MaxAlarmPixels'=>intval(($zoneArea*75)/100),

@@ -53,15 +53,28 @@
 
 .consoleTable {
     width: 100%;
+    height: 100%; /* parent is flex-height */
 }
 
 .consoleTable tr.highlight {
     background-color: #eeeeee;
 }
 
+.consoleTable thead {
+  flex: 0 0 auto;
+}
+.consoleTable tbody {
+  flex: 1 1 auto;
+}
+
 .consoleTable thead th {
     padding-bottom: 4px;
     vertical-align: middle;
+}
+
+.consoleTable thead th .material-icons {
+    vertical-align: middle;
+    line-height: inherit;
 }
 
 .consoleTable tfoot td {
@@ -90,6 +103,11 @@
     text-align: center;
 }
 
+.consoleTable .colId {
+    width: 70px;
+    text-align: center;
+}
+
 .consoleTable .colLeftButtons {
     text-align: left;
 }
@@ -110,19 +128,29 @@
 .MonitorFilter {
   display: inline-block;
 } */
-form[name="monitorForm"] {
+
+#monitorsContainer {
+  flex: 1 1 auto;
+  overflow: hidden; /* Ensures height is correct if content too large */
+}
+
+#monitorFiltersForm,
+#monitorForm
+{
+  height: 100%;
+  /*
   display: flex;
   flex-flow: column nowrap;
-  height: 100%;
   flex: 1 1 auto;
+  */
 }
 #monitorList {
-  flex: 1 1 auto;
-/*  overflow-y: scroll; */
 }
+/*
 body.sticky #monitorList {
   overflow: auto; 
 }
+*/
 body.sticky #monitorList thead {
   position: sticky;
   top: 0;
@@ -161,8 +189,37 @@ body.sticky #monitorList thead {
   }
 }
 
-.colThumbnail img:hover {
-  /*
-  position: absolute;
-  */
+.colThumbnail {
+  position: relative;
+}
+
+/* Make the boot-strap table monitor list scrollable instead of content div */
+#content {
+  display: flex;
+  flex-direction: column;
+}
+#monitorList {
+  overflow: hidden;
+  height: 100%;
+}
+
+#monitorList .bootstrap-table {
+  overflow: hidden;
+  height: 100%;
+}
+
+#monitorList .bootstrap-table {
+  display: flex;
+  flex-direction: column;
+    flex-wrap: nowrap;
+}
+#monitorList .fixed-table-container {
+  overflow: hidden; /* Ensures height doesn't expand */
+}
+
+#fbpanel {
+  flex: 0 0 auto; /* Don't grow, don't shrink, size based on content */
+}
+.bootstrap-table .fixed-table-toolbar .bs-bars {
+  margin: 0;
 }

@@ -46,12 +46,14 @@ static CodecData dec_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "hevc_cuvid", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_cuvid", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_H264, "h264", "h264_cuvid", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_MPEG4, "mpeg4", "mpeg4", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
 #endif
 };
@@ -87,16 +89,23 @@ std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, co
       if (wanted_encoder != enc_codecs[i].codec_name) {
         Debug(1, "Not the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
         continue;
+      } else {
+        Debug(1, "Have the right codec name %s == %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
       }
     }
-
-    if ((!wanted_codec.empty() and wanted_codec != "auto") and (enc_codecs[i].codec_codec != wanted_codec)) {
-      Debug(4, "Not the right codec id %s != %s for %s",
+    if ((!wanted_codec.empty() and (wanted_codec != "auto")) and (enc_codecs[i].codec_codec != wanted_codec)) {
+      Debug(1, "Not the right codec id %s != %s for %s",
           chosen_codec_data->codec_codec,
           wanted_codec.c_str(),
           chosen_codec_data->codec_name
           );
       continue;
+    } else {
+      Debug(1, "Have the right codec id %s == %s for %s",
+          chosen_codec_data->codec_codec,
+          wanted_codec.c_str(),
+          chosen_codec_data->codec_name
+          );
     }
     const AVCodec *codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
     if (!codec) {
@@ -141,23 +150,24 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-static enum AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
-static enum AVPixelFormat get_hw_format(
-  AVCodecContext *ctx,
-  const enum AVPixelFormat *pix_fmts
-) {
-  const enum AVPixelFormat *p;
 
-  for ( p = pix_fmts; *p != -1; p++ ) {
-    if ( *p == hw_pix_fmt )
-      return *p;
+// Callback to select hardware pixel format.
+// ctx->opaque must point to an AVPixelFormat containing the desired hw format.
+enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
+  if (!ctx->opaque) {
+    Error("get_hw_format called with null opaque pointer");
+    return AV_PIX_FMT_NONE;
   }
 
-  Error("Failed to get HW surface format for %s.",
-        av_get_pix_fmt_name(hw_pix_fmt));
-  for ( p = pix_fmts; *p != -1; p++ )
-    Error("Available HW surface format was %s.",
-          av_get_pix_fmt_name(*p));
+  const enum AVPixelFormat hw_pix_fmt = *static_cast<enum AVPixelFormat*>(ctx->opaque);
+
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+    if (*p == hw_pix_fmt) return *p;
+  }
+
+  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
+    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
 
   return AV_PIX_FMT_NONE;
 }
@@ -245,8 +255,6 @@ int setup_hwaccel(
 #endif
   return 0;
 } // end setup_hwaccel
-
-
 
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
@@ -386,17 +394,21 @@ simple_round:
 }
 #endif
 
-static void zm_log_fps(double d, const char *postfix) {
+const std::string get_fps_string(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);
   if (!v) {
-    Debug(1, "%1.4f %s", d, postfix);
+    return stringtf("%1.4f %s", d, postfix);
   } else if (v % 100) {
-    Debug(1, "%3.2f %s", d, postfix);
+    return stringtf("%3.2f %s", d, postfix);
   } else if (v % (100 * 1000)) {
-    Debug(1, "%1.0f %s", d, postfix);
+    return stringtf("%1.0f %s", d, postfix);
   } else {
-    Debug(1, "%1.0fk %s", d / 1000, postfix);
+    return stringtf("%1.0fk %s", d / 1000, postfix);
   }
+}
+
+void zm_log_fps(double d, const char *postfix) {
+  Debug(1, "%s", get_fps_string(d, postfix).c_str());
 }
 
 void zm_dump_codecpar(const AVCodecParameters *par) {
@@ -488,16 +500,13 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   Debug(1, "    Stream #%d:%d", index, i);
   zm_dump_stream(st);
 }
-void zm_dump_stream(AVStream *st) {
-  AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", nullptr, 0);
-  AVCodecParameters *codec = st->codecpar;
 
-  /* the pid is an important information, so we display it */
-  /* XXX: add a generic system */
-  if (lang)
-    Debug(1, "language (%s)", lang->value);
-  Debug(1, "frame_size:%d stream timebase: %d/%d", codec->frame_size, st->time_base.num, st->time_base.den);
-  Debug(1, "codec: %s %s", avcodec_get_name(st->codecpar->codec_id), av_get_media_type_string(st->codecpar->codec_type));
+void zm_dump_stream(AVStream *st) {
+  AVCodecParameters *codec = st->codecpar;
+  std::string output;
+
+  output += stringtf("frame_size:%d timebase: %d/%d", codec->frame_size, st->time_base.num, st->time_base.den);
+  output += stringtf(" codec: %s %s", avcodec_get_name(st->codecpar->codec_id), av_get_media_type_string(st->codecpar->codec_type));
 
   if (st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
@@ -508,11 +517,11 @@ void zm_dump_stream(AVStream *st) {
               codec->width  * (int64_t)st->sample_aspect_ratio.num,
               codec->height * (int64_t)st->sample_aspect_ratio.den,
               1024 * 1024);
-    Debug(1, ", SAR %d:%d DAR %d:%d",
+    output += stringtf(" SAR %d:%d DAR %d:%d",
           st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
           display_aspect_ratio.num, display_aspect_ratio.den);
   } else {
-    Debug(1, ", SAR %d:%d ",
+    output += stringtf(" SAR %d:%d ",
           st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
   }
 
@@ -521,45 +530,43 @@ void zm_dump_stream(AVStream *st) {
     int tbn = st->time_base.den && st->time_base.num;
 
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
+      output += get_fps_string(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
+      output += get_fps_string(1 / av_q2d(st->time_base), "stream tb numerator");
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-    Debug(1, "profile %d channels %d sample_rate %d",
+    output += stringtf("profile %d channels %d sample_rate %d",
           codec->profile, codec->ch_layout.nb_channels, codec->sample_rate);
 #else
-    Debug(1, "profile %d channels %d sample_rate %d",
+    output += stringtf("profile %d channels %d sample_rate %d",
           codec->profile, codec->channels, codec->sample_rate);
 #endif
   } else {
-    Debug(1, "Unknown codec type %d", codec->codec_type);
+    output += stringtf("Unknown codec type %d", codec->codec_type);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)
-    Debug(1, " (default)");
+    output += " (default)";
   if (st->disposition & AV_DISPOSITION_DUB)
-    Debug(1, " (dub)");
+    output += " (dub)";
   if (st->disposition & AV_DISPOSITION_ORIGINAL)
-    Debug(1, " (original)");
+    output += " (original)";
   if (st->disposition & AV_DISPOSITION_COMMENT)
-    Debug(1, " (comment)");
+    output += " (comment)";
   if (st->disposition & AV_DISPOSITION_LYRICS)
-    Debug(1, " (lyrics)");
+    output += " (lyrics)";
   if (st->disposition & AV_DISPOSITION_KARAOKE)
-    Debug(1, " (karaoke)");
+    output += " (karaoke)";
   if (st->disposition & AV_DISPOSITION_FORCED)
-    Debug(1, " (forced)");
+    output += " (forced)";
   if (st->disposition & AV_DISPOSITION_HEARING_IMPAIRED)
-    Debug(1, " (hearing impaired)");
+    output += " (hearing impaired)";
   if (st->disposition & AV_DISPOSITION_VISUAL_IMPAIRED)
-    Debug(1, " (visual impaired)");
+    output += " (visual impaired)";
   if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
-    Debug(1, " (clean effects)");
+    output += " (clean effects)";
 
-  //dump_metadata(NULL, st->metadata, "    ");
-
-  //dump_sidedata(NULL, st, "    ");
+  Debug(1, "%s", output.c_str());
 }
 
 int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
@@ -756,4 +763,16 @@ int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
 //out_frame->nb_samples = frame_size;
   zm_dump_frame(frame, "Out frame after fifo read");
   return 1;
+}
+#include <algorithm> // for std::max and std::min
+
+// Converts libjpeg quality [0-100] to ffmpeg -q:v [2-31] for MJPEG encoding
+int libjpeg_to_ffmpeg_qv(int libjpeg_quality) {
+    // Clamp libjpeg_quality to valid range
+    libjpeg_quality = std::max(0, std::min(100, libjpeg_quality));
+    // Map libjpeg 0-100 to ffmpeg 31-2
+    int ffmpeg_qv = 31 - static_cast<int>(libjpeg_quality * 29.0 / 100.0 + 0.5);
+    // Clamp ffmpeg_qv to valid range
+    ffmpeg_qv = std::max(2, std::min(31, ffmpeg_qv));
+    return ffmpeg_qv;
 }

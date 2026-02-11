@@ -477,6 +477,9 @@ function getCmdResponse(respObj, respText) {
     streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  var clockTime = new Date(eventData.StartDateTime);
+  clockTime.setTime(clockTime.getTime() + (streamStatus.progress * 1000));
+  $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
   //$j('#zoomValue').html(streamStatus.zoom);
   const pz = zmPanZoom.panZoom[eventData.MonitorId];
   if (pz) $j('#zoomValue').html(pz.getScale().toFixed(1));
@@ -498,7 +501,11 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    auth_hash = streamStatus.auth;
+    if (streamStatus.auth != auth_hash) {
+      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
+      auth_hash = streamStatus.auth;
+      auth_relay = streamStatus.auth_relay;
+    }
   } // end if have a new auth hash
 } // end function getCmdResponse( respObj, respText )
 
@@ -541,14 +548,7 @@ function playClicked( ) {
     }
   } else {
     if (zmsBroke) {
-      // The assumption is that the command failed because zms exited, so restart the stream.
-      const img = document.getElementById('evtStream');
-      const src = img.src;
-      const url = new URL(src);
-      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
-      img.src = '';
-      img.src = url;
-      zmsBroke = false;
+      restartZmsStream();
     } else {
       streamReq({command: CMD_PLAY});
     }
@@ -816,11 +816,35 @@ function streamPan(x, y) {
 }
 */
 
+// Restart the zms stream by resetting the <img> src. The browser makes a
+// new CGI request to zms (same connkey), spawning a fresh process. When the
+// new zms delivers its first MJPEG frame, img.onload fires as a reliable
+// signal that the command socket is ready. Optional onReady callback is
+// invoked at that point to send queued commands (e.g. CMD_SEEK).
+function restartZmsStream(onReady) {
+  const img = document.getElementById('evtStream');
+  const url = new URL(img.src);
+  url.searchParams.set('scale', currentScale);
+  img.src = '';
+  img.onload = function() {
+    img.onload = null;
+    zmsBroke = false;
+    if (onReady) onReady();
+  };
+  img.src = url.href;
+}
+
 function streamSeek(offset) {
   if (vid) {
     vid.currentTime(offset);
   } else {
-    streamReq({command: CMD_SEEK, offset: offset});
+    if (zmsBroke) {
+      restartZmsStream(function() {
+        streamSeek(offset);
+      });
+    } else {
+      streamReq({command: CMD_SEEK, offset: offset});
+    }
   }
 }
 
@@ -970,7 +994,8 @@ function updateProgressBar() {
   if (!eventData) return;
   if (vid) {
     var currentTime = vid.currentTime();
-    var progressDate = new Date(currentTime);
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (currentTime * 1000));
   } else {
     if (!streamStatus) return;
     var currentTime = streamStatus.progress;
@@ -983,6 +1008,7 @@ function updateProgressBar() {
 
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
+  $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
@@ -1199,7 +1225,7 @@ function getEvtStatsCookie() {
 
 function getStat() {
   eventStatsTable.empty().append('<tbody>');
-  if (!eventData) return;
+  if (isEmpty(eventData)) return;
 
   $j.each(eventDataStrings, function(key) {
     if (key == 'MonitorId') return true; // Not show ID string
@@ -1267,9 +1293,11 @@ function getStat() {
         tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
-        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-        date.setSeconds(eventData[key]);
-        tdString = date.toISOString().substr(11, 8);
+        if (eventData[key]) {
+          const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+          date.setSeconds(eventData[key]);
+          tdString = date.toISOString().substr(11, 8);
+        }
         break;
       default:
         tdString = eventData[key];
@@ -1356,6 +1384,9 @@ function initPage() {
 
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+      var clockTime = new Date(eventData.StartDateTime);
+      clockTime.setTime(clockTime.getTime() + (vid.currentTime() * 1000));
+      $j('#currentTimeValue').html(clockTime.toLocaleTimeString());
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
@@ -1388,6 +1419,7 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  $j('#currentTimeValue').html(new Date(eventData.StartDateTime).toLocaleTimeString());
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {

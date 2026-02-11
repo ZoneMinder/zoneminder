@@ -103,7 +103,7 @@ class LocalCamera : public Camera {
     unsigned int p_extras = 0);
   ~LocalCamera();
 
-  void Initialise();
+  int Initialise();
   void Terminate();
 
   const std::string &Device() const { return device; }

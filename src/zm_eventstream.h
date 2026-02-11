@@ -65,7 +65,6 @@ class EventStream : public StreamBase {
     SystemTimePoint start_time;
     SystemTimePoint end_time;
     Microseconds duration;
-    Microseconds frames_duration;
     std::string path;
     int             n_frames;       // # of frame rows returned from database
     std::vector<FrameData> frames;
@@ -117,8 +116,10 @@ class EventStream : public StreamBase {
     delete ffmpeg_input;
   }
   void setStreamStart(uint64_t init_event_id, int init_frame_id);
-  void setStreamStart(int monitor_id, time_t event_time);
+  void setStreamStart(uint64_t init_event_id, SystemTimePoint event_time);
+  void setStreamStart(int monitor_id, SystemTimePoint event_time);
   void setStreamMode(StreamMode p_mode) { mode = p_mode; }
+  bool seek(SystemTimePoint event_time);
   void runStream() override;
   Image *getImage();
  private:

@@ -325,8 +325,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
+    $videoAttr = '';
+    if ($event->DefaultVideo()) {
+      $videoSrc = $event->getStreamSrc(array('mode'=>'mp4'), '&amp;');
+      $videoAttr = ' video_src="' .$videoSrc. '" data-event-start="'.htmlspecialchars($event->StartDateTime()).'"';
+    }
+
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' loading="lazy" />';
     $row['imgWidth'] = validInt($event->ThumbnailWidth());
     $row['imgHeight'] = validInt($event->ThumbnailHeight());
 
@@ -350,6 +356,19 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
+  # Calculate totals for footer display
+  $totalDiskSpace = 0;
+  $totalLength = 0;
+  foreach ($filtered_rows as $row) {
+    $totalDiskSpace += isset($row['DiskSpace']) ? $row['DiskSpace'] : 0;
+    $totalLength += isset($row['Length']) ? $row['Length'] : 0;
+  }
+  $data['footerData'] = array(
+    'DiskSpace' => human_filesize($totalDiskSpace),
+    'Length' => $totalLength,
+  );
+
   ZM\Debug("Done");
   return $data;
 }

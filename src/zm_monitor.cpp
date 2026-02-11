@@ -2477,6 +2477,7 @@ bool Monitor::Analyse() {
     }
   }  // end scope for event_lock
   packet->analyzed = true;
+  packetqueue.notify_all();  // Wake event thread waiting on analyzed flag
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
@@ -2690,6 +2691,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
+      packetqueue.notify_all();  // Wake event thread waiting on decoded flag
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);

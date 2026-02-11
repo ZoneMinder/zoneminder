@@ -237,33 +237,30 @@ Event::~Event() {
     closedir(video_dir);
   }
 
+  // Use async dbQueue instead of synchronous zmDbDoUpdate to avoid blocking
+  // the close_event_thread (which blocks the analysis thread on the next closeEvent).
+  // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
+      "UPDATE Events SET"
+      " Name = IF(Name='New Event', '%s%" PRIu64 "', Name),"
+      " EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d,"
+      " AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d,"
+      " MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64
+      " WHERE Id = %" PRIu64,
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id,
+      static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
       delta_time.count(),
       frames, alarm_frames,
-      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
+      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
+      max_score, max_score_frame_id,
       video_file.c_str(), // defaults to ""
       video_size,
       id);
-
-  if (!zmDbDoUpdate(sql)) {
-    // Name might have been changed during recording, so just do the update without changing the name.
-    sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
-        static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
-        delta_time.count(),
-        frames, alarm_frames,
-        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
-        video_file.c_str(), // defaults to ""
-        video_size,
-        id);
-    zmDbDoUpdate(sql);
-  }  // end if no changed rows due to Name change during recording
+  dbQueue.push(std::move(sql));
 
   if (storage && storage->Id()) {
     sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
-    zmDbDoUpdate(sql);
+    dbQueue.push(std::move(sql));
   }
 }  // Event::~Event()
 
@@ -782,19 +779,17 @@ void Event::Run() {
       if (!packet->decoded) {
         Debug(1, "Not decoded");
         packet_lock.unlock();
-        // Stay behind decoder
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
-        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        // Wait on packetqueue condition instead of blind sleep — wakes immediately
+        // when decoder sets decoded=true and calls packetqueue.notify_all()
+        packetqueue->wait_for(Microseconds(ZM_SAMPLE_RATE));
         continue;
       }
       if (!packet->analyzed) {
         Debug(1, "Not analyzed");
         packet_lock.unlock();
-        // Stay behind ai
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
-        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        // Wait on packetqueue condition instead of blind sleep — wakes immediately
+        // when analysis sets analyzed=true and calls packetqueue.notify_all()
+        packetqueue->wait_for(Microseconds(ZM_SAMPLE_RATE));
         continue;
       }
 
@@ -820,7 +815,9 @@ void Event::Run() {
       packetqueue->increment_it(packetqueue_it, true);
     } else {
       if (terminate_ or zm_terminate) return;
-      usleep(10000);
+      // Wait on packetqueue condition instead of blind sleep — wakes immediately
+      // when a packet is queued or a packet lock becomes available
+      packetqueue->wait_for(Microseconds(10000));
     } // end if packet_lock
   }  // end while
 }  // end Run()

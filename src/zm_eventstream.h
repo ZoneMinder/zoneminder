@@ -127,6 +127,8 @@ class EventStream : public StreamBase {
   bool send_buffer(uint8_t * buffer, int size);
   Storage *storage;
   FFmpeg_Input  *ffmpeg_input;
+  Image reuse_image_;  // reused across sendFrame calls to avoid per-frame heap alloc
+  std::string reuse_filepath_;  // reused across sendFrame calls to avoid per-frame heap alloc
 };
 
 #endif // ZM_EVENTSTREAM_H

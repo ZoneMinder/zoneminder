@@ -851,30 +851,32 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     curr_frame_id = std::clamp(curr_frame_id, 1, (int)event_data->frames.size());
   }
 
-  std::string filepath;
+  // Reusable string member avoids per-frame heap allocations.
+  // After the first frame, the string's buffer is reused (unless path exceeds capacity).
+  reuse_filepath_.clear();
   struct stat filestat = {};
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
-    filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(filepath.c_str(), &filestat) < 0) {
-      Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
-      filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (stat(filepath.c_str(), &filestat) < 0) {
-        Debug(1, "capture file %s not found either", filepath.c_str());
-        filepath = "";
+    reuse_filepath_ = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+      Debug(1, "analyze file %s not found will try to stream from other", reuse_filepath_.c_str());
+      reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+      if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+        Debug(1, "capture file %s not found either", reuse_filepath_.c_str());
+        reuse_filepath_.clear();
       }
     }
   } else if (event_data->SaveJPEGs & 1) {
-    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
   } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
   }
 
   if ( type == STREAM_MPEG ) {
-    Image image(filepath.c_str());
+    Image image(reuse_filepath_.c_str());
 
     Image *send_image = prepareImage(&image);
 
@@ -889,19 +891,19 @@ bool EventStream::sendFrame(Microseconds delta_us) {
                             config.mpeg_timed_frames,
                             delta_us.count() * 1000);
   } else {
-    bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !filepath.empty();
+    bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !reuse_filepath_.empty();
 
     if (send_raw) {
       fprintf(stdout, "--" BOUNDARY "\r\n");
-      if (!send_file(filepath)) {
-        Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
+      if (!send_file(reuse_filepath_)) {
+        Error("Can't send %s: %s", reuse_filepath_.c_str(), strerror(errno));
         return false;
       }
     } else {
       Image *image = nullptr;
 
-      if (!filepath.empty()) {
-        image = new Image(filepath.c_str());
+      if (!reuse_filepath_.empty()) {
+        image = new Image(reuse_filepath_.c_str());
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];

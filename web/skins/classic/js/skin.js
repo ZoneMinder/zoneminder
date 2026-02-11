@@ -2390,6 +2390,18 @@ function resetSelectElement(el) {
   selectElement.change();
 }
 
+function getMonitorStream(mid) {
+  let monitorStream_ = null;
+  if (currentView == 'watch') {
+    monitorStream_ = monitorStream;
+  } else if (currentView == 'montage') {
+    monitorStream_ = monitors.find((o) => {
+      return parseInt(o["id"]) === mid;
+    });
+  }
+  return monitorStream_;
+}
+
 function initPageGeneral() {
   $j(document).on('keyup.global keydown.global', function handleKey(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;
@@ -2596,5 +2608,23 @@ function monitorFilterOnChange(element) {
 function isEmpty(obj) {
   return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
 }
+
+function copyAllAttributesDOMElement(fromEl, toEl) {
+  for (const attr of fromEl.attributes) {
+    toEl.setAttribute(attr.name, attr.value);
+  }
+};
+
+function replaceDOMElement(fromEl, toTypeEl) {
+  let newEl = fromEl;
+  if (fromEl.nodeName != toTypeEl.toUpperCase()) {
+    const container = fromEl.parentNode;
+    newEl = document.createElement(toTypeEl);
+    copyAllAttributesDOMElement(fromEl, newEl);
+    fromEl.parentNode.removeChild(fromEl);
+    container.appendChild(newEl);
+  }
+  return newEl;
+};
 
 $j( window ).on("load", initPageGeneral);

@@ -896,6 +896,13 @@ function streamReStart(oldId, newId) {
   //Change main monitor block
   monitor_div.innerHTML = currentMonitor.streamHTML;
 
+  const volumeControls = document.getElementById('volumeControls'+oldId);
+  if (volumeControls) volumeControls.id = 'volumeControls'+newId;
+  const volumeSlider = document.getElementById('volumeSlider'+oldId);
+  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  const controlMute = document.getElementById('controlMute'+oldId);
+  if (controlMute) controlMute.id = 'controlMute'+newId;
+
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");

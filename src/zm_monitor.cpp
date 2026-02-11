@@ -3236,13 +3236,13 @@ Event * Monitor::openEvent(
       logTerm();
       int fdlimit = (int)sysconf(_SC_OPEN_MAX);
       for (int i = 0; i < fdlimit; i++) close(i);
-      execlp(event_start_command.c_str(),
-             event_start_command.c_str(),
-             std::to_string(event->Id()).c_str(),
-             std::to_string(event->MonitorId()).c_str(),
-             nullptr);
+      std::string cmd = ReplaceAll(ReplaceAll(
+          ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
+          "%MID%", std::to_string(event->MonitorId())),
+          "%EC%", cause);
+      execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
       logInit(log_id.c_str());
-      Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
       std::quick_exit(0);
     }
   }
@@ -3276,12 +3276,12 @@ void Monitor::closeEvent() {
         logTerm();
         int fdlimit = (int)sysconf(_SC_OPEN_MAX);
         for (int i = 0; i < fdlimit; i++) close(i);
-        execlp(command.c_str(), command.c_str(),
-               std::to_string(event_id).c_str(),
-               std::to_string(monitor_id).c_str(),
-               nullptr);
+        std::string cmd = ReplaceAll(
+            ReplaceAll(command, "%EID%", std::to_string(event_id)),
+            "%MID%", std::to_string(monitor_id));
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
         logInit(log_id.c_str());
-        Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
         std::quick_exit(0);
       }
     }

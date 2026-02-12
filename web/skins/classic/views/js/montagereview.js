@@ -606,6 +606,11 @@ function drawEventOnGraph(zm_event) {
 }
 
 function drawGraph() {
+  if (!canvas) {
+    // Likely live mode
+    console.log("Called drawGraph while in live mode");
+    return;
+  }
   underSlider = undefined; // flag we don't have a slider cached
 
   // timelinediv starts off 100% of browser, but it's container can be smaller

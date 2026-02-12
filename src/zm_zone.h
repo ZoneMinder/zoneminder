@@ -211,6 +211,7 @@ class Zone {
   std::string DumpSettings(bool verbose) const;
 
   static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
+  static bool ParsePercentagePolygon(const char *poly_string, unsigned int width, unsigned int height, Polygon &polygon);
   static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );
   static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
   //=================================================

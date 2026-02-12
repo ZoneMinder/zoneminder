@@ -201,12 +201,27 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  // Reuse diff image buffer — dimensions are constant per zone, so Assign()
-  // just does a memcpy into the existing allocation instead of free+malloc.
-  if (!image) {
-    image = new Image(*delta_image);
-  } else {
-    image->Assign(*delta_image);
+  // Allocate a persistent grayscale mask buffer (same dimensions as delta).
+  // Unlike the old code that copied the entire delta_image, we only zero the
+  // bounding-box rows and let alarmedpixels_row read from delta_image directly.
+  // This replaces a full-image memcpy with a memset of just the zone bbox rows,
+  // and avoids read-side cache pollution from copying delta data we never use.
+  if (!image
+      || image->Colours() != 1
+      || image->Width() != delta_image->Width()
+      || image->Height() != delta_image->Height()) {
+    delete image;
+    // Use the (width, linesize, height, ...) constructor to force linesize == width.
+    // The filter/blob stages use Width() as the row stride for pointer arithmetic,
+    // so linesize must match Width() exactly.  The default constructor uses FFALIGN
+    // which can pad linesize beyond Width() for non-32-aligned widths.
+    int w = delta_image->Width();
+    int h = delta_image->Height();
+    image = new Image(w, w, h, 1, ZM_SUBPIX_ORDER_NONE);
+    // Zero the entire buffer so Overlay() sees kBlack for all pixels
+    // outside the bbox.  This only runs on first allocation or after
+    // HighlightEdges replaced the image with an RGB alarm image.
+    memset(image->Buffer(), 0, static_cast<size_t>(w) * h);
   }
   Image *diff_image = image;
   int diff_width = diff_image->Width();
@@ -228,14 +243,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
 
+  // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
+  // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
+  // for pixels inside the ranges.
+  memset(diff_buff + (lo_y * diff_width), 0, static_cast<size_t>(hi_y - lo_y + 1) * diff_width);
+
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
-  /* if(config.cpu_extensions && sse_version >= 20) {
-     sse2_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
-     } else {
-     std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
-     } */
-  std_alarmedpixels(diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
+  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
 
   if (config.record_diag_images) {
     diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -992,11 +1007,15 @@ std::string Zone::DumpSettings(bool /*verbose*/) const {
 }
 
 // Scan one row of pixels, thresholding against the polygon mask.
-// Separated from std_alarmedpixels so the compiler sees __restrict__ on
+// Reads from pdelta (the frame-difference image) and writes the binary
+// result to pmask (a separate per-zone mask buffer), so the caller
+// never needs to copy the full delta image.
+// Separated into its own function so the compiler sees __restrict__ on
 // function parameters (where GCC fully trusts it) and no calls that
 // clobber memory, allowing auto-vectorization at -O2/-O3.
 static void alarmedpixels_row(
-    uint8_t *__restrict__ pdiff,
+    const uint8_t *__restrict__ pdelta,
+    uint8_t *__restrict__ pmask,
     const uint8_t *__restrict__ ppoly,
     unsigned int count,
     uint8_t calc_min,
@@ -1004,19 +1023,20 @@ static void alarmedpixels_row(
     uint32_t &pixelsalarmed,
     uint32_t &pixelsdifference) {
   for (unsigned int i = 0; i < count; i++) {
-    const uint8_t d = pdiff[i];
+    const uint8_t d = pdelta[i];
     const uint8_t p = ppoly[i];
     // Bitwise AND avoids short-circuit branches that block vectorization
     const bool alarmed = (p != 0) & (d > calc_min) & (d <= calc_max);
 
     pixelsalarmed += alarmed;
     pixelsdifference += alarmed ? d : 0;
-    pdiff[i] = alarmed ? kWhite : kBlack;
+    pmask[i] = alarmed ? kWhite : kBlack;
   }
 }
 
 void Zone::std_alarmedpixels(
-  Image* pdiff_image,
+  const Image* pdelta_image,
+  Image* pmask_image,
   const Image* ppoly_image,
   unsigned int* pixel_count,
   unsigned int* pixel_sum) {
@@ -1037,7 +1057,8 @@ void Zone::std_alarmedpixels(
     if (lo_x > hi_x) continue;
 
     alarmedpixels_row(
-        pdiff_image->Buffer(lo_x, y),
+        pdelta_image->Buffer(lo_x, y),
+        pmask_image->Buffer(lo_x, y),
         ppoly_image->Buffer(lo_x, y),
         hi_x - lo_x + 1,
         calc_min, calc_max,

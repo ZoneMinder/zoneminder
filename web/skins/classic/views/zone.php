@@ -140,7 +140,7 @@ echo getNavBarHTML();
 				  <div id="imageAndPoints">
             <div id="imageFrame">
               <?php echo 
-$monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true));
+$monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true, 'analysis'=>true));
 ?>
               <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php

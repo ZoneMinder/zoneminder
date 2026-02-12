@@ -602,6 +602,9 @@ function MonitorStream(monitorData) {
           src += '&maxfps='+match[1];
         }
       }
+      if (this.analyse_frames && -1 == src.search('analysis=')) {
+        src += '&analysis=true';
+      }
       if (stream.src != src) {
         //console.log("Setting src.src", stream.src, src);
         stream.src = '';

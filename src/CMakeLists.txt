@@ -152,6 +152,7 @@ target_include_directories(zm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../dep/booleval/include
+    ${ZM_INCLUDE_DIRS}
     )
 
 if(ZM_STRIP_NEON)

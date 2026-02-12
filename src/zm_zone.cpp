@@ -991,6 +991,30 @@ std::string Zone::DumpSettings(bool /*verbose*/) const {
   return result;
 }
 
+// Scan one row of pixels, thresholding against the polygon mask.
+// Separated from std_alarmedpixels so the compiler sees __restrict__ on
+// function parameters (where GCC fully trusts it) and no calls that
+// clobber memory, allowing auto-vectorization at -O2/-O3.
+static void alarmedpixels_row(
+    uint8_t *__restrict__ pdiff,
+    const uint8_t *__restrict__ ppoly,
+    unsigned int count,
+    uint8_t calc_min,
+    uint8_t calc_max,
+    uint32_t &pixelsalarmed,
+    uint32_t &pixelsdifference) {
+  for (unsigned int i = 0; i < count; i++) {
+    const uint8_t d = pdiff[i];
+    const uint8_t p = ppoly[i];
+    // Bitwise AND avoids short-circuit branches that block vectorization
+    const bool alarmed = (p != 0) & (d > calc_min) & (d <= calc_max);
+
+    pixelsalarmed += alarmed;
+    pixelsdifference += alarmed ? d : 0;
+    pdiff[i] = alarmed ? kWhite : kBlack;
+  }
+}
+
 void Zone::std_alarmedpixels(
   Image* pdiff_image,
   const Image* ppoly_image,
@@ -998,39 +1022,33 @@ void Zone::std_alarmedpixels(
   unsigned int* pixel_sum) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
-  uint8_t calc_max_pixel_threshold = 255;
-  unsigned int lo_y;
-  unsigned int hi_y;
 
-  if ( max_pixel_threshold )
-    calc_max_pixel_threshold = max_pixel_threshold;
+  // Cache member variables locally so the compiler can prove loop-invariance
+  const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
+  const uint8_t calc_min = min_pixel_threshold;
 
-  lo_y = polygon.Extent().Lo().y_;
-  hi_y = polygon.Extent().Hi().y_;
-  for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-    unsigned int lo_x = ranges[y].lo_x;
-    unsigned int hi_x = ranges[y].hi_x;
+  const unsigned int lo_y = polygon.Extent().Lo().y_;
+  const unsigned int hi_y = polygon.Extent().Hi().y_;
 
-    Debug(7, "Checking line %d from %d -> %d", y, lo_x, hi_x);
-    uint8_t *pdiff = pdiff_image->Buffer(lo_x, y);
-    const uint8_t *ppoly = ppoly_image->Buffer(lo_x, y);
+  for (unsigned int y = lo_y; y <= hi_y; y++) {
+    const unsigned int lo_x = ranges[y].lo_x;
+    const unsigned int hi_x = ranges[y].hi_x;
 
-    for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ ) {
-      if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) ) {
-        pixelsalarmed++;
-        pixelsdifference += *pdiff;
-        *pdiff = kWhite;
-      } else {
-        *pdiff = kBlack;
-      }
-    }
+    if (lo_x > hi_x) continue;
+
+    alarmedpixels_row(
+        pdiff_image->Buffer(lo_x, y),
+        ppoly_image->Buffer(lo_x, y),
+        hi_x - lo_x + 1,
+        calc_min, calc_max,
+        pixelsalarmed, pixelsdifference);
   }  // end for y = lo_y to hi_y
 
   /* Store the results */
   *pixel_count = pixelsalarmed;
   *pixel_sum = pixelsdifference;
   Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
-}  // end void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum)
+}  // end void Zone::std_alarmedpixels
 
 Zone::Zone(const Zone &z) :
   monitor(z.monitor),

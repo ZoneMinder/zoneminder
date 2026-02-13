@@ -1,0 +1,618 @@
+# ==========================================================================
+#
+# ZoneMinder Unified ONVIF Control Protocol Module
+# Copyright (C) 2001-2024 ZoneMinder Inc
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+#
+# Unified ONVIF SOAP/PTZ control module. Replaces the four earlier
+# per-vendor copies (onvif.pm, Reolink.pm, Netcat.pm, TapoC520WS_ONVIF.pm)
+# with a single implementation that:
+#   - Keeps all state in instance variables (no package globals)
+#   - Uses base-class guess_credentials() as a fallback
+#   - Supports SSL with automatic verification fallback
+#   - Fixes brightness case-sensitivity bug in imaging commands
+#   - Fixes missing sendCmd calls in contrast commands
+#   - Sends imaging commands to the correct /onvif/imaging endpoint
+#
+# Configuration (Monitor -> Control tab):
+#   Control Type    : ONVIF
+#   Control Device  : profile token, e.g. "prof0" (default "000")
+#   Control Address : [scheme://][user:pass@]host[:port][/onvif/path]
+#                     Minimum: 192.168.1.1
+#                     Full:    https://admin:secret@192.168.1.100:8080/onvif/PTZ
+#   AutoStopTimeout : duration in microseconds (1000000 = 1 s)
+#
+package ZoneMinder::Control::ONVIF;
+
+use 5.006;
+use strict;
+use warnings;
+
+require ZoneMinder::Base;
+require ZoneMinder::Control;
+
+our @ISA = qw(ZoneMinder::Control);
+
+use ZoneMinder::Logger qw(:all);
+
+use Time::HiRes qw( usleep );
+use LWP::UserAgent;
+use MIME::Base64;
+use Digest::SHA;
+use DateTime;
+use URI;
+use URI::Escape;
+use IO::Socket::SSL;
+
+# =========================================================================
+#  open / close
+# =========================================================================
+
+sub open {
+  my $self = shift;
+  $self->loadMonitor();
+
+  # --- UserAgent with SSL verification (will fall back if needed) --------
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
+  $self->{ua}->ssl_opts(
+    verify_hostname => 1,
+    SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER,
+  );
+  $$self{ssl_verified} = 1;
+
+  # --- Profile token from ControlDevice (default '000') -----------------
+  my $cd = $self->{Monitor}->{ControlDevice} // '';
+  $$self{profileToken} = ($cd =~ /\S/) ? $cd : '000';
+  $$self{realm} = $cd;
+
+  # --- Parse ControlAddress for credentials, host, port, ONVIF path -----
+  my $control_address = $self->{Monitor}->{ControlAddress} // '';
+  if ($control_address =~ /\S/) {
+    $self->_parse_control_address($control_address);
+  } else {
+    # No ControlAddress — try base-class fallback (extracts creds from Path)
+    $$self{onvif_path} = '/onvif/PTZ';
+    if ($self->guess_credentials()) {
+      # Rebuild BaseURL without any path that guess_credentials may include
+      my $scheme = ($$self{uri} && $$self{uri}->scheme()) ? $$self{uri}->scheme() : 'http';
+      $scheme = 'http' if $scheme eq 'rtsp';
+      $$self{BaseURL} = $scheme . '://' . $$self{host} . ':' . $$self{port};
+    } else {
+      Warning('Failed to determine camera address from ControlAddress or Path');
+    }
+  }
+
+  # --- Connectivity check (non-fatal) ------------------------------------
+  if ($$self{BaseURL}) {
+    my $res = $self->sendCmd('/onvif/device_service',
+      '<s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+      'http://www.onvif.org/ver10/device/wsdl/GetSystemDateAndTime');
+    if ($res) {
+      Debug('ONVIF device responded at ' . $$self{BaseURL});
+    } else {
+      Warning('No response from ONVIF device at ' . $$self{BaseURL}
+        . '/onvif/device_service — PTZ commands may still work');
+    }
+  }
+
+  $self->{state} = 'open';
+  return !undef;
+}
+
+sub _parse_control_address {
+  my ($self, $address) = @_;
+
+  # Ensure a scheme is present so URI can parse correctly
+  $address = 'http://' . $address if $address !~ m{^https?://};
+
+  my $uri = URI->new($address);
+
+  $$self{host} = $uri->host();
+
+  # Credentials
+  if ($uri->userinfo) {
+    my ($user, $pass) = split /:/, $uri->userinfo, 2;
+    $$self{username} = $user;
+    $$self{password} = URI::Escape::uri_unescape($pass) if defined $pass;
+  }
+
+  # Port — URI->port falls back to default_port for the scheme
+  $$self{port} = $uri->port || 80;
+
+  # ONVIF service path (default /onvif/PTZ)
+  my $path = $uri->path;
+  $$self{onvif_path} = ($path && $path ne '/') ? $path : '/onvif/PTZ';
+
+  # Base URL without path
+  $$self{BaseURL} = $uri->scheme . '://' . $$self{host} . ':' . $$self{port};
+
+  Debug('ONVIF open: base=' . $$self{BaseURL}
+    . ' path=' . $$self{onvif_path}
+    . ' user=' . ($$self{username} // '(none)'));
+}
+
+# =========================================================================
+#  WS-Security PasswordDigest helpers (plain functions, not methods)
+# =========================================================================
+
+sub _digest_base64 {
+  my ($nonce, $date, $password) = @_;
+  my $sha = Digest::SHA->new(1);
+  $sha->add($nonce . $date . $password);
+  return encode_base64($sha->digest, '');
+}
+
+sub _auth_header {
+  my ($username, $password) = @_;
+  return '' if !$username;
+
+  my @charset = ('0' .. '9', 'A' .. 'Z', 'a' .. 'z');
+  my $nonce = join '' => map $charset[rand @charset], 1 .. 20;
+  my $nonceBase64 = encode_base64($nonce, '');
+  my $date = DateTime->now()->iso8601() . 'Z';
+
+  return '
+<s:Header>
+  <Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+    <UsernameToken xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <Username>' . $username . '</Username>
+      <Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' . _digest_base64($nonce, $date, $password) . '</Password>
+      <Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">' . $nonceBase64 . '</Nonce>
+      <Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">' . $date . '</Created>
+    </UsernameToken>
+  </Security>
+</s:Header>';
+}
+
+# =========================================================================
+#  sendCmd — core SOAP POST
+# =========================================================================
+
+sub sendCmd {
+  my ($self, $endpoint, $body, $action) = @_;
+
+  my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'
+    . _auth_header($$self{username}, $$self{password})
+    . $body
+    . '</s:Envelope>';
+
+  my $url = $$self{BaseURL} . $endpoint;
+  $self->printMsg($url, 'Tx');
+
+  my $req = HTTP::Request->new(POST => $url);
+  $req->header('content-type'     => 'application/soap+xml; charset=utf-8; action="' . $action . '"');
+  $req->header('Host'             => $$self{host} . ':' . $$self{port});
+  $req->header('content-length'   => length($msg));
+  $req->header('accept-encoding'  => 'gzip, deflate');
+  $req->header('connection'       => 'Close');
+  $req->content($msg);
+
+  my $res = $self->{ua}->request($req);
+
+  # SSL fallback: on certificate errors, retry without verification
+  if (!$res->is_success && $$self{ssl_verified}
+      && $res->status_line =~ /SSL|certificate|verify/i) {
+    Warning("SSL verification failed for $url ("
+      . $res->status_line . '), retrying without verification');
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+      SSL_hostname    => '',
+    );
+    $$self{ssl_verified} = 0;
+    $res = $self->{ua}->request($req);
+  }
+
+  if ($res->is_success) {
+    return $res;
+  }
+
+  Error("ONVIF command to $url failed: " . $res->status_line());
+  return undef;
+}
+
+# =========================================================================
+#  Imaging — Brightness / Contrast
+# =========================================================================
+
+sub getCamParams {
+  my $self = shift;
+  $$self{CamParams} = {} if !$$self{CamParams};
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
+    <VideoSourceToken>000</VideoSourceToken>
+  </GetImagingSettings>
+</s:Body>';
+
+  my $res = $self->sendCmd('/onvif/imaging', $body,
+    'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings');
+
+  if ($res) {
+    my $content = $res->decoded_content;
+    if ($content =~ /<tt:(Brightness)>(.+?)<\/tt:Brightness>/) {
+      $$self{CamParams}{$1} = $2;
+    }
+    if ($content =~ /<tt:(Contrast)>(.+?)<\/tt:Contrast>/) {
+      $$self{CamParams}{$1} = $2;
+    }
+  } else {
+    Error('Unable to retrieve camera imaging settings');
+  }
+}
+
+sub _setImaging {
+  my ($self, $param, $value) = @_;
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
+    <VideoSourceToken>000</VideoSourceToken>
+    <ImagingSettings>
+      <' . $param . ' xmlns="http://www.onvif.org/ver10/schema">' . $value . '</' . $param . '>
+    </ImagingSettings>
+    <ForcePersistence>true</ForcePersistence>
+  </SetImagingSettings>
+</s:Body>';
+
+  return $self->sendCmd('/onvif/imaging', $body,
+    'http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings');
+}
+
+# Increase Brightness (mapped to Iris Open in ZM UI)
+sub irisAbsOpen {
+  my $self = shift;
+  my $params = shift;
+  $$self{CamParams} = {} if !$$self{CamParams};
+  $self->getCamParams() unless $$self{CamParams}{Brightness};
+  my $step = $self->getParam($params, 'step');
+
+  $$self{CamParams}{Brightness} += $step;
+  $$self{CamParams}{Brightness} = 100 if $$self{CamParams}{Brightness} > 100;
+  Debug("Brightness increase to $$self{CamParams}{Brightness}");
+  $self->_setImaging('Brightness', $$self{CamParams}{Brightness});
+}
+
+# Decrease Brightness (mapped to Iris Close in ZM UI)
+sub irisAbsClose {
+  my $self = shift;
+  my $params = shift;
+  $$self{CamParams} = {} if !$$self{CamParams};
+  # BUG FIX: originals checked lowercase 'brightness' — never matched
+  $self->getCamParams() unless $$self{CamParams}{Brightness};
+  my $step = $self->getParam($params, 'step');
+
+  $$self{CamParams}{Brightness} -= $step;
+  $$self{CamParams}{Brightness} = 0 if $$self{CamParams}{Brightness} < 0;
+  Debug("Brightness decrease to $$self{CamParams}{Brightness}");
+  $self->_setImaging('Brightness', $$self{CamParams}{Brightness});
+}
+
+# Increase Contrast (mapped to White In in ZM UI)
+sub whiteAbsIn {
+  my $self = shift;
+  my $params = shift;
+  $$self{CamParams} = {} if !$$self{CamParams};
+  $self->getCamParams() unless $$self{CamParams}{Contrast};
+  my $step = $self->getParam($params, 'step');
+
+  $$self{CamParams}{Contrast} += $step;
+  $$self{CamParams}{Contrast} = 100 if $$self{CamParams}{Contrast} > 100;
+  Debug("Contrast increase to $$self{CamParams}{Contrast}");
+  # BUG FIX: originals (Reolink/Netcat/TapoC520WS) were missing this sendCmd call
+  $self->_setImaging('Contrast', $$self{CamParams}{Contrast});
+}
+
+# Decrease Contrast (mapped to White Out in ZM UI)
+sub whiteAbsOut {
+  my $self = shift;
+  my $params = shift;
+  $$self{CamParams} = {} if !$$self{CamParams};
+  $self->getCamParams() unless $$self{CamParams}{Contrast};
+  my $step = $self->getParam($params, 'step');
+
+  $$self{CamParams}{Contrast} -= $step;
+  $$self{CamParams}{Contrast} = 0 if $$self{CamParams}{Contrast} < 0;
+  Debug("Contrast decrease to $$self{CamParams}{Contrast}");
+  # BUG FIX: originals (Reolink/Netcat/TapoC520WS) were missing this sendCmd call
+  $self->_setImaging('Contrast', $$self{CamParams}{Contrast});
+}
+
+# =========================================================================
+#  PTZ — ContinuousMove / Stop
+# =========================================================================
+
+sub _continuous_move {
+  my ($self, $pan_x, $pan_y, $zoom_x) = @_;
+
+  my $velocity = '';
+  if (defined $pan_x and defined $pan_y) {
+    $velocity .= '<PanTilt x="' . $pan_x . '" y="' . $pan_y
+      . '" xmlns="http://www.onvif.org/ver10/schema"/>';
+  }
+  if (defined $zoom_x) {
+    $velocity .= '<Zoom x="' . $zoom_x
+      . '" xmlns="http://www.onvif.org/ver10/schema"/>';
+  }
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <Velocity>' . $velocity . '</Velocity>
+  </ContinuousMove>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+
+  my $is_zoom = (defined $zoom_x && !defined $pan_x);
+  $self->_auto_stop($is_zoom);
+}
+
+sub _auto_stop {
+  my ($self, $is_zoom) = @_;
+  my $timeout = $self->{Monitor}->{AutoStopTimeout};
+  return unless $timeout;
+
+  Debug("Auto stop after ${timeout} us");
+  usleep($timeout);
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <PanTilt>' . ($is_zoom ? 'false' : 'true') . '</PanTilt>
+    <Zoom>'   . ($is_zoom ? 'true'  : 'false') . '</Zoom>
+  </Stop>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+}
+
+# --- Directional continuous moves ----------------------------------------
+
+sub moveConUp        { Debug('Move Up');         $_[0]->_continuous_move( 0,     0.5,  undef) }
+sub moveConDown      { Debug('Move Down');       $_[0]->_continuous_move( 0,    -0.5,  undef) }
+sub moveConLeft      { Debug('Move Left');       $_[0]->_continuous_move(-0.49,  0,    undef) }
+sub moveConRight     { Debug('Move Right');      $_[0]->_continuous_move( 0.49,  0,    undef) }
+sub moveConUpRight   { Debug('Move Up-Right');   $_[0]->_continuous_move( 0.5,   0.5,  undef) }
+sub moveConUpLeft    { Debug('Move Up-Left');    $_[0]->_continuous_move(-0.5,   0.5,  undef) }
+sub moveConDownRight { Debug('Move Down-Right'); $_[0]->_continuous_move( 0.5,  -0.5,  undef) }
+sub moveConDownLeft  { Debug('Move Down-Left');  $_[0]->_continuous_move(-0.5,  -0.5,  undef) }
+
+# --- Zoom ----------------------------------------------------------------
+
+sub zoomConTele { Debug('Zoom Tele'); $_[0]->_continuous_move(undef, undef,  0.49) }
+sub zoomConWide { Debug('Zoom Wide'); $_[0]->_continuous_move(undef, undef, -0.49) }
+
+# --- Stop ----------------------------------------------------------------
+
+sub moveStop {
+  my $self = shift;
+  Debug('Move Stop');
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <PanTilt>true</PanTilt>
+    <Zoom>true</Zoom>
+  </Stop>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+}
+
+sub zoomStop {
+  my $self = shift;
+  Debug('Zoom Stop');
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <PanTilt>false</PanTilt>
+    <Zoom>true</Zoom>
+  </Stop>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+}
+
+# =========================================================================
+#  AbsoluteMove / RelativeMove
+# =========================================================================
+
+sub moveMap {
+  my $self   = shift;
+  my $params = shift;
+  my $x = $self->getParam($params, 'xcoord');
+  my $y = $self->getParam($params, 'ycoord');
+  Debug("AbsoluteMove to $x, $y");
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <AbsoluteMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <Position>
+      <PanTilt x="' . $x . '" y="' . $y . '" xmlns="http://www.onvif.org/ver10/schema"/>
+    </Position>
+    <Speed>
+      <Zoom x="1" xmlns="http://www.onvif.org/ver10/schema"/>
+    </Speed>
+  </AbsoluteMove>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/AbsoluteMove');
+}
+
+sub moveRel {
+  my $self   = shift;
+  my $params = shift;
+  my $x = $self->getParam($params, 'xcoord');
+  my $y = $self->getParam($params, 'ycoord');
+  Debug("RelativeMove by $x, $y");
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <RelativeMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <Translation>
+      <PanTilt x="' . $x . '" y="' . $y . '" xmlns="http://www.onvif.org/ver10/schema" space="http://www.onvif.org/ver10/tptz/PanTiltSpaces/PositionGenericSpace"/>
+      <Zoom x="1"/>
+    </Translation>
+  </RelativeMove>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/RelativeMove');
+}
+
+# =========================================================================
+#  Presets
+# =========================================================================
+
+sub presetSet {
+  my $self   = shift;
+  my $params = shift;
+  my $preset = $self->getParam($params, 'preset');
+  Debug("Set Preset $preset");
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SetPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <PresetToken>' . $preset . '</PresetToken>
+  </SetPreset>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/SetPreset');
+}
+
+sub presetGoto {
+  my $self   = shift;
+  my $params = shift;
+  my $preset = $self->getParam($params, 'preset');
+  Debug("Goto Preset $preset");
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <GotoPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+    <PresetToken>' . $preset . '</PresetToken>
+  </GotoPreset>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/GotoPreset');
+}
+
+sub presetHome {
+  my $self = shift;
+  Debug('Goto Home Position');
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <GotoHomePosition xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $$self{profileToken} . '</ProfileToken>
+  </GotoHomePosition>
+</s:Body>';
+
+  $self->sendCmd($$self{onvif_path}, $body,
+    'http://www.onvif.org/ver20/ptz/wsdl/GotoHomePosition');
+}
+
+# =========================================================================
+#  Reboot
+# =========================================================================
+
+sub reboot {
+  my $self = shift;
+  Debug('ONVIF SystemReboot');
+
+  my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SystemReboot xmlns="http://www.onvif.org/ver10/device/wsdl"/>
+</s:Body>';
+
+  $self->sendCmd('/onvif/device_service', $body,
+    'http://www.onvif.org/ver10/device/wsdl/SystemReboot');
+}
+
+sub reset {
+  return $_[0]->reboot();
+}
+
+# =========================================================================
+#  probe / rtsp_url  (called by ZM's network probe infrastructure)
+# =========================================================================
+
+sub probe {
+  my ($ip, $username, $password) = @_;
+
+  my $self = ZoneMinder::Control::ONVIF->new();
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
+  $self->{ua}->ssl_opts(
+    verify_hostname => 1,
+    SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_PEER,
+  );
+  $$self{ssl_verified} = 1;
+  $$self{username} = $username;
+  $$self{password} = $password;
+  $$self{onvif_path} = '/onvif/PTZ';
+
+  my $test_body = '<s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>';
+  my $test_action = 'http://www.onvif.org/ver10/device/wsdl/GetSystemDateAndTime';
+
+  foreach my $port ('80', '443') {
+    $$self{host} = $ip;
+    $$self{port} = $port;
+
+    # Try HTTP
+    $$self{BaseURL} = "http://$ip:$port";
+    if ($self->sendCmd('/onvif/device_service', $test_body, $test_action)) {
+      return { url => "rtsp://$ip/onvif1", realm => '' };
+    }
+
+    # Try HTTPS on 443
+    if ($port eq '443') {
+      $$self{BaseURL} = "https://$ip:$port";
+      if ($self->sendCmd('/onvif/device_service', $test_body, $test_action)) {
+        return { url => "rtsp://$ip/onvif1", realm => '' };
+      }
+    }
+  }
+  return undef;
+}
+
+sub rtsp_url {
+  my ($self, $ip) = @_;
+  return 'rtsp://' . $ip . '/onvif1';
+}
+
+1;
+__END__

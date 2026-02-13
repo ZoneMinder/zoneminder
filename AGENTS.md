@@ -86,7 +86,7 @@ dep/                      Vendored deps (catch2, jwt-cpp)
 - **C++ changes** (`src/`): Rebuild required, run ctest. Daemons must be restarted to pick up changes.
 - **PHP/JS changes** (`web/`): No rebuild needed — PHP is interpreted, changes are live immediately. Test in browser + ESLint.
 - **Database schema** (`db/`): Create migration file `zm_update-X.X.X.sql` for existing installs, also update `db/zm_create.sql.in` for fresh installs. Both must result in the same schema.
-- **Perl scripts** (`scripts/`): Edit `.in` template files (NOT generated scripts). cmake substitutes `@ZM_*@` variables to produce the final scripts.
+- **Perl scripts** (`scripts/`): Edit `.in` template files (NOT generated scripts). cmake substitutes `@ZM_*@` variables to produce the final scripts. When testing perl changes, any perl script will try to read /etc/zm/zm.conf and needs to be run as a user with permission to read it. Best to run with sudo
 - **API changes** (`web/api/`): Clear CakePHP cache (`tmp/cache/`) if you change models or routes. Test endpoints with curl.
 
 ### Example Workflow

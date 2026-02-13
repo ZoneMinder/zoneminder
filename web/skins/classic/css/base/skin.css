@@ -1609,6 +1609,14 @@ video-stream[id^='liveStream'] video{
   object-fit: fill;
 }
 
+.imageFeed,
+.nav,
+.fixed-table-body,
+*[id^='videoFeedStream']
+ {
+  border-radius: 4px;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

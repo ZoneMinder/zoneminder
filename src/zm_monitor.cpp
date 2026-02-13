@@ -3239,7 +3239,7 @@ Event * Monitor::openEvent(
       std::string cmd = ReplaceAll(ReplaceAll(
           ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
           "%MID%", std::to_string(event->MonitorId())),
-          "%EC%", cause);
+          "%EC%", ShellEscape(cause));
       execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
       logInit(log_id.c_str());
       Error("Error execing %s: %s", cmd.c_str(), strerror(errno));

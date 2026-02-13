@@ -2645,16 +2645,16 @@ function monitorsSetScale(id=null) {
       console.log("Stream is missing.");
       return;
     }
-    _setScale(currentMonitor)
+    _setScale(currentMonitor);
   } else { // Not a specific stream, but all streams.
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      _setScale(monitors[i])
+      _setScale(monitors[i]);
     } // end foreach monitor
   }
 
   function _setScale(currentMonitor) {
     const id = currentMonitor.id;
-    let panZoomScale = (panZoomEnabled && typeof zmPanZoom !== 'undefined') ? zmPanZoom.panZoom[id].getScale() : 1;
+    const panZoomScale = (panZoomEnabled && typeof zmPanZoom !== 'undefined') ? zmPanZoom.panZoom[id].getScale() : 1;
     let resize = false;
     let width = 'auto';
     let height = 'auto';
@@ -2668,12 +2668,10 @@ function monitorsSetScale(id=null) {
       console.log("No monitor div for ", id);
       return;
     }
-    const monitorStatus = $j('#monitorStatus'+stringToNumber(liveStream.id));
     const scale = $j('#scale').val();
     if (scale) {
       if (scale == '0') {
         //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-//        overrideHW = true;
       } else if (scale == '100') {
         //Actual, 100% of original size
         width = currentMonitor.width + 'px';
@@ -2739,7 +2737,7 @@ function monitorsSetScale(id=null) {
       }
     }
 
-    if (scale == '0'){
+    if (scale == '0') {
       const fillVideo = true; //true = In AUTO mode it will stretch to the full width, but will spoil the proportions if they do not correspond to the actual proportions in the monitor settings!!!
       const tagVideo = (liveStream.tagName == 'VIDEO') ? liveStream : liveStream.querySelector('video');
       if (tagVideo) {

@@ -3269,7 +3269,9 @@ void Monitor::closeEvent() {
   close_event_thread = std::thread([](Event *e, const std::string &command) {
     int64_t event_id = e->Id();
     int monitor_id = e->MonitorId();
+    Debug(1, "close_event_thread: deleting event %" PRId64, event_id);
     delete e;
+    Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
     if (!command.empty()) {
       if (fork() == 0) {

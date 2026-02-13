@@ -475,11 +475,8 @@ ZMPacketLock PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
       std::addressof(*it), (*it == pktQueue.end()));
   if (deleting or zm_terminate)
     return ZMPacketLock();
-  if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
-    Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
-    condition.wait(lck, [&]{ return (*it != pktQueue.end()) || deleting || zm_terminate; });
-  }
-  if ((*it == pktQueue.end()) or deleting or zm_terminate) return ZMPacketLock();
+  if (*it == pktQueue.end())
+    return ZMPacketLock();
 
   std::shared_ptr<ZMPacket> p = *(*it);
   ZMPacketLock packet_lock(p);

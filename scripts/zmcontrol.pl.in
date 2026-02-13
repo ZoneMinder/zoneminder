@@ -44,10 +44,16 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $arg_string = join(' ', @ARGV);
 
 my $id;
+my $protocol;
+my $address;
+my $device;
 my %options;
 
 GetOptions(
   'id=i'          =>\$id,
+  'protocol=s'    =>\$protocol,
+  'address=s'     =>\$address,
+  'device=s'      =>\$device,
   'command=s'     =>\$options{command},
   'xcoord=f'      =>\$options{xcoord},
   'ycoord=f'      =>\$options{ycoord},
@@ -61,8 +67,55 @@ GetOptions(
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 
+if ($protocol) {
+  # Direct protocol mode: bypass DB and socket, load module and run command directly
+  logInit(id=>'zmcontrol_protocol');
+
+  my $command = $options{command};
+  if (!$command) {
+    print(STDERR "Please supply a --command when using --protocol mode\n");
+    pod2usage(-exitstatus => -1);
+  }
+
+  # Validate protocol name (alphanumeric and underscore only)
+  ($protocol) = $protocol =~ /^(\w+)$/;
+  if (!$protocol) {
+    Fatal('Invalid protocol name');
+  }
+
+  my $module = "ZoneMinder::Control::$protocol";
+  eval "require $module"
+    or Fatal("Failed to load protocol module $module: $@");
+
+  my $control = bless {
+    Monitor => {
+      ControlDevice   => $device // '',
+      ControlAddress  => $address // '',
+      AutoStopTimeout => $options{autostop} // 0,
+    },
+  }, $module;
+
+  if (!$control->open()) {
+    Fatal('Failed to open control');
+  }
+
+  Info("Direct protocol mode: $module -> $command");
+  my $result = $control->$command(\%options);
+
+  if (defined $result) {
+    if (ref $result) {
+      print(Dumper($result));
+    } else {
+      print("$result\n");
+    }
+  }
+
+  $control->close();
+  exit(0);
+}
+
 if (!$id) {
-  print(STDERR "Please give a valid monitor id\n");
+  print(STDERR "Please give a valid monitor id or use --protocol for direct mode\n");
   pod2usage(-exitstatus => -1);
 }
 
@@ -199,13 +252,27 @@ zmcontrol.pl - ZoneMinder control script
 =head1 SYNOPSIS
 
  zmcontrol.pl --id {monitor_id} [--command={command}] [various options]
+ zmcontrol.pl --protocol {module} --address {addr} [--device {dev}] --command {cmd}
 
 =head1 DESCRIPTION
 
-FIXME FIXME
+ZoneMinder camera control script. Operates in two modes:
+
+B<Monitor mode> (--id): Connects to the control daemon for the given monitor,
+or starts the daemon if run without --command. Requires a running ZoneMinder
+instance with database access.
+
+B<Direct protocol mode> (--protocol): Loads a ZoneMinder::Control module
+directly and executes a single command without requiring database access or a
+running ZoneMinder instance. Useful for testing control modules.
 
 =head1 OPTIONS
 
+ --id [ monitor_id ] - Monitor ID (monitor mode)
+ --protocol [ name ] - Control module name, e.g. ONVIF (direct mode)
+ --address [ addr ]  - ControlAddress, e.g. user:pass@host:port (direct mode)
+ --device [ dev ]    - ControlDevice / profile token (direct mode)
+ --command [ cmd ]   - Command to execute (e.g. moveConUp, get_config)
  --autostop          -
  --xcoord [ arg ]    - X-coord
  --ycoord [ arg ]    - Y-coord
@@ -216,5 +283,16 @@ FIXME FIXME
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+
+=head1 EXAMPLES
+
+ # Direct protocol testing (no database needed)
+ zmcontrol.pl --protocol ONVIF --address admin:pass@192.168.1.100 --command get_config
+
+ # With profile token
+ zmcontrol.pl --protocol ONVIF --address admin:pass@cam:8080 --device prof0 --command get_config
+
+ # Send command to running monitor daemon
+ zmcontrol.pl --id 1 --command moveConUp
 
 =cut

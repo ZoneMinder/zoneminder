@@ -40,11 +40,15 @@
 }
 
 .monitor {
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
 }
 
 .monitor .imageFeed {
   border: 2px solid #999999;
+  padding: 0px;
+  margin: 0px;
 }
 
 .monitor .imageFeed img,
@@ -52,7 +56,8 @@
 .monitor .imageFeed video-stream,
 .monitor .imageFeed svg {
   border: none;
-  display: inline-block;
+  /*display: inline-block;*/
+  display: block;
   width: 100%;
 }
 

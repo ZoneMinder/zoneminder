@@ -860,33 +860,6 @@ function changeStreamQuality() {
   monitorsSetScale();
 }
 
-function monitorsSetScale(id=null) {
-  // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  id = parseInt(id);
-  if (id || typeof monitorStream !== 'undefined') {
-    //monitorStream used on Watch page.
-    if (typeof monitorStream !== 'undefined') {
-      var currentMonitor = monitorStream;
-    } else {
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    }
-    const el = document.getElementById('liveStream'+id);
-    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
-    console.log("monitorsSetsCale", id, 'clientWidth', el.clientWidth, 'clientHeight', el.clientHeight, 'panzoomscale', panZoomScale);
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-  } else {
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-    }
-  }
-  setButtonSizeOnStream();
-}
-
 function changeMonitorRate() {
   const rate = $j('#changeRate').val();
   monitorsSetRate(rate);

@@ -796,6 +796,8 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = 0;
+  const content = $j("#content");
+  const scrollTop = (content.length > 0) ? content.scrollTop() : 0; // Watch page may have Scroll when Stream changes
   if (bottomEl !== false) {
     if (!bottomEl || !bottomEl.length) {
       if (container[0] && container[0].lastElementChild) {
@@ -805,7 +807,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
       }
     }
     if (bottomEl && bottomEl.length) {
-      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true) + scrollTop;
       console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
     }
   }
@@ -2626,5 +2628,130 @@ function replaceDOMElement(fromEl, toTypeEl) {
   }
   return newEl;
 };
+
+function monitorsSetScale(id=null) {
+  id = stringToNumber(id);
+  if (!isNaN(id)) {
+    let currentMonitor;
+    if (typeof monitorStream !== 'undefined' && monitorStream !== false) {
+      //monitorStream used on Watch page.
+      currentMonitor = monitorStream;
+    } else if (typeof monitors !== 'undefined') {
+      //used on Montage, Watch & Event page.
+      currentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
+    } else {
+      console.log("Stream is missing.");
+      return;
+    }
+    _setScale(currentMonitor);
+  } else { // Not a specific stream, but all streams.
+    for ( let i = 0, length = monitors.length; i < length; i++ ) {
+      _setScale(monitors[i]);
+    } // end foreach monitor
+  }
+
+  function _setScale(currentMonitor) {
+    const id = currentMonitor.id;
+    const panZoomScale = (panZoomEnabled && typeof zmPanZoom !== 'undefined') ? zmPanZoom.panZoom[id].getScale() : 1;
+    let resize = false;
+    let width = 'auto';
+    let height = 'auto';
+    let overrideHW = false;
+    let defScale = 0;
+    const ratio = currentMonitor.width / currentMonitor.height;
+    const landscape = ratio > 1 ? true : false; //Image orientation.
+    const liveStream = currentMonitor.getElement();
+    const monitor_div = document.getElementById('monitor'+id);
+    if (!monitor_div) {
+      console.log("No monitor div for ", id);
+      return;
+    }
+    const scale = $j('#scale').val();
+    if (scale) {
+      if (scale == '0') {
+        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+      } else if (scale == '100') {
+        //Actual, 100% of original size
+        width = currentMonitor.width + 'px';
+        height = currentMonitor.height + 'px';
+        overrideHW = true;
+      } else if (scale == 'fit_to_width') {
+        //Fit to screen width
+        width = parseInt(monitor_div.clientWidth * panZoomScale) + 'px';
+        defScale = parseInt(monitor_div.clientWidth / currentMonitor.width * panZoomScale * 100);
+        overrideHW = true;
+      } else if (scale.indexOf("px") > -1) {
+        // If the aspect ratio specified in the monitor settings does not correspond to the actual aspect ratio of the video, then:
+        // - For MJPEG player, the video will be displayed according to the specified aspect ratio.
+        // - For other players, taking into account the actual video aspect ratio.
+        if (landscape) {
+          width = scale;
+          //height = parseInt(scale) / ratio + 'px';
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
+        } else {
+          width = parseInt(parseInt(scale) * ratio) + 'px';
+          //height = scale;
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
+        }
+        overrideHW = true;
+      }
+      resize = true;
+    } else { // Montage page does not have "scale"
+      width = parseInt(liveStream.clientWidth * panZoomScale) + 'px';
+      height = parseInt(liveStream.clientHeight * panZoomScale) + 'px';
+    }
+
+    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+
+    if (overrideHW) {
+      if (scale == 'fit_to_width') {
+        liveStream.style.width = width;
+        liveStream.style.height = '';
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'auto';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else if (scale.indexOf("px") > -1) {
+        liveStream.style.width = '';
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '100%';
+        monitor_div.style.width = width;
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '100%';
+      } else if (scale == '100') {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'fit-content';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = '100%';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      }
+    }
+
+    if (scale == '0') {
+      const fillVideo = true; //true = In AUTO mode it will stretch to the full width, but will spoil the proportions if they do not correspond to the actual proportions in the monitor settings!!!
+      const tagVideo = (liveStream.tagName == 'VIDEO') ? liveStream : liveStream.querySelector('video');
+      if (tagVideo) {
+        if (fillVideo) {
+          tagVideo.style.width = '';
+          tagVideo.objectFit = 'fill';
+        } else {
+          tagVideo.style.width = 'auto';
+          tagVideo.objectFit = '';
+        }
+      }
+    }
+  } // End function _setScale
+  setButtonSizeOnStream();
+} // End function monitorsSetScale
 
 $j( window ).on("load", initPageGeneral);

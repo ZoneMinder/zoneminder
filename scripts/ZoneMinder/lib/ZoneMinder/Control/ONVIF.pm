@@ -60,6 +60,38 @@ use URI::Escape;
 use IO::Socket::SSL;
 
 # =========================================================================
+#  Config types — maps category names to ONVIF SOAP endpoints/actions
+# =========================================================================
+
+my %config_types = (
+  'DeviceInformation' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetDeviceInformation',
+    body     => '<s:Body><GetDeviceInformation xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'DateTime' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetSystemDateAndTime',
+    body     => '<s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'ImagingSettings' => {
+    endpoint => '/onvif/imaging',
+    action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings',
+    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body>',
+  },
+  'VideoEncoderConfiguration' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurations',
+    body     => '<s:Body><GetVideoEncoderConfigurations xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'Profiles' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetProfiles',
+    body     => '<s:Body><GetProfiles xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+);
+
+# =========================================================================
 #  open / close
 # =========================================================================
 
@@ -333,6 +365,141 @@ sub whiteAbsOut {
   Debug("Contrast decrease to $$self{CamParams}{Contrast}");
   # BUG FIX: originals (Reolink/Netcat/TapoC520WS) were missing this sendCmd call
   $self->_setImaging('Contrast', $$self{CamParams}{Contrast});
+}
+
+# =========================================================================
+#  Configuration get/set
+# =========================================================================
+
+sub _xml_to_hash {
+  my ($xml) = @_;
+  my %hash;
+  # Match leaf elements: <ns:Name>value</ns:Name> where value has no child elements
+  while ($xml =~ /<(?:\w+:)?(\w+)>([^<]+)<\/(?:\w+:)?\1>/g) {
+    $hash{$1} = $2;
+  }
+  return \%hash;
+}
+
+sub _deep_merge {
+  my ($base, $override) = @_;
+  foreach my $key (keys %$override) {
+    if (ref $$override{$key} eq 'HASH' and ref $$base{$key} eq 'HASH') {
+      _deep_merge($$base{$key}, $$override{$key});
+    } else {
+      $$base{$key} = $$override{$key};
+    }
+  }
+}
+
+sub get_config {
+  my $self = shift;
+  my %config;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    if (!$config_types{$category}) {
+      Warning("Unknown config category: $category");
+      next;
+    }
+    my $ct = $config_types{$category};
+    my $res = $self->sendCmd($$ct{endpoint}, $$ct{body}, $$ct{action});
+    if (!$res) {
+      Warning("Failed to get config for $category");
+      next;
+    }
+    $config{$category} = _xml_to_hash($res->decoded_content);
+  }
+  return \%config;
+}
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    if (!$$diff{$category}) {
+      Debug("No changes for category $category");
+      next;
+    }
+    if (!$config_types{$category}) {
+      Warning("Unknown config category: $category");
+      next;
+    }
+
+    # Only ImagingSettings and DateTime are writable via standard ONVIF
+    if ($category eq 'ImagingSettings') {
+      my $current = $self->get_config($category);
+      my $merged = $$current{$category} || {};
+      _deep_merge($merged, $$diff{$category});
+
+      my $fields = '';
+      for my $f (qw(Brightness Contrast Saturation Sharpness ColorSaturation)) {
+        if (defined $$merged{$f}) {
+          $fields .= '<' . $f . ' xmlns="http://www.onvif.org/ver10/schema">'
+            . $$merged{$f} . '</' . $f . '>';
+        }
+      }
+      my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
+    <VideoSourceToken>000</VideoSourceToken>
+    <ImagingSettings>' . $fields . '</ImagingSettings>
+    <ForcePersistence>true</ForcePersistence>
+  </SetImagingSettings>
+</s:Body>';
+      if (!$self->sendCmd('/onvif/imaging', $body,
+          'http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings')) {
+        Error("Failed to set ImagingSettings");
+        return undef;
+      }
+
+    } elsif ($category eq 'DateTime') {
+      my $current = $self->get_config($category);
+      my $merged = $$current{$category} || {};
+      _deep_merge($merged, $$diff{$category});
+
+      my $dt_type = $$merged{DateTimeType} || 'Manual';
+      my $dst     = $$merged{DaylightSavings} || 'false';
+      my $tz      = $$merged{TimeZone} // '';
+
+      my $time_xml = '';
+      if (defined $$merged{Hour} || defined $$merged{Minute} || defined $$merged{Second}
+          || defined $$merged{Year} || defined $$merged{Month} || defined $$merged{Day}) {
+        $time_xml = '
+      <UTCDateTime>
+        <Time xmlns="http://www.onvif.org/ver10/schema">
+          <Hour>'   . ($$merged{Hour}   // 0) . '</Hour>
+          <Minute>' . ($$merged{Minute} // 0) . '</Minute>
+          <Second>' . ($$merged{Second} // 0) . '</Second>
+        </Time>
+        <Date xmlns="http://www.onvif.org/ver10/schema">
+          <Year>'  . ($$merged{Year}  // 2000) . '</Year>
+          <Month>' . ($$merged{Month} // 1)    . '</Month>
+          <Day>'   . ($$merged{Day}   // 1)    . '</Day>
+        </Date>
+      </UTCDateTime>';
+      }
+
+      my $tz_xml = '';
+      $tz_xml = '<TimeZone><TZ xmlns="http://www.onvif.org/ver10/schema">' . $tz . '</TZ></TimeZone>' if $tz;
+
+      my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl">
+    <DateTimeType>' . $dt_type . '</DateTimeType>
+    <DaylightSavings>' . $dst . '</DaylightSavings>'
+    . $tz_xml . $time_xml . '
+  </SetSystemDateAndTime>
+</s:Body>';
+      if (!$self->sendCmd('/onvif/device_service', $body,
+          'http://www.onvif.org/ver10/device/wsdl/SetSystemDateAndTime')) {
+        Error("Failed to set DateTime");
+        return undef;
+      }
+
+    } else {
+      Debug("Category $category is read-only, skipping set");
+    }
+  }
+  return !undef;
 }
 
 # =========================================================================

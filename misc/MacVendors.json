@@ -28,5 +28,9 @@
     "fcecda": { "type": "Ubiquiti",  "control": "", "vendor": "Ubiquiti Networks Inc." },
     "001f92": { "type": "Avigilon",  "control": "", "vendor": "Avigilon Corporation" },
     "001885": { "type": "Avigilon",  "control": "", "vendor": "Avigilon Corporation" },
-    "f0a731": { "type": "TP-Link",  "control": "", "vendor": "TP-LINK TECHNOLOGIES CO.,LTD." }
+    "f0a731": { "type": "TP-Link",  "control": "", "vendor": "TP-LINK TECHNOLOGIES CO.,LTD." },
+    "48ea63": { "type": "Uniview",  "control": "Uniview", "vendor": "Zhejiang Uniview Technologies Co.,Ltd." },
+    "6cf17e": { "type": "Uniview",  "control": "Uniview", "vendor": "Zhejiang Uniview Technologies Co.,Ltd." },
+    "88263f": { "type": "Uniview",  "control": "Uniview", "vendor": "Zhejiang Uniview Technologies Co.,Ltd." },
+    "c47905": { "type": "Uniview",  "control": "Uniview", "vendor": "Zhejiang Uniview Technologies Co.,Ltd." }
 }

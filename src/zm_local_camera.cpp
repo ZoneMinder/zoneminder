@@ -285,22 +285,21 @@ LocalCamera::LocalCamera(
     BigEndian = 0;
   }
 
-  if (palette == 0) {
-    /* Use automatic format selection */
+  if (palette == 0 && capture) {
+    /* Use automatic format selection — only when capturing.
+     * Non-capture processes (zms in QUERY mode) don't need to open the device. */
     Debug(2,"Using automatic format selection");
     palette = AutoSelectFormat(colours);
     if (palette == 0) {
-      Error("Automatic format selection failed. Falling back to YUYV");
+      Warning("Automatic format selection failed. Falling back to YUYV");
       palette = V4L2_PIX_FMT_YUYV;
     } else {
-      if (capture) {
-        Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)",
-             palette_desc,
-             static_cast<uint8>((palette >> 24) & 0xff),
-             static_cast<uint8>((palette >> 16) & 0xff),
-             static_cast<uint8>((palette >> 8) & 0xff),
-             static_cast<uint8>((palette) & 0xff));
-      }
+      Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)",
+           palette_desc,
+           static_cast<uint8>((palette >> 24) & 0xff),
+           static_cast<uint8>((palette >> 16) & 0xff),
+           static_cast<uint8>((palette >> 8) & 0xff),
+           static_cast<uint8>((palette) & 0xff));
     }
   }
 
@@ -835,8 +834,15 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 
   /* Open the device */
   if ( (enum_fd = open(device.c_str(), O_RDWR, 0)) < 0 ) {
-    Error("Automatic format selection failed to open video device %s: %s",
-          device.c_str(), strerror(errno));
+    if (errno == ENOENT) {
+      Error("Automatic format selection failed to open video device %s: %s."
+            " If running under Apache, check for systemd PrivateDevices=yes"
+            " which hides /dev devices from the web server.",
+            device.c_str(), strerror(errno));
+    } else {
+      Error("Automatic format selection failed to open video device %s: %s",
+            device.c_str(), strerror(errno));
+    }
     return selected_palette;
   }
 

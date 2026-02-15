@@ -1598,6 +1598,17 @@ video-stream {
   overflow: hidden;
 }
 
+img[id^='liveStream'], video[id^='liveStream'], video-stream[id^='liveStream'] {
+  margin: 0 auto;
+  object-fit: fill;
+}
+
+video-stream[id^='liveStream'] video{
+  max-height: inherit;
+  max-width: inherit;
+  object-fit: fill;
+}
+
 .imageFeed,
 .nav,
 .fixed-table-body,

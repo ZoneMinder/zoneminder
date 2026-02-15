@@ -203,6 +203,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
+  // Validate delta_image dimensions
+  if (!delta_image->Buffer() || delta_image->Width() == 0 || delta_image->Height() == 0) {
+    Debug(1, "Zone %s: delta_image has no buffer or zero dimensions (%dx%d), skipping",
+          label.c_str(), delta_image->Width(), delta_image->Height());
+    return false;
+  }
+
   // Allocate a persistent grayscale mask buffer (same dimensions as delta).
   // Unlike the old code that copied the entire delta_image, we only zero the
   // bounding-box rows and let alarmedpixels_row read from delta_image directly.
@@ -227,6 +234,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   }
   Image *diff_image = image;
   int diff_width = diff_image->Width();
+  int diff_height = diff_image->Height();
   uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;
 
@@ -244,6 +252,24 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   unsigned int lo_y = polygon.Extent().Lo().y_;
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
+
+  // Clamp polygon extents to image dimensions to prevent buffer overflows.
+  // This can happen if zone polygon coordinates exceed the actual frame size
+  // (e.g., camera reconnected at a different resolution).
+  if (hi_y >= (unsigned int)diff_height) {
+    Warning("Zone %s: polygon hi_y (%u) >= image height (%d), clamping",
+            label.c_str(), hi_y, diff_height);
+    hi_y = diff_height - 1;
+  }
+  if (hi_x >= (unsigned int)diff_width) {
+    Warning("Zone %s: polygon hi_x (%u) >= image width (%d), clamping",
+            label.c_str(), hi_x, diff_width);
+    hi_x = diff_width - 1;
+  }
+  if (lo_y > hi_y) {
+    Debug(1, "Zone %s: lo_y (%u) > hi_y (%u) after clamping, skipping", label.c_str(), lo_y, hi_y);
+    return false;
+  }
 
   // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
   // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
@@ -303,6 +329,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       for (unsigned int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels (lo_x == -1 would wrap to
+        // UINT_MAX in Buffer(), causing out-of-bounds access)
+        if (lo_x < 0 || lo_x > hi_x) continue;
 
         pdiff = diff_image->Buffer(lo_x, y);
 
@@ -386,6 +416,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       for (unsigned int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels
+        if (lo_x < 0 || lo_x > hi_x) continue;
 
         pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
@@ -723,10 +756,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       unsigned int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
       for (unsigned int y = lo_y; y <= hi_y; y++) {
-        pdiff = diff_buff + ((diff_width * y) + lo_x);
-
         int lo_x2 = ranges[y].lo_x;
         int hi_x2 = ranges[y].hi_x;
+
+        // Skip rows with no polygon pixels
+        if (lo_x2 < 0 || lo_x2 > hi_x2) continue;
+
+        pdiff = diff_buff + ((diff_width * y) + lo_x);
 
         int lo_gap = lo_x2-lo_x;
         if (lo_gap > 0) {
@@ -1064,8 +1100,15 @@ void Zone::std_alarmedpixels(
   const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
   const uint8_t calc_min = min_pixel_threshold;
 
-  const unsigned int lo_y = polygon.Extent().Lo().y_;
-  const unsigned int hi_y = polygon.Extent().Hi().y_;
+  const unsigned int img_width = pdelta_image->Width();
+  const unsigned int img_height = pdelta_image->Height();
+
+  unsigned int lo_y = polygon.Extent().Lo().y_;
+  unsigned int hi_y = polygon.Extent().Hi().y_;
+
+  // Clamp to image bounds
+  if (hi_y >= img_height) hi_y = img_height - 1;
+  if (lo_y > hi_y) { *pixel_count = 0; *pixel_sum = 0; return; }
 
   for (unsigned int y = lo_y; y <= hi_y; y++) {
     const unsigned int lo_x = ranges[y].lo_x;
@@ -1073,11 +1116,14 @@ void Zone::std_alarmedpixels(
 
     if (lo_x > hi_x) continue;
 
+    // Clamp hi_x to image width
+    const unsigned int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
+
     alarmedpixels_row(
         pdelta_image->Buffer(lo_x, y),
         pmask_image->Buffer(lo_x, y),
         ppoly_image->Buffer(lo_x, y),
-        hi_x - lo_x + 1,
+        clamped_hi_x - lo_x + 1,
         calc_min, calc_max,
         pixelsalarmed, pixelsdifference);
   }  // end for y = lo_y to hi_y

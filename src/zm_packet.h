@@ -166,6 +166,10 @@ class ZMPacketLock {
       Debug(4, "packet %d waiting", packet_->image_index);
       packet_->condition_.wait(lck_);
     };
+    template<typename Rep, typename Period>
+    void wait_for(const std::chrono::duration<Rep, Period> &timeout) {
+      packet_->condition_.wait_for(lck_, timeout);
+    };
     void notify_all() { packet_->notify_all(); };
     void lock() { packet_->lock(lck_); locked = true; };
     void unlock() { packet_->unlock(lck_); locked = false; };

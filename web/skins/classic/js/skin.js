@@ -2764,6 +2764,10 @@ async function getTracksFromStream(videoFeedStream) {
     return;
   }
   const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
+  if (!mid) {
+    console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    return;
+  }
 
   let el = null;
   if (currentView == 'watch' || currentView == 'montage') {

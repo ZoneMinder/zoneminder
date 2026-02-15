@@ -64,6 +64,7 @@ use IO::Socket::SSL;
 # =========================================================================
 
 my %config_types = (
+  # --- Device service (/onvif/device_service) ---
   'DeviceInformation' => {
     endpoint => '/onvif/device_service',
     action   => 'http://www.onvif.org/ver10/device/wsdl/GetDeviceInformation',
@@ -73,21 +74,122 @@ my %config_types = (
     endpoint => '/onvif/device_service',
     action   => 'http://www.onvif.org/ver10/device/wsdl/GetSystemDateAndTime',
     body     => '<s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+    writable => 1,
   },
-  'ImagingSettings' => {
-    endpoint => '/onvif/imaging',
-    action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings',
-    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body>',
+  'Hostname' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetHostname',
+    body     => '<s:Body><GetHostname xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'DNS' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetDNS',
+    body     => '<s:Body><GetDNS xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'NTP' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetNTP',
+    body     => '<s:Body><GetNTP xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+    writable => 1,
+  },
+  'NetworkInterfaces' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetNetworkInterfaces',
+    body     => '<s:Body><GetNetworkInterfaces xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'Capabilities' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetCapabilities',
+    body     => '<s:Body><GetCapabilities xmlns="http://www.onvif.org/ver10/device/wsdl"><Category>All</Category></GetCapabilities></s:Body>',
+  },
+  'Scopes' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetScopes',
+    body     => '<s:Body><GetScopes xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body>',
+  },
+  'Services' => {
+    endpoint => '/onvif/device_service',
+    action   => 'http://www.onvif.org/ver10/device/wsdl/GetServices',
+    body     => '<s:Body><GetServices xmlns="http://www.onvif.org/ver10/device/wsdl"><IncludeCapability>true</IncludeCapability></GetServices></s:Body>',
+  },
+  # --- Media service (/onvif/media_service) ---
+  'Profiles' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetProfiles',
+    body     => '<s:Body><GetProfiles xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
   },
   'VideoEncoderConfiguration' => {
     endpoint => '/onvif/media_service',
     action   => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurations',
     body     => '<s:Body><GetVideoEncoderConfigurations xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
   },
-  'Profiles' => {
+  'VideoSources' => {
     endpoint => '/onvif/media_service',
-    action   => 'http://www.onvif.org/ver10/media/wsdl/GetProfiles',
-    body     => '<s:Body><GetProfiles xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSources',
+    body     => '<s:Body><GetVideoSources xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'VideoSourceConfigurations' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceConfigurations',
+    body     => '<s:Body><GetVideoSourceConfigurations xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'AudioSources' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSources',
+    body     => '<s:Body><GetAudioSources xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'AudioSourceConfigurations' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSourceConfigurations',
+    body     => '<s:Body><GetAudioSourceConfigurations xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'AudioEncoderConfigurations' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfigurations',
+    body     => '<s:Body><GetAudioEncoderConfigurations xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+  },
+  'StreamUri' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetStreamUri',
+    body     => '<s:Body><GetStreamUri xmlns="http://www.onvif.org/ver10/media/wsdl"><StreamSetup><Stream xmlns="http://www.onvif.org/ver10/schema">RTP-Unicast</Stream><Transport xmlns="http://www.onvif.org/ver10/schema"><Protocol>RTSP</Protocol></Transport></StreamSetup><ProfileToken>__PROFILE_TOKEN__</ProfileToken></GetStreamUri></s:Body>',
+  },
+  'SnapshotUri' => {
+    endpoint => '/onvif/media_service',
+    action   => 'http://www.onvif.org/ver10/media/wsdl/GetSnapshotUri',
+    body     => '<s:Body><GetSnapshotUri xmlns="http://www.onvif.org/ver10/media/wsdl"><ProfileToken>__PROFILE_TOKEN__</ProfileToken></GetSnapshotUri></s:Body>',
+  },
+  # --- Imaging service (/onvif/imaging) ---
+  'ImagingSettings' => {
+    endpoint => '/onvif/imaging',
+    action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings',
+    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body>',
+    writable => 1,
+  },
+  'ImagingOptions' => {
+    endpoint => '/onvif/imaging',
+    action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetOptions',
+    body     => '<s:Body><GetOptions xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetOptions></s:Body>',
+  },
+  # --- PTZ service (/onvif/PTZ) ---
+  'PTZConfigurations' => {
+    endpoint => '/onvif/PTZ',
+    action   => 'http://www.onvif.org/ver20/ptz/wsdl/GetConfigurations',
+    body     => '<s:Body><GetConfigurations xmlns="http://www.onvif.org/ver20/ptz/wsdl"/></s:Body>',
+  },
+  'PTZNodes' => {
+    endpoint => '/onvif/PTZ',
+    action   => 'http://www.onvif.org/ver20/ptz/wsdl/GetNodes',
+    body     => '<s:Body><GetNodes xmlns="http://www.onvif.org/ver20/ptz/wsdl"/></s:Body>',
+  },
+  'PTZPresets' => {
+    endpoint => '/onvif/PTZ',
+    action   => 'http://www.onvif.org/ver20/ptz/wsdl/GetPresets',
+    body     => '<s:Body><GetPresets xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>__PROFILE_TOKEN__</ProfileToken></GetPresets></s:Body>',
+  },
+  'PTZStatus' => {
+    endpoint => '/onvif/PTZ',
+    action   => 'http://www.onvif.org/ver20/ptz/wsdl/GetStatus',
+    body     => '<s:Body><GetStatus xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>__PROFILE_TOKEN__</ProfileToken></GetStatus></s:Body>',
   },
 );
 
@@ -401,7 +503,9 @@ sub get_config {
       next;
     }
     my $ct = $config_types{$category};
-    my $res = $self->sendCmd($$ct{endpoint}, $$ct{body}, $$ct{action});
+    my $body = $$ct{body};
+    $body =~ s/__PROFILE_TOKEN__/$$self{profileToken}/g;
+    my $res = $self->sendCmd($$ct{endpoint}, $body, $$ct{action});
     if (!$res) {
       Warning("Failed to get config for $category");
       next;
@@ -424,7 +528,11 @@ sub set_config {
       next;
     }
 
-    # Only ImagingSettings and DateTime are writable via standard ONVIF
+    if (!$config_types{$category}{writable}) {
+      Debug("Category $category is read-only, skipping set");
+      next;
+    }
+
     if ($category eq 'ImagingSettings') {
       my $current = $self->get_config($category);
       my $merged = $$current{$category} || {};
@@ -495,8 +603,45 @@ sub set_config {
         return undef;
       }
 
+    } elsif ($category eq 'NTP') {
+      my $current = $self->get_config($category);
+      my $merged = $$current{$category} || {};
+      _deep_merge($merged, $$diff{$category});
+
+      my $from_dhcp = $$merged{FromDHCP} || 'false';
+      my $ntp_manual = '';
+      if (lc($from_dhcp) ne 'true') {
+        my $type = $$merged{Type} || 'IPv4';
+        my $addr = $$merged{IPv4Address} // $$merged{IPv6Address} // $$merged{DNSname} // '';
+        my $addr_tag;
+        if ($type eq 'IPv4') {
+          $addr_tag = '<IPv4Address xmlns="http://www.onvif.org/ver10/schema">' . $addr . '</IPv4Address>';
+        } elsif ($type eq 'IPv6') {
+          $addr_tag = '<IPv6Address xmlns="http://www.onvif.org/ver10/schema">' . $addr . '</IPv6Address>';
+        } else {
+          $addr_tag = '<DNSname xmlns="http://www.onvif.org/ver10/schema">' . $addr . '</DNSname>';
+        }
+        $ntp_manual = '
+    <NTPManual>
+      <Type xmlns="http://www.onvif.org/ver10/schema">' . $type . '</Type>
+      ' . $addr_tag . '
+    </NTPManual>';
+      }
+
+      my $body = '
+<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SetNTP xmlns="http://www.onvif.org/ver10/device/wsdl">
+    <FromDHCP>' . $from_dhcp . '</FromDHCP>' . $ntp_manual . '
+  </SetNTP>
+</s:Body>';
+      if (!$self->sendCmd('/onvif/device_service', $body,
+          'http://www.onvif.org/ver10/device/wsdl/SetNTP')) {
+        Error("Failed to set NTP");
+        return undef;
+      }
+
     } else {
-      Debug("Category $category is read-only, skipping set");
+      Debug("Category $category is writable but no set handler implemented, skipping");
     }
   }
   return !undef;

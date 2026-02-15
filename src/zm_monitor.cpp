@@ -2477,7 +2477,7 @@ bool Monitor::Analyse() {
     }
   }  // end scope for event_lock
   packet->analyzed = true;
-  packetqueue.notify_all();  // Wake event thread waiting on analyzed flag
+  packet->notify_all();  // Wake up event thread waiting for analyzed
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
@@ -2691,7 +2691,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
-      packetqueue.notify_all();  // Wake event thread waiting on decoded flag
+      packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
@@ -2898,6 +2898,7 @@ bool Monitor::Decode() {
       for (auto &lock : decoder_queue) {
         if (lock.packet_) {
           lock.packet_->decoded = true;
+          lock.packet_->notify_all();
         }
       }
       decoder_queue.clear();
@@ -2952,6 +2953,7 @@ bool Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       Debug(3, "Audio packet %d, marking decoded", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
       packetqueue.notify_all();  // Wake up analysis thread
       packetqueue.increment_it(decoder_it, !decoder_queue.empty());
       return true;
@@ -2976,6 +2978,7 @@ bool Monitor::Decode() {
       for (auto &lock : decoder_queue) {
         if (lock.packet_) {
           lock.packet_->decoded = true;
+          lock.packet_->notify_all();
         }
       }
       decoder_queue.clear();
@@ -3040,6 +3043,7 @@ bool Monitor::Decode() {
       // Hardware transfer failed - frame is unusable
       Debug(1, "Hardware frame transfer failed for packet %d", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
       packetqueue.notify_all();
       return false;
     }
@@ -3087,6 +3091,7 @@ bool Monitor::Decode() {
     if (deinterlacing_value) {
       if (!applyDeinterlacing(packet, capture_image)) {
         packet->decoded = true;
+        packet->notify_all();
         packetqueue.notify_all();  // Wake up analysis thread
         return false;
       }
@@ -3123,6 +3128,7 @@ bool Monitor::Decode() {
   }
 
   packet->decoded = true;
+  packet->notify_all();
   packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets
   return true;
 }
@@ -3238,13 +3244,23 @@ Event * Monitor::openEvent(
       logTerm();
       int fdlimit = (int)sysconf(_SC_OPEN_MAX);
       for (int i = 0; i < fdlimit; i++) close(i);
-      execlp(event_start_command.c_str(),
-             event_start_command.c_str(),
-             std::to_string(event->Id()).c_str(),
-             std::to_string(event->MonitorId()).c_str(),
-             nullptr);
-      logInit(log_id.c_str());
-      Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      if (event_start_command.find('%') != std::string::npos) {
+        std::string cmd = ReplaceAll(ReplaceAll(
+            ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
+            "%MID%", std::to_string(event->MonitorId())),
+            "%EC%", ShellEscape(cause));
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+      } else {
+        execlp(event_start_command.c_str(),
+               event_start_command.c_str(),
+               std::to_string(event->Id()).c_str(),
+               std::to_string(event->MonitorId()).c_str(),
+               nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      }
       std::quick_exit(0);
     }
   }
@@ -3280,12 +3296,22 @@ void Monitor::closeEvent() {
         logTerm();
         int fdlimit = (int)sysconf(_SC_OPEN_MAX);
         for (int i = 0; i < fdlimit; i++) close(i);
-        execlp(command.c_str(), command.c_str(),
-               std::to_string(event_id).c_str(),
-               std::to_string(monitor_id).c_str(),
-               nullptr);
-        logInit(log_id.c_str());
-        Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        if (command.find('%') != std::string::npos) {
+          std::string cmd = ReplaceAll(
+              ReplaceAll(command, "%EID%", std::to_string(event_id)),
+              "%MID%", std::to_string(monitor_id));
+          execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+        } else {
+          execlp(command.c_str(),
+                 command.c_str(),
+                 std::to_string(event_id).c_str(),
+                 std::to_string(monitor_id).c_str(),
+                 nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        }
         std::quick_exit(0);
       }
     }

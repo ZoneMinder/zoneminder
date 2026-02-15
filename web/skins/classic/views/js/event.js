@@ -849,7 +849,11 @@ function streamSeek(offset) {
 }
 
 function streamQuery() {
-  streamReq({command: CMD_QUERY});
+  if (zmsBroke !== true) {
+    streamReq({command: CMD_QUERY});
+  } else {
+    clearInterval(streamCmdInterval);
+  }
 }
 
 function getEventResponse(respObj, respText) {

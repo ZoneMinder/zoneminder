@@ -23,8 +23,9 @@
 
 #include <condition_variable>
 #include <list>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <vector>
 
 class Monitor;
 class ZMPacket;
@@ -103,7 +104,7 @@ class PacketQueue {
   void wait();
   void wait_for(Microseconds duration);
  private:
-  packetqueue_iterator deletePacket(packetqueue_iterator it);
+  packetqueue_iterator deletePacket(packetqueue_iterator it, std::vector<std::shared_ptr<ZMPacket>> &deferred);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

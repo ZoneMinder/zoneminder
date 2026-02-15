@@ -48,14 +48,29 @@ if ($zmuOutput) {
 <?php
 if (!$monitor->Device()) {
   ZM\Warning("Please populate monitor Device");
-} else if (!file_exists($monitor->Device())) {
-  ZM\Warning($monitor->Device() . " not found.  Will not be able to get ctrls from it.");
 } else {
+  // Don't use file_exists() here — the web server user often lacks permission
+  // to stat device nodes like /dev/video0 (owned by root:video), even though
+  // v4l2-ctl can access them via group membership or other means.
   $ctls = shell_exec('v4l2-ctl -d '.escapeshellarg($monitor->Device()).' --list-ctrls');
   ZM\Debug("CTLS $ctls");
 }
 if (!$ctls) {
-  ZM\Warning('Guessing v4l ctrls.  We need v4l2-ctl please install it');
+  if (!$monitor->Device()) {
+    // already warned above
+  } else if (!shell_exec('which v4l2-ctl')) {
+    ZM\Warning('v4l2-ctl not found. Please install the v4l-utils package to get camera controls.');
+  } else if (!file_exists($monitor->Device())) {
+    $private_devs = trim(shell_exec('systemctl show -p PrivateDevices apache2 2>/dev/null'));
+    if ($private_devs === 'PrivateDevices=yes') {
+      ZM\Warning($monitor->Device().' is not visible to Apache due to systemd PrivateDevices=yes. Run: sudo systemctl edit apache2 and add [Service] PrivateDevices=no, then restart Apache.');
+    } else {
+      ZM\Warning($monitor->Device().' does not exist or is not accessible by the web server user ('.exec('whoami').'). Check device path and permissions.');
+    }
+  } else {
+    ZM\Warning('v4l2-ctl -d '.$monitor->Device().' --list-ctrls returned no output. The web server user ('.exec('whoami').') may not have permission to access the device.');
+  }
+  ZM\Warning('Using default control ranges. Adjustments may not map to actual hardware values.');
   $ctls = '
                      brightness 0x00980900 (int)    : min=-10 max=10 step=1 default=0 value=8
                        contrast 0x00980901 (int)    : min=0 max=20 step=1 default=10 value=12

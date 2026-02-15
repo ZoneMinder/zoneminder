@@ -367,6 +367,22 @@ sub metadata {
 
 }
 
+sub events {
+  my ($client) = @_;
+
+  my $events_ep = $client->get_endpoint('events');
+  if (!$events_ep) {
+    print "Events: no\n";
+    print "Device does not support ONVIF events.\n" if $verbose;
+    return 0;
+  }
+
+  print "Events: yes\n";
+  print "Device supports ONVIF events.\n" if $verbose;
+
+  return 1;
+}
+
 1;
 __END__
 

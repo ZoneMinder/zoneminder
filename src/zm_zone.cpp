@@ -23,6 +23,8 @@
 #include "zm_fifo_debug.h"
 #include "zm_monitor.h"
 
+#include <cstdlib>
+
 void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
@@ -201,10 +203,29 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  if (image)
+  // Allocate a persistent grayscale mask buffer (same dimensions as delta).
+  // Unlike the old code that copied the entire delta_image, we only zero the
+  // bounding-box rows and let alarmedpixels_row read from delta_image directly.
+  // This replaces a full-image memcpy with a memset of just the zone bbox rows,
+  // and avoids read-side cache pollution from copying delta data we never use.
+  if (!image
+      || image->Colours() != 1
+      || image->Width() != delta_image->Width()
+      || image->Height() != delta_image->Height()) {
     delete image;
-  // Get the difference image
-  Image *diff_image = image = new Image(*delta_image);
+    // Use the (width, linesize, height, ...) constructor to force linesize == width.
+    // The filter/blob stages use Width() as the row stride for pointer arithmetic,
+    // so linesize must match Width() exactly.  The default constructor uses FFALIGN
+    // which can pad linesize beyond Width() for non-32-aligned widths.
+    int w = delta_image->Width();
+    int h = delta_image->Height();
+    image = new Image(w, w, h, 1, ZM_SUBPIX_ORDER_NONE);
+    // Zero the entire buffer so Overlay() sees kBlack for all pixels
+    // outside the bbox.  This only runs on first allocation or after
+    // HighlightEdges replaced the image with an RGB alarm image.
+    memset(image->Buffer(), 0, static_cast<size_t>(w) * h);
+  }
+  Image *diff_image = image;
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;
@@ -224,14 +245,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
 
+  // Zero the bbox rows so filter/blob stages see kBlack for pixels outside
+  // each row's per-polygon ranges. alarmedpixels_row will write kWhite/kBlack
+  // for pixels inside the ranges.
+  memset(diff_buff + (lo_y * diff_width), 0, static_cast<size_t>(hi_y - lo_y + 1) * diff_width);
+
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
-  /* if(config.cpu_extensions && sse_version >= 20) {
-     sse2_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
-     } else {
-     std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
-     } */
-  std_alarmedpixels(diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
+  std_alarmedpixels(delta_image, diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
 
   if (config.record_diag_images) {
     diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -788,6 +809,47 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
+bool Zone::ParsePercentagePolygon(const char *poly_string, unsigned int width, unsigned int height, Polygon &polygon) {
+  double mon_w = static_cast<double>(width);
+  double mon_h = static_cast<double>(height);
+  std::vector<Vector2> vertices;
+  const char *str = poly_string;
+
+  while (*str != '\0') {
+    const char *cp = strchr(str, ',');
+    if (!cp) {
+      Error("Bogus coordinate %s found in polygon string", str);
+      break;
+    }
+
+    double pct_x = strtod(str, nullptr);
+    double pct_y = strtod(cp + 1, nullptr);
+    int32 px_x = static_cast<int32>(std::lround(pct_x * mon_w / 100.0));
+    int32 px_y = static_cast<int32>(std::lround(pct_y * mon_h / 100.0));
+
+    // Clamp to monitor bounds
+    px_x = std::clamp(px_x, static_cast<int32>(0), static_cast<int32>(width));
+    px_y = std::clamp(px_y, static_cast<int32>(0), static_cast<int32>(height));
+
+    Debug(3, "Percentage coord %.2f,%.2f -> pixel %d,%d", pct_x, pct_y, px_x, px_y);
+    vertices.emplace_back(px_x, px_y);
+
+    const char *ws = strchr(cp + 2, ' ');
+    if (ws) {
+      str = ws + 1;
+    } else {
+      break;
+    }
+  }
+
+  if (vertices.size() > 2) {
+    polygon = Polygon(vertices);
+    return true;
+  }
+  Error("Not enough coordinates to form a polygon from '%s'", poly_string);
+  return false;
+}  // end bool Zone::ParsePercentagePolygon
+
 bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
@@ -887,48 +949,22 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
-    Debug(5, "Parsing polygon %s", Coords);
+    Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if ( !ParsePolygonString(Coords, polygon) ) {
-      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name());
-      continue;
-    }
-
-    if (polygon.Extent().Lo().x_ < 0
-        ||
-        polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
-        ||
-        polygon.Extent().Lo().y_ < 0
-        ||
-        polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
-            Id,
-            Name,
-            monitor->Name(),
-            polygon.Extent().Lo().x_,
-            polygon.Extent().Lo().y_,
-            polygon.Extent().Hi().x_,
-            polygon.Extent().Hi().y_,
-            monitor->Width(),
-            monitor->Height());
-
-      auto n_coords = polygon.GetVertices().size();
-      polygon.Clip(Box(
-      {0, 0},
-      {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
-                   ));
-      if (polygon.GetVertices().size() != n_coords) {
-        Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
+    if (!strcmp(Units, "Pixels")) {
+      // Legacy pixel-based coordinates: parse as integer pixel values
+      if (!ParsePolygonString(Coords, polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+              Coords, Id, Name, monitor->Name());
+        continue;
       }
-    }
-
-    if ( false && !strcmp( Units, "Percent" ) ) {
-      MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
-      MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
-      MinFilterPixels = (MinFilterPixels*polygon.Area())/100;
-      MaxFilterPixels = (MaxFilterPixels*polygon.Area())/100;
-      MinBlobPixels = (MinBlobPixels*polygon.Area())/100;
-      MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
+    } else {
+      // Percentage-based coordinates (default): convert to pixels using monitor dimensions
+      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+              Coords, Id, Name, monitor->Name());
+        continue;
+      }
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {
@@ -949,12 +985,13 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   return zones;
 } // end std::vector<Zone> Zone::Load(Monitor *monitor)
 
-bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
-  output[0] = 0;
+std::string Zone::DumpSettings(bool /*verbose*/) const {
+  std::string result;
+  result.reserve(1024);
 
-  sprintf(output+strlen(output), "  Id : %u\n", id );
-  sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
-  sprintf(output+strlen(output), "  Type: %d - %s\n", type,
+  result += stringtf("  Id : %u\n", id);
+  result += stringtf("  Label : %s\n", label.c_str());
+  result += stringtf("  Type: %d - %s\n", type,
           type==ACTIVE?"Active":(
             type==INCLUSIVE?"Inclusive":(
               type==EXCLUSIVE?"Exclusive":(
@@ -962,70 +999,94 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
                   type==INACTIVE?"Inactive":(
                     type==PRIVACY?"Privacy":"Unknown"
                   ))))));
-  sprintf( output+strlen(output), "  Shape : %zu points\n", polygon.GetVertices().size() );
+  result += stringtf("  Shape : %zu points\n", polygon.GetVertices().size());
   for (size_t i = 0; i < polygon.GetVertices().size(); i++) {
-    sprintf(output + strlen(output), "  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
+    result += stringtf("  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
   }
-  sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
-  sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
+  result += stringtf("  Alarm RGB : %06x\n", alarm_rgb);
+  result += stringtf("  Check Method: %d - %s\n", check_method,
            check_method==ALARMED_PIXELS?"Alarmed Pixels":(
              check_method==FILTERED_PIXELS?"FilteredPixels":(
                check_method==BLOBS?"Blobs":"Unknown"
              )));
-  sprintf( output+strlen(output), "  Min Pixel Threshold : %d\n", min_pixel_threshold );
-  sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
-  sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
-  sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
-  sprintf(output+strlen(output), "  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_ );
-  sprintf( output+strlen(output), "  Min Filter Pixels : %d\n", min_filter_pixels );
-  sprintf( output+strlen(output), "  Max Filter Pixels : %d\n", max_filter_pixels );
-  sprintf( output+strlen(output), "  Min Blob Pixels : %d\n", min_blob_pixels );
-  sprintf( output+strlen(output), "  Max Blob Pixels : %d\n", max_blob_pixels );
-  sprintf( output+strlen(output), "  Min Blobs : %d\n", min_blobs );
-  sprintf( output+strlen(output), "  Max Blobs : %d\n", max_blobs );
-  return true;
+  result += stringtf("  Min Pixel Threshold : %d\n", min_pixel_threshold);
+  result += stringtf("  Max Pixel Threshold : %d\n", max_pixel_threshold);
+  result += stringtf("  Min Alarm Pixels : %d\n", min_alarm_pixels);
+  result += stringtf("  Max Alarm Pixels : %d\n", max_alarm_pixels);
+  result += stringtf("  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_);
+  result += stringtf("  Min Filter Pixels : %d\n", min_filter_pixels);
+  result += stringtf("  Max Filter Pixels : %d\n", max_filter_pixels);
+  result += stringtf("  Min Blob Pixels : %d\n", min_blob_pixels);
+  result += stringtf("  Max Blob Pixels : %d\n", max_blob_pixels);
+  result += stringtf("  Min Blobs : %d\n", min_blobs);
+  result += stringtf("  Max Blobs : %d\n", max_blobs);
+  return result;
+}
+
+// Scan one row of pixels, thresholding against the polygon mask.
+// Reads from pdelta (the frame-difference image) and writes the binary
+// result to pmask (a separate per-zone mask buffer), so the caller
+// never needs to copy the full delta image.
+// Separated into its own function so the compiler sees __restrict__ on
+// function parameters (where GCC fully trusts it) and no calls that
+// clobber memory, allowing auto-vectorization at -O2/-O3.
+static void alarmedpixels_row(
+    const uint8_t *__restrict__ pdelta,
+    uint8_t *__restrict__ pmask,
+    const uint8_t *__restrict__ ppoly,
+    unsigned int count,
+    uint8_t calc_min,
+    uint8_t calc_max,
+    uint32_t &pixelsalarmed,
+    uint32_t &pixelsdifference) {
+  for (unsigned int i = 0; i < count; i++) {
+    const uint8_t d = pdelta[i];
+    const uint8_t p = ppoly[i];
+    // Bitwise AND avoids short-circuit branches that block vectorization
+    const bool alarmed = (p != 0) & (d > calc_min) & (d <= calc_max);
+
+    pixelsalarmed += alarmed;
+    pixelsdifference += alarmed ? d : 0;
+    pmask[i] = alarmed ? kWhite : kBlack;
+  }
 }
 
 void Zone::std_alarmedpixels(
-  Image* pdiff_image,
+  const Image* pdelta_image,
+  Image* pmask_image,
   const Image* ppoly_image,
   unsigned int* pixel_count,
   unsigned int* pixel_sum) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
-  uint8_t calc_max_pixel_threshold = 255;
-  unsigned int lo_y;
-  unsigned int hi_y;
 
-  if ( max_pixel_threshold )
-    calc_max_pixel_threshold = max_pixel_threshold;
+  // Cache member variables locally so the compiler can prove loop-invariance
+  const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
+  const uint8_t calc_min = min_pixel_threshold;
 
-  lo_y = polygon.Extent().Lo().y_;
-  hi_y = polygon.Extent().Hi().y_;
-  for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-    unsigned int lo_x = ranges[y].lo_x;
-    unsigned int hi_x = ranges[y].hi_x;
+  const unsigned int lo_y = polygon.Extent().Lo().y_;
+  const unsigned int hi_y = polygon.Extent().Hi().y_;
 
-    Debug(7, "Checking line %d from %d -> %d", y, lo_x, hi_x);
-    uint8_t *pdiff = pdiff_image->Buffer(lo_x, y);
-    const uint8_t *ppoly = ppoly_image->Buffer(lo_x, y);
+  for (unsigned int y = lo_y; y <= hi_y; y++) {
+    const unsigned int lo_x = ranges[y].lo_x;
+    const unsigned int hi_x = ranges[y].hi_x;
 
-    for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ ) {
-      if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) ) {
-        pixelsalarmed++;
-        pixelsdifference += *pdiff;
-        *pdiff = kWhite;
-      } else {
-        *pdiff = kBlack;
-      }
-    }
+    if (lo_x > hi_x) continue;
+
+    alarmedpixels_row(
+        pdelta_image->Buffer(lo_x, y),
+        pmask_image->Buffer(lo_x, y),
+        ppoly_image->Buffer(lo_x, y),
+        hi_x - lo_x + 1,
+        calc_min, calc_max,
+        pixelsalarmed, pixelsdifference);
   }  // end for y = lo_y to hi_y
 
   /* Store the results */
   *pixel_count = pixelsalarmed;
   *pixel_sum = pixelsdifference;
   Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
-}  // end void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum)
+}  // end void Zone::std_alarmedpixels
 
 Zone::Zone(const Zone &z) :
   monitor(z.monitor),

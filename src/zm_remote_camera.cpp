@@ -52,7 +52,7 @@ RemoteCamera::RemoteCamera(
   hp(nullptr),
   mNeedAuth(false),
   mAuthenticator(nullptr) {
-  if (path[0] != '/')
+  if (path.empty() || path[0] != '/')
     path = '/'+path;
 }
 

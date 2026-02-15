@@ -8,7 +8,7 @@ var monitors = new Array();
 var TimerHideShow;
 
 function initPage() {
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
 
     monitors[i].setStreamScale();
@@ -43,7 +43,7 @@ function panZoomOut(el) {
 }
 
 function streamCmdQuit() {
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
     monitors[i].stop();
   }

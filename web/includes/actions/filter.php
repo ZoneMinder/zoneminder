@@ -112,7 +112,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         $filter->control('start');
       }
       global $redirect;
-      $redirect = '?view=filter&Id='.$_REQUEST['Id'].$filter->querystring('filter', '&');
+      $redirect = '?view=filter&Id='.$_REQUEST['Id'];
 
     } else if ($action == 'control') {
       if ( $_REQUEST['command'] == 'start'

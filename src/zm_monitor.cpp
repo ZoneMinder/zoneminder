@@ -2166,11 +2166,10 @@ bool Monitor::Analyse() {
                   int zone_index = 0;
                   for (const Zone &zone : zones) {
                     const ZoneStats &stats = zone.GetStats();
-                    stats.DumpToLog("After detect motion");
                     packet->zone_stats.push_back(stats);
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
-                      packet->alarm_cause += std::string(zone.Label());
+                      packet->alarm_cause += zone.Label();
                       if (zone.AlarmImage())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
@@ -2185,7 +2184,9 @@ bool Monitor::Analyse() {
 
                   if (motion_score) {
                     if (!cause.empty()) cause += ", ";
-                    cause += MOTION_CAUSE + std::string(":") + packet->alarm_cause;
+                    cause += MOTION_CAUSE;
+                    cause += ':';
+                    cause += packet->alarm_cause;
                     noteSetMap[MOTION_CAUSE] = zoneSet;
                     score += motion_score;
                   } // end if motion_score
@@ -2298,9 +2299,9 @@ bool Monitor::Analyse() {
         } // end if score or not
 
         if (event) {
-          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
+          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                std::chrono::duration_cast<FPSeconds>(event->Duration()).count(),
                 event_close_mode
                );
           if (event->Duration() >= min_section_length) {
@@ -2476,6 +2477,7 @@ bool Monitor::Analyse() {
     }
   }  // end scope for event_lock
   packet->analyzed = true;
+  packet->notify_all();  // Wake up event thread waiting for analyzed
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
@@ -2689,6 +2691,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
+      packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
@@ -2880,26 +2883,48 @@ bool Monitor::Decode() {
   // Packets in decoder_queue have been sent but not yet received.
 
   if (!decoder_queue.empty()) {
-    Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
-    auto &front_lock = decoder_queue.front();
-    auto front_packet = front_lock.packet_;
+    // If decoding is on-demand and no longer needed, flush rather than
+    // trying to receive stale frames from the decoder.
+    bool needs_decoding =
+      (decoding == DECODING_ALWAYS) ||
+      (decoding == DECODING_KEYFRAMES) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
 
-    int ret = front_packet->receive_frame(context);
-    if (ret > 0) {
-      // Success - got a decoded frame, take ownership and process it
-      packet_lock = std::move(decoder_queue.front());
-      decoder_queue.pop_front();
-      packet = front_packet;
-      Debug(2, "Received frame for packet %d", packet->image_index);
-      // Continue to PHASE 3 (frame processing)
-    } else if (ret < 0) {
-      // Decoder error
-      Debug(1, "receive_frame failed: %d", ret);
-      return false;
+    if (!needs_decoding) {
+      Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+      // Fall through to Phase 2 which will skip decoding for the current packet
     } else {
-      // EAGAIN - decoder needs more input, fall through to send another packet
-      Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
-    }
+      Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
+      auto &front_lock = decoder_queue.front();
+      auto front_packet = front_lock.packet_;
+
+      int ret = front_packet->receive_frame(context);
+      if (ret > 0) {
+        // Success - got a decoded frame, take ownership and process it
+        packet_lock = std::move(decoder_queue.front());
+        decoder_queue.pop_front();
+        packet = front_packet;
+        Debug(2, "Received frame for packet %d", packet->image_index);
+        // Continue to PHASE 3 (frame processing)
+      } else if (ret < 0) {
+        // Decoder error
+        return false;
+      } else {
+        // EAGAIN - decoder needs more input, fall through to send another packet
+        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+      }
+    }  // end if needs_decoding
   }
 
   // ===========================================================================
@@ -2928,18 +2953,37 @@ bool Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       Debug(3, "Audio packet %d, marking decoded", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
+      packetqueue.notify_all();  // Wake up analysis thread
       packetqueue.increment_it(decoder_it, !decoder_queue.empty());
       return true;
     }
 
     // Check if this packet needs to be sent to the decoder
-    bool dominated = packet->image || packet->in_frame || !packet->packet->size;
-    bool should_decode = !dominated && (
+    bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
+    bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
       ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
       ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
     );
+
+    if (!should_decode && !decoder_queue.empty()) {
+      // Viewer stopped (or decoding no longer needed) while packets were
+      // queued in the decoder.  Flush the codec so we don't carry stale
+      // state, and release all queued packet locks.
+      Debug(1, "Flushing decoder: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+    }
 
     if (should_decode) {
       Debug(2, "Sending packet %d to decoder", packet->image_index);
@@ -2960,8 +3004,9 @@ bool Monitor::Decode() {
 
       if (ret == 0) {
         // EAGAIN - decoder's input buffer is full, need to drain first
-        Debug(2, "send_packet returned EAGAIN, will retry");
-        return true;
+        // Return false to let caller wait before retrying
+        Debug(2, "send_packet returned EAGAIN, waiting before retry");
+        return false;
       } else if (ret < 0) {
         // Error
         Debug(1, "send_packet failed: %d", ret);
@@ -2977,6 +3022,14 @@ bool Monitor::Decode() {
     // Packet doesn't need decoding (or already has frame/image)
     Debug(2, "Packet %d doesn't need decoding: %s", packet->image_index, Decoding_Strings[decoding].c_str());
     packetqueue.increment_it(decoder_it, !decoder_queue.empty());
+
+    // Update last_write_time even when not decoding so that zmwatch
+    // doesn't think the monitor has stalled.  This matters for modes
+    // like KEYFRAMESONDEMAND where non-keyframe packets are skipped
+    // between keyframe decodes.
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    }
   }
 
   // ===========================================================================
@@ -2985,7 +3038,15 @@ bool Monitor::Decode() {
 
   if (packet->in_frame) {
     // Handle hardware-accelerated frames
-    packet->transfer_hwframe(context);
+    int hw_ret = packet->transfer_hwframe(context);
+    if (hw_ret < 0) {
+      // Hardware transfer failed - frame is unusable
+      Debug(1, "Hardware frame transfer failed for packet %d", packet->image_index);
+      packet->decoded = true;
+      packet->notify_all();
+      packetqueue.notify_all();
+      return false;
+    }
 
     if (!packet->image) {
       packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
@@ -3030,6 +3091,8 @@ bool Monitor::Decode() {
     if (deinterlacing_value) {
       if (!applyDeinterlacing(packet, capture_image)) {
         packet->decoded = true;
+        packet->notify_all();
+        packetqueue.notify_all();  // Wake up analysis thread
         return false;
       }
     }
@@ -3065,6 +3128,8 @@ bool Monitor::Decode() {
   }
 
   packet->decoded = true;
+  packet->notify_all();
+  packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets
   return true;
 }
 
@@ -3179,13 +3244,23 @@ Event * Monitor::openEvent(
       logTerm();
       int fdlimit = (int)sysconf(_SC_OPEN_MAX);
       for (int i = 0; i < fdlimit; i++) close(i);
-      execlp(event_start_command.c_str(),
-             event_start_command.c_str(),
-             std::to_string(event->Id()).c_str(),
-             std::to_string(event->MonitorId()).c_str(),
-             nullptr);
-      logInit(log_id.c_str());
-      Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      if (event_start_command.find('%') != std::string::npos) {
+        std::string cmd = ReplaceAll(ReplaceAll(
+            ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
+            "%MID%", std::to_string(event->MonitorId())),
+            "%EC%", ShellEscape(cause));
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+      } else {
+        execlp(event_start_command.c_str(),
+               event_start_command.c_str(),
+               std::to_string(event->Id()).c_str(),
+               std::to_string(event->MonitorId()).c_str(),
+               nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      }
       std::quick_exit(0);
     }
   }
@@ -3210,7 +3285,9 @@ void Monitor::closeEvent() {
   close_event_thread = std::thread([](Event *e, const std::string &command) {
     int64_t event_id = e->Id();
     int monitor_id = e->MonitorId();
+    Debug(1, "close_event_thread: deleting event %" PRId64, event_id);
     delete e;
+    Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
     if (!command.empty()) {
       if (fork() == 0) {
@@ -3219,12 +3296,22 @@ void Monitor::closeEvent() {
         logTerm();
         int fdlimit = (int)sysconf(_SC_OPEN_MAX);
         for (int i = 0; i < fdlimit; i++) close(i);
-        execlp(command.c_str(), command.c_str(),
-               std::to_string(event_id).c_str(),
-               std::to_string(monitor_id).c_str(),
-               nullptr);
-        logInit(log_id.c_str());
-        Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        if (command.find('%') != std::string::npos) {
+          std::string cmd = ReplaceAll(
+              ReplaceAll(command, "%EID%", std::to_string(event_id)),
+              "%MID%", std::to_string(monitor_id));
+          execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+        } else {
+          execlp(command.c_str(),
+                 command.c_str(),
+                 std::to_string(event_id).c_str(),
+                 std::to_string(monitor_id).c_str(),
+                 nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        }
         std::quick_exit(0);
       }
     }
@@ -3376,91 +3463,89 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
 // TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {
-  output[0] = 0;
+  // Use std::string for safe concatenation, then copy to output buffer
+  std::string result;
+  result.reserve(8192);
 
-  sprintf( output+strlen(output), "Id : %u\n", id );
-  sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
-  sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
+  result += stringtf("Id : %u\n", id);
+  result += stringtf("Name : %s\n", name.c_str());
+  result += stringtf("Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File"));
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
-    sprintf( output+strlen(output), "Device : %s\n", cam->Device().c_str() );
-    sprintf( output+strlen(output), "Channel : %d\n", cam->Channel() );
-    sprintf( output+strlen(output), "Standard : %d\n", cam->Standard() );
+    result += stringtf("Device : %s\n", cam->Device().c_str());
+    result += stringtf("Channel : %d\n", cam->Channel());
+    result += stringtf("Standard : %d\n", cam->Standard());
   } else
 #endif // ZM_HAS_V4L2
     if ( camera->IsRemote() ) {
       RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
-      sprintf( output+strlen(output), "Protocol : %s\n", cam->Protocol().c_str() );
-      sprintf( output+strlen(output), "Host : %s\n", cam->Host().c_str() );
-      sprintf( output+strlen(output), "Port : %s\n", cam->Port().c_str() );
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Protocol : %s\n", cam->Protocol().c_str());
+      result += stringtf("Host : %s\n", cam->Host().c_str());
+      result += stringtf("Port : %s\n", cam->Port().c_str());
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     } else if ( camera->IsFile() ) {
       FileCamera* cam = static_cast<FileCamera*>(camera.get());
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     } else if ( camera->IsFfmpeg() ) {
       FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
-      sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     }
-  sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
-  sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
+  result += stringtf("Width : %u\n", camera->Width());
+  result += stringtf("Height : %u\n", camera->Height());
 #if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
-    sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
+    result += stringtf("Palette : %d\n", cam->Palette());
   }
 #endif  // ZM_HAS_V4L2
-  sprintf(output + strlen(output), "Colours : %u\n", camera->Colours());
-  sprintf(output + strlen(output), "Subpixel Order : %u\n",
-          camera->SubpixelOrder());
-  sprintf(output + strlen(output), "Event Prefix : %s\n", event_prefix.c_str());
-  sprintf(output + strlen(output), "Label Format : %s\n", label_format.c_str());
-  sprintf(output + strlen(output), "Label Coord : %d,%d\n", label_coord.x_,
-          label_coord.y_);
-  sprintf(output + strlen(output), "Label Size : %d\n", label_size);
-  sprintf(output + strlen(output), "Image Buffer Count : %d\n",
-          image_buffer_count);
-  sprintf(output + strlen(output), "Warmup Count : %d\n", warmup_count);
-  sprintf(output + strlen(output), "Pre Event Count : %d\n", pre_event_count);
-  sprintf(output + strlen(output), "Post Event Count : %d\n", post_event_count);
-  sprintf(output + strlen(output), "Stream Replay Buffer : %d\n",
-          stream_replay_buffer);
-  sprintf(output + strlen(output), "Alarm Frame Count : %d\n",
-          alarm_frame_count);
-  sprintf(output + strlen(output), "Section Length : %" PRIi64 "\n",
+  result += stringtf("Colours : %u\n", camera->Colours());
+  result += stringtf("Subpixel Order : %u\n", camera->SubpixelOrder());
+  result += stringtf("Event Prefix : %s\n", event_prefix.c_str());
+  result += stringtf("Label Format : %s\n", label_format.c_str());
+  result += stringtf("Label Coord : %d,%d\n", label_coord.x_, label_coord.y_);
+  result += stringtf("Label Size : %d\n", label_size);
+  result += stringtf("Image Buffer Count : %d\n", image_buffer_count);
+  result += stringtf("Warmup Count : %d\n", warmup_count);
+  result += stringtf("Pre Event Count : %d\n", pre_event_count);
+  result += stringtf("Post Event Count : %d\n", post_event_count);
+  result += stringtf("Stream Replay Buffer : %d\n", stream_replay_buffer);
+  result += stringtf("Alarm Frame Count : %d\n", alarm_frame_count);
+  result += stringtf("Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(section_length).count()));
-  sprintf(output + strlen(output), "Min Section Length : %" PRIi64 "\n",
+  result += stringtf("Min Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(
-      output + strlen(output), "Maximum FPS : %.2f\n",
+  result += stringtf("Maximum FPS : %.2f\n",
       capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
-  sprintf(output + strlen(output), "Alarm Maximum FPS : %.2f\n",
+  result += stringtf("Alarm Maximum FPS : %.2f\n",
           alarm_capture_delay != Seconds(0)
               ? 1 / FPSeconds(alarm_capture_delay).count()
               : 0.0);
-  sprintf(output + strlen(output), "Reference Blend %%ge : %d\n",
-          ref_blend_perc);
-  sprintf(output + strlen(output), "Alarm Reference Blend %%ge : %d\n",
-          alarm_ref_blend_perc);
-  sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
+  result += stringtf("Reference Blend %%ge : %d\n", ref_blend_perc);
+  result += stringtf("Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
+  result += stringtf("Track Motion : %d\n", track_motion);
+  result += stringtf("Capturing %d - %s\n", capturing,
           Capturing_Strings[shared_data->capturing].c_str());
-  sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
+  result += stringtf("Analysing %d - %s\n", analysing,
           Analysing_Strings[analysing].c_str());
-  sprintf(output + strlen(output), "Recording %d - %s\n", recording,
+  result += stringtf("Recording %d - %s\n", recording,
           Recording_Strings[recording].c_str());
-  sprintf(output + strlen(output), "Zones : %zu\n", zones.size());
+  result += stringtf("Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
-    zone.DumpSettings(output+strlen(output), verbose);
+    result += zone.DumpSettings(verbose);
   }
-  sprintf(output+strlen(output), "Capturing Enabled? %s\n",
+  result += stringtf("Capturing Enabled? %s\n",
           (shared_data->capturing != CAPTURING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n",
+  result += stringtf("Motion Detection Enabled? %s\n",
           (shared_data->analysing != ANALYSING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Recording Enabled? %s\n",
+  result += stringtf("Recording Enabled? %s\n",
           (shared_data->recording != RECORDING_NONE) ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n",
+  result += stringtf("Events Enabled (!TRIGGER_OFF)? %s\n",
           (trigger_data->trigger_state == TRIGGER_OFF) ? "disabled" : "enabled");
+
+  // Copy to output buffer (caller provides 16KB buffer)
+  strncpy(output, result.c_str(), 16382 - 1);
+  output[16382 - 1] = '\0';
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 

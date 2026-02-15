@@ -7,6 +7,15 @@ if (!canView('Events')) {
   return;
 }
 
+if (!file_exists(ZM_DIR_EXPORTS)) {
+  if (!(@mkdir(ZM_DIR_EXPORTS))) {
+    ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'. Probably insufficient access rights.');
+  }
+} else if (is_file(ZM_DIR_EXPORTS)) {
+  ZM\Fatal('Instead of the \''.ZM_DIR_EXPORTS.'\' directory there is a file.');
+}
+chmod(ZM_DIR_EXPORTS, 0700);
+
 $eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
 $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';

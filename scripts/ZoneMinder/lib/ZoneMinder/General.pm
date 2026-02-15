@@ -20,6 +20,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 our %EXPORT_TAGS = (
     functions => [ qw(
       executeShellCommand
+      findDbCommand
       getCmdFormat
       runCommand
       setFileOwner
@@ -69,6 +70,34 @@ sub executeShellCommand {
     Debug("Command: $command Status: $status Output: $output");
   }
   return $status;
+}
+
+# Map legacy MySQL command names to MariaDB-native equivalents.
+# MariaDB is deprecating the mysql-prefixed names in favour of its own.
+my %DB_COMMAND_MAP = (
+  'mysql'     => 'mariadb',
+  'mysqldump' => 'mariadb-dump',
+);
+my %_db_command_cache;
+
+sub findDbCommand {
+  my $legacy_name = shift;
+  return $_db_command_cache{$legacy_name} if exists $_db_command_cache{$legacy_name};
+
+  my $maria_name = $DB_COMMAND_MAP{$legacy_name};
+  if ($maria_name) {
+    my $path = qx(command -v $maria_name 2>/dev/null);
+    chomp($path);
+    if ($path) {
+      Debug("Using '$maria_name' for database command '$legacy_name'");
+      $_db_command_cache{$legacy_name} = $maria_name;
+      return $maria_name;
+    }
+  }
+
+  Debug("Using legacy '$legacy_name' for database command");
+  $_db_command_cache{$legacy_name} = $legacy_name;
+  return $legacy_name;
 }
 
 sub getCmdFormat {
@@ -663,6 +692,7 @@ of the ZoneMinder scripts
 
     functions => [ qw(
       executeShellCommand
+      findDbCommand
       getCmdFormat
       runCommand
       setFileOwner
@@ -674,7 +704,7 @@ of the ZoneMinder scripts
       packageControl
       daemonControl
       systemStatus
-       parseNameEqualsValueToHash
+      parseNameEqualsValueToHash
       hash_diff
       ) ]
 

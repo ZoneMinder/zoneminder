@@ -1,4 +1,4 @@
-name: build-native-packages-signed
+name: build-deb-packages
 
 on:
   push:

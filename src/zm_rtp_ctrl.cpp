@@ -67,8 +67,8 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) 
 
     if ( len > 1 ) {
       //printf( "NTPts:%d.%d, RTPts:%d\n", $ntptsmsb, $ntptslsb, $rtpts );
-      uint16_t ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
-      uint16_t ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
+      uint32_t ntptsmsb = ntohl(rtcpPacket->body.sr.ntpSecN);
+      uint32_t ntptslsb = ntohl(rtcpPacket->body.sr.ntpFracN);
       //printf( "NTPts:%x.%04x, RTPts:%x\n", $ntptsmsb, $ntptslsb, $rtpts );
       //printf( "Pkts:$sendpkts, Octs:$sendocts\n" );
       uint32_t rtpTime = ntohl(rtcpPacket->body.sr.rtpTsN);

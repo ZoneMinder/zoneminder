@@ -29,11 +29,14 @@ require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
 function password_type($password) {
-   if ( $password[0] == '*' ) {
+  if (!$password || $password === '') {
+    return 'plain';
+  }
+  if ($password[0] == '*') {
     return 'mysql';
-  } else if ( preg_match('/^\$2[ayb]\$.+$/', $password) ) {
+  } else if (preg_match('/^\$2[ayb]\$.+$/', $password)) {
     return 'bcrypt';
-  } else if ( substr($password, 0,4) == '-ZM-' ) {
+  } else if (substr($password, 0, 4) == '-ZM-') {
   // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
   // this is done so that we don't spend cycles doing two bcrypt password_verify calls
   // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
@@ -46,18 +49,16 @@ function password_type($password) {
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
 function migrateHash($user, $pass) {
-  if ( function_exists('password_hash') ) {
+  if (function_exists('password_hash')) {
     ZM\Info("Migrating $user to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection 
+    // we can modify this later to support argon2 etc as switch to its own password signature detection
     $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
-    $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
-    dbQuery($update_password_sql);
+    dbQuery('UPDATE Users SET Password=? WHERE Username=?', array($bcrypt_hash, $user));
     # Since password field has changed, existing auth_hash is no longer valid
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
+    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
     return;
   }
 }
@@ -72,7 +73,7 @@ function validateUser($username='', $password='') {
   // local user, shouldn't affect the global user
   $user = dbFetchOne($sql, NULL, array($username)); // Not global
   if (!$user) {
-    return array(false, "Could not retrieve user $username details");
+    return array(false, 'Invalid username or password');
   }
 
   switch (password_type($user['Password'])) {
@@ -108,7 +109,7 @@ function validateUser($username='', $password='') {
   if ($password_correct) {
     return array(new ZM\User($user), 'OK');
   }
-  return array(false, "Login denied for user \"$username\"");
+  return array(false, 'Invalid username or password');
 } # end function validateUser
 
 function userLogout() {
@@ -226,6 +227,9 @@ function getAuthUser($auth) {
   return null;
 } // end getAuthUser($auth)
 
+// TODO: MD5 is cryptographically weak. Consider migrating to hash('sha256', ...)
+// However, changing this would invalidate all existing auth hashes and require
+// a coordinated update of all components that generate/validate auth hashes.
 function calculateAuthHash($remoteAddr='') {
   global $user;
   $local_time = localtime();
@@ -238,26 +242,19 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (!isset($_SESSION['remoteAddr'])) $_SESSION['remoteAddr'] = '';
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username()) {
-    if (!isset($_SESSION)) {
-      # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-      #$auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
-      $auth = calculateAuthHash();
-      return $auth;
-    } else {
-      $time = time();
-      # We use 1800 so that we regenerate the hash at half the TTL
-      $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
-      $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
-      # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-      if ($force or ( !isset($_SESSION['AuthHash'.$remoteAddr]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
-        $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
-        # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-        $_SESSION['AuthHash'.$remoteAddr] = $auth;
-        $_SESSION['AuthHashGeneratedAt'] = $time;
-        # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
-      } # end if AuthHash is not cached
-      return $_SESSION['AuthHash'.$remoteAddr];
-    }
+    $time = time();
+    # We use 1800 so that we regenerate the hash at half the TTL
+    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
+    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
+    # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
+    if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
+      $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $_SESSION['AuthHash'.$remoteAddr] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = $time;
+      # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
+    } # end if AuthHash is not cached
+    return $_SESSION['AuthHash'.$remoteAddr];
   } # end if using AUTH and AUTH_RELAY
   return '';
 }

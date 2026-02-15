@@ -606,6 +606,11 @@ function drawEventOnGraph(zm_event) {
 }
 
 function drawGraph() {
+  if (!canvas) {
+    // Likely live mode
+    console.log("Called drawGraph while in live mode");
+    return;
+  }
   underSlider = undefined; // flag we don't have a slider cached
 
   // timelinediv starts off 100% of browser, but it's container can be smaller
@@ -866,7 +871,7 @@ function showScale(newscale) {
 function setScale(newscale) {
   // makes actual change
   showScale(newscale);
-  for ( var i=0; i < numMonitors; i++ ) {
+  for ( let i=0; i < numMonitors; i++ ) {
     monitorCanvasObj[monitorPtr[i]].width = monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
     monitorCanvasObj[monitorPtr[i]].height = monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
@@ -943,7 +948,7 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   }
 
   var zoomStr = "";
-  for ( var i = 0; i < numMonitors; i++ ) {
+  for ( let i = 0; i < numMonitors; i++ ) {
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) { // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
     }

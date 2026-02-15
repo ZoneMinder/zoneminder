@@ -189,6 +189,7 @@ if (canEdit('Monitors')) {
         return;
       }
     }
+    break;
   } // end case import
   default:
   ZM\Warning('unknown action '.$_REQUEST['action']);

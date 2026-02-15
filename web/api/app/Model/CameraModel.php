@@ -1,5 +1,5 @@
 <?php
-App::uses('AppModel', 'CameraModel');
+App::uses('AppModel', 'Model');
 /**
  * Model CameraModel
  *

@@ -21,7 +21,7 @@ function exportResponse(data, responseText) {
     let fileForAutoDownload = [];
     const exportFile = data.exportFile; // NOW THIS IS a real array of links
     if (exportFile instanceof Array) {
-      var nodeCopy;
+      let nodeCopy;
       fileForAutoDownload = [...exportFile];
       for (let i=0, length = exportFile.length; i < length; i++) {
         const file = exportFile[i];

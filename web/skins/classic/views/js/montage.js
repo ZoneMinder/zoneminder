@@ -483,6 +483,7 @@ function startMonitors() {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
+      monitor.setPlayer(monitor.player);
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
@@ -553,7 +554,7 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for (var i = 0; i < arrRatioMonitors.length; i++) {
+  for (let i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
   const avg = total / arrRatioMonitors.length;
@@ -593,39 +594,29 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+  document.querySelectorAll(".grid-monitor").forEach(function(el) {
     // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
     el.addEventListener('mouseout', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) { // This will prevent the code below from being executed if we navigate within a single monitor block.
+        if (!event.relatedTarget || (event.relatedTarget && !event.relatedTarget.closest('#m'+id))) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+          }
+          hideСontrolElementsOnStream(el);
         }
-      }
-      if (!event.relatedTarget) {
-        hideСontrolElementsOnStream(el);
-        return;
-      }
-      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
-        }
-        hideСontrolElementsOnStream(el);
       }
     });
 
     el.addEventListener('mouseover', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) {
+        if (event.target.closest('#m'+id)) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+          }
+          showСontrolElementsOnStream(el);
         }
-      }
-      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
-        }
-        showСontrolElementsOnStream(el);
       }
     });
   });
@@ -678,6 +669,7 @@ function initPage() {
                   for (let i=0, length = monitors.length; i < length; i++) {
                     const monitor = monitors[i];
                     if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
+                      monitor.setPlayer(monitor.player);
                       monitor.start();
                     }
                   }
@@ -868,33 +860,6 @@ function changeStreamQuality() {
   monitorsSetScale();
 }
 
-function monitorsSetScale(id=null) {
-  // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  id = parseInt(id);
-  if (id || typeof monitorStream !== 'undefined') {
-    //monitorStream used on Watch page.
-    if (typeof monitorStream !== 'undefined') {
-      var currentMonitor = monitorStream;
-    } else {
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    }
-    const el = document.getElementById('liveStream'+id);
-    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
-    console.log("monitorsSetsCale", id, 'clientWidth', el.clientWidth, 'clientHeight', el.clientHeight, 'panzoomscale', panZoomScale);
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-  } else {
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-    }
-  }
-  setButtonSizeOnStream();
-}
-
 function changeMonitorRate() {
   const rate = $j('#changeRate').val();
   monitorsSetRate(rate);
@@ -1069,6 +1034,7 @@ document.onvisibilitychange = () => {
 
         const isOut = isOutOfViewport(monitor.getElement());
         if ((!isOut.all) && !monitor.started) {
+          monitor.setPlayer(monitor.player);
           monitor.start();
         }
       } // end foreach monitor

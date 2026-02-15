@@ -692,7 +692,7 @@ sub irisAbsClose {
   Debug("Iris $CamParams{Brightness}");
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{brightness});
+  $self->getCamParams() unless($CamParams{Brightness});
   my $step = $self->getParam($params, 'step');
   my $min = 0;
 

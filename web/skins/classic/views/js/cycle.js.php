@@ -27,6 +27,7 @@ monitorData[monitorData.length] = {
   'refresh': '<?php echo $monitor->Refresh() ?>',
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
   'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
+  'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
   'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
   'janusEnabled': <?php echo $monitor->JanusEnabled() ?>,
   'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'

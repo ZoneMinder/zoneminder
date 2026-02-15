@@ -58,6 +58,10 @@ case $i in
     PACKAGE_VERSION="${i#*=}"
     shift
     ;;
+    -l=*|--local-source=*)
+    LOCAL_SOURCE="${i#*=}"
+    shift
+    ;;
     -x=*|--debbuild-extra=*)
     DEBBUILD_EXTRA="${i#*=}"
     shift
@@ -71,9 +75,13 @@ case $i in
     shift # past argument with no value
     ;;
     *)
-    # unknown option
-    read -p "Unknown option $i, continue? (Y|n)"
-    [[ $REPLY == [yY] ]] && { echo "continuing..."; } || exit 1;
+    # Treat trailing positional argument as local source directory
+    if [ -d "$i" ]; then
+      LOCAL_SOURCE="$i"
+    else
+      read -p "Unknown option $i, continue? (Y|n)"
+      [[ $REPLY == [yY] ]] && { echo "continuing..."; } || exit 1;
+    fi
     ;;
 esac
 done
@@ -115,8 +123,16 @@ else
 fi;
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
-if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then 
-  if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
+if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
+  if [ "$LOCAL_SOURCE" != "" ]; then
+    if [ ! -d "$LOCAL_SOURCE" ]; then
+      echo "Local source directory $LOCAL_SOURCE does not exist."
+      exit 1;
+    fi
+    echo "Using local source directory $LOCAL_SOURCE as-is (no pull)."
+    echo "git clone $LOCAL_SOURCE ${GITHUB_FORK}_zoneminder_release"
+    git clone "$LOCAL_SOURCE" "${GITHUB_FORK}_zoneminder_release"
+  elif [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
     echo "git pull..."
@@ -176,8 +192,12 @@ if [ $? -ne 0 ]; then
   echo "Failed to switch to branch."
   exit 1;
 fi;
-echo "git pull..."
-git pull
+if [ "$LOCAL_SOURCE" == "" ]; then
+  echo "git pull..."
+  git pull
+else
+  echo "Skipping pull (using local source as-is)."
+fi
 # Grab the ZoneMinder version from the contents of the version file
 VERSION=$(cat "$(find . -maxdepth 1 -name 'version' -o -name 'version.txt')")
 if [ -z "$VERSION" ]; then

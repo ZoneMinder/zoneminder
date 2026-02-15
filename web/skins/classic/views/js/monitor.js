@@ -67,7 +67,7 @@ function loadLocations( element ) {
 
   var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
   if ( returnLocationOptions ) {
-    for ( var i = 0; i < returnLocationOptions.length; i++ ) {
+    for ( let i = 0; i < returnLocationOptions.length; i++ ) {
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
@@ -131,6 +131,12 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
+    // Clear password field values before any native form submission so
+    // Chrome doesn't offer to save them.  The values are already in the
+    // database and will be repopulated when the page reloads.
+    this.querySelectorAll('input[type="password"]').forEach(function(el) {
+      el.value = '';
+    });
     if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
@@ -361,8 +367,18 @@ function initPage() {
   }
 
   // Manage the SAVE Button
-  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+  document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
     saveMonitorData();
+  });
+
+  // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
+  // submit so Chrome doesn't trigger its "save password" prompt.
+  document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
+    const form = document.getElementById('contentForm');
+    if (validateForm(form)) {
+      $j('#contentButtons').hide();
+      saveMonitorData('?view=console');
+    }
   });
 
   const form = document.getElementById('contentForm');
@@ -633,7 +649,7 @@ function change_WebColour() {
 function getRandomColour() {
   var letters = '0123456789ABCDEF';
   var colour = '#';
-  for (var i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i++) {
     colour += letters[Math.floor(Math.random() * 16)];
   }
   return colour;
@@ -881,3 +897,12 @@ function ControlList_onClick() {
 }
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+// Clear password field values when navigating away from the page so
+// Chrome doesn't offer to save/update credentials.  These are camera
+// credentials, not user login credentials.
+window.addEventListener('pagehide', function() {
+  document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
+    el.value = '';
+  });
+});

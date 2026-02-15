@@ -58,7 +58,7 @@ $monitorStatusPosition = array(
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositionSelected = 'outsideImgBottom';
+$monitorStatusPositionSelected = ZM_WEB_COMPACT_MONTAGE ? 'hidden' : 'outsideImgBottom';
 if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
@@ -355,7 +355,7 @@ foreach ($monitors as $monitor) {
       $monitor->Name()
     );
   } else {
-    $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
+    $monitor_options['state'] = true;
     $monitor_options['zones'] = $showZones;
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';

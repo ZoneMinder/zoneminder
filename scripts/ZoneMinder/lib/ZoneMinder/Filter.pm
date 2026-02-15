@@ -166,7 +166,11 @@ sub Sql {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
           $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
-          $self->{Sql} .= 'T.Id';
+          # Don't prepend T.Id for special tag values (0="No Tag", -1="Any Tag")
+          # as those use EXISTS/NOT EXISTS subqueries instead
+          if (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1')) {
+            $self->{Sql} .= 'T.Id';
+          }
           $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           if (!($fields =~ /MonitorName/)) {
@@ -316,7 +320,23 @@ sub Sql {
           } # end foreach temp_value
 
           if ( $term->{op} ) {
-            if ( $term->{op} eq '=~' ) {
+            # Handle special tag values before generic operators to avoid
+            # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
+            if ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
+              # "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
+              if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
+                $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              } else {
+                $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              }
+            } elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '-1' ) {
+              # "Any Tag": = means has tags (EXISTS), != means no tags (NOT EXISTS)
+              if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
+                $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              } else {
+                $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              }
+            } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {
               $self->{Sql} .= ' NOT REGEXP '.$value;
@@ -346,10 +366,6 @@ sub Sql {
               $self->{Sql} .= ' LIKE '.$value;
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
-            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq 0) {
-              $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
-            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq '=' or $term->{op} eq 'IS') and $term->{val} eq -1) {
-              $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
             } else {
               $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }

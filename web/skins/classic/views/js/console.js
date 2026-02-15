@@ -85,7 +85,7 @@ function ajaxRequest(params) {
     }
 
     // Iterate over form elements instead of using serialize
-    for (var i = 0; i < form.elements.length; i++) {
+    for (let i = 0; i < form.elements.length; i++) {
       var element = form.elements[i];
       var name = element.name;
 
@@ -100,7 +100,7 @@ function ajaxRequest(params) {
       if (element.type === 'select-multiple' || (element.multiple && element.tagName === 'SELECT')) {
         // Handle multi-select dropdowns
         var selectedOptions = [];
-        for (var j = 0; j < element.options.length; j++) {
+        for (let j = 0; j < element.options.length; j++) {
           if (element.options[j].selected) {
             selectedOptions.push(element.options[j].value);
           }
@@ -239,11 +239,11 @@ function processRows(rows) {
       if (row.Analysing && row.Analysing != 'None') {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
+      if (row.ONVIF_Event_Listener) {
+        functionHtml += ' Use ONVIF Events';
+      }
       if (row.Recording && row.Recording != 'None') {
-        functionHtml += 'Recording: ' + row.Recording;
-        if (row.ONVIF_Event_Listener) {
-          functionHtml += ' Use ONVIF';
-        }
+        functionHtml += 'Recording: ' + row.Recording + '<br/>';
         functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';

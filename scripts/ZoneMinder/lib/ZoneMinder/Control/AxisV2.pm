@@ -40,85 +40,45 @@ our @ISA = qw(ZoneMinder::Control);
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
-use URI;
 
-our $uri;
-my $use_optics;
+use LWP::UserAgent;
+use HTTP::Cookies;
 
 sub open {
   my $self = shift;
-
   $self->loadMonitor();
-  use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+
+  $self->{ua} = LWP::UserAgent->new();
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 
-  my $uri = $self->guess_credentials();
-  $uri = new URI() if ! $uri;;
-  # For parent get
-  $$self{BaseURL} = $uri->canonical();
+  $$self{realm} = defined($self->{Monitor}->{ControlDevice}) ? $self->{Monitor}->{ControlDevice} : '';
 
+  if (!$self->guess_credentials()) {
+    Error('Failed to parse credentials from ControlAddress or Path');
+    return undef;
+  }
 
-  my $realm = $self->{Monitor}->{ControlDevice};
-
-  $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
+  # Try modern param.cgi endpoint first
   my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
-
-  # test auth
-  my $res = $self->{ua}->get($uri->canonical().$url);
-
-  if ($res->is_success) {
-    if ($res->content() ne "Properties.PTZ.PTZ=yes\n") {
+  if ($self->get_realm($url)) {
+    my $res = $self->get($url);
+    if ($res->is_success and $res->content() !~ /Properties\.PTZ\.PTZ=yes/) {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
     return !undef;
   }
-  if ($res->status_line() eq '404 Not Found') {
-    #older style
-    $url = 'axis-cgi/com/ptz.cgi';
-    $res = $self->{ua}->get($uri->canonical().$url);
-    Debug("Result from getting ".$uri->canonical().$url . ':' . $res->status_line());
+
+  # Fall back to older ptz.cgi for legacy cameras
+  if ($self->get_realm('/axis-cgi/com/ptz.cgi')) {
+    $self->{state} = 'open';
+    return !undef;
   }
 
-  if ($res->status_line() eq '401 Unauthorized') {
-    my $headers = $res->headers();
-    foreach my $k ( keys %$headers ) {
-      Debug("Initial Header $k => $$headers{$k}");
-    }
-
-    if ( $$headers{'www-authenticate'} ) {
-      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
-        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
-        if ( $tokens =~ /\w+="([^"]+)"/i ) {
-          if ( $realm ne $1 ) {
-            $realm = $1;
-            $self->{ua}->credentials($uri->host_port(), $realm, $$self{username}, $$self{password});
-            $res = $self->{ua}->get($uri->canonical().$url);
-            if ( $res->is_success() ) {
-              Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
-              $self->{state} = 'open';
-              return !undef;
-            }
-            Error('Authentication still failed after updating REALM status: '.$res->status_line);
-          } else {
-            Error('Authentication failed, not a REALM problem');
-          }
-        } else {
-          Error('Failed to match realm in tokens');
-        } # end if
-      } # end foreach auth header
-    } else {
-      Debug('No headers line');
-    } # end if headers
-  } else {
-    Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
-  } # end if $res->status_line() eq '401 Unauthorized'
   return undef;
 } # end sub open
 
@@ -363,15 +323,15 @@ sub focusRelNear {
   my $params = shift;
   my $step = $self->getParam($params, 'step');
   Debug('Focus Rel Near');
-   if ($use_optics) {
-    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=-minstep";
+  if ($$self{use_optics}) {
+    my $cmd = '/axis-cgi/opticssetup.cgi?rfocus=-minstep';
     $self->sendCmd($cmd);
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
     my $res = $self->sendCmd($cmd);
     if ($res->content ne 'ok') {
-      $use_optics = 1;
-      $self->focusRelNear($self, $params);
+      $$self{use_optics} = 1;
+      $self->focusRelNear($params);
     }
   }
 }
@@ -380,16 +340,16 @@ sub focusRelFar {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'step');
-  Debug('FocusRelFar');
-  if ($use_optics) {
-    my $cmd = "/axis-cgi/opticssetup.cgi?rfocus=minstep";
+  Debug('Focus Rel Far');
+  if ($$self{use_optics}) {
+    my $cmd = '/axis-cgi/opticssetup.cgi?rfocus=minstep';
     $self->sendCmd($cmd);
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
     my $res = $self->sendCmd($cmd);
     if ($res->content ne 'ok') {
-      $use_optics = 1;
-      $self->focusRelNear($self, $params);
+      $$self{use_optics} = 1;
+      $self->focusRelFar($params);
     }
   }
 }
@@ -401,7 +361,7 @@ sub focusAbs {
   my $step = $self->getParam($params, 'step');
   # step comes in as an integer, needs to be 0-1
   Debug('Focus Abs');
-  my $cmd = "/axis-cgi/opticssetup.cgi.cgi?afocus=$step";
+  my $cmd = "/axis-cgi/opticssetup.cgi?afocus=$step";
   $self->sendCmd($cmd);
 }
 
@@ -489,6 +449,107 @@ sub reboot {
   my $self = shift;
   my $response = $self->sendCmd('/axis-cgi/restart.cgi');
   return $response->is_success;
+}
+
+# ==========================================================================
+# Configuration get/set via param.cgi
+# ==========================================================================
+
+my %config_types = (
+  'Properties.System'    => {},
+  'Properties.Image'     => {},
+  'Properties.PTZ'       => {},
+  'Properties.Streaming' => {},
+  'Properties.Network'   => {},
+);
+
+sub get_config {
+  my $self = shift;
+  my %config;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    my $response = $self->get("/axis-cgi/param.cgi?action=list&group=$category");
+    if (!$response || !$response->is_success()) {
+      Error("Failed to get config for $category: " . ($response ? $response->status_line : 'no response'));
+      next;
+    }
+    my %params;
+    foreach my $line (split(/\n/, $response->content())) {
+      $line =~ s/\r$//;
+      next if $line eq '' or $line =~ /^#/;
+      if ($line =~ /^([^=]+)=(.*)$/) {
+        $params{$1} = $2;
+      }
+    }
+    $config{$category} = \%params;
+  }
+  return \%config;
+}
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    if (!$$diff{$category}) {
+      Debug("No changes for category $category");
+      next;
+    }
+    Debug("Applying $category");
+    my $params = $$diff{$category};
+    my @pairs;
+    foreach my $key (keys %$params) {
+      push @pairs, "$key=$$params{$key}";
+    }
+    my $query = 'action=update&' . join('&', @pairs);
+    my $response = $self->get("/axis-cgi/param.cgi?$query");
+    if (!$response || !$response->is_success()) {
+      Error("Failed to set config for $category: " . ($response ? $response->status_line : 'no response'));
+      return undef;
+    }
+    if ($response->content() !~ /^OK/) {
+      Error("param.cgi update failed for $category: " . $response->content());
+      return undef;
+    }
+  }
+  return !undef;
+}
+
+# ==========================================================================
+# Network probe and RTSP URL
+# ==========================================================================
+
+sub probe {
+  my ($ip, $username, $password) = @_;
+
+  my $self = new ZoneMinder::Control::AxisV2();
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->cookie_jar( {} );
+  $$self{username} = $username;
+  $$self{password} = $password;
+  $$self{realm} = '';
+
+  foreach my $port ( '80', '443' ) {
+    $$self{port} = $port;
+    $$self{host} = $ip;
+    $$self{BaseURL} = "http://$ip:$port";
+    $$self{address} = "$ip:$port";
+    $self->{ua}->credentials("$ip:$port", '', $username, $password);
+
+    if ($self->get_realm('/axis-cgi/param.cgi?action=list&group=Properties.System.SerialNumber')) {
+      return {
+        url => "rtsp://$ip/axis-media/media.amp",
+        realm => $$self{realm},
+      };
+    }
+  } # end foreach port
+  return undef;
+}
+
+sub rtsp_url {
+  my ($self, $ip) = @_;
+  return 'rtsp://'.$ip.'/axis-media/media.amp';
+}
+
+sub profiles {
 }
 
 1;

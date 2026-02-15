@@ -1,4 +1,4 @@
-name: build-native-packages-signed-aarch64
+name: build-deb-packages-aarch64
 
 on:
   push:

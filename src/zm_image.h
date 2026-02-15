@@ -134,6 +134,8 @@ class Image {
   uint8_t *buffer;
   int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
   int holdbuffer; /* Hold the buffer instead of replacing it with new one */
+  uint8_t *blend_buffer_;
+  size_t blend_buffer_size_;
   std::string annotation_;
   std::string filename_;
 

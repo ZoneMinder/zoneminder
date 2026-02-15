@@ -10,6 +10,7 @@
 
 # RtspServer is configured as a git submodule
 %global rtspserver_commit     24e6b7153aa561ecc4123cc7c8fc1b530cde0bc9
+
 # CxxUrl is configured as a git submodule
 %global CxxUrl_version     eaf46c0207df24853a238d4499e7f4426d9d234c
 
@@ -43,9 +44,10 @@ Source4: https://github.com/chmike/CxxUrl/archive/%{CxxUrl_version}.tar.gz#/CxxU
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
-BuildRequires: mariadb-devel
+BuildRequires: mariadb-connector-c-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
+BuildRequires: cjson-devel
 BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
@@ -53,7 +55,9 @@ BuildRequires: pcre2-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
-BuildRequires: net-tools
+# net-tools intentionally omitted from BuildRequires to avoid
+# systemd conflicts in container build environments.
+# Paths are pre-defined in the cmake call below instead.
 BuildRequires: perl
 BuildRequires: perl-generators
 BuildRequires: perl(Archive::Tar)
@@ -123,7 +127,7 @@ Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
 Requires: vlc-core
-Requires: ffmpeg
+Requires: %{_bindir}/ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)
 Requires: perl(Archive::Tar)
@@ -223,6 +227,10 @@ mv -f CxxUrl-%{CxxUrl_version} ./dep/CxxUrl
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
+        -DZM_PATH_ARP="/usr/sbin/ip neigh" \
+        -DZM_PATH_ARP_SCAN="/usr/sbin/arp-scan" \
+        -DZM_PATH_IP="/usr/sbin/ip" \
+        -DZM_PATH_IFCONFIG="/usr/sbin/ifconfig" \
         .
 
 %cmake_build
@@ -243,6 +251,10 @@ find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist
 rm -rf %{buildroot}%{_prefix}/cmake
 rm -rf %{buildroot}%{_prefix}/%{_lib}/cmake/CxxUrl
 rm -rf %{buildroot}%{_includedir}
+
+# delete all static libraries in accordance with Fedora packaging guidelines
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/#_packaging_static_libraries
+find %{buildroot} \( -name '*.la' -o -name '*.a' \) -type f -delete -print
 
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
@@ -386,7 +398,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmrecover.pl
 %{_bindir}/zm_rtsp_server
 
-%{_libdir}/libCxxUrl.a
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
 %{perl_vendorlib}/WSDiscovery*
@@ -441,6 +452,37 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Sat Feb 07 2026  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.38.0-1
+- 1.38.0 release
+- use mariadb-connector-c-devel 
+
+* Mon Feb 02 2026 RPM Fusion Release Engineering <sergiomb@rpmfusion.org> - 1.36.37-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_44_Mass_Rebuild
+
+* Fri Dec 26 2025  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.37-1
+- 1.36.37 release
+
+* Wed Nov 05 2025 Leigh Scott <leigh123linux@gmail.com> - 1.36.36-2
+- Rebuild for ffmpeg-8.0
+
+* Sat Oct 18 2025  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.36-1
+- 1.36.36 release
+
+* Thu Aug 28 2025 Nicolas Chauvet <kwizart@gmail.com> - 1.36.35-5
+- Use requires /usr/bin/ffmpeg - rhbz#7307
+
+* Sun Jul 27 2025 RPM Fusion Release Engineering <sergiomb@rpmfusion.org> - 1.36.35-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_43_Mass_Rebuild
+
+* Tue Jun 03 2025  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.35-3
+- Build against pcre2-devel rather than pcre-devel
+
+* Wed Jan 29 2025 RPM Fusion Release Engineering <sergiomb@rpmfusion.org> - 1.36.35-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_42_Mass_Rebuild
+
+* Tue Oct 22 2024  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.35-1
+- 1.36.35 release
+
 * Fri Aug 16 2024  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.34-1
 - 1.36.34 release
 - remove el7 support

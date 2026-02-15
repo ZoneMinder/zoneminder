@@ -165,10 +165,10 @@ int RemoteCameraHttp::Connect() {
     if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
-      char buf[sizeof(struct in6_addr)];
+      char buf[INET6_ADDRSTRLEN];
       struct sockaddr_in *addr;
       addr = (struct sockaddr_in *)p->ai_addr;
-      inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
+      inet_ntop(AF_INET, &(addr->sin_addr), buf, sizeof(buf));
 
       Warning("Can't connect to remote camera mid: %d at %s: %s", monitor->Id(), buf, strerror(errno));
       continue;

@@ -157,7 +157,7 @@ fieldset {
     border-bottom: 1px solid #000000;
 }
 
-input, textarea, select, button, .btn-primary {
+input, textarea, select, button, .btn-primary, .btn-normal, .btn-normal:link, input[type='checkbox'], input[type='radio'] {
   background-color: rgb(68,68,68);
   border-color: var(--gray);
   color: #dddddd;

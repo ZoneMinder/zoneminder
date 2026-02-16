@@ -932,8 +932,8 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
     minStr = "&minTime=" + secs2inputstr(minSecs);
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
-    minStr = "&minTime=01/01/1950T12:00:00";
-    maxStr = "&maxTime=12/31/2035T12:00:00";
+    minStr = "&minTime=1950-01-01+12:00:00";
+    maxStr = "&maxTime=2035-12-31+12:00:00";
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
@@ -1183,7 +1183,16 @@ function loadEventData(e) {
           const op = this.form.elements[op_name];
           if (attr) {
             if (attr.value==='Monitor') attr.value='MonitorId';
-            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(val);
+            let urlVal = val;
+            // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
+            // Locale formats using / as separator break the URL path.
+            if (/Date|Time/.test(attr.value)) {
+              const m = moment(val);
+              if (m.isValid()) {
+                urlVal = m.format('YYYY-MM-DD HH:mm:ss');
+              }
+            }
+            url += '/'+attr.value+' '+op.value+':'+encodeURIComponent(urlVal);
           } else {
             console.log('No attr for '+attr_name);
           }

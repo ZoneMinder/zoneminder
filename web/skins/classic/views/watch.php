@@ -461,15 +461,14 @@ ZM\Debug("Muted $muted");
               <div id="volumeSlider<?php echo $mid; ?>" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
               <i id="controlMute<?php echo $mid; ?>" class="audio-control-mute material-icons md-22"></i>
             </span>
-          </div><!-- id="extButton" --><div><!-- id="bottomBlock" -->
+          </div><!-- id="extButton" --></div><!-- id="bottomBlock" -->
         </div><!-- id="wrapperMonitor" -->
 
 <!-- START Control -->
 <?php
 if ( $hasPtzControls ) {
 ?>
-        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-        </div>
+        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>> </div>
 <?php
 }
 ?>

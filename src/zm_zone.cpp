@@ -994,8 +994,44 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
         continue;
       }
     } else {
-      // Percentage-based coordinates (default): convert to pixels using monitor dimensions
-      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+      // Percentage-based coordinates (default): convert to pixels using monitor dimensions.
+      // However, if any coordinate value exceeds 100, these are actually pixel values
+      // stored with incorrect Units — fall back to pixel parsing with a warning.
+      bool has_pixel_values = false;
+      {
+        const char *s = Coords;
+        while (*s != '\0') {
+          double val = strtod(s, nullptr);
+          if (val > 100.0) {
+            has_pixel_values = true;
+            break;
+          }
+          // Skip to next number: find comma then space (x,y pairs separated by spaces)
+          const char *comma = strchr(s, ',');
+          if (!comma) break;
+          val = strtod(comma + 1, nullptr);
+          if (val > 100.0) {
+            has_pixel_values = true;
+            break;
+          }
+          const char *space = strchr(comma + 1, ' ');
+          if (space) {
+            s = space + 1;
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (has_pixel_values) {
+        Warning("Zone %d/%s has Units=Percent but Coords contain pixel values (>100), "
+                "parsing as pixels instead", Id, Name);
+        if (!ParsePolygonString(Coords, polygon)) {
+          Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
+                Coords, Id, Name, monitor->Name());
+          continue;
+        }
+      } else if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;

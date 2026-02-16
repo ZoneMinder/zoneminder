@@ -89,7 +89,7 @@ void Zone::Setup(
         if ( ranges[y].lo_x == -1 ) {
           ranges[y].lo_x = x;
         }
-        if ( (unsigned int)ranges[y].hi_x < x ) {
+        if ( ranges[y].hi_x < (int)x ) {
           ranges[y].hi_x = x;
         }
       }
@@ -248,26 +248,26 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  //unsigned int lo_x = polygon.Extent().Lo().x_;
-  unsigned int lo_y = polygon.Extent().Lo().y_;
-  unsigned int hi_x = polygon.Extent().Hi().x_;
-  unsigned int hi_y = polygon.Extent().Hi().y_;
+  //int lo_x = polygon.Extent().Lo().x_;
+  int lo_y = polygon.Extent().Lo().y_;
+  int hi_x = polygon.Extent().Hi().x_;
+  int hi_y = polygon.Extent().Hi().y_;
 
   // Clamp polygon extents to image dimensions to prevent buffer overflows.
   // This can happen if zone polygon coordinates exceed the actual frame size
   // (e.g., camera reconnected at a different resolution).
-  if (hi_y >= (unsigned int)diff_height) {
-    Warning("Zone %s: polygon hi_y (%u) >= image height (%d), clamping",
+  if (hi_y >= diff_height) {
+    Warning("Zone %s: polygon hi_y (%d) >= image height (%d), clamping",
             label.c_str(), hi_y, diff_height);
     hi_y = diff_height - 1;
   }
-  if (hi_x >= (unsigned int)diff_width) {
-    Warning("Zone %s: polygon hi_x (%u) >= image width (%d), clamping",
+  if (hi_x >= diff_width) {
+    Warning("Zone %s: polygon hi_x (%d) >= image width (%d), clamping",
             label.c_str(), hi_x, diff_width);
     hi_x = diff_width - 1;
   }
   if (lo_y > hi_y) {
-    Debug(1, "Zone %s: lo_y (%u) > hi_y (%u) after clamping, skipping", label.c_str(), lo_y, hi_y);
+    Debug(1, "Zone %s: lo_y (%d) > hi_y (%d) after clamping, skipping", label.c_str(), lo_y, hi_y);
     return false;
   }
 
@@ -326,12 +326,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       unsigned char *cpdiff;
       int ldx, hdx, ldy, hdy;
       bool block;
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        // Skip rows with no polygon pixels (lo_x == -1 would wrap to
-        // UINT_MAX in Buffer(), causing out-of-bounds access)
+        // Skip rows with no polygon pixels (lo_x == -1 means no pixels)
         if (lo_x < 0 || lo_x > hi_x) continue;
 
         pdiff = diff_image->Buffer(lo_x, y);
@@ -413,7 +412,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       uint8_t last_x, last_y;
       BlobStats *bsx, *bsy;
       BlobStats *bsm, *bss;
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
@@ -446,7 +445,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   stats.alarm_blob_pixels_++;
                   bsx->count++;
                   if (x > bsx->hi_x) bsx->hi_x = x;
-                  if ((int)y > bsx->hi_y) bsx->hi_y = y;
+                  if (y > bsx->hi_y) bsx->hi_y = y;
                 } else {
                   // Aggregate blobs
                   bsm = bsx->count>=bsy->count?bsx:bsy;
@@ -496,7 +495,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   // Merge the slave blob into the master
                   bsm->count += bss->count+1;
                   if (x > bsm->hi_x) bsm->hi_x = x;
-                  if ((int)y > bsm->hi_y) bsm->hi_y = y;
+                  if (y > bsm->hi_y) bsm->hi_y = y;
                   if (bss->lo_x < bsm->lo_x) bsm->lo_x = bss->lo_x;
                   if (bss->lo_y < bsm->lo_y) bsm->lo_y = bss->lo_y;
                   if (bss->hi_x > bsm->hi_x) bsm->hi_x = bss->hi_x;
@@ -522,7 +521,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 stats.alarm_blob_pixels_++;
                 bsx->count++;
                 if (x > bsx->hi_x) bsx->hi_x = x;
-                if ((int)y > bsx->hi_y) bsx->hi_y = y;
+                if (y > bsx->hi_y) bsx->hi_y = y;
               }
             } else {
               if (last_y) {
@@ -535,14 +534,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 stats.alarm_blob_pixels_++;
                 bsy->count++;
                 if (x > bsy->hi_x) bsy->hi_x = x;
-                if ((int)y > bsy->hi_y) bsy->hi_y = y;
+                if (y > bsy->hi_y) bsy->hi_y = y;
               } else {
                 // Create a new blob
                 int i;
                 for (i = (kWhite-1); i > 0; i--) {
                   BlobStats *bs = &blob_stats[i];
                   // See if we can recycle one first, only if it's at least two rows up
-                  if (bs->count && bs->hi_y < (int)(y-1)) {
+                  if (bs->count && bs->hi_y < (y-1)) {
                     if (
                       (min_blob_pixels && bs->count < min_blob_pixels)
                       ||
@@ -753,9 +752,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
 
-      unsigned int lo_x = polygon.Extent().Lo().x_;
+      int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
-      for (unsigned int y = lo_y; y <= hi_y; y++) {
+      for (int y = lo_y; y <= hi_y; y++) {
         int lo_x2 = ranges[y].lo_x;
         int hi_x2 = ranges[y].hi_x;
 
@@ -1100,24 +1099,24 @@ void Zone::std_alarmedpixels(
   const uint8_t calc_max = max_pixel_threshold ? max_pixel_threshold : 255;
   const uint8_t calc_min = min_pixel_threshold;
 
-  const unsigned int img_width = pdelta_image->Width();
-  const unsigned int img_height = pdelta_image->Height();
+  const int img_width = static_cast<int>(pdelta_image->Width());
+  const int img_height = static_cast<int>(pdelta_image->Height());
 
-  unsigned int lo_y = polygon.Extent().Lo().y_;
-  unsigned int hi_y = polygon.Extent().Hi().y_;
+  int lo_y = polygon.Extent().Lo().y_;
+  int hi_y = polygon.Extent().Hi().y_;
 
   // Clamp to image bounds
   if (hi_y >= img_height) hi_y = img_height - 1;
   if (lo_y > hi_y) { *pixel_count = 0; *pixel_sum = 0; return; }
 
-  for (unsigned int y = lo_y; y <= hi_y; y++) {
-    const unsigned int lo_x = ranges[y].lo_x;
-    const unsigned int hi_x = ranges[y].hi_x;
+  for (int y = lo_y; y <= hi_y; y++) {
+    const int lo_x = ranges[y].lo_x;
+    const int hi_x = ranges[y].hi_x;
 
-    if (lo_x > hi_x) continue;
+    if (lo_x < 0 || lo_x > hi_x) continue;
 
     // Clamp hi_x to image width
-    const unsigned int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
+    const int clamped_hi_x = (hi_x >= img_width) ? img_width - 1 : hi_x;
 
     alarmedpixels_row(
         pdelta_image->Buffer(lo_x, y),

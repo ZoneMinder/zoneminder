@@ -1621,7 +1621,7 @@ function MonitorStream(monitorData) {
       };
     };
   }
-  this.analyse_frames = true;
+  this.analyse_frames = false;
   this.show_analyse_frames = function(toggle) {
     const streamImage = this.getElement();
     if (streamImage.nodeName == 'IMG') {

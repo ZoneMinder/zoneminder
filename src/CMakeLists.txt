@@ -152,15 +152,20 @@ target_include_directories(zm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../dep/booleval/include
+    ${ZM_INCLUDE_DIRS}
     )
 
-if(GSOAP_FOUND)
-target_include_directories(zm
-  PUBLIC
-    ${CMAKE_BINARY_DIR}/generated
-    ${GSOAP_PLUGIN_DIR}/..
-    ${GSOAP_INCLUDE_DIR})
+if(ZM_STRIP_NEON)
+  target_compile_definitions(zm PRIVATE ZM_STRIP_NEON=1)
+endif()
 
+if(GSOAP_FOUND)
+  target_compile_definitions(zm PUBLIC WITH_GSOAP)
+  target_include_directories(zm
+    PUBLIC
+      ${CMAKE_BINARY_DIR}/generated
+      ${GSOAP_PLUGIN_DIR}/..
+      ${GSOAP_INCLUDE_DIR})
 endif()
 
 target_link_libraries(zm

@@ -25,7 +25,6 @@
 		"ext-mcrypt": "You need to install ext-openssl or ext-mcrypt to use AES-256 encryption"
 	},
 	"require-dev": {
-		"phpunit/phpunit": "^3.7",
 		"cakephp/cakephp-codesniffer": "^1.0.0"
 	},
 	"config": {

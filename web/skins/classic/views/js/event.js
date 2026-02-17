@@ -823,6 +823,10 @@ function streamPan(x, y) {
 // invoked at that point to send queued commands (e.g. CMD_SEEK).
 function restartZmsStream(onReady) {
   const img = document.getElementById('evtStream');
+  if (!img) {
+    console.warn('restartZmsStream: no evtStream element found');
+    return;
+  }
   const url = new URL(img.src);
   url.searchParams.set('scale', currentScale);
   img.src = '';
@@ -849,7 +853,11 @@ function streamSeek(offset) {
 }
 
 function streamQuery() {
-  streamReq({command: CMD_QUERY});
+  if (zmsBroke !== true) {
+    streamReq({command: CMD_QUERY});
+  } else {
+    clearInterval(streamCmdInterval);
+  }
 }
 
 function getEventResponse(respObj, respText) {

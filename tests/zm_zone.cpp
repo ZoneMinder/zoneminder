@@ -118,3 +118,105 @@ TEST_CASE("Zone::ParsePercentagePolygon: integer coords still work", "[Zone]") {
   REQUIRE(polygon.GetVertices()[2] == Vector2(1920, 1080));
   REQUIRE(polygon.GetVertices()[3] == Vector2(0, 1080));
 }
+
+TEST_CASE("Zone::ParsePolygonString: basic pixel parsing", "[Zone]") {
+  Polygon polygon;
+
+  SECTION("parses a simple rectangle") {
+    bool ok = Zone::ParsePolygonString("0,0 639,0 639,479 0,479", polygon);
+    REQUIRE(ok);
+
+    auto const &verts = polygon.GetVertices();
+    REQUIRE(verts.size() == 4);
+    REQUIRE(verts[0] == Vector2(0, 0));
+    REQUIRE(verts[1] == Vector2(639, 0));
+    REQUIRE(verts[2] == Vector2(639, 479));
+    REQUIRE(verts[3] == Vector2(0, 479));
+  }
+
+  SECTION("parses a triangle") {
+    bool ok = Zone::ParsePolygonString("100,100 200,100 150,200", polygon);
+    REQUIRE(ok);
+
+    auto const &verts = polygon.GetVertices();
+    REQUIRE(verts.size() == 3);
+    REQUIRE(verts[0] == Vector2(100, 100));
+    REQUIRE(verts[1] == Vector2(200, 100));
+    REQUIRE(verts[2] == Vector2(150, 200));
+  }
+
+  SECTION("rejects string with fewer than 3 vertices") {
+    // Two vertices — not enough for a polygon, but ParsePolygonString
+    // returns true if any vertices were parsed (vertices.empty() check)
+    bool ok = Zone::ParsePolygonString("10,20 30,40", polygon);
+    REQUIRE(ok);
+    // The polygon won't be properly formed but parsing itself doesn't fail
+  }
+}
+
+TEST_CASE("Zone::ParsePercentagePolygon: percentage to pixel conversion", "[Zone]") {
+  Polygon polygon;
+  unsigned int width = 1920;
+  unsigned int height = 1080;
+
+  SECTION("full-frame 0-100% rectangle") {
+    bool ok = Zone::ParsePercentagePolygon("0,0 100,0 100,100 0,100", width, height, polygon);
+    REQUIRE(ok);
+
+    auto const &verts = polygon.GetVertices();
+    REQUIRE(verts.size() == 4);
+    REQUIRE(verts[0] == Vector2(0, 0));
+    REQUIRE(verts[1] == Vector2(1920, 0));
+    REQUIRE(verts[2] == Vector2(1920, 1080));
+    REQUIRE(verts[3] == Vector2(0, 1080));
+  }
+
+  SECTION("50% rectangle converts to half-resolution pixels") {
+    bool ok = Zone::ParsePercentagePolygon("0,0 50,0 50,50 0,50", width, height, polygon);
+    REQUIRE(ok);
+
+    auto const &verts = polygon.GetVertices();
+    REQUIRE(verts.size() == 4);
+    REQUIRE(verts[0] == Vector2(0, 0));
+    REQUIRE(verts[1] == Vector2(960, 0));
+    REQUIRE(verts[2] == Vector2(960, 540));
+    REQUIRE(verts[3] == Vector2(0, 540));
+  }
+
+  SECTION("values are clamped to monitor bounds") {
+    // 100% should clamp to exact monitor dimensions
+    bool ok = Zone::ParsePercentagePolygon("0,0 100,0 100,100 0,100", width, height, polygon);
+    REQUIRE(ok);
+
+    auto const &verts = polygon.GetVertices();
+    for (auto const &v : verts) {
+      REQUIRE(v.x_ >= 0);
+      REQUIRE(v.x_ <= static_cast<int>(width));
+      REQUIRE(v.y_ >= 0);
+      REQUIRE(v.y_ <= static_cast<int>(height));
+    }
+  }
+}
+
+TEST_CASE("Zone: pixel values through ParsePercentagePolygon produce wrong results", "[Zone]") {
+  // This test demonstrates the bug: when pixel coordinates (>100) are fed
+  // through ParsePercentagePolygon, they get treated as percentages and
+  // scaled wildly, then clamped to monitor bounds.
+  Polygon polygon;
+  unsigned int width = 1920;
+  unsigned int height = 1080;
+
+  // These are pixel coordinates for a 640x480 region
+  bool ok = Zone::ParsePercentagePolygon("0,0 639,0 639,479 0,479", width, height, polygon);
+  REQUIRE(ok);
+
+  auto const &verts = polygon.GetVertices();
+  REQUIRE(verts.size() == 4);
+
+  // 639% of 1920 = 12268.8 -> clamped to 1920
+  // 479% of 1080 = 5173.2 -> clamped to 1080
+  // All non-zero coords get clamped to monitor bounds — the zone is
+  // degenerate (covers the full monitor instead of a sub-region)
+  REQUIRE(verts[1] == Vector2(static_cast<int>(width), 0));
+  REQUIRE(verts[2] == Vector2(static_cast<int>(width), static_cast<int>(height)));
+}

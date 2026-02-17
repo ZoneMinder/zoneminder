@@ -122,7 +122,7 @@ class Zone {
     int p_overload_frames,
     int p_extend_alarm_frames);
 
-  void std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum);
+  void std_alarmedpixels(const Image* pdelta_image, Image* pmask_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum);
 
  public:
   Zone(

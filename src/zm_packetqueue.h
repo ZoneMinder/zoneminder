@@ -23,8 +23,9 @@
 
 #include <condition_variable>
 #include <list>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <vector>
 
 class Monitor;
 class ZMPacket;
@@ -53,6 +54,7 @@ class PacketQueue {
   bool has_out_of_order_packets_;
   int max_keyframe_interval_;
   int frames_since_last_keyframe_;
+  bool clear_packets_pending_;
   uint64_t next_queue_index_;
   Monitor *monitor_;
 
@@ -80,7 +82,7 @@ class PacketQueue {
     return has_out_of_order_packets_; };
   int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
-  void clearPackets(const std::shared_ptr<ZMPacket> &packet);
+  bool clearPackets(const std::shared_ptr<ZMPacket> &packet);
   int packet_count(int stream_id);
 
   bool increment_it(packetqueue_iterator *it, bool wait);
@@ -102,7 +104,7 @@ class PacketQueue {
   void wait();
   void wait_for(Microseconds duration);
  private:
-  packetqueue_iterator deletePacket(packetqueue_iterator it);
+  packetqueue_iterator deletePacket(packetqueue_iterator it, std::vector<std::shared_ptr<ZMPacket>> &deferred);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

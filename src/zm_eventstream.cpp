@@ -391,10 +391,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   mysql_free_result(result);
 
-  // Only open FFmpeg input when JPEG frames are not available on disk.
-  // avformat_find_stream_info() probes several seconds of video and costs 2-5s,
-  // which is wasted when sendFrame() reads JPEG files directly.
-  if (!event_data->video_file.empty() && !(event_data->SaveJPEGs & 1)) {
+  if (!event_data->video_file.empty()) {
     std::string filepath = event_data->path + "/" + event_data->video_file;
     Debug(1, "Loading video file from %s", filepath.c_str());
     delete ffmpeg_input;

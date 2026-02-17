@@ -589,6 +589,15 @@ void MonitorStream::runStream() {
         zm_terminate = true;
         continue;
       }
+      // Timeout if we've never received a frame and have been waiting too long.
+      // Use ttl if set, otherwise default to 60 seconds.
+      Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+      if (now - stream_start_time > wait_timeout) {
+        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+        zm_terminate = true;
+        continue;
+      }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
@@ -810,6 +819,14 @@ void MonitorStream::runStream() {
       if (now - last_frame_sent > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
+          // Timeout if we've never received a frame from capture
+          Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+          if (now - stream_start_time > wait_timeout) {
+            Warning("Timed out waiting for initial capture after %" PRIi64 " seconds",
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+            zm_terminate = true;
+            continue;
+          }
         } else {
           sendTextFrame("Waiting for capture");
         }

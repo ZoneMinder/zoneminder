@@ -20,7 +20,8 @@
 # ==========================================================================
 #
 # This module contains an implementation of the Uniview camera control
-# protocol.  It is incomplete.
+# protocol using Uniview's LAPI (JSON-based REST API) for configuration
+# and ISAPI for PTZ control.
 #
 package ZoneMinder::Control::Uniview;
 
@@ -35,6 +36,12 @@ our @ISA = qw(ZoneMinder::Control);
 
 # ==========================================================================
 #
+# Uniview LAPI / ISAPI Control Protocol
+#
+# Set the following:
+# ControlAddress: username:password@camera_webaddress:port
+# ControlDevice: (optional) realm string or numeric channel ID
+#
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
@@ -43,162 +50,82 @@ use Time::HiRes qw( usleep );
 
 use LWP::UserAgent;
 use HTTP::Cookies;
+use JSON;
 
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
-my ($user,$pass,$host,$port);
+
+my %config_types = (
+  'LAPI/V1.0/System/DeviceBasicInfo'           => {},
+  'LAPI/V1.0/System/Time'                      => {},
+  'LAPI/V1.0/System/Time/NtpInfo'              => {},
+  'LAPI/V1.0/System/Network/Interfaces'        => {},
+  'LAPI/V1.0/Channels/0/Media/Video/Streams'   => {},
+  'LAPI/V1.0/Channels/0/Media/Video/Streams/0' => {},
+  'LAPI/V1.0/Channels/0/Media/Video/Streams/1' => {},
+);
 
 sub open {
   my $self = shift;
   $self->loadMonitor();
-  $port = 80;
+  $$self{port} = 80;
 
   # Create a UserAgent for the requests
-  $self->{UA} = LWP::UserAgent->new();
-  $self->{UA}->cookie_jar( {} );
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->cookie_jar( {} );
 
-  # Extract the username/password host/port from ControlAddress
-  if ($self->{Monitor}{ControlAddress} 
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
-      and
-    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
-  ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
-    if ($self->{Monitor}{ControlAddress} =~ /^([^:]+):([^@]+)@(.+)/ ) { # user:pass@host...
-      $user = $1;
-      $pass = $2;
-      $host = $3;
-    } elsif ( $self->{Monitor}{ControlAddress} =~ /^([^@]+)@(.+)/ ) { # user@host...
-      $user = $1;
-      $host = $2;
-    } else { # Just a host
-      $host = $self->{Monitor}{ControlAddress};
-    }
-    # Check if it is a host and port or just a host
-    if ( $host =~ /([^:]+):(.+)/ ) {
-      $host = $1;
-      $port = $2 ? $2 : $port;
-    }
-  } elsif ( $self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
-    if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>[^:\/]+)/)) {
-      $user = $+{USERNAME} if $+{USERNAME};
-      $pass = $+{PASSWORD} if $+{PASSWORD};
-      $host = $+{ADDRESS} if $+{ADDRESS};
-    }
-  } else {
-    Debug("Not using credentials");
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} and ($self->{Monitor}{ControlDevice} =~ /^\d+$/);
+  $$self{realm} = defined($self->{Monitor}->{ControlDevice}) ? $self->{Monitor}->{ControlDevice} : '';
+
+  if (!$self->guess_credentials()) {
+    Error('Failed to parse credentials from ControlAddress or Path');
+    return undef;
   }
-  # Save the base url
-  $self->{BaseURL} = "http://$host:$port";
 
-  # Save and test the credentials
-  if (defined($user)) {
-    Debug("Credentials: $host:$port, $self->{Monitor}{ControlDevice}, $user, $pass");
-    $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
-  } # end if defined user
-
-  my $url = $self->{BaseURL};
-  my $response = $self->get($url);
-  if ($response->status_line() eq '401 Unauthorized' and defined $user) {
-    my $headers = $response->headers();
-    foreach my $k ( keys %$headers ) {
-      Debug("Initial Header $k => $$headers{$k}");
-    }
-
-    my $realm = $self->{Monitor}->{ControlDevice};
-
-    if ( $$headers{'www-authenticate'} ) {
-      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
-      if ( $tokens{realm} ) {
-        if ( $realm ne $tokens{realm} ) {
-          $realm = $tokens{realm};
-          Debug("Changing REALM to $realm");
-          $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
-          $response = $self->{UA}->get($url);
-          if ( !$response->is_success() ) {
-            Error('Authentication still failed after updating REALM' . $response->status_line);
-          }
-          $headers = $response->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}\n");
-          }  # end foreach
-        } else {
-          Error('Authentication failed, not a REALM problem');
-        }
-      } else {
-        Debug('Failed to match realm in tokens');
-      } # end if
-    } else {
-      debug('No headers line');
-    } # end if headers
-  } # end if not authen
-  if ($response->is_success()) {
+  # Try LAPI first (Uniview native JSON API), fall back to ISAPI
+  if ($self->get_realm('/LAPI/V1.0/System/DeviceBasicInfo')) {
+    $$self{has_lapi} = 1;
     $self->{state} = 'open';
+    return !undef;
   }
-  Debug('Response: '. $response->status_line . ' ' . $response->content);
-  return $response->is_success;
+
+  Debug('LAPI not available, trying ISAPI');
+  if ($self->get_realm('/ISAPI/System/deviceInfo')) {
+    $$self{has_lapi} = 0;
+    $self->{state} = 'open';
+    return !undef;
+  }
+
+  return undef;
 } # end sub open
 
-sub get {
-  my $self = shift;
-  my $url = shift;
-  Debug("Getting $url");
-  my $response = $self->{UA}->get($url);
-  #Debug('Response: '. $response->status_line . ' ' . $response->content);
-  return $response;
-}
-
-sub put {
+sub PutCmd {
   my $self = shift;
   my $cmd = shift;
   my $content = shift;
   if (!$cmd) {
-    Error("No cmd specified in PutCmd");
+    Error('No cmd specified in PutCmd');
     return;
   }
-  my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
+  my $req = HTTP::Request->new(PUT => $$self{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
-    $req->content($content);
+    $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
   }
-  my $res = $self->{UA}->request($req);
-  unless( $res->is_success ) {
-    #
-    # The camera timeouts connections at short intervals. When this
-    # happens the user agent connects again and uses the same auth tokens.
-    # The camera rejects this and asks for another token but the UserAgent
-    # just gives up. Because of this I try the request again and it should
-    # succeed the second time if the credentials are correct.
-    #
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success) {
     if ( $res->code == 401 ) {
-      $res = $self->{UA}->request($req);
-      unless( $res->is_success ) {
-        #
-        # It has failed authentication. The odds are
-        # that the user has set some parameter incorrectly
-        # so check the realm against the ControlDevice
-        # entry and send a message if different
-        #
-        my $auth = $res->headers->www_authenticate;
-        foreach (split(/\s*,\s*/,$auth)) {
-          if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-            if ( $self->{Monitor}{ControlDevice} ne $1 ) {
-              Warning("Control Device appears to be incorrect.
-                Control Device should be set to \"$1\".
-                Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
-              $self->{Monitor}{ControlDevice} = $1;
-              $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
-              return PutCmd($self,$cmd,$content);
-            }
-          }
-        }
-        #
-        # Check for username/password
-        #
+      # The camera timeouts connections at short intervals. When this
+      # happens the user agent connects again and uses the same auth tokens.
+      # The camera rejects this and asks for another token but the UserAgent
+      # just gives up. Create a new ua and retry.
+      $self->{ua} = LWP::UserAgent->new();
+      $self->{ua}->cookie_jar( {} );
+      $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+
+      $res = $self->{ua}->request($req);
+      if (!$res->is_success) {
         if ( $self->{Monitor}{ControlAddress} =~ /.+:(.+)@.+/ ) {
           Info('Check username/password is correct');
         } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
@@ -213,8 +140,115 @@ sub put {
     } else {
       Error($res->status_line);
     }
+  } else {
+    Debug("Success sending $cmd: ".$res->content);
   } # end unless res->is_success
-} # end sub put
+  Debug($res->content);
+} # end sub PutCmd
+
+# ==========================================================================
+# LAPI JSON helper methods
+# ==========================================================================
+
+sub lapi_get {
+  my $self = shift;
+  my $endpoint = shift;
+  my $response = $self->get('/'.$endpoint);
+  if (!$response->is_success()) {
+    Error("LAPI GET $endpoint failed: " . $response->status_line);
+    return undef;
+  }
+  my $json;
+  eval { $json = decode_json($response->content) };
+  if ($@) {
+    Error("Failed to decode JSON from $endpoint: $@");
+    return undef;
+  }
+  return $json;
+}
+
+sub lapi_put {
+  my $self = shift;
+  my $endpoint = shift;
+  my $data = shift;
+  my $json_content = encode_json($data);
+  my $response = $self->put('/'.$endpoint, $json_content, { 'Content-Type' => 'application/json' });
+  if (!$response || !$response->is_success()) {
+    Error("LAPI PUT $endpoint failed: " . ($response ? $response->status_line : 'no response'));
+    return 0;
+  }
+  return 1;
+}
+
+# ==========================================================================
+# Configuration get/set via LAPI
+# ==========================================================================
+
+sub _deep_merge {
+  my ($base, $override) = @_;
+  foreach my $key (keys %$override) {
+    if (ref $$override{$key} eq 'HASH' and ref $$base{$key} eq 'HASH') {
+      _deep_merge($$base{$key}, $$override{$key});
+    } else {
+      $$base{$key} = $$override{$key};
+    }
+  }
+}
+
+sub get_config {
+  my $self = shift;
+  my %config;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    my $json = $self->lapi_get($category);
+    next if !$json;
+    if ($json->{Response} && $json->{Response}{Data}) {
+      $config{$category} = $json->{Response}{Data};
+    } elsif ($json->{Data}) {
+      $config{$category} = $json->{Data};
+    } else {
+      $config{$category} = $json;
+    }
+  }
+  return \%config;
+}
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+  foreach my $category ( @_ ? @_ : keys %config_types ) {
+    if (!$$diff{$category}) {
+      Debug("No changes for category $category");
+      next;
+    }
+    Debug("Applying $category");
+
+    my $json = $self->lapi_get($category);
+    if (!$json) {
+      Error("Failed to get current config for $category");
+      return undef;
+    }
+    # Merge changes into the data portion
+    my $data;
+    if ($json->{Response} && $json->{Response}{Data}) {
+      $data = $json->{Response}{Data};
+    } elsif ($json->{Data}) {
+      $data = $json->{Data};
+    } else {
+      $data = $json;
+    }
+    _deep_merge($data, $$diff{$category});
+
+    if (!$self->lapi_put($category, $json)) {
+      Error("Failed to set config for $category");
+      return undef;
+    }
+  }
+  return !undef;
+}
+
+# ==========================================================================
+# PTZ continuous movement via ISAPI
+# ==========================================================================
 #
 # The move continuous functions all call moveVector
 # with the direction to move in. This includes zoom
@@ -450,80 +484,51 @@ sub irisRelOpen {
 sub reboot {
   my $self = shift;
 
-  $self->put('LAPI/V1.0/System/Reboot');
-}
-
-sub get_config {
-  my $self = shift;
-  return {};
-}
-
-sub set_config {
-  my $self = shift;
-  my $diff = shift;
-  return undef;
-}
-
-sub ping {
-  return -1 if ! $host;
-
-  require Net::Ping;
-
-  my $p = Net::Ping->new();
-  my $rv = $p->ping($host);
-  $p->close();
-  return $rv;
+  if ($$self{has_lapi}) {
+    $self->lapi_put('LAPI/V1.0/System/Reboot', {});
+  } else {
+    $self->PutCmd('ISAPI/System/reboot');
+  }
 }
 
 sub probe {
-  my ($ip, $user, $pass) = @_;
+  my ($ip, $username, $password) = @_;
 
   my $self = new ZoneMinder::Control::Uniview();
-  # Create a UserAgent for the requests
-  $self->{UA} = LWP::UserAgent->new();
-  $self->{UA}->cookie_jar( {} );
-  my $realm;
+  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua}->cookie_jar( {} );
+  $$self{username} = $username;
+  $$self{password} = $password;
+  $$self{realm} = '';
 
-  foreach my $port ( '80','443' ) {
-    my $url = 'http://'.$user.':'.$pass.'@'.$ip.':'.$port.'/ISAPI/Streaming/channels/101';
-    my $response = $self->get($url);
-    if ($response->status_line() eq '401 Unauthorized' and defined $user) {
-      my $headers = $response->headers();
-      foreach my $k ( keys %$headers ) {
-        Debug("Initial Header $k => $$headers{$k}");
-      }
+  foreach my $port ( '80', '443' ) {
+    $$self{port} = $port;
+    $$self{host} = $ip;
+    $$self{BaseURL} = "http://$ip:$port";
+    $$self{address} = "$ip:$port";
+    $self->{ua}->credentials("$ip:$port", '', $username, $password);
 
-      if ( $$headers{'www-authenticate'} ) {
-        my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
-        if ($tokens{realm}) {
-          $realm = $tokens{realm};
-          Debug('Changing REALM to '.$tokens{realm});
-          $self->{UA}->credentials("$ip:$port", $tokens{realm}, $user, $pass);
-          $response = $self->{UA}->get($url);
-          if (!$response->is_success()) {
-            Error('Authentication still failed after updating REALM' . $response->status_line);
-          }
-          $headers = $response->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}\n");
-          }  # end foreach
-        } else {
-          Debug('Failed to match realm in tokens');
-        } # end if
-      } else {
-        Debug('No headers line');
-      } # end if headers
-    } # end if not authen
-    Debug('Response: '. $response->status_line . ' ' . $response->content);
-    if ($response->is_success) {
+    # Try LAPI first
+    if ($self->get_realm('/LAPI/V1.0/System/DeviceBasicInfo')) {
       return {
-        url => 'http://'.$user.':'.$pass.'@'.$ip.':'.$port.'/h264',
-        realm => $realm,
+        url => "rtsp://$ip/media/video1",
+        realm => $$self{realm},
+      };
+    }
+    # Fall back to ISAPI
+    if ($self->get_realm('/ISAPI/System/deviceInfo')) {
+      return {
+        url => "rtsp://$ip/media/video1",
+        realm => $$self{realm},
       };
     }
   } # end foreach port
   return undef;
+}
+
+sub rtsp_url {
+  my ($self, $ip) = @_;
+  return 'rtsp://'.$ip.'/media/video1';
 }
 
 sub profiles {

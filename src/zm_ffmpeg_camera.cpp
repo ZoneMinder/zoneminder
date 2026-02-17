@@ -314,9 +314,14 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (mUser.length() > 0) {
     // build the actual uri string with encoded parameters (from the user and pass fields)
-    std::string fullProtocol = mPath.substr(0, mPath.find("://"));
-    mPath = StringToLower(fullProtocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(fullProtocol.length() + 3);
-    Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+    std::size_t protoEnd = mPath.find("://");
+    if (protoEnd != std::string::npos) {
+      std::string fullProtocol = mPath.substr(0, protoEnd);
+      mPath = StringToLower(fullProtocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(fullProtocol.length() + 3);
+      Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+    } else {
+      Warning("Unable to add credentials to URL without protocol separator: %s", mMaskedPath.c_str());
+    }
   }
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);

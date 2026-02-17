@@ -329,4 +329,43 @@ TEST_CASE("remove_authentication") {
     std::string result = remove_authentication(url);
     REQUIRE(result == "http://192.168.1.1");
   }
+  SECTION("rtsp with username and password") {
+    std::string url("rtsp://username:password@192.168.0.40:554/stream");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "rtsp://192.168.0.40:554/stream");
+  }
+  SECTION("rtsps with username and password") {
+    std::string url("rtsps://username:password@192.168.0.40:322/streaming/live/1");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "rtsps://192.168.0.40:322/streaming/live/1");
+  }
+}
+
+TEST_CASE("URL protocol extraction and reconstruction") {
+  SECTION("rtsp protocol extraction") {
+    std::string url("rtsp://192.168.0.40:554/stream");
+    std::string protocol = url.substr(0, url.find("://"));
+    REQUIRE(protocol == "rtsp");
+    REQUIRE(protocol.length() == 4);
+  }
+  SECTION("rtsps protocol extraction") {
+    std::string url("rtsps://192.168.0.40:322/streaming/live/1");
+    std::string protocol = url.substr(0, url.find("://"));
+    REQUIRE(protocol == "rtsps");
+    REQUIRE(protocol.length() == 5);
+  }
+  SECTION("rtsp URL reconstruction with credentials") {
+    std::string originalUrl("rtsp://192.168.0.40:554/stream");
+    std::string maskedUrl = remove_authentication(originalUrl);
+    std::string protocol = originalUrl.substr(0, originalUrl.find("://"));
+    std::string reconstructedUrl = protocol + "://" + "user" + ":" + "pass" + "@" + maskedUrl.substr(protocol.length() + 3);
+    REQUIRE(reconstructedUrl == "rtsp://user:pass@192.168.0.40:554/stream");
+  }
+  SECTION("rtsps URL reconstruction with credentials") {
+    std::string originalUrl("rtsps://192.168.0.40:322/streaming/live/1");
+    std::string maskedUrl = remove_authentication(originalUrl);
+    std::string protocol = originalUrl.substr(0, originalUrl.find("://"));
+    std::string reconstructedUrl = protocol + "://" + "user" + ":" + "pass" + "@" + maskedUrl.substr(protocol.length() + 3);
+    REQUIRE(reconstructedUrl == "rtsps://user:pass@192.168.0.40:322/streaming/live/1");
+  }
 }

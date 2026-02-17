@@ -254,7 +254,8 @@ int LibvlcCamera::PrimeCapture() {
     std::string protocol = StringToUpper(mPath.substr(0, 4));
     if ( protocol == "RTSP" ) {
       // build the actual uri string with encoded parameters (from the user and pass fields)
-      mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+      std::string fullProtocol = mPath.substr(0, mPath.find("://"));
+      mPath = StringToLower(fullProtocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(fullProtocol.length() + 3);
       Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
     }
   }

@@ -29,6 +29,7 @@ if ( canEdit('Events') ) {
 
   if ( ($action == 'rename') && isset($_REQUEST['eventName']) ) {
     dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid']));
+    ZM\AuditAction('rename', 'event', $_REQUEST['eid'], 'Name: '.$_REQUEST['eventName']);
   } else if ( $action == 'eventdetail' ) {
       dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
         array(
@@ -37,6 +38,7 @@ if ( canEdit('Events') ) {
           $_REQUEST['eid']
         )
       );
+    ZM\AuditAction('update', 'event', $_REQUEST['eid'], 'Detail update');
     $refreshParent = true;
     $closePopup = true;
   } else if ( $action == 'archive' ) {
@@ -45,6 +47,7 @@ if ( canEdit('Events') ) {
       dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $_REQUEST['eid']));
   } else if ( $action == 'delete' ) {
     deleteEvent($_REQUEST['eid']);
+    ZM\AuditAction('delete', 'event', $_REQUEST['eid'], '');
     $refreshParent = true;
   }
 } // end if canEdit(Events)

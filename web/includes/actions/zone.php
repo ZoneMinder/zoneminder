@@ -60,6 +60,7 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       } else {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
+      ZM\AuditAction(($zid > 0 ? 'update' : 'create'), 'zone', $zid, 'MonitorId: '.$mid);
       if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
         $monitor->zmcControl('reload');
       }

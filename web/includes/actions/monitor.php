@@ -226,6 +226,7 @@ if ($action == 'save') {
             } // end foreach zone
           } // end if rotation or just size change
         } // end if changes in width or height
+        ZM\AuditAction('update', 'monitor', $mid, 'Changed: '.implode(', ', array_keys($changes)));
       } else {
         $error_message .= $monitor->get_last_error();
       } // end if successful save
@@ -263,6 +264,7 @@ if ($action == 'save') {
           $error_message .= $zone->get_last_error();
           ZM\Error('Error adding zone:' . $error_message);
         }
+        ZM\AuditAction('create', 'monitor', $mid, 'Name: '.($newMonitor['Name'] ?? ''));
       } else {
         ZM\Error('Error saving new Monitor.');
         return;

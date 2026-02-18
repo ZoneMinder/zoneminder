@@ -97,7 +97,7 @@ jobs:
           #git submodule update --init --recursive
           # Cleanup previous builds
           rm -rf ZoneMinder_zoneminder_release
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/release-1.38/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase

@@ -2392,7 +2392,7 @@ function resetSelectElement(el) {
   selectElement.change();
 }
 
-function getMonitorStream(mid) {
+function getMonitorStream(mid) { // RENAME to getStream(), but it is already in montage.js, so merge!!!
   let monitorStream_ = null;
   if (currentView == 'watch') {
     monitorStream_ = monitorStream;
@@ -2400,6 +2400,8 @@ function getMonitorStream(mid) {
     monitorStream_ = monitors.find((o) => {
       return parseInt(o["id"]) === mid;
     });
+  } else if (currentView == 'event') {
+    monitorStream_ = document.querySelector('[id ^= "videoFeedStream"]');
   }
   return monitorStream_;
 }
@@ -2753,5 +2755,71 @@ function monitorsSetScale(id=null) {
   } // End function _setScale
   setButtonSizeOnStream();
 } // End function monitorsSetScale
+
+/*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
+// https://habr.com/ru/companies/timeweb/articles/667148/
+async function getTracksFromStream(videoFeedStream) {
+  if (!videoFeedStream) {
+    console.log(`Unable to get tracks from stream because the stream is missing.`);
+    return;
+  }
+  const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
+  if (!mid) {
+    console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    return;
+  }
+
+  let el = null;
+  if (currentView == 'watch' || currentView == 'montage') {
+    el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
+  } else if (currentView == 'event') {
+    el = videoFeedStream.querySelector('video');
+  }
+  videoFeedStream.mediaStream = videoFeedStream.audioTrack = videoFeedStream.videoTrack = null;
+
+  if (!el) {
+    console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    return;
+  }
+  let streamCaptureNotSupported = false;
+  let stream = null;
+
+  // We should NOT call captureStream again, as there may be problems with capturing the stream!
+  let moz = false; // Detecting Firefox
+  if ("captureStream" in el) {
+    stream = await el.captureStream();
+  } else if ("mozCaptureStreamUntilEnded" in el) {
+    stream = await el.mozCaptureStreamUntilEnded();
+    moz = true;
+  } else {
+    console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
+    streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
+  }
+
+  if (stream) {
+    videoFeedStream.audioTrack = stream.getAudioTracks()[0];
+    videoFeedStream.videoTrack = stream.getVideoTracks()[0];
+    videoFeedStream.mediaStream = stream;
+    if (moz && videoFeedStream.audioTrack) {
+      // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamSource(stream);
+      dest.connect(ctx.destination);
+    }
+  } else if (!streamCaptureNotSupported) {
+    console.warn(`Failed to capture stream for monitor ID=${mid} while receiving tracks.`);
+  }
+
+  console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
+  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  if (currentView == 'watch' || currentView == 'montage') {
+    (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
+  } else if (currentView == 'event') {
+
+  }
+
+  //connectAudioMotion(mid);
+}
 
 $j( window ).on("load", initPageGeneral);

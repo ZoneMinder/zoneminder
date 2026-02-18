@@ -2,7 +2,7 @@ name: build-deb-packages
 
 on:
   push:
-    branches: [ master ]
+    branches: [ release-1.38 ]
 permissions:
   contents: write
 env:
@@ -130,7 +130,7 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/proposed/mini-dinstall/incoming/
 
   release:
     name: Create GitHub Release (on tag)
@@ -142,6 +142,15 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           path: dist
+      - name: Publish release to ZMREPO
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: dist/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/release-1.38/mini-dinstall/incoming/
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:

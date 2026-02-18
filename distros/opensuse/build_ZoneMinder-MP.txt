@@ -1,0 +1,71 @@
+MP verison of ZoneMinder & How to Build
+
+MP version of ZoneMinder is built against (newer) ffmpeg from Packman repositories.
+OBS (Open Build Service) does not allow building against some "non-free" packages
+nor 3rd party repositories like Packman. Here's how to rebuild ZoneMinder from source
+ .rpm to the "-MP" version using 3rd party repositories.
+This document expects the builder to have (advanced) knowledge of package management/repositories with openSUSE.
+
+Add Packman repository & set lower than 99 (so it is preferred)
+https://en.opensuse.org/Additional_package_repositories#Packman
+
+Look at ZoneMinder.spec at the "BuildRequires" and make sure needed packages are installed on the build machine.
+
+Packages like ffmpeg-6-* & vlc-devel are what are needed from Packman.
+
+Other notes:
+libvncclient1 (libvnclient) comes from LibVNCServer-devel
+gsoap-devel (needed for ONVIF support)
+libjpeg-devel (lib-jpeg8-devel)
+perl-macros installed as part of zypper in perl-docs
+libmysqlclient-devel installed as part of libmariadb-devel
+15.6 also needed "pipewire-jack"
+
+Some packages (like perl-Sys-Mnap) only exist in in OBS projects. Add the "release" repository to your build machine.
+(You'll likely need to do this for your ZM machine too, even when using the -MP version)
+https://build.opensuse.org/package/show/home:joelgb:branches:home:Monex:stable/ZoneMinder
+(click Download package & add the repository)
+
+(recommended) add a new local user for the build (like rpmbuild)
+(One-time set up of build environment)
+su rpmbuild
+cd ~
+mkdir rpmbuild
+cd rpmbuild
+mkdir SRPMS OTHER RPMS BUILDROOT BUILD SPECS SOURCES
+cd ~
+make a "clean.sh" script to prep build environment:
+	#!/bin/bash
+	rm -rf /home/rpmbuild/rpmbuild/SOURCES/*
+	rm /home/rpmbuild/rpmbuild/SPECS/*.spec
+	rm -rf /home/rpmbuild/rpmbuild/BUILD/*/
+	export PATH=/usr/bin:$PATH
+chmod +x ~/clean.sh
+exit
+Note: export PATH above is needed so perl ends up as /usr/bin/perl if not
+done, build will succeed but ZM will not run properly.
+
+
+How to build:
+Download the latest source .rpm (.src.rpm) from build.opensuse.org project.
+https://build.opensuse.org/project/show/home:joelgb:branches:home:Monex:stable
+(or for master/dev build: https://build.opensuse.org/package/show/home:joelgb:ZoneMinder-Master )
+We are looking for a file like: ZoneMinder-1.38.1+git2.00779c6b-lp156.19.1.src.rpm
+Click "Download package" from OBS web interface.
+place this in rpmuser's home directory -> rpmbuild directory (/home/rpmbuild/rpmbuild) at the same level as the
+directories created earlier - SPEC/ BUILD/ , etc.
+
+su rpmbuild
+cd ~
+./clean.sh
+(as non-root, rpmbuild user) rpm -i ZoneMinder-1.36.15+git3824.gdeca02c3e-0.src.rpm
+(This did not install the rpm, but got it ready to be rebuilt)
+cd SPECS
+(optionally make any .spec changes) nano -w ZoneMinder.spec
+rpmbuild -ba ZoneMinder.spec --with mp_package
+
+When build is complete, it will be in the ~/rpmbuild/RPMS/x86_64/ directory.
+
+Done!
+
+Install by hand or by creating a local repository. new RPM is not signed (may have to accept/clear errors regarding unsigned rpm)

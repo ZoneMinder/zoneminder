@@ -552,8 +552,8 @@ function playClicked( ) {
     } else {
       streamReq({command: CMD_PLAY});
     }
+    streamPlay();
   }
-  streamPlay();
 }
 
 function vjsPlay() { //catches if we change mode programatically

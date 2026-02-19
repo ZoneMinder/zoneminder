@@ -155,13 +155,13 @@ inline struct timeval tvCheck( struct timeval &t )
 {
   if ( t.tv_usec >= USEC_PER_SEC )
   {
-    Warning( "Timestamp too large %ld.%ld\n", t.tv_sec, (long int) t.tv_usec );
+    Warning( "Timestamp too large %" __PRI64_PREFIX "d.%ld\n", t.tv_sec, (long int) t.tv_usec );
     t.tv_sec += t.tv_usec / USEC_PER_SEC;
     t.tv_usec %= USEC_PER_SEC;
   }
   else if ( t.tv_usec < 0 )
   {
-    Warning( "Got negative timestamp %ld.%ld\n", t.tv_sec, (long int)t.tv_usec );
+    Warning( "Got negative timestamp %" __PRI64_PREFIX "d.%ld\n", t.tv_sec, (long int)t.tv_usec );
     t.tv_usec = 0;
   }
   return( t );

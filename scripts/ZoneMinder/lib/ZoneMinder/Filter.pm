@@ -423,7 +423,10 @@ sub getLoad {
 sub strtotime {
   my $dt_str = shift;
   require Date::Manip;
-  return Date::Manip::UnixDate($dt_str, '%s');
+
+  Date::Manip::Date_Init("SetDate=now,".$ZoneMinder::Config{ZM_TIMEZONE}) if $ZoneMinder::Config{ZM_TIMEZONE};
+  my $dt = Date::Manip::ParseDate($dt_str);
+  return Date::Manip::UnixDate($dt, '%s');
 }
 
 #

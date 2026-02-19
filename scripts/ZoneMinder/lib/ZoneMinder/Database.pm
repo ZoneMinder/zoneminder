@@ -103,22 +103,24 @@ sub zmDbConnect {
 
     eval {
       $dbh = DBI->connect(
-        'DBI:mysql:database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
+        'DBI:'.$ZoneMinder::Config::Config{ZM_DB_TYPE}.':database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
-        , { mysql_enable_utf8mb4 => 1, }
+        , { ($ZoneMinder::Config::Config{ZM_DB_TYPE} eq 'mysql' ? (mysql_enable_utf8mb4 => 1) : ()) }
         );
     };
     if ( !$dbh or $@ ) {
       Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
     } else {
       $dbh->{AutoCommit} = 1;
-      Fatal('Can\'t set AutoCommit on in database connection')
-        unless $dbh->{AutoCommit};
-      $dbh->{mysql_auto_reconnect} = 1;
-      Fatal('Can\'t set mysql_auto_reconnect on in database connection')
-        unless $dbh->{mysql_auto_reconnect};
+      Error('Can\'t set AutoCommit on in database connection')
+      unless $dbh->{AutoCommit};
+      if ($ZoneMinder::Config::Config{ZM_DB_TYPE} eq 'mysql') {
+        $dbh->{mysql_auto_reconnect} = 1;
+        Error('Can\'t set mysql_auto_reconnect on in database connection') unless $dbh->{mysql_auto_reconnect};
+      }
+
       $dbh->trace( 0 );
     } # end if success connecting
   } # end if ! connected

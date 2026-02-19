@@ -460,13 +460,13 @@ function getNearEvents() {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\' AND ('.$filter->sql().') AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' ? AND ('.$filter->sql().') AND E.Id < ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [ $event[$_REQUEST['sort_field']], $event['Id'] ]);
   if ( !$result ) {
     ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
@@ -474,13 +474,13 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']]."' AND (".$filter->sql().') AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' ? AND ('.$filter->sql().') AND E.Id > ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery($sql);
+  $result = dbQuery($sql, [ $event[$_REQUEST['sort_field']], $event['Id'] ]);
   if ( !$result ) {
     ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;

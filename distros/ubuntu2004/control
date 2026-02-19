@@ -33,7 +33,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libdata-entropy-perl
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
-              ,libjson-perl
+              ,libjson-perl, libjson-xs-perl
               ,libldap-common
               ,libuuid1, uuid-runtime
 Standards-Version: 4.5.0
@@ -76,7 +76,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,pkexec | policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libpcre2-posix3
+        ,libpcre2-posix3|libpcre2-posix2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0

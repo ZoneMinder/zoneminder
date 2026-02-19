@@ -917,7 +917,7 @@ bool Image::ReadRaw(const char *filename) {
 
   if ( (unsigned int)statbuf.st_size != size ) {
     fclose(infile);
-    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    Error("Raw file size mismatch, expected %d bytes, found %" __PRI64_PREFIX "d", size, statbuf.st_size);
     return false;
   }
 

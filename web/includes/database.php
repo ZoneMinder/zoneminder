@@ -30,7 +30,7 @@ require_once('logger.php');
 function dbConnect() {
   global $dbConn;
 
-  $dsn = ZM_DB_TYPE;
+  $dsn = ZM_DB_TYPE == 'MariaDB' ? 'mysql' : ZM_DB_TYPE;
   if ( ZM_DB_HOST ) {
     if ( strpos(ZM_DB_HOST, ':') ) {
       // Host variable may carry a port or socket.

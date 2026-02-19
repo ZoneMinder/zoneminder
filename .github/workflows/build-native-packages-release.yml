@@ -1,7 +1,8 @@
-name: build-native-packages-signed
+name: build-native-packages-release
 
 on:
-  push:
+  release:
+    types: [ published ]
     branches: [ release-1.36 ]
   workflow_dispatch:
 permissions:
@@ -92,7 +93,7 @@ jobs:
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           ls -l /bin/bash
-          ./do_debian_package.sh -s=CURRENT -b=release-1.36 -t=binary 
+          ./do_debian_package.sh -r ${{ github.event.release.tag_name }} -t=binary -v=1
       - name: Collect .deb artifacts (incl. signed metadata & public key)
         run: |
           set -eux

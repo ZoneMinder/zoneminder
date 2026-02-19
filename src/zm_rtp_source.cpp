@@ -196,17 +196,17 @@ void RtpSource::updateRtcpData(
     uint32_t rtpTime) {
   struct timeval ntpTime = tvMake(ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)));
 
-  Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
+  Debug(5, "ntpTime: %jd.%06ld, rtpTime: %x", static_cast<intmax_t>(ntpTime.tv_sec), ntpTime.tv_usec, rtpTime);
 
   if ( mBaseTimeNtp.tv_sec == 0 ) {
     mBaseTimeReal = tvNow();
     mBaseTimeNtp = ntpTime;
     mBaseTimeRtp = rtpTime;
   } else if ( !mRtpClock ) {
-    Debug(5, "lastSrNtpTime: %ld.%06ld, rtpTime: %x"
-        "ntpTime: %ld.%06ld, rtpTime: %x",
-        mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime,
-        ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
+    Debug(5, "lastSrNtpTime: %jd.%06ld, rtpTime: %x"
+        "ntpTime: %jd.%06ld, rtpTime: %x",
+        static_cast<intmax_t>( mLastSrTimeNtp.tv_sec), mLastSrTimeNtp.tv_usec, rtpTime,
+        static_cast<intmax_t>(ntpTime.tv_sec), ntpTime.tv_usec, rtpTime);
 
     double diffNtpTime = tvDiffSec( mBaseTimeNtp, ntpTime );
     uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;

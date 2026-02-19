@@ -445,7 +445,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     char *timePtr = timeString;
     tm now_tm = {};
     timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&timeVal.tv_sec, &now_tm));
-    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
+    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06" __PRI64_PREFIX "d", timeVal.tv_usec);
 #if 0
   }
 #endif
@@ -534,8 +534,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
           " VALUES "
-          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString.c_str(), file, line
+          "( %jd.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          static_cast<intmax_t>(timeVal.tv_sec), timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString.c_str(), file, line
           );
       dbQueue.push(std::move(sql_string));
     } else {

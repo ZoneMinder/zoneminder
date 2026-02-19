@@ -32,7 +32,8 @@ if ( $message ) {
 }
 
 $data = array();
-$when = isset($_REQUEST['when']) and $_REQUEST['when'] == 'now' ? 'now' : '+1';
+// Use strict allowlist for 'when' parameter to prevent command injection
+$when = (isset($_REQUEST['when']) && $_REQUEST['when'] === 'now') ? 'now' : '+1';
 $command = $_REQUEST['command'];
 
 if ( $command == 'shutdown' ) {

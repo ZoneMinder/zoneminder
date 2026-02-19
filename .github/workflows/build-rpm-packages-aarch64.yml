@@ -124,11 +124,11 @@ jobs:
         id: version
         run: |
           set -eux
-          VERSION=$(cat version.txt)
+          VERSION=$(cat version)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
           # Calculate snapshot version
-          versionhash=$(git log -n1 --pretty=format:%h version.txt)
+          versionhash=$(git log -n1 --pretty=format:%h version)
           numcommits=$(git rev-list ${versionhash}..HEAD --count)
           SNAPSHOT="$(date +%Y%m%d).${numcommits}"
           echo "snapshot=${SNAPSHOT}" >> $GITHUB_OUTPUT

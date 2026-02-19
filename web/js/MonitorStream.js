@@ -902,6 +902,7 @@ function MonitorStream(monitorData) {
     // System audio level change
     const audioStream = el.target;
     const volumeSlider = this.getVolumeSlider();
+    audioStream.muted = this.muted; //Temporarily, I need to figure out why desynchronization occurs when hiding a page and then showing it again, and it spontaneously turns on "muted"...
 
     if (volumeSlider) {
       volumeSlider.setAttribute('data-muted', audioStream.muted);

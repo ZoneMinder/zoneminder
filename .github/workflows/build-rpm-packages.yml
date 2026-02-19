@@ -2,7 +2,7 @@ name: build-rpm-packages-signed
 
 on:
   push:
-    branches: [ master ]
+    branches: [ release-1.38 ]
 
 permissions:
   contents: write
@@ -224,7 +224,7 @@ jobs:
           SOURCE: artifacts/rpm/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
+          TARGET: rpm/proposed-1.38/${{ matrix.family }}/${{ matrix.releasever }}/x86_64/
 
   release:
     name: Create GitHub Release (on tag)

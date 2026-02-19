@@ -36,19 +36,18 @@ create_update_user () {
 }
 
 update_db () {
-
   zmupdate.pl --nointeractive
   if [ $? -ne 0 ]; then
-    echo "Error updating db. Trying with super-user privileges"
+    echo "Error updating db with zmupdate.pl --nointeractive. Trying with super-user privileges"
     zmupdate.pl -s --nointeractive
     if [ $? -ne 0 ]; then
-      echo "Failed updating db. Please try manually by running: sudo zmupdate.pl"
+      echo "Failed updating db with zmupdate.pl -s --nointeractive. Please try manually by running: sudo zmupdate.pl"
       exit 1;
     fi
   fi
   zmupdate.pl --nointeractive -f
   if [ $? -ne 0 ]; then
-    echo "Error updating config."
+    echo "Error updating config with zmupdate.pl --nointeractive -f."
     exit 1;
   fi
 

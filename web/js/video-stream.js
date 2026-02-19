@@ -72,6 +72,7 @@ class VideoStream extends VideoRTC {
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
+                    this.getTracksFromStream();
                     break;
             }
         };
@@ -91,6 +92,7 @@ class VideoStream extends VideoRTC {
         if (this.pcState !== WebSocket.CLOSED) {
             this.divMode = 'RTC';
         }
+        this.getTracksFromStream();
     }
 
   pause() {
@@ -99,6 +101,18 @@ class VideoStream extends VideoRTC {
   close() {
     this.video.pause();
   }
+
+    getTracksFromStream() {
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream) {
+                setTimeout(function() { //It takes time for full playback to complete, otherwise you may not receive the tracks. This is especially true for MSE.
+                    getTracksFromStream(monitorStream);
+                }, 500);
+            }
+        }
+    }
 }
 
 customElements.define('video-stream', VideoStream);

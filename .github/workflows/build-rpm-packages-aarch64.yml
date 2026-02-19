@@ -2,7 +2,7 @@ name: build-rpm-packages-signed-aarch64
 
 on:
   push:
-    branches: [ release-1.38 ]
+    branches: [ master ]
 
 permissions:
   contents: write
@@ -227,7 +227,7 @@ jobs:
           SOURCE: artifacts/rpm/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: rpm/proposed-1.38/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/
+          TARGET: rpm/master/${{ matrix.family }}/${{ matrix.releasever }}/aarch64/
 
   release:
     name: Create GitHub Release (on tag)

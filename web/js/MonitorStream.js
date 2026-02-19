@@ -404,7 +404,7 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls').hide();
+    $j('#volumeControls'+this.id).hide();
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
@@ -932,7 +932,7 @@ function MonitorStream(monitorData) {
     if (volumeSlider.noUiSlider || !volumeSlider || !audioStream) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
 
-    $j('#volumeControls').show();
+    $j('#volumeControls'+this.id).show();
     noUiSlider.create(volumeSlider, {
       start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
       step: 1,

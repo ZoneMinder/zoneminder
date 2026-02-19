@@ -91,7 +91,7 @@ jobs:
           git config --global --add safe.directory /__w/zoneminder/ZoneMinder_ZoneMinder.git/.git
           #git submodule init
           #git submodule update --init --recursive
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/release-1.38/utils/do_debian_package.sh
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/${GITHUB_REF_NAME}/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
@@ -99,9 +99,9 @@ jobs:
           ls -l /bin/bash
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
-            ./do_debian_package.sh -r="$TAG" -t=binary -b=release-1.38 -v=1
+            ./do_debian_package.sh -r="$TAG" -t=binary -b=${GITHUB_REF_NAME} -v=1
           else
-            ./do_debian_package.sh -s=CURRENT -t=binary -b=release-1.38 -v=1
+            ./do_debian_package.sh -s=CURRENT -t=binary -b=${GITHUB_REF_NAME} -v=1
           fi
       - name: Cleanup
         run: |
@@ -128,6 +128,14 @@ jobs:
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
+      - name: Compute deploy target
+        run: |
+          VERSION="${GITHUB_REF_NAME#release-}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_TARGET=debian/proposed-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+          fi
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
@@ -136,7 +144,7 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/proposed-1.38/mini-dinstall/incoming/
+          TARGET: ${{ env.DEPLOY_TARGET }}
 
   release:
     name: Create GitHub Release (on tag)
@@ -148,6 +156,10 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           path: dist
+      - name: Compute deploy target
+        run: |
+          VERSION="${GITHUB_REF_NAME#release-}"
+          echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
       - name: Publish release to ZMREPO
         uses: easingthemes/ssh-deploy@main
         env:
@@ -156,7 +168,7 @@ jobs:
           SOURCE: dist/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/release-1.38/mini-dinstall/incoming/
+          TARGET: ${{ env.DEPLOY_TARGET }}
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:

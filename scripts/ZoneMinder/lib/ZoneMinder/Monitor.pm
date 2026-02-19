@@ -70,8 +70,8 @@ $serial = $primary_key = 'Id';
   JanusEnabled
   JanusAudioEnabled
   Janus_Profile_Override
-  Janus_Use_RTSP_Restream
-  Janus_RTSP_User
+  Restream
+  RTSP_User
   Janus_RTSP_Session_Timeout
   LinkedMonitors
   Triggers
@@ -204,8 +204,8 @@ $fields{model} = undef;
     JanusEnabled => 0,
     JanusAudioEnabled => 0,
     Janus_Profile_Override => q`''`,
-    Janus_Use_RTSP_Restream => 0,
-    Janus_RTSP_User => undef,
+    Restream => 0,
+    RTSP_User => undef,
     Janus_RTSP_Session_Timeout => 0,
     LinkedMonitors => undef,
     Triggers => '',

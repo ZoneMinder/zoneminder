@@ -28,6 +28,7 @@ if (!canEdit('System') && !$selfEdit) {
 require_once('includes/User.php');
 require_once('includes/Group.php');
 require_once('includes/Group_Permission.php');
+require_once('includes/User_Role.php');
 
 if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 	if ( !($User = new ZM\User(validCardinal($_REQUEST['uid']))) ) {
@@ -148,6 +149,21 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
                     <tr>
                       <th scope="row"><?php echo translate('Enabled') ?></th>
                       <td><?php echo htmlSelect('user[Enabled]', $yesno, $User->Enabled(), ['class'=>'form-control form-control-sm']) ?></td>
+                    </tr>
+                    <tr>
+                      <th scope="row"><?php echo translate('Role') ?></th>
+                      <td>
+<?php
+  $role_options = array('' => translate('NoRole'));
+  foreach (ZM\User_Role::find([], ['order' => 'Name']) as $role) {
+    $role_options[$role->Id()] = $role->Name();
+  }
+  echo htmlSelect('user[RoleId]', $role_options, $User->RoleId(), ['class'=>'form-control form-control-sm']);
+  if ($User->RoleId()) {
+    echo ' <a href="?view=role&rid='.$User->RoleId().'" class="btn btn-sm btn-link">'.translate('Edit').'</a>';
+  }
+?>
+                      </td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('MaxBandwidth') ?></th>

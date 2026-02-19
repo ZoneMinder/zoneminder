@@ -219,7 +219,9 @@ void RtpSource::updateRtcpData(
       zm::chrono::duration_cast<Microseconds>(ntpTime) - zm::chrono::duration_cast<Microseconds>(mBaseTimeNtp);
 
     uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;
-    mRtpFactor = static_cast<uint32>(diffRtpTime / diffNtpTime.count());
+    if (diffNtpTime.count() > 0.0) {
+      mRtpFactor = static_cast<uint32>(diffRtpTime / diffNtpTime.count());
+    }
 
     Debug( 5, "NTP-diff: %.6f RTP-diff: %d RTPfactor: %d",
            diffNtpTime.count(), diffRtpTime, mRtpFactor);

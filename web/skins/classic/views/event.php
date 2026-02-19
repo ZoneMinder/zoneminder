@@ -379,7 +379,7 @@ if ($video_tag) {
                     <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
                     <div id="indicator" style="display: none;"></div>
                   </div><!--progressBar-->
-                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
+                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 100 100" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {
       echo $zone->svg_polygon();

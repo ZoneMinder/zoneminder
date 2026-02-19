@@ -126,7 +126,7 @@ static int get_yolo_detections(ni_roi_network_layer_t *l, int netw,
                     det_cache->dets = dets;
                     det_cache->capacity += 10;
                     if (det_cache->capacity >= 300) {
-                        ni_warn("too many detections %d\n", det_cache->dets_num);
+                        Warning("too many detections %d", det_cache->dets_num);
                     }
                 }
 
@@ -274,7 +274,7 @@ int ni_get_yolov5_detections(YoloModelCtx *ctx, int sequence[3], int normalize_b
                 ctx->input_height, ctx->obj_thresh, det_cache, &dets_num,
                 &ctx->entry_set, normalize_box);
         if (ret != 0) {
-            ni_err("failed to get yolo detection at layer %d\n", i);
+            Error("failed to get yolo detection at layer %d", i);
             return ret;
         }
         //Debug(1, "layer %d, yolo detections: %d", i, dets_num);

@@ -34,8 +34,9 @@
 class Logger {
  public:
   enum {
-    NOOPT = -6,
-    NOLOG,    // -5
+    NOOPT = -7,
+    NOLOG,    // -6
+    AUDIT,    // -5
     PANIC,    // -4
     FATAL,    // -3
     ERROR,    // -2
@@ -233,6 +234,7 @@ inline Logger::Level logDebugging() {
 #define Error(params...)  logPrintf(Logger::ERROR, ##params)
 #define Fatal(params...)  logPrintf(Logger::FATAL, ##params)
 #define Panic(params...)  logPrintf(Logger::PANIC, ##params)
+#define Audit(params...)  logPrintf(Logger::AUDIT, ##params)
 #define Mark()        Info("Mark/%s/%d", __FILE__, __LINE__)
 #define Log()         Info("Log")
 #ifdef __GNUC__

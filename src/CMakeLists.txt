@@ -35,7 +35,6 @@ set(ZM_BIN_SRC_FILES
   zm_libvlc_camera.cpp
   zm_libvnc_camera.cpp
   zm_local_camera.cpp
-  zm_memx.cpp
   zm_mx_accl.cpp
   zm_memx_yolo_core.cpp
   zm_memx_yolov8.cpp
@@ -75,6 +74,7 @@ set(ZM_BIN_SRC_FILES
   zm_rtsp_server_fifo_source.cpp
   zm_rtsp_server_fifo_adts_source.cpp
   zm_rtsp_server_fifo_h264_source.cpp
+  zm_rtsp_server_fifo_av1_source.cpp
   zm_rtsp_server_fifo_audio_source.cpp
   zm_rtsp_server_fifo_video_source.cpp
   zm_sdp.cpp
@@ -90,7 +90,7 @@ set(ZM_BIN_SRC_FILES
   zm_videostore.cpp
   zm_zone.cpp
   zm_storage.cpp
-  netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp yolov8_postprocess.cpp ni_log.cpp
+  netint_network.cpp  ni_yolo_utils.cpp yolov4_postprocess.cpp  yolov5_postprocess.cpp yolov8_postprocess.cpp
 )
 
 if(GSOAP_FOUND)
@@ -162,15 +162,20 @@ target_include_directories(zm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../dep/booleval/include
+    ${ZM_INCLUDE_DIRS}
     )
 
-if(GSOAP_FOUND)
-target_include_directories(zm
-  PUBLIC
-    ${CMAKE_BINARY_DIR}/generated
-    ${GSOAP_PLUGIN_DIR}/..
-    ${GSOAP_INCLUDE_DIR})
+if(ZM_STRIP_NEON)
+  target_compile_definitions(zm PRIVATE ZM_STRIP_NEON=1)
+endif()
 
+if(GSOAP_FOUND)
+  target_compile_definitions(zm PUBLIC WITH_GSOAP)
+  target_include_directories(zm
+    PUBLIC
+      ${CMAKE_BINARY_DIR}/generated
+      ${GSOAP_PLUGIN_DIR}/..
+      ${GSOAP_INCLUDE_DIR})
 endif()
 
 target_link_libraries(zm

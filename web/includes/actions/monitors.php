@@ -38,6 +38,8 @@ if ($action == 'save') {
     }
     if (!$Monitor->save($_REQUEST['newMonitor'])) {
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
+    } else {
+      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($_REQUEST['newMonitor'])));
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');

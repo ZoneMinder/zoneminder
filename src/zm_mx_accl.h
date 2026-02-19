@@ -22,9 +22,11 @@ extern "C" {
 #ifdef HAVE_MX_ACCL_H
 #include <memx/accl/MxAccl.h>
 #include "zm_memx_yolov8.h"
+#include "zm_object_classes.h"
 
 class MxAccl {
   private:
+    ObjectClasses object_classes_;  // Class labels (defaults to COCO)
     MX::Runtime::MxAccl *accl;
     MX::Types::MxModelInfo model_info;
     int32_t input_height, input_width, input_depth, input_channels, input_format;

@@ -137,9 +137,17 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_dnsmasq.php');
 } else if ($tab == 'users') {
   include('_options_users.php');
+} else if ($tab == 'roles') {
+  include('_options_roles.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
-}  // $tab == API
+} else if ($tab == 'ai_datasets') {
+  include('_options_ai_datasets.php');
+} else if ($tab == 'ai_models') {
+  include('_options_ai_models.php');
+} else if ($tab == 'ai_classes') {
+  include('_options_ai_classes.php');
+}  // $tab == ai_classes
   else { 
   $config = array();
   $configCats = array();

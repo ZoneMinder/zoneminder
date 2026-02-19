@@ -16,6 +16,7 @@
 #include "zm_logger.h"
 #include "zm_signal.h"
 
+#include <climits>
 #include <fcntl.h>
 #include <sys/file.h>
 
@@ -56,7 +57,7 @@ void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
   while (!stop_ and !zm_terminate) {
     if (getNextFrame() < 0) {
-      if (!stop_ and !zm_terminate) return;
+      if (stop_ or zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
@@ -64,6 +65,7 @@ void ZoneMinderFifoSource::ReadRun() {
 }
 
 void ZoneMinderFifoSource::WriteRun() {
+  // Max payload size to match xop's MAX_RTP_PAYLOAD_SIZE
   size_t maxNalSize = 1400;
 
   if (stop_) Warning("bad value for stop_ in WriteRun");
@@ -83,13 +85,13 @@ void ZoneMinderFifoSource::WriteRun() {
     }
 
     if (nal) {
-      if (1 and (nal->size() > maxNalSize)) {
+      if (nal->size() > maxNalSize) {
+        // FU-A fragmentation for large NALs
         Debug(3, "Splitting NAL %zu", nal->size());
         size_t nalRemaining = nal->size();
-        u_int8_t *nalSrc = nal->buffer();
+        uint8_t *nalSrc = nal->buffer();
 
         int fuNalSize = maxNalSize;
-        // ? nalRemaining : maxNalSize;
         NAL_Frame fuNal(nullptr, fuNalSize, nal->pts());
         memcpy(fuNal.buffer()+1, nalSrc, fuNalSize-1);
 
@@ -97,12 +99,12 @@ void ZoneMinderFifoSource::WriteRun() {
           fuNal.buffer()[0] = (nalSrc[0] & 0xE0) | 28; // FU indicator
           fuNal.buffer()[1] = 0x80 | (nalSrc[0] & 0x1F); // FU header (with S bit)
         } else { // 265
-          u_int8_t nalUnitType = (nalSrc[0]&0x7E)>>1;
+          uint8_t nalUnitType = (nalSrc[0]&0x7E)>>1;
           fuNal.buffer()[0] = (nalSrc[0] & 0x81) | (49<<1); // Payload header (1st byte)
           fuNal.buffer()[1] = nalSrc[1]; // Payload header (2nd byte)
           fuNal.buffer()[2] = 0x80 | nalUnitType; // FU header (with S bit)
         }
-        PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
+        PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts(), 0); // Not last packet
         nalRemaining -= maxNalSize-1;
         nalSrc += maxNalSize-1;
         int nal_count = 0;
@@ -116,23 +118,25 @@ void ZoneMinderFifoSource::WriteRun() {
           headerSize = 3;
         }
         while (nalRemaining && !stop_) {
-          if ( nalRemaining < maxNalSize ) {
-            // This is the last fragment:
-            fuNal.buffer()[headerSize-1] |= 0x40; // set the E bit in the FU header
-          }
+          bool isLast = (static_cast<size_t>(fuNalSize) >= nalRemaining) ||
+                        (nalRemaining <= static_cast<size_t>(maxNalSize - headerSize));
           fuNalSize = (nalRemaining < maxNalSize-headerSize) ? nalRemaining : maxNalSize-headerSize;
+          if (static_cast<size_t>(fuNalSize) == nalRemaining) {
+            // This is the last fragment - set E bit
+            fuNal.buffer()[headerSize-1] |= 0x40;
+          }
           fuNal.size(fuNalSize+headerSize);
           memcpy(fuNal.buffer()+headerSize, nalSrc, fuNalSize);
 
-          PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
+          PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts(), isLast ? 1 : 0);
           nalRemaining -= fuNalSize;
           nalSrc += fuNalSize;
           nal_count += 1;
         }
-        Debug(3, "Sending %d NALs @ %zu and 1 @ %zu", nal_count, maxNalSize, fuNal.size());
+        Debug(3, "Sent %d FU-A fragments for NAL", nal_count + 1);
       } else {
         Debug(3, "Pushing nal of size %zu at %" PRId64, nal->size(), nal->pts());
-        PushFrame(nal->buffer(), nal->size(), nal->pts());
+        PushFrame(nal->buffer(), nal->size(), nal->pts(), 1); // Single packet, is last
       }
       delete nal;
       nal = nullptr;
@@ -160,8 +164,9 @@ int ZoneMinderFifoSource::getNextFrame() {
   int bytes_read = m_buffer.read_into(m_fd, 4096);
   //int bytes_read = m_buffer.read_into(m_fd, 4096, {1,0});
   if (bytes_read == 0) {
-    Debug(3, "No bytes read");
-    sleep(1);
+    Debug(1, "EOF on fifo %s, closing to allow reopen", m_fifo.c_str());
+    ::close(m_fd);
+    m_fd = -1;
     return -1;
   }
   if (bytes_read < 0) {
@@ -210,7 +215,15 @@ int ZoneMinderFifoSource::getNextFrame() {
       }
       *pts_ptr = '\0';
       pts_ptr ++;
-      data_size = atoi(content_length_ptr);
+      char *endptr = nullptr;
+      unsigned long parsed_size = strtoul(content_length_ptr, &endptr, 10);
+      if (endptr == content_length_ptr || parsed_size > INT_MAX) {
+        Debug(1, "Invalid content length: %s", content_length_ptr);
+        m_buffer.consume((header_start - m_buffer.head()) + 2);
+        delete[] header;
+        return 0;
+      }
+      data_size = static_cast<unsigned int>(parsed_size);
       pts = strtoll(pts_ptr, nullptr, 10);
       Debug(4, "ZM Packet %s header_size %d packet size %u pts %s %" PRId64, header, header_size, data_size, pts_ptr, pts);
       delete[] header;

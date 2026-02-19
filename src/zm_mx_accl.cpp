@@ -21,7 +21,6 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 #include "zm_monitor.h"
-#include "zm_object_classes.h"
 #include "zm_signal.h"
 #include "zm_vector2.h"
 
@@ -40,9 +39,6 @@
 #define BATCH_SIZE 10
 
 #ifdef HAVE_MX_ACCL_H
-
-// Shared object class names for detection results
-static ObjectClasses object_classes;
 
 MxAccl::MxAccl() :
   accl(),
@@ -269,7 +265,7 @@ const nlohmann::json MxAccl::receive_detections(Job *job, float object_threshold
     std::array<float, 4> cv_bbox = {l, t, r, b};
 
     // map class_id to class name
-    const std::string &class_name = object_classes.getClassName(bbox.class_index);
+    const std::string &class_name = object_classes_.getClassName(bbox.class_index);
     predictions.push_back({{"class", class_name}, {"bbox", cv_bbox}, {"score", bbox.class_score}});
   }
 

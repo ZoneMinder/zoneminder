@@ -65,8 +65,31 @@ $SLANG = array(
     'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
+    'AddNewRole'            => 'Add New Role',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
+    'AddNewDataset'         => 'Add New Dataset',
+    'AddNewModel'           => 'Add New Model',
+    'AddNewClass'           => 'Add New Class',
+    'AIDataset'             => 'AI Dataset',
+    'AIModel'               => 'AI Model',
+    'AIObjectClass'         => 'AI Object Class',
+    'ai_datasets'           => 'AI Datasets',
+    'ai_models'             => 'AI Models',
+    'ai_classes'            => 'AI Classes',
+    'AllDatasets'           => 'All Datasets',
+    'Dataset'               => 'Dataset',
+    'Framework'             => 'Framework',
+    'ModelPath'             => 'Model Path',
+    'NumClasses'            => 'Number of Classes',
+    'AI Detection Classes'  => 'AI Detection Classes',
+    'FilterClasses'         => 'Filter Classes',
+    'Threshold'             => 'Threshold',
+    'Colour'                => 'Colour',
+    'SelectAll'             => 'Select All',
+    'SelectNone'            => 'Select None',
+    'SelectCommon'          => 'Common',
+    'NoAIClassesConfigured' => 'No AI object classes configured. Add datasets and classes in Options.',
     'AlarmBrFrames'         => 'Alarm<br/>Frames',
     'AlarmFrame'            => 'Alarm Frame',
     'AlarmFrameCount'       => 'Alarm Frame Count',
@@ -78,10 +101,12 @@ $SLANG = array(
     'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
+    'Analysis Image Opacity' => 'Analysis Image Opacity',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
     'APIEnabled'            => 'API Enabled',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
+    'Assigned Users'        => 'Assigned Users',
     'ArchUnarchived'        => 'Unarchived Only',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
@@ -206,6 +231,8 @@ $SLANG = array(
     'CaptureResolution'     => 'Capture Resolution',
     'CapturePalette'        => 'Capture Palette',
     'CaptureWidth'          => 'Capture Width',
+    'ClassName'             => 'Class Name',
+    'ClassIndex'            => 'Class Index',
     'CheckMethod'           => 'Alarm Check Method',
     'ChooseDetectedCamera'  => 'Choose Detected Camera',
     'ChooseDetectedProfile' => 'Choose Detected Profile',
@@ -299,6 +326,7 @@ $SLANG = array(
     'ExportSucceeded'       => 'Export Succeeded',
     'ExportVideoFiles'      => 'Export Video Files (if present)',
     'FastForward'           => 'Fast Forward',
+    'FilterByDataset'       => 'Filter by Dataset',
     'FilterArchiveEvents'   => 'Archive all matches',
     'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
@@ -437,6 +465,7 @@ $SLANG = array(
     'MustSupplyUsername'    => 'You must supply a username',
     'NewGroup'              => 'New Group',
     'NewLabel'              => 'New Label',
+    'NewRole'               => 'New Role',
     'NewPassword'           => 'New Password',
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
@@ -445,6 +474,8 @@ $SLANG = array(
     'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
+    'NoRole'                => 'No Role (Direct Permissions Only)',
+    'No users assigned to this role' => 'No users assigned to this role',
     'NoneAvailable'         => 'None available',
     'NoSavedFilters'        => 'No Saved Filters',
     'NoStatisticsRecorded'  => 'There are no statistics recorded for this event/frame',
@@ -564,6 +595,9 @@ $SLANG = array(
     'ReturnDelay'           => 'Return Delay',
     'ReturnLocation'        => 'Return Location',
     'RevokeAllTokens'       => 'Revoke All Tokens',
+    'Role'                  => 'Role',
+    'Role Details'          => 'Role Details',
+    'Roles'                 => 'Roles',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
     'RTSPTransport'         => 'RTSP Transport Protocol',
@@ -588,6 +622,8 @@ $SLANG = array(
     'SetPreset'             => 'Set Preset',
     'ShowFilterWindow'      => 'Show Filter Window',
     'ShowTimeline'          => 'Show Timeline',
+    'Show Analysis'         => 'Show Analysis',
+    'Showing Analysis'      => 'Showing Analysis',
     'SignalCheckColour'     => 'Signal Check Colour',
     'SignalCheckPoints'     => 'Signal Check Points',
     'SkinDescription'       => 'Change the skin for this session',
@@ -1003,10 +1039,11 @@ None: No frames will be decoded, live view and thumbnails will not be available~
       Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
       for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
   ),
-  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+  'FUNCTION_RESTREAM' => array(
     'Help' => '
-      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
-      RTSP restream as the Janus source.'
+      Enable this to use the ZoneMinder RTSP restream as the source for streaming services
+      (Janus, Go2RTC, RTSP2Web) instead of the camera directly. Useful if your camera does not
+      work with a streaming service directly.'
   ),
   'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
     'Help' => '
@@ -1039,6 +1076,9 @@ None: No frames will be decoded, live view and thumbnails will not be available~
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
+  'ANALYSIS_IMAGE_OPACITY' => array(
+    'Help' => 'Controls the transparency of zone overlays on analysis images. Lower values are more transparent, higher values are more opaque. A value around 50 is recommended for a good balance between seeing the zones and the underlying image.'
+  ),
 );
 
 ?>

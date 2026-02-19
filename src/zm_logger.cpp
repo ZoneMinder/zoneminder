@@ -74,6 +74,7 @@ Logger::Logger() :
     smCodes[ERROR] = "ERR";
     smCodes[FATAL] = "FAT";
     smCodes[PANIC] = "PNC";
+    smCodes[AUDIT] = "AUD";
     smCodes[NOLOG] = "OFF";
 
     smSyslogPriorities[INFO] = LOG_INFO;
@@ -81,6 +82,7 @@ Logger::Logger() :
     smSyslogPriorities[ERROR] = LOG_ERR;
     smSyslogPriorities[FATAL] = LOG_ERR;
     smSyslogPriorities[PANIC] = LOG_ERR;
+    smSyslogPriorities[AUDIT] = LOG_NOTICE;
 
     char code[4] = "";
     // Extra comparison against DEBUG1 to ensure GCC knows we are printing a single byte.
@@ -420,7 +422,7 @@ void Logger::closeSyslog() {
 
 void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
   if (level > mEffectiveLevel) return;
-  if (level < PANIC || level > DEBUG9)
+  if (level < AUDIT || level > DEBUG9)
     Panic("Invalid logger level %d", level);
 
 
@@ -539,13 +541,13 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   }
 
   log_mutex.unlock();
-  if (level <= FATAL) {
+  if (level == FATAL || level == PANIC) {
     mDatabaseLevel = NOLOG;
     zm_terminate = true;
     dbQueue.stop();
     zmDbClose();
     logTerm();
-    if (level <= PANIC) abort();
+    if (level == PANIC) abort();
     exit(-1);
   }
 }  // end logPrint

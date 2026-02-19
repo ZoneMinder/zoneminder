@@ -23,7 +23,7 @@ ZoneMinderFifoVideoSource::ZoneMinderFifoVideoSource(
   m_timeBase = {1, 90000};
 }
 
-void ZoneMinderFifoVideoSource::PushFrame(const uint8_t *data, size_t size, int64_t pts) {
+void ZoneMinderFifoVideoSource::PushFrame(const uint8_t *data, size_t size, int64_t pts, uint8_t last) {
   xop::AVFrame frame(data, size);
   frame.timestamp = av_rescale_q(pts, AV_TIME_BASE_Q, m_timeBase);
   m_rtspServer->PushFrame(m_sessionId, m_channelId, frame);

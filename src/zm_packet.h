@@ -63,6 +63,7 @@ class ZMPacket {
   int       score;
   AVMediaType codec_type;
   int image_index;
+  uint64_t queue_index;         // Monotonic index assigned by PacketQueue on enqueue
   int codec_imgsize;
   int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
   bool decoded;
@@ -174,6 +175,10 @@ class ZMPacketLock {
     void wait() {
       Debug(4, "packet %d waiting", packet_->image_index);
       packet_->condition_.wait(lck_);
+    };
+    template<typename Rep, typename Period>
+    void wait_for(const std::chrono::duration<Rep, Period> &timeout) {
+      packet_->condition_.wait_for(lck_, timeout);
     };
     void notify_all() { packet_->notify_all(); };
     void lock() { packet_->lock(lck_); locked = true; };

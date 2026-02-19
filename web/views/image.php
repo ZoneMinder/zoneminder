@@ -204,7 +204,14 @@ $media_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
+  // Validate show parameter against allowlist to prevent command injection (CVE-2025-65791)
+  $allowed_show_values = array('capture', 'analyse');
   $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+  if (!in_array($show, $allowed_show_values)) {
+    header('HTTP/1.0 400 Bad Request');
+    ZM\Error('Invalid show parameter: ' . preg_replace('/[^a-zA-Z0-9_-]/', '', $show));
+    return;
+  }
 
   if ( empty($_REQUEST['fid']) ) {
     header('HTTP/1.0 404 Not Found');
@@ -332,7 +339,7 @@ if ( empty($_REQUEST['path']) ) {
               }
             }
             if (file_exists($file_path)) {
-              $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
+              $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
               #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
               #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
               ZM\Debug("Running $command");
@@ -416,7 +423,8 @@ if ( empty($_REQUEST['path']) ) {
         ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
-      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
+      // Use escapeshellarg() to prevent command injection
+      $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Debug("Running $command");

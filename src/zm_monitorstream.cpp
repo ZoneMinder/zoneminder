@@ -633,14 +633,23 @@ void MonitorStream::runStream() {
         zm_terminate = true;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        rc= sendTextFrame("Waiting for capture of ondemand camera");
+        rc = sendTextFrame("Waiting for capture of ondemand camera");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
         rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
         rc = sendTextFrame("Unable to stream");
       }
-      if (!rc) {
-        Debug(1, "Failed Send unable to stream");
+      if (rc <= 0) {
+        Debug(1, "Failed Send unable to stream. rc=%d", rc);
+        zm_terminate = true;
+        continue;
+      }
+      // Timeout if we've never received a frame and have been waiting too long.
+      // Use ttl if set, otherwise default to 60 seconds.
+      Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+      if (now - stream_start_time > wait_timeout) {
+        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
         zm_terminate = true;
         continue;
       }
@@ -920,6 +929,14 @@ void MonitorStream::runStream() {
       if (now - last_frame_sent > Seconds(5)) {
         if (monitor->shared_data->decoder_image_count <= 0) {
           sendTextFrame("Waiting for initial capture");
+          // Timeout if we've never received a frame from capture
+          Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+          if (now - stream_start_time > wait_timeout) {
+            Warning("Timed out waiting for initial capture after %" PRIi64 " seconds",
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+            zm_terminate = true;
+            continue;
+          }
         } else {
           sendTextFrame(stringtf("Waiting for capture/analysis index %d, count %d our last read index %d, current %d",
                 monitor->shared_data->last_analysis_index,

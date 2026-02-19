@@ -38,7 +38,7 @@ int ZoneMinderFifoAudioSource::getFrequencyIndex() {
   return -1;
 }
 
-void ZoneMinderFifoAudioSource::PushFrame(const uint8_t *data, size_t size, int64_t pts) {
+void ZoneMinderFifoAudioSource::PushFrame(const uint8_t *data, size_t size, int64_t pts, uint8_t last) {
   xop::AVFrame frame(data, size);
   frame.type = xop::AUDIO_FRAME;
   frame.timestamp = av_rescale_q(pts, AV_TIME_BASE_Q, m_timeBase);

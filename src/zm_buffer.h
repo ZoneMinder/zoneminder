@@ -151,7 +151,7 @@ class Buffer {
           mTail = mHead + mSize;
         }
       }
-    } else if (mSize == 0) {
+    } else if (mSize == 0 && mHead) {
       *mHead = '\0';
     }
   }

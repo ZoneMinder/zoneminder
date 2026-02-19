@@ -25,6 +25,7 @@
 
 #include <list>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "zm_analysis_thread.h"
@@ -57,6 +58,17 @@ extern "C" {
 
 class Group;
 class MonitorLinkExpression;
+
+// Structure to hold per-class AI detection settings
+struct AIDetectionSetting {
+  unsigned int class_id;     // AI_Object_Classes.Id
+  std::string class_name;    // AI_Object_Classes.ClassName
+  bool enabled;              // Whether to detect this class
+  int confidence_threshold;  // Minimum confidence (0-100)
+  Rgb box_color;             // Color for bounding boxes
+
+  AIDetectionSetting() : class_id(0), enabled(true), confidence_threshold(50), box_color(0xFF0000) {}
+};
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -122,7 +134,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { HLS, MSE, WEBRTC } RTSP2WebOption;
 
-  typedef enum { PRIMARY = 1, SECONDARY } RTSP2WebStreamOption;
+  typedef enum {
+    RESTREAM=1,
+    CAMERA_DIRECT_PRIMARY,
+    CAMERA_DIRECT_SECONDARY
+  } StreamChannelOption;
 
   typedef enum {
     GO2RTC_WEBRTC = 1,
@@ -417,6 +433,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
                                 void *userp);
     bool RTSP2Web_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
@@ -447,12 +464,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
+      mutable bool ssl_verification_failed = false;
       std::string Go2RTC_endpoint;
       std::string rtsp_restream_path;
+      std::string rtsp_restream_base_path;  // Path without auth parameter
       std::string rtsp_username;
       std::string rtsp_password;
       std::string rtsp_path;
       std::string rtsp_second_path;
+      SystemTimePoint last_auth_refresh;    // Track when auth was last refreshed
 
     public:
       explicit Go2RTCManager(Monitor *parent_);
@@ -461,6 +481,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      bool refresh_auth_if_needed();        // Refresh auth_hash if expired
   };
 
   class JanusManager {
@@ -472,6 +493,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
                                 void *userp);
     bool Janus_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -506,6 +528,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
   AnalysisImageOption   analysis_image;     // FullColour, YChannel
+  uint8_t               analysis_image_opacity; // 0-255 opacity for zone overlays
   ObjectDetectionOption objectdetection;    // none, quadra, speedai, uvicorn
   std::string objectdetection_model;
   float   objectdetection_object_threshold;
@@ -513,25 +536,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
-  DecodingOption decoding;  // Whether the monitor will decode h264/h265 packets
-  bool RTSP2Web_enabled;  // Whether we set the h264/h265 stream up on RTSP2Web
-  int RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
-  RTSP2WebStreamOption RTSP2Web_stream;  // Whether we use the primary or
-                                         // secondary URL for the stream
-  bool Go2RTC_enabled;       // Whether we set the h264/h265 stream up on Go2RTC
-  bool janus_enabled;        // Whether we set the h264/h265 stream up on janus
-                             //
-  bool janus_audio_enabled;  // Whether we tell Janus to try to include audio.
-  std::string
-      janus_profile_override;    // The Profile-ID to force the stream to use.
-  bool janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather
-                                 // than the camera directly.
-  std::string janus_pin;  // For security, we generate a pin required to view
-                          // the stream.
-  int janus_rtsp_user;    // User Id of a user to use for auth to RTSP_Server
-  int janus_rtsp_session_timeout;  // RTSP session timeout (work around for
-                                   // cameras that dont send ;timeout=<timeout
-                                   // in seconds> but do have a timeout)
+  DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
+  int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
+  StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
+  bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
+  bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
+  bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
+  std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
+  bool            restream;  // Point streaming services (Janus/Go2RTC/RTSP2Web) at the ZM RTSP output, rather than the camera directly.
+  std::string     janus_pin;  // For security, we generate a pin required to view the stream.
+  int             rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   CURL *curl;
   std::string protocol;
@@ -767,6 +783,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   nlohmann::json last_detections;
   int last_detection_count;
 
+  // Per-class AI detection settings (keyed by class name for quick lookup)
+  std::unordered_map<std::string, AIDetectionSetting> ai_detection_settings;
+
   // Used in check signal
   uint8_t red_val;
   uint8_t green_val;
@@ -785,6 +804,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void AddPrivacyBitmask();
 
   void LoadCamera();
+  void LoadAIDetectionSettings();  // Load per-class AI detection settings from database
+  nlohmann::json FilterDetections(const nlohmann::json &detections);  // Filter detections based on AI settings
   const std::shared_ptr<Camera> getCamera() { return camera; }
   bool connect();
   bool disconnect();

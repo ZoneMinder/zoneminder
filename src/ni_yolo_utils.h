@@ -2,7 +2,6 @@
 #define _NI_YOLO_UTILS
 
 #include <math.h>
-#include "ni_log.h"
 #include "yolo_postprocess.h"
 
 extern int anchor_stride[3];

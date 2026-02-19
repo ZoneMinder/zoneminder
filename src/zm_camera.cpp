@@ -55,8 +55,8 @@ Camera::Camera(
   mAudioStream(nullptr),
   mFormatContext(nullptr),
   mSecondFormatContext(nullptr),
-  mFirstVideoPTS(0),
-  mFirstAudioPTS(0),
+  mFirstVideoPTS(AV_NOPTS_VALUE),
+  mFirstAudioPTS(AV_NOPTS_VALUE),
   mLastVideoPTS(0),
   mLastAudioPTS(0),
   bytes(0),
@@ -76,18 +76,21 @@ Camera::~Camera() {
     //avformat_free_context(mFormatContext);
     avformat_close_input(&mFormatContext);
   }
-  if ( mSecondFormatContext ) {
-    // Should also free streams
-    avformat_free_context(mSecondFormatContext);
-  }
+  // Note: mSecondFormatContext is owned by mSecondInput (FFmpeg_Input) in derived classes
+  // and will be freed when mSecondInput is destroyed. Do not free it here.
   mVideoStream = nullptr;
   mAudioStream = nullptr;
 }
 
 AVStream *Camera::getVideoStream() {
   if ( !mVideoStream ) {
-    if ( !mFormatContext )
+    if ( !mFormatContext ) {
       mFormatContext = avformat_alloc_context();
+      if ( !mFormatContext ) {
+        Error("Failed to allocate AVFormatContext");
+        return nullptr;
+      }
+    }
     Debug(1, "Allocating avstream");
     mVideoStream = avformat_new_stream(mFormatContext, nullptr);
     if ( mVideoStream ) {
@@ -98,10 +101,10 @@ AVStream *Camera::getVideoStream() {
       mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
       Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);
+      mVideoStreamId = mVideoStream->index;
     } else {
       Error("Can't create video stream");
     }
-    mVideoStreamId = mVideoStream->index;
   }
   return mVideoStream;
 }

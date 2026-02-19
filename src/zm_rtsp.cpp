@@ -63,7 +63,7 @@ bool RtspThread::recvResponse(std::string &response) {
   respCode = -1;
   char respText[ZM_NETWORK_BUFSIZ];
   if ( sscanf(response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
-    if ( isalnum(response[0]) ) {
+    if ( !response.empty() && isalnum(response[0]) ) {
       Error("Response parse failure in '%s'", response.c_str());
     } else {
       Error("Response parse failure, %zd bytes follow", response.size());
@@ -91,22 +91,26 @@ int RtspThread::requestPorts() {
 
     MYSQL_RES *result = zmDbFetch(sql);
 
-    int nMonitors = mysql_num_rows(result);
+    int nMonitors = 0;
     int position = 0;
-    if ( nMonitors ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int id = atoi(dbrow[0]);
-        if ( mId == id ) {
-          position = i;
-          break;
+    if (result) {
+      nMonitors = mysql_num_rows(result);
+      if ( nMonitors ) {
+        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+          int id = atoi(dbrow[0]);
+          if ( mId == id ) {
+            position = i;
+            break;
+          }
         }
       }
-    } else {
+      mysql_free_result(result);
+    }
+    if (!nMonitors) {
       // Minor hack for testing when not strictly enabled
       nMonitors = 1;
       position = 0;
     }
-    mysql_free_result(result);
     int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
     smMinDataPort = config.min_rtp_port + (position * portRange);
     smMaxDataPort = smMinDataPort + portRange - 1;

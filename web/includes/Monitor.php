@@ -197,16 +197,16 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
-  protected static $RTSP2WebStreamOptions = null;
-  public static function getRTSP2WebStreamOptions() {
-    if (!isset($RTSP2WebStreamOptions)) {
-      $RTSP2WebStreamOptions = array(
-        'Primary' => translate('Primary'),
-        'Secondary' => translate('Secondary'),
-        'Restream' => translate('Restream')
+  protected static $StreamChannelOptions = null;
+  public static function getStreamChannelOptions() {
+    if (!isset($StreamChannelOptions)) {
+      $StreamChannelOptions = array(
+        'Restream' => translate('Restream'),
+        'CameraDirectPrimary' => translate('Camera Direct Primary'),
+        'CameraDirectSecondary' => translate('Camera Direct Secondary')
       );
     }
-    return $RTSP2WebStreamOptions;
+    return $StreamChannelOptions;
   }
 
   protected $defaults = array(
@@ -225,6 +225,7 @@ class Monitor extends ZM_Object {
     'RecordingSource' => 'Primary',
     'AnalysisSource' => 'Primary',
     'AnalysisImage' => 'FullColour',
+    'AnalysisImageOpacity' => array('type'=>'integer','default'=>128),
     'ObjectDetection' => 'None',
     'ObjectDetectionModel' => '',
     'ObjectDetectionObjectThreshold' => '0.4',
@@ -233,13 +234,13 @@ class Monitor extends ZM_Object {
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
-    'RTSP2WebStream'   => 'Primary',
+    'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
-    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
-    'Janus_RTSP_User'           => null,
+    'Restream'   => array('type'=>'boolean','default'=>0),
+    'RTSP_User'           => null,
     'Janus_RTSP_Session_Timeout'  => array('type'=>'integer','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
@@ -1155,8 +1156,8 @@ class Monitor extends ZM_Object {
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
                   <div class="block-button-center">
                     <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
-                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
-                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>'.
+                    ($this->canEdit() ? '<button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>' : '').'
                   </div>
                 </div>
                 <div class="zoompan">';
@@ -1212,10 +1213,24 @@ class Monitor extends ZM_Object {
     }
 
     if (isset($options['zones']) and $options['zones']) {
-      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
-      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
-        $html .= $zone->svg_polygon();
-      } // end foreach zone
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 100 100" preserveAspectRatio="none">'.PHP_EOL;
+      if (is_array($options['zones'])) {
+        // Render specific zone IDs only
+        foreach ($options['zones'] as $zone_id) {
+          $zone = new Zone($zone_id);
+          if ($zone->Id() and $zone->MonitorId() == $this->Id()) {
+            $html .= $zone->svg_polygon();
+          }
+        }
+      } else {
+        // true: render all zones for this monitor
+        foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+          $html .= $zone->svg_polygon();
+        }
+      }
+      if (isset($options['zones_extra'])) {
+        $html .= $options['zones_extra'];
+      }
       $html .= '
   Sorry, your browser does not support inline SVG
 </svg>

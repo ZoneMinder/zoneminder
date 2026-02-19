@@ -42,6 +42,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
             $filter->control('stop');
           }
           $filter->delete();
+          ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
         } else {
           $error_message .= 'You do not have permission to delete the filter.<br/>';
         }
@@ -89,6 +90,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
             $error_message = $filter->get_last_error();
             return;
           }
+          ZM\AuditAction('save', 'filter', $filter->Id(), 'Name: '.$filter->Name().' Action: '.$action);
           if ($action == 'Save' or $action == 'SaveAs' ) {
             // We update the request id so that the newly saved filter is auto-selected
             $_REQUEST['Id'] = $filter->Id();
@@ -112,7 +114,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         $filter->control('start');
       }
       global $redirect;
-      $redirect = '?view=filter&Id='.$_REQUEST['Id'].$filter->querystring('filter', '&');
+      $redirect = '?view=filter&Id='.$_REQUEST['Id'];
 
     } else if ($action == 'control') {
       if ( $_REQUEST['command'] == 'start'

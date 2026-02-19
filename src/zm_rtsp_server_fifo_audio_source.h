@@ -13,6 +13,7 @@
 #define ZM_RTSP_SERVER_FIFO_AUDIO_SOURCE_H
 
 #include "zm_config.h"
+#include "zm_logger.h"
 #include "zm_rtsp_server_fifo_source.h"
 
 #if HAVE_RTSP_SERVER
@@ -32,6 +33,10 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
   virtual ~ZoneMinderFifoAudioSource() {}
 
   void setFrequency(int p_frequency) {
+    if (p_frequency <= 0) {
+      Warning("Invalid audio frequency: %d, using default 44100", p_frequency);
+      p_frequency = 44100;
+    }
     frequency = p_frequency;
     samplingFrequencyIndex = getFrequencyIndex();
     m_timeBase = {1, frequency};
@@ -43,7 +48,7 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
   int getChannels() const { return channels; };
 
  protected:
-  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, uint8_t last = 1) override;
 
  protected:
   std::string config;

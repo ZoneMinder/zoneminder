@@ -57,9 +57,10 @@ zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $zone['Points'][$i]['x'] ?>
 }
 ?>
 
-var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
-var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
-var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+var maxX = 100;
+var maxY = 100;
+var monitorArea = 10000;
+var monitorPixelArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
 
 var monitorData = new Array();
 monitorData[monitorData.length] = {
@@ -70,7 +71,8 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
-  'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
+  'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
+  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
   'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
   'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

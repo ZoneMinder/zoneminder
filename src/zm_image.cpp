@@ -138,7 +138,9 @@ Image::Image() :
   u_buffer(nullptr),
   v_buffer(nullptr),
   buffertype(ZM_BUFTYPE_DONTFREE),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   if (!initialised)
     Initialise();
   // Update blend to fast function determined by Initialise, I'm sure this can be improve.
@@ -165,12 +167,14 @@ Image::Image(const std::string &filename) :
   size = 0;
   allocation = 0;
   buffertype = ZM_BUFTYPE_DONTFREE;
+  holdbuffer = 0;
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   ReadJpeg(filename, ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P);
   update_function_pointers();
 }
 
-Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, 
-    unsigned long p_allocation, unsigned int p_padding) :
+Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned long p_allocation, unsigned int p_padding) :
   sws_convert_context(nullptr),
   width(p_width),
   height(p_height),
@@ -181,38 +185,40 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   buffer(p_buffer),
   u_buffer(nullptr),
   v_buffer(nullptr),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
 
-  if (!initialised)
-    Initialise();
-  pixels = width * height;
+    if (!initialised)
+      Initialise();
+    pixels = width * height;
 
-  if (!subpixelorder and (colours>1)) {
-    Debug(1, "Defaulting to RGBA Cuz %d %d", subpixelorder, colours);
-    // Default to RGBA when no subpixelorder is specified.
-    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-  }
+    if (!subpixelorder and (colours>1)) {
+      Debug(1, "Defaulting to RGBA Cuz %d %d", subpixelorder, colours);
+      // Default to RGBA when no subpixelorder is specified.
+      subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+    }
 
-  imagePixFormat = AVPixFormat();
-  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
-  size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
-//Debug(1, "Choosing pixformat %s size %d allocation %ld", toString().c_str(), size, allocation);
+    imagePixFormat = AVPixFormat();
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+    Debug(1, "Choosing pixformat %s", toString().c_str());
 
-  if (p_buffer) {
-    if (!allocation) allocation = size;
-    buffertype = ZM_BUFTYPE_DONTFREE;
-    buffer = p_buffer;
-  } else {
+    if (p_buffer) {
+      if (!allocation) allocation = size;
+      buffertype = ZM_BUFTYPE_DONTFREE;
+      buffer = p_buffer;
+    } else {
 
-    Debug(3, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+      Debug(3, "line size: %d =? %d width %d Size %d ?= %d", linesize,
           av_image_get_linesize(imagePixFormat, width, 0),
           width, linesize * height + padding, size);
 
-    AllocImgBuffer(size);
-  }
+      AllocImgBuffer(size);
+    }
 
-  update_function_pointers();
-}
+    update_function_pointers();
+  }
 
 Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) :
   sws_convert_context(nullptr),
@@ -224,7 +230,9 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   buffer(p_buffer),
   u_buffer(nullptr),
   v_buffer(nullptr),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
 
   if (!initialised)
     Initialise();
@@ -267,7 +275,9 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   subpixelorder(p_subpixelorder),
   buffer(p_buffer),
   u_buffer(nullptr),
-  v_buffer(nullptr) {
+  v_buffer(nullptr),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   if ( !initialised )
     Initialise();
   pixels = width*height;
@@ -299,7 +309,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   buffer(0),
   u_buffer(nullptr),
   v_buffer(nullptr),
-  holdbuffer(0) {
+  holdbuffer(0),
+  blend_buffer_(nullptr),
+  blend_buffer_size_(0) {
   width = (p_width == -1 ? frame->width : p_width);
   height = (p_height == -1 ? frame->height : p_height);
   pixels = width * height;
@@ -323,6 +335,8 @@ Image::Image(const AVFrame *frame) :
   v_buffer(nullptr),
   holdbuffer(0)
 {
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   AssignDirect(frame);
 }
 
@@ -347,7 +361,8 @@ int Image::PopulateFrame(AVFrame *frame) const {
                                       0 /* flags */
                                      );
   if (!ref) {
-    Warning("Failed to create av_buffer");
+    Error("Failed to create av_buffer");
+    return -1;
   }
   frame->buf[0] = ref;
 #endif
@@ -444,6 +459,8 @@ Image::Image(const Image &p_image) :
   u_buffer = nullptr;
   v_buffer = nullptr;
   holdbuffer = 0;
+  blend_buffer_ = nullptr;
+  blend_buffer_size_ = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
   annotation_ = p_image.annotation_;
@@ -456,6 +473,11 @@ Image::~Image() {
   if (sws_convert_context) {
     sws_freeContext(sws_convert_context);
     sws_convert_context = nullptr;
+  }
+  if (blend_buffer_) {
+    zm_freealigned(blend_buffer_);
+    blend_buffer_ = nullptr;
+    blend_buffer_size_ = 0;
   }
 }
 
@@ -2002,33 +2024,50 @@ void Image::Overlay( const Image &image ) {
           width, height, image.width, image.height);
   }
 
-  if ((colours != ZM_COLOUR_GRAY8) and (colours == image.colours && subpixelorder != image.subpixelorder)) {
-    Warning("Attempt to overlay images of same format %d but with different subpixel order ours, %d != overlay %d.",
-            colours, subpixelorder, image.subpixelorder);
-  } else {
-    Debug(1,"Attempt to overlay images of same format %d and same subpixel order ours, %d != overlay %d.",
-            colours, subpixelorder, image.subpixelorder);
-  }
+  Debug(1, "Overlay: dest colours=%d subpixelorder=%d, src colours=%d subpixelorder=%d",
+        colours, subpixelorder, image.colours, image.subpixelorder);
 
   if (!image.buffer) {
     Error("Empty image passed to Overlay!");
     return;
   }
 
-  /* Grayscale on top of grayscale - complete */
-  if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
-int local_size = width * height;
-    const uint8_t* const max_ptr = buffer+local_size;
-    Debug(1, "Doing gray %dx%d buffer %p, size %d", width, height, buffer, local_size);
-    const uint8_t* psrc = image.buffer;
-    uint8_t* pdest = buffer;
-
-    while ( pdest < max_ptr ) {
-      if ( *psrc ) {
-        *pdest = *psrc;
+  /* Grayscale on top of YUV420P - overlay on Y plane only with linesize handling
+   * Note: ZM_COLOUR_YUV420P == ZM_COLOUR_GRAY8 == 1, so we must check subpixelorder
+   * to distinguish between actual grayscale and YUV420P formats.
+   */
+  if ((subpixelorder == ZM_SUBPIX_ORDER_YUV420P || subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P)
+      && image.colours == ZM_COLOUR_GRAY8) {
+    Debug(1, "Overlaying GRAY8 on YUV420P Y-plane %dx%d, dest linesize %d, src linesize %d",
+          width, height, linesize, image.linesize);
+    // Overlay on Y plane only, respecting linesize for both images
+    for (unsigned int y = 0; y < height; y++) {
+      uint8_t* pdest = buffer + (y * linesize);
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          *pdest = *psrc;
+        }
+        pdest++;
+        psrc++;
       }
-      pdest++;
-      psrc++;
+    }
+
+  /* Grayscale on top of grayscale - with linesize handling */
+  } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
+    Debug(1, "Doing gray on gray %dx%d, dest linesize %d, src linesize %d",
+          width, height, linesize, image.linesize);
+    // Handle linesize differences between source and destination
+    for (unsigned int y = 0; y < height; y++) {
+      uint8_t* pdest = buffer + (y * linesize);
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          *pdest = *psrc;
+        }
+        pdest++;
+        psrc++;
+      }
     }
 
     /* RGB24 on top of grayscale - convert to same format first - complete */
@@ -2169,8 +2208,141 @@ int local_size = width * height;
         prsrc++;
       }
     }
+
+  } else {
+    Error("Unsupported overlay combination: dest colours=%d subpixelorder=%d, src colours=%d subpixelorder=%d",
+          colours, subpixelorder, image.colours, image.subpixelorder);
   }
 
+}
+
+/* Overlay with colour - applies the specified colour where mask pixels are non-zero */
+void Image::Overlay(const Image &image, Rgb colour, uint8_t alpha) {
+  if (!(width == image.width && height == image.height)) {
+    Panic("Attempt to overlay different sized images, expected %dx%d, got %dx%d",
+          width, height, image.width, image.height);
+  }
+
+  if (!image.buffer) {
+    Error("Empty image passed to Overlay!");
+    return;
+  }
+
+  // Extract RGB components (using RGBA byte order as per ZM convention)
+  uint8_t r = RED_VAL_RGBA(colour);
+  uint8_t g = GREEN_VAL_RGBA(colour);
+  uint8_t b = BLUE_VAL_RGBA(colour);
+
+  Debug(1, "Overlay with colour: R=%d G=%d B=%d alpha=%d on format colours=%d subpixelorder=%d",
+        r, g, b, alpha, colours, subpixelorder);
+
+  /* Coloured overlay on YUV420P - apply colour to Y, U, V planes */
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P || subpixelorder == ZM_SUBPIX_ORDER_YUVJ420P) {
+    // Convert RGB to YUV (BT.601 full range)
+    uint8_t y_val = static_cast<uint8_t>((66 * r + 129 * g + 25 * b + 128) >> 8) + 16;
+    uint8_t u_val = static_cast<uint8_t>((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128;
+    uint8_t v_val = static_cast<uint8_t>((112 * r - 94 * g - 18 * b + 128) >> 8) + 128;
+
+    Debug(1, "Overlaying colour on YUV420P: Y=%d U=%d V=%d, dest linesize %d, src linesize %d",
+          y_val, u_val, v_val, linesize, image.linesize);
+
+    // Calculate plane sizes and pointers
+    // Y plane: full resolution
+    // U plane: starts after Y, quarter resolution (width/2 * height/2)
+    // V plane: starts after U, quarter resolution
+    unsigned int y_plane_size = linesize * height;
+    unsigned int uv_linesize = linesize / 2;
+    uint8_t* u_plane = buffer + y_plane_size;
+    uint8_t* v_plane = u_plane + (uv_linesize * (height / 2));
+
+    // Apply colour where mask is non-zero
+    for (unsigned int y = 0; y < height; y++) {
+      uint8_t* pdest_y = buffer + (y * linesize);
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+
+      // U and V planes are half resolution
+      uint8_t* pdest_u = u_plane + ((y / 2) * uv_linesize);
+      uint8_t* pdest_v = v_plane + ((y / 2) * uv_linesize);
+
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          // Alpha blending: result = original + alpha * (overlay - original) / 255
+          // Use signed arithmetic to handle overlay < original correctly
+          unsigned int uv_x = x / 2;
+          int new_y = *pdest_y + (alpha * (static_cast<int>(y_val) - *pdest_y)) / 255;
+          int new_u = pdest_u[uv_x] + (alpha * (static_cast<int>(u_val) - pdest_u[uv_x])) / 255;
+          int new_v = pdest_v[uv_x] + (alpha * (static_cast<int>(v_val) - pdest_v[uv_x])) / 255;
+          *pdest_y = static_cast<uint8_t>(new_y);
+          pdest_u[uv_x] = static_cast<uint8_t>(new_u);
+          pdest_v[uv_x] = static_cast<uint8_t>(new_v);
+        }
+        pdest_y++;
+        psrc++;
+      }
+    }
+
+  /* Coloured overlay on RGB24 */
+  } else if (colours == ZM_COLOUR_RGB24) {
+    for (unsigned int y = 0; y < height; y++) {
+      uint8_t* pdest = buffer + (y * linesize);
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          // Alpha blending (use signed arithmetic)
+          if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+            pdest[0] = static_cast<uint8_t>(pdest[0] + (alpha * (static_cast<int>(b) - pdest[0])) / 255);
+            pdest[1] = static_cast<uint8_t>(pdest[1] + (alpha * (static_cast<int>(g) - pdest[1])) / 255);
+            pdest[2] = static_cast<uint8_t>(pdest[2] + (alpha * (static_cast<int>(r) - pdest[2])) / 255);
+          } else {
+            pdest[0] = static_cast<uint8_t>(pdest[0] + (alpha * (static_cast<int>(r) - pdest[0])) / 255);
+            pdest[1] = static_cast<uint8_t>(pdest[1] + (alpha * (static_cast<int>(g) - pdest[1])) / 255);
+            pdest[2] = static_cast<uint8_t>(pdest[2] + (alpha * (static_cast<int>(b) - pdest[2])) / 255);
+          }
+        }
+        pdest += 3;
+        psrc++;
+      }
+    }
+
+  /* Coloured overlay on RGB32 */
+  } else if (colours == ZM_COLOUR_RGB32) {
+    for (unsigned int y = 0; y < height; y++) {
+      Rgb* pdest = reinterpret_cast<Rgb*>(buffer + (y * linesize));
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          // Alpha blending on each component (use signed arithmetic)
+          uint8_t* p = reinterpret_cast<uint8_t*>(pdest);
+          p[0] = static_cast<uint8_t>(p[0] + (alpha * (static_cast<int>(r) - p[0])) / 255);
+          p[1] = static_cast<uint8_t>(p[1] + (alpha * (static_cast<int>(g) - p[1])) / 255);
+          p[2] = static_cast<uint8_t>(p[2] + (alpha * (static_cast<int>(b) - p[2])) / 255);
+          // p[3] is alpha channel, leave unchanged
+        }
+        pdest++;
+        psrc++;
+      }
+    }
+
+  /* Coloured overlay on grayscale - convert colour to grayscale intensity */
+  } else if (colours == ZM_COLOUR_GRAY8) {
+    uint8_t gray = static_cast<uint8_t>((r * 77 + g * 150 + b * 29) >> 8);
+    for (unsigned int y = 0; y < height; y++) {
+      uint8_t* pdest = buffer + (y * linesize);
+      const uint8_t* psrc = image.buffer + (y * image.linesize);
+      for (unsigned int x = 0; x < width; x++) {
+        if (*psrc) {
+          // Alpha blending (use signed arithmetic)
+          *pdest = static_cast<uint8_t>(*pdest + (alpha * (static_cast<int>(gray) - *pdest)) / 255);
+        }
+        pdest++;
+        psrc++;
+      }
+    }
+
+  } else {
+    Error("Unsupported colour overlay: dest colours=%d subpixelorder=%d",
+          colours, subpixelorder);
+  }
 }
 
 /* RGB32 compatible: complete */
@@ -2240,15 +2412,19 @@ void Image::Blend( const Image &image, int transparency ) {
     return;
   }
 
-  uint8_t* new_buffer = AllocBuffer(size);
+  // Reuse persistent blend buffer to avoid per-frame alloc/free
+  if (blend_buffer_size_ < size) {
+    if (blend_buffer_) zm_freealigned(blend_buffer_);
+    blend_buffer_ = AllocBuffer(size);
+    blend_buffer_size_ = size;
+  }
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
-  Debug(1, "Blending size %d", size);
-  (*blend)(buffer, image.buffer, new_buffer, size, transparency);
+  (*blend)(buffer, image.buffer, blend_buffer_, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint end = std::chrono::steady_clock::now();
@@ -2261,7 +2437,12 @@ void Image::Blend( const Image &image, int transparency ) {
         mil_pixels);
 #endif
 
-  AssignDirect(width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
+  if (holdbuffer) {
+    (*fptr_imgbufcpy)(buffer, blend_buffer_, size);
+  } else {
+    std::swap(buffer, blend_buffer_);
+    buffertype = ZM_BUFTYPE_ZM;
+  }
 }
 
 Image *Image::Merge(unsigned int n_images, Image *images[]) {
@@ -2279,16 +2460,13 @@ Image *Image::Merge(unsigned int n_images, Image *images[]) {
 
   Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
   unsigned int size = result->size;
+  uint8_t *pdest = result->buffer;
   for ( unsigned int i = 0; i < size; i++ ) {
     unsigned int total = 0;
-    uint8_t *pdest = result->buffer;
     for ( unsigned int j = 0; j < n_images; j++ ) {
-      uint8_t *psrc = images[j]->buffer;
-      total += *psrc;
-      psrc++;
+      total += images[j]->buffer[i];
     }
-    *pdest = total/n_images;
-    pdest++;
+    *pdest++ = total/n_images;
   }
   return result;
 }
@@ -2336,25 +2514,24 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   }
 
   Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
-  unsigned int size = result->size;
+  unsigned int n_pixels = result->pixels;
   for ( unsigned int c = 0; c < colours; c++ ) {
     unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
+    unsigned int threshold_val = RGB_VAL(threshold,c);
 
-    for ( unsigned int i = 0; i < size; i++ ) {
+    uint8_t *pdest = result->buffer + c;
+    for ( unsigned int i = 0; i < n_pixels; i++, pdest += colours ) {
       unsigned int count = 0;
-      uint8_t *pdest = result->buffer+c;
       for ( unsigned int j = 0; j < n_images; j++ ) {
-        uint8_t *psrc = images[j]->buffer+c;
+        uint8_t psrc_val = images[j]->buffer[i*colours + c];
 
-        unsigned int diff = ((*psrc)-ref_colour_rgb) > 0 ? (*psrc)-ref_colour_rgb : ref_colour_rgb - (*psrc);
+        unsigned int diff = (psrc_val > ref_colour_rgb) ? psrc_val - ref_colour_rgb : ref_colour_rgb - psrc_val;
 
-        if (diff >= RGB_VAL(threshold,c)) {
+        if (diff >= threshold_val) {
           count++;
         }
-        psrc += colours;
       }
       *pdest = (count*255)/n_images;
-      pdest += 3;
     }
   }
   return result;
@@ -2700,13 +2877,12 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
 
 /* RGB32 compatible: complete */
 void Image::DeColourise() {
-  colours = ZM_COLOUR_GRAY8;
-  subpixelorder = ZM_SUBPIX_ORDER_NONE;
-  size = width * height;
+  const unsigned int src_colours = colours;
+  const unsigned int src_subpixelorder = subpixelorder;
 
-  if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
+  if ( src_colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
     /* Use SSSE3 functions */
-    switch (subpixelorder) {
+    switch (src_subpixelorder) {
     case ZM_SUBPIX_ORDER_BGRA:
       ssse3_convert_bgra_gray8(buffer,buffer,pixels);
       break;
@@ -2723,9 +2899,9 @@ void Image::DeColourise() {
     }
   } else {
     /* Use standard functions */
-    if ( colours == ZM_COLOUR_RGB32 ) {
+    if ( src_colours == ZM_COLOUR_RGB32 ) {
       if ( pixels % 16 ) {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
           std_convert_bgra_gray8(buffer,buffer,pixels);
           break;
@@ -2741,7 +2917,7 @@ void Image::DeColourise() {
           break;
         }
       } else {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGRA:
           fast_convert_bgra_gray8(buffer,buffer,pixels);
           break;
@@ -2760,7 +2936,7 @@ void Image::DeColourise() {
     } else {
       /* Assume RGB24 */
       if ( pixels % 12 ) {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGR:
           std_convert_bgr_gray8(buffer,buffer,pixels);
           break;
@@ -2770,7 +2946,7 @@ void Image::DeColourise() {
           break;
         }
       } else {
-        switch (subpixelorder) {
+        switch (src_subpixelorder) {
         case ZM_SUBPIX_ORDER_BGR:
           fast_convert_bgr_gray8(buffer,buffer,pixels);
           break;
@@ -2782,6 +2958,10 @@ void Image::DeColourise() {
       } // end if pixels % 12 to use loop unrolled functions
     }
   }
+
+  colours = ZM_COLOUR_GRAY8;
+  subpixelorder = ZM_SUBPIX_ORDER_NONE;
+  size = width * height;
 }
 
 /* RGB32 compatible: complete */
@@ -6007,32 +6187,15 @@ int Image::draw_boxes(
         float score = detection["confidence"] != nullptr ? detection["confidence"] : detection["score"];
         std::string annotation = stringtf("%s %d%%", coco_class.c_str(), static_cast<int>(100*score));
 
-#if 0
-        {
-          std::vector<Vector2> coords;
-          coords.push_back(Vector2(x1, y1));
-          coords.push_back(Vector2(x2, y1));
-          coords.push_back(Vector2(x2, y2));
-          coords.push_back(Vector2(x1, y2));
-
-          Polygon poly(coords);
-          this->Outline(kRGBRed, poly);
+        // Get box color - use per-class color if provided, otherwise default to red
+        Rgb box_color = kRGBRed;
+        if (detection.contains("box_color") && !detection["box_color"].is_null()) {
+          box_color = detection["box_color"].get<Rgb>();
         }
-        {
-          std::vector<Vector2> coords;
-          coords.push_back(Vector2(x1+1, y1+1));
-          coords.push_back(Vector2(x2-1, y1+1));
-          coords.push_back(Vector2(x2-1, y2-1));
-          coords.push_back(Vector2(x1+1, y2-1));
 
-          Polygon poly(coords);
-          this->Outline(kRGBGreen, poly);
-        }
-#else
-        this->DrawBox(x1, y1, x2, y2, kRGBRed);
-        this->DrawBox(x1+1, y1+1, x2-1, y2-1, kRGBRed);
-        this->DrawBox(x1+2, y1+2, x2-2, y2-2, kRGBRed);
-#endif
+        this->DrawBox(x1, y1, x2, y2, box_color);
+        this->DrawBox(x1+1, y1+1, x2-1, y2-1, box_color);
+        this->DrawBox(x1+2, y1+2, x2-2, y2-2, box_color);
         this->Annotate(annotation.c_str(), Vector2(x1+line_width, y1+line_width),
             font_size, kRGBWhite, kRGBTransparent);
       }  // end foreach detection

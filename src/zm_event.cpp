@@ -132,7 +132,7 @@ Event::Event(
     video_incomplete_file = "incomplete."+container;
   }
 
-  std::string now_str = SystemTimePointToMysqlString(now);
+  std::string now_str = SystemTimePointToMysqlString(start_time);
 
   std::string sql = stringtf(
                       "INSERT INTO `Events` "
@@ -314,24 +314,26 @@ int Event::OpenJpegCodec(AVFrame *frame) {
 }
 
 Event::~Event() {
+  Debug(1, "~Event %" PRIu64 ": calling Stop", id);
   Stop();
 
   if (thread_.joinable()) {
-    Debug(1, "Joining event thread");
-    // Should be.  Issuing the stop and then getting the lock
+    Debug(1, "~Event %" PRIu64 ": joining Run thread", id);
     thread_.join();
+    Debug(1, "~Event %" PRIu64 ": Run thread joined", id);
   }
+  Debug(1, "~Event %" PRIu64 ": freeing packetqueue iterator", id);
   packetqueue->free_it(packetqueue_it);
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
   if (videoStore != nullptr) {
-    Debug(4, "Deleting video store");
+    Debug(1, "~Event %" PRIu64 ": deleting video store", id);
     delete videoStore;
     videoStore = nullptr;
     int result = rename(video_incomplete_path.c_str(), video_path.c_str());
     if (result != 0) {
-      Error("Failed renaming %s to %s, error: %d %s", video_incomplete_path.c_str(), video_path.c_str(), result, strerror(result));
+      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
       // So that we don't update the event record
       video_file = video_incomplete_file;
     }
@@ -355,10 +357,10 @@ Event::~Event() {
   uint64_t video_size = 0;
   DIR *video_dir;
   if ((video_dir = opendir(path.c_str())) != NULL) {
-    struct dirent *video_file;
-    while ((video_file = readdir(video_dir)) != NULL) {
+    struct dirent *dir_entry;
+    while ((dir_entry = readdir(video_dir)) != NULL) {
       struct stat vf_stat;
-      if (stat((path + "/" + video_file->d_name).c_str(), &vf_stat) == 0 &&
+      if (stat((path + "/" + dir_entry->d_name).c_str(), &vf_stat) == 0 &&
           S_ISREG(vf_stat.st_mode))
         video_size += vf_stat.st_size;
     }
@@ -367,36 +369,32 @@ Event::~Event() {
 
   std::string notes;
   createNotes(notes);
+  // Use async dbQueue instead of synchronous zmDbDoUpdate to avoid blocking
+  // the close_event_thread (which blocks the analysis thread on the next closeEvent).
+  // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
-      "UPDATE Events SET Notes='%s', Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET"
+      " Notes='%s',"
+      " Name = IF(Name='New Event', '%s%" PRIu64 "', Name),"
+      " EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d,"
+      " AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d,"
+      " MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64
+      " WHERE Id = %" PRIu64,
       zmDbEscapeString(notes).c_str(),
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id,
       static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
       delta_time.count(),
       frames, alarm_frames,
-      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
+      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
+      max_score, max_score_frame_id,
       video_file.c_str(), // defaults to ""
       video_size,
       id);
+  dbQueue.push(std::move(sql));
 
-  if (!zmDbDoUpdate(sql)) {
-    // Name might have been changed during recording, so just do the update without changing the name.
-    sql = stringtf(
-        "UPDATE Events SET Notes='%s', EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
-        zmDbEscapeString(notes).c_str(),
-        static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time)),
-        delta_time.count(),
-        frames, alarm_frames,
-        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score, max_score_frame_id,
-        video_file.c_str(), // defaults to ""
-        video_size,
-        id);
-    zmDbDoUpdate(sql);
-  }  // end if no changed rows due to Name change during recording
- 
   if (storage && storage->Id()) {
     sql = stringtf("UPDATE Storage SET DiskSpace = DiskSpace + %" PRIu64 " WHERE Id=%u", video_size, storage->Id());
-    zmDbDoUpdate(sql);
+    dbQueue.push(std::move(sql));
   }
 
   if (mJpegCodecContext) {
@@ -651,13 +649,17 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
           tag->Name(cls);
           tag->save();
           Debug(1, "Created new Tag %s", cls.c_str());
-        } else {
-          Debug(1, "Found tag for %s", cls.c_str());
         }
-
         tags.emplace(std::make_pair(cls, *tag));
-        Event_Tag event_tag(tag->Id(), id, packet->timestamp);
-        event_tag.save();
+        int tag_id = tag->Id();
+        delete tag;  // Delete after copying into map
+        tag = nullptr;
+
+        if (tag_id) {
+          // Store
+          Event_Tag event_tag(tag_id, id, packet->timestamp);
+          event_tag.save();
+        }
       } else {
         Debug(1, "Already have tag %s", cls.c_str());
         tag = &(tag_it->second);
@@ -957,6 +959,7 @@ bool Event::SetPath(Storage *storage) {
 }  // end bool Event::SetPath
 
 void Event::Run() {
+  Debug(1, "Event::Run %" PRIu64 ": starting setup", id);
   Storage *storage = monitor->getStorage();
   if (!SetPath(storage)) {
     // Try another
@@ -1053,6 +1056,7 @@ void Event::Run() {
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
+  Debug(1, "Event::Run %" PRIu64 ": entering packet loop", id);
   while (!terminate_ and !zm_terminate) {
     // I don't exactly remember why the no_wait
     ZMPacketLock packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
@@ -1061,31 +1065,26 @@ void Event::Run() {
       if (!packet->decoded) {
         Debug(1, "Not decoded");
         packet_lock.unlock();
-        // Stay behind decoder
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
-        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        packetqueue->wait_for(Microseconds(ZM_SAMPLE_RATE));
         continue;
       }
       if (!packet->analyzed) {
         Debug(1, "Not analyzed");
         packet_lock.unlock();
-        // Stay behind ai
-        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
-        Debug(1, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        packetqueue->wait_for(Microseconds(ZM_SAMPLE_RATE));
         continue;
       }
 
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
 
-      // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
-      packetqueue->increment_it(packetqueue_it, true);
+      // Use wait=false: deletePacket may have advanced our iterator to end()
+      // while we were in AddPacket_ without the queue lock.
+      packetqueue->increment_it(packetqueue_it, false);
     } else {
       if (terminate_ or zm_terminate) return;
-      usleep(30000);
-    } // end if packet_lock
+      packetqueue->wait_for(Microseconds(10000));
+    }
   }  // end while
 }  // end Run()
 

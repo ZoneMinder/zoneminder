@@ -2,11 +2,13 @@ var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
+var analyseBtn = $j('#analyseBtn');
 var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+var analyse_frames = false;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
@@ -832,7 +834,7 @@ function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
 
   monitorStream.setPlayer($j('#player').val());
-  monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream.setBottomElement(document.getElementById('bottomBlock'));
   monitorStream.controlMute(getCookie('zmWatchMute') || 'on'); // default to muted
   monitorStream.manageAvailablePlayers();
   setChannelStream();
@@ -894,6 +896,13 @@ function streamReStart(oldId, newId) {
   //Change main monitor block
   monitor_div.innerHTML = currentMonitor.streamHTML;
 
+  const volumeControls = document.getElementById('volumeControls'+oldId);
+  if (volumeControls) volumeControls.id = 'volumeControls'+newId;
+  const volumeSlider = document.getElementById('volumeSlider'+oldId);
+  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  const controlMute = document.getElementById('controlMute'+oldId);
+  if (controlMute) controlMute.id = 'controlMute'+newId;
+
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
@@ -908,6 +917,13 @@ function streamReStart(oldId, newId) {
   zmPanZoom.init();
   zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   //document.getElementById('monitor').classList.remove('hidden-shift');
+
+  // Remove Event listener for double click
+  const elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.removeEventListener('touchstart', doubleTouch);
+    el.removeEventListener('dblclick', doubleClickOnStream);
+  });
 }
 
 function setChannelStream() {
@@ -915,14 +931,16 @@ function setChannelStream() {
   manageChannelStream();
 
   if (-1 === monitorStream.activePlayer.indexOf('zms')) {
-    let streamChannelValue = (getCookie('zmStreamChannel') || currentMonitor.RTSP2WebStream && currentMonitor.SecondPath);
     // When switching monitors, cookies may store a channel from the previous monitor that the current monitor does not have.
-    streamChannel.value = streamChannelValue; // This will be easier than checking for a disabled option by going through the options. That is, we set the required option and if it is disabled, then we select the 'Primary' channel
+    let streamChannelValue = getCookie('zmStreamChannel') || currentMonitor.StreamChannel;
+    streamChannel.value = streamChannelValue;
 
+    // If the selected option is disabled, find the first enabled option
     if (streamChannel.options[streamChannel.selectedIndex] && streamChannel.options[streamChannel.selectedIndex].disabled) {
-      streamChannelValue = 'Primary';
+      const firstEnabled = streamChannel.querySelector('option:not([disabled])');
+      streamChannelValue = firstEnabled ? firstEnabled.value : 'Restream';
     }
-    monitorStream.currentChannelStream = (streamChannelValue == 'Secondary') ? 1 : 0;
+    monitorStream.currentChannelStream = streamChannelValue;
     streamChannel.value = streamChannelValue;
   }
 }
@@ -1094,7 +1112,7 @@ function initPage() {
     });
 
     // Registering an observer on an element
-    $j('[id ^= "liveStream"]').each(function() {
+    $j('[id ^= "liveStream"], .monitorStatus').each(function() {
       observer.observe(this);
     });
 
@@ -1133,6 +1151,22 @@ function watchFullscreen() {
 
 function watchAllEvents() {
   window.location.replace(currentMonitor.urlForAllEvents);
+}
+
+function toggleAnalyseFrames() {
+  analyse_frames = !analyse_frames;
+  if (analyse_frames) {
+    analyseBtn.addClass('btn-primary');
+    analyseBtn.removeClass('btn-secondary');
+    analyseBtn.attr('title', translate['Showing Analysis']);
+  } else {
+    analyseBtn.removeClass('btn-primary');
+    analyseBtn.addClass('btn-secondary');
+    analyseBtn.attr('title', translate['Show Analysis']);
+  }
+  if (monitorStream) {
+    monitorStream.show_analyse_frames(analyse_frames);
+  }
 }
 
 var cycleIntervalId;
@@ -1346,132 +1380,6 @@ function changePlayer() {
     monitorStream.start();
     onPlay();
   }, 300);*/
-}
-
-function monitorsSetScale(id=null) {
-  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  // Could be moved to monitorStream.js
-  if (id || typeof monitorStream !== 'undefined') {
-    if (monitorStream !== false) {
-      //monitorStream used on Watch page.
-      var currentMonitor = monitorStream;
-    } else if (typeof monitors !== 'undefined') {
-      //used on Montage, Watch & Event page.
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    } else {
-      //Stream is missing
-      return;
-    }
-    var panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id]) ? zmPanZoom.panZoom[id].getScale() : 1;
-
-    let resize = false;
-    let width = 'auto';
-    let maxWidth = '';
-    let height = 'auto';
-    let overrideHW = false;
-    let defScale = 0;
-    const landscape = currentMonitor.width / currentMonitor.height > 1 ? true : false; //Image orientation.
-
-    const scale = $j('#scale').val();
-    if (scale == '0') {
-      //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-      resize = true;
-    } else if (scale == '100') {
-      //Actual, 100% of original size
-      width = currentMonitor.width + 'px';
-      height = currentMonitor.height + 'px';
-    } else if (scale == 'fit_to_width') {
-      //Fit to screen width
-      width = parseInt(window.innerWidth * panZoomScale) + 'px';
-    } else if (scale.indexOf("px") > -1) {
-      if (landscape) {
-        maxWidth = scale;
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
-      } else {
-        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
-        height = scale;
-      }
-      resize = true;
-      overrideHW = true;
-    }
-
-    const liveStream = document.getElementById('liveStream'+id);
-    const monitor_div = document.getElementById('monitor'+id);
-    if (!monitor_div) {
-      console.log("No monitor div for ", id);
-      return;
-    }
-    if (resize) {
-      if (scale == '0') {
-        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
-      }
-      monitor_div.style.maxWidth = maxWidth;
-      if (!landscape) { //PORTRAIT
-        monitor_div.style.width = 'max-content';
-        liveStream.style.height = height;
-      }
-    } else {
-      liveStream.style.height = '';
-      monitor_div.style.width = width;
-      monitor_div.style.maxWidth = '';
-      if (scale == 'fit_to_width') {
-        monitor_div.style.width = '';
-      } else if (scale == '100') {
-        liveStream.style.width = width;
-      }
-    }
-    //currentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
-    if (overrideHW) {
-      if (!landscape) { //PORTRAIT
-        monitor_div.style.width = 'max-content';
-      } else {
-        liveStream.style.height = 'auto';
-        monitor_div.style.width = 'auto';
-      }
-    }
-  } else { // Not a specific stream, but all streams.
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      var panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
-
-      let resize = false;
-      let width = 'auto';
-      let height = 'auto';
-
-      const scale = $j('#scale').val();
-      if (scale == '0') {
-        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
-        resize = true;
-      } else if (scale == '100') {
-        //Actual, 100% of original size
-        width = monitors[i].width + 'px';
-        height = monitors[i].height + 'px';
-      } else if (scale == 'fit_to_width') {
-        //Fit to screen width
-        width = parseInt(window.innerWidth * panZoomScale) + 'px';
-      }
-
-      if (resize) {
-        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
-      }
-      //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
-      if (!resize) {
-        livestream = document.getElementById('liveStream'+id);
-        livestream.style.height = '';
-        if (scale == 'fit_to_width') {
-          monitor_div.style.width = '';
-        } else if (scale == '100') {
-          monitor_div.style.width = 'max-content';
-          liveStream.style.width = width;
-        }
-      }
-    } // end foreach monitor
-  }
-  setButtonSizeOnStream();
 }
 
 // Kick everything off

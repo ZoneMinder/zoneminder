@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "netint_network.h"
-#include "ni_log.h"
 #include "zm_logger.h"
 
 static int init_hwframe_scale(NiNetworkContext *network_ctx,
@@ -135,14 +134,11 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
         bool hwframe, int devid, int keep_alive_timeout, int scale_format,
         unsigned int scale_width, unsigned int scale_height, const char *nbg_file)
 {
-    int ret;
-
     if ((nbg_file == NULL) || (access(nbg_file, R_OK) != 0)) {
         Error("invalid network binary path %s", nbg_file);
         return NIERROR(EINVAL);
     }
 
-    //NiNetworkContext *network_ctx = new NiNetworkContext();
     NiNetworkContext *network_ctx = (NiNetworkContext *)calloc(1, sizeof(NiNetworkContext));
     if (!network_ctx) {
         Error("failed to allocate network context");
@@ -152,21 +148,22 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
     ni_retcode_t retval = ni_device_session_context_init(&network_ctx->npu_api_ctx);
     if (retval != NI_RETCODE_SUCCESS) {
         Error("failed to initialize npu session context");
+        free(network_ctx);
         return NIERROR(EIO);
     }
 
     if (hwframe) {
-//        network_ctx->npu_api_ctx.device_handle = devfd;
-//        network_ctx->npu_api_ctx.blk_io_handle = blkfd;
         network_ctx->npu_api_ctx.hw_action = NI_CODEC_HW_ENABLE;
     }
     network_ctx->npu_api_ctx.hw_id = devid;
     network_ctx->npu_api_ctx.device_type = NI_DEVICE_TYPE_AI;
     network_ctx->npu_api_ctx.keep_alive_timeout = keep_alive_timeout;
+
     retval = ni_device_session_open(&network_ctx->npu_api_ctx, NI_DEVICE_TYPE_AI);
     if (retval != NI_RETCODE_SUCCESS) {
-      Error("failed to open npu session. retval %d", retval);
-      return NIERROR(EIO);
+        Error("failed to open npu session. retval %d", retval);
+        free(network_ctx);
+        return NIERROR(EIO);
     }
 
     retval = ni_ai_config_network_binary(&network_ctx->npu_api_ctx,
@@ -174,37 +171,38 @@ int ni_alloc_network_context(NiNetworkContext **p_network_ctx,
                                          nbg_file);
     if (retval != NI_RETCODE_SUCCESS) {
         Error("failed to configure npu session. retval %d", retval);
-        ret = NIERROR(EIO);
-        goto failed_out;
+        ni_cleanup_network_context(network_ctx, hwframe);
+        return NIERROR(EIO);
     }
 
-    if (scale_width != 0 && scale_height != 0) {
-        if (scale_width != network_ctx->network_data.linfo.in_param[0].sizes[0] ||
-                scale_height != network_ctx->network_data.linfo.in_param[0].sizes[1]) {
-            Error("input dimensions not match: passed %dx%d, actual %dx%d",
-                    scale_width, scale_height,
-                    network_ctx->network_data.linfo.in_param[0].sizes[0],
-                    network_ctx->network_data.linfo.in_param[0].sizes[1]);
-            ret = NIERROR(EINVAL);
-            goto failed_out;
-        }
+    // Get actual model dimensions from network_data
+    unsigned int actual_width = network_ctx->network_data.linfo.in_param[0].sizes[0];
+    unsigned int actual_height = network_ctx->network_data.linfo.in_param[0].sizes[1];
+
+    // If caller passed 0,0, use actual model dimensions
+    if (scale_width == 0) scale_width = actual_width;
+    if (scale_height == 0) scale_height = actual_height;
+
+    if (scale_width != actual_width || scale_height != actual_height) {
+        Error("input dimensions not match: passed %dx%d, actual %dx%d",
+                scale_width, scale_height, actual_width, actual_height);
+        ni_cleanup_network_context(network_ctx, hwframe);
+        return NIERROR(EINVAL);
     }
 
     if (hwframe) {
-        ret = init_hwframe_scale(network_ctx, scale_format, scale_width,
+        int ret = init_hwframe_scale(network_ctx, scale_format, scale_width,
                 scale_height, devid, network_ctx->npu_api_ctx.device_handle,
                 network_ctx->npu_api_ctx.blk_io_handle, keep_alive_timeout);
         if (ret != 0) {
             Error("failed to initialize hw scale");
-            goto failed_out;
+            ni_cleanup_network_context(network_ctx, hwframe);
+            return ret;
         }
     }
+
     *p_network_ctx = network_ctx;
     return 0;
-
-failed_out:
-    ni_cleanup_network_context(network_ctx, hwframe);
-    return ret;
 }
 
 static int ni_hwframe_dwl(NiNetworkContext *network_ctx, ni_session_data_io_t *p_session_data,

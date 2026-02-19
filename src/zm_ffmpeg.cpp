@@ -60,13 +60,13 @@ static CodecData dec_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264_cuvid", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 
+  { AV_CODEC_ID_MPEG4, "mpeg4", "mpeg4", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_H265, "hevc", "hevc_cuvid", AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
-  { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
 };
 
 static CodecData enc_codecs[] = {
@@ -122,7 +122,7 @@ std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, co
         Debug(1, "Not the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
         continue;
       } else {
-        Debug(1, "Have the right codec name %s != %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
+        Debug(1, "Have the right codec name %s == %s", enc_codecs[i].codec_name, wanted_encoder.c_str());
       }
     }
     if ((!wanted_codec.empty() and (wanted_codec != "auto")) and (enc_codecs[i].codec_codec != wanted_codec)) {
@@ -137,7 +137,7 @@ std::list<const CodecData*> get_encoder_data(const std::string &wanted_codec, co
           chosen_codec_data->codec_codec,
           wanted_codec.c_str(),
           chosen_codec_data->codec_name
-	  );
+          );
     }
     const AVCodec *codec = avcodec_find_encoder_by_name(chosen_codec_data->codec_name);
     if (!codec) {

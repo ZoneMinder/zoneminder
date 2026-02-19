@@ -1,8 +1,8 @@
-name: build-native-packages-signed-aarch64
+name: build-ai_server-signed-aarch64
 
 on:
   push:
-    branches: [ master ]
+    branches: [ ai_server ]
 permissions:
   contents: write
 env:
@@ -95,13 +95,15 @@ jobs:
           git config --global --add safe.directory /__w/zoneminder/ZoneMinder_ZoneMinder.git/.git
           #git submodule init
           #git submodule update --init --recursive
+          # Cleanup previous builds
+          rm -rf ZoneMinder_zoneminder_release
           curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           ls -l /bin/bash
-          ./do_debian_package.sh -s=CURRENT -t=binary 
+          ./do_debian_package.sh -s=CURRENT -t=binary
       - name: Cleanup
         run: |
           rm -rf *_zoneminder_release *.build
@@ -133,7 +135,7 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/ai_server/mini-dinstall/incoming/
 
   release:
     name: Create GitHub Release (on tag)

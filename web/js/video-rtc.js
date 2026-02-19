@@ -335,8 +335,10 @@ export class VideoRTC extends HTMLElement {
                 for (const mode in this.onmessage) {
                     this.onmessage[mode](msg);
                 }
-            } else {
+            } else if (this.ondata) {
                 this.ondata(ev.data);
+            } else {
+              console.log('No ondata to handle', ev);
             }
         });
 

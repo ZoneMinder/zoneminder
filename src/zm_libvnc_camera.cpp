@@ -39,7 +39,7 @@ void bind_libvnc_symbols() {
 static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h) {
   VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(rfb, &TAG_0);
   data->buffer = rfb->frameBuffer;
-  Debug(1, "GotFrameBufferUpdateallback x:%d y:%d w%d h:%d width: %d, height: %d, buffer %p",
+  Debug(1, "GotFrameBufferUpdateCallback x:%d y:%d w%d h:%d width: %d, height: %d, buffer %p",
         x,y,w,h, rfb->width, rfb->height, rfb->frameBuffer);
 }
 
@@ -54,6 +54,10 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType) 
     return nullptr;
   }
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
+  if (!c) {
+    Error("Failed to allocate rfbCredential");
+    return nullptr;
+  }
 
   Debug(1, "Getcredentials: %s:%s",
         static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)),
@@ -249,7 +253,7 @@ int VncCamera::PostCapture() {
 int VncCamera::Close() {
   if (capture and mRfb) {
     if (mRfb->frameBuffer)
-      free(mRfb->frameBuffer);
+      av_free(mRfb->frameBuffer);
     (*rfbClientCleanup_f)(mRfb);
     mRfb = nullptr;
   }

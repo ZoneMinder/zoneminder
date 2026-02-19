@@ -22,6 +22,7 @@ DecoderThread::~DecoderThread() {
 }
 
 void DecoderThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
@@ -42,10 +43,11 @@ void DecoderThread::Run() {
   while (!(terminate_ or zm_terminate)) {
     if (!Decode()) {
       if (!(terminate_ or zm_terminate)) {
-        // We only sleep when Decode returns false because it is an error condition and we will spin like mad if it persists.
-        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
-        Warning("Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        // We wait on the packetqueue condition variable instead of sleeping.
+        // This allows us to wake up immediately when new packets are queued.
+        Microseconds wait_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Waiting for %" PRId64 "us", int64(wait_for.count()));
+        monitor_->GetPacketQueue()->wait_for(wait_for);
       }
     }
   }
@@ -87,6 +89,7 @@ bool DecoderThread::Decode() {
             new_decoder_queue.push_back(std::move(delayed_packet_lock));
           } else {
             delayed_packet->decoded = true;
+            delayed_packet->notify_all();
           }
 #else
             delayed_packet->decoded = true;
@@ -99,6 +102,7 @@ bool DecoderThread::Decode() {
           ZMPacketLock delayed_packet_lock = std::move(monitor_->decoder_queue.front());
           monitor_->decoder_queue.pop_front();
           delayed_packet_lock.packet_->decoded = true;
+          delayed_packet_lock.packet_->notify_all();
         }
       } // end if success opening codec
     } // end if ! mCodec
@@ -115,28 +119,51 @@ bool DecoderThread::Decode() {
   // Packets in decoder_queue have been sent but not yet received.
 
   if (!monitor_->decoder_queue.empty()) {
-    Debug(2, "Decoder queue has %zu packets, trying receive_frame", monitor_->decoder_queue.size());
-    auto &front_lock = monitor_->decoder_queue.front();
-    auto front_packet = front_lock.packet_;
+    // If decoding is on-demand and no longer needed, flush rather than
+    // trying to receive stale frames from the decoder.
+     bool needs_decoding =
+      (monitor_->decoding == Monitor::DECODING_ALWAYS) ||
+      (monitor_->decoding == Monitor::DECODING_KEYFRAMES) ||
+      ((monitor_->decoding == Monitor::DECODING_ONDEMAND) && (monitor_->hasViewers() || monitor_->shared_data->last_decoder_index == monitor_->image_buffer_count)) ||
+      ((monitor_->decoding == Monitor::DECODING_KEYFRAMESONDEMAND) && monitor_->hasViewers());
 
-    int ret = front_packet->receive_frame(monitor_->mVideoCodecContext);
-    if (ret > 0) {
-      // Success - got a decoded frame, take ownership and process it
-      packet_lock = std::move(monitor_->decoder_queue.front());
-      monitor_->decoder_queue.pop_front();
-      packet = front_packet;
-      Debug(2, "Received frame for packet %d", packet->image_index);
-      // Continue to PHASE 3 (frame processing)
-    } else if (ret < 0) {
-      // Decoder error
-      Debug(1, "receive_frame failed: %d", ret);
-      if (ret == AVERROR_EOF) {
-        monitor_->CloseDecoder();
+    if (!needs_decoding) {
+      Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
+            monitor_->decoder_queue.size());
+      avcodec_flush_buffers(monitor_->mVideoCodecContext);
+      for (auto &lock : monitor_->decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
       }
-      return false;
+      monitor_->decoder_queue.clear();
+      monitor_->packetqueue.notify_all();
+      // Fall through to Phase 2 which will skip decoding for the current packet
     } else {
-      // EAGAIN - decoder needs more input, fall through to send another packet
-      Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+      Debug(2, "Decoder queue has %zu packets, trying receive_frame", monitor_->decoder_queue.size());
+      auto &front_lock = monitor_->decoder_queue.front();
+      auto front_packet = front_lock.packet_;
+
+      int ret = front_packet->receive_frame(monitor_->mVideoCodecContext);
+      if (ret > 0) {
+        // Success - got a decoded frame, take ownership and process it
+        packet_lock = std::move(monitor_->decoder_queue.front());
+        monitor_->decoder_queue.pop_front();
+        packet = front_packet;
+        Debug(2, "Received frame for packet %d", packet->image_index);
+        // Continue to PHASE 3 (frame processing)
+      } else if (ret < 0) {
+        // Decoder error
+        Debug(1, "receive_frame failed: %d", ret);
+        if (ret == AVERROR_EOF) {
+          monitor_->CloseDecoder();
+        }
+        return false;
+      } else {
+        // EAGAIN - decoder needs more input, fall through to send another packet
+        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+      }
     }
   }
 
@@ -166,6 +193,7 @@ bool DecoderThread::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       Debug(3, "Audio packet %d, marking decoded", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
       monitor_->packetqueue.increment_it(monitor_->decoder_it, !monitor_->decoder_queue.empty());
       return true;
     }
@@ -179,12 +207,30 @@ bool DecoderThread::Decode() {
       ((monitor_->decoding == Monitor::DECODING_KEYFRAMESONDEMAND) && (monitor_->hasViewers() || packet->keyframe))
     );
 
+    if (!should_decode && !monitor_->decoder_queue.empty()) {
+      // Viewer stopped (or decoding no longer needed) while packets were
+      // queued in the decoder.  Flush the codec so we don't carry stale
+      // state, and release all queued packet locks.
+      Debug(1, "Flushing decoder: %zu packets queued but decoding no longer needed",
+          monitor_->decoder_queue.size());
+      avcodec_flush_buffers(monitor_->mVideoCodecContext);
+      for (auto &lock : monitor_->decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
+      }
+      monitor_->decoder_queue.clear();
+      monitor_->packetqueue.notify_all();
+    }
+
     if (should_decode) {
       Debug(2, "Sending packet %d to decoder", packet->image_index);
 
       if (!monitor_->mVideoCodecContext) {
         Debug(1, "No decoder");
         packet->decoded = true;
+        packet->notify_all();
         monitor_->packetqueue.increment_it(monitor_->decoder_it, (monitor_->decoder_queue.size() > 0));
         return 1;
       }
@@ -233,9 +279,10 @@ bool DecoderThread::Decode() {
   // PHASE 3: Convert decoded frame to Image
   // ===========================================================================
 
+  packet->transfer_hwframe(monitor_->mVideoCodecContext);
   if (packet->in_frame && !packet->image) {
     // Handle hardware-accelerated frames
-    packet->transfer_hwframe(monitor_->mVideoCodecContext);
+    //`packet->transfer_hwframe(monitor_->mVideoCodecContext);
 
     if (!packet->image) {
       packet->image = new Image(monitor_->camera_width, monitor_->camera_height, monitor_->camera->Colours(), monitor_->camera->SubpixelOrder());
@@ -280,6 +327,7 @@ bool DecoderThread::Decode() {
     if (monitor_->deinterlacing_value) {
       if (!monitor_->applyDeinterlacing(packet, capture_image)) {
         packet->decoded = true;
+        packet->notify_all();
         return false;
       }
     }
@@ -357,7 +405,6 @@ bool DecoderThread::Decode() {
   }
 
   packet->decoded = true;
-  // The idea is that capture is firing often enough
-  monitor_->packetqueue.notify_all();
+  packet->notify_all();
   return 1;
 }  // end DecoderThread::Decode()

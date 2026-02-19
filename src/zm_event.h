@@ -160,6 +160,7 @@ class Event {
 
   void Stop() {
     terminate_ = true;
+    packetqueue->notify_all();
   }
   bool Stopped() const { return terminate_; }
 

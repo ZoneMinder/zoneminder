@@ -113,8 +113,8 @@ function updateButtons(element) {
 }
 
 function click_AutoEmail(element) {
-  updateButtons(this);
-  if ( this.checked ) {
+  updateButtons(element);
+  if ( element.checked ) {
     $j('#EmailOptions').show();
   } else {
     $j('#EmailOptions').hide();
@@ -122,20 +122,20 @@ function click_AutoEmail(element) {
 }
 
 function click_automove(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoMoveTo]']).hide();
+    $j(element.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
 function click_autocopy(element) {
-  updateButtons(this);
-  if ( this.checked ) {
-    $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    $j(this.form.elements['filter[AutoCopyTo]']).hide();
+    $j(element.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 
@@ -197,12 +197,6 @@ function deleteFilter(element) {
   }
 }
 
-var escape = document.createElement('textarea');
-function escapeHTML(html) {
-  escape.textContent = html;
-  return escape.innerHTML;
-}
-
 function parseRows(rows) {
   for ( let rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     const queryPrefix = 'filter[Query][terms][';
@@ -222,8 +216,8 @@ function parseRows(rows) {
     if ( brackets > 0 ) { // add bracket select to all rows
       const obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       const cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
-      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
-      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
+      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
+      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"></option>');
       for ( let i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
@@ -255,8 +249,8 @@ function parseRows(rows) {
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'AlarmedZoneId' ) {
       const zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for ( monitor_id in monitors ) {
-        for ( zone_id in zones ) {
+      for ( const monitor_id in monitors ) {
+        for ( const zone_id in zones ) {
           const zone = zones[zone_id];
           if ( monitor_id == zone.MonitorId ) {
             zoneSelect.append('<option value="' + zone_id + '">' + zone.Name + '</option>');
@@ -309,8 +303,6 @@ function parseRows(rows) {
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
       const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      console.log(availableTags);
-      console.log(Object.keys(availableTags));
       availableTags.forEach((tag) => {
         tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
       });
@@ -356,7 +348,6 @@ function parseRows(rows) {
     } else {
       if ( ! opVal ) {
         // Default to equals so that something gets selected
-        console.log("No value for operator. Defaulting to =");
         opVal = '=';
       }
       for ( const key in opTypes ) {
@@ -374,7 +365,6 @@ function parseRows(rows) {
 
     const attr_element = inputTds.find("[name$='attr\\]']"); // Set attr list id and name
     const term = attr_element.attr('name').split(/[[\]]{1,2}/);
-    console.log(term);
     term.length--;
     term.shift();
     term[2] = rowNum;

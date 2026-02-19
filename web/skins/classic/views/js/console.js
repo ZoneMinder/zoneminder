@@ -85,7 +85,7 @@ function ajaxRequest(params) {
     }
 
     // Iterate over form elements instead of using serialize
-    for (var i = 0; i < form.elements.length; i++) {
+    for (let i = 0; i < form.elements.length; i++) {
       var element = form.elements[i];
       var name = element.name;
 
@@ -100,7 +100,7 @@ function ajaxRequest(params) {
       if (element.type === 'select-multiple' || (element.multiple && element.tagName === 'SELECT')) {
         // Handle multi-select dropdowns
         var selectedOptions = [];
-        for (var j = 0; j < element.options.length; j++) {
+        for (let j = 0; j < element.options.length; j++) {
           if (element.options[j].selected) {
             selectedOptions.push(element.options[j].value);
           }

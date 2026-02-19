@@ -26,6 +26,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
+#include <unistd.h>
 #include <regex>
 #include <sstream>
 #include <sys/stat.h>
@@ -369,8 +370,8 @@ void touch(const char *pathname) {
   int rc = utimensat(AT_FDCWD, pathname, nullptr, 0);
   if (rc) {
     Error("Couldn't utimensat() path %s in touch", pathname);
-    return;
   }
+  close(fd);
 }
 
 std::string UriDecode(const std::string &encoded) {
@@ -413,7 +414,7 @@ std::string UriEncode(const std::string &value) {
   while (*src) {
     std::string::value_type c = *src;
     if (c == ' ') {
-      retbuf.append("%%20");
+      retbuf.append("%20");
     } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
       retbuf.push_back(c);
     } else {

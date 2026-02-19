@@ -255,6 +255,7 @@ int main(int argc, char *argv[], char **envp) {
 
       while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
+        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
         sleep(1);
       }
       if (zm_terminate) break;
@@ -388,7 +389,9 @@ int main(int argc, char *argv[], char **envp) {
     }  // end while ! zm_terminate and connected
 
     for (std::shared_ptr<Monitor> & monitor : monitors) {
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->Close();
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->disconnect();
     }
 

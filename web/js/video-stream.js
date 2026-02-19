@@ -6,23 +6,33 @@ import {VideoRTC} from './video-rtc.js';
  */
 class VideoStream extends VideoRTC {
     set divMode(value) {
-        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
-        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
+      const monitor = this.closest('[id ^= "monitor"]');
+      if (monitor) {
+        const modeEl = monitor.querySelector('.stream-info-mode');
+        const statusEl = monitor.querySelector('.stream-info-status');
         if (modeEl) modeEl.innerText = 'Go2RTC ' + value;
         if (statusEl) statusEl.innerText = '';
-        this.setAttribute('current-mode', value.toUpperCase());
-        this.currentMode = value.toUpperCase();
+      } else {
+        console.log("NO monitor div");
+      }
+      this.currentMode = value.toUpperCase();
+      this.setAttribute('current-mode', this.currentMode);
     }
 
     set divError(value) {
-        const modeEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-mode');
-        const statusEl = this.closest('[id ^= "monitor"]').querySelector('.stream-info-status');
-        if (modeEl) {
-          const state = modeEl.innerText;
-          if (state !== 'Go2RTC loading') return;
-          modeEl.innerText = 'Go2RTC ' + 'error';
+        const monitor = this.closest('[id ^= "monitor"]');
+        if (monitor) {
+          const modeEl = monitor.querySelector('.stream-info-mode');
+          const statusEl = monitor.querySelector('.stream-info-status');
+          if (modeEl) {
+            const state = modeEl.innerText;
+            if (state !== 'Go2RTC loading') return;
+            modeEl.innerText = 'Go2RTC error';
+          }
+          if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
+        } else {
+          console.log("NO monitor div");
         }
-        if (statusEl) statusEl.innerText = 'Go2RTC ' + value;
         this.setAttribute('current-mode', 'ERROR');
         this.currentMode = 'ERROR';
     }
@@ -62,6 +72,7 @@ class VideoStream extends VideoRTC {
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
+                    this.getTracksFromStream();
                     break;
             }
         };
@@ -81,6 +92,7 @@ class VideoStream extends VideoRTC {
         if (this.pcState !== WebSocket.CLOSED) {
             this.divMode = 'RTC';
         }
+        this.getTracksFromStream();
     }
 
   pause() {
@@ -89,6 +101,18 @@ class VideoStream extends VideoRTC {
   close() {
     this.video.pause();
   }
+
+    getTracksFromStream() {
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream) {
+                setTimeout(function() { //It takes time for full playback to complete, otherwise you may not receive the tracks. This is especially true for MSE.
+                    getTracksFromStream(monitorStream);
+                }, 500);
+            }
+        }
+    }
 }
 
 customElements.define('video-stream', VideoStream);

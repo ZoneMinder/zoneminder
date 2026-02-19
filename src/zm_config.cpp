@@ -91,12 +91,12 @@ void zmLoadDBConfig() {
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
     }
+  }
 
-    if (staticConfig.SERVER_ID) {
-      Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
-    } else {
-      Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
-    }
+  if (staticConfig.SERVER_ID) {
+    Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
+  } else {
+    Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
   }
 
   staticConfig.capture_file_format = stringtf("%%s/%%0%dd-capture.jpg", config.event_image_digits);
@@ -131,7 +131,6 @@ void process_configfile(char const *configFile) {
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
     while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
       *temp_ptr-- = '\0';
-      temp_ptr--;
     }
 
     // Now look for the '=' in the middle of the line
@@ -149,7 +148,7 @@ void process_configfile(char const *configFile) {
     do {
       *temp_ptr = '\0';
       temp_ptr--;
-    } while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
+    } while ( temp_ptr >= name_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t') );
 
     // Remove leading white space and leading quotes from the value part
     white_len = strspn(val_ptr, " \t");
@@ -233,21 +232,25 @@ ConfigItem::ConfigItem(const ConfigItem &item) {
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 void ConfigItem::Copy(const ConfigItem &item) {
-  if (name) delete name;
+  delete[] name;
   name = new char[strlen(item.name)+1];
   strcpy(name, item.name);
-  if (value) delete value;
+  delete[] value;
   value = new char[strlen(item.value)+1];
   strcpy(value, item.value);
-  if (type) delete type;
+  delete[] type;
   type = new char[strlen(item.type)+1];
   strcpy(type, item.type);
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
-  accessed = false;
+  cfg_type = item.cfg_type;
+  cfg_value = item.cfg_value;
+  accessed = item.accessed;
 }
 
 ConfigItem::~ConfigItem() {

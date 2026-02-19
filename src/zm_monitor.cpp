@@ -19,6 +19,7 @@
 
 #include "zm_monitor.h"
 
+#include "zm_db.h"
 #include "zm_eventstream.h"
 #include "zm_ffmpeg_camera.h"
 #include "zm_fifo.h"
@@ -89,13 +90,13 @@ struct Namespace namespaces[] = {
 // It will be used wherever a Monitor dbrow is needed.
 std::string load_monitor_sql =
   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
-  "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+  "`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, `AnalysisImageOpacity`, "
    "`ObjectDetection`, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-  "`RTSP2WebEnabled`, `RTSP2WebType`, `RTSP2WebStream`+0, "
+  "`RTSP2WebEnabled`, `RTSP2WebType`, `StreamChannel`+0,"
   "`Go2RTCEnabled`, "
   "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
-  "`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
+  "`Restream`, `RTSP_User`, `Janus_RTSP_Session_Timeout`, "
   "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
   "`AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
   "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, "
@@ -163,8 +164,8 @@ Monitor::Monitor() :
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
-  janus_use_rtsp_restream(false),
-  janus_rtsp_user(0),
+  restream(false),
+  rtsp_user(0),
   janus_rtsp_session_timeout(0),
   curl(nullptr),
   //protocol
@@ -339,11 +340,12 @@ std::string TriggerState_Strings[] = {"Cancel", "On", "Off"};
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0,"
-   " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   " `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, `AnalysisImageOpacity`,"
    "`ObjectDetection`, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`, "
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, `RTSP2WebStream`+0,"
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+   " RTSP2WebEnabled, RTSP2WebType, `StreamChannel`+0,"
    " GO2RTCEnabled, "
-   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
+   "JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Restream, RTSP_User, Janus_RTSP_Session_Timeout,"
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -407,6 +409,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   analysis_image = (AnalysisImageOption)atoi(dbrow[col]);
   col++;
+  analysis_image_opacity = dbrow[col] ? atoi(dbrow[col]) : 128;
+  col++;
   std::string od = dbrow[col]; col++;
   if (od == "none") {
     objectdetection = OBJECT_DETECTION_NONE;
@@ -439,7 +443,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]);
   col++;
-  RTSP2Web_stream = (RTSP2WebStreamOption)atoi(dbrow[col]);
+  stream_channel = (StreamChannelOption)atoi(dbrow[col]) ;
   col++;
 
   Go2RTC_enabled = dbrow[col] ? atoi(dbrow[col]) : false;
@@ -451,9 +455,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   col++;
   janus_profile_override = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
-  janus_use_rtsp_restream = dbrow[col] ? atoi(dbrow[col]) : false;
+  restream = dbrow[col] ? atoi(dbrow[col]) : false;
   col++;
-  janus_rtsp_user = dbrow[col] ? atoi(dbrow[col]) : 0;
+  rtsp_user = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
   janus_rtsp_session_timeout = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
@@ -802,6 +806,11 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
+  // Load AI detection settings for this monitor (if object detection is enabled)
+  if (objectdetection != OBJECT_DETECTION_NONE) {
+    LoadAIDetectionSettings();
+  }
+
 }  // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
 void Monitor::LoadCamera() {
@@ -896,6 +905,111 @@ void Monitor::LoadCamera() {
       break;
     }
   }
+}
+
+void Monitor::LoadAIDetectionSettings() {
+  ai_detection_settings.clear();
+
+  // Query to get AI detection settings for this monitor
+  // If no monitor-specific setting exists, we'll get the global setting (MonitorId IS NULL)
+  // Monitor-specific settings override global settings
+  std::string sql = stringtf(
+    "SELECT oc.Id, oc.ClassName, "
+    "COALESCE(ms.Enabled, gs.Enabled, 1) AS Enabled, "
+    "COALESCE(ms.ConfidenceThreshold, gs.ConfidenceThreshold, 50) AS ConfidenceThreshold, "
+    "COALESCE(ms.BoxColor, gs.BoxColor, '#FF0000') AS BoxColor "
+    "FROM AI_Object_Classes oc "
+    "LEFT JOIN AI_Detection_Settings ms ON oc.Id = ms.ObjectClassId AND ms.MonitorId = %u "
+    "LEFT JOIN AI_Detection_Settings gs ON oc.Id = gs.ObjectClassId AND gs.MonitorId IS NULL",
+    id);
+
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
+    Debug(1, "No AI detection settings found or query failed for monitor %u", id);
+    return;
+  }
+
+  while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
+    AIDetectionSetting setting;
+    setting.class_id = atoi(dbrow[0]);
+    setting.class_name = dbrow[1] ? dbrow[1] : "";
+    setting.enabled = dbrow[2] ? (atoi(dbrow[2]) != 0) : true;
+    setting.confidence_threshold = dbrow[3] ? atoi(dbrow[3]) : 50;
+
+    // Parse hex color string (e.g., "#FF0000") to Rgb
+    std::string color_str = dbrow[4] ? dbrow[4] : "#FF0000";
+    if (!color_str.empty() && color_str[0] == '#') {
+      color_str = color_str.substr(1);
+    }
+    setting.box_color = strtol(color_str.c_str(), nullptr, 16);
+
+    ai_detection_settings[setting.class_name] = setting;
+    Debug(2, "Loaded AI detection setting for class '%s': enabled=%d, threshold=%d, color=0x%06X",
+          setting.class_name.c_str(), setting.enabled, setting.confidence_threshold, setting.box_color);
+  }
+  mysql_free_result(result);
+
+  Debug(1, "Loaded %zu AI detection settings for monitor %u", ai_detection_settings.size(), id);
+}
+
+nlohmann::json Monitor::FilterDetections(const nlohmann::json &detections) {
+  // If no settings loaded, return all detections unfiltered
+  if (ai_detection_settings.empty()) {
+    return detections;
+  }
+
+  nlohmann::json filtered;
+  for (const auto &detection : detections) {
+    std::string class_name;
+    if (detection.contains("class") && !detection["class"].is_null()) {
+      class_name = detection["class"].get<std::string>();
+    } else if (detection.contains("name") && !detection["name"].is_null()) {
+      class_name = detection["name"].get<std::string>();
+    } else {
+      // No class name, skip this detection
+      continue;
+    }
+
+    // Look up settings for this class
+    auto it = ai_detection_settings.find(class_name);
+    if (it == ai_detection_settings.end()) {
+      // Class not in settings, include by default with global threshold
+      filtered.push_back(detection);
+      continue;
+    }
+
+    const AIDetectionSetting &setting = it->second;
+
+    // Check if class is enabled
+    if (!setting.enabled) {
+      Debug(3, "Filtering out detection of class '%s' (disabled)", class_name.c_str());
+      continue;
+    }
+
+    // Check confidence threshold
+    float confidence = 0.0f;
+    if (detection.contains("confidence") && !detection["confidence"].is_null()) {
+      confidence = detection["confidence"].get<float>();
+    } else if (detection.contains("score") && !detection["score"].is_null()) {
+      confidence = detection["score"].get<float>();
+    }
+
+    // Confidence is typically 0-1, threshold is 0-100
+    int confidence_pct = static_cast<int>(confidence * 100);
+    if (confidence_pct < setting.confidence_threshold) {
+      Debug(3, "Filtering out detection of class '%s' (confidence %d%% < threshold %d%%)",
+            class_name.c_str(), confidence_pct, setting.confidence_threshold);
+      continue;
+    }
+
+    // Add the box_color to the detection so draw_boxes can use it
+    nlohmann::json filtered_detection = detection;
+    filtered_detection["box_color"] = setting.box_color;
+    filtered.push_back(filtered_detection);
+  }
+
+  Debug(2, "Filtered detections: %zu of %zu passed", filtered.size(), detections.size());
+  return filtered;
 }
 
 std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones,
@@ -1246,12 +1360,12 @@ bool Monitor::disconnect() {
     return false;
   }
 
-  shm_id = 0;
-
   if ((shm_data.shm_nattch <= 1) and (shmctl(shm_id, IPC_RMID, 0) < 0)) {
     Debug(3, "Can't shmctl: %s", strerror(errno));
     return false;
   }
+
+  shm_id = 0;
 
   if (shmdt(mem_ptr) < 0) {
     Debug(3, "Can't shmdt: %s", strerror(errno));
@@ -2261,12 +2375,11 @@ int Monitor::Analyse() {
         } // end if score or not
 
         if (event) {
-          Debug(1, "Deciding if we should close event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64 "close mode %d",
+          Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
-                static_cast<int64>(
-                    std::chrono::duration_cast<Seconds>(event->Duration())
-                        .count()),
-                event_close_mode);
+                std::chrono::duration_cast<FPSeconds>(event->Duration()).count(),
+                event_close_mode
+               );
           if (event->Duration() >= min_section_length) {
             // If doing record, check to see if we need to close the event or
             // not.
@@ -2515,6 +2628,7 @@ int Monitor::Analyse() {
     } // end if !event
   }  // end scope for event_lock
   packet->analyzed = true;
+  packet->notify_all();  // Wake up event thread waiting for analyzed
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
@@ -2560,8 +2674,10 @@ std::pair<int, std::string> Monitor::Analyse_MxAccl(std::shared_ptr<ZMPacket> pa
         Debug(1, "AI took: %.2f seconds", FPSeconds(endtime - starttime).count());
       }
 #endif
-      last_detection_count = 2;
-      const nlohmann::json detections = mx_accl->receive_detections(mx_accl_job, objectdetection_object_threshold);
+      last_detection_count = motion_frame_skip;
+      const nlohmann::json raw_detections = mx_accl->receive_detections(mx_accl_job, objectdetection_object_threshold);
+      // Filter detections based on per-class AI detection settings
+      const nlohmann::json detections = FilterDetections(raw_detections);
       if (detections.size()) {
         Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
         ai_image->draw_boxes(detections, LabelSize(), LabelSize());
@@ -2575,6 +2691,7 @@ std::pair<int, std::string> Monitor::Analyse_MxAccl(std::shared_ptr<ZMPacket> pa
     } else { // skipping
       if (last_detection_count >0 and last_detections.size()) {
         Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
+        // last_detections is already filtered
         ai_image->draw_boxes(last_detections, LabelSize(), LabelSize());
         packet->ai_image = ai_image;
         // Populate ai_frame as well
@@ -2644,7 +2761,7 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
           do {
             ret = quadra_yolo->receive_detection(packet);
             if (0 < ret) {
-              last_detection_count = 2;
+              last_detection_count = motion_frame_skip;
               endtime = std::chrono::system_clock::now();
               if (endtime - starttime > Seconds(1)) {
                 Warning("AI receive is too slow: %.2f seconds", FPSeconds(endtime - starttime).count());
@@ -2664,7 +2781,8 @@ std::pair<int, std::string> Monitor::Analyse_Quadra(std::shared_ptr<ZMPacket> pa
               quadra_yolo = nullptr;
             } else {
               // EAGAIN
-              Debug(1, "ret %d EAGAIN, sleeping 10 millis", ret);
+              count--;
+              Debug(1, "ret %d EAGAIN (%d retries left), sleeping 10 millis", ret, count);
               std::this_thread::sleep_for(Microseconds(10000));
             }
           } while (ret == 0 and count > 0);
@@ -2793,8 +2911,10 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
   Debug(1, "CURL detections %s", detections.dump().c_str());
   if (detections.size()) {// and detections["predictions"] and detections["predictions"].size()) {
     Debug(1, "CURL Doing draw_boxes camera dims %dx%d", camera_width, camera_height);
-    nlohmann::json predictions = detections["predictions"];
-    predictions = scale_coordinates(predictions, camera_width/640.0, camera_height/640.0, camera_width, camera_height);
+    nlohmann::json raw_predictions = detections["predictions"];
+    raw_predictions = scale_coordinates(raw_predictions, camera_width/640.0, camera_height/640.0, camera_width, camera_height);
+    // Filter detections based on per-class AI detection settings
+    nlohmann::json predictions = FilterDetections(raw_predictions);
     last_detections = predictions;
 
     Image *ai_image = new Image(packet->in_frame.get(), packet->in_frame->width, packet->in_frame->height); //copies
@@ -2804,8 +2924,8 @@ std::pair<int, std::string> Monitor::Analyse_UVICORN(std::shared_ptr<ZMPacket> p
     packet->ai_frame = av_frame_ptr(av_frame_alloc());
     ai_image->PopulateFrame(packet->ai_frame.get());
 
-    packet->detections = detections["predictions"];
-    last_detection_count  = 10;
+    packet->detections = predictions;  // Store filtered detections
+    last_detection_count = motion_frame_skip;
     endtime = std::chrono::system_clock::now();
     Debug(1, "UVICORN took: %.3f seconds to drawboxes.", FPSeconds(endtime - partial_starttime).count());
     partial_starttime = endtime;
@@ -2873,12 +2993,26 @@ std::pair<int, std::string> Monitor::Analyse_MotionDetection(std::shared_ptr<ZMP
       int zone_index = 0;
       for (const Zone &zone : zones) {
         const ZoneStats &stats = zone.GetStats();
-        stats.DumpToLog("After detect motion");
         packet->zone_stats.push_back(stats);
         if (zone.Alarmed()) {
           if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
-          packet->alarm_cause += std::string(zone.Label());
-          if (zone.AlarmImage()) packet->analysis_image->Overlay(*(zone.AlarmImage())); // should be a 1bit image
+          packet->alarm_cause += zone.Label();
+          if (zone.AlarmImage()) {
+            // Determine zone colour based on type
+            Rgb zone_colour;
+            if (zone.IsActive()) {
+              zone_colour = kRGBRed;
+            } else if (zone.IsInclusive()) {
+              zone_colour = kRGBOrange;
+            } else if (zone.IsExclusive()) {
+              zone_colour = kRGBPurple;
+            } else if (zone.IsPreclusive()) {
+              zone_colour = kRGBBlue;
+            } else {
+              zone_colour = kRGBWhite;
+            }
+            packet->analysis_image->Overlay(*(zone.AlarmImage()), zone_colour, analysis_image_opacity);
+          }
         }
         Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
         zone_scores[zone_index] = zone.Score();
@@ -3120,6 +3254,7 @@ int Monitor::Capture() {
       shared_data->last_capture_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
+      packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->capture_image_count);
@@ -3566,12 +3701,23 @@ Event * Monitor::openEvent(
       logTerm();
       int fdlimit = (int)sysconf(_SC_OPEN_MAX);
       for (int i = 0; i < fdlimit; i++) close(i);
-      execlp(event_start_command.c_str(), event_start_command.c_str(),
-             std::to_string(event->Id()).c_str(),
-             std::to_string(event->MonitorId()).c_str(), nullptr);
-      logInit(log_id.c_str());
-      Error("Error execing %s: %s", event_start_command.c_str(),
-            strerror(errno));
+      if (event_start_command.find('%') != std::string::npos) {
+        std::string cmd = ReplaceAll(ReplaceAll(
+            ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
+            "%MID%", std::to_string(event->MonitorId())),
+            "%EC%", ShellEscape(cause));
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+      } else {
+        execlp(event_start_command.c_str(),
+               event_start_command.c_str(),
+               std::to_string(event->Id()).c_str(),
+               std::to_string(event->MonitorId()).c_str(),
+               nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      }
       std::quick_exit(0);
     }
   }
@@ -3593,29 +3739,40 @@ void Monitor::closeEvent() {
   if (mqtt) mqtt->send(stringtf("event end: %" PRId64, event->Id()));
 #endif
   Debug(1, "Starting thread to close event");
-  close_event_thread = std::thread(
-      [](Event *e, const std::string &command) {
-        int64_t event_id = e->Id();
-        int monitor_id = e->MonitorId();
-        delete e;
+  close_event_thread = std::thread([](Event *e, const std::string &command) {
+    int64_t event_id = e->Id();
+    int monitor_id = e->MonitorId();
+    Debug(1, "close_event_thread: deleting event %" PRId64, event_id);
+    delete e;
+    Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
-        if (!command.empty()) {
-          if (fork() == 0) {
-            Logger *log = Logger::fetch();
-            std::string log_id = log->id();
-            logTerm();
-            int fdlimit = (int)sysconf(_SC_OPEN_MAX);
-            for (int i = 0; i < fdlimit; i++) close(i);
-            execlp(command.c_str(), command.c_str(),
-                   std::to_string(event_id).c_str(),
-                   std::to_string(monitor_id).c_str(), nullptr);
-            logInit(log_id.c_str());
-            Error("Error execing %s: %s", command.c_str(), strerror(errno));
-            std::quick_exit(0);
-          }
+    if (!command.empty()) {
+      if (fork() == 0) {
+        Logger *log = Logger::fetch();
+        std::string log_id = log->id();
+        logTerm();
+        int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+        for (int i = 0; i < fdlimit; i++) close(i);
+        if (command.find('%') != std::string::npos) {
+          std::string cmd = ReplaceAll(
+              ReplaceAll(command, "%EID%", std::to_string(event_id)),
+              "%MID%", std::to_string(monitor_id));
+          execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+        } else {
+          execlp(command.c_str(),
+                 command.c_str(),
+                 std::to_string(event_id).c_str(),
+                 std::to_string(monitor_id).c_str(),
+                 nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", command.c_str(), strerror(errno));
         }
-      },
-      event, event_end_command);
+        std::quick_exit(0);
+      }
+    }
+  }, event, event_end_command);
   Debug(1, "Nulling event");
   event = nullptr;
   if (shared_data) video_store_data->recording = {};
@@ -3763,95 +3920,89 @@ unsigned int Monitor::DetectMotion(const Image &comp_image,
 // TODO: Move the camera specific things to the camera classes and avoid these
 // casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {
-  output[0] = 0;
+  // Use std::string for safe concatenation, then copy to output buffer
+  std::string result;
+  result.reserve(8192);
 
-  sprintf(output + strlen(output), "Id : %u\n", id);
-  sprintf(output + strlen(output), "Name : %s\n", name.c_str());
-  sprintf(
-      output + strlen(output), "Type : %s\n",
-      camera->IsLocal() ? "Local" : (camera->IsRemote() ? "Remote" : "File"));
+  result += stringtf("Id : %u\n", id);
+  result += stringtf("Name : %s\n", name.c_str());
+  result += stringtf("Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File"));
 #if ZM_HAS_V4L2
-  if (camera->IsLocal()) {
-    LocalCamera *cam = static_cast<LocalCamera *>(camera.get());
-    sprintf(output + strlen(output), "Device : %s\n", cam->Device().c_str());
-    sprintf(output + strlen(output), "Channel : %d\n", cam->Channel());
-    sprintf(output + strlen(output), "Standard : %d\n", cam->Standard());
+  if ( camera->IsLocal() ) {
+    LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
+    result += stringtf("Device : %s\n", cam->Device().c_str());
+    result += stringtf("Channel : %d\n", cam->Channel());
+    result += stringtf("Standard : %d\n", cam->Standard());
   } else
-#endif  // ZM_HAS_V4L2
-    if (camera->IsRemote()) {
-      RemoteCamera *cam = static_cast<RemoteCamera *>(camera.get());
-      sprintf(output + strlen(output), "Protocol : %s\n",
-              cam->Protocol().c_str());
-      sprintf(output + strlen(output), "Host : %s\n", cam->Host().c_str());
-      sprintf(output + strlen(output), "Port : %s\n", cam->Port().c_str());
-      sprintf(output + strlen(output), "Path : %s\n", cam->Path().c_str());
-    } else if (camera->IsFile()) {
-      FileCamera *cam = static_cast<FileCamera *>(camera.get());
-      sprintf(output + strlen(output), "Path : %s\n", cam->Path().c_str());
-    } else if (camera->IsFfmpeg()) {
-      FfmpegCamera *cam = static_cast<FfmpegCamera *>(camera.get());
-      sprintf(output + strlen(output), "Path : %s\n", cam->Path().c_str());
+#endif // ZM_HAS_V4L2
+    if ( camera->IsRemote() ) {
+      RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
+      result += stringtf("Protocol : %s\n", cam->Protocol().c_str());
+      result += stringtf("Host : %s\n", cam->Host().c_str());
+      result += stringtf("Port : %s\n", cam->Port().c_str());
+      result += stringtf("Path : %s\n", cam->Path().c_str());
+    } else if ( camera->IsFile() ) {
+      FileCamera* cam = static_cast<FileCamera*>(camera.get());
+      result += stringtf("Path : %s\n", cam->Path().c_str());
+    } else if ( camera->IsFfmpeg() ) {
+      FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
+      result += stringtf("Path : %s\n", cam->Path().c_str());
     }
-  sprintf(output + strlen(output), "Width : %u\n", camera->Width());
-  sprintf(output + strlen(output), "Height : %u\n", camera->Height());
+  result += stringtf("Width : %u\n", camera->Width());
+  result += stringtf("Height : %u\n", camera->Height());
 #if ZM_HAS_V4L2
-  if (camera->IsLocal()) {
-    LocalCamera *cam = static_cast<LocalCamera *>(camera.get());
-    sprintf(output + strlen(output), "Palette : %d\n", cam->Palette());
+  if ( camera->IsLocal() ) {
+    LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
+    result += stringtf("Palette : %d\n", cam->Palette());
   }
 #endif  // ZM_HAS_V4L2
-  sprintf(output + strlen(output), "Colours : %u\n", camera->Colours());
-  sprintf(output + strlen(output), "Subpixel Order : %u\n",
-          camera->SubpixelOrder());
-  sprintf(output + strlen(output), "Event Prefix : %s\n", event_prefix.c_str());
-  sprintf(output + strlen(output), "Label Format : %s\n", label_format.c_str());
-  sprintf(output + strlen(output), "Label Coord : %d,%d\n", label_coord.x_,
-          label_coord.y_);
-  sprintf(output + strlen(output), "Label Size : %d\n", label_size);
-  sprintf(output + strlen(output), "Image Buffer Count : %d\n",
-          image_buffer_count);
-  sprintf(output + strlen(output), "Warmup Count : %d\n", warmup_count);
-  sprintf(output + strlen(output), "Pre Event Count : %d\n", pre_event_count);
-  sprintf(output + strlen(output), "Post Event Count : %d\n", post_event_count);
-  sprintf(output + strlen(output), "Stream Replay Buffer : %d\n",
-          stream_replay_buffer);
-  sprintf(output + strlen(output), "Alarm Frame Count : %d\n",
-          alarm_frame_count);
-  sprintf(output + strlen(output), "Section Length : %" PRIi64 "\n",
+  result += stringtf("Colours : %u\n", camera->Colours());
+  result += stringtf("Subpixel Order : %u\n", camera->SubpixelOrder());
+  result += stringtf("Event Prefix : %s\n", event_prefix.c_str());
+  result += stringtf("Label Format : %s\n", label_format.c_str());
+  result += stringtf("Label Coord : %d,%d\n", label_coord.x_, label_coord.y_);
+  result += stringtf("Label Size : %d\n", label_size);
+  result += stringtf("Image Buffer Count : %d\n", image_buffer_count);
+  result += stringtf("Warmup Count : %d\n", warmup_count);
+  result += stringtf("Pre Event Count : %d\n", pre_event_count);
+  result += stringtf("Post Event Count : %d\n", post_event_count);
+  result += stringtf("Stream Replay Buffer : %d\n", stream_replay_buffer);
+  result += stringtf("Alarm Frame Count : %d\n", alarm_frame_count);
+  result += stringtf("Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(section_length).count()));
-  sprintf(output + strlen(output), "Min Section Length : %" PRIi64 "\n",
+  result += stringtf("Min Section Length : %" PRIi64 "\n",
           static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(
-      output + strlen(output), "Maximum FPS : %.2f\n",
+  result += stringtf("Maximum FPS : %.2f\n",
       capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
-  sprintf(output + strlen(output), "Alarm Maximum FPS : %.2f\n",
+  result += stringtf("Alarm Maximum FPS : %.2f\n",
           alarm_capture_delay != Seconds(0)
               ? 1 / FPSeconds(alarm_capture_delay).count()
               : 0.0);
-  sprintf(output + strlen(output), "Reference Blend %%ge : %d\n",
-          ref_blend_perc);
-  sprintf(output + strlen(output), "Alarm Reference Blend %%ge : %d\n",
-          alarm_ref_blend_perc);
-  sprintf(output + strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output + strlen(output), "Capturing %d - %s\n", capturing,
+  result += stringtf("Reference Blend %%ge : %d\n", ref_blend_perc);
+  result += stringtf("Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
+  result += stringtf("Track Motion : %d\n", track_motion);
+  result += stringtf("Capturing %d - %s\n", capturing,
           Capturing_Strings[shared_data->capturing].c_str());
-  sprintf(output + strlen(output), "Analysing %d - %s\n", analysing,
+  result += stringtf("Analysing %d - %s\n", analysing,
           Analysing_Strings[analysing].c_str());
-  sprintf(output + strlen(output), "Recording %d - %s\n", recording,
+  result += stringtf("Recording %d - %s\n", recording,
           Recording_Strings[recording].c_str());
-  sprintf(output + strlen(output), "Zones : %zu\n", zones.size());
+  result += stringtf("Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
-    zone.DumpSettings(output + strlen(output), verbose);
+    result += zone.DumpSettings(verbose);
   }
-  sprintf(output + strlen(output), "Capturing Enabled? %s\n",
+  result += stringtf("Capturing Enabled? %s\n",
           (shared_data->capturing != CAPTURING_NONE) ? "enabled" : "disabled");
-  sprintf(output + strlen(output), "Motion Detection Enabled? %s\n",
+  result += stringtf("Motion Detection Enabled? %s\n",
           (shared_data->analysing != ANALYSING_NONE) ? "enabled" : "disabled");
-  sprintf(output + strlen(output), "Recording Enabled? %s\n",
+  result += stringtf("Recording Enabled? %s\n",
           (shared_data->recording != RECORDING_NONE) ? "enabled" : "disabled");
-  sprintf(
-      output + strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n",
-      (trigger_data->trigger_state == TRIGGER_OFF) ? "disabled" : "enabled");
+  result += stringtf("Events Enabled (!TRIGGER_OFF)? %s\n",
+          (trigger_data->trigger_state == TRIGGER_OFF) ? "disabled" : "enabled");
+
+  // Copy to output buffer (caller provides 16KB buffer)
+  strncpy(output, result.c_str(), 16382 - 1);
+  output[16382 - 1] = '\0';
   return true;
 }  // bool Monitor::DumpSettings(char *output, bool verbose)
 

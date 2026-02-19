@@ -150,20 +150,6 @@ TEST_CASE("ONVIF Subscription Cleanup Logic") {
   }
 }
 
-// Helper function from zm_monitor_onvif.cpp for testing
-// Format an absolute time as ISO 8601 string for ONVIF RenewRequest
-// Returns a string like "2026-01-13T15:30:45.000Z"
-std::string format_absolute_time_iso8601(time_t time) {
-  struct tm *tm_utc = gmtime(&time);
-  if (!tm_utc) {
-    return "";
-  }
-  
-  char buffer[32];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
-  return std::string(buffer);
-}
-
 // Test the ISO 8601 absolute time formatting for ONVIF renewal requests
 TEST_CASE("ONVIF Absolute Time Formatting") {
   SECTION("Format known timestamp as ISO 8601") {

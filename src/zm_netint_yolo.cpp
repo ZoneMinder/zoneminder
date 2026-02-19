@@ -191,21 +191,28 @@ bool Quadra_Yolo::setup(
     return false;
   }
 
-  Debug(1, "Model %s: %dx%d, color order: %s",
-      nbg_file.c_str(), model_width, model_height, model_bgr ? "BGR" : "RGB");
+  Debug(1, "Model %s: color order: %s, parsed dimensions: %dx%d",
+      nbg_file.c_str(), model_bgr ? "BGR" : "RGB", model_width, model_height);
 
   //std::string device = monitor->DecoderHWAccelDevice();
   //int devid = device.empty() ? -1 : std::stoi(device);
   int devid = deviceid;
 
-  Debug(1, "Setup NETint %s using %s on %d, use hwframe %d %dx%d", model_name.c_str(), nbg_file.c_str(), devid, use_hwframe, model_width, model_height);
+  // Pass 0,0 for dimensions initially - let ni_ai_config_network_binary determine
+  // the actual model dimensions, then we'll read them from network_data
+  Debug(1, "Setup NETint %s using %s on %d, use hwframe %d", model_name.c_str(), nbg_file.c_str(), devid, use_hwframe);
   int ret = ni_alloc_network_context(&network_ctx, use_hwframe,
-      devid /*dev_id*/, 30 /* keep alive */, model_format, model_width, model_height, nbg_file.c_str());
+      devid /*dev_id*/, 30 /* keep alive */, model_format, 0, 0, nbg_file.c_str());
   if (ret != 0) {
     Error("failed to allocate network context on card %d", devid);
     model = nullptr;
     return false;
   }
+
+  // Read actual model dimensions from the loaded network data
+  model_width = static_cast<int>(network_ctx->network_data.linfo.in_param[0].sizes[0]);
+  model_height = static_cast<int>(network_ctx->network_data.linfo.in_param[0].sizes[1]);
+  Debug(1, "Actual model dimensions from network_data: %dx%d", model_width, model_height);
 
   model_ctx = new YoloModelCtx();
   ret = model->create_model(model_ctx, &network_ctx->network_data, obj_thresh, nms_thresh, model_width, model_height);
@@ -448,9 +455,13 @@ int Quadra_Yolo::draw_roi_box_in_place(
     AVFrame *inframe,
     AVRegionOfInterest roi,
     AVRegionOfInterestNetintExtra roi_extra,
-    int line_width=1) {
+    int line_width,
+    Rgb box_color) {
 
-  Rgb box_color = ObjectClasses::getDetectionBoxColor(roi_extra.cls);
+  // Use provided color, or fall back to default class-based color
+  if (box_color == 0) {
+    box_color = ObjectClasses::getDetectionBoxColor(roi_extra.cls);
+  }
   Image in_image(inframe);
 
   for (int i=0; i<line_width; i++) {
@@ -464,11 +475,20 @@ int Quadra_Yolo::draw_roi_box(
     AVFrame **outframe,
     AVRegionOfInterest roi,
     AVRegionOfInterestNetintExtra roi_extra,
-    int line_width=1) {
+    int line_width,
+    Rgb box_color) {
 
   SystemTimePoint starttime = std::chrono::system_clock::now();
 
-  const char *color = ObjectClasses::getDetectionColorString(roi_extra.cls);
+  // Convert Rgb to color string for filter, or use default class-based color
+  const char *color;
+  char color_buf[16];
+  if (box_color != 0) {
+    snprintf(color_buf, sizeof(color_buf), "0x%06X", box_color);
+    color = color_buf;
+  } else {
+    color = ObjectClasses::getDetectionColorString(roi_extra.cls);
+  }
 
   for (int i=0; i<line_width; i++) {
     int x = roi.left + i;
@@ -551,11 +571,31 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
   Debug(1, "Num, detections %d from sd %ld size / roi size %d", num, sd->size, roi->self_size);
 
   for (int i = 0; i < num; i++) {
+    std::string class_name = object_classes_.getClassName(roi_extra[i].cls);
     std::array<int, 4> bbox = {roi[i].left, roi[i].top, roi[i].right, roi[i].bottom};
-    detections.push_back({{"class", object_classes_.getClassName(roi_extra[i].cls)}, {"bbox", bbox}, {"score", roi_extra[i].prob}});
+    nlohmann::json detection = {{"class", class_name}, {"bbox", bbox}, {"score", roi_extra[i].prob}};
+
+    // Filter through monitor's AI detection settings
+    nlohmann::json temp_array = nlohmann::json::array();
+    temp_array.push_back(detection);
+    nlohmann::json filtered = monitor->FilterDetections(temp_array);
+    if (filtered.empty()) {
+      Debug(3, "Quadra: Filtering out detection of class '%s'", class_name.c_str());
+      continue;  // Skip this detection - filtered out
+    }
+
+    // Detection passed filtering, add to results and annotate
+    nlohmann::json filtered_detection = filtered[0];
+    detections.push_back(filtered_detection);
+
+    // Get box color from filtered detection (set by FilterDetections)
+    Rgb box_color = 0;
+    if (filtered_detection.contains("box_color") && !filtered_detection["box_color"].is_null()) {
+      box_color = filtered_detection["box_color"].get<Rgb>();
+    }
 
     AVFrame *output = nullptr;
-    annotate(input, &output, roi[i], roi_extra[i]);
+    annotate(input, &output, roi[i], roi_extra[i], box_color);
     if (output) {
       if (input != in_frame and input != output) av_frame_free(&input);
       input = output;
@@ -625,17 +665,18 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
 int Quadra_Yolo::annotate(
     AVFrame *in_frame, AVFrame **output,
     const AVRegionOfInterest &roi,
-    const AVRegionOfInterestNetintExtra &roi_extra
+    const AVRegionOfInterestNetintExtra &roi_extra,
+    Rgb box_color
     ) {
   AVFrame *input = in_frame;
   if (drawbox) {
 #if SOFTWARE_DRAWBOX
-    int ret = draw_roi_box_in_place(input, roi, roi_extra, monitor->LabelSize());
+    int ret = draw_roi_box_in_place(input, roi, roi_extra, monitor->LabelSize(), box_color);
     if (ret < 0) Error("draw roi box failed");
 #else
     AVFrame *drawbox_output = nullptr;
     zm_dump_video_frame(input, "Quadra: drawbox input");
-    int ret = draw_roi_box(input, &drawbox_output, roi, roi_extra, monitor->LabelSize());
+    int ret = draw_roi_box(input, &drawbox_output, roi, roi_extra, monitor->LabelSize(), box_color);
     if (ret < 0) {
       Error("draw roi box failed %d %s", ret, av_make_error_string(ret).c_str());
     } else {
@@ -704,9 +745,27 @@ int Quadra_Yolo::draw_last_roi(std::shared_ptr<ZMPacket> packet) {
   if (!input) return 1;
 
   for (int i = 0; i < last_roi_count; i++) {
+    // Apply same filtering as in process_roi
+    std::string class_name = object_classes_.getClassName(last_roi_extra[i].cls);
+    nlohmann::json detection = {{"class", class_name}, {"score", last_roi_extra[i].prob}};
+    nlohmann::json temp_array = nlohmann::json::array();
+    temp_array.push_back(detection);
+    nlohmann::json filtered = monitor->FilterDetections(temp_array);
+    if (filtered.empty()) {
+      Debug(3, "Quadra: draw_last_roi filtering out detection of class '%s'", class_name.c_str());
+      continue;  // Skip this detection - filtered out
+    }
+
+    // Get box color from filtered detection (set by FilterDetections)
+    nlohmann::json filtered_detection = filtered[0];
+    Rgb box_color = 0;
+    if (filtered_detection.contains("box_color") && !filtered_detection["box_color"].is_null()) {
+      box_color = filtered_detection["box_color"].get<Rgb>();
+    }
+
     AVFrame *output = nullptr;
     // Annotate doesn't touch input, should return output, which is a frame pointing to the same data as input.
-    annotate(input, &output, last_roi[i], last_roi_extra[i]);
+    annotate(input, &output, last_roi[i], last_roi_extra[i], box_color);
     if (output) {
       // This is incorrect, and is only here as a test.
       if (input != in_frame) av_frame_free(&input);

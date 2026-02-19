@@ -21,6 +21,7 @@
 #define ZM_FFMPEG_CAMERA_H
 
 #include "zm_camera.h"
+#include "zm_time.h"
 
 #include <memory>
 
@@ -68,6 +69,7 @@ class FfmpegCamera : public Camera {
   int error_count;
   int stream_width;   /* What the camera is actually sending */
   int stream_height;
+  TimePoint mStartReadTime;  // Per-instance timeout tracking for interrupt callback
 
  public:
   FfmpegCamera(

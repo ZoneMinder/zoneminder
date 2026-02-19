@@ -12,7 +12,7 @@ class Zone extends ZM_Object {
       'MonitorId'           => null,
 			'Name'                => '',
 			'Type'                => 'Active',
-			'Units'               => 'Pixels',
+			'Units'               => 'Percent',
       'NumCoords'           => '4',
       'Coords'              => '',
       'Area'                => '0',

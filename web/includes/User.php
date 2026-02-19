@@ -30,6 +30,7 @@ class User extends ZM_Object {
   protected $TokenMinExpiry = 0;
   protected $APIEnabled = 1;
   protected $HomeView = 'console';
+  protected $RoleId = null;
 
 
 	protected $defaults = array(
@@ -53,11 +54,13 @@ class User extends ZM_Object {
       'TokenMinExpiry'  => 0,
       'APIEnabled'      => 1,
       'HomeView'        => '',
+      'RoleId'          => null,
 			);
 
   private $Group_Permissions; # array of GP objects indexed by id
   private $Monitor_Permissions;
   private $Preferences;
+  private $Role;
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(self::class, $parameters, $options);
@@ -148,6 +151,18 @@ class User extends ZM_Object {
       $up->Name($name);
     }
     return $this->Preferences[$name];
+  }
+
+  public function Role($new = null) {
+    if ($new !== null) {
+      $this->Role = $new;
+      $this->RoleId = $new ? $new->Id() : null;
+    }
+    if (!$this->Role and $this->RoleId) {
+      require_once('User_Role.php');
+      $this->Role = User_Role::find_one(['Id' => $this->RoleId]);
+    }
+    return $this->Role;
   }
 
   public function viewableMonitorIds() {

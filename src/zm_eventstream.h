@@ -65,7 +65,6 @@ class EventStream : public StreamBase {
     SystemTimePoint start_time;
     SystemTimePoint end_time;
     Microseconds duration;
-    Microseconds frames_duration;
     std::string path;
     int             n_frames;       // # of frame rows returned from database
     std::vector<FrameData> frames;

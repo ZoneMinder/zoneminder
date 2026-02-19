@@ -138,6 +138,8 @@ SwsContext *sws_convert_context;
   uint8_t *v_buffer;
   int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
   int holdbuffer; /* Hold the buffer instead of replacing it with new one */
+  uint8_t *blend_buffer_;
+  size_t blend_buffer_size_;
   std::string annotation_;
   std::string filename_;
 
@@ -267,6 +269,9 @@ SwsContext *sws_convert_context;
   bool Crop(const Box &limits);
 
   void Overlay(const Image &image);
+  // Overlay colour where mask image is non-zero. Alpha controls transparency:
+  // 255 = fully opaque (default), 0 = fully transparent, 64 = 75% transparent
+  void Overlay(const Image &image, Rgb colour, uint8_t alpha = 255);
   void Overlay(const Image &image, unsigned int x, unsigned int y);
   void Blend(const Image &image, int transparency=12);
   static Image *Merge( unsigned int n_images, Image *images[] );

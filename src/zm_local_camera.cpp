@@ -98,7 +98,10 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
     break;
   case V4L2_PIX_FMT_JPEG :
   case V4L2_PIX_FMT_MJPEG :
-    pixFormat = AV_PIX_FMT_YUVJ444P;
+    /* MJPEG is compressed data, not a raw pixel format.
+     * Return NONE - Capture() will handle MJPEG specially by
+     * passing raw data to the decoder thread. */
+    pixFormat = AV_PIX_FMT_NONE;
     break;
   case V4L2_PIX_FMT_UYVY :
     pixFormat = AV_PIX_FMT_UYVY422;
@@ -139,7 +142,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   //case V4L2_PIX_FMT_PJPG :
   //case V4L2_PIX_FMT_YVYU :
   default : {
-    Fatal("Can't find swscale format for palette %u", palette);
+    Error("Can't find swscale format for palette %u", palette);
     break;
 #if 0
     // These are all spare and may match some of the above
@@ -285,24 +288,26 @@ LocalCamera::LocalCamera(
     BigEndian = 0;
   }
 
-  if (palette == 0) {
-    /* Use automatic format selection */
+  if (palette == 0 && capture) {
+    /* Use automatic format selection — only when capturing.
+     * Non-capture processes (zms in QUERY mode) don't need to open the device. */
     Debug(2,"Using automatic format selection");
     palette = AutoSelectFormat(colours);
     if (palette == 0) {
-      Error("Automatic format selection failed. Falling back to YUYV");
+      Warning("Automatic format selection failed. Falling back to YUYV");
       palette = V4L2_PIX_FMT_YUYV;
     } else {
-      if (capture) {
-        Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)",
-             palette_desc,
-             static_cast<uint8>((palette >> 24) & 0xff),
-             static_cast<uint8>((palette >> 16) & 0xff),
-             static_cast<uint8>((palette >> 8) & 0xff),
-             static_cast<uint8>((palette) & 0xff));
-      }
+      Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)",
+           palette_desc,
+           static_cast<uint8>((palette >> 24) & 0xff),
+           static_cast<uint8>((palette >> 16) & 0xff),
+           static_cast<uint8>((palette >> 8) & 0xff),
+           static_cast<uint8>((palette) & 0xff));
     }
   }
+
+  /* Check if we're capturing MJPEG - this affects decoding flow */
+  is_mjpeg = (palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG);
 
   if (capture) {
     if (last_camera) {
@@ -366,7 +371,8 @@ LocalCamera::LocalCamera(
     } else {
       Panic("Unexpected colours: %u",colours);
     }
-    if (capture) {
+    if (capture && !is_mjpeg) {
+      /* Skip swscale check for MJPEG - it's compressed data handled separately */
       if (!sws_isSupportedInput(capturePixFormat)) {
         Error("swscale does not support the used capture format: %d", capturePixFormat);
         conversion_type = 2; /* Try ZM format conversions */
@@ -381,10 +387,10 @@ LocalCamera::LocalCamera(
       conversion_type = 2;
     }
 
-    /* JPEG */
-    if (palette == V4L2_PIX_FMT_JPEG || palette == V4L2_PIX_FMT_MJPEG) {
-      Debug(2,"Using JPEG image decoding");
-      conversion_type = 3;
+    /* JPEG/MJPEG - pass through raw data, let decoder thread handle it */
+    if (is_mjpeg) {
+      Debug(2, "Using MJPEG passthrough - decoder thread will decode");
+      conversion_type = 3;  /* Special handling in Capture() - raw MJPEG passthrough */
     }
 
     if (conversion_type == 2) {
@@ -482,29 +488,41 @@ int LocalCamera::Close() {
   return 0;
 };
 
-void LocalCamera::Initialise() {
+int LocalCamera::Initialise() {
   Debug(3, "Opening video device %s", device.c_str());
-  if ((vid_fd = open(device.c_str(), O_RDWR, 0)) < 0)
-    Fatal("Failed to open video device %s: %s", device.c_str(), strerror(errno));
+  if ((vid_fd = open(device.c_str(), O_RDWR, 0)) < 0) {
+    Error("Failed to open video device %s: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
   struct stat st;
-  if (stat(device.c_str(), &st) < 0)
-    Fatal("Failed to stat video device %s: %s", device.c_str(), strerror(errno));
+  if (stat(device.c_str(), &st) < 0) {
+    Error("Failed to stat video device %s: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
-  if (!S_ISCHR(st.st_mode))
-    Fatal("File %s is not device file: %s", device.c_str(), strerror(errno));
+  if (!S_ISCHR(st.st_mode)) {
+    Error("File %s is not device file: %s", device.c_str(), strerror(errno));
+    return -1;
+  }
 
   struct v4l2_capability vid_cap;
 
   Debug(3, "Checking video device capabilities");
-  if ( vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0 )
-    Fatal("Failed to query video device: %s", strerror(errno));
+  if (vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0) {
+    Error("Failed to query video device: %s", strerror(errno));
+    return -1;
+  }
 
-  if ( !(vid_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) )
-    Fatal("Video device is not video capture device");
+  if (!(vid_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+    Error("Video device is not video capture device");
+    return -1;
+  }
 
-  if ( !(vid_cap.capabilities & V4L2_CAP_STREAMING) )
-    Fatal("Video device does not support streaming i/o");
+  if (!(vid_cap.capabilities & V4L2_CAP_STREAMING)) {
+    Error("Video device does not support streaming i/o");
+    return -1;
+  }
 
   struct v4l2_input input;
   v4l2_std_id stdId;
@@ -513,7 +531,8 @@ void LocalCamera::Initialise() {
   input.index = channel;
 
   if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
-    Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
+    Error("Failed to enumerate input %d: %s", channel, strerror(errno));
+    return -1;
   }
 
   v4l2_standard enum_standard = {};
@@ -554,8 +573,10 @@ void LocalCamera::Initialise() {
   memset(&v4l2_data.fmt, 0, sizeof(v4l2_data.fmt));
   v4l2_data.fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-  if ( vidioctl( vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt ) < 0 )
-    Fatal("Failed to get video format: %s", strerror(errno));
+  if (vidioctl(vid_fd, VIDIOC_G_FMT, &v4l2_data.fmt) < 0) {
+    Error("Failed to get video format: %s", strerror(errno));
+    return -1;
+  }
 
   Debug(4,
         " v4l2_data.fmt.type = %08x\n"
@@ -601,7 +622,8 @@ void LocalCamera::Initialise() {
         Warning("Failed to set V4L2 field to %d, falling back to auto", (extras & 0xff));
         v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
         if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-          Fatal("Failed to set video format: %s", strerror(errno));
+          Error("Failed to set video format: %s", strerror(errno));
+          return -1;
         }
       }
     } else {
@@ -610,8 +632,11 @@ void LocalCamera::Initialise() {
         if (v4l2_data.fmt.fmt.pix.field != V4L2_FIELD_ANY) {
           v4l2_data.fmt.fmt.pix.field = V4L2_FIELD_ANY;
           if (vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0) {
-            Fatal("Failed to set video format: %s", strerror(errno));
+            Error("Failed to set video format after field fallback: %s", strerror(errno));
+            return -1;
           }
+        } else {
+          return -1;
         }
       }
     }
@@ -707,14 +732,17 @@ void LocalCamera::Initialise() {
 
   if (vidioctl(vid_fd, VIDIOC_REQBUFS, &v4l2_data.reqbufs) < 0) {
     if (errno == EINVAL) {
-      Fatal("Unable to initialise memory mapping, unsupported in device");
+      Error("Unable to initialise memory mapping, unsupported in device");
     } else {
-      Fatal("Unable to initialise memory mapping: %s", strerror(errno));
+      Error("Unable to initialise memory mapping: %s", strerror(errno));
     }
+    return -1;
   }
 
-  if (v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1))
-    Fatal("Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count);
+  if (v4l2_data.reqbufs.count < (v4l_multi_buffer?2:1)) {
+    Error("Insufficient buffer memory %d on video device", v4l2_data.reqbufs.count);
+    return -1;
+  }
 
   Debug(3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %d",
         channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
@@ -734,21 +762,26 @@ void LocalCamera::Initialise() {
     vid_buf.index = i;
     Debug(1, "buf_type for %d  %d =? %d, memory %d =? %d", i, vid_buf.type, V4L2_BUF_TYPE_VIDEO_CAPTURE, vid_buf.memory, V4L2_MEMORY_MMAP);
 
-    if (vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0)
-      Fatal("Unable to query video buffer: %s", strerror(errno));
+    if (vidioctl(vid_fd, VIDIOC_QUERYBUF, &vid_buf) < 0) {
+      Error("Unable to query video buffer: %s", strerror(errno));
+      return -1;
+    }
 
     v4l2_data.buffers[i].length = vid_buf.length;
     v4l2_data.buffers[i].start = mmap(nullptr, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
 
-    if (v4l2_data.buffers[i].start == MAP_FAILED)
-      Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
+    if (v4l2_data.buffers[i].start == MAP_FAILED) {
+      Error("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
-
+      return -1;
+    }
 
     capturePictures[i] = av_frame_ptr{av_frame_alloc()};
 
-    if (!capturePictures[i])
-      Fatal("Could not allocate picture");
+    if (!capturePictures[i]) {
+      Error("Could not allocate picture");
+      return -1;
+    }
 
     av_image_fill_arrays(
       capturePictures[i]->data,
@@ -764,6 +797,7 @@ void LocalCamera::Initialise() {
   Brightness(brightness);
   Hue(hue);
   Colour(colour);
+  return 0;
 } // end LocalCamera::Initialize
 
 void LocalCamera::Terminate() {
@@ -807,8 +841,15 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 
   /* Open the device */
   if ( (enum_fd = open(device.c_str(), O_RDWR, 0)) < 0 ) {
-    Error("Automatic format selection failed to open video device %s: %s",
-          device.c_str(), strerror(errno));
+    if (errno == ENOENT) {
+      Error("Automatic format selection failed to open video device %s: %s."
+            " If running under Apache, check for systemd PrivateDevices=yes"
+            " which hides /dev devices from the web server.",
+            device.c_str(), strerror(errno));
+    } else {
+      Error("Automatic format selection failed to open video device %s: %s",
+            device.c_str(), strerror(errno));
+    }
     return selected_palette;
   }
 
@@ -1252,10 +1293,33 @@ int LocalCamera::Contrast(int p_contrast) {
 int LocalCamera::PrimeCapture() {
   getVideoStream();
 
+  /* Set up codec info for the video stream */
+  if (mVideoStream) {
+    if (is_mjpeg) {
+      /* For MJPEG, we pass raw compressed data to the decoder thread */
+      mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      mVideoStream->codecpar->codec_id = AV_CODEC_ID_MJPEG;
+      mVideoStream->codecpar->width = width;
+      mVideoStream->codecpar->height = height;
+      Debug(2, "Set up MJPEG codec for video stream");
+    } else {
+      /* For raw formats, set the pixel format */
+      mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      mVideoStream->codecpar->codec_id = AV_CODEC_ID_RAWVIDEO;
+      mVideoStream->codecpar->format = capturePixFormat;
+      mVideoStream->codecpar->width = width;
+      mVideoStream->codecpar->height = height;
+      Debug(2, "Set up raw video stream with pixel format %s",
+            av_get_pix_fmt_name(capturePixFormat));
+    }
+  }
+
   // Initialize the device if not already done
   Debug(1, "PrimeCapture: device_prime=%d, vid_fd=%d", device_prime, vid_fd);
   if (device_prime && vid_fd < 0) {
-    Initialise();
+    if (Initialise() < 0) {
+      return -1;
+    }
   }
 
   if (primed) {
@@ -1385,8 +1449,9 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     bytes += buffer_bytesused;
 
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
-      Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
+      Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+      return -1;
     } else if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height)) {
       Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
@@ -1416,55 +1481,72 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
   } /* prime capture */
 
-  if (!zm_packet->image) {
-    Debug(4, "Allocating image");
-    zm_packet->image = new Image(width, height, colours, subpixelorder);
-  }
-  /* Request a writeable buffer of the target image */
-  uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-  if (directbuffer == nullptr) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    return -1;
-  }
+  /* Handle data based on conversion type:
+   * - MJPEG (type 3): Store raw compressed data in packet, decoder thread decodes
+   * - Raw formats: Store in in_frame with native pixel format, decoder thread converts if needed
+   */
 
-  zm_packet->in_frame = av_frame_ptr{av_frame_alloc()};
-  zm_packet->image->PopulateFrame(zm_packet->in_frame.get());
+  if (conversion_type == 3) {
+    /* MJPEG: Pass raw JPEG data to decoder thread */
+    Debug(3, "MJPEG passthrough: storing %d bytes of raw JPEG data", buffer_bytesused);
 
-  if (conversion_type != 0) {
-    Debug(3, "Performing format conversion %d", conversion_type);
-
-
-    if (conversion_type == 1) {
-      Debug(4, "Calling sws_scale to perform the conversion");
-      sws_scale(
-        imgConversionContext,
-        capturePictures[capture_frame]->data,
-        capturePictures[capture_frame]->linesize,
-        0,
-        height,
-        zm_packet->in_frame->data,
-        zm_packet->in_frame->linesize
-      );
-    } else if (conversion_type == 2) {
-      Debug(9, "Calling the conversion function");
-      (*conversion_fptr)(buffer, directbuffer, pixels);
-    } else if ( conversion_type == 3 ) {
-      // Need to store the jpeg data too
-      Debug(9, "Decoding the JPEG image");
-      /* JPEG decoding */
-      zm_packet->image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
+    /* Allocate packet data and copy raw JPEG */
+    if (av_new_packet(zm_packet->packet.get(), buffer_bytesused) < 0) {
+      Error("Failed to allocate packet for MJPEG data");
+      return -1;
     }
-  } else {
-    Debug(3, "No format conversion performed. Assigning the image");
+    memcpy(zm_packet->packet->data, buffer, buffer_bytesused);
 
-    /* No conversion was performed, the image is in the V4L buffers and needs to be copied */
-    zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
-  } // end if doing conversion or not
+    /* MJPEG frames are all keyframes */
+    zm_packet->packet->flags |= AV_PKT_FLAG_KEY;
+
+    /* Don't set in_frame or image - decoder thread will handle decoding */
+
+  } else {
+    /* Raw format: Store in in_frame with native pixel format */
+    Debug(3, "Raw format: storing in in_frame with format %s",
+          av_get_pix_fmt_name(capturePixFormat));
+
+    zm_packet->in_frame = av_frame_ptr{av_frame_alloc()};
+    if (!zm_packet->in_frame) {
+      Error("Failed to allocate in_frame");
+      return -1;
+    }
+
+    zm_packet->in_frame->width = width;
+    zm_packet->in_frame->height = height;
+    zm_packet->in_frame->format = capturePixFormat;
+
+    /* Allocate buffer for the frame data */
+    int frame_size = av_image_get_buffer_size(capturePixFormat, width, height, 1);
+    if (frame_size < 0) {
+      Error("Failed to get buffer size for format %s", av_get_pix_fmt_name(capturePixFormat));
+      return -1;
+    }
+
+    int ret = av_frame_get_buffer(zm_packet->in_frame.get(), 0);
+    if (ret < 0) {
+      Error("Failed to allocate frame buffer: %s", av_make_error_string(ret).c_str());
+      return -1;
+    }
+
+    /* Copy raw data from V4L2 buffer to in_frame */
+    Debug(4, "Copying frame data, format %s, size %d bytes",
+          av_get_pix_fmt_name(capturePixFormat), frame_size);
+    av_image_copy(
+      zm_packet->in_frame->data, zm_packet->in_frame->linesize,
+      (const uint8_t **)capturePictures[capture_frame]->data,
+      capturePictures[capture_frame]->linesize,
+      capturePixFormat, width, height);
+
+    /* Don't create image here - decoder thread will convert to RGB if needed */
+  }
 
   zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet->keyframe = 1;
+  zm_packet->timestamp = std::chrono::system_clock::now();
   return 1;
 } // end int LocalCamera::Capture()
 

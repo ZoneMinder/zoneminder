@@ -24,6 +24,7 @@
 #include "zm_packet.h"
 #include "zm_signal.h"
 #include "zm_utils.h"
+#include "url.hpp"
 
 extern "C" {
 #include <libavutil/time.h>
@@ -110,7 +111,7 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 int FfmpegCamera::PrimeCapture() {
-  start_read_time = std::chrono::steady_clock::now();
+  mStartReadTime = std::chrono::steady_clock::now();
   Close();
   mVideoStreamId = -1;
   mAudioStreamId = -1;
@@ -160,6 +161,7 @@ int FfmpegCamera::PrimeCapture() {
       return -1;
     }
     mPath = mPath.substr(7);
+    mMaskedPath = mPath;  // Update masked path after stripping v4l2:// prefix
   }  // end if RTSP
 
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
@@ -170,9 +172,16 @@ int FfmpegCamera::PrimeCapture() {
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
 
   if (mUser.length() > 0) {
-    // build the actual uri string with encoded parameters (from the user and pass fields)
-    mPath = StringToLower(protocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(7, std::string::npos);
-    Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+    try {
+      Url url(mPath);
+      if (url.user_info().empty()) {
+        url.user_info(mUser + ":" + mPass);
+        mPath = url.str();
+        Debug(1, "Rebuilt URI with encoded parameters: '%s'", mMaskedPath.c_str());
+      }
+    } catch (const Url::parse_error &e) {
+      Debug(1, "Could not parse path as URL: %s", e.what());
+    }
   }
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
@@ -255,9 +264,24 @@ int FfmpegCamera::PrimeCapture() {
         mVideoStreamId, mAudioStreamId);
 
   if (!monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    Debug(1, "Trying secondary stream at %s", mMaskedSecondPath.c_str());
+    std::string secondPath = mSecondPath;
+    if (mUser.length() > 0) {
+      try {
+        Url url(mSecondPath);
+        if (url.user_info().empty()) {
+          url.user_info(mUser + ":" + mPass);
+          secondPath = url.str();
+          Debug(1, "Rebuilt secondary URI with encoded parameters");
+        } else {
+          Debug(1, "Secondary path already has authentication, not overriding");
+        }
+      } catch (const Url::parse_error &e) {
+        Debug(1, "Could not parse secondary path as URL: %s", e.what());
+      }
+    }
     mSecondInput = zm::make_unique<FFmpeg_Input>();
-    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+    if (mSecondInput->Open(secondPath.c_str()) > 0) {
       mSecondFormatContext = mSecondInput->get_format_context();
       mAudioStreamId = mSecondInput->get_audio_stream_id();
       mAudioStream = mSecondInput->get_audio_stream();
@@ -288,14 +312,14 @@ int FfmpegCamera::PreCapture() {
 int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mIsPrimed) return -1;
 
-  start_read_time = std::chrono::steady_clock::now();
+  mStartReadTime = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
   av_packet_ptr packet = av_packet_ptr{av_packet_alloc()};
   av_packet_guard pkt_guard{packet};
 
-  if ( mSecondFormatContext and
+  if ( mSecondFormatContext and mAudioStream and
        (
          av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q)
          <
@@ -413,8 +437,11 @@ int FfmpegCamera::PostCapture() {
   return 0;
 }
 
+// OpenFfmpeg functionality has been merged into PrimeCapture()
+
 int FfmpegCamera::Close() {
   mIsPrimed = false;
+  mFirstVideoPTS = mFirstAudioPTS = AV_NOPTS_VALUE;
   mLastAudioPTS = mLastVideoPTS = 0;
 
   if ( mFormatContext ) {
@@ -431,11 +458,12 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
     return zm_terminate;
   }
 
+  FfmpegCamera *camera = static_cast<FfmpegCamera *>(ctx);
   TimePoint now = std::chrono::steady_clock::now();
-  if (now - start_read_time > Seconds(10)) {
+  if (now - camera->mStartReadTime > Seconds(10)) {
     Debug(1, "timeout in ffmpeg camera now %" PRIi64 " - %" PRIi64 " > 10 s",
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
-          static_cast<int64>(std::chrono::duration_cast<Seconds>(start_read_time.time_since_epoch()).count()));
+          static_cast<int64>(std::chrono::duration_cast<Seconds>(camera->mStartReadTime.time_since_epoch()).count()));
     return 1;
   }
   return 0;

@@ -70,6 +70,7 @@ class ONVIF {
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
   PullPointSubscriptionBindingProxy proxyEvent;
+  std::string subscription_address_;  // Cached copy of response.SubscriptionReference.Address
 
   // Authentication
   void set_credentials(struct soap *soap);
@@ -78,6 +79,7 @@ class ONVIF {
   // Retry handling
   int retry_count;
   int max_retries;
+  bool warned_pull_auth_failure;
 
   // Subscription state
   std::string event_endpoint_url_;
@@ -96,6 +98,7 @@ class ONVIF {
   SystemTimePoint next_renewal_time;
   bool use_absolute_time_for_renewal;
   bool renewal_enabled;
+  time_t camera_clock_offset;  // Offset in seconds: our_time - camera_time
 
   // Alarm tracking
   struct AlarmEntry {
@@ -104,6 +107,7 @@ class ONVIF {
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
   bool expire_alarms_enabled;
+  int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;
 
   // Thread management
@@ -112,6 +116,7 @@ class ONVIF {
 
   // Private methods
   void Run();
+  bool InitSoapContext();
   void Subscribe();
   void WaitForMessage();
   void SetNoteSet(Event::StringSet &noteSet);
@@ -123,7 +128,7 @@ class ONVIF {
   bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
   int get_retry_delay();
-  void update_renewal_times(time_t termination_time);
+  void update_renewal_times(time_t camera_current_time, time_t termination_time);
   bool is_renewal_tracking_initialized() const;
   void log_subscription_timing(const char* context);
   bool Renew();

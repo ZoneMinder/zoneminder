@@ -59,6 +59,7 @@ class LocalCamera : public Camera {
 
   unsigned int conversion_type; /* 0 = no conversion needed, 1 = use libswscale, 2 = zm internal conversion, 3 = jpeg decoding */
   convert_fptr_t conversion_fptr; /* Pointer to conversion function used */
+  bool is_mjpeg; /* True if capturing MJPEG/JPEG - needs decode via FFmpeg */
 
   uint32_t AutoSelectFormat(int p_colours);
 
@@ -103,7 +104,7 @@ class LocalCamera : public Camera {
     unsigned int p_extras = 0);
   ~LocalCamera();
 
-  void Initialise();
+  int Initialise();
   void Terminate();
 
   const std::string &Device() const { return device; }
@@ -124,6 +125,7 @@ class LocalCamera : public Camera {
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override;
+  bool NeedsDecode() override { return is_mjpeg; }
   static bool GetCurrentSettings(const std::string &device, char *output, int version, bool verbose);
 };
 

@@ -173,6 +173,30 @@ TEST_CASE("UriDecode") {
   REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d+") == "abcABC123-_.~!()&= ");
 }
 
+TEST_CASE("UriEncode") {
+  // Basic alphanumeric and safe characters should not be encoded
+  REQUIRE(UriEncode("abcABC123") == "abcABC123");
+  REQUIRE(UriEncode("-_.~") == "-_.~");
+
+  // Space should be encoded as %20
+  REQUIRE(UriEncode(" ") == "%20");
+  REQUIRE(UriEncode("hello world") == "hello%20world");
+  REQUIRE(UriEncode("a b c") == "a%20b%20c");
+
+  // Special characters should be percent-encoded
+  REQUIRE(UriEncode("!") == "%21");
+  REQUIRE(UriEncode("&") == "%26");
+  REQUIRE(UriEncode("=") == "%3D");
+  REQUIRE(UriEncode("?") == "%3F");
+
+  // Empty string
+  REQUIRE(UriEncode("") == "");
+
+  // Round-trip test: encode then decode should return original
+  std::string original = "hello world!";
+  REQUIRE(UriDecode(UriEncode(original)) == original);
+}
+
 TEST_CASE("QueryString") {
   SECTION("no value") {
     std::stringstream str("name1=");

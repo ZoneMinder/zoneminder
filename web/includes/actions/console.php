@@ -31,7 +31,10 @@ if ($action == 'delete') {
     foreach ($_REQUEST['markMids'] as $markMid) {
       if (canEdit('Monitors', $markMid)) {
         $monitor = ZM\Monitor::find_one(['Id'=>$markMid]);
-        if ($monitor) $monitor->delete();
+        if ($monitor) {
+          $monitor->delete();
+          ZM\AuditAction('delete', 'monitor', $markMid, 'Name: '.$monitor->Name());
+        }
       } else {
         $error_message .= 'You do not have permission to delete monitor '.$markMid.'<br/>';
       } // end if canedit this monitor

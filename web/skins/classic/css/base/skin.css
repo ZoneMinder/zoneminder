@@ -1042,7 +1042,12 @@ a.flip {
   top: 0;
   left: 0;
   right: 0;
+  bottom: 0;
+  height: 100%;
   background: none;
+}
+.colThumbnail img {
+  border-radius: 4px;
 }
 .monitor {
   position: relative;
@@ -1510,7 +1515,7 @@ noUi-target {
 }
 */
 
-.noUi-base, .noUi-touch-area {
+[id^="volumeControls"]:not(.disabled) .noUi-base, [id^="volumeControls"]:not(.disabled) .noUi-touch-area {
   cursor: pointer;
 }
 
@@ -1530,6 +1535,10 @@ noUi-target {
   height: 5px;
 }
 
+.noUi-handle:after {
+  left: 16px;
+}
+
 /*
 .noUi-round .noUi-connects {
   background: #c0392b;
@@ -1542,6 +1551,15 @@ noUi-target {
   top: -5px;
   right: -9px; /* half the width */
   border-radius: 9px;
+}
+
+.disabled .audio-control-mute {
+  color: var(--disabled);
+  cursor: not-allowed !important;
+}
+
+[id^="volumeControls"].disabled {
+  opacity: 0.4;
 }
 /* --- Volume сontrol --- */
 
@@ -1576,6 +1594,30 @@ video-stream {
   padding: 0.3em;
 }
 */
+
+/* Fix bootstrap-table */
+.fixed-table-loading {
+  overflow: hidden;
+}
+
+img[id^='liveStream'], video[id^='liveStream'], video-stream[id^='liveStream'] {
+  margin: 0 auto;
+  object-fit: fill;
+}
+
+video-stream[id^='liveStream'] video{
+  max-height: inherit;
+  max-width: inherit;
+  object-fit: fill;
+}
+
+.imageFeed,
+.nav,
+.fixed-table-body,
+*[id^='videoFeedStream']
+ {
+  border-radius: 4px;
+}
 
 /* +++ This block should always be located at the end! */
 .hidden {

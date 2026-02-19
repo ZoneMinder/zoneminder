@@ -67,6 +67,17 @@ std::string TimePointToString(TimePoint tp) {
   return timeString;
 }
 
+std::string format_absolute_time_iso8601(time_t time) {
+  struct tm *tm_utc = gmtime(&time);
+  if (!tm_utc) {
+    return "";
+  }
+
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
+  return std::string(buffer);
+}
+
 SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {
   std::tm t{};
   strptime(timestamp.c_str(), "%Y-%m-%d %H:%M:%S", &t);

@@ -2,7 +2,7 @@ name: build-deb-packages-aarch64
 
 on:
   push:
-    branches: [ master ]
+    branches: [ release-1.38 ]
 permissions:
   contents: write
 env:
@@ -97,13 +97,18 @@ jobs:
           #git submodule update --init --recursive
           # Cleanup previous builds
           rm -rf ZoneMinder_zoneminder_release
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/master/utils/do_debian_package.sh
+          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/release-1.38/utils/do_debian_package.sh
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
           export GPG_TTY=$(tty || true)
           ls -l /bin/bash
-          ./do_debian_package.sh -s=CURRENT -t=binary 
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            ./do_debian_package.sh -r="$TAG" -t=binary -b=release-1.38 -v=1
+          else
+            ./do_debian_package.sh -s=CURRENT -t=binary -b=release-1.38 -v=1
+          fi
       - name: Cleanup
         run: |
           rm -rf *_zoneminder_release *.build
@@ -135,7 +140,7 @@ jobs:
           SOURCE: artifacts/deb/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
-          TARGET: debian/master/mini-dinstall/incoming/
+          TARGET: debian/proposed-1.38/mini-dinstall/incoming/
 
   release:
     name: Create GitHub Release (on tag)
@@ -147,6 +152,15 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           path: dist
+      - name: Publish release to ZMREPO
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: dist/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/release-1.38/mini-dinstall/incoming/
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:

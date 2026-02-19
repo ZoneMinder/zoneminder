@@ -899,7 +899,10 @@ function streamReStart(oldId, newId) {
   const volumeControls = document.getElementById('volumeControls'+oldId);
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
-  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  if (volumeSlider) {
+    volumeSlider.id = 'volumeSlider'+newId;
+    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
+  }
   const controlMute = document.getElementById('controlMute'+oldId);
   if (controlMute) controlMute.id = 'controlMute'+newId;
 

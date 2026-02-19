@@ -1024,7 +1024,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
       }
 
       if (has_pixel_values) {
-        Warning("Zone %d/%s has Units=Percent but Coords contain pixel values (>100), "
+        Debug(1, "Zone %d/%s has Units=Percent but Coords contain pixel values (>100), "
                 "parsing as pixels instead", Id, Name);
         if (!ParsePolygonString(Coords, polygon)) {
           Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",

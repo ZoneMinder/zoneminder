@@ -105,9 +105,9 @@ jobs:
           ls -l /bin/bash
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
-            ./do_debian_package.sh -r="$TAG" -t=binary -b=release-1.38
+            ./do_debian_package.sh -r="$TAG" -t=binary -b=release-1.38 -v=1
           else
-            ./do_debian_package.sh -s=CURRENT -t=binary -b=release-1.38
+            ./do_debian_package.sh -s=CURRENT -t=binary -b=release-1.38 -v=1
           fi
       - name: Cleanup
         run: |

@@ -929,9 +929,8 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider();
     const iconMute = this.getIconMute();
     const audioStream = this.getAudioStream();
-    if (!volumeSlider || !audioStream) return;
+    if (volumeSlider.noUiSlider || !volumeSlider || !audioStream) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
     $j('#volumeControls').show();
     noUiSlider.create(volumeSlider, {

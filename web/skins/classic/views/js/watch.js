@@ -901,7 +901,10 @@ function streamReStart(oldId, newId) {
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
   if (volumeSlider) {
     volumeSlider.id = 'volumeSlider'+newId;
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
+    if (volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
   }
   const controlMute = document.getElementById('controlMute'+oldId);
   if (controlMute) controlMute.id = 'controlMute'+newId;

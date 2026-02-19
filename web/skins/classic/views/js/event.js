@@ -517,8 +517,8 @@ function pauseClicked() {
     vid.pause();
   } else {
     streamReq({command: CMD_PAUSE});
+    streamPause();
   }
-  streamPause();
 }
 
 function streamPause() {

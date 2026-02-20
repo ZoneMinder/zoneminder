@@ -159,18 +159,37 @@ export class VideoRTC extends HTMLElement {
     }
 
     /**
+     * Receiving a playback promise.
+     */
+    promisePlay() {
+      let promise = this.video.play();
+      let error = 'error';
+      if (promise !== undefined) {
+        promise.then(_ => {
+          error = '';
+        })
+        .catch(er => {
+          error = er;
+        });
+      }
+      return error;
+    }
+
+    /**
      * Play video. Support automute when autoplay blocked.
      * https://developer.chrome.com/blog/autoplay/
      */
     play() {
-        this.video.play().catch(() => {
-            if (!this.video.muted) {
-                this.video.muted = true;
-                this.video.play().catch(er => {
-                    console.warn(er);
-                });
-            }
-        });
+      let error = this.promisePlay();
+      if (error && 'error'.name === 'NotAllowedError') {
+        if (!this.video.muted) {
+          this.video.muted = true;
+          error = promisePlay();
+          if (error) {
+            console.debug("Autoplay error.");
+          }
+        }
+      }
     }
 
     /**

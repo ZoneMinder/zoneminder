@@ -934,7 +934,6 @@ function MonitorStream(monitorData) {
     if (volumeSlider.noUiSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
 
-    $j('#volumeControls'+this.id).show();
     noUiSlider.create(volumeSlider, {
       start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
       step: 1,
@@ -997,10 +996,14 @@ function MonitorStream(monitorData) {
   };
 
   this.destroyVolumeSlider = function() {
+    $j('#volumeControls'+this.id).hide();
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
-    if (iconMute) iconMute.innerText = "";
-    if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
+    //const iconMute = this.getIconMute();
+    //if (iconMute) iconMute.innerText = "";
+    if (volumeSlider && 'noUiSlider' in volumeSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
   };
 
   /*

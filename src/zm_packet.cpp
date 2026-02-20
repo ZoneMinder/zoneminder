@@ -252,11 +252,12 @@ int ZMPacket::transfer_hwframe(AVCodecContext *ctx) {
 
     in_frame = std::move(new_frame);
     zm_dump_video_frame(in_frame.get(), "After hwtransfer");
-  } else
+  } else if (ctx) {
     Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
+  }
 #endif
 #endif
   return 1;

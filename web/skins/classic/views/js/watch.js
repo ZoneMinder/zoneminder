@@ -1362,8 +1362,7 @@ function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
   //setCookie('zmWatchPlayer'+monitorId, player);
-  const stream = getMonitorStream(stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
-  if (stream) stream.destroyVolumeSlider();
+  monitorStream.destroyVolumeSlider();
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());

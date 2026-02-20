@@ -961,9 +961,9 @@ nlohmann::json Monitor::FilterDetections(const nlohmann::json &detections) {
   nlohmann::json filtered;
   for (const auto &detection : detections) {
     std::string class_name;
-    if (detection.contains("class") && !detection["class"].is_null()) {
+    if (detection.count("class") && !detection["class"].is_null()) {
       class_name = detection["class"].get<std::string>();
-    } else if (detection.contains("name") && !detection["name"].is_null()) {
+    } else if (detection.count("name") && !detection["name"].is_null()) {
       class_name = detection["name"].get<std::string>();
     } else {
       // No class name, skip this detection
@@ -988,9 +988,9 @@ nlohmann::json Monitor::FilterDetections(const nlohmann::json &detections) {
 
     // Check confidence threshold
     float confidence = 0.0f;
-    if (detection.contains("confidence") && !detection["confidence"].is_null()) {
+    if (detection.count("confidence") && !detection["confidence"].is_null()) {
       confidence = detection["confidence"].get<float>();
-    } else if (detection.contains("score") && !detection["score"].is_null()) {
+    } else if (detection.count("score") && !detection["score"].is_null()) {
       confidence = detection["score"].get<float>();
     }
 

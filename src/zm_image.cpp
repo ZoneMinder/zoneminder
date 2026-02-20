@@ -6189,7 +6189,7 @@ int Image::draw_boxes(
 
         // Get box color - use per-class color if provided, otherwise default to red
         Rgb box_color = kRGBRed;
-        if (detection.contains("box_color") && !detection["box_color"].is_null()) {
+        if (detection.count("box_color") && !detection["box_color"].is_null()) {
           box_color = detection["box_color"].get<Rgb>();
         }
 

@@ -1,11 +1,8 @@
 #include "zm.h"
-#include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_mqtt.h"
 #ifdef MOSQUITTOPP_FOUND
-#include "zm_time.h"
 
-#include <sstream>
 #include <string.h>
 
 MQTT::MQTT(Monitor *monitor) :

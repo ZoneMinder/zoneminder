@@ -21,9 +21,7 @@
 
 #include "zm_ffmpeg_input.h"
 #include "zm_monitor.h"
-#include "zm_packet.h"
 #include "zm_signal.h"
-#include "zm_utils.h"
 #include "url.hpp"
 
 extern "C" {

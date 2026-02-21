@@ -1098,7 +1098,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         $od_options = ['none'=>'None', 'uvicorn'=>'Yolo 11 on Ampere CPU'];
         if (defined('HAVE_UNTETHER'))
           $od_options['speedai'] = 'Untether SpeedAI';
-        if (defined('HAVE_QUADRA'))
+        if (defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA)
           $od_options['quadra'] = 'NetInt Quadra';
         if (defined('HAVE_MEMX'))
           $od_options['memx'] = 'MemryX Local MX3';
@@ -1108,7 +1108,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
             </li>
-<?php if (defined('HAVE_UNTETHER') or defined('HAVE_QUADRA')) { ?>
+<?php if (defined('HAVE_UNTETHER') or (defined('HAVE_QUADRA') and ZM_HAVE_QUADRA)) { ?>
             <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
@@ -1128,7 +1128,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
             if (!isset($models['speedai'])) $models['speedai'] = [];
             $models['speedai'][$model] = $model;
-          } else if ($extension == 'nb' and defined('HAVE_QUADRA')) {
+          } else if ($extension == 'nb' and defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA) {
             if (!isset($models['quadra'])) $models['quadra'] = [];
             $models['quadra'][$model] = $model;
           } else {

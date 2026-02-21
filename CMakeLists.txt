@@ -392,8 +392,11 @@ if(XCODER_LIBRARIES)
   set(HAVE_QUADRA 1)
   list(APPEND ZM_BIN_LIBS "${XCODER_LIBRARIES}")
   set(optlibsfound "${optlibsfound} xcoder")
+  message(STATUS "NETINT Quadra (xcoder) support: Yes")
 else()
+  set(HAVE_QUADRA 0)
   set(optlibsnotfound "${optlibsnotfound} xcoder")
+  message(STATUS "NETINT Quadra (xcoder) support: No")
 endif()
 
 # jpeg

@@ -19,9 +19,7 @@
 
 #include "zm_remote_camera_rtsp.h"
 
-#include "zm_config.h"
 #include "zm_monitor.h"
-#include "zm_packet.h"
 #include "zm_signal.h"
 
 RemoteCameraRtsp::RemoteCameraRtsp(

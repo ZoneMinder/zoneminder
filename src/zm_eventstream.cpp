@@ -21,12 +21,8 @@
 
 #include <cstdint>
 
-#include "zm_db.h"
-#include "zm_image.h"
-#include "zm_logger.h"
 #include "zm_sendfile.h"
 #include "zm_signal.h"
-#include "zm_storage.h"
 #include <algorithm>
 #include <arpa/inet.h>
 #include <sys/stat.h>

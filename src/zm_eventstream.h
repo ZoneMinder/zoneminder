@@ -26,12 +26,6 @@
 #include "zm_storage.h"
 #include "zm_stream.h"
 
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavformat/avio.h>
-#include <libavcodec/avcodec.h>
-}
-
 #include <mutex>
 
 class EventStream : public StreamBase {

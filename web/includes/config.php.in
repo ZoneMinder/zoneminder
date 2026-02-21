@@ -39,6 +39,11 @@ define('ZM_HAS_V4L2', '@ZM_HAS_V4L2@');               // V4L2 support enabled
 define('ZM_HAS_ONVIF', '@ZM_HAS_ONVIF@');             // ONVIF support enabled
 
 //
+// If NETINT Quadra (xcoder) support has been built in
+//
+define('ZM_HAVE_QUADRA', '@HAVE_QUADRA@');             // NETINT Quadra support enabled
+
+//
 // If PCRE dev libraries are installed
 //
 define('ZM_PCRE', '@ZM_PCRE@');                       // PCRE support enabled

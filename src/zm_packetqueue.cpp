@@ -204,11 +204,15 @@ packetqueue_iterator PacketQueue::deletePacket(packetqueue_iterator it, std::vec
     if (*(*iterator_it) == zm_packet) {
       Debug(1, "Bumping IT because it is at the front that we are deleting");
       ++(*iterator_it);
+      if (*iterator_it != pktQueue.end()) {
+        (*(*iterator_it))->analyzed = true;
+      }
     } else {
       Debug(4, "Not Bumping IT because it is pointing at %d and we are %d", (*(*iterator_it))->image_index, zm_packet->image_index);
     }
   }  // end foreach iterator
   zm_packet->decoded = true; // analysis waits on decoding status so won't progress until we set this. Although we loop so maybe not.
+  zm_packet->analyzed = true; // event thread waits on analyzed status so won't progress until we set this.
   zm_packet->notify_all();
 
   packet_counts[zm_packet->packet->stream_index] -= 1;

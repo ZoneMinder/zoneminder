@@ -54,17 +54,10 @@ possible, this should run at more or less constant speed.
 */
 
 #include "zm.h"
-#include "zm_camera.h"
-#include "zm_db.h"
-#include "zm_define.h"
-#include "zm_fifo.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_time.h"
-#include "zm_utils.h"
 
 #include <getopt.h>
-#include <iostream>
 #include <unistd.h>
 
 void Usage() {

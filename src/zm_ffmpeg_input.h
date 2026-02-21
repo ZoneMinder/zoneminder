@@ -4,12 +4,6 @@
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
 
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavformat/avio.h>
-#include <libavcodec/avcodec.h>
-}
-
 class FFmpeg_Input {
 
  public:

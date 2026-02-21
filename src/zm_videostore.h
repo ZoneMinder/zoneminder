@@ -54,6 +54,8 @@ class VideoStore {
   SWScale swscale;
   unsigned int packets_written;
   unsigned int frame_count;
+  int64_t encode_total_us_;
+  int encode_count_;
 
   AVBufferRef *hw_device_ctx;
 

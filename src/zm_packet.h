@@ -33,10 +33,6 @@
 #include <nlohmann/json.hpp>
 #endif
 
-extern "C" {
-#include <libavformat/avformat.h>
-}
-
 class Image;
 
 class ZMPacket {

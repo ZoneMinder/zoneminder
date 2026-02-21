@@ -6,12 +6,10 @@
 #include "mosquittopp.h"
 
 #include <stdint.h>
-#include <iostream>
 #include <map>
 #include <list>
 #include <time.h>
 #include <chrono>
-#include <functional>
 
 class Monitor;
 

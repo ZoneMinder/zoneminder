@@ -22,20 +22,15 @@
 #include "zm_db.h"
 #include "zm_eventstream.h"
 #include "zm_ffmpeg_camera.h"
-#include "zm_fifo.h"
 #include "zm_file_camera.h"
 #include "zm_group.h"
 #include "zm_monitorlink_expression.h"
-#include "zm_mqtt.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
 #include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
-#include "zm_time.h"
 #include "zm_uri.h"
-#include "zm_utils.h"
-#include "zm_zone.h"
 
 #define DEBUG_TIMING 1
 #define AI_IN_DECODE 0
@@ -57,14 +52,10 @@
 #endif
 
 #include <algorithm>
-#include <chrono>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string>
 #include <utility>
-
-#include <nlohmann/json.hpp>
 
 #if ZM_MEM_MAPPED
 #include <fcntl.h>

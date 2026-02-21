@@ -19,27 +19,18 @@
 
 #include "zm_event.h"
 
-#include "zm_camera.h"
-#include "zm_db.h"
 #include "zm_event_tag.h"
 #include "zm_frame.h"
-#include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_tag.h"
-#include "zm_utils.h"
 #include "zm_videostore.h"
 
 #include <cstring>
 #include <fcntl.h>
-#include <list>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-extern "C" {
-#include <libswscale/swscale.h>
-}
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
 

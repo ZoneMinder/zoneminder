@@ -1,7 +1,5 @@
 #include "zm_ffmpeg_input.h"
 
-#include "zm_ffmpeg.h"
-#include "zm_logger.h"
 #include "zm_signal.h"
 
 FFmpeg_Input::FFmpeg_Input() :

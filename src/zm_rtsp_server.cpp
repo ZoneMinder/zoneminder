@@ -48,21 +48,14 @@ and provide that stream over rtsp
 */
 
 #include "zm.h"
-#include "zm_db.h"
-#include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
 #include "zm_rtsp_server_fifo_h264_source.h"
 #include "zm_rtsp_server_fifo_av1_source.h"
 #include "zm_rtsp_server_fifo_adts_source.h"
 #include "zm_signal.h"
-#include "zm_time.h"
-#include "zm_utils.h"
 
 #include <getopt.h>
-#include <iostream>
-#include <vector>
-
 
 #include "xop/RtspServer.h"
 

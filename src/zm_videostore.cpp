@@ -20,17 +20,13 @@
 
 #include "zm_videostore.h"
 
-#include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_time.h"
 
 extern "C" {
 #include <libavutil/time.h>
 #include <libavutil/display.h>
 }
-
-#include <string>
 
 VideoStore::VideoStore(
   const char *filename_in,
@@ -57,6 +53,8 @@ VideoStore::VideoStore(
   audio_out_ctx(nullptr),
   packets_written(0),
   frame_count(0),
+  encode_total_us_(0),
+  encode_count_(0),
   hw_device_ctx(nullptr),
   resample_ctx(nullptr),
   fifo(nullptr),
@@ -1371,6 +1369,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     // Some hwaccel codecs may get full if we only receive one pkt for one frame
 
+    auto encode_start = std::chrono::steady_clock::now();
+
     do {
       zm_dump_frame(frame.get(), "sending frame");
       int ret = avcodec_send_frame(video_out_ctx, frame.get());
@@ -1389,6 +1389,23 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     while (!zm_terminate) {
       int ret = avcodec_receive_packet(video_out_ctx, opkt.get());
       if (ret < 0) {
+        int64_t encode_us = std::chrono::duration_cast<Microseconds>(
+            std::chrono::steady_clock::now() - encode_start).count();
+        encode_total_us_ += encode_us;
+        encode_count_++;
+
+        double capture_fps = monitor->get_capture_fps();
+        if (capture_fps > 0 && encode_count_ >= 10 && (encode_count_ % 10) == 0) {
+          double avg_encode_ms = static_cast<double>(encode_total_us_) / (encode_count_ * 1000.0);
+          double max_encode_ms = 1000.0 / capture_fps;
+          if (avg_encode_ms > max_encode_ms) {
+            Warning("Video encoding averaging %.1fms/frame (%.1f efps) but capturing at %.1f fps."
+                " %s codec at %dx%d cannot keep up and will cause packet queue overflow.",
+                avg_encode_ms, 1000.0 / avg_encode_ms, capture_fps,
+                video_out_ctx->codec->name, video_out_ctx->width, video_out_ctx->height);
+          }
+        }
+
         if (ret != AVERROR(EAGAIN)) {
           Error("Could not receive packet (error %d = %s)", ret, av_make_error_string(ret).c_str());
         } else {

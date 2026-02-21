@@ -941,6 +941,14 @@ void Image::Assign(
     size = new_size;
   }
 
+  if (size != new_size) {
+    if (holdbuffer && new_size > allocation) {
+      Error("Held buffer allocation %lu too small for new size %u", allocation, new_size);
+      return;
+    }
+    size = new_size;
+  }
+
   if ( new_buffer != buffer )
     (*fptr_imgbufcpy)(buffer, new_buffer, size);
   update_function_pointers();
@@ -1000,7 +1008,16 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  //Debug(1, "Assign %dx%dx%d=%u", width, height, colours, size);
+  // Always ensure size matches the source image, even if the format-change
+  // block above was skipped (e.g. due to stale size from AVPixFormat setter)
+  if (size != new_size) {
+    if (holdbuffer && new_size > allocation) {
+      Error("Held buffer allocation %lu too small for new size %u", allocation, new_size);
+      return;
+    }
+    size = new_size;
+  }
+
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -6143,6 +6160,11 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       break;
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
+      // Don't update size/linesize for unknown formats since colours/subpixelorder
+      // weren't updated. Updating size without colours creates an inconsistency
+      // that causes Assign() to use a stale size for memcpy, overreading buffers.
+      imagePixFormat = new_pixelformat;
+      return imagePixFormat;
   }
 
   unsigned int new_size = av_image_get_buffer_size(new_pixelformat, width, height, 32);

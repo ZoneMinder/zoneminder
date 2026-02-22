@@ -443,11 +443,43 @@ void ONVIF::WaitForMessage() {
                             std::strstr(fault_string, "NotAuthorized")));
 
         if (is_auth_error) {
-          // Authorization failure - likely due to clock drift or expired credentials
-          // Only log as Error the first time, then demote to Debug to avoid flooding logs
+          // Try switching auth method before giving up: digest <-> plain
           if (!warned_pull_auth_failure) {
-            Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
-                  "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
+            bool was_plain = try_usernametoken_auth;
+            try_usernametoken_auth = !try_usernametoken_auth;
+            Info("ONVIF: PullMessages auth failed with %s auth, retrying with %s",
+                was_plain ? "plain" : "digest",
+                try_usernametoken_auth ? "plain" : "digest");
+
+            soap_destroy(soap);
+            soap_end(soap);
+            soap->header = nullptr;
+            set_credentials(soap);
+
+            if (use_wsa) {
+              do_wsa_request(subscription_address_.c_str(), "PullPointSubscription/PullMessagesRequest");
+            }
+
+            _tev__PullMessages retry_pull;
+            _tev__PullMessagesResponse retry_resp;
+            retry_pull.Timeout = pull_timeout_str.c_str();
+            retry_pull.MessageLimit = 10;
+            result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &retry_pull, retry_resp);
+
+            if (result == SOAP_OK || soap->error == SOAP_EOF) {
+              Info("ONVIF: PullMessages succeeded with %s auth",
+                  try_usernametoken_auth ? "plain" : "digest");
+              warned_pull_auth_failure = false;
+              // Let the normal success/timeout handling below process the response
+              soap_destroy(soap);
+              soap_end(soap);
+              return;  // Will be called again immediately by Run()
+            }
+
+            // Both auth methods failed - revert and log the error
+            try_usernametoken_auth = was_plain;
+            Error("ONVIF: Authorization failed for PullMessages with both auth methods! "
+                  "result=%d soap->error=%d fault=%s detail=%s "
                   "(timestamp_validity=%ds, camera_clock_offset=%lds)",
                 result, soap->error, fault_string, (detail ? detail : "null"),
                 timestamp_validity_seconds, static_cast<long>(camera_clock_offset));

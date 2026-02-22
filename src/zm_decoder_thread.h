@@ -25,6 +25,8 @@ class DecoderThread {
   Monitor *monitor_;
   std::atomic<bool> terminate_;
   std::thread thread_;
+  double avg_send_us_;   // Exponential moving average of send_packet duration (microseconds)
+  int send_count_;       // Number of samples (for warmup)
 };
 
 #endif

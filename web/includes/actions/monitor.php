@@ -299,28 +299,36 @@ if ($action == 'save') {
     ZM\Debug('No action due to no changes to Monitor');
   } # end if count(changes)
 
-  // Save AI Detection Settings
-  if (isset($_REQUEST['aiDetection']) && is_array($_REQUEST['aiDetection'])) {
-    foreach ($_REQUEST['aiDetection'] as $class_id => $settings) {
-      $class_id = validCardinal($class_id);
-      if (!$class_id) continue;
+  // Save AI Detection Settings (submitted per ClassName, applied to all matching ObjectClassIds)
+  if (isset($_REQUEST['aiClassName']) && is_array($_REQUEST['aiClassName'])) {
+    // Build ClassName -> ObjectClassId[] map
+    $class_ids_by_name = array();
+    $result = dbQuery('SELECT Id, ClassName FROM AI_Object_Classes');
+    if ($result) {
+      while ($row = dbFetchNext($result)) {
+        $class_ids_by_name[$row['ClassName']][] = $row['Id'];
+      }
+    }
+
+    foreach ($_REQUEST['aiClassName'] as $class_name => $settings) {
+      if (!isset($class_ids_by_name[$class_name])) continue;
 
       $enabled = isset($settings['Enabled']) ? 1 : 0;
       $threshold = isset($settings['ConfidenceThreshold']) ? validInt($settings['ConfidenceThreshold']) : 50;
       $color = isset($settings['BoxColor']) ? validHtmlStr($settings['BoxColor']) : '#FF0000';
 
-      // Check if a monitor-specific setting already exists
-      $existing = dbFetchOne('SELECT Id FROM AI_Detection_Settings WHERE MonitorId=? AND ObjectClassId=?',
-        'Id', array($mid, $class_id));
+      // Apply the same setting to all ObjectClassIds sharing this ClassName
+      foreach ($class_ids_by_name[$class_name] as $class_id) {
+        $existing = dbFetchOne('SELECT Id FROM AI_Detection_Settings WHERE MonitorId=? AND ObjectClassId=?',
+          'Id', array($mid, $class_id));
 
-      if ($existing) {
-        // Update existing setting
-        dbQuery('UPDATE AI_Detection_Settings SET Enabled=?, ConfidenceThreshold=?, BoxColor=? WHERE Id=?',
-          array($enabled, $threshold, $color, $existing));
-      } else {
-        // Insert new monitor-specific setting
-        dbQuery('INSERT INTO AI_Detection_Settings (MonitorId, ObjectClassId, Enabled, ReportDetection, ConfidenceThreshold, BoxColor) VALUES (?, ?, ?, 1, ?, ?)',
-          array($mid, $class_id, $enabled, $threshold, $color));
+        if ($existing) {
+          dbQuery('UPDATE AI_Detection_Settings SET Enabled=?, ConfidenceThreshold=?, BoxColor=? WHERE Id=?',
+            array($enabled, $threshold, $color, $existing));
+        } else {
+          dbQuery('INSERT INTO AI_Detection_Settings (MonitorId, ObjectClassId, Enabled, ReportDetection, ConfidenceThreshold, BoxColor) VALUES (?, ?, ?, 1, ?, ?)',
+            array($mid, $class_id, $enabled, $threshold, $color));
+        }
       }
     }
   }

@@ -1387,7 +1387,7 @@ document.onvisibilitychange = () => {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
         if (monitorStream.started) {
-          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused)) {
+          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
             prevStateStarted = 'paused';
           } else {
             prevStateStarted = 'played';
@@ -1408,7 +1408,7 @@ document.onvisibilitychange = () => {
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
     //} else if (prevStateStarted != 'paused') {
-    } else if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused)) {
+    } else if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
       prevStateStarted = null;
     }
   }

@@ -163,16 +163,15 @@ export class VideoRTC extends HTMLElement {
      * https://developer.chrome.com/blog/autoplay/
      */
     play() {
-      this.video.play().catch(er => {
-        if (er.name === 'NotAllowedError' && !this.video.muted) {
-          this.video.muted = true;
-            this.play();
-          } else {
-            console.warn(er);
-          }
-      });
+        this.video.play().catch(er => {
+            if (er.name === 'NotAllowedError' && !this.video.muted) {
+                this.video.muted = true;
+                this.play();
+            } else {
+                console.warn(er);
+            }
+        });
     }
-
 
     /**
      * Send message to server via WebSocket

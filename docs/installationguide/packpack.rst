@@ -1,7 +1,7 @@
 All Distros - A Docker Way to Build ZoneMinder
 ===============================================
 
-.. note:: If you are looking for an easy way to run ZoneMinder and not interested in building your own docker image, please refer to :doc:`easydocker`.
+.. note:: If you are looking for an easy way to run ZoneMinder and not interested in building your own docker image, please refer to the `ZoneMinder Docker images on Docker Hub <https://hub.docker.com/r/zoneminderhq/zoneminder>`__.
 
 .. contents::
 

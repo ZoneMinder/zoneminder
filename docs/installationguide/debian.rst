@@ -54,7 +54,7 @@ Switch into root user and create database and database user
     exit;
     exit
 
-By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
+By default MariaDB uses `unix socket authentication <https://mariadb.com/kb/en/authentication-plugin-unix-socket/>`__, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation <https://mariadb.com/kb/en/mariadb-secure-installation/>`__.
 
 **Step 4:** Install zoneminder
 
@@ -149,7 +149,7 @@ Switch into root user and create database and database user
     exit;
     exit
 
-By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
+By default MariaDB uses `unix socket authentication <https://mariadb.com/kb/en/authentication-plugin-unix-socket/>`__, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation <https://mariadb.com/kb/en/mariadb-secure-installation/>`__.
 
 **Step 4:** Install zoneminder
 

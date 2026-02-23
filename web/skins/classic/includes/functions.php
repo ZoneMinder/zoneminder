@@ -211,6 +211,7 @@ function buildSidebarMenu() {
     getLogHTML($forLeftBar = true) .
     getDevicesHTML($forLeftBar = true) .
     getQuadraHTML($forLeftBar = true) .
+    getIntelGpuHTML($forLeftBar = true) .
     getGroupsHTML($view, $forLeftBar = true) .
     getFilterHTML($view, $forLeftBar = true) .
     getSnapshotsHTML($view, $forLeftBar = true) .
@@ -513,6 +514,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getLogHTML();
           echo getDevicesHTML();
           echo getQuadraHTML();
+          echo getIntelGpuHTML();
           echo getGroupsHTML($view);
           echo getFilterHTML($view);
           echo getCycleHTML($view);
@@ -671,6 +673,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getLogHTML();
             echo getDevicesHTML();
             echo getQuadraHTML();
+            echo getIntelGpuHTML();
             echo getGroupsHTML($view);
             echo getFilterHTML($view);
             echo getCycleHTML($view);
@@ -1159,6 +1162,33 @@ function getQuadraHTML($forLeftBar = false) {
         );
       } else {
         $result .= '<li id="getQuadraHTML" class="nav-item"><a class="nav-link" href="?view=quadra">Quadra</a></li>'.PHP_EOL;
+      }
+    }
+  }
+
+  return $result;
+}
+// Returns the html representing the Intel GPU status menu item
+function getIntelGpuHTML($forLeftBar = false) {
+  $result = '';
+
+  // Only show if intel_gpu_top is available and user can view System
+  if (canView('System')) {
+    // Check if intel_gpu_top command exists
+    $intel_gpu_top_exists = shell_exec('which intel_gpu_top 2>/dev/null');
+    if ($intel_gpu_top_exists) {
+      if ($forLeftBar) {
+        $result .= buildMenuItem(
+          $viewItemName = 'intelgpu',
+          $id = 'getIntelGpuHTML',
+          $itemName = 'Intel GPU',
+          $href = '?view=intelgpu',
+          $icon = 'memory',
+          $classNameForTag_A = '',
+          $subMenu = ''
+        );
+      } else {
+        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">Intel GPU</a></li>'.PHP_EOL;
       }
     }
   }

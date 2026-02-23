@@ -23,149 +23,172 @@ if (!canView('System')) {
   return;
 }
 
-// Parse ni_rsrc_mon output (summary mode)
-function parseQuadraSummary() {
-  $output = [];
-  $returnCode = 0;
+// Resolve the full path to ni_rsrc_mon.  The web server's PATH may not
+// include /usr/local/bin where the tool is typically installed.
+function findNiRsrcMon() {
+  static $path = null;
+  if ($path !== null) return $path;
 
-  exec('ni_rsrc_mon 2>&1', $output, $returnCode);
-
-  if ($returnCode != 0) {
-    return ['error' => implode("\n", $output)];
+  // Check common locations
+  $candidates = [
+    '/usr/local/bin/ni_rsrc_mon',
+    '/usr/bin/ni_rsrc_mon',
+  ];
+  foreach ($candidates as $candidate) {
+    if (is_executable($candidate)) {
+      $path = $candidate;
+      return $path;
+    }
   }
 
-  $result = [
-    'timestamp' => '',
-    'version' => '',
-    'uptime' => '',
-    'devices' => [],
-    'decoders' => [],
-    'encoders' => [],
-    'scalers' => [],
-    'ais' => [],
-  ];
+  // Fall back to bare command (relies on PATH)
+  $path = 'ni_rsrc_mon';
+  return $path;
+}
 
-  $currentSection = null;
-  $headers = [];
+// ni_rsrc_mon -o json outputs non-standard JSON: unquoted hex strings
+// (e.g. "SID": 9e48), unquoted barewords ("Format": YUV), and trailing
+// commas after the last array element.  Fix these before json_decode.
+function fixQuadraJson($text) {
+  // Remove trailing commas before ] or }
+  $text = preg_replace('/,(\s*[}\]])/', '$1', $text);
 
-  foreach ($output as $line) {
-    $line = trim($line);
+  // Quote unquoted values (barewords and hex strings).
+  // Matches "KEY": VALUE where VALUE is not already quoted, not an array/object,
+  // and not a pure integer or float.
+  $text = preg_replace_callback(
+    '/("[\w]+"\s*:\s*)([^\s"\[\]{},][^\s,\]\}]*)(\s*[,}\]])/',
+    function ($matches) {
+      $value = trim($matches[2]);
+      if (preg_match('/^-?\d+$/', $value)) return $matches[0];
+      if (preg_match('/^-?\d+\.\d+$/', $value)) return $matches[0];
+      if (in_array($value, ['true', 'false', 'null'])) return $matches[0];
+      return $matches[1].'"'.$value.'"'.$matches[3];
+    },
+    $text
+  );
 
-    if (empty($line) || preg_match('/^\*+$/', $line)) {
-      continue;
-    }
+  return $text;
+}
 
-    // Parse timestamp and version line
-    if (preg_match('/^(\w{3}\s+\w{3}\s+\d+\s+[\d:]+\s+\d{4})\s+up\s+([\d:]+)\s+v(.+)$/', $line, $matches)) {
-      $result['timestamp'] = $matches[1];
-      $result['uptime'] = $matches[2];
-      $result['version'] = $matches[3];
-      continue;
-    }
+// Parse ni_rsrc_mon JSON output.  The tool emits a timestamp header
+// followed by multiple separate JSON objects { "section": [...] },
+// delimited by **** lines.
+function parseQuadraJsonOutput($args) {
+  $bin = findNiRsrcMon();
+  $command = $bin.' '.$args;
 
-    if (preg_match('/^(\d+) devices? retrieved/', $line)) {
-      continue;
-    }
+  // Check if exec() is available
+  if (!function_exists('exec') || in_array('exec', array_map('trim', explode(',', ini_get('disable_functions'))))) {
+    ZM\Warning("Quadra: exec() is disabled in PHP configuration");
+    return ['error' => 'exec() is disabled in PHP configuration. Cannot run ni_rsrc_mon.'];
+  }
 
-    // Detect section changes
-    if (preg_match('/^Num (decoders|encoders|scalers|AIs):\s*(\d+)/i', $line, $matches)) {
-      $currentSection = strtolower($matches[1]);
-      if ($currentSection == 'ais') $currentSection = 'ais';
-      $headers = [];
-      continue;
-    }
+  $output = [];
+  $returnCode = -1;
+  exec($command.' 2>&1', $output, $returnCode);
 
-    // Parse header line
-    if (preg_match('/^INDEX\s+/', $line)) {
-      $headers = preg_split('/\s+/', $line);
-      if ($currentSection === null && in_array('TEMP', $headers)) {
-        $currentSection = 'devices';
+  $outputText = implode("\n", $output);
+  $lineCount = count($output);
+
+  if ($returnCode != 0) {
+    ZM\Warning("Quadra: '$command' failed with return code $returnCode: $outputText");
+    if ($returnCode == 127 || (empty($output) && $returnCode != 0)) {
+      // Command not found - provide helpful diagnostics
+      $diag = "Command '$command' not found (return code $returnCode).";
+      if ($bin === 'ni_rsrc_mon') {
+        $diag .= ' ni_rsrc_mon was not found in /usr/local/bin or /usr/bin.'
+                 .' Ensure the NetInt tools are installed.';
       }
-      continue;
+      return ['error' => $diag];
     }
+    return ['error' => "Command failed (return code $returnCode): $outputText"];
+  }
 
-    // Parse data rows
-    if (!empty($headers) && $currentSection !== null && preg_match('/^\d+\s+/', $line)) {
-      $values = preg_split('/\s+/', $line);
-      $row = [];
+  if (empty($output)) {
+    ZM\Warning("Quadra: '$command' returned no output (return code $returnCode)");
+    return ['error' => "ni_rsrc_mon returned no output. Command: $command"];
+  }
 
-      if ($currentSection == 'devices') {
-        $row['INDEX'] = $values[0] ?? '';
-        $row['TEMP'] = $values[1] ?? '';
-        $row['POWER'] = $values[2] ?? '';
-        $row['FLAVOR'] = $values[3] ?? '';
-        $row['FR'] = $values[4] ?? '';
-        $row['SN'] = isset($values[5]) ? implode(' ', array_slice($values, 5)) : '';
+  ZM\Debug("Quadra: '$command' returned $lineCount lines (rc=$returnCode)");
+
+  $result = ['timestamp' => '', 'uptime' => '', 'version' => ''];
+  $rawText = $outputText;
+
+  if (preg_match('/(\w{3}\s+\w{3}\s+\d+\s+[\d:]+\s+\d{4})\s+up\s+([\d:]+)\s+v(.+)/', $rawText, $matches)) {
+    $result['timestamp'] = $matches[1];
+    $result['uptime'] = $matches[2];
+    $result['version'] = $matches[3];
+  }
+
+  // Each section is { "key": [...] } with the outer } at column 0.
+  // Inner object braces are tab-indented, so ^\} only matches the outer close.
+  $sectionCount = 0;
+  $parseErrors = [];
+  if (preg_match_all('/^\{\s*"(\w+)"\s*:.*?^\}/ms', $rawText, $jsonBlocks, PREG_SET_ORDER)) {
+    foreach ($jsonBlocks as $block) {
+      $key = $block[1];
+      $json = fixQuadraJson($block[0]);
+      $parsed = json_decode($json, true);
+      if ($parsed !== null && isset($parsed[$key])) {
+        $result[$key] = $parsed[$key];
+        $sectionCount++;
       } else {
-        foreach ($headers as $i => $header) {
-          $row[$header] = $values[$i] ?? '';
-        }
+        $jsonError = json_last_error_msg();
+        $parseErrors[] = "$key: $jsonError";
+        ZM\Warning("Quadra: JSON parse error for section '$key': $jsonError");
       }
-
-      $result[$currentSection][] = $row;
     }
+  } else {
+    ZM\Warning("Quadra: no JSON sections found in output of '$command'. "
+           ."Output ($lineCount lines): ".substr($rawText, 0, 500));
+    return ['error' => "ni_rsrc_mon output could not be parsed. "
+           ."No JSON sections found in $lineCount lines of output. "
+           ."First 200 chars: ".htmlspecialchars(substr($rawText, 0, 200))];
+  }
+
+  if (!empty($parseErrors)) {
+    ZM\Warning('Quadra: failed to parse '.count($parseErrors).' section(s): '.implode('; ', $parseErrors));
+  }
+  if ($sectionCount > 0) {
+    ZM\Debug("Quadra: parsed $sectionCount sections from '$command'");
   }
 
   return $result;
 }
 
-// Parse ni_rsrc_mon -d output (detailed mode)
-function parseQuadraDetailed() {
-  $output = [];
-  $returnCode = 0;
-
-  exec('ni_rsrc_mon -d 2>&1', $output, $returnCode);
-
-  if ($returnCode != 0) {
-    return ['error' => implode("\n", $output)];
-  }
-
-  $result = [
-    'decoders' => [],
-    'encoders' => [],
-  ];
-
-  $currentSection = null;
-  $headers = [];
-
-  foreach ($output as $line) {
-    $line = trim($line);
-
-    if (empty($line) || preg_match('/^\*+$/', $line)) {
-      continue;
-    }
-
-    // Detect section changes
-    if (preg_match('/^Num (decoders|encoders|scalers|AIs):\s*(\d+)/i', $line, $matches)) {
-      $currentSection = strtolower($matches[1]);
-      $headers = [];
-      continue;
-    }
-
-    // Parse header line
-    if (preg_match('/^INDEX\s+/', $line)) {
-      $headers = preg_split('/\s+/', $line);
-      continue;
-    }
-
-    // Parse data rows - only for decoders and encoders in detailed mode
-    if (!empty($headers) && ($currentSection == 'decoders' || $currentSection == 'encoders') && preg_match('/^\d+\s+/', $line)) {
-      $values = preg_split('/\s+/', $line);
-      $row = [];
-
-      foreach ($headers as $i => $header) {
-        $row[$header] = $values[$i] ?? '';
-      }
-
-      $result[$currentSection][] = $row;
-    }
-  }
-
-  return $result;
+function formatBitrate($bps) {
+  $bps = intval($bps);
+  if ($bps >= 1000000) return number_format($bps / 1000000, 1).' Mbps';
+  if ($bps >= 1000) return number_format($bps / 1000, 1).' kbps';
+  return number_format($bps).' bps';
 }
 
-$quadraSummary = parseQuadraSummary();
-$quadraDetailed = parseQuadraDetailed();
+$quadraSummary = parseQuadraJsonOutput('-o json');
+$quadraDetailed = parseQuadraJsonOutput('-d -o json');
+
+// Extract device info from the first available section entry
+$deviceInfo = null;
+foreach (['decoder', 'encoder', 'scaler', 'AI', 'uploader', 'nvme'] as $sect) {
+  if (!empty($quadraSummary[$sect][0])) {
+    $deviceInfo = $quadraSummary[$sect][0];
+    break;
+  }
+}
+
+$resourceSections = [
+  'decoder'  => ['label' => 'Decoder',  'icon' => 'input'],
+  'encoder'  => ['label' => 'Encoder',  'icon' => 'output'],
+  'uploader' => ['label' => 'Uploader', 'icon' => 'cloud_upload'],
+  'scaler'   => ['label' => 'Scaler',   'icon' => 'aspect_ratio'],
+  'AI'       => ['label' => 'AI',       'icon' => 'psychology'],
+];
+
+$infraSections = [
+  'nvme' => ['label' => 'NVMe',      'icon' => 'storage'],
+  'tp'   => ['label' => 'Transport', 'icon' => 'swap_horiz'],
+  'pcie' => ['label' => 'PCIe',      'icon' => 'settings_ethernet'],
+];
 
 xhtmlHeaders(__FILE__, 'Quadra Status');
 getBodyTopHTML();
@@ -182,229 +205,144 @@ echo getNavBarHTML();
   <div id="content">
 <?php if (isset($quadraSummary['error'])): ?>
   <div class="alert alert-danger">
-    <strong>Error:</strong> <?php echo htmlspecialchars($quadraSummary['error']) ?>
+    <strong>Error running ni_rsrc_mon:</strong><br>
+    <?php echo htmlspecialchars($quadraSummary['error']) ?>
+  </div>
+<?php elseif (!$deviceInfo && empty($quadraSummary['decoder']) && empty($quadraSummary['encoder'])): ?>
+  <div class="alert alert-warning">
+    <strong>No data:</strong> ni_rsrc_mon returned no resource data.
+    Check that a NetInt Quadra device is installed and that the web server user has permission to access it.
   </div>
 <?php else: ?>
 
-  <!-- Status Summary -->
+  <!-- Device Information -->
   <div class="card mb-3">
     <div class="card-header">
       <i class="material-icons md-18">info</i> Device Information
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-4">
-          <strong>Timestamp:</strong> <?php echo htmlspecialchars($quadraSummary['timestamp'] ?? 'N/A') ?>
+        <div class="col-md-3">
+          <strong>Timestamp:</strong> <?php echo htmlspecialchars($quadraSummary['timestamp'] ?: 'N/A') ?>
         </div>
-        <div class="col-md-4">
-          <strong>Uptime:</strong> <?php echo htmlspecialchars($quadraSummary['uptime'] ?? 'N/A') ?>
+        <div class="col-md-2">
+          <strong>Uptime:</strong> <?php echo htmlspecialchars($quadraSummary['uptime'] ?: 'N/A') ?>
         </div>
-        <div class="col-md-4">
-          <strong>Firmware:</strong> v<?php echo htmlspecialchars($quadraSummary['version'] ?? 'N/A') ?>
+        <div class="col-md-2">
+          <strong>Firmware:</strong> v<?php echo htmlspecialchars($quadraSummary['version'] ?: 'N/A') ?>
         </div>
+<?php if ($deviceInfo): ?>
+        <div class="col-md-2">
+          <strong>Device:</strong> <?php echo htmlspecialchars($deviceInfo['DEVICE'] ?? 'N/A') ?>
+        </div>
+        <div class="col-md-3">
+          <strong>PCIe:</strong> <?php echo htmlspecialchars($deviceInfo['PCIE_ADDR'] ?? 'N/A') ?>
+          (NUMA <?php echo htmlspecialchars($deviceInfo['NUMA_NODE'] ?? '?') ?>)
+        </div>
+<?php endif; ?>
       </div>
     </div>
   </div>
 
-  <!-- Device Table -->
-  <?php if (!empty($quadraSummary['devices'])): ?>
+  <!-- Resource Utilization -->
+<?php
+$hasResources = false;
+foreach ($resourceSections as $key => $meta) {
+  if (!empty($quadraSummary[$key])) { $hasResources = true; break; }
+}
+if ($hasResources):
+?>
   <div class="card mb-3">
     <div class="card-header">
-      <i class="material-icons md-18">developer_board</i> Devices (<?php echo count($quadraSummary['devices']) ?>)
+      <i class="material-icons md-18">speed</i> Resource Utilization
     </div>
     <div class="card-body table-responsive">
       <table class="table table-sm table-striped table-hover">
         <thead class="thead-highlight text-left">
           <tr>
-            <th>Index</th>
-            <th>Temperature</th>
-            <th>Power</th>
-            <th>Flavor</th>
-            <th>Firmware</th>
-            <th>Serial Number</th>
+            <th>Resource</th>
+            <th>Load</th>
+            <th>Model Load</th>
+            <th>FW Load</th>
+            <th>Instances</th>
+            <th>Memory</th>
+            <th>Critical Mem</th>
+            <th>Shared Mem</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($quadraSummary['devices'] as $device): ?>
+<?php foreach ($resourceSections as $key => $meta):
+  if (empty($quadraSummary[$key])) continue;
+  foreach ($quadraSummary[$key] as $entry):
+?>
           <tr>
-            <td><?php echo htmlspecialchars($device['INDEX']) ?></td>
-            <td><?php echo htmlspecialchars($device['TEMP']) ?>&deg;C</td>
-            <td><?php echo htmlspecialchars($device['POWER']) ?></td>
-            <td><?php echo htmlspecialchars($device['FLAVOR']) ?></td>
-            <td><?php echo htmlspecialchars($device['FR']) ?></td>
-            <td><code><?php echo htmlspecialchars($device['SN']) ?></code></td>
+            <td><i class="material-icons md-18"><?php echo $meta['icon'] ?></i> <?php echo $meta['label'] ?></td>
+            <td><?php echo htmlspecialchars($entry['LOAD'] ?? '0') ?>%</td>
+            <td><?php echo htmlspecialchars($entry['MODEL_LOAD'] ?? '0') ?>%</td>
+            <td><?php echo htmlspecialchars($entry['FW_LOAD'] ?? '0') ?>%</td>
+            <td><?php echo htmlspecialchars($entry['INST'] ?? '0') ?> / <?php echo htmlspecialchars($entry['MAX_INST'] ?? '0') ?></td>
+            <td><?php echo htmlspecialchars($entry['MEM'] ?? '0') ?> MB</td>
+            <td><?php echo htmlspecialchars($entry['CRITICAL_MEM'] ?? '0') ?> MB</td>
+            <td><?php echo htmlspecialchars($entry['SHARE_MEM'] ?? '0') ?> MB</td>
           </tr>
-          <?php endforeach; ?>
+<?php endforeach; endforeach; ?>
         </tbody>
       </table>
     </div>
   </div>
-  <?php endif; ?>
+<?php endif; ?>
 
-  <!-- Resource Summary Tables -->
-  <div class="row">
-    <!-- Decoders Summary -->
-    <?php if (!empty($quadraSummary['decoders'])): ?>
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-header">
-          <i class="material-icons md-18">input</i> Decoder Summary
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm table-striped table-hover">
-            <thead class="thead-highlight text-left">
-              <tr>
-                <th>Index</th>
-                <th>Load</th>
-                <th>Model Load</th>
-                <th>Instances</th>
-                <th>Memory</th>
-                <th>Shared Mem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($quadraSummary['decoders'] as $decoder): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($decoder['INDEX']) ?></td>
-                <td><?php echo htmlspecialchars($decoder['LOAD'] ?? '') ?>%</td>
-                <td><?php echo htmlspecialchars($decoder['MODEL_LOAD'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($decoder['INST'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($decoder['MEM'] ?? '') ?> MB</td>
-                <td><?php echo htmlspecialchars($decoder['SHARE_MEM'] ?? '') ?> MB</td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Encoders Summary -->
-    <?php if (!empty($quadraSummary['encoders'])): ?>
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-header">
-          <i class="material-icons md-18">output</i> Encoder Summary
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm table-striped table-hover">
-            <thead class="thead-highlight text-left">
-              <tr>
-                <th>Index</th>
-                <th>Load</th>
-                <th>Model Load</th>
-                <th>Instances</th>
-                <th>Memory</th>
-                <th>Shared Mem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($quadraSummary['encoders'] as $encoder): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($encoder['INDEX']) ?></td>
-                <td><?php echo htmlspecialchars($encoder['LOAD'] ?? '') ?>%</td>
-                <td><?php echo htmlspecialchars($encoder['MODEL_LOAD'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($encoder['INST'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($encoder['MEM'] ?? '') ?> MB</td>
-                <td><?php echo htmlspecialchars($encoder['SHARE_MEM'] ?? '') ?> MB</td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-  </div>
-
-  <div class="row">
-    <!-- Scalers Summary -->
-    <?php if (!empty($quadraSummary['scalers'])): ?>
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-header">
-          <i class="material-icons md-18">aspect_ratio</i> Scaler Summary
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm table-striped table-hover">
-            <thead class="thead-highlight text-left">
-              <tr>
-                <th>Index</th>
-                <th>Load</th>
-                <th>Model Load</th>
-                <th>Instances</th>
-                <th>Memory</th>
-                <th>Shared Mem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($quadraSummary['scalers'] as $scaler): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($scaler['INDEX']) ?></td>
-                <td><?php echo htmlspecialchars($scaler['LOAD'] ?? '') ?>%</td>
-                <td><?php echo htmlspecialchars($scaler['MODEL_LOAD'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($scaler['INST'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($scaler['MEM'] ?? '') ?> MB</td>
-                <td><?php echo htmlspecialchars($scaler['SHARE_MEM'] ?? '') ?> MB</td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- AI Summary -->
-    <?php if (!empty($quadraSummary['ais'])): ?>
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-header">
-          <i class="material-icons md-18">psychology</i> AI Summary
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-sm table-striped table-hover">
-            <thead class="thead-highlight text-left">
-              <tr>
-                <th>Index</th>
-                <th>Load</th>
-                <th>Model Load</th>
-                <th>Instances</th>
-                <th>Memory</th>
-                <th>Shared Mem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($quadraSummary['ais'] as $ai): ?>
-              <tr>
-                <td><?php echo htmlspecialchars($ai['INDEX']) ?></td>
-                <td><?php echo htmlspecialchars($ai['LOAD'] ?? '') ?>%</td>
-                <td><?php echo htmlspecialchars($ai['MODEL_LOAD'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($ai['INST'] ?? '') ?></td>
-                <td><?php echo htmlspecialchars($ai['MEM'] ?? '') ?> MB</td>
-                <td><?php echo htmlspecialchars($ai['SHARE_MEM'] ?? '') ?> MB</td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-  </div>
-
-  <!-- Detailed Session Tables -->
-  <?php if (!empty($quadraDetailed['decoders'])): ?>
+  <!-- Infrastructure -->
+<?php
+$hasInfra = false;
+foreach ($infraSections as $key => $meta) {
+  if (!empty($quadraSummary[$key])) { $hasInfra = true; break; }
+}
+if ($hasInfra):
+?>
   <div class="card mb-3">
     <div class="card-header">
-      <i class="material-icons md-18">input</i> Active Decoder Sessions (<?php echo count($quadraDetailed['decoders']) ?>)
+      <i class="material-icons md-18">developer_board</i> Infrastructure
     </div>
     <div class="card-body table-responsive">
       <table class="table table-sm table-striped table-hover">
         <thead class="thead-highlight text-left">
           <tr>
-            <th>Index</th>
+            <th>Component</th>
+            <th>FW Load</th>
+            <th>Shared Mem</th>
+            <th>PCIe Throughput</th>
+          </tr>
+        </thead>
+        <tbody>
+<?php foreach ($infraSections as $key => $meta):
+  if (empty($quadraSummary[$key])) continue;
+  foreach ($quadraSummary[$key] as $entry):
+?>
+          <tr>
+            <td><i class="material-icons md-18"><?php echo $meta['icon'] ?></i> <?php echo $meta['label'] ?></td>
+            <td><?php echo htmlspecialchars($entry['FW_LOAD'] ?? '0') ?>%</td>
+            <td><?php echo htmlspecialchars($entry['SHARE_MEM'] ?? '0') ?> MB</td>
+            <td><?php echo isset($entry['PCIE_THROUGHPUT']) ? htmlspecialchars($entry['PCIE_THROUGHPUT']) : '-' ?></td>
+          </tr>
+<?php endforeach; endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
+
+  <!-- Active Decoder Sessions -->
+<?php if (!empty($quadraDetailed['decoder'])): ?>
+  <div class="card mb-3">
+    <div class="card-header">
+      <i class="material-icons md-18">input</i> Active Decoder Sessions (<?php echo count($quadraDetailed['decoder']) ?>)
+    </div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm table-striped table-hover">
+        <thead class="thead-highlight text-left">
+          <tr>
+            <th>#</th>
             <th>Resolution</th>
             <th>Frame Rate</th>
             <th>Avg Cost</th>
@@ -415,17 +353,17 @@ echo getNavBarHTML();
           </tr>
         </thead>
         <tbody>
-          <?php
-          $totalDecoderFps = 0;
-          $totalDecoderInFrames = 0;
-          $totalDecoderOutFrames = 0;
-          foreach ($quadraDetailed['decoders'] as $decoder):
-            $totalDecoderFps += floatval($decoder['FrameRate'] ?? 0);
-            $totalDecoderInFrames += intval($decoder['InFrame'] ?? 0);
-            $totalDecoderOutFrames += intval($decoder['OutFrame'] ?? 0);
-          ?>
+<?php
+$totalDecoderFps = 0;
+$totalDecoderInFrames = 0;
+$totalDecoderOutFrames = 0;
+foreach ($quadraDetailed['decoder'] as $decoder):
+  $totalDecoderFps += floatval($decoder['FrameRate'] ?? 0);
+  $totalDecoderInFrames += intval($decoder['InFrame'] ?? 0);
+  $totalDecoderOutFrames += intval($decoder['OutFrame'] ?? 0);
+?>
           <tr>
-            <td><?php echo htmlspecialchars($decoder['INDEX']) ?></td>
+            <td><?php echo htmlspecialchars($decoder['INDEX'] ?? '') ?></td>
             <td><?php echo htmlspecialchars($decoder['Width'] ?? '') ?>x<?php echo htmlspecialchars($decoder['Height'] ?? '') ?></td>
             <td><?php echo htmlspecialchars($decoder['FrameRate'] ?? '') ?> fps</td>
             <td><?php echo htmlspecialchars($decoder['AvgCost'] ?? '') ?></td>
@@ -434,7 +372,7 @@ echo getNavBarHTML();
             <td><?php echo number_format(intval($decoder['OutFrame'] ?? 0)) ?></td>
             <td><code><?php echo htmlspecialchars($decoder['SID'] ?? '') ?></code></td>
           </tr>
-          <?php endforeach; ?>
+<?php endforeach; ?>
         </tbody>
         <tfoot class="table-secondary text-left">
           <tr>
@@ -450,63 +388,67 @@ echo getNavBarHTML();
       </table>
     </div>
   </div>
-  <?php endif; ?>
+<?php endif; ?>
 
-  <?php if (!empty($quadraDetailed['encoders'])): ?>
+  <!-- Active Encoder Sessions -->
+<?php if (!empty($quadraDetailed['encoder'])): ?>
   <div class="card mb-3">
     <div class="card-header">
-      <i class="material-icons md-18">output</i> Active Encoder Sessions (<?php echo count($quadraDetailed['encoders']) ?>)
+      <i class="material-icons md-18">output</i> Active Encoder Sessions (<?php echo count($quadraDetailed['encoder']) ?>)
     </div>
     <div class="card-body table-responsive">
       <table class="table table-sm table-striped table-hover">
         <thead class="thead-highlight text-left">
           <tr>
-            <th>Index</th>
+            <th>#</th>
             <th>Resolution</th>
             <th>Format</th>
             <th>Frame Rate</th>
             <th>Bitrate</th>
             <th>Avg Bitrate</th>
             <th>Avg Cost</th>
+            <th>IDR</th>
             <th>In Frames</th>
             <th>Out Frames</th>
             <th>Session ID</th>
           </tr>
         </thead>
         <tbody>
-          <?php
-          $totalEncoderFps = 0;
-          $totalEncoderBitrate = 0;
-          $totalEncoderAvgBitrate = 0;
-          $totalEncoderInFrames = 0;
-          $totalEncoderOutFrames = 0;
-          foreach ($quadraDetailed['encoders'] as $encoder):
-            $totalEncoderFps += floatval($encoder['FrameRate'] ?? 0);
-            $totalEncoderBitrate += intval($encoder['BR'] ?? 0);
-            $totalEncoderAvgBitrate += intval($encoder['AvgBR'] ?? 0);
-            $totalEncoderInFrames += intval($encoder['InFrame'] ?? 0);
-            $totalEncoderOutFrames += intval($encoder['OutFrame'] ?? 0);
-          ?>
+<?php
+$totalEncoderFps = 0;
+$totalEncoderBitrate = 0;
+$totalEncoderAvgBitrate = 0;
+$totalEncoderInFrames = 0;
+$totalEncoderOutFrames = 0;
+foreach ($quadraDetailed['encoder'] as $encoder):
+  $totalEncoderFps += floatval($encoder['FrameRate'] ?? 0);
+  $totalEncoderBitrate += intval($encoder['BR'] ?? 0);
+  $totalEncoderAvgBitrate += intval($encoder['AvgBR'] ?? 0);
+  $totalEncoderInFrames += intval($encoder['InFrame'] ?? 0);
+  $totalEncoderOutFrames += intval($encoder['OutFrame'] ?? 0);
+?>
           <tr>
-            <td><?php echo htmlspecialchars($encoder['INDEX']) ?></td>
+            <td><?php echo htmlspecialchars($encoder['INDEX'] ?? '') ?></td>
             <td><?php echo htmlspecialchars($encoder['Width'] ?? '') ?>x<?php echo htmlspecialchars($encoder['Height'] ?? '') ?></td>
             <td><?php echo htmlspecialchars($encoder['Format'] ?? '') ?></td>
             <td><?php echo htmlspecialchars($encoder['FrameRate'] ?? '') ?> fps</td>
-            <td><?php echo number_format(intval($encoder['BR'] ?? 0)) ?> bps</td>
-            <td><?php echo number_format(intval($encoder['AvgBR'] ?? 0)) ?> bps</td>
+            <td><?php echo formatBitrate($encoder['BR'] ?? 0) ?></td>
+            <td><?php echo formatBitrate($encoder['AvgBR'] ?? 0) ?></td>
             <td><?php echo htmlspecialchars($encoder['AvgCost'] ?? '') ?></td>
+            <td><?php echo htmlspecialchars($encoder['IDR'] ?? '') ?></td>
             <td><?php echo number_format(intval($encoder['InFrame'] ?? 0)) ?></td>
             <td><?php echo number_format(intval($encoder['OutFrame'] ?? 0)) ?></td>
             <td><code><?php echo htmlspecialchars($encoder['SID'] ?? '') ?></code></td>
           </tr>
-          <?php endforeach; ?>
+<?php endforeach; ?>
         </tbody>
         <tfoot class="table-secondary text-left">
           <tr>
             <th colspan="3">Total</th>
             <th><?php echo number_format($totalEncoderFps, 1) ?> fps</th>
-            <th><?php echo number_format($totalEncoderBitrate) ?> bps</th>
-            <th><?php echo number_format($totalEncoderAvgBitrate) ?> bps</th>
+            <th><?php echo formatBitrate($totalEncoderBitrate) ?></th>
+            <th><?php echo formatBitrate($totalEncoderAvgBitrate) ?></th>
+            <th></th>
             <th></th>
             <th><?php echo number_format($totalEncoderInFrames) ?></th>
             <th><?php echo number_format($totalEncoderOutFrames) ?></th>
@@ -516,7 +458,7 @@ echo getNavBarHTML();
       </table>
     </div>
   </div>
-  <?php endif; ?>
+<?php endif; ?>
 
 <?php endif; ?>
   </div><!-- content -->

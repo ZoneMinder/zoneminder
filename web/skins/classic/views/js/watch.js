@@ -841,7 +841,7 @@ function streamStart(monitor = null) {
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   //monitorsSetScale(monitorId);
-  monitorStream.start(document.getElementById('streamChannel').value);
+  streamCmdPlay(true);
   if (streamMode == 'single') {
     monitorStream.setup_onclick(fetchImage);
   } else {

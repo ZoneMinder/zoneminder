@@ -1460,11 +1460,11 @@ function MonitorStream(monitorData) {
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (-1 !== this.element.mode.indexOf('mse')) {
         $j('#delay'+this.id).removeClass('hidden');
-        this.manageMSESocket (this.element.video, this.element.ws, this.element.ms);
+        this.manageMSESocket(this.element.video, this.element.ws, this.element.ms);
       }
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (-1 !== this.activePlayer.indexOf('mse')) {
-        this.manageMSESocket (document.getElementById("liveStream" + this.id), this.wsMSE, this.mse);
+        this.manageMSESocket(document.getElementById("liveStream" + this.id), this.wsMSE, this.mse);
       } else if (-1 !== this.player.indexOf('webrtc')) {
         if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
           if (this.webrtc && (this.webrtc.connectionState == "new" || this.webrtc.connectionState == "connecting")) {
@@ -1523,7 +1523,7 @@ function MonitorStream(monitorData) {
         }
       }
     }
-  }
+  };
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);

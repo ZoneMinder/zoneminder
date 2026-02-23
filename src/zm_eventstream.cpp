@@ -1093,9 +1093,12 @@ void EventStream::runStream() {
           zm_terminate = true;
           break;
         }
-        if (send_twice and !sendFrame(delta)) {
-          zm_terminate = true;
-          break;
+        if (send_twice) {
+          send_twice = false;
+          if (!sendFrame(delta)) {
+            zm_terminate = true;
+            break;
+          }
         }
         frame_count++;
       }

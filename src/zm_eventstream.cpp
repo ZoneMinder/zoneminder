@@ -442,6 +442,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
+
+  std::scoped_lock lck{mutex};
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -449,7 +452,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     paused = true;
     break;
   case CMD_PLAY : {
-    std::scoped_lock lck{mutex};
     Debug(1, "Got PLAY command");
     paused = false;
 
@@ -473,7 +475,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_VARPLAY : {
-    std::scoped_lock lck{mutex};
     Debug(1, "Got VARPLAY command");
     paused = false;
     replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
@@ -492,7 +493,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_FASTFWD : {
     Debug(1, "Got FAST FWD command");
-    std::scoped_lock lck{mutex};
     paused = false;
     // Set play rate
     switch (replay_rate) {
@@ -517,7 +517,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWFWD : {
-    std::scoped_lock lck{mutex};
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = 1;
@@ -527,7 +526,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWREV : {
-    std::scoped_lock lck{mutex};
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = -1;
@@ -637,8 +635,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
       offset = event_data->duration;
     }
 
-    std::scoped_lock lck{mutex};
-
     if (event_data->frames.empty()) {
       Debug(1, "No frames in event, can't seek");
       curr_frame_id = 1;
@@ -700,8 +696,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
   } status_data = {};
 
   {
-    std::scoped_lock lck{mutex};
-
     status_data.event_id = event_data->event_id;
     //status_data.duration = event_data->duration;
     status_data.duration = FPSeconds(event_data->duration).count();

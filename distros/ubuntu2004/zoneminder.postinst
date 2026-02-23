@@ -70,6 +70,10 @@ if [ "$1" = "configure" ]; then
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
+  # Allow zoneminder access to local video sources and serial ports
+  adduser --quiet www-data video || true
+  adduser --quiet www-data dialout || true
+
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then

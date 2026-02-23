@@ -1378,7 +1378,7 @@ function changePlayer() {
 // Kick everything off
 $j( window ).on("load", initPage);
 
-var prevStateStarted = false;
+var prevStateStarted = null;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1387,22 +1387,29 @@ document.onvisibilitychange = () => {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
         if (monitorStream.started) {
+          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused)) {
+            prevStateStarted = 'paused';
+          } else {
           prevStateStarted = 'played';
           //Stop only if playing or paused.
           // We might want to continue status updates so that alarm sounds etc still happen
           monitorStream.stop();
+          }
         } else {
-          prevStateStarted = false;
+          prevStateStarted = 'stoped';
         }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = false;
+      prevStateStarted = null;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused)) {
+      prevStateStarted = null;
     }
   }
 };

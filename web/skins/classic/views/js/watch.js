@@ -1390,10 +1390,10 @@ document.onvisibilitychange = () => {
           if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused)) {
             prevStateStarted = 'paused';
           } else {
-          prevStateStarted = 'played';
-          //Stop only if playing or paused.
-          // We might want to continue status updates so that alarm sounds etc still happen
-          monitorStream.stop();
+            prevStateStarted = 'played';
+            //Stop only if playing or paused.
+            // We might want to continue status updates so that alarm sounds etc still happen
+            monitorStream.stop();
           }
         } else {
           prevStateStarted = 'stoped';

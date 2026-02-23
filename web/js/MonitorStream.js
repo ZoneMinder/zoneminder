@@ -6,6 +6,7 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
   this.started = false;
+  this.zmsState = null;
   this.muted = (currentView == 'watch') ? !!getCookie('zmWatchMuted') : true;
   this.connKey = monitorData.connKey;
   this.genConnKey = function() {
@@ -1538,6 +1539,13 @@ function MonitorStream(monitorData) {
       params.command = command;
     }
     this.streamCmdReq(params);
+    if (params.command == CMD_PAUSE) {
+      this.zmsState = 'paused';
+    } else if (params.command == CMD_PLAY) {
+      this.zmsState = 'played';
+    } else if (params.command == CMD_STOP || params.command == CMD_QUIT) {
+      this.zmsState = 'stoped';
+    }
   };
 
   this.alarmCommand = function(command) {

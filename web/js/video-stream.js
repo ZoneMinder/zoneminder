@@ -45,6 +45,17 @@ class VideoStream extends VideoRTC {
         super.oninit();
     }
 
+    onplay() {
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream) {
+                monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            }
+        }
+        super.onplay();
+    }
+
     onconnect() {
         console.debug('stream.onconnect');
         const result = super.onconnect();

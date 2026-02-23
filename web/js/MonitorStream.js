@@ -1479,51 +1479,51 @@ function MonitorStream(monitorData) {
   };
 
   this.manageMSESocket = function(videoEl, socket, mediaSource) {
-      // We correct the lag from real time. Relevant for long viewing and network problems.
+    // We correct the lag from real time. Relevant for long viewing and network problems.
     //const videoEl = document.getElementById("liveStream" + this.id);
     if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-          const videoElCurrentTime = videoEl.currentTime; // Current time of playback
-          const currentTime = (Date.now() / 1000);
-          const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
-          const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
-          let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
-          if (delayCurrent < 0) {
-            //Possibly with high client CPU load. Cannot be negative.
-            this.streamStartTime = currentTime - bufferEndTime;
-            delayCurrent = 0;
-          }
+      const videoElCurrentTime = videoEl.currentTime; // Current time of playback
+      const currentTime = (Date.now() / 1000);
+      const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
+      const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
+      let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
+      if (delayCurrent < 0) {
+        //Possibly with high client CPU load. Cannot be negative.
+        this.streamStartTime = currentTime - bufferEndTime;
+        delayCurrent = 0;
+      }
 
       $j('#delayValue'+this.id).text((delayCurrent != 0) ? delayCurrent: '-');
 
-          // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
-          if (!videoEl.paused && deltaRealTime > 10) {
-            // Ability to scroll through the last buffered frames when paused.
-            if (bufferEndTime - videoElCurrentTime > 2.0) {
-              // Correcting a flow lag of more than X seconds from the end of the buffer
-              // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
-              //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
-              videoEl.currentTime = bufferEndTime - 0.1;
-            }
-            if (deltaRealTime - bufferEndTime > 1.5) {
-              // Correcting the buffer end lag by more than X seconds from real time
-              console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
+      // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
+      if (!videoEl.paused && deltaRealTime > 10) {
+        // Ability to scroll through the last buffered frames when paused.
+        if (bufferEndTime - videoElCurrentTime > 2.0) {
+          // Correcting a flow lag of more than X seconds from the end of the buffer
+          // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
+          //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
+          videoEl.currentTime = bufferEndTime - 0.1;
+        }
+        if (deltaRealTime - bufferEndTime > 1.5) {
+          // Correcting the buffer end lag by more than X seconds from real time
+          console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
 
-              this.restart(this.currentChannelStream);
-            }
-          }
+          this.restart(this.currentChannelStream);
+        }
+      }
     } else if (!socket && this.started) {
       //if (mediaSource.readyState == 'open' || mediaSource.readyState == 'closed') {
       if (mediaSource) {
         // Go2RTC has a problem with Auto mode, as Go2RTC tries to start each one (MSE and RTC) one at a time. At this point, the socket is destroyed, which can sometimes lead to multiple restarts. Probably...
         if (mediaSource.readyState == 'open') {
-            console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id} RESTART is started.`);
-            this.restart(this.currentChannelStream);
-          } else {
+          console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id} RESTART is started.`);
+          this.restart(this.currentChannelStream);
+        } else {
           console.log(`MediaSource for camera ID=${this.id} is in state "${mediaSource.readyState.toUpperCase()}"`);
-          }
-        }
         }
       }
+    }
+  }
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);

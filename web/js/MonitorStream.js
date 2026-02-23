@@ -654,6 +654,7 @@ function MonitorStream(monitorData) {
       }
       this.webrtc = null;
       stream.srcObject = null;
+      this.streamStartTime = 0;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
@@ -1457,11 +1458,30 @@ function MonitorStream(monitorData) {
         .fail(logAjaxFail);
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+      if (-1 !== this.element.mode.indexOf('mse')) {
+        $j('#delay'+this.id).removeClass('hidden');
+        this.manageMSESocket (this.element.video, this.element.ws, this.element.ms);
+      }
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
-      // We correct the lag from real time. Relevant for long viewing and network problems.
       if (-1 !== this.activePlayer.indexOf('mse')) {
-        const videoEl = document.getElementById("liveStream" + this.id);
-        if (this.wsMSE && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+        this.manageMSESocket (document.getElementById("liveStream" + this.id), this.wsMSE, this.mse);
+      } else if (-1 !== this.player.indexOf('webrtc')) {
+        if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
+          if (this.webrtc && (this.webrtc.connectionState == "new" || this.webrtc.connectionState == "connecting")) {
+            console.log(`Waiting WebRTC connection for camera ID=${this.id} State="${this.webrtc.connectionState}"`);
+          } else {
+            console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`, this.webrtc, this.started);
+            this.restart(this.currentChannelStream);
+          }
+        }
+      }
+    } // end if Go2RTC or RTSP2Web
+  };
+
+  this.manageMSESocket = function(videoEl, socket, mediaSource) {
+      // We correct the lag from real time. Relevant for long viewing and network problems.
+    //const videoEl = document.getElementById("liveStream" + this.id);
+    if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
           const videoElCurrentTime = videoEl.currentTime; // Current time of playback
           const currentTime = (Date.now() / 1000);
           const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
@@ -1473,7 +1493,7 @@ function MonitorStream(monitorData) {
             delayCurrent = 0;
           }
 
-          $j('#delayValue'+this.id).text(delayCurrent);
+      $j('#delayValue'+this.id).text((delayCurrent != 0) ? delayCurrent: '-');
 
           // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
           if (!videoEl.paused && deltaRealTime > 10) {
@@ -1491,26 +1511,19 @@ function MonitorStream(monitorData) {
               this.restart(this.currentChannelStream);
             }
           }
-        } else if (!this.wsMSE && this.started) {
-          if (this.mse.readyState == 'open') {
+    } else if (!socket && this.started) {
+      //if (mediaSource.readyState == 'open' || mediaSource.readyState == 'closed') {
+      if (mediaSource) {
+        // Go2RTC has a problem with Auto mode, as Go2RTC tries to start each one (MSE and RTC) one at a time. At this point, the socket is destroyed, which can sometimes lead to multiple restarts. Probably...
+        if (mediaSource.readyState == 'open') {
             console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id} RESTART is started.`);
             this.restart(this.currentChannelStream);
           } else {
-            console.log(`MediaSource for camera ID=${this.id} is in state "${this.mse.readyState.toUpperCase()}"`);
+          console.log(`MediaSource for camera ID=${this.id} is in state "${mediaSource.readyState.toUpperCase()}"`);
           }
         }
-      } else if (-1 !== this.player.indexOf('webrtc')) {
-        if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
-          if (this.webrtc && (this.webrtc.connectionState == "new" || this.webrtc.connectionState == "connecting")) {
-            console.log(`Waiting WebRTC connection for camera ID=${this.id} State="${this.webrtc.connectionState}"`);
-          } else {
-            console.warn(`UNSCHEDULED CLOSE WebRTC for camera ID=${this.id}`, this.webrtc, this.started);
-            this.restart(this.currentChannelStream);
-          }
         }
       }
-    } // end if Go2RTC or RTSP2Web
-  };
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);

@@ -134,7 +134,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
           else
-            echo "DEPLOY_TARGET=debian/proposed-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+            echo "DEPLOY_TARGET=debian/master/mini-dinstall/incoming/" >> $GITHUB_ENV
           fi
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

@@ -1086,17 +1086,20 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   bool have_out_of_order = false;
   auto rit = queue.rbegin();
   // Find the previous packet for the stream, and check dts
-  while (rit != queue.rend()) {
-    AVPacket *p = ((*rit)->packet).get();
-    if (p->dts <= av_pkt->dts) {
-      Debug(1, "Found in order packet");
-      // packets are in order, everything is fine
-      break;
-    } else {
-      have_out_of_order = true;
-    }
-    rit++;
-  }  // end while
+  // Skip reordering when incoming dts is undefined — can't compare meaningfully
+  if (av_pkt->dts != AV_NOPTS_VALUE) {
+    while (rit != queue.rend()) {
+      AVPacket *p = ((*rit)->packet).get();
+      if (p->dts == AV_NOPTS_VALUE || p->dts <= av_pkt->dts) {
+        Debug(1, "Found in order packet");
+        // packets are in order, everything is fine
+        break;
+      } else {
+        have_out_of_order = true;
+      }
+      rit++;
+    }  // end while
+  }
 
   if (have_out_of_order) {
     if (rit == queue.rend()) {
@@ -1364,6 +1367,15 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
       if ((ipkt->pts != AV_NOPTS_VALUE) and (ipkt->dts != AV_NOPTS_VALUE)) {
         av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      } else if ((ipkt->pts == AV_NOPTS_VALUE) and (ipkt->dts == AV_NOPTS_VALUE)) {
+        // Both undefined — use last_dts+1 as minimal monotonic increment
+        if (last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+          opkt->dts = last_dts[video_out_stream->index] + 1;
+        } else {
+          opkt->dts = 0;
+        }
+        opkt->pts = opkt->dts;
+        Debug(2, "No pts/dts, synthesized dts %" PRId64 " from last_dts", opkt->dts);
       }
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
@@ -1384,7 +1396,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         ipkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
   }
 
-  if (audio_first_dts == AV_NOPTS_VALUE) {
+  if (audio_first_dts == AV_NOPTS_VALUE && ipkt->dts != AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
@@ -1441,8 +1453,8 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     opkt->flags = ipkt->flags;
     opkt->duration = ipkt->duration;
     if (audio_first_dts != AV_NOPTS_VALUE) {
-      opkt->pts = ipkt->pts - audio_first_dts;
-      opkt->dts = ipkt->dts - audio_first_dts;
+      opkt->pts = (ipkt->pts != AV_NOPTS_VALUE) ? ipkt->pts - audio_first_dts : AV_NOPTS_VALUE;
+      opkt->dts = (ipkt->dts != AV_NOPTS_VALUE) ? ipkt->dts - audio_first_dts : AV_NOPTS_VALUE;
     } else {
       opkt->pts = ipkt->pts;
       opkt->dts = ipkt->dts;
@@ -1465,11 +1477,14 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   ZM_DUMP_PACKET(pkt, "packet in write_packet");
 
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);
-    if (last_dts[stream->index] == AV_NOPTS_VALUE) {
-      last_dts[stream->index] = -1;
-    } 
-    pkt->dts = last_dts[stream->index];
+    if (last_dts[stream->index] != AV_NOPTS_VALUE) {
+      pkt->dts = last_dts[stream->index] + 1;
+      Debug(1, "undef dts, synthesized %" PRId64 " from last_dts %" PRId64 " + 1",
+            pkt->dts, last_dts[stream->index]);
+    } else {
+      pkt->dts = 0;
+      Debug(1, "undef dts and no last_dts, setting to 0");
+    }
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
@@ -1486,10 +1501,11 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       }
     }
-    next_dts[stream->index] = pkt->dts + pkt->duration;
-    last_dts[stream->index] = pkt->dts;
-    last_duration[stream->index] = pkt->duration;
   }
+  // Always update tracking now that dts has a valid value
+  next_dts[stream->index] = pkt->dts + pkt->duration;
+  last_dts[stream->index] = pkt->dts;
+  last_duration[stream->index] = pkt->duration;
 
   if (pkt->pts == AV_NOPTS_VALUE) {
     pkt->pts = pkt->dts;

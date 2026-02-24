@@ -210,6 +210,7 @@ function buildSidebarMenu() {
     getOptionsHTML($forLeftBar = true) .
     getLogHTML($forLeftBar = true) .
     getDevicesHTML($forLeftBar = true) .
+    getIntelGpuHTML($forLeftBar = true) .
     getGroupsHTML($view, $forLeftBar = true) .
     getFilterHTML($view, $forLeftBar = true) .
     getSnapshotsHTML($view, $forLeftBar = true) .
@@ -511,6 +512,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getOptionsHTML();
           echo getLogHTML();
           echo getDevicesHTML();
+          echo getIntelGpuHTML();
           echo getGroupsHTML($view);
           echo getFilterHTML($view);
           echo getCycleHTML($view);
@@ -668,6 +670,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getOptionsHTML();
             echo getLogHTML();
             echo getDevicesHTML();
+            echo getIntelGpuHTML();
             echo getGroupsHTML($view);
             echo getFilterHTML($view);
             echo getCycleHTML($view);
@@ -1126,6 +1129,34 @@ function getDevicesHTML($forLeftBar = false) {
       );
     } else {
       $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.translate('Devices').'</a></li>'.PHP_EOL;
+    }
+  }
+
+  return $result;
+}
+
+// Returns the html representing the Intel GPU status menu item
+function getIntelGpuHTML($forLeftBar = false) {
+  $result = '';
+
+  // Only show if intel_gpu_top is available and user can view System
+  if (canView('System')) {
+    // Check if intel_gpu_top command exists
+    $intel_gpu_top_exists = shell_exec('which intel_gpu_top 2>/dev/null');
+    if ($intel_gpu_top_exists) {
+      if ($forLeftBar) {
+        $result .= buildMenuItem(
+          $viewItemName = 'intelgpu',
+          $id = 'getIntelGpuHTML',
+          $itemName = 'Intel GPU',
+          $href = '?view=intelgpu',
+          $icon = 'memory',
+          $classNameForTag_A = '',
+          $subMenu = ''
+        );
+      } else {
+        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">Intel GPU</a></li>'.PHP_EOL;
+      }
     }
   }
 

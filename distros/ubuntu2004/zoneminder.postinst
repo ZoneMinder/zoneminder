@@ -36,19 +36,18 @@ create_update_user () {
 }
 
 update_db () {
-
   zmupdate.pl --nointeractive
   if [ $? -ne 0 ]; then
-    echo "Error updating db. Trying with super-user privileges"
+    echo "Error updating db with zmupdate.pl --nointeractive. Trying with super-user privileges"
     zmupdate.pl -s --nointeractive
     if [ $? -ne 0 ]; then
-      echo "Failed updating db. Please try manually by running: sudo zmupdate.pl"
+      echo "Failed updating db with zmupdate.pl -s --nointeractive. Please try manually by running: sudo zmupdate.pl"
       exit 1;
     fi
   fi
   zmupdate.pl --nointeractive -f
   if [ $? -ne 0 ]; then
-    echo "Error updating config."
+    echo "Error updating config with zmupdate.pl --nointeractive -f."
     exit 1;
   fi
 
@@ -71,6 +70,10 @@ if [ "$1" = "configure" ]; then
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
+  # Allow zoneminder access to local video sources and serial ports
+  adduser --quiet www-data video || true
+  adduser --quiet www-data dialout || true
+
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then

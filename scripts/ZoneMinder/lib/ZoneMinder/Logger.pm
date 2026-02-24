@@ -57,6 +57,7 @@ our %EXPORT_TAGS = (
       ERROR
       FATAL
       PANIC
+      AUDIT
       NOLOG
       ) ],
     functions => [ qw(
@@ -79,6 +80,7 @@ our %EXPORT_TAGS = (
       Error
       Fatal
       Panic
+      Audit
       ) ]
     );
 
@@ -122,7 +124,8 @@ use constant {
   ERROR => -2,
   FATAL => -3,
   PANIC => -4,
-  NOLOG => -5
+  AUDIT => -5,
+  NOLOG => -6
 };
 
 our %codes = (
@@ -141,6 +144,7 @@ our %codes = (
     &ERROR => 'ERR',
     &FATAL => 'FAT',
     &PANIC => 'PNC',
+    &AUDIT => 'AUD',
     &NOLOG => 'OFF'
     );
 
@@ -159,7 +163,8 @@ our %priorities = (
   &WARNING => 'warning',
   &ERROR => 'err',
   &FATAL => 'err',
-  &PANIC => 'err'
+  &PANIC => 'err',
+  &AUDIT => 'notice'
 );
 
 our $logger;
@@ -763,6 +768,8 @@ sub Panic {
   fetch()->logPrint(PANIC, @_, caller);
   confess($_[0]);
 }
+
+sub Audit { fetch()->logPrint(AUDIT, @_, caller); }
 
 1;
 __END__

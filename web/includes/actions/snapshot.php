@@ -28,6 +28,7 @@ if ( $action == 'create' ) {
   }
   $snapshot = new ZM\Snapshot();
   $snapshot->save(array('CreatedBy'=>$user->Id()));
+  ZM\AuditAction('create', 'snapshot', $snapshot->Id(), '');
 
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
     if (!validCardinal($monitor_id)) {
@@ -73,12 +74,14 @@ if ( isset($_REQUEST['id']) ) {
       $changes = $snapshot->changes($_REQUEST['snapshot']);
       if ( count($changes) ) {
         $snapshot->save($changes);
+        ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';
     }
   } else if ( $action == 'delete' ) {
     if ( canEdit('Events') ) {
       $snapshot->delete();
+      ZM\AuditAction('delete', 'snapshot', $_REQUEST['id'], '');
       $redirect = '?view=snapshots';
     }
   }

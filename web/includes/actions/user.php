@@ -60,6 +60,7 @@ if ($action == 'Save') {
         unset($_REQUEST['redirect']);
         return;
       }
+      ZM\AuditAction(($uid ? 'update' : 'create'), 'user', $dbUser->Id(), 'Username: '.$dbUser->Username().' Changed: '.implode(', ', array_keys($changes)));
 
       if ($uid) {
         if ($user and ($dbUser->Username() == $user->Username())) {
@@ -120,6 +121,7 @@ if ($action == 'Save') {
         unset($_REQUEST['redirect']);
         return;
       }
+      ZM\AuditAction('self_update', 'user', $dbUser->Id(), 'Changed: '.implode(', ', array_keys($changes)));
 
       # We are the logged in user, need to update the $user object and generate a new auth_hash
       $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);

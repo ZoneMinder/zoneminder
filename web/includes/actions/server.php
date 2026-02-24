@@ -41,6 +41,7 @@ if ($action == 'save') {
     } else {
       dbQuery('INSERT INTO Servers SET '.implode(', ', $changes));
     }
+    ZM\AuditAction((!empty($_REQUEST['id']) ? 'update' : 'create'), 'server', $_REQUEST['id'] ?? 0, 'Changed: '.implode(', ', array_keys($changes)));
     $refreshParent = true;
   }
   $redirect = '?view=options&tab=servers';

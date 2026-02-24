@@ -1179,7 +1179,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1205,7 +1205,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1235,7 +1235,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1243,7 +1243,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_LEVEL_WEBLOG',
-    default     => '-5',
+    default     => '-6',
     description => 'Save logging output to the weblog',
     help        => q`
       ZoneMinder logging is now more integrated between
@@ -1262,7 +1262,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1293,7 +1293,7 @@ our @options = (
       `,
     type        => {
       db_type     => 'integer',
-      hint        => 'None=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
+      hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
       pattern     => qr|^(\d+)$|,
       format      => q( $1 )
     },
@@ -1317,6 +1317,21 @@ our @options = (
       end). The Logs table is pruned periodically so it is possible
       for more than the expected number of rows to be present briefly
       in the meantime.
+      `,
+    type        => $types{string},
+    category    => 'logging',
+  },
+  {
+    name        => 'ZM_LOG_AUDIT_DATABASE_LIMIT',
+    default     => '1 year',
+    description => 'Maximum retention period for audit log entries',
+    help        => q`
+      Audit log entries record administrative changes such as monitor
+      configuration, user management, filter changes, and system settings.
+      These entries are typically retained longer than regular log entries
+      for compliance and troubleshooting. Set to a row count (integer) or
+      time interval such as '1 year', '6 month', '90 day'. Set to empty
+      to retain audit logs indefinitely.
       `,
     type        => $types{string},
     category    => 'logging',

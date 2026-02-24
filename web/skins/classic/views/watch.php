@@ -335,7 +335,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
   </div><!--header-->
   <div id="content">
     <div class="container-fluid">
-      <div class="row flex-nowrap" >
+      <div class="row flex-md-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">

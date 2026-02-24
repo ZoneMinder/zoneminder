@@ -112,9 +112,22 @@ ul.form > li > label:first-child {
     padding-left: 0;
     margin: 5px 0;
   }
-  ul.form > li > label {
+  ul.form > li > label:first-child {
     width: 100%;
     margin-left: 0;
     text-align: left;
+  }
+  #page tr td:first-child {
+    min-width: unset;
+  }
+  .tab-pane td:first-child {
+    text-align: left;
+  }
+  textarea,
+  input[name="newMonitor[ONVIF_URL]"],
+  input[name="newMonitor[ONVIF_Username]"],
+  input[name="newMonitor[ONVIF_Password]"],
+  input[name="newMonitor[LabelFormat]"] {
+    min-width: unset;
   }
 }

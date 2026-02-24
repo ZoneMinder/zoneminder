@@ -933,6 +933,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image );
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );

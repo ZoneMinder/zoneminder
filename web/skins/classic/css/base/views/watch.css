@@ -209,6 +209,30 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   line-height: 36px;
 }
 
+@media screen and (max-width: 767px) {
+  #sidebar {
+    width: 100%;
+    min-width: unset;
+  }
+
+  #sidebar .nav {
+    flex-wrap: wrap;
+    flex-direction: row;
+  }
+
+  #wrapperMonitor {
+    overflow-x: hidden;
+  }
+
+  #ptzControls {
+    width: 100%;
+  }
+
+  .d-flex.flex-row.justify-content-between {
+    flex-wrap: wrap;
+  }
+}
+
 /* +++ Support for old ZoomPan algorithm */
 .form-check.control-use-old-zoom-pan {
   display: inline-block;

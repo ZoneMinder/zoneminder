@@ -352,12 +352,16 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
-        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        if ($this->{'Width'}) {
+          $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
+          $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        }
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
-        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        if ($this->{'Height'}) {
+          $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
+          $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        }
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }
@@ -369,12 +373,16 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
-        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        if ($this->{'Width'}) {
+          $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
+          $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+        }
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
-        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        if ($this->{'Height'}) {
+          $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
+          $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+        }
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
       }

@@ -143,12 +143,18 @@ int filter_worker::init_filter(const char *filters_desc, AVBufferRef *hw_frames_
     sar = {1, 1};
   }
 
+  // Default to 1/1 when framerate is unset (e.g. synthetic streams from local camera)
+  AVRational fr = dec_ctx->framerate;
+  if (fr.num <= 0 || fr.den <= 0) {
+    fr = {1, 1};
+  }
+
   snprintf(name, sizeof(name), "in_0");
   snprintf(args, sizeof(args),
       "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d:frame_rate=%d/%d",
       dec_ctx->width, dec_ctx->height, buf_pix_fmt, time_base.num, time_base.den,
       sar.num, sar.den,
-      dec_ctx->framerate.num, dec_ctx->framerate.den);
+      fr.num, fr.den);
   Debug(1, "Setting filter %s to %s", name, args);
 
   ret = avfilter_graph_create_filter(&buffersrc_ctx, avfilter_get_by_name("buffer"), name, args, nullptr, filter_graph);

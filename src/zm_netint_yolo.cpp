@@ -501,7 +501,7 @@ int Quadra_Yolo::process_roi(AVFrame *in_frame, AVFrame **filt_frame) {
 #if SOFTWARE_DRAWBOX
   if (in_frame->hw_frames_ctx) {
 #else
-  if (!use_hwframe) {
+  if (!use_hwframe && in_frame->hw_frames_ctx) {
 #endif
     if (!hwdl_filter.initialised) {
       if (!hwdl_filter.setup("hwdownload,format=yuv420p", "", dec_ctx, dec_stream->time_base, in_frame->hw_frames_ctx, dec_ctx->pix_fmt)) {

@@ -1195,7 +1195,7 @@ bool Monitor::connect() {
   shared_analysis_images = (unsigned char *)((char *)shared_images + (image_buffer_count*image_size));
   analysis_image_buffer.resize(image_buffer_count);
   image_pixelformats = (AVPixelFormat *)(shared_analysis_images + (image_buffer_count*image_size));
-  analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
+  analysis_image_pixelformats = image_pixelformats + image_buffer_count;
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
     image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]), image_size, 0);

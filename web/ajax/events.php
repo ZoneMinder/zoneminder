@@ -320,7 +320,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     if (!$event->canView()) continue;
     if ($event->Monitor()->Deleted()) continue;
 
-    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+    $scale = $event->width() ? intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');

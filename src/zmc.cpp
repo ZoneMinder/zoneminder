@@ -300,7 +300,7 @@ int main(int argc, char *argv[], char **envp) {
 
           time_t last_viewed = monitors[i]->getLastViewed();
           int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - last_viewed;
-          Debug(1, "Last view %jd= %" PRId64 " seconds since last view", last_viewed, since_last_view);
+          Debug(1, "Last view %jd= %" PRId64 " seconds since last view", static_cast<intmax_t>(last_viewed), since_last_view);
           if (((!last_viewed) or (since_last_view > 10)) and (monitors[i]->GetLastWriteIndex() != -1)) {
             if (monitors[i]->getCamera()->isPrimed()) {
               monitors[i]->Pause();

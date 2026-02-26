@@ -50,7 +50,7 @@ RETSIGTYPE zm_die_handler(int signal)
   zm_terminate = true;
   if (zm_panic)
     Fatal("Got signal %d (%s), crashing", signal, strsignal(signal));
-  zm_panic = true;
+  //zm_panic = true;
   Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 #if (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
   // Get more information if available
@@ -186,9 +186,9 @@ RETSIGTYPE zm_die_handler(int signal)
   }
 
   if (found_offset) {
-    Error("Backtrace complete, please install debug symbols (typically zoneminder-dbg)");
-    Error("and execute the following command for more information:");
-    Error("%s", cmd);
+    Error("Backtrace complete, please install debug symbols (typically zoneminder-dbg)"
+    "and execute the following command for more information:\n%s",
+    cmd);
   }
 #elif HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS
   // Fallback to glibc backtrace (less reliable on ARM)
@@ -206,9 +206,11 @@ RETSIGTYPE zm_die_handler(int signal)
 
   // Print the full backtrace
   for (int i = 0; i < trace_size; i++) {
-    Error("Backtrace %d: %s", i, messages[i]);
-    if (strstr(messages[i], self) == nullptr)
+    Error("Backtrace %s, %u/%u: %s", self, i, trace_size, messages[i]);
+    if (strstr(messages[i], self) == nullptr) {
+      Error("Didn't find self %s in %s", self, messages[i]);
       continue;
+    }
     ofs_ptr = strstr(messages[i], "(+0x");
     if (ofs_ptr == nullptr)
       continue;
@@ -225,9 +227,9 @@ RETSIGTYPE zm_die_handler(int signal)
   free(messages);
 
   if (found_offset) {
-    Error("Backtrace complete, please install debug symbols (typically zoneminder-dbg)");
-    Error("and execute the following command for more information:");
-    Error("%s", cmd);
+    Error("Backtrace complete, please install debug symbols (typically zoneminder-dbg)"
+        "and execute the following command for more information:\n%s",
+        cmd);
   }
 #endif  // HAVE_LIBUNWIND / HAVE_DECL_BACKTRACE
 #endif  // !defined(ZM_NO_CRASHTRACE)

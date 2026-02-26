@@ -612,6 +612,9 @@ void MonitorStream::runStream() {
 
       if (!buffered_playback) {
         Error("Unable to validate swap image path, disabling buffered playback");
+      } else if (temp_image_buffer_count <= 0) {
+        Error("Invalid temp_image_buffer_count %d, disabling buffered playback", temp_image_buffer_count);
+        buffered_playback = false;
       } else {
         Debug(2, "Assigning temporary buffer");
         temp_image_buffer = new SwapImage[temp_image_buffer_count];

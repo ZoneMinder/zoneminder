@@ -227,7 +227,7 @@ static int resize_coords(detection *dets, int dets_num,
     struct roi_box *rbox;
     int rbox_num = 0;
 
-    if (dets_num == 0) {
+    if (dets_num <= 0) {
         return 0;
     }
 

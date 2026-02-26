@@ -2557,6 +2557,13 @@ function initPageGeneral() {
       }
     });
   });
+
+  document.querySelectorAll('input.disabled').forEach(function(el) {
+    el.addEventListener("click", function clickInputDisabled(event) {
+      event.preventDefault();
+      return;
+    });
+  });
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload

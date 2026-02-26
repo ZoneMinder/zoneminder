@@ -518,6 +518,7 @@ function queryRequest() {
       $row['Thumbnail'] = '<div class="colThumbnail" style="'.$thmbHeight.'"><a href="?view=watch&amp;mid='.$monitor['Id'].'">'.
         '<img id="thumbnail'.$Monitor->Id().'" src="'.$stillSrc.'" style="'.$thmbWidth.$thmbHeight.
         '" stream_src="'.$streamSrc.'" still_src="'.$stillSrc.'"'.$videoAttr.$go2rtcAttr.$liveStreamAttr.$debugAttr.
+        ' data-monitor-width="'.$Monitor->ViewWidth().'" data-monitor-height="'.$Monitor->ViewHeight().'"'.
         ($options['width'] ? ' width="'.$options['width'].'"' : '').
         ($options['height'] ? ' height="'.$options['height'].'"' : '').
         ' loading="lazy" /></a></div>';

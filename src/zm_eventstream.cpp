@@ -27,7 +27,10 @@
 #include "zm_storage.h"
 #include <algorithm>
 #include <arpa/inet.h>
+#include <climits>
+#include <string_view>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <filesystem>
 
@@ -845,30 +848,35 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     curr_frame_id = std::clamp(curr_frame_id, 1, (int)event_data->frames.size());
   }
 
-  std::string filepath;
-  struct stat filestat = {};
+  // Stack buffer + string_view avoids the per-frame heap allocations that
+  // stringtf() would incur (2 allocs per call).  All consumers need const char*
+  // anyway (access, ReadJpeg, Image ctor, Debug/Error format args).
+  char filepath_buf[PATH_MAX] = "";
+  std::string_view filepath;  // non-owning view into filepath_buf
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
-    filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(filepath.c_str(), &filestat) < 0) {
-      Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
-      filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (stat(filepath.c_str(), &filestat) < 0) {
-        Debug(1, "capture file %s not found either", filepath.c_str());
-        filepath = "";
+    snprintf(filepath_buf, sizeof(filepath_buf), staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (access(filepath_buf, R_OK) != 0) {
+      Debug(1, "analyze file %s not found will try to stream from other", filepath_buf);
+      snprintf(filepath_buf, sizeof(filepath_buf), staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+      if (access(filepath_buf, R_OK) != 0) {
+        Debug(1, "capture file %s not found either", filepath_buf);
+        filepath_buf[0] = '\0';
       }
     }
+    filepath = filepath_buf;
   } else if (event_data->SaveJPEGs & 1) {
-    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    snprintf(filepath_buf, sizeof(filepath_buf), staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    filepath = filepath_buf;
   } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
   }
 
   if ( type == STREAM_MPEG ) {
-    Image image(filepath.c_str());
+    Image image(filepath.data());
 
     Image *send_image = prepareImage(&image);
 
@@ -887,15 +895,17 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
     if (send_raw) {
       fprintf(stdout, "--" BOUNDARY "\r\n");
-      if (!send_file(filepath)) {
-        Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
+      // send_file takes const std::string&; implicit conversion from filepath_buf
+      if (!send_file(filepath_buf)) {
+        Error("Can't send %s: %s", filepath.data(), strerror(errno));
         return false;
       }
     } else {
       Image *image = nullptr;
 
       if (!filepath.empty()) {
-        image = new Image(filepath.c_str());
+        reuse_image_.ReadJpeg(filepath.data(), ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+        image = &reuse_image_;
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -971,7 +981,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         break;
       }
       int rc = send_buffer(img_buffer, img_buffer_size);
-      delete image;
+      if (image != &reuse_image_) delete image;
       image = nullptr;
       if (!rc) return false;
     }  // end if send_raw or not

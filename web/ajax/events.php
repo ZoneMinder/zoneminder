@@ -332,7 +332,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     }
 
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' loading="lazy" />';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"' .$videoAttr. ' data-monitor-width="'.$event->Width().'" data-monitor-height="'.$event->Height().'" loading="lazy" />';
     $row['imgWidth'] = validInt($event->ThumbnailWidth());
     $row['imgHeight'] = validInt($event->ThumbnailHeight());
 

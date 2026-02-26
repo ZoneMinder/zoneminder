@@ -2532,7 +2532,7 @@ function initPageGeneral() {
         mainContentJ.css({flex: "0 1 auto"});
       }
       if (typeof ZM_WEB_ANIMATIONS === 'undefined' || !ZM_WEB_ANIMATIONS) {
-        mainContentJ.css({display: "none"});
+        // mainContentJ.css({display: "none"});
       } else {
         mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
           mainContentJ.css({display: "none"});

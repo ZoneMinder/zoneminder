@@ -1108,7 +1108,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
             </li>
-<?php if (defined('HAVE_UNTETHER') or (defined('HAVE_QUADRA') and ZM_HAVE_QUADRA)) { ?>
+<?php if (defined('HAVE_UNTETHER') or (defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA)) { ?>
             <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php

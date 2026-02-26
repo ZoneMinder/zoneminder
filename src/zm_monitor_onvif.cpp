@@ -67,6 +67,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,closes_event(false)
   ,soap(nullptr)
   ,try_usernametoken_auth(false)
+  ,pull_skip_auth_(false)
   ,retry_count(0)
   ,max_retries(10)
   ,warned_pull_auth_failure(false)
@@ -252,6 +253,20 @@ void ONVIF::Subscribe() {
     return;
   }
 
+  // Clean up any existing subscription before creating a new one.
+  // Without this, leaked subscriptions accumulate on the camera and
+  // may hit the camera's concurrent subscription limit.
+  cleanup_subscription();
+  soap_destroy(soap);
+  soap_end(soap);
+
+  // Restore the events service endpoint.  PullMessages/Renew/Unsubscribe
+  // pass explicit endpoints to gSOAP proxy methods, which permanently
+  // overwrites proxyEvent.soap_endpoint with the subscription address.
+  // CreatePullPointSubscription uses the default soap_endpoint, so we
+  // must reset it to the events service URL before each Subscribe().
+  proxyEvent.soap_endpoint = event_endpoint_url_.c_str();
+
   set_credentials(soap);
 
   bool use_wsa = parent->soap_wsa_compl;
@@ -354,6 +369,8 @@ void ONVIF::Subscribe() {
   // Clear tracking state from previous subscription
   initialized_count.clear();
   warned_initialized_repeat = false;
+  warned_pull_auth_failure = false;
+  pull_skip_auth_ = false;
 
   Debug(1, "ONVIF: Successfully created PullPoint subscription");
 
@@ -411,7 +428,13 @@ void ONVIF::Subscribe() {
 void ONVIF::WaitForMessage() {
   // Clear any stale SOAP headers from previous requests/responses
   soap->header = nullptr;
-  set_credentials(soap);
+  if (pull_skip_auth_) {
+    // Camera doesn't want WSSE auth on PullMessages (subscription URL serves as token)
+    soap_wsse_delete_Security(soap);
+    Debug(2, "ONVIF: Skipping WSSE auth for PullMessages (subscription URL is auth token)");
+  } else {
+    set_credentials(soap);
+  }
 
   bool use_wsa = parent->soap_wsa_compl;
 
@@ -443,13 +466,47 @@ void ONVIF::WaitForMessage() {
                             std::strstr(fault_string, "NotAuthorized")));
 
         if (is_auth_error) {
-          // Authorization failure - likely due to clock drift or expired credentials
-          // Only log as Error the first time, then demote to Debug to avoid flooding logs
+          // Try switching auth method before giving up: digest <-> plain
           if (!warned_pull_auth_failure) {
-            Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
-                  "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
+            bool was_plain = try_usernametoken_auth;
+            try_usernametoken_auth = !try_usernametoken_auth;
+            Info("ONVIF: PullMessages auth failed with %s auth, retrying with %s",
+                was_plain ? "plain" : "digest",
+                try_usernametoken_auth ? "plain" : "digest");
+
+            soap_destroy(soap);
+            soap_end(soap);
+            soap->header = nullptr;
+            set_credentials(soap);
+
+            if (use_wsa) {
+              do_wsa_request(subscription_address_.c_str(), "PullPointSubscription/PullMessagesRequest");
+            }
+
+            _tev__PullMessages retry_pull;
+            _tev__PullMessagesResponse retry_resp;
+            retry_pull.Timeout = pull_timeout_str.c_str();
+            retry_pull.MessageLimit = 10;
+            result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &retry_pull, retry_resp);
+
+            if (result == SOAP_OK || soap->error == SOAP_EOF) {
+              Info("ONVIF: PullMessages succeeded with %s auth",
+                  try_usernametoken_auth ? "plain" : "digest");
+              warned_pull_auth_failure = false;
+              // Let the normal success/timeout handling below process the response
+              soap_destroy(soap);
+              soap_end(soap);
+              return;  // Will be called again immediately by Run()
+            }
+
+            // Both auth methods failed - revert and re-subscribe.
+            // This is typically transient (camera invalidated the subscription),
+            // so warn rather than error since re-subscribe will recover.
+            try_usernametoken_auth = was_plain;
+            Warning("ONVIF: PullMessages auth failed with both methods, will re-subscribe. "
+                  "result=%d fault=%s detail=%s "
                   "(timestamp_validity=%ds, camera_clock_offset=%lds)",
-                result, soap->error, fault_string, (detail ? detail : "null"),
+                result, fault_string, (detail ? detail : "null"),
                 timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
             warned_pull_auth_failure = true;
           } else {

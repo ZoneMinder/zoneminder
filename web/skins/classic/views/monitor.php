@@ -1108,7 +1108,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
         echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection(), [ 'data-on-change-this'=>'ObjectDetection_onChange']);
 ?>
             </li>
-<?php if (defined('HAVE_UNTETHER') or (defined('HAVE_QUADRA') and ZM_HAVE_QUADRA)) { ?>
+<?php if (defined('HAVE_UNTETHER') or (defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA)) { ?>
             <li id="ObjectDetectionModel" class="ObjectDetectionModel">
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
@@ -1159,51 +1159,56 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('AI Detection Classes') ?></label>
               <div class="ai-detection-container">
 <?php
-// Load detection settings for this monitor (or defaults if new monitor)
+// Load detection settings collapsed to one row per unique ClassName.
+// The C++ daemon also loads by ClassName, so this ensures what the user
+// sees here is exactly what takes effect. Monitor-specific > global > default.
 $monitor_id = $monitor->Id();
-$detection_settings = array();
 
-// First load global defaults (MonitorId IS NULL)
-$result = dbQuery('SELECT ds.*, oc.ClassName, oc.ClassIndex, d.Name as DatasetName
-  FROM AI_Detection_Settings ds
-  JOIN AI_Object_Classes oc ON ds.ObjectClassId = oc.Id
-  JOIN AI_Datasets d ON oc.DatasetId = d.Id
-  WHERE ds.MonitorId IS NULL
-  ORDER BY d.Name, oc.ClassIndex');
-if ($result) {
-  while ($row = dbFetchNext($result)) {
-    $detection_settings[$row['ObjectClassId']] = $row;
-  }
-}
-
-// Then load monitor-specific settings (override defaults)
-if ($monitor_id) {
-  $result = dbQuery('SELECT ds.*, oc.ClassName, oc.ClassIndex, d.Name as DatasetName
-    FROM AI_Detection_Settings ds
-    JOIN AI_Object_Classes oc ON ds.ObjectClassId = oc.Id
-    JOIN AI_Datasets d ON oc.DatasetId = d.Id
-    WHERE ds.MonitorId = ?
-    ORDER BY d.Name, oc.ClassIndex', array($monitor_id));
-  if ($result) {
-    while ($row = dbFetchNext($result)) {
-      $detection_settings[$row['ObjectClassId']] = $row;
-    }
-  }
-}
-
-// Load all available object classes
-$all_classes = array();
-$result = dbQuery('SELECT oc.*, d.Name as DatasetName
+$classes_by_name = array(); // ClassName => [class_ids, datasets, settings...]
+$query_params = $monitor_id ? array($monitor_id) : array();
+$result = dbQuery('SELECT oc.Id, oc.ClassName, oc.ClassIndex, d.Name as DatasetName,
+  ds.Enabled, ds.ConfidenceThreshold, ds.BoxColor, ds.MonitorId
   FROM AI_Object_Classes oc
   JOIN AI_Datasets d ON oc.DatasetId = d.Id
-  ORDER BY d.Name, oc.ClassIndex');
+  LEFT JOIN AI_Detection_Settings ds ON ds.ObjectClassId = oc.Id
+    AND (ds.MonitorId IS NULL' . ($monitor_id ? ' OR ds.MonitorId = ?' : '') . ')
+  ORDER BY oc.ClassName, ds.MonitorId IS NOT NULL',
+  $query_params);
+
 if ($result) {
   while ($row = dbFetchNext($result)) {
-    $all_classes[$row['Id']] = $row;
+    $name = $row['ClassName'];
+    if (!isset($classes_by_name[$name])) {
+      $classes_by_name[$name] = [
+        'class_ids' => [],
+        'datasets' => [],
+        'class_index' => $row['ClassIndex'],
+        'enabled' => 0,
+        'threshold' => 50,
+        'color' => '#FF0000',
+        'source' => 'default',
+      ];
+    }
+    $entry =& $classes_by_name[$name];
+    if (!in_array($row['Id'], $entry['class_ids']))
+      $entry['class_ids'][] = $row['Id'];
+    if (!in_array($row['DatasetName'], $entry['datasets']))
+      $entry['datasets'][] = $row['DatasetName'];
+    // Apply settings: monitor-specific overrides global overrides default
+    if ($row['Enabled'] !== null) {
+      $is_monitor = ($row['MonitorId'] !== null);
+      if ($is_monitor || $entry['source'] === 'default') {
+        $entry['enabled'] = $row['Enabled'];
+        $entry['threshold'] = $row['ConfidenceThreshold'];
+        $entry['color'] = $row['BoxColor'];
+        $entry['source'] = $is_monitor ? 'monitor' : 'global';
+      }
+    }
+    unset($entry);
   }
 }
 
-if (count($all_classes) > 0) {
+if (count($classes_by_name) > 0) {
 ?>
                 <div class="ai-detection-filter mb-2">
                   <input type="text" id="aiClassFilter" class="form-control form-control-sm" placeholder="<?php echo translate('FilterClasses') ?>..." />
@@ -1216,27 +1221,35 @@ if (count($all_classes) > 0) {
                         <th><?php echo translate('ClassName') ?></th>
                         <th style="width: 100px;"><?php echo translate('Threshold') ?></th>
                         <th style="width: 60px;"><?php echo translate('Colour') ?></th>
+                        <th style="width: 60px;"><?php echo translate('Source') ?></th>
                       </tr>
                     </thead>
                     <tbody>
 <?php
-  foreach ($all_classes as $class_id => $class) {
-    $settings = isset($detection_settings[$class_id]) ? $detection_settings[$class_id] : null;
-    $enabled = $settings ? $settings['Enabled'] : 0;
-    $threshold = $settings ? $settings['ConfidenceThreshold'] : 50;
-    $color = $settings ? $settings['BoxColor'] : '#FF0000';
+  foreach ($classes_by_name as $class_name => $info) {
+    $enabled = $info['enabled'];
+    $threshold = $info['threshold'];
+    $color = $info['color'];
+    $source_label = ($info['source'] === 'monitor') ? translate('Monitor') :
+                    (($info['source'] === 'global') ? translate('Global') : '');
 ?>
-                      <tr class="ai-class-row" data-class-name="<?php echo strtolower(validHtmlStr($class['ClassName'])) ?>">
+                      <tr class="ai-class-row" data-class-name="<?php echo strtolower(validHtmlStr($class_name)) ?>" data-class-ids="<?php echo validHtmlStr(implode(',', $info['class_ids'])) ?>">
                         <td>
-                          <input type="checkbox" name="aiDetection[<?php echo $class_id ?>][Enabled]" value="1" <?php echo $enabled ? 'checked' : '' ?> />
-                        </td>
-                        <td><?php echo validHtmlStr($class['ClassName']) ?></td>
-                        <td>
-                          <input type="number" name="aiDetection[<?php echo $class_id ?>][ConfidenceThreshold]" value="<?php echo validInt($threshold) ?>" min="0" max="100" class="form-control form-control-sm" style="width: 70px;" />
+                          <input type="checkbox" name="aiClassName[<?php echo validHtmlStr($class_name) ?>][Enabled]" class="ai-class-enabled" value="1" <?php echo $enabled ? 'checked' : '' ?> />
                         </td>
                         <td>
-                          <input type="color" name="aiDetection[<?php echo $class_id ?>][BoxColor]" value="<?php echo validHtmlStr($color) ?>" />
+                          <?php echo validHtmlStr($class_name) ?>
+<?php if (count($info['datasets']) > 1) { ?>
+                          <span class="badge badge-warning" title="<?php echo translate('ExistsInDatasets') ?>: <?php echo validHtmlStr(implode(', ', $info['datasets'])) ?>"><?php echo count($info['datasets']) ?> datasets</span>
+<?php } ?>
                         </td>
+                        <td>
+                          <input type="number" name="aiClassName[<?php echo validHtmlStr($class_name) ?>][ConfidenceThreshold]" class="ai-class-threshold form-control form-control-sm" value="<?php echo validInt($threshold) ?>" min="0" max="100" style="width: 70px;" />
+                        </td>
+                        <td>
+                          <input type="color" name="aiClassName[<?php echo validHtmlStr($class_name) ?>][BoxColor]" class="ai-class-color" value="<?php echo validHtmlStr($color) ?>" />
+                        </td>
+                        <td><small class="text-muted"><?php echo $source_label ?></small></td>
                       </tr>
 <?php
   }

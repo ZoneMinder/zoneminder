@@ -228,6 +228,10 @@ function loadConfig( $defineConsts=true ) {
   # pair in the array as a constant
   if ($defineConsts) {
     foreach ( $initial_config as $key => $config ) {
+      if (defined($key)) {
+        error_log($key.' already defined. New value '.$config['Value'].' will be ignored.');
+        continue;
+      }
       define($key, $config['Value']);
     }
   }

@@ -75,6 +75,7 @@ class ONVIF {
   // Authentication
   void set_credentials(struct soap *soap);
   bool try_usernametoken_auth;
+  bool pull_skip_auth_;  // PullMessages may not need WSSE auth (subscription URL serves as token)
 
   // Retry handling
   int retry_count;

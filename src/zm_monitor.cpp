@@ -901,17 +901,17 @@ void Monitor::LoadCamera() {
 void Monitor::LoadAIDetectionSettings() {
   ai_detection_settings.clear();
 
-  // Query to get AI detection settings for this monitor
-  // If no monitor-specific setting exists, we'll get the global setting (MonitorId IS NULL)
-  // Monitor-specific settings override global settings
+  // Load only classes that have explicit detection settings.
+  // Order by MonitorId ASC (NULL first) so global defaults load first,
+  // then monitor-specific settings overwrite them — ensuring the settings
+  // the user configured on the analysis tab always take effect.
   std::string sql = stringtf(
-    "SELECT oc.Id, oc.ClassName, "
-    "COALESCE(ms.Enabled, gs.Enabled, 1) AS Enabled, "
-    "COALESCE(ms.ConfidenceThreshold, gs.ConfidenceThreshold, 50) AS ConfidenceThreshold, "
-    "COALESCE(ms.BoxColor, gs.BoxColor, '#FF0000') AS BoxColor "
-    "FROM AI_Object_Classes oc "
-    "LEFT JOIN AI_Detection_Settings ms ON oc.Id = ms.ObjectClassId AND ms.MonitorId = %u "
-    "LEFT JOIN AI_Detection_Settings gs ON oc.Id = gs.ObjectClassId AND gs.MonitorId IS NULL",
+    "SELECT oc.Id, oc.ClassName, ds.Enabled, ds.ConfidenceThreshold, "
+    "ds.BoxColor, ds.MonitorId "
+    "FROM AI_Detection_Settings ds "
+    "JOIN AI_Object_Classes oc ON ds.ObjectClassId = oc.Id "
+    "WHERE ds.MonitorId = %u OR ds.MonitorId IS NULL "
+    "ORDER BY ds.MonitorId IS NOT NULL, oc.ClassName",
     id);
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -934,9 +934,23 @@ void Monitor::LoadAIDetectionSettings() {
     }
     setting.box_color = strtol(color_str.c_str(), nullptr, 16);
 
+    bool is_monitor_specific = (dbrow[5] != nullptr);
+    auto it = ai_detection_settings.find(setting.class_name);
+    if (it != ai_detection_settings.end()) {
+      if (is_monitor_specific) {
+        Debug(2, "Monitor-specific setting for class '%s' overrides global", setting.class_name.c_str());
+      } else {
+        // Global duplicate for same ClassName (from another dataset) — skip
+        Debug(2, "Skipping duplicate global setting for class '%s' (class_id %u vs %u)",
+            setting.class_name.c_str(), setting.class_id, it->second.class_id);
+        continue;
+      }
+    }
+
     ai_detection_settings[setting.class_name] = setting;
-    Debug(2, "Loaded AI detection setting for class '%s': enabled=%d, threshold=%d, color=0x%06X",
-          setting.class_name.c_str(), setting.enabled, setting.confidence_threshold, setting.box_color);
+    Debug(2, "Loaded AI detection setting for class '%s' (%s): enabled=%d, threshold=%d, color=0x%06X",
+          setting.class_name.c_str(), is_monitor_specific ? "monitor" : "global",
+          setting.enabled, setting.confidence_threshold, setting.box_color);
   }
   mysql_free_result(result);
 
@@ -1181,7 +1195,7 @@ bool Monitor::connect() {
   shared_analysis_images = (unsigned char *)((char *)shared_images + (image_buffer_count*image_size));
   analysis_image_buffer.resize(image_buffer_count);
   image_pixelformats = (AVPixelFormat *)(shared_analysis_images + (image_buffer_count*image_size));
-  analysis_image_pixelformats = (AVPixelFormat *)(image_pixelformats + (image_buffer_count*sizeof(AVPixelFormat)));
+  analysis_image_pixelformats = image_pixelformats + image_buffer_count;
 
   for (int32_t i = 0; i < image_buffer_count; i++) {
     image_buffer[i] = new Image(width, height, ZM_COLOUR_YUV420P, ZM_SUBPIX_ORDER_YUV420P, &(shared_images[i*image_size]), image_size, 0);

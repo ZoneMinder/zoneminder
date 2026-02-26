@@ -11,7 +11,7 @@
 #endif
 
 DecoderThread::DecoderThread(Monitor *monitor) :
-  monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false), avg_send_us_(0), send_count_(0) {
   thread_ = std::thread(&DecoderThread::Run, this);
   set_cpu_affinity(thread_);
 }
@@ -235,23 +235,32 @@ bool DecoderThread::Decode() {
         return 1;
       }
       Debug(1, "send_packet %d", packet->image_index);
-#if 1
       SystemTimePoint starttime = std::chrono::system_clock::now();
       int ret = packet->send_packet(monitor_->mVideoCodecContext);
       SystemTimePoint endtime = std::chrono::system_clock::now();
 
-      // Warn if send_packet is taking too long
-      int fps = static_cast<int>(monitor_->get_capture_fps());
-      if ((fps > 0) && (endtime - starttime > Milliseconds(1000 / fps)) and Logger::fetch()->debugOn()) {
-        Warning("send_packet %d is too slow: %.3f seconds. Capture fps is %d, queue size is %zu, keyframe interval is %d, retval was %d",
-            packet->image_index, FPSeconds(endtime - starttime).count(), fps,
-            monitor_->decoder_queue.size(), monitor_->packetqueue.get_max_keyframe_interval(), ret);
+      // Track running average of send_packet duration
+      double send_us = std::chrono::duration_cast<Microseconds>(endtime - starttime).count();
+      if (send_count_ == 0) {
+        avg_send_us_ = send_us;
       } else {
-        Debug(3, "send_packet took: %.3f seconds. Capture fps is %d", FPSeconds(endtime - starttime).count(), fps);
+        // EMA with alpha ~= 2/(N+1), N=30 gives alpha ~0.065
+        constexpr double alpha = 0.065;
+        avg_send_us_ = alpha * send_us + (1.0 - alpha) * avg_send_us_;
       }
-#else
-      int ret = packet->send_packet(monitor_->mVideoCodecContext);
-#endif
+      send_count_++;
+
+      // Warn when average decode rate can't keep up with capture fps
+      int fps = static_cast<int>(monitor_->get_capture_fps());
+      double budget_us = (fps > 0) ? 1e6 / fps : 0;
+      if ((fps > 0) && (send_count_ >= fps) && (avg_send_us_ > budget_us)) {
+        Warning("send_packet avg %.1fms exceeds frame budget %.1fms (capture %dfps). Queue %zu, keyframe interval %d",
+            avg_send_us_ / 1000.0, budget_us / 1000.0, fps,
+            monitor_->decoder_queue.size(), monitor_->packetqueue.get_max_keyframe_interval());
+      } else {
+        Debug(3, "send_packet %d took %.3fs (avg %.1fms), capture %dfps",
+            packet->image_index, send_us / 1e6, avg_send_us_ / 1000.0, fps);
+      }
 
       if (ret == 0) {
         // EAGAIN - decoder's input buffer is full, need to drain first

@@ -454,8 +454,11 @@ class Event extends ZM_Object {
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
+            if ( !is_executable(ZM_PATH_FFMPEG) ) {
+              Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+              return '';
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($frame['Delta']).' -i '.escapeshellarg($videoPath).' -frames:v 1 '.escapeshellarg($eventPath.'/'.$captureImage).' 2>&1';
             Debug('Running '.$command);
             $output = array();
             $retval = 0;

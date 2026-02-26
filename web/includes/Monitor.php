@@ -911,7 +911,7 @@ class Monitor extends ZM_Object {
         return false;
       }
     }
-    return ($u['Monitors'] == 'Edit');
+    return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
   function canView($u=null) {

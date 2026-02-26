@@ -71,7 +71,7 @@ class ZonesController extends AppController {
     }
 
     global $user;
-    $canEdit = (!$user) || $user->Monitors() == 'Edit';
+    $canEdit = (!$user) || $user->Monitors() == 'Edit' || $user->Monitors() == 'Create';
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -118,7 +118,7 @@ class ZonesController extends AppController {
     $message = '';
     if ( $this->request->is(array('post', 'put')) ) {
       global $user;
-      $canEdit = (!$user) || $user->Monitors() == 'Edit';
+      $canEdit = (!$user) || $user->Monitors() == 'Edit' || $user->Monitors() == 'Create';
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -149,7 +149,7 @@ class ZonesController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
     global $user;
-    $canEdit = (!$user) || $user->Monitors() == 'Edit';
+    $canEdit = (!$user) || $user->Monitors() == 'Edit' || $user->Monitors() == 'Create';
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

@@ -188,8 +188,12 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            // Use escapeshellarg() to prevent command injection
-          $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($Event->Path().'/'.$Event->DefaultVideo()).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
+            if ( !is_executable(ZM_PATH_FFMPEG) ) {
+              header('HTTP/1.0 500 Internal Server Error');
+              ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+              return;
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($Event->Path().'/'.$Event->DefaultVideo()).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
             #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             ZM\Debug("Running $command");
@@ -286,7 +290,11 @@ if ( empty($_REQUEST['path']) ) {
         ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
-      // Use escapeshellarg() to prevent command injection
+      if ( !is_executable(ZM_PATH_FFMPEG) ) {
+        header('HTTP/1.0 500 Internal Server Error');
+        ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+        return;
+      }
       $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($Event->Path().'/'.$Event->DefaultVideo()).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;

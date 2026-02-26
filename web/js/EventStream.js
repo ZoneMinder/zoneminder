@@ -37,6 +37,7 @@ function EventStream(config) {
   this.status = null;
   this.streamCmdTimer = null;
   this.ajaxQueue = null;
+  this.rafId = null;
 
   // Callbacks — set by the consumer
   this.onStatus = null;
@@ -111,9 +112,15 @@ function EventStream(config) {
       src += '&' + auth_relay;
     }
 
-    // Create the hidden image element for MJPEG reception
+    // Use a DOM <img> element for MJPEG reception. Browsers natively
+    // update a DOM <img> with each frame from a multipart/x-mixed-replace
+    // response, but a detached Image() object does not reliably trigger
+    // onload per frame.  We position it off-screen and draw from it to
+    // the canvas on a requestAnimationFrame loop.
     if (!this.img) {
-      this.img = new Image();
+      this.img = document.createElement('img');
+      this.img.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;visibility:hidden;';
+      document.body.appendChild(this.img);
     }
 
     var self = this;
@@ -121,14 +128,16 @@ function EventStream(config) {
     this.img.onerror = function() {
       console.log('EventStream: MJPEG stream error for event ' + self.currentEventId);
       self.streamCmdTimer = clearInterval(self.streamCmdTimer);
+      if (self.rafId) {
+        cancelAnimationFrame(self.rafId);
+        self.rafId = null;
+      }
       if (self.onError) self.onError('Stream connection lost');
     };
 
+    // onload fires once when the first MJPEG frame arrives, confirming
+    // the zms process is running and the command socket is ready.
     this.img.onload = function() {
-      // Draw frame to canvas
-      self.drawFrame();
-
-      // Start periodic status polling on first frame arrival
       if (!self.streamCmdTimer) {
         self.streamCmdQuery();
         self.streamCmdTimer = setInterval(
@@ -136,6 +145,10 @@ function EventStream(config) {
         );
       }
     };
+
+    // Start the rAF draw loop — draws whenever the browser has
+    // decoded a new MJPEG frame into the img element.
+    this.startDrawLoop();
 
     // Setting src starts the MJPEG connection
     this.img.src = src;
@@ -152,10 +165,19 @@ function EventStream(config) {
     this.streamCommand(CMD_QUIT);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
 
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
     if (this.img) {
       this.img.onload = null;
       this.img.onerror = null;
       this.img.src = '';
+      if (this.img.parentNode) {
+        this.img.parentNode.removeChild(this.img);
+      }
+      this.img = null;
     }
 
     this.started = false;
@@ -241,10 +263,18 @@ function EventStream(config) {
       // Tell current zms to exit
       this.streamCommand(CMD_QUIT);
       this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
       if (this.img) {
         this.img.onload = null;
         this.img.onerror = null;
         this.img.src = '';
+        if (this.img.parentNode) {
+          this.img.parentNode.removeChild(this.img);
+        }
+        this.img = null;
       }
       this.started = false;
       this.connKey = null;
@@ -366,11 +396,27 @@ function EventStream(config) {
   };
 
   // -------------------------------------------------------------------------
+  // startDrawLoop() — rAF loop that copies the MJPEG img to the canvas
+  // -------------------------------------------------------------------------
+
+  this.startDrawLoop = function() {
+    var self = this;
+    function loop() {
+      if (!self.started) return;
+      self.drawFrame();
+      self.rafId = requestAnimationFrame(loop);
+    }
+    this.rafId = requestAnimationFrame(loop);
+  };
+
+  // -------------------------------------------------------------------------
   // drawFrame() — Draw the current MJPEG frame to the canvas
   // -------------------------------------------------------------------------
 
   this.drawFrame = function() {
     if (!this.canvas || !this.img) return;
+    // Only draw if the img has decoded at least one frame
+    if (!this.img.naturalWidth) return;
     var ctx = this.canvas.getContext('2d');
     ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
   };

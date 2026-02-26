@@ -8,6 +8,7 @@ const exportButton = $j('#exportBtn');
 const downloadButton = $j('#downloadBtn');
 const deleteButton = $j('#deleteBtn');
 const table = $j('#eventTable');
+const FILTER_STATE_KEY = 'eventsFilterState';
 var ajax = null;
 var footerData = {DiskSpace: '', Length: 0};
 
@@ -525,10 +526,70 @@ function initPage() {
     initDatepickerEventsPage();
   }
 
-  window.onpageshow = function(evt) {
-    console.log('Refreshing table');
-    table.bootstrapTable('refresh');
-  };
+  // Store filter state before navigating away
+  window.addEventListener('pagehide', function() {
+    try {
+      const filterState = {};
+      $j('#fieldsTable input, #fieldsTable select').each(function() {
+        const el = $j(this);
+        const name = el.attr('name');
+        if (name) {
+          filterState[name] = el.val();
+        }
+      });
+      sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
+    } catch (e) {
+      // Handle quota exceeded or sessionStorage disabled errors
+      console.error('Failed to save filter state:', e);
+    }
+  });
+
+  // Restore filter state when coming back via bfcache
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      const savedState = sessionStorage.getItem(FILTER_STATE_KEY);
+      if (savedState) {
+        try {
+          const filterState = JSON.parse(savedState);
+          // Iterate through actual form fields and restore their values
+          $j('#fieldsTable input, #fieldsTable select').each(function() {
+            const field = $j(this);
+            const name = field.attr('name');
+            if (name && Object.prototype.hasOwnProperty.call(filterState, name)) {
+              const value = filterState[name];
+              // For select elements, validate that the value exists in options
+              if (field.is('select')) {
+                let validOption = false;
+                field.find('option').each(function() {
+                  if ($j(this).val() === value) {
+                    validOption = true;
+                    return false; // break
+                  }
+                });
+                if (validOption || value === '') {
+                  field.val(value);
+                }
+              } else {
+                // For input elements, restore the value directly
+                field.val(value);
+              }
+            }
+          });
+          // Refresh the table with the restored filter values
+          table.bootstrapTable('refresh');
+        } catch (e) {
+          // Handle corrupted sessionStorage data gracefully
+          console.error('Failed to restore filter state:', e);
+          sessionStorage.removeItem(FILTER_STATE_KEY);
+          console.log('Refreshing table');
+          table.bootstrapTable('refresh');
+        }
+      }
+    } else {
+      console.log('Refreshing table');
+      table.bootstrapTable('refresh');
+    }
+  });
 
   // Set initial history state so the first filter change creates a new history entry
   const initialUrl = '?view=events' + filterQuery + sortQuery;

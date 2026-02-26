@@ -2505,8 +2505,11 @@ function initPageGeneral() {
   // The problem also occurs on some Linux (Chromium) and Android (Chrome) devices.
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
-      // Do any checks and updates to the page
-      window.location.reload( true );
+      // Only reload if there's an actual rendering problem
+      if (mainContentJ && mainContentJ[0] && mainContentJ[0].clientHeight < 1) {
+        window.location.reload( true );
+      }
+      // Otherwise, let individual pages handle bfcache restoration
     }
   });
 

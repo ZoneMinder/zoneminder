@@ -243,7 +243,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$initialDisplayInterval = 1000;
+$initialDisplayInterval = 100;
 if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 

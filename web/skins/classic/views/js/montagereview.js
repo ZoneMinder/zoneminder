@@ -825,8 +825,8 @@ function mmove(event) {
   if ( mouseisdown ) {
     // only do anything if the mouse is depressed while on the sheet
     const relx = event.target.relMouseCoords(event).x;
-    const sec = Math.floor(minTimeSecs + rangeTimeSecs / event.target.width * relx);
-    if (parseInt(sec)) outputUpdate(sec);
+    const sec = minTimeSecs + rangeTimeSecs / event.target.width * relx;
+    if (sec) outputUpdate(sec);
   }
 }
 
@@ -890,7 +890,7 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+  playSecsPerInterval = currentSpeed * currentDisplayInterval / 1000;
   setCookie('speed', speedIndex);
   showSpeed(speed_index);
   timerFire();
@@ -1475,7 +1475,6 @@ function loadFrames(zm_events) {
                 if (last_frame && (frame.EventId != last_frame.EventId)) {
                   last_frame = null;
                 }
-                //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                 if (last_frame) {
                   frame.PrevFrameId = last_frame.Id;
                   last_frame.NextFrameId = frame.Id;

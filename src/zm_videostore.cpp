@@ -1140,8 +1140,9 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
         ZM_DUMP_PACKET(p, "Found out of order packet");
         have_out_of_order = true;
       }
-    } else {
-      if (p->dts <= av_pkt->dts) {
+      // Skip reordering when incoming dts is undefined — can't compare meaningfully
+    } else if (av_pkt->dts != AV_NOPTS_VALUE) {
+      if (p->dts == AV_NOPTS_VALUE || p->dts <= av_pkt->dts) {
         ZM_DUMP_PACKET(p, "Found in order packet");
         // packets are in order, everything is fine
         break;
@@ -1468,6 +1469,15 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
       if ((ipkt->pts != AV_NOPTS_VALUE) and (ipkt->dts != AV_NOPTS_VALUE)) {
         av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      } else if ((ipkt->pts == AV_NOPTS_VALUE) and (ipkt->dts == AV_NOPTS_VALUE)) {
+        // Both undefined — use last_dts+1 as minimal monotonic increment
+        if (last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
+          opkt->dts = last_dts[video_out_stream->index] + 1;
+        } else {
+          opkt->dts = 0;
+        }
+        opkt->pts = opkt->dts;
+        Debug(2, "No pts/dts, synthesized dts %" PRId64 " from last_dts", opkt->dts);
       }
     }  // end if wallclock or not
     write_packet(opkt.get(), video_out_stream);
@@ -1493,7 +1503,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         opkt->dts, ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
   }
 
-  if (audio_first_dts == AV_NOPTS_VALUE) {
+  if (audio_first_dts == AV_NOPTS_VALUE && opkt->dts != AV_NOPTS_VALUE) {
     audio_first_dts = opkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
@@ -1552,8 +1562,11 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "before pts adjustment");
       Debug(1, "Adjusting pts:%" PRId64 " dts:%" PRId64 " by %" PRId64,
           opkt->pts, opkt->dts, audio_first_dts);
-      opkt->pts = opkt->pts - audio_first_dts;
-      opkt->dts = opkt->dts - audio_first_dts;
+      opkt->pts = (ipkt->pts != AV_NOPTS_VALUE) ? ipkt->pts - audio_first_dts : AV_NOPTS_VALUE;
+      opkt->dts = (ipkt->dts != AV_NOPTS_VALUE) ? ipkt->dts - audio_first_dts : AV_NOPTS_VALUE;
+    } else {
+      opkt->pts = ipkt->pts;
+      opkt->dts = ipkt->dts;
     }
 
     ZM_DUMP_STREAM_PACKET(audio_in_stream, opkt, "after pts adjustment");
@@ -1575,11 +1588,14 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   ZM_DUMP_PACKET(pkt, "packet in write_packet");
 
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);
-    if (last_dts[stream->index] == AV_NOPTS_VALUE) {
-      last_dts[stream->index] = -1;
-    } 
-    pkt->dts = last_dts[stream->index];
+    if (last_dts[stream->index] != AV_NOPTS_VALUE) {
+      pkt->dts = last_dts[stream->index] + 1;
+      Debug(1, "undef dts, synthesized %" PRId64 " from last_dts %" PRId64 " + 1",
+            pkt->dts, last_dts[stream->index]);
+    } else {
+      pkt->dts = 0;
+      Debug(1, "undef dts and no last_dts, setting to 0");
+    }
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
@@ -1597,10 +1613,11 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       }
     }
-    next_dts[stream->index] = pkt->dts + pkt->duration;
-    last_dts[stream->index] = pkt->dts;
-    last_duration[stream->index] = pkt->duration;
   }
+  // Always update tracking now that dts has a valid value
+  next_dts[stream->index] = pkt->dts + pkt->duration;
+  last_dts[stream->index] = pkt->dts;
+  last_duration[stream->index] = pkt->duration;
 
   if (pkt->pts == AV_NOPTS_VALUE) {
     pkt->pts = pkt->dts;

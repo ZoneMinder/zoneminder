@@ -85,13 +85,21 @@ The backports repository is deactivated by default, so with the second line we e
 
     mariadb -u zmuser -p zm < /usr/share/zoneminder/db/zm_create.sql
 
-**Step 6:** Setup permissions for zm.conf
+**Step 6:** Setup permissions
 
 To make sure zoneminder can read the configuration file, run the following command.
 
 ::
 
     sudo chgrp -c www-data /etc/zm/zm.conf
+
+If you plan to use local USB or V4L2 cameras (``/dev/video*``), add the web server
+user to the ``video`` group. The package postinst script does this automatically,
+but if you installed from source or the group was not added, run:
+
+::
+
+    sudo adduser www-data video
 
 **Step 7:** Tweak Apache configuration
 
@@ -187,13 +195,21 @@ The backports repository is deactivated by default, so with the second line we e
 
     mariadb -u zmuser -p zm < /usr/share/zoneminder/db/zm_create.sql
 
-**Step 6:** Setup permissions for zm.conf
+**Step 6:** Setup permissions
 
 To make sure zoneminder can read the configuration file, run the following command.
 
 ::
 
     sudo chgrp -c www-data /etc/zm/zm.conf
+
+If you plan to use local USB or V4L2 cameras (``/dev/video*``), add the web server
+user to the ``video`` group. The package postinst script does this automatically,
+but if you installed from source or the group was not added, run:
+
+::
+
+    sudo adduser www-data video
 
 **Step 7:** Tweak Apache configuration
 

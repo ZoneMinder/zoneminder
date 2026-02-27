@@ -553,7 +553,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo(players ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType, 'loading');
+        this.updateStreamInfo((typeof players !== "undefined" && players) ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType, 'loading');
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");

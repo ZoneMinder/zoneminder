@@ -1482,6 +1482,10 @@ function MonitorStream(monitorData) {
   this.manageMSESocket = function(videoEl, socket, mediaSource) {
     // We correct the lag from real time. Relevant for long viewing and network problems.
     //const videoEl = document.getElementById("liveStream" + this.id);
+    if (this.streamStartTime === 0) {
+      console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`);
+      return;
+    }
     if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
       const videoElCurrentTime = videoEl.currentTime; // Current time of playback
       const currentTime = (Date.now() / 1000);

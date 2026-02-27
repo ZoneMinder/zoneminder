@@ -169,10 +169,17 @@ function maxfit2(divW, divH) {
     }
   }
   if (bestFitArea > 0) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
+    // Find bounding box of all positioned monitors and center horizontally
+    let maxRight = 0;
+    for (let m=0; m < numMonitors; m++) {
+      if (bestFitX2[m] > maxRight) maxRight = bestFitX2[m];
+    }
+    const offsetX = Math.max(0, Math.floor((divW - maxRight) / 2));
+
     for (let m=0; m < numMonitors; m++) {
       const c = document.getElementById('Monitor' + monitorPtr[m]);
       c.style.position = 'absolute';
-      c.style.left = bestFitX[m].toString() + "px";
+      c.style.left = (bestFitX[m] + offsetX).toString() + "px";
       c.style.top = bestFitY[m].toString() + "px";
       c.width = bestFitX2[m] - bestFitX[m] + 1 - borders_width;
       c.height = bestFitY2[m] - bestFitY[m] + 1 - borders_height;

@@ -39,6 +39,13 @@ function EventStream(config) {
   this.ajaxQueue = null;
   this.rafId = null;
 
+  // Recovery state
+  this.consecutiveErrors = 0;
+  this.maxRecoveryAttempts = 5;
+  this.recoveryDelay = 1000; // ms, doubles on each retry
+  this.recoveryTimer = null;
+  this.lastOptions = null; // saved for restart after recovery
+
   // Callbacks — set by the consumer
   this.onStatus = null;
   this.onError = null;
@@ -83,6 +90,7 @@ function EventStream(config) {
     this.currentEventId = eventId;
     this.rate = (options.rate !== undefined) ? options.rate : 100;
     this.paused = false;
+    this.lastOptions = Object.assign({}, options);
 
     // Fresh connkey for this stream
     this.connKey = this.genConnKey();
@@ -119,25 +127,32 @@ function EventStream(config) {
     // the canvas on a requestAnimationFrame loop.
     if (!this.img) {
       this.img = document.createElement('img');
-      this.img.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;visibility:hidden;';
+      this.img.style.cssText = 'position:absolute;left:-9999px;top:-9999px;' +
+        'width:1px;height:1px;visibility:hidden;';
       document.body.appendChild(this.img);
     }
 
     var self = this;
 
     this.img.onerror = function() {
-      console.log('EventStream: MJPEG stream error for event ' + self.currentEventId);
+      console.warn('EventStream: MJPEG stream error for event ' +
+        self.currentEventId + ' (monitor ' + self.monitorId + ')');
       self.streamCmdTimer = clearInterval(self.streamCmdTimer);
       if (self.rafId) {
         cancelAnimationFrame(self.rafId);
         self.rafId = null;
       }
-      if (self.onError) self.onError('Stream connection lost');
+      // Attempt recovery — zms likely died
+      self.recover();
     };
 
     // onload fires once when the first MJPEG frame arrives, confirming
     // the zms process is running and the command socket is ready.
     this.img.onload = function() {
+      // Successful frame — reset error counter
+      self.consecutiveErrors = 0;
+      self.recoveryDelay = 1000;
+
       if (!self.streamCmdTimer) {
         self.streamCmdQuery();
         self.streamCmdTimer = setInterval(
@@ -160,6 +175,11 @@ function EventStream(config) {
   // -------------------------------------------------------------------------
 
   this.stop = function() {
+    if (this.recoveryTimer) {
+      clearTimeout(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+
     if (!this.started) return;
 
     this.streamCommand(CMD_QUIT);
@@ -184,6 +204,58 @@ function EventStream(config) {
     this.paused = false;
     this.connKey = null;
     this.streamCmdParms.connkey = null;
+    this.consecutiveErrors = 0;
+    this.recoveryDelay = 1000;
+  };
+
+  // -------------------------------------------------------------------------
+  // recover() — Attempt to restart after zms death
+  // -------------------------------------------------------------------------
+
+  this.recover = function() {
+    this.consecutiveErrors++;
+
+    if (this.consecutiveErrors > this.maxRecoveryAttempts) {
+      console.error('EventStream: max recovery attempts reached for monitor ' +
+        this.monitorId + ', giving up');
+      if (this.onError) this.onError('Stream recovery failed');
+      return;
+    }
+
+    console.warn('EventStream: recovery attempt ' + this.consecutiveErrors +
+      '/' + this.maxRecoveryAttempts + ' for monitor ' + this.monitorId);
+
+    var self = this;
+    var eventId = this.currentEventId;
+    var opts = Object.assign({}, this.lastOptions || {});
+    opts.rate = this.rate;
+
+    // Clean up old state without sending CMD_QUIT (zms is already dead)
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    if (this.img) {
+      this.img.onload = null;
+      this.img.onerror = null;
+      this.img.src = '';
+      if (this.img.parentNode) {
+        this.img.parentNode.removeChild(this.img);
+      }
+      this.img = null;
+    }
+    this.started = false;
+    this.connKey = null;
+    this.streamCmdParms.connkey = null;
+
+    // Delay before restarting — exponential backoff
+    this.recoveryTimer = setTimeout(function() {
+      self.recoveryTimer = null;
+      self.start(eventId, opts);
+    }, this.recoveryDelay);
+
+    this.recoveryDelay = Math.min(this.recoveryDelay * 2, 10000);
   };
 
   // -------------------------------------------------------------------------
@@ -259,6 +331,11 @@ function EventStream(config) {
   // -------------------------------------------------------------------------
 
   this.switchEvent = function(eventId, options) {
+    if (this.recoveryTimer) {
+      clearTimeout(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+
     if (this.started) {
       // Tell current zms to exit
       this.streamCommand(CMD_QUIT);
@@ -281,6 +358,10 @@ function EventStream(config) {
       this.streamCmdParms.connkey = null;
     }
 
+    // Reset recovery state for fresh event
+    this.consecutiveErrors = 0;
+    this.recoveryDelay = 1000;
+
     // Brief delay to let the old zms process clean up, then start fresh
     var self = this;
     setTimeout(function() {
@@ -294,7 +375,6 @@ function EventStream(config) {
 
   this.streamCommand = function(command) {
     if (!this.started) {
-      console.log('EventStream: not sending command, stream not started', command);
       return;
     }
     var params = Object.assign({}, this.streamCmdParms);
@@ -324,9 +404,11 @@ function EventStream(config) {
           self.getStreamCmdResponse(respObj);
         })
         .fail(function(jqXHR, textStatus) {
-          if (textStatus !== 'abort') {
-            console.log('EventStream: command request failed', textStatus);
-          }
+          if (textStatus === 'abort') return;
+          console.warn('EventStream: AJAX failed for monitor ' +
+            self.monitorId + ': ' + textStatus);
+          // AJAX failure likely means zms has died (socket gone)
+          self.recover();
         });
   };
 
@@ -350,25 +432,16 @@ function EventStream(config) {
     if (!respObj) return;
 
     if (respObj.result === 'Error' || respObj.result === 'Err') {
-      console.log('EventStream: command error', respObj);
-      // Attempt recovery: regenerate connkey and reload stream
-      if (this.started && this.img) {
-        this.connKey = this.genConnKey();
-        this.streamCmdParms.connkey = this.connKey;
-        var src = this.img.src;
-        if (src) {
-          src = src.replace(/connkey=\d+/i, 'connkey=' + this.connKey);
-          // Add a rand to bust cache
-          if (src.indexOf('rand=') !== -1) {
-            src = src.replace(/rand=\d+/i, 'rand=' + Math.floor(Math.random() * 1000000));
-          } else {
-            src += '&rand=' + Math.floor(Math.random() * 1000000);
-          }
-          this.img.src = src;
-        }
-      }
+      console.warn('EventStream: command error for monitor ' +
+        this.monitorId);
+      // Error response means stream.php couldn't talk to zms — recover
+      this.recover();
       return;
     }
+
+    // Successful response — reset error counter
+    this.consecutiveErrors = 0;
+    this.recoveryDelay = 1000;
 
     if (!respObj.status) return;
 
@@ -419,5 +492,6 @@ function EventStream(config) {
     if (!this.img.naturalWidth) return;
     var ctx = this.canvas.getContext('2d');
     ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
+    if (this.onFrameDrawn) this.onFrameDrawn(this.canvas);
   };
 }

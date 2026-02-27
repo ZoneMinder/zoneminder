@@ -22,6 +22,7 @@ const compat = new FlatCompat({
 
 module.exports = defineConfig([{
   "languageOptions": {
+    sourceType: "script",
     globals: {
       ...globals.browser,
     },

@@ -1044,8 +1044,8 @@ a.flip {
   right: 0;
   background: none;
 }
-.imageFeed svg.zones, #videoFeed svg.zones {
-  z-index: 3;
+.imageFeed svg.zones {
+  z-index: 100;
 }
 .colThumbnail img {
   border-radius: 4px;

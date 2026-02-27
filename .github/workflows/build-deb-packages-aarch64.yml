@@ -2,7 +2,7 @@ name: build-deb-packages-aarch64
 
 on:
   push:
-    branches: [ release-1.38 ]
+    branches: [ release-1.38, master ]
 permissions:
   contents: write
 env:

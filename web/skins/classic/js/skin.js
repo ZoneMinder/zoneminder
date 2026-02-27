@@ -2396,7 +2396,7 @@ function getMonitorStream(mid) { // RENAME to getStream(), but it is already in 
   let monitorStream_ = null;
   if (currentView == 'watch') {
     monitorStream_ = monitorStream;
-  } else if (currentView == 'montage') {
+  } else if (currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     monitorStream_ = monitors.find((o) => {
       return parseInt(o["id"]) === mid;
     });
@@ -2770,7 +2770,7 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   let el = null;
-  if (currentView == 'watch' || currentView == 'montage') {
+  if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
   } else if (currentView == 'event') {
     el = videoFeedStream.querySelector('video');

@@ -19,6 +19,6 @@ jobs:
         with:
           submodules: recursive
       - name: Install ESLint
-        run: npm install eslint@8.7.0 eslint-config-google@0.14.0 eslint-plugin-html@6.2.0 eslint-plugin-php-markup@6.0.0
+        run: npm install eslint@9 @eslint/eslintrc @eslint/js globals eslint-config-google@0.14.0 eslint-plugin-html eslint-plugin-php-markup@6.0.0
       - name: Run ESLint
         run: npx eslint --ext .js.php,.js .

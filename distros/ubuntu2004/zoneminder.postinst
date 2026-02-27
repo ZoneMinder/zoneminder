@@ -82,6 +82,14 @@ if [ "$1" = "configure" ]; then
     fi
   fi
 
+  if [ ! -e "/etc/apache2/mods-enabled/rewrite.load" ] && [ "$(command -v a2enmod)" != "" ]; then
+    echo "The rewrite module is not enabled in apache2.  I am enabling it using a2enmod rewrite."
+    if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+        . /usr/share/apache2/apache2-maintscript-helper
+        apache2_invoke rewrite cgi || exit $?
+    fi
+  fi
+
   SYSTEMD=0
   if [ -e "/run/systemd/system" ]; then
     SYSTEMD=1

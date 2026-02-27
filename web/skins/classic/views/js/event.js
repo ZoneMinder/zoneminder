@@ -1756,6 +1756,9 @@ function initPage() {
       updateProgressBar();
     }, streamTimeout);
   }
+
+  const toggleZonesButton = document.getElementById('toggleZonesButton');
+  if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
 function addOrCreateTag(tagValue) {
@@ -1884,9 +1887,6 @@ function getSelectedTags() {
       })
       .fail(logAjaxFail);
 }
-
-var toggleZonesButton = document.getElementById('toggleZonesButton');
-if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);

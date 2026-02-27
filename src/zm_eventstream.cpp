@@ -860,9 +860,12 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     }
   } else if (event_data->SaveJPEGs & 1) {
     filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-        if (!std::filesystem::exists(filepath)) {
-          Debug(1, "File at %s does not exist", filepath.c_str());
-        }
+    if (!std::filesystem::exists(filepath)) {
+      Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
+          filepath.c_str(), curr_frame_id);
+      filepath = "";
+      // Fall through — ffmpeg_input will be tried below if available
+    }
   } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
@@ -951,11 +954,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         } else {
           Debug(2, "Not Rotating image %d", event_data->Orientation);
         } // end if have rotation
-      } // end if ffmpeg_input
-
-      if (!image) {
-        Error("Unable to get a frame");
-        return false;
+      } else {
+        Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
+        sendTextFrame("No frame available");
+        return true;
       }
 
       Image *send_image = prepareImage(image);

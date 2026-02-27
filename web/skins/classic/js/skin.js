@@ -1441,7 +1441,8 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    url.search = 'src=' + mid + '_0';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_CameraDirectPrimary';
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';

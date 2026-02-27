@@ -719,7 +719,11 @@ function initPage() {
   document.querySelectorAll('#imageFrame img').forEach(function(el) {
     el.addEventListener("load", imageLoadEvent, {passive: true});
   });
-  window.addEventListener("resize", drawZonePoints, {passive: true});
+  if (imageFeed) {
+    (new ResizeObserver(drawZonePoints)).observe(imageFeed);
+  } else {
+    window.addEventListener("resize", drawZonePoints, {passive: true});
+  }
   // if the image link is broken for some reason we won't draw the points, so do it manually
   drawZonePoints();
 

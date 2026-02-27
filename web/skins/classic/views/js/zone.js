@@ -716,11 +716,9 @@ function initPage() {
     imageFeed.appendChild(zoneSVG);
   }
 
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.addEventListener("load", imageLoadEvent, {passive: true});
-  });
+  var ro = new ResizeObserver(drawZonePoints);
+  ro.observe(imageFeed);
   window.addEventListener("resize", drawZonePoints, {passive: true});
-  // if the image link is broken for some reason we won't draw the points, so do it manually
   drawZonePoints();
 
   // Manage the BACK button
@@ -747,14 +745,6 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
-function imageLoadEvent() {
-  // We only need this event on the first image load to set dimensions.
-  // Turn it off after it has been called.
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.removeEventListener("load", imageLoadEvent, {passive: true});
-  });
-  drawZonePoints();
-}
 
 function Polygon_calcArea(coords) {
   var n_coords = coords.length;

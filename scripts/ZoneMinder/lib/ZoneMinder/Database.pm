@@ -254,8 +254,8 @@ sub zmDbDo {
 	my $sql = shift;
   my $rows = $dbh->do($sql, undef, @_);
 	if ( ! defined $rows ) {
-		$sql =~ s/\?/'%s'/;
-		Error("Failed $sql : @_ " . $dbh->errstr());
+		$sql =~ s/\?/'%s'/g;
+		Error(sprintf("Failed $sql : ", @_) . $dbh->errstr());
   } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
     ($rows) = $rows =~ /^(.*)$/; # de-taint
     $sql =~ s/\?/'%s'/g;

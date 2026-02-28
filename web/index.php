@@ -112,20 +112,20 @@ global $navbar_type;
 $navbar_type = isset($_SESSION['navbar_type']) ? $_SESSION['navbar_type'] : '';
 $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
+# Cookie overrides session
+if (isset($_COOKIE['zmNavbar_type'])) {
+  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+    $navbar_type = $_COOKIE['zmNavbar_type'];
+  } else {
+    ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
+  }
+}
+
 if (isset($_REQUEST['navbar_type'])) {
   if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
-  }
-}
-
-# Cookie overrides session
-if (isset($_COOKIE['navbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['navbar_type']])) {
-    $navbar_type = $_COOKIE['navbar_type'];
-  } else {
-    ZM\Error('Invalid navbar_type '.$_COOKIE['navbar_type'].' specified');
   }
 }
 
@@ -177,7 +177,16 @@ if (
   $_SESSION['css'] = $css;
   zm_setcookie('zmCSS', $css);
 }
-$_SESSION['navbar_type'] = $navbar_type;
+
+if (
+  !isset($_SESSION['navbar_type']) ||
+  isset($_REQUEST['navbar_type']) ||
+  !isset($_COOKIE['zmNavbar_type']) ||
+  ($_COOKIE['zmNavbar_type'] != $navbar_type)
+) {
+  $_SESSION['navbar_type'] = $navbar_type;
+  zm_setcookie('zmNavbar_type', $navbar_type);
+}
 
 # Add Cross domain access headers
 CORSHeaders();

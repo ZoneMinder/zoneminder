@@ -800,15 +800,12 @@ function MonitorStream(monitorData) {
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
-      this.element.play().catch(() => {
-        if (!this.element.muted) {
-          console.log('played muted');
+      this.element.play().catch(er => {
+        if (er.name === 'NotAllowedError' && !this.element.muted) {
           this.element.muted = true;
-          this.element.play().catch((er) => {
-            console.warn(er);
-          });
+          this.play();
         } else {
-          console.log('not muted');
+          console.warn(er);
         }
       });
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -918,6 +915,7 @@ function MonitorStream(monitorData) {
           volumeSlider.classList.remove('noUi-mute');
         }
       }
+      this.muted = audioStream.muted;
     } else {
       console.warn(`volumeSlider for monitor with ID=${this.id} not found`);
     }
@@ -1482,11 +1480,11 @@ function MonitorStream(monitorData) {
   this.manageMSESocket = function(videoEl, socket, mediaSource) {
     // We correct the lag from real time. Relevant for long viewing and network problems.
     //const videoEl = document.getElementById("liveStream" + this.id);
-    if (this.streamStartTime === 0) {
-      console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`);
-      return;
-    }
     if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+      if (this.streamStartTime === 0) {
+        console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`);
+        return;
+      }
       const videoElCurrentTime = videoEl.currentTime; // Current time of playback
       const currentTime = (Date.now() / 1000);
       const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started

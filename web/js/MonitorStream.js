@@ -1459,7 +1459,7 @@ function MonitorStream(monitorData) {
         .fail(logAjaxFail);
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
-      if (-1 !== this.element.currentMode.indexOf('mse')) {
+      if (-1 !== this.element.currentMode.toLowerCase().indexOf('mse')) {
         $j('#delay'+this.id).removeClass('hidden');
         this.manageMSESocket(this.element.video, this.element.ws, this.element.ms);
       }

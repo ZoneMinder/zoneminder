@@ -1045,7 +1045,7 @@ a.flip {
   height: 100%;
   background: none;
 }
-.imageFeed svg.zones {
+.imageFeed svg.zones, #videoFeed svg.zones {
   z-index: 3;
 }
 .colThumbnail img {

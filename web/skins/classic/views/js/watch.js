@@ -899,7 +899,10 @@ function streamReStart(oldId, newId) {
   const volumeControls = document.getElementById('volumeControls'+oldId);
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
-  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  if (volumeSlider) {
+    volumeSlider.id = 'volumeSlider'+newId;
+    monitorStream.destroyVolumeSlider();
+  }
   const controlMute = document.getElementById('controlMute'+oldId);
   if (controlMute) controlMute.id = 'controlMute'+newId;
 
@@ -1358,6 +1361,7 @@ function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
   //setCookie('zmWatchPlayer'+monitorId, player);
+  monitorStream.destroyVolumeSlider();
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());

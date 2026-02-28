@@ -404,7 +404,7 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls').hide();
+    $j('#volumeControls'+this.id).hide();
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
@@ -927,13 +927,13 @@ function MonitorStream(monitorData) {
 
   this.createVolumeSlider = function() {
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
     const audioStream = this.getAudioStream();
     if (!volumeSlider || !audioStream) return;
+    const iconMute = this.getIconMute();
+    $j('#volumeControls'+this.id).show();
+    if (volumeSlider.noUiSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
-    $j('#volumeControls').show();
     noUiSlider.create(volumeSlider, {
       start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
       step: 1,
@@ -996,10 +996,14 @@ function MonitorStream(monitorData) {
   };
 
   this.destroyVolumeSlider = function() {
+    $j('#volumeControls'+this.id).hide();
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
-    if (iconMute) iconMute.innerText = "";
-    if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
+    //const iconMute = this.getIconMute();
+    //if (iconMute) iconMute.innerText = "";
+    if (volumeSlider && volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
   };
 
   /*
@@ -1905,7 +1909,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       error: function(xhr, status, error) {
         console.warn('Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
-        stream.kill();
+        stream.restart(stream.currentChannelStream);
       },
       complete: function() {
         //console.log('Request localDescription completed.');

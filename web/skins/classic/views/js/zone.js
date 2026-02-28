@@ -716,9 +716,11 @@ function initPage() {
     imageFeed.appendChild(zoneSVG);
   }
 
-  var ro = new ResizeObserver(drawZonePoints);
-  ro.observe(imageFeed);
-  window.addEventListener("resize", drawZonePoints, {passive: true});
+  if (imageFeed) {
+    (new ResizeObserver(drawZonePoints)).observe(imageFeed);
+  } else {
+    window.addEventListener("resize", drawZonePoints, {passive: true});
+  }
   drawZonePoints();
 
   // Manage the BACK button
@@ -744,7 +746,6 @@ function panZoomIn(el) {
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
-
 
 function Polygon_calcArea(coords) {
   var n_coords = coords.length;

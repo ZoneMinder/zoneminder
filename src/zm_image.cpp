@@ -6167,12 +6167,20 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       colours = ZM_COLOUR_GRAY8;
       subpixelorder = ZM_SUBPIX_ORDER_NONE;
       break;
+    case AV_PIX_FMT_YUYV422:
+      // Packed YUV 4:2:2 (2 bytes/pixel) — cannot be stored natively because
+      // Image buffers are sized for planar YUV420P (1.5 bytes/pixel).
+      // Keep the current target format so Assign() converts via sws_scale.
+      Debug(1, "YUYV422 input will be converted to %s on Assign",
+            av_get_pix_fmt_name(imagePixFormat));
+      return imagePixFormat;
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));
-      // Don't update size/linesize for unknown formats since colours/subpixelorder
-      // weren't updated. Updating size without colours creates an inconsistency
-      // that causes Assign() to use a stale size for memcpy, overreading buffers.
-      imagePixFormat = new_pixelformat;
+      // Don't update imagePixFormat, size, or linesize for unknown formats
+      // since colours/subpixelorder weren't updated. Setting imagePixFormat
+      // without updating colours creates an inconsistency: PopulateFrame()
+      // would allocate a buffer with the wrong layout, causing sws_scale
+      // to fail when Assign() tries to convert to the actual target format.
       return imagePixFormat;
   }
 

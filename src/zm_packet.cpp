@@ -177,8 +177,9 @@ int ZMPacket::receive_frame(AVCodecContext *ctx) {
 }  // end int ZMPacket::receive_frame(AVCodecContext *ctx)
 
 bool ZMPacket::needs_hw_transfer(AVCodecContext *ctx) {
-  if (!(ctx && in_frame.get())) {
-    Error("No ctx %p or in_frame %p", ctx, in_frame.get());
+  if (!ctx || !in_frame.get()) {
+    // No codec context (e.g. local V4L2 camera) or no frame — no hw transfer needed
+    Debug(3, "No ctx %p or in_frame %p", ctx, in_frame.get());
     return false;
   }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

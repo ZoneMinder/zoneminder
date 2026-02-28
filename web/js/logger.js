@@ -34,7 +34,14 @@ if (!window.console) {
   console.debug = console.log;
 }
 
-window.onerror = function(message, url, line) {
+window.onerror = function(message, url, line, col, error) {
+  if (!message || message === 'Script error.') {
+    message = 'Script error (no details available, possibly cross-origin)';
+  }
+  if (error && error.stack) {
+    message += '\n' + error.stack;
+  }
+  if (col) line = line + ':' + col;
   logReport("ERR", message, url, line);
 };
 
@@ -49,9 +56,20 @@ window.addEventListener("securitypolicyviolation", function logCSP(evt) {
 function logReport( level, message, file, line ) {
   if (!reportLogs) return;
 
+  if (message === undefined || message === null) {
+    message = 'Unknown error';
+  }
+
   /* eslint-disable no-caller */
-  if (arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name) {
-    message += ' - '+arguments.callee.caller.caller.name+'()';
+  try {
+    if (arguments.callee && arguments.callee.caller && arguments.callee.caller.caller) {
+      const callerName = arguments.callee.caller.caller.name;
+      if (callerName) {
+        message += ' - '+callerName+'()';
+      }
+    }
+  } catch (e) {
+    // arguments.callee unavailable in strict mode
   }
 
   const data = {

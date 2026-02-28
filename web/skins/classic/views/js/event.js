@@ -517,8 +517,8 @@ function pauseClicked() {
     vid.pause();
   } else {
     streamReq({command: CMD_PAUSE});
+    streamPause();
   }
-  streamPause();
 }
 
 function streamPause() {
@@ -552,8 +552,8 @@ function playClicked( ) {
     } else {
       streamReq({command: CMD_PLAY});
     }
+    streamPlay();
   }
-  streamPlay();
 }
 
 function vjsPlay() { //catches if we change mode programatically
@@ -1376,8 +1376,8 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', playClicked);
-    vid.on('pause', pauseClicked);
+    vid.on('play', streamPlay);
+    vid.on('pause', streamPause);
     vid.on('click', function(event) {
       handleClick(event);
     });

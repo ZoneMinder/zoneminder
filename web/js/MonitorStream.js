@@ -1905,7 +1905,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       error: function(xhr, status, error) {
         console.warn('Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
-        stream.kill();
+        stream.restart(stream.currentChannelStream);
       },
       complete: function() {
         //console.log('Request localDescription completed.');

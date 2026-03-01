@@ -249,7 +249,7 @@ switch ($_REQUEST['action']) {
     if (in_array($fid, ['alarm', 'snapshot'])) {
       $srcImage = $eventPath.'/'.$fid.'.jpg';
     } else {
-      $srcImage = $eventPath.'/'.sprintf('%06d', $fid).'-capture.jpg';
+      $srcImage = $eventPath.'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $fid).'-capture.jpg';
     }
 
     if (!file_exists($srcImage)) {
@@ -382,7 +382,7 @@ switch ($_REQUEST['action']) {
     if (in_array($fid, ['alarm', 'snapshot'])) {
       $srcImage = $eventPath.'/'.$fid.'.jpg';
     } else {
-      $srcImage = $eventPath.'/'.sprintf('%06d', $fid).'-capture.jpg';
+      $srcImage = $eventPath.'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $fid).'-capture.jpg';
     }
 
     if (!file_exists($srcImage)) {

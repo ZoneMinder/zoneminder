@@ -175,7 +175,7 @@ AnnotationEditor.prototype.open = function() {
         self._loadFrameImage(defaultFrame);
       })
       .fail(function(jqxhr) {
-        self._setStatus('Failed to load event data', 'error');
+        self._setStatus(self.translations.FailedToLoadEvent || 'Failed to load event data', 'error');
         logAjaxFail(jqxhr);
       });
 };
@@ -278,7 +278,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
     self._render();
   };
   img.onerror = function() {
-    self._setStatus('Failed to load frame image', 'error');
+    self._setStatus(self.translations.FailedToLoadFrame || 'Failed to load frame image', 'error');
   };
 
   img.src = thisUrl + '?view=image&eid=' + this.eventId + '&fid=' + frameId;
@@ -992,7 +992,7 @@ AnnotationEditor.prototype.detect = function() {
   }
 
   if (!this.currentFrameId) {
-    this._setStatus('Load a frame first', 'error');
+    this._setStatus(this.translations.LoadFrameFirst || 'Load a frame first', 'error');
     return;
   }
 
@@ -1065,12 +1065,12 @@ AnnotationEditor.prototype.detect = function() {
     self._updateSidebar();
     self._render();
     self._setStatus(
-        detections.length + ' object(s) detected — accept or reject each',
+        detections.length + ' ' + (self.translations.DetectedObjects || 'object(s) detected — accept or reject each'),
         'success'
     );
   }).fail(function(jqxhr) {
     $j('#annotationDetectBtn').prop('disabled', false);
-    self._setStatus('Detection failed', 'error');
+    self._setStatus(self.translations.DetectFailed || 'Detection failed', 'error');
     logAjaxFail(jqxhr);
   });
 };
@@ -1169,7 +1169,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
     if (ann.pending) {
       var acceptBtn = $j('<button>')
           .addClass('btn-accept')
-          .attr('title', 'Accept')
+          .attr('title', self.translations.AcceptDetection || 'Accept')
           .html('&#10003;')
           .attr('data-index', i);
       li.append(acceptBtn);
@@ -1177,7 +1177,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
 
     var removeBtn = $j('<button>')
         .addClass('btn-remove')
-        .attr('title', 'Delete')
+        .attr('title', self.translations.DeleteBox || 'Delete')
         .html('&times;')
         .attr('data-index', i);
 
@@ -1273,7 +1273,7 @@ AnnotationEditor.prototype._renderStats = function() {
   );
   if (stats.background_images > 0) {
     dl.append(
-        $j('<dt>').text('Background images (no objects)'),
+        $j('<dt>').text(t.BackgroundImages || 'Background images (no objects)'),
         $j('<dd>').text(stats.background_images)
     );
   }
@@ -1306,7 +1306,7 @@ AnnotationEditor.prototype._renderStats = function() {
     );
     container.append(guidance);
   } else {
-    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text('No training data yet. Save annotations to build your dataset.'));
+    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text(t.NoTrainingData || 'No training data yet. Save annotations to build your dataset.'));
   }
 };
 
@@ -1369,7 +1369,7 @@ AnnotationEditor.prototype.save = function() {
   var self = this;
 
   if (!this.currentFrameId) {
-    this._setStatus('No frame loaded', 'error');
+    this._setStatus(this.translations.NoFrameLoaded || 'No frame loaded', 'error');
     return;
   }
 
@@ -1382,8 +1382,8 @@ AnnotationEditor.prototype.save = function() {
   }
 
   if (accepted.length === 0) {
-    var msg = 'No objects marked. Save as a background image (no objects)?\n\n' +
-        'Background images help the model learn to reduce false positives.';
+    var msg = this.translations.BackgroundImageConfirm ||
+        'No objects marked. Save as a background image (no objects)?\n\nBackground images help the model learn to reduce false positives.';
     if (!confirm(msg)) return;
   }
 
@@ -1403,7 +1403,7 @@ AnnotationEditor.prototype.save = function() {
   })
       .done(function(data) {
         if (data.result === 'Error') {
-          self._setStatus(data.message || 'Save failed', 'error');
+          self._setStatus(data.message || self.translations.SaveFailed || 'Save failed', 'error');
           return;
         }
         var resp = data.response || data;
@@ -1430,7 +1430,7 @@ AnnotationEditor.prototype.save = function() {
         }
       })
       .fail(function(jqxhr) {
-        self._setStatus('Save failed', 'error');
+        self._setStatus(self.translations.SaveFailed || 'Save failed', 'error');
         logAjaxFail(jqxhr);
       });
 };

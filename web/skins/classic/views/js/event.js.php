@@ -143,7 +143,18 @@ var trainingTranslations = {
   "DetectObjects": "<?php echo translate('DetectObjects') ?>",
   "DetectRunning": "<?php echo translate('DetectRunning') ?>",
   "DetectNoScript": "<?php echo translate('DetectNoScript') ?>",
-  "DetectNoResults": "<?php echo translate('DetectNoResults') ?>"
+  "DetectNoResults": "<?php echo translate('DetectNoResults') ?>",
+  "DetectFailed": "<?php echo translate('DetectFailed') ?>",
+  "DetectedObjects": "<?php echo translate('DetectedObjects') ?>",
+  "AcceptDetection": "<?php echo translate('AcceptDetection') ?>",
+  "FailedToLoadEvent": "<?php echo translate('FailedToLoadEvent') ?>",
+  "FailedToLoadFrame": "<?php echo translate('FailedToLoadFrame') ?>",
+  "LoadFrameFirst": "<?php echo translate('LoadFrameFirst') ?>",
+  "NoFrameLoaded": "<?php echo translate('NoFrameLoaded') ?>",
+  "NoTrainingData": "<?php echo translate('NoTrainingData') ?>",
+  "SaveFailed": "<?php echo translate('SaveFailed') ?>",
+  "BackgroundImageConfirm": "<?php echo translate('BackgroundImageConfirm') ?>",
+  "BackgroundImages": "<?php echo translate('BackgroundImages') ?>"
 };
 <?php } ?>
 

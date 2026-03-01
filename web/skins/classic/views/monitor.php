@@ -1396,6 +1396,7 @@ $codecs = array(
   $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor->Id().'">' : '>';
   $imgHTML .= '<img id="thumbnail' .$monitor->Id(). '" src="' .$stillSrc. '" style="'
     .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
+    ' data-monitor-width="'.$monitor->ViewWidth().'" data-monitor-height="'.$monitor->ViewHeight().'"'.
     ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
     ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
     ' loading="lazy" /></a></div>';

@@ -911,7 +911,7 @@ class Monitor extends ZM_Object {
         return false;
       }
     }
-    return ($u['Monitors'] == 'Edit');
+    return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
   function canView($u=null) {
@@ -1214,13 +1214,13 @@ class Monitor extends ZM_Object {
         foreach ($options['zones'] as $zone_id) {
           $zone = new Zone($zone_id);
           if ($zone->Id() and $zone->MonitorId() == $this->Id()) {
-            $html .= $zone->svg_polygon();
+            $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
           }
         }
       } else {
         // true: render all zones for this monitor
         foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
-          $html .= $zone->svg_polygon();
+          $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
         }
       }
       if (isset($options['zones_extra'])) {

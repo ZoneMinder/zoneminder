@@ -75,7 +75,7 @@ function processRows(rows) {
           .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
           .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
     } catch (e) {
-      console.log("Error decoding " + row.Message);
+      console.log("Error decoding ", row.Message, e);
       // ignore errors
     }
   });

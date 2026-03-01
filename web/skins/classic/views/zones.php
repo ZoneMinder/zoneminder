@@ -73,6 +73,7 @@ echo getNavBarHTML();
         }
       }
 
+      convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
       limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
       $row['Coords'] = pointsToCoords($row['Points']);
       $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);

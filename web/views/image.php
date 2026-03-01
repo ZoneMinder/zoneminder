@@ -339,6 +339,11 @@ if ( empty($_REQUEST['path']) ) {
               }
             }
             if (file_exists($file_path)) {
+              if ( !is_executable(ZM_PATH_FFMPEG) ) {
+                header('HTTP/1.0 500 Internal Server Error');
+                ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+                return;
+              }
               $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($Frame->Delta()).' -i '.escapeshellarg($file_path).' -frames:v 1 '.escapeshellarg($path).' 2>&1';
               #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
               #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
@@ -421,6 +426,11 @@ if ( empty($_REQUEST['path']) ) {
       if (!file_exists($file_path)) {
         header('HTTP/1.0 404 Not Found');
         ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        return;
+      }
+      if ( !is_executable(ZM_PATH_FFMPEG) ) {
+        header('HTTP/1.0 500 Internal Server Error');
+        ZM\Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
         return;
       }
       // Use escapeshellarg() to prevent command injection

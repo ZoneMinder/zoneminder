@@ -1339,6 +1339,13 @@ function calculateOverlayDimensions(img) {
   return {width: Math.round(width), height: Math.round(height)};
 }
 
+function calculateOverlayScale(img, overlayWidth) {
+  const monitorWidth = parseInt(img.dataset.monitorWidth);
+  if (!monitorWidth || monitorWidth <= 0) return 100;
+  const scale = Math.round(100 * overlayWidth / monitorWidth);
+  return Math.max(5, Math.min(100, scale));
+}
+
 function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
@@ -1359,10 +1366,12 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   container.style.backgroundImage = 'url("' + img.src + '")';
 
   const fallbackToMjpeg = function() {
+    console.log('fallback');
     const streamSrc = img.getAttribute('stream_src');
     if (streamSrc) {
       const fallbackImg = document.createElement('img');
-      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+      const scale = calculateOverlayScale(img, dimensions.width);
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=' + scale);
       container.appendChild(fallbackImg);
     }
   };
@@ -1398,6 +1407,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     createVideoElement(container, overlaySrc, eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
+    const scale = calculateOverlayScale(img, dimensions.width);
+    overlaySrc = overlaySrc.replace(/scale=\d+/, 'scale=' + scale);
     overlayImg.src = overlaySrc;
     container.appendChild(overlayImg);
   }
@@ -1430,7 +1441,8 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    url.search = 'src=' + mid + '_0';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_CameraDirectPrimary';
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';

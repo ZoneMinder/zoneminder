@@ -1017,6 +1017,7 @@ a.flip {
   color: white;
 }
 .imageFeed {
+  border: 2px solid white; /* Because .alarm .imageFeed has a red border, so without this is jumps around */
   margin: 0 auto;
   text-align: center;
   /*
@@ -1035,14 +1036,17 @@ a.flip {
   /*
   height: 100%;
   */
-  border: 2px solid #ffffff;
 }
 .imageFeed svg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 100%;
   background: none;
+}
+.imageFeed svg.zones, #videoFeed svg.zones {
+  z-index: 3;
 }
 .colThumbnail img {
   border-radius: 4px;
@@ -1066,15 +1070,15 @@ a.flip {
   color: #dddddd;
 }
 
-.monitor.idle img, .monitor.idle .imageFeed {
+.monitor.idle .imageFeed {
   border: 2px solid #ffffff;
 }
 
-.monitor.alarm img, .monitor.alarm .imageFeed {
+.monitor.alarm .imageFeed {
   border: 2px solid #ff0000;
 }
 
-.monitor.alert img, .monitor.alert .imageFeed {
+.monitor.alert .imageFeed {
   border: 2px solid #ffa500;
 }
 .monitor.alert {

@@ -243,7 +243,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$initialDisplayInterval = 1000;
+$initialDisplayInterval = 100;
 if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
@@ -364,4 +364,5 @@ if (count($filter->terms())) {
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
+<script src="<?php echo cache_bust('js/EventStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

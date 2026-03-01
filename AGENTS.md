@@ -183,7 +183,7 @@ npx eslint --ext .js.php,.js .        # Lint all
 npx eslint --fix web/js/              # Auto-fix
 ```
 
-ESLint config: `.eslintrc.js` (Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
+ESLint config: `eslint.config.js` (ESLint 9 flat config, Google style guide). Runs in CI via `.github/workflows/ci-eslint.yml`.
 
 ### PHP/API Testing
 

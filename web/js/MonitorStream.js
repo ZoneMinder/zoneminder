@@ -523,7 +523,7 @@ function MonitorStream(monitorData) {
           this.element.onplay = (event) => {
             getTracksFromStream(this); //HLS
           }
-					if (Hls.isSupported()) {
+          if (Hls.isSupported()) {
             this.hls = new Hls({
               maxBufferLength: 10,
               maxMaxBufferLength: 30,

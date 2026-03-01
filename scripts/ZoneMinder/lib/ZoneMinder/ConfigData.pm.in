@@ -4032,6 +4032,32 @@ our @options = (
     type        => $types{integer},
     category    => 'system',
   },
+  {
+    name        => 'ZM_OPT_TRAINING',
+    default     => 'no',
+    description => 'Enable custom model training features',
+    help        => q`
+      Enable annotation tools on the event view for correcting
+      object detection results. Corrected annotations are saved
+      in YOLO format for training custom models via pyzm.
+      `,
+    type        => $types{boolean},
+    category    => 'config',
+  },
+  {
+    name        => 'ZM_TRAINING_DATA_DIR',
+    default     => '@ZM_CACHEDIR@/training',
+    description => 'Training data directory',
+    help        => q`
+      Filesystem path where corrected annotation images and YOLO
+      label files are stored. The directory will be created
+      automatically if it does not exist. Uses Roboflow-compatible
+      YOLO directory layout (images/all/, labels/all/, data.yaml).
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

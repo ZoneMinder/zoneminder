@@ -1,0 +1,303 @@
+/* Annotation Editor Panel - Custom Model Training */
+
+#annotationPanel {
+  display: none;
+  border-top: 2px solid #dee2e6;
+  padding: 15px;
+  margin-top: 10px;
+  background: #f8f9fa;
+}
+
+#annotationPanel.open {
+  display: block;
+}
+
+/* Frame selector bar */
+.annotation-frame-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.annotation-frame-selector .btn {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.annotation-frame-selector .frame-input {
+  width: 80px;
+  display: inline-block;
+}
+
+.annotation-frame-selector .frame-total {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+/* Canvas + sidebar layout */
+.annotation-workspace {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+/* Canvas container */
+.annotation-canvas-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #ced4da;
+  background: #000;
+  overflow: hidden;
+}
+
+.annotation-canvas-container canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+}
+
+/* Cursor modes set by JS based on interaction state */
+.annotation-canvas-container canvas.mode-select {
+  cursor: default;
+}
+
+.annotation-canvas-container canvas.mode-move {
+  cursor: move;
+}
+
+.annotation-canvas-container canvas.mode-resize-nw,
+.annotation-canvas-container canvas.mode-resize-se {
+  cursor: nwse-resize;
+}
+
+.annotation-canvas-container canvas.mode-resize-ne,
+.annotation-canvas-container canvas.mode-resize-sw {
+  cursor: nesw-resize;
+}
+
+.annotation-canvas-container canvas.mode-resize-n,
+.annotation-canvas-container canvas.mode-resize-s {
+  cursor: ns-resize;
+}
+
+.annotation-canvas-container canvas.mode-resize-e,
+.annotation-canvas-container canvas.mode-resize-w {
+  cursor: ew-resize;
+}
+
+/* Object sidebar */
+.annotation-sidebar {
+  width: 240px;
+  min-width: 240px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.annotation-sidebar-header {
+  padding: 8px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #dee2e6;
+  background: #e9ecef;
+  font-size: 0.9rem;
+}
+
+.annotation-object-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Individual object items in the sidebar list */
+.annotation-object-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.annotation-object-item:hover {
+  background: #f0f7ff;
+}
+
+.annotation-object-item.selected {
+  background: #d4e8ff;
+}
+
+.annotation-object-item .color-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.annotation-object-item .object-label {
+  flex: 1;
+}
+
+.annotation-object-item .object-confidence {
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+.annotation-object-item .btn-remove {
+  padding: 0 4px;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #dc3545;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  margin-left: 4px;
+}
+
+.annotation-object-item .btn-remove:hover {
+  opacity: 1;
+}
+
+/* Add new box button at bottom of object list */
+.annotation-add-btn {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  border: none;
+  background: none;
+  color: #007bff;
+  cursor: pointer;
+}
+
+.annotation-add-btn:hover {
+  background: #f0f7ff;
+}
+
+/* Training stats section in sidebar */
+.annotation-stats {
+  padding: 8px 12px;
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
+  font-size: 0.8rem;
+}
+
+.annotation-stats-header {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+}
+
+.annotation-stats dt {
+  font-weight: normal;
+  color: #6c757d;
+}
+
+.annotation-stats dd {
+  margin-bottom: 2px;
+  margin-left: 0;
+}
+
+.annotation-stats .class-count {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 0;
+}
+
+.annotation-stats .class-count .count {
+  font-weight: 600;
+}
+
+.annotation-stats .training-guidance {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: #fff3cd;
+  border-radius: 3px;
+  color: #856404;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.annotation-stats .training-ready {
+  background: #d4edda;
+  color: #155724;
+}
+
+/* Label picker dropdown (appears on new box draw) */
+.annotation-label-picker {
+  position: absolute;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  min-width: 160px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.annotation-label-picker .label-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.annotation-label-picker .label-option:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+.annotation-label-picker .new-label-input {
+  display: flex;
+  border-top: 1px solid #dee2e6;
+  padding: 6px;
+}
+
+.annotation-label-picker .new-label-input input {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+}
+
+/* Bottom action bar */
+.annotation-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+}
+
+.annotation-actions .label-select {
+  width: 150px;
+}
+
+.annotation-status {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #28a745;
+}
+
+.annotation-status.error {
+  color: #dc3545;
+}
+
+.annotation-status.saving {
+  color: #6c757d;
+}

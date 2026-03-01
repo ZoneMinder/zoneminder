@@ -214,6 +214,10 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
 <?php
   }
+  if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
+    <button id="annotateBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Annotate') ?>"><i class="fa fa-pencil-square-o"></i></button>
+<?php
+  }
   } // end if Event->Id
 ?>
       </div>
@@ -453,6 +457,43 @@ if ($video_tag) {
           }
         ?>
         </div><!--EventData-->
+<?php if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING && $Event->Id()) { ?>
+        <div id="annotationPanel">
+          <div id="annotationFrameSelector" class="annotation-frame-selector">
+            <span><strong><?php echo translate('Frame') ?>:</strong></span>
+            <button class="btn btn-normal btn-sm" data-frame="prev" title="<?php echo translate('PreviousFrame') ?>"><i class="fa fa-chevron-left"></i></button>
+            <button class="btn btn-normal btn-sm frame-btn" data-frame="alarm" style="display:none"><?php echo translate('Alarm') ?></button>
+            <button class="btn btn-normal btn-sm frame-btn" data-frame="snapshot" style="display:none"><?php echo translate('Snapshot') ?></button>
+            <button class="btn btn-normal btn-sm frame-btn" data-frame="objdetect" style="display:none"><?php echo translate('ObjDetect') ?></button>
+            <button class="btn btn-normal btn-sm" data-frame="next" title="<?php echo translate('NextFrame') ?>"><i class="fa fa-chevron-right"></i></button>
+            <input type="number" class="form-control form-control-sm frame-input" id="annotationFrameInput" min="1" max="<?php echo $Event->Frames() ?>" placeholder="#" title="<?php echo translate('GoToFrame') ?>"/>
+            <button class="btn btn-normal btn-sm" id="annotationGoToFrame"><?php echo translate('GoToFrame') ?></button>
+          </div>
+
+          <div class="annotation-workspace">
+            <div class="annotation-canvas-container">
+              <canvas id="annotationCanvas"></canvas>
+            </div>
+
+            <div class="annotation-sidebar">
+              <div class="annotation-sidebar-header"><?php echo translate('Objects') ?></div>
+              <ul id="annotationObjectList" class="annotation-object-list">
+              </ul>
+              <div id="annotationStats" class="annotation-stats">
+              </div>
+            </div>
+          </div>
+
+          <div class="annotation-actions">
+            <select id="annotationLabelSelect" class="form-control form-control-sm label-select" disabled>
+            </select>
+            <button id="annotationDeleteBtn" class="btn btn-danger btn-sm"><?php echo translate('DeleteBox') ?></button>
+            <button id="annotationSaveBtn" class="btn btn-success btn-sm"><?php echo translate('SaveToTrainingSet') ?></button>
+            <button id="annotationCancelBtn" class="btn btn-normal btn-sm"><?php echo translate('Cancel') ?></button>
+            <span id="annotationStatus" class="annotation-status"></span>
+          </div>
+        </div>
+<?php } ?>
       </div>
 <?php
 } // end if Event exists
@@ -468,5 +509,9 @@ if ($video_tag) {
   echo output_link_if_exists(array('css/base/zones.css'));
   echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
   echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
+  if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) {
+    echo output_link_if_exists(array('css/base/views/training.css'));
+    echo output_script_if_exists(array('views/js/training.js'));
+  }
   xhtmlFooter();
 ?>

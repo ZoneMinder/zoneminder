@@ -120,3 +120,108 @@ var translate = {
   "Archived": "<?php echo translate('Archived') ?>",
   "Emailed": "<?php echo translate('Emailed') ?>",
 };
+
+<?php if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
+var trainingTranslations = {
+  "Annotate": "<?php echo translate('Annotate') ?>",
+  "AnnotationSaved": "<?php echo translate('AnnotationSaved') ?>",
+  "AnnotationsRemoved": "<?php echo translate('AnnotationsRemoved') ?>",
+  "DeleteBox": "<?php echo translate('DeleteBox') ?>",
+  "DrawBox": "<?php echo translate('DrawBox') ?>",
+  "GoToFrame": "<?php echo translate('GoToFrame') ?>",
+  "NewLabel": "<?php echo translate('NewLabel') ?>",
+  "NoDetectionData": "<?php echo translate('NoDetectionData') ?>",
+  "SaveToTrainingSet": "<?php echo translate('SaveToTrainingSet') ?>",
+  "SelectLabel": "<?php echo translate('SelectLabel') ?>",
+  "UnsavedAnnotations": "<?php echo translate('UnsavedAnnotations') ?>",
+  "TrainingDataStats": "<?php echo translate('TrainingDataStats') ?>",
+  "TotalAnnotatedImages": "<?php echo translate('TotalAnnotatedImages') ?>",
+  "TotalClasses": "<?php echo translate('TotalClasses') ?>",
+  "ImagesPerClass": "<?php echo translate('ImagesPerClass') ?>",
+  "TrainingGuidance": "<?php echo translate('TrainingGuidance') ?>"
+};
+<?php } ?>
+
+<?php if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING && $Event->Id()) { ?>
+// Training annotation editor initialization
+// Deferred until DOM ready (event.js handles $j(document).ready)
+$j(document).ready(function initAnnotationEditor() {
+  if (typeof AnnotationEditor === 'undefined') return;
+
+  var annotationEditor = new AnnotationEditor({
+    canvasId: 'annotationCanvas',
+    sidebarId: 'annotationObjectList',
+    eventId: eventData.Id,
+    translations: trainingTranslations
+  });
+  annotationEditor.init();
+
+  // Make accessible globally for debugging
+  window.annotationEditor = annotationEditor;
+
+  $j('#annotateBtn').on('click', function() {
+    var panel = document.getElementById('annotationPanel');
+    if (panel && panel.classList.contains('open')) {
+      annotationEditor.close();
+    } else {
+      annotationEditor.open();
+    }
+  });
+
+  $j('#annotationSaveBtn').on('click', function() {
+    annotationEditor.save();
+  });
+
+  $j('#annotationCancelBtn').on('click', function() {
+    annotationEditor.close();
+  });
+
+  $j('#annotationDeleteBtn').on('click', function() {
+    if (annotationEditor.selectedIndex >= 0) {
+      annotationEditor.deleteAnnotation(annotationEditor.selectedIndex);
+    }
+  });
+
+  $j('#annotationLabelSelect').on('change', function() {
+    if (annotationEditor.selectedIndex >= 0) {
+      annotationEditor.relabelAnnotation(
+        annotationEditor.selectedIndex,
+        $j(this).val()
+      );
+    }
+  });
+
+  // Frame navigation
+  $j('#annotationFrameSelector').on('click', '[data-frame]', function() {
+    var frame = $j(this).data('frame');
+    if (frame === 'prev') {
+      var current = parseInt(annotationEditor.currentFrameId);
+      if (!isNaN(current) && current > 1) {
+        annotationEditor.switchFrame(String(current - 1));
+      }
+    } else if (frame === 'next') {
+      var current = parseInt(annotationEditor.currentFrameId);
+      if (!isNaN(current)) {
+        annotationEditor.switchFrame(String(current + 1));
+      } else {
+        annotationEditor.switchFrame('1');
+      }
+    } else {
+      annotationEditor.switchFrame(String(frame));
+    }
+  });
+
+  $j('#annotationGoToFrame').on('click', function() {
+    var fid = $j('#annotationFrameInput').val();
+    if (fid && parseInt(fid) > 0) {
+      annotationEditor.switchFrame(fid);
+    }
+  });
+
+  $j('#annotationFrameInput').on('keydown', function(e) {
+    if (e.key === 'Enter') {
+      $j('#annotationGoToFrame').click();
+    }
+  });
+});
+<?php } ?>

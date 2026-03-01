@@ -848,6 +848,7 @@ function isJSON(str) {
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
   } catch (e) {
+    console.warn('This is not JSON', str, e);
     return false; // This is also not JSON
   }
 }

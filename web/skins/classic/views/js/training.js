@@ -115,7 +115,6 @@ AnnotationEditor.prototype.init = function() {
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (self.selectedIndex >= 0) {
         e.preventDefault();
-        self._pushUndo();
         self.deleteAnnotation(self.selectedIndex);
       }
     } else if (e.key === 'Escape') {

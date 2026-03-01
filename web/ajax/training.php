@@ -326,9 +326,10 @@ switch ($action) {
     }
     $reqPath = detaintPath($_REQUEST['path']);
     $fullPath = realpath($base.'/'.$reqPath);
+    $baseReal = rtrim(realpath($base), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
 
     // Validate file is within the training directory
-    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
+    if ($fullPath === false || strpos($fullPath, $baseReal) !== 0 || !is_file($fullPath)) {
       ZM\Warning('Training: browse_file path rejected: '.validHtmlStr($_REQUEST['path']));
       ajaxError('File not found or access denied');
       break;
@@ -566,8 +567,9 @@ switch ($action) {
     }
     $reqPath = detaintPath($_REQUEST['path']);
     $fullPath = realpath($base.'/'.$reqPath);
+    $baseReal = rtrim(realpath($base), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
 
-    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
+    if ($fullPath === false || strpos($fullPath, $baseReal) !== 0 || !is_file($fullPath)) {
       ajaxError('File not found or access denied');
       break;
     }
@@ -692,9 +694,14 @@ switch ($action) {
       break;
     }
 
-    // Copy to temp file so the script can read it
-    $tmpFile = tempnam(sys_get_temp_dir(), 'zm_detect_').'.jpg';
+    // Copy to temp file so the script can read it.
+    // tempnam() creates the base file; rename it to add .jpg extension
+    // so the detection script receives a proper image filename.
+    $tmpBase = tempnam(sys_get_temp_dir(), 'zm_detect_');
+    $tmpFile = $tmpBase.'.jpg';
+    rename($tmpBase, $tmpFile);
     if (!copy($srcImage, $tmpFile)) {
+      if (file_exists($tmpFile)) unlink($tmpFile);
       ajaxError('Failed to create temp file for detection');
       break;
     }
@@ -734,7 +741,6 @@ switch ($action) {
     ZM\Debug('Training: detect found '.count($detections).' objects for event '.$eid.' frame '.$fid);
     ajaxResponse([
       'detections' => $detections,
-      'raw_output' => $output,
     ]);
     break;
 

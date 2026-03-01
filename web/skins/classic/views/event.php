@@ -470,6 +470,7 @@ if ($video_tag) {
             <button class="btn btn-normal btn-sm" id="annotationBrowseFramesBtn" title="<?php echo translate('TrainingBrowseFrames') ?>"><i class="fa fa-th"></i></button>
             <input type="number" class="form-control form-control-sm frame-input" id="annotationFrameInput" min="1" max="<?php echo $Event->Frames() ?>" placeholder="#" title="<?php echo translate('GoToFrame') ?>"/>
             <button class="btn btn-normal btn-sm" id="annotationGoToFrame"><?php echo translate('GoToFrame') ?></button>
+            <span class="frame-total"></span>
           </div>
 
           <div class="annotation-workspace">

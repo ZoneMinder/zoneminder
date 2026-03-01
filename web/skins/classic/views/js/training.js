@@ -139,6 +139,15 @@ AnnotationEditor.prototype.open = function() {
   $j('#annotationPanel').addClass('open');
   $j('#eventVideo').hide();
 
+  // Warn on page navigation if unsaved annotations exist
+  this._beforeUnloadHandler = function(e) {
+    if (self.dirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+  window.addEventListener('beforeunload', this._beforeUnloadHandler);
+
   // Load class labels and detection data in parallel
   this._loadLabels();
   this._loadStats();
@@ -193,6 +202,12 @@ AnnotationEditor.prototype.close = function() {
   $j('#annotationPanel').removeClass('open');
   $j('#eventVideo').show();
   this._hideLabelPicker();
+
+  // Remove page-leave guard
+  if (this._beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+    this._beforeUnloadHandler = null;
+  }
 
   // Reset state
   this.annotations = [];
@@ -1024,8 +1039,7 @@ AnnotationEditor.prototype.detect = function() {
 
     if (detections.length === 0) {
       self._setStatus(
-          self.translations.DetectNoResults || 'No objects detected',
-          'error'
+          self.translations.DetectNoResults || 'No objects detected'
       );
       return;
     }
@@ -1255,59 +1269,81 @@ AnnotationEditor.prototype._loadStats = function() {
 AnnotationEditor.prototype._renderStats = function() {
   var container = $j('#annotationStats');
   if (!container.length) return;
+  var self = this;
 
   container.empty();
 
   var t = this.translations;
   var stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
+  var hasData = stats.total_images > 0 || stats.background_images > 0;
 
-  var header = $j('<div>')
-      .addClass('annotation-stats-header')
-      .text(t.TrainingDataStats || 'Training Data Statistics');
+  // Header with trash icon
+  var header = $j('<div>').addClass('annotation-stats-header');
+  header.append($j('<span>').text(t.TrainingDataStats || 'Training Data Statistics'));
+  if (hasData) {
+    var trashBtn = $j('<button>')
+        .addClass('btn-delete-all')
+        .attr('title', t.DeleteAllTrainingData || 'Delete All Training Data')
+        .html('<i class="fa fa-trash"></i>');
+    trashBtn.on('click', function() { self._deleteAllTrainingData(); });
+    header.append(trashBtn);
+  }
   container.append(header);
 
-  var dl = $j('<dl>');
-  dl.append(
-      $j('<dt>').text(t.TotalAnnotatedImages || 'Total annotated images'),
-      $j('<dd>').text(stats.total_images)
-  );
-  if (stats.background_images > 0) {
-    dl.append(
-        $j('<dt>').text(t.BackgroundImages || 'Background images (no objects)'),
-        $j('<dd>').text(stats.background_images)
-    );
-  }
-  container.append(dl);
+  // Compact stat rows
+  var row = function(label, value) {
+    return $j('<div>').addClass('stat-row')
+        .append($j('<span>').addClass('stat-label').text(label))
+        .append($j('<span>').addClass('stat-value').text(value));
+  };
 
-  // Per-class image counts — the main info
+  container.append(row(t.TotalAnnotatedImages || 'Annotated images', stats.total_images));
+  if (stats.background_images > 0) {
+    container.append(row(t.BackgroundImages || 'Background images', stats.background_images));
+  }
+
+  // Per-class image counts
   var classData = stats.images_per_class || {};
   var classNames = Object.keys(classData);
 
   if (classNames.length > 0) {
-    container.append($j('<div>').css({'font-weight': '600', 'margin': '6px 0 4px'}).text(t.ImagesPerClass || 'Images per class'));
+    container.append($j('<div>').css({'font-weight': '600', 'margin': '4px 0 2px'}).text(t.ImagesPerClass || 'Images per class'));
 
     var hasLowClass = false;
     for (var i = 0; i < classNames.length; i++) {
-      var className = classNames[i];
-      var count = classData[className];
-      var row = $j('<div>').addClass('class-count');
-      row.append($j('<span>').text(className));
-      row.append($j('<span>').addClass('count').text(count));
-      container.append(row);
-      if (count < 50) hasLowClass = true;
+      container.append(row(classNames[i], classData[classNames[i]]));
+      if (classData[classNames[i]] < 50) hasLowClass = true;
     }
 
-    // Training guidance
     var guidance = $j('<div>').addClass('training-guidance');
     if (!hasLowClass) guidance.addClass('training-ready');
-    guidance.text(
-        t.TrainingGuidance ||
-        'Training is generally possible with at least 50-100 images per class. For best results, aim for 200+ images per class.'
-    );
+    guidance.text(t.TrainingGuidance || 'Aim for 50-100+ images per class.');
     container.append(guidance);
   } else {
-    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text(t.NoTrainingData || 'No training data yet. Save annotations to build your dataset.'));
+    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text(t.NoTrainingData || 'No training data yet.'));
   }
+};
+
+AnnotationEditor.prototype._deleteAllTrainingData = function() {
+  var self = this;
+  var t = this.translations;
+  var answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
+  if (answer !== 'agree') return;
+
+  $j.getJSON(thisUrl + '?request=training&action=delete_all')
+      .done(function(resp) {
+        if (resp.result === 'Ok') {
+          self.trainingStats = resp.stats || {};
+          self.classLabels = (resp.stats && resp.stats.class_labels) ? resp.stats.class_labels : [];
+          self._renderStats();
+          self._setStatus(t.TrainingDataDeleted || 'All training data deleted.');
+        } else {
+          self._setStatus(resp.message || 'Delete failed', true);
+        }
+      })
+      .fail(function() {
+        self._setStatus(t.SaveFailed || 'Request failed', true);
+      });
 };
 
 /**
@@ -1452,7 +1488,7 @@ AnnotationEditor.prototype._setStatus = function(msg, type) {
   if (type !== 'error') {
     setTimeout(function() {
       el.text('');
-    }, 4000);
+    }, 10000);
   }
 };
 

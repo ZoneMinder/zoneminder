@@ -358,6 +358,28 @@ switch ($_REQUEST['action']) {
     ajaxResponse(['stats' => getTrainingStats()]);
     break;
 
+  case 'delete_all':
+    // Delete ALL training data (images, labels, data.yaml)
+    $base = getTrainingDataDir();
+    $deleted = 0;
+    foreach (['images/all', 'labels/all'] as $sub) {
+      $dir = $base.'/'.$sub;
+      if (is_dir($dir)) {
+        foreach (glob($dir.'/*') as $file) {
+          if (is_file($file)) { unlink($file); $deleted++; }
+        }
+      }
+    }
+    $yamlFile = $base.'/data.yaml';
+    if (file_exists($yamlFile)) { unlink($yamlFile); $deleted++; }
+
+    ZM\Info('Deleted all training data ('.$deleted.' files)');
+    ajaxResponse([
+      'deleted' => $deleted,
+      'stats' => getTrainingStats(),
+    ]);
+    break;
+
   case 'detect':
     // Run object detection script on a frame image
     if (!defined('ZM_TRAINING_DETECT_SCRIPT') || ZM_TRAINING_DETECT_SCRIPT == '') {
@@ -409,11 +431,12 @@ switch ($_REQUEST['action']) {
 
     $monitorId = $Event->MonitorId();
     $cmd = escapeshellarg($script).' -f '.escapeshellarg($tmpFile).' -m '.escapeshellarg($monitorId).' 2>&1';
-    $output = shell_exec($cmd);
+    exec($cmd, $outputLines, $exitCode);
+    $output = implode("\n", $outputLines);
     unlink($tmpFile);
 
-    if ($output === null) {
-      ajaxError('Detection script failed to execute');
+    if ($exitCode !== 0 && empty($output)) {
+      ajaxError('Detection script failed to execute (exit code '.$exitCode.')');
       break;
     }
 

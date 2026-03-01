@@ -154,7 +154,10 @@ var trainingTranslations = {
   "NoTrainingData": "<?php echo translate('NoTrainingData') ?>",
   "SaveFailed": "<?php echo translate('SaveFailed') ?>",
   "BackgroundImageConfirm": "<?php echo translate('BackgroundImageConfirm') ?>",
-  "BackgroundImages": "<?php echo translate('BackgroundImages') ?>"
+  "BackgroundImages": "<?php echo translate('BackgroundImages') ?>",
+  "ConfirmDeleteTrainingData": "<?php echo translate('ConfirmDeleteTrainingData') ?>",
+  "DeleteAllTrainingData": "<?php echo translate('DeleteAllTrainingData') ?>",
+  "TrainingDataDeleted": "<?php echo translate('TrainingDataDeleted') ?>"
 };
 <?php } ?>
 
@@ -183,6 +186,11 @@ $j(document).ready(function initAnnotationEditor() {
       annotationEditor.open();
     }
   });
+
+  // Auto-open annotation panel if linked with ?annotate=1
+  if (new URLSearchParams(window.location.search).get('annotate') === '1') {
+    annotationEditor.open();
+  }
 
   $j('#annotationSaveBtn').on('click', function() {
     annotationEditor.save();

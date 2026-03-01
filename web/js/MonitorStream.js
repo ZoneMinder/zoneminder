@@ -528,6 +528,8 @@ function MonitorStream(monitorData) {
             this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
+            }, this);
+            this.hls.on(Hls.Events.BUFFER_APPENDING, function(event, data) {
               getTracksFromStream(this); //HLS
             }, this);
             this.hls.loadSource(hlsUrl.href);

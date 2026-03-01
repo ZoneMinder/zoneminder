@@ -265,7 +265,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 }
               }
 ?>
-          <div class="form-group form-row <?php echo $name ?>"<?php if (!empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires']).'"' ?>>
+          <div class="form-group form-row <?php echo $name ?>"<?php if ($canEdit && !$value['System'] && !empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires'], ENT_QUOTES).'"' ?>>
             <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
             <div class="col-md">
 <?php   
@@ -359,8 +359,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function evalRequires(req) {
     var parts = req.split(';');
     for (var i = 0; i < parts.length; i++) {
-      var m = parts[i].trim().match(/^(ZM_\w+)=(.+)$/);
-      if (m && getVal(m[1]) !== m[2]) return false;
+      var part = parts[i].trim();
+      if (!part) continue;
+      var m = part.match(/^(ZM_\w+)=(.+)$/);
+      if (!m) return false;
+      if (getVal(m[1]) !== m[2]) return false;
     }
     return true;
   }
@@ -370,7 +373,14 @@ document.addEventListener('DOMContentLoaded', function() {
     for (var i = 0; i < depRows.length; i++) {
       var met = evalRequires(depRows[i].getAttribute('data-requires'));
       var inputs = depRows[i].querySelectorAll('input, select, textarea');
-      for (var j = 0; j < inputs.length; j++) inputs[j].disabled = !met;
+      for (var j = 0; j < inputs.length; j++) {
+        inputs[j].disabled = !met;
+        if (inputs[j].tagName === 'SELECT' &&
+            inputs[j].classList.contains('chosen') &&
+            window.jQuery) {
+          window.jQuery(inputs[j]).trigger('chosen:updated');
+        }
+      }
     }
   }
 

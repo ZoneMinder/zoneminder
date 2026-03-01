@@ -475,12 +475,15 @@ if ($video_tag) {
               <canvas id="annotationCanvas"></canvas>
             </div>
 
-            <div class="annotation-sidebar">
-              <div class="annotation-sidebar-header"><?php echo translate('Objects') ?></div>
-              <ul id="annotationObjectList" class="annotation-object-list">
-              </ul>
-              <div id="annotationStats" class="annotation-stats">
+            <div class="annotation-sidebar-wrap">
+              <div class="annotation-sidebar">
+                <div class="annotation-sidebar-header"><button id="annotationDeleteAllBtn" class="btn-delete-all" title="<?php echo translate('DeleteAllTrainingData') ?>" style="display:none"><i class="fa fa-trash"></i></button><span><?php echo translate('Objects') ?></span><button id="annotationBrowseBtn" class="btn-browse" title="<?php echo translate('BrowseTrainingData') ?>"><i class="fa fa-folder-open"></i></button></div>
+                <ul id="annotationObjectList" class="annotation-object-list">
+                </ul>
+                <div id="annotationStats" class="annotation-stats">
+                </div>
               </div>
+              <div id="annotationStatus" class="annotation-status"></div>
             </div>
           </div>
 
@@ -489,7 +492,6 @@ if ($video_tag) {
             <button id="annotationDeleteBtn" class="btn btn-danger btn-sm"><?php echo translate('DeleteBox') ?></button>
             <button id="annotationSaveBtn" class="btn btn-success btn-sm"><?php echo translate('SaveToTrainingSet') ?></button>
             <button id="annotationCancelBtn" class="btn btn-normal btn-sm"><?php echo translate('Exit') ?></button>
-            <span id="annotationStatus" class="annotation-status"></span>
           </div>
         </div>
 <?php } ?>

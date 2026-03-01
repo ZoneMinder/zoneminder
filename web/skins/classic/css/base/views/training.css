@@ -101,11 +101,30 @@
 }
 
 .annotation-sidebar-header {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
   font-weight: 600;
   border-bottom: 1px solid #dee2e6;
   background: #e9ecef;
   font-size: 0.8rem;
+}
+
+.annotation-sidebar-header .btn-browse {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  line-height: 1;
+}
+
+.annotation-sidebar-header .btn-browse:hover {
+  opacity: 1;
+  color: #007bff;
 }
 
 .annotation-object-list {
@@ -216,7 +235,7 @@
   font-size: 0.8rem;
 }
 
-.annotation-stats-header .btn-delete-all {
+.annotation-sidebar-header .btn-delete-all {
   padding: 0;
   border: none;
   background: none;
@@ -225,9 +244,10 @@
   font-size: 0.8rem;
   opacity: 0.6;
   line-height: 1;
+  margin-right: 6px;
 }
 
-.annotation-stats-header .btn-delete-all:hover {
+.annotation-sidebar-header .btn-delete-all:hover {
   opacity: 1;
 }
 
@@ -261,7 +281,7 @@
   background: #fff3cd;
   border-radius: 3px;
   color: #856404;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   line-height: 1.3;
 }
 
@@ -334,18 +354,317 @@
   flex-shrink: 0;
 }
 
+.annotation-sidebar-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  min-width: 240px;
+}
+
 .annotation-status {
-  margin-left: auto;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #28a745;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  padding: 4px 0;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .annotation-status.error {
   color: #dc3545;
+}
+
+/* Browse training data overlay — two-panel file browser */
+.training-browse-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.training-browse-panel {
+  background: #fff;
+  color: #212529;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  width: 900px;
+  max-width: 92vw;
+  max-height: 80vh;
+  min-width: 400px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  resize: both;
+  overflow: hidden;
+}
+
+.training-browse-panel .browse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #dee2e6;
+  background: #e9ecef;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.training-browse-panel .browse-header .browse-path {
+  color: #6c757d;
+  font-weight: normal;
+  font-family: monospace;
+  font-size: 0.75rem;
+  margin-left: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.training-browse-panel .browse-header .browse-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #6c757d;
+  line-height: 1;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.training-browse-panel .browse-header .browse-close:hover {
+  color: #212529;
+}
+
+/* Two-panel body */
+.training-browse-panel .browse-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+/* Left panel: directory tree */
+.training-browse-panel .browse-tree {
+  width: 200px;
+  min-width: 200px;
+  overflow-y: auto;
+  border-right: 1px solid #dee2e6;
+  padding: 4px 0;
+  background: #fafbfc;
+}
+
+.browse-tree-node {
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browse-tree-node:hover {
+  background: #e8f0fe;
+}
+
+.browse-tree-node.selected {
+  background: #d4e8ff;
+  font-weight: 600;
+}
+
+.browse-tree-node .fa {
+  width: 14px;
+  text-align: center;
+  margin-right: 4px;
+  flex-shrink: 0;
+  color: #e8a317;
+}
+
+.browse-tree-node .fa-file-text-o {
+  color: #6c757d;
+}
+
+.browse-tree-node .tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browse-tree-children {
+  padding-left: 12px;
+}
+
+/* Right panel: file listing + preview */
+.training-browse-panel .browse-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* File listing in right panel */
+.browse-files {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 80px;
+}
+
+.browse-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: #e9ecef;
+  font-weight: 600;
+  font-size: 0.78rem;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.browse-files-header .file-count {
+  font-weight: normal;
+  color: #6c757d;
+}
+
+.browse-file-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.browse-file-row:hover {
+  background: #f0f7ff;
+}
+
+.browse-file-row.selected {
+  background: #d4e8ff;
+}
+
+.browse-file-row .file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse-file-row .file-size {
+  color: #6c757d;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.browse-file-delete {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 6px;
+  opacity: 0;
+  font-size: 0.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.browse-file-row:hover .browse-file-delete {
+  opacity: 0.6;
+}
+
+.browse-file-delete:hover {
+  opacity: 1 !important;
+}
+
+/* Preview area below file list */
+.browse-preview {
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
+  overflow: auto;
+  max-height: 50%;
+  flex-shrink: 0;
+}
+
+.browse-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: #e9ecef;
+  font-weight: 600;
+  font-size: 0.78rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.browse-preview-header .preview-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 0.9rem;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.browse-preview-header .preview-close:hover {
+  color: #212529;
+}
+
+.browse-preview-content {
+  padding: 8px;
+  text-align: left;
+}
+
+.browse-preview-img-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.browse-preview-img-wrap img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  display: block;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+}
+
+.browse-preview-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.browse-preview-content pre {
+  text-align: left;
+  margin: 0;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.browse-empty-msg {
+  text-align: center;
+  padding: 30px 20px;
+  color: #6c757d;
 }
 
 .annotation-status.saving {

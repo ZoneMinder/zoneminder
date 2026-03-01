@@ -157,7 +157,8 @@ var trainingTranslations = {
   "BackgroundImages": "<?php echo translate('BackgroundImages') ?>",
   "ConfirmDeleteTrainingData": "<?php echo translate('ConfirmDeleteTrainingData') ?>",
   "DeleteAllTrainingData": "<?php echo translate('DeleteAllTrainingData') ?>",
-  "TrainingDataDeleted": "<?php echo translate('TrainingDataDeleted') ?>"
+  "TrainingDataDeleted": "<?php echo translate('TrainingDataDeleted') ?>",
+  "BrowseTrainingData": "<?php echo translate('BrowseTrainingData') ?>"
 };
 <?php } ?>
 
@@ -204,9 +205,15 @@ $j(document).ready(function initAnnotationEditor() {
     annotationEditor.detect();
   });
 
+  $j('#annotationBrowseBtn').on('click', function() {
+    annotationEditor.browseTrainingData();
+  });
+
   $j('#annotationDeleteBtn').on('click', function() {
     if (annotationEditor.selectedIndex >= 0) {
       annotationEditor.deleteAnnotation(annotationEditor.selectedIndex);
+    } else {
+      annotationEditor._setStatus('<?php echo translate('SelectBoxFirst') ?>', 'error');
     }
   });
 

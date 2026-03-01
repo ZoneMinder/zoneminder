@@ -358,6 +358,172 @@ switch ($_REQUEST['action']) {
     ajaxResponse(['stats' => getTrainingStats()]);
     break;
 
+  case 'browse':
+    // Return recursive directory tree of training folder
+    $base = getTrainingDataDir();
+
+    function buildTree($dir, $base) {
+      $entries = [];
+      if (!is_dir($dir)) return $entries;
+      $items = scandir($dir);
+      sort($items);
+      foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+        $fullPath = $dir.'/'.$item;
+        $relPath = ltrim(str_replace($base, '', $fullPath), '/');
+        if (is_dir($fullPath)) {
+          $entries[] = [
+            'name' => $item,
+            'path' => $relPath,
+            'type' => 'dir',
+            'children' => buildTree($fullPath, $base),
+          ];
+        } else if (is_file($fullPath)) {
+          $entries[] = [
+            'name' => $item,
+            'path' => $relPath,
+            'type' => 'file',
+            'size' => filesize($fullPath),
+          ];
+        }
+      }
+      return $entries;
+    }
+
+    $tree = buildTree($base, $base);
+
+    ajaxResponse([
+      'base' => $base,
+      'tree' => $tree,
+    ]);
+    break;
+
+  case 'browse_file':
+    // Serve an individual file from the training directory
+    if (empty($_REQUEST['path'])) {
+      ajaxError('Path required');
+      break;
+    }
+
+    $base = getTrainingDataDir();
+    $reqPath = detaintPath($_REQUEST['path']);
+    $fullPath = realpath($base.'/'.$reqPath);
+
+    // Validate file is within the training directory
+    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
+      ajaxError('File not found or access denied');
+      break;
+    }
+
+    $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+
+    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+      // Serve raw image
+      $mimeMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
+      header('Content-Type: '.$mimeMap[$ext]);
+      header('Content-Length: '.filesize($fullPath));
+      header('Cache-Control: private, max-age=300');
+      readfile($fullPath);
+      exit;
+    } else if (in_array($ext, ['txt', 'yaml', 'yml'])) {
+      // Return text content as JSON
+      ajaxResponse(['content' => file_get_contents($fullPath)]);
+    } else {
+      ajaxError('Unsupported file type: '.$ext);
+    }
+    break;
+
+  case 'browse_delete':
+    // Delete an image/label pair by file path, then update data.yaml
+    if (empty($_REQUEST['path'])) {
+      ajaxError('Path required');
+      break;
+    }
+
+    $base = getTrainingDataDir();
+    $reqPath = detaintPath($_REQUEST['path']);
+    $fullPath = realpath($base.'/'.$reqPath);
+
+    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
+      ajaxError('File not found or access denied');
+      break;
+    }
+
+    // Determine the stem and delete both image + label
+    $stem = pathinfo(basename($fullPath), PATHINFO_FILENAME);
+    $imgFile = $base.'/images/all/'.$stem.'.jpg';
+    $lblFile = $base.'/labels/all/'.$stem.'.txt';
+
+    $deletedFiles = [];
+    if (file_exists($imgFile)) { unlink($imgFile); $deletedFiles[] = 'images/all/'.$stem.'.jpg'; }
+    if (file_exists($lblFile)) { unlink($lblFile); $deletedFiles[] = 'labels/all/'.$stem.'.txt'; }
+
+    // Rebuild data.yaml and remap class IDs in remaining label files
+    $labelsDir = $base.'/labels/all';
+    $usedClasses = [];
+    if (is_dir($labelsDir)) {
+      foreach (glob($labelsDir.'/*.txt') as $lf) {
+        foreach (file($lf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+          $parts = explode(' ', trim($line));
+          if (count($parts) >= 5) {
+            $usedClasses[intval($parts[0])] = true;
+          }
+        }
+      }
+    }
+
+    // Build old→new class ID mapping, keeping only classes still in use
+    $oldLabels = getClassLabels();
+    $newLabels = [];
+    $idMap = []; // oldId => newId
+    if (!empty($oldLabels)) {
+      $newId = 0;
+      foreach ($oldLabels as $oldId => $label) {
+        if (isset($usedClasses[$oldId])) {
+          $idMap[$oldId] = $newId;
+          $newLabels[] = $label;
+          $newId++;
+        }
+      }
+    }
+
+    // Remap class IDs in all remaining label files if any IDs changed
+    $needsRemap = false;
+    foreach ($idMap as $old => $new) {
+      if ($old !== $new) { $needsRemap = true; break; }
+    }
+    if ($needsRemap && is_dir($labelsDir)) {
+      foreach (glob($labelsDir.'/*.txt') as $lf) {
+        $lines = file($lf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $newLines = [];
+        foreach ($lines as $line) {
+          $parts = explode(' ', trim($line));
+          if (count($parts) >= 5) {
+            $oldId = intval($parts[0]);
+            $parts[0] = isset($idMap[$oldId]) ? $idMap[$oldId] : $parts[0];
+            $newLines[] = implode(' ', $parts);
+          }
+        }
+        file_put_contents($lf, empty($newLines) ? '' : implode("\n", $newLines)."\n");
+      }
+    }
+
+    // Write updated data.yaml or remove if empty
+    if (!empty($newLabels)) {
+      writeDataYaml($newLabels);
+    } else {
+      $yamlFile = $base.'/data.yaml';
+      if (file_exists($yamlFile)) unlink($yamlFile);
+    }
+
+    ZM\Info('Browse-deleted training files for stem '.$stem);
+
+    ajaxResponse([
+      'deleted' => $deletedFiles,
+      'stats' => getTrainingStats(),
+    ]);
+    break;
+
   case 'delete_all':
     // Delete ALL training data (images, labels, data.yaml)
     $base = getTrainingDataDir();

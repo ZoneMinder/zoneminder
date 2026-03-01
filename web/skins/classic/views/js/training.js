@@ -1277,18 +1277,20 @@ AnnotationEditor.prototype._renderStats = function() {
   var stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
   var hasData = stats.total_images > 0 || stats.background_images > 0;
 
-  // Header with trash icon
+  // Header
   var header = $j('<div>').addClass('annotation-stats-header');
   header.append($j('<span>').text(t.TrainingDataStats || 'Training Data Statistics'));
-  if (hasData) {
-    var trashBtn = $j('<button>')
-        .addClass('btn-delete-all')
-        .attr('title', t.DeleteAllTrainingData || 'Delete All Training Data')
-        .html('<i class="fa fa-trash"></i>');
-    trashBtn.on('click', function() { self._deleteAllTrainingData(); });
-    header.append(trashBtn);
-  }
   container.append(header);
+
+  // Show/hide delete-all button in sidebar header based on data
+  var sidebarTrashBtn = $j('#annotationDeleteAllBtn');
+  if (hasData) {
+    sidebarTrashBtn.show().off('click.deleteAll').on('click.deleteAll', function() {
+      self._deleteAllTrainingData();
+    });
+  } else {
+    sidebarTrashBtn.hide();
+  }
 
   // Compact stat rows
   var row = function(label, value) {
@@ -1343,6 +1345,464 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
       })
       .fail(function() {
         self._setStatus(t.SaveFailed || 'Request failed', true);
+      });
+};
+
+/**
+ * Open a read-only browse overlay showing training folder contents.
+ */
+AnnotationEditor.prototype.browseTrainingData = function() {
+  var t = this.translations;
+
+  // Helper: file icon class from extension
+  function fileIcon(name) {
+    var ext = name.split('.').pop().toLowerCase();
+    if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'fa-file-image-o';
+    if (ext === 'txt') return 'fa-file-text-o';
+    if (ext === 'yaml' || ext === 'yml') return 'fa-file-code-o';
+    return 'fa-file-o';
+  }
+
+  // Helper: is image extension
+  function isImage(name) {
+    var ext = name.split('.').pop().toLowerCase();
+    return ext === 'jpg' || ext === 'jpeg' || ext === 'png';
+  }
+
+  // Helper: is text extension
+  function isText(name) {
+    var ext = name.split('.').pop().toLowerCase();
+    return ext === 'txt' || ext === 'yaml' || ext === 'yml';
+  }
+
+  // Build overlay
+  var overlay = $j('<div>').addClass('training-browse-overlay');
+  var panel = $j('<div>').addClass('training-browse-panel');
+
+  // Header
+  var header = $j('<div>').addClass('browse-header');
+  header.append($j('<span>').text(t.BrowseTrainingData || 'Browse Training Data'));
+  var pathSpan = $j('<span>').addClass('browse-path');
+  header.append(pathSpan);
+  var closeBtn = $j('<button>').addClass('browse-close').html('&times;');
+  closeBtn.on('click', function() { overlay.remove(); });
+  header.append(closeBtn);
+  panel.append(header);
+
+  // Body: two-panel layout
+  var body = $j('<div>').addClass('browse-body');
+  var treePanel = $j('<div>').addClass('browse-tree');
+  var rightPanel = $j('<div>').addClass('browse-right');
+  var filesArea = $j('<div>').addClass('browse-files');
+  var previewArea = $j('<div>').addClass('browse-preview').hide();
+
+  rightPanel.append(filesArea);
+  rightPanel.append(previewArea);
+  body.append(treePanel);
+  body.append(rightPanel);
+  panel.append(body);
+
+  // Loading state
+  treePanel.html('<div class="browse-empty-msg">Loading...</div>');
+
+  overlay.append(panel);
+  overlay.on('click', function(e) {
+    if (e.target === overlay[0]) overlay.remove();
+  });
+  $j('body').append(overlay);
+
+  // State
+  var selectedDirPath = null;
+  var selectedFileName = null;
+  var treeData = null;
+
+  // Collect all files in a node (for dir nodes, list direct file children)
+  function getFilesForPath(nodes, path) {
+    if (path === null) return [];
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (node.type === 'dir' && node.path === path) {
+        // Return file children of this dir
+        var files = [];
+        if (node.children) {
+          for (var j = 0; j < node.children.length; j++) {
+            if (node.children[j].type === 'file') {
+              files.push(node.children[j]);
+            }
+          }
+        }
+        return files;
+      }
+      if (node.type === 'dir' && node.children) {
+        var found = getFilesForPath(node.children, path);
+        if (found.length > 0 || pathStartsWith(path, node.path)) return found;
+      }
+    }
+    return [];
+  }
+
+  function pathStartsWith(full, prefix) {
+    return full === prefix || full.indexOf(prefix + '/') === 0;
+  }
+
+  // Find a specific node by path
+  function findNode(nodes, path) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].path === path) return nodes[i];
+      if (nodes[i].type === 'dir' && nodes[i].children) {
+        var found = findNode(nodes[i].children, path);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  // Remove a node from the tree by path
+  function removeFromTree(nodes, path) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].path === path) {
+        nodes.splice(i, 1);
+        return true;
+      }
+      if (nodes[i].type === 'dir' && nodes[i].children) {
+        if (removeFromTree(nodes[i].children, path)) return true;
+      }
+    }
+    return false;
+  }
+
+  // Collect root-level files (files not inside any dir)
+  function getRootFiles(nodes) {
+    var files = [];
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].type === 'file') files.push(nodes[i]);
+    }
+    return files;
+  }
+
+  // Show files in the right panel for a given directory path
+  function showFiles(dirPath) {
+    selectedDirPath = dirPath;
+    selectedFileName = null;
+    previewArea.hide();
+    filesArea.empty();
+
+    var files;
+    if (dirPath === '') {
+      // Root: show root-level files
+      files = getRootFiles(treeData);
+    } else {
+      files = getFilesForPath(treeData, dirPath);
+    }
+
+    // Files header
+    var fHeader = $j('<div>').addClass('browse-files-header');
+    fHeader.append($j('<span>').text(dirPath || '/'));
+    fHeader.append($j('<span>').addClass('file-count').text(files.length + ' files'));
+    filesArea.append(fHeader);
+
+    if (files.length === 0) {
+      filesArea.append($j('<div>').addClass('browse-empty-msg').text('No files'));
+      return;
+    }
+
+    for (var i = 0; i < files.length; i++) {
+      (function(file) {
+        var row = $j('<div>').addClass('browse-file-row');
+        row.append($j('<span>').addClass('file-name').text(file.name));
+        if (file.size !== undefined) {
+          row.append($j('<span>').addClass('file-size').text(human_filesize(file.size)));
+        }
+
+        // Delete button for image/label files
+        var dirBase = (file.path || '').split('/')[0];
+        if (dirBase === 'images' || dirBase === 'labels') {
+          var delBtn = $j('<button>').addClass('browse-file-delete')
+              .attr('title', 'Delete image + label pair')
+              .html('<i class="fa fa-trash"></i>');
+          delBtn.on('click', function(e) {
+            e.stopPropagation();
+            if (!confirm('Delete this file and its paired image/label?')) return;
+            delBtn.prop('disabled', true);
+            $j.getJSON(thisUrl + '?request=training&action=browse_delete&path=' +
+                encodeURIComponent(file.path))
+                .done(function(data) {
+                  var resp = data.response || data;
+                  // Remove deleted files from treeData
+                  if (resp.deleted) {
+                    for (var d = 0; d < resp.deleted.length; d++) {
+                      removeFromTree(treeData, resp.deleted[d]);
+                    }
+                  }
+                  // Close preview if showing this file
+                  if (selectedFileName === file.name) {
+                    previewArea.hide();
+                    selectedFileName = null;
+                  }
+                  // Re-render current directory
+                  showFiles(selectedDirPath);
+                })
+                .fail(function() {
+                  alert('Failed to delete');
+                  delBtn.prop('disabled', false);
+                });
+          });
+          row.append(delBtn);
+        }
+
+        row.on('click', function() {
+          filesArea.find('.browse-file-row').removeClass('selected');
+          row.addClass('selected');
+          showPreview(file);
+        });
+        filesArea.append(row);
+      })(files[i]);
+    }
+  }
+
+  // Show file preview
+  function showPreview(file) {
+    selectedFileName = file.name;
+    previewArea.empty().show();
+
+    var pvHeader = $j('<div>').addClass('browse-preview-header');
+    pvHeader.append($j('<span>').text(file.name));
+    var pvClose = $j('<button>').addClass('preview-close').html('&times;');
+    pvClose.on('click', function() {
+      previewArea.hide();
+      filesArea.find('.browse-file-row').removeClass('selected');
+      selectedFileName = null;
+    });
+    pvHeader.append(pvClose);
+    previewArea.append(pvHeader);
+
+    var pvContent = $j('<div>').addClass('browse-preview-content');
+    previewArea.append(pvContent);
+
+    var fileUrl = thisUrl + '?request=training&action=browse_file&path=' +
+        encodeURIComponent(file.path);
+
+    if (isImage(file.name)) {
+      var container = $j('<div>').addClass('browse-preview-img-wrap');
+      var img = $j('<img>').attr('src', fileUrl)
+          .attr('alt', file.name)
+          .on('error', function() {
+            pvContent.html('<em>Failed to load image</em>');
+          });
+      var canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
+      container.append(img);
+      container.append(canvas);
+      pvContent.append(container);
+
+      // Once image loads, fetch label file and draw boxes
+      img.on('load', function() {
+        var natW = img[0].naturalWidth;
+        var natH = img[0].naturalHeight;
+        var dispW = img[0].clientWidth;
+        var dispH = img[0].clientHeight;
+        canvas.width = dispW;
+        canvas.height = dispH;
+        $j(canvas).css({width: dispW + 'px', height: dispH + 'px'});
+
+        // Derive label file path from image path
+        var stem = file.name.replace(/\.[^.]+$/, '');
+        var lblPath = file.path.replace(/^images\//, 'labels/')
+            .replace(/\.[^.]+$/, '.txt');
+        var lblUrl = thisUrl + '?request=training&action=browse_file&path=' +
+            encodeURIComponent(lblPath);
+
+        // Fetch class labels and label file in parallel
+        $j.when(
+            $j.getJSON(thisUrl + '?request=training&action=labels'),
+            $j.getJSON(lblUrl)
+        ).done(function(labelsResp, lblResp) {
+          var classLabels = (labelsResp[0].response || labelsResp[0]).labels || [];
+          var content = (lblResp[0].response || lblResp[0]).content || '';
+          var lines = content.split('\n').filter(function(l) {
+            return l.trim().length > 0;
+          });
+          if (lines.length === 0) return;
+
+          var ctx = canvas.getContext('2d');
+          for (var li = 0; li < lines.length; li++) {
+            var parts = lines[li].trim().split(/\s+/);
+            if (parts.length < 5) continue;
+            var classId = parseInt(parts[0], 10);
+            var cx = parseFloat(parts[1]);
+            var cy = parseFloat(parts[2]);
+            var bw = parseFloat(parts[3]);
+            var bh = parseFloat(parts[4]);
+
+            // Convert YOLO normalized to display pixels
+            var x = (cx - bw / 2) * dispW;
+            var y = (cy - bh / 2) * dispH;
+            var w = bw * dispW;
+            var h = bh * dispH;
+
+            var color = ANNOTATION_COLORS[classId % ANNOTATION_COLORS.length];
+            var label = classLabels[classId] || ('class ' + classId);
+
+            // Draw box
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+
+            // Draw label background
+            ctx.font = '11px sans-serif';
+            var textW = ctx.measureText(label).width + 6;
+            var textH = 16;
+            var labelY = y - textH;
+            if (labelY < 0) labelY = y;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, labelY, textW, textH);
+
+            // Draw label text
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, x + 3, labelY + 12);
+          }
+        });
+      });
+    } else if (isText(file.name)) {
+      pvContent.html('<em>Loading...</em>');
+      $j.getJSON(fileUrl).done(function(data) {
+        var resp = data.response || data;
+        pvContent.empty();
+        pvContent.append($j('<pre>').text(resp.content || '(empty)'));
+      }).fail(function() {
+        pvContent.html('<em>Failed to load file</em>');
+      });
+    } else {
+      pvContent.html('<em>Preview not available for this file type</em>');
+    }
+  }
+
+  // Build tree nodes recursively in the left panel
+  function buildTreeNodes(container, nodes, depth) {
+    for (var i = 0; i < nodes.length; i++) {
+      (function(node) {
+        if (node.type === 'dir') {
+          var treeNode = $j('<div>').addClass('browse-tree-node')
+              .css('padding-left', (8 + depth * 12) + 'px')
+              .attr('data-path', node.path);
+          var icon = $j('<i>').addClass('fa fa-folder');
+          treeNode.append(icon);
+          treeNode.append($j('<span>').addClass('tree-label').text(node.name));
+          container.append(treeNode);
+
+          var childContainer = $j('<div>').addClass('browse-tree-children');
+          container.append(childContainer);
+
+          // Click to select directory
+          treeNode.on('click', function(e) {
+            e.stopPropagation();
+            // Update selected state
+            treePanel.find('.browse-tree-node').removeClass('selected');
+            treeNode.addClass('selected');
+            // Toggle open/close icon
+            if (icon.hasClass('fa-folder-open')) {
+              icon.removeClass('fa-folder-open').addClass('fa-folder');
+              childContainer.hide();
+            } else {
+              icon.removeClass('fa-folder').addClass('fa-folder-open');
+              childContainer.show();
+            }
+            showFiles(node.path);
+          });
+
+          // Build children (initially hidden except first level)
+          if (node.children && node.children.length > 0) {
+            buildTreeNodes(childContainer, node.children, depth + 1);
+          }
+          if (depth > 0) childContainer.hide();
+        } else if (node.type === 'file' && depth === 0) {
+          // Root-level files (e.g., data.yaml) shown in tree
+          var fileNode = $j('<div>').addClass('browse-tree-node')
+              .css('padding-left', (8 + depth * 12) + 'px')
+              .attr('data-path', node.path);
+          fileNode.append($j('<i>').addClass('fa fa-file-text-o'));
+          fileNode.append($j('<span>').addClass('tree-label').text(node.name));
+          container.append(fileNode);
+
+          fileNode.on('click', function(e) {
+            e.stopPropagation();
+            treePanel.find('.browse-tree-node').removeClass('selected');
+            fileNode.addClass('selected');
+            // Show this single file directly in preview
+            filesArea.empty();
+            var fHeader = $j('<div>').addClass('browse-files-header');
+            fHeader.append($j('<span>').text('/'));
+            fHeader.append($j('<span>').addClass('file-count').text('1 file'));
+            filesArea.append(fHeader);
+            var row = $j('<div>').addClass('browse-file-row selected');
+            row.append($j('<i>').addClass('fa ' + fileIcon(node.name)));
+            row.append($j('<span>').addClass('file-name').text(node.name));
+            if (node.size !== undefined) {
+              row.append($j('<span>').addClass('file-size').text(human_filesize(node.size)));
+            }
+            filesArea.append(row);
+            showPreview(node);
+          });
+        }
+      })(nodes[i]);
+    }
+  }
+
+  // Fetch tree data
+  $j.getJSON(thisUrl + '?request=training&action=browse')
+      .done(function(data) {
+        var resp = data.response || data;
+        treeData = resp.tree || [];
+
+        if (resp.base) pathSpan.text(resp.base);
+        treePanel.empty();
+
+        if (treeData.length === 0) {
+          treePanel.html('<div class="browse-empty-msg">' +
+              (t.NoTrainingData || 'No training data yet.') + '</div>');
+          filesArea.html('<div class="browse-empty-msg">' +
+              (t.NoTrainingData || 'No training data yet.') + '</div>');
+          return;
+        }
+
+        buildTreeNodes(treePanel, treeData, 0);
+
+        // Auto-select images/all if it exists, otherwise first dir
+        var autoSelect = 'images/all';
+        var autoNode = findNode(treeData, autoSelect);
+        if (!autoNode) {
+          // Find first dir
+          for (var i = 0; i < treeData.length; i++) {
+            if (treeData[i].type === 'dir') {
+              autoSelect = treeData[i].path;
+              break;
+            }
+          }
+        }
+
+        // Expand parents and select
+        var parts = autoSelect.split('/');
+        var pathSoFar = '';
+        for (var p = 0; p < parts.length; p++) {
+          pathSoFar = pathSoFar ? pathSoFar + '/' + parts[p] : parts[p];
+          var treeNodeEl = treePanel.find(
+              '.browse-tree-node[data-path="' + pathSoFar + '"]');
+          if (treeNodeEl.length) {
+            treeNodeEl.find('.fa-folder').removeClass('fa-folder')
+                .addClass('fa-folder-open');
+            treeNodeEl.next('.browse-tree-children').show();
+          }
+        }
+        var targetNode = treePanel.find(
+            '.browse-tree-node[data-path="' + autoSelect + '"]');
+        if (targetNode.length) {
+          targetNode.addClass('selected');
+        }
+        showFiles(autoSelect);
+      })
+      .fail(function() {
+        treePanel.empty();
+        treePanel.html('<div class="browse-empty-msg" style="color:#dc3545">' +
+            (t.SaveFailed || 'Failed to load') + '</div>');
       });
 };
 
@@ -1488,7 +1948,7 @@ AnnotationEditor.prototype._setStatus = function(msg, type) {
   if (type !== 'error') {
     setTimeout(function() {
       el.text('');
-    }, 10000);
+    }, 8000);
   }
 };
 

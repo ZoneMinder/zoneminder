@@ -80,7 +80,7 @@ function AnnotationEditor(options) {
 AnnotationEditor.prototype.init = function() {
   this.canvas = document.getElementById(this.canvasId);
   if (!this.canvas) {
-    console.error('AnnotationEditor: canvas not found: ' + this.canvasId);
+    console.error('Training: canvas not found: ' + this.canvasId);
     return;
   }
   this.ctx = this.canvas.getContext('2d');
@@ -184,7 +184,7 @@ AnnotationEditor.prototype.open = function() {
         self._loadFrameImage(defaultFrame);
       })
       .fail(function(jqxhr) {
-        self._setStatus(self.translations.FailedToLoadEvent || 'Failed to load event data', 'error');
+        self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
         logAjaxFail(jqxhr);
       });
 };
@@ -194,7 +194,7 @@ AnnotationEditor.prototype.open = function() {
  */
 AnnotationEditor.prototype.close = function() {
   if (this.dirty) {
-    var msg = this.translations.UnsavedAnnotations ||
+    var msg = this.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) return;
   }
@@ -278,6 +278,7 @@ AnnotationEditor.prototype._loadDetectionData = function(data) {
 AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   var self = this;
   this.currentFrameId = frameId;
+  this._updateFrameInfo();
 
   var img = new Image();
   img.crossOrigin = 'anonymous';
@@ -293,10 +294,37 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
     self._render();
   };
   img.onerror = function() {
-    self._setStatus(self.translations.FailedToLoadFrame || 'Failed to load frame image', 'error');
+    // If numeric frame exceeds total, clamp to max and retry
+    var num = parseInt(frameId, 10);
+    if (!isNaN(num) && self.totalFrames > 0 && num > self.totalFrames) {
+      self._setStatus(self.translations.TrainingFailedToLoadFrame || 'Failed to load frame image', 'error');
+      self.switchFrame(String(self.totalFrames));
+      return;
+    }
+    self._setStatus(self.translations.TrainingFailedToLoadFrame || 'Failed to load frame image', 'error');
   };
 
   img.src = thisUrl + '?view=image&eid=' + this.eventId + '&fid=' + frameId;
+};
+
+/**
+ * Update the "Frame: X of Y" indicator below the canvas.
+ */
+AnnotationEditor.prototype._updateFrameInfo = function() {
+  var el = $j('#annotationFrameInfo');
+  if (!el.length) return;
+
+  var frameLabel = this.currentFrameId;
+  var num = parseInt(frameLabel, 10);
+  if (!isNaN(num)) {
+    frameLabel = String(num);
+  }
+  if (this.totalFrames > 0) {
+    el.text((this.translations.Frame || 'Frame') + ': ' +
+        frameLabel + ' / ' + this.totalFrames);
+  } else {
+    el.text((this.translations.Frame || 'Frame') + ': ' + frameLabel);
+  }
 };
 
 /**
@@ -305,7 +333,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
  */
 AnnotationEditor.prototype.switchFrame = function(frameId) {
   if (this.dirty) {
-    var msg = this.translations.UnsavedAnnotations ||
+    var msg = this.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) return;
   }
@@ -944,7 +972,7 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
       var resp = data.response || data;
       self.dirty = false;
       self._setStatus(
-          self.translations.AnnotationsRemoved || 'Annotation removed from training set',
+          self.translations.TrainingRemoved || 'Training annotation removed',
           'success'
       );
       if (resp.stats) {
@@ -1000,19 +1028,19 @@ AnnotationEditor.prototype.detect = function() {
 
   if (!this.hasDetectScript) {
     this._setStatus(
-        this.translations.DetectNoScript || 'No detection script configured',
+        this.translations.TrainingDetectNoScript || 'No detection script configured',
         'error'
     );
     return;
   }
 
   if (!this.currentFrameId) {
-    this._setStatus(this.translations.LoadFrameFirst || 'Load a frame first', 'error');
+    this._setStatus(this.translations.TrainingLoadFrameFirst || 'Load a frame first', 'error');
     return;
   }
 
   this._setStatus(
-      this.translations.DetectRunning || 'Running detection...',
+      this.translations.TrainingDetectRunning || 'Running detection...',
       'saving'
   );
 
@@ -1039,7 +1067,7 @@ AnnotationEditor.prototype.detect = function() {
 
     if (detections.length === 0) {
       self._setStatus(
-          self.translations.DetectNoResults || 'No objects detected'
+          self.translations.TrainingDetectNoResults || 'No objects detected'
       );
       return;
     }
@@ -1079,12 +1107,12 @@ AnnotationEditor.prototype.detect = function() {
     self._updateSidebar();
     self._render();
     self._setStatus(
-        detections.length + ' ' + (self.translations.DetectedObjects || 'object(s) detected — accept or reject each'),
+        detections.length + ' ' + (self.translations.TrainingDetectedObjects || 'object(s) detected — accept or reject each'),
         'success'
     );
   }).fail(function(jqxhr) {
     $j('#annotationDetectBtn').prop('disabled', false);
-    self._setStatus(self.translations.DetectFailed || 'Detection failed', 'error');
+    self._setStatus(self.translations.TrainingDetectFailed || 'Detection failed', 'error');
     logAjaxFail(jqxhr);
   });
 };
@@ -1153,8 +1181,6 @@ AnnotationEditor.prototype._updateSidebar = function() {
 
   for (var i = 0; i < this.annotations.length; i++) {
     var ann = this.annotations[i];
-    var colorIndex = this._getColorIndex(ann.label);
-    var color = ANNOTATION_COLORS[colorIndex % ANNOTATION_COLORS.length];
     var isSelected = (i === this.selectedIndex);
 
     var li = $j('<li>')
@@ -1191,7 +1217,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
 
     var removeBtn = $j('<button>')
         .addClass('btn-remove')
-        .attr('title', self.translations.DeleteBox || 'Delete')
+        .attr('title', self.translations.TrainingDeleteBox || 'Delete')
         .html('&times;')
         .attr('data-index', i);
 
@@ -1215,7 +1241,6 @@ AnnotationEditor.prototype._updateSidebar = function() {
   list.find('.btn-remove').on('click', function(e) {
     e.stopPropagation();
     var idx = parseInt($j(this).attr('data-index'), 10);
-    self._pushUndo();
     self.deleteAnnotation(idx);
   });
 };
@@ -1299,9 +1324,9 @@ AnnotationEditor.prototype._renderStats = function() {
         .append($j('<span>').addClass('stat-value').text(value));
   };
 
-  container.append(row(t.TotalAnnotatedImages || 'Annotated images', stats.total_images));
+  container.append(row(t.TrainingTotalImages || 'Annotated images', stats.total_images));
   if (stats.background_images > 0) {
-    container.append(row(t.BackgroundImages || 'Background images', stats.background_images));
+    container.append(row(t.TrainingBackgroundImages || 'Background images', stats.background_images));
   }
 
   // Per-class image counts
@@ -1322,7 +1347,7 @@ AnnotationEditor.prototype._renderStats = function() {
     guidance.text(t.TrainingGuidance || 'Aim for 50-100+ images per class.');
     container.append(guidance);
   } else {
-    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text(t.NoTrainingData || 'No training data yet.'));
+    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text(t.TrainingNoData || 'No training data yet.'));
   }
 };
 
@@ -1332,7 +1357,7 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
   var answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
   if (answer !== 'agree') return;
 
-  $j.getJSON(thisUrl + '?request=training&action=delete_all')
+  $j.ajax({url: thisUrl + '?request=training&action=delete_all', method: 'POST', dataType: 'json'})
       .done(function(resp) {
         if (resp.result === 'Ok') {
           self.trainingStats = resp.stats || {};
@@ -1340,18 +1365,186 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
           self._renderStats();
           self._setStatus(t.TrainingDataDeleted || 'All training data deleted.');
         } else {
-          self._setStatus(resp.message || 'Delete failed', true);
+          self._setStatus(resp.message || 'Delete failed', 'error');
         }
       })
       .fail(function() {
-        self._setStatus(t.SaveFailed || 'Request failed', true);
+        self._setStatus(t.TrainingSaveFailed || 'Request failed', 'error');
       });
+};
+
+/**
+ * Open an overlay showing thumbnail grid of all event frames with pagination.
+ * Click a thumbnail to switch to that frame.
+ */
+AnnotationEditor.prototype.browseFrames = function() {
+  var self = this;
+  var total = this.totalFrames;
+  if (!total || total <= 0) {
+    this._setStatus(this.translations.TrainingLoadFrameFirst || 'Load a frame first', 'error');
+    return;
+  }
+
+  // Remove any existing overlay
+  $j('#frameBrowseOverlay').remove();
+
+  var thumbWidth = 160;
+  var perPage = 50;
+  var totalPages = Math.ceil(total / perPage);
+  // Start on the page containing the current frame
+  var curNum = parseInt(this.currentFrameId, 10);
+  var currentPage = (!isNaN(curNum) && curNum > 0)
+    ? Math.ceil(curNum / perPage) : 1;
+
+  var overlay = $j('<div id="frameBrowseOverlay" class="frame-browse-overlay">');
+  var panel = $j('<div class="frame-browse-panel">');
+
+  // Header
+  var header = $j('<div class="frame-browse-header">');
+  header.append($j('<span>').text(
+    (this.translations.TrainingBrowseFrames || 'Browse Frames') +
+    ' (' + total + ')'));
+  var closeBtn = $j('<button class="frame-browse-close">&times;</button>');
+  closeBtn.on('click', function() { cleanup(); });
+  header.append(closeBtn);
+  panel.append(header);
+
+  // Grid container
+  var grid = $j('<div class="frame-browse-grid">');
+
+  // Pagination container
+  var paginationWrap = $j('<nav class="frame-browse-pagination">');
+  var paginationUl = $j('<ul class="pagination pagination-sm justify-content-center mb-0">');
+  paginationWrap.append(paginationUl);
+
+  function renderPage(page) {
+    currentPage = page;
+    grid.empty();
+
+    var start = (page - 1) * perPage + 1;
+    var end = Math.min(page * perPage, total);
+
+    for (var i = start; i <= end; i++) {
+      (function(fid) {
+        var cell = $j('<div class="frame-browse-cell">');
+        var img = $j('<img>')
+            .attr('loading', 'lazy')
+            .attr('src', thisUrl + '?view=image&eid=' + self.eventId +
+              '&fid=' + fid + '&width=' + thumbWidth)
+            .attr('alt', 'Frame ' + fid);
+        var label = $j('<div class="frame-browse-label">').text(fid);
+
+        if (String(fid) === String(self.currentFrameId)) {
+          cell.addClass('active');
+        }
+
+        cell.on('click', function() {
+          cleanup();
+          self.switchFrame(String(fid));
+        });
+
+        cell.append(img).append(label);
+        grid.append(cell);
+      })(i);
+    }
+
+    // Scroll grid to top
+    grid.scrollTop(0);
+
+    // Rebuild pagination
+    renderPagination(page);
+  }
+
+  function renderPagination(page) {
+    paginationUl.empty();
+
+    // Prev
+    var prevLi = $j('<li class="page-item">').toggleClass('disabled', page <= 1);
+    prevLi.append($j('<a class="page-link" href="#">&laquo;</a>')
+        .on('click', function(e) {
+          e.preventDefault();
+          if (page > 1) renderPage(page - 1);
+        }));
+    paginationUl.append(prevLi);
+
+    // Determine which page numbers to show
+    var pages = buildPageNumbers(page, totalPages);
+    for (var p = 0; p < pages.length; p++) {
+      var val = pages[p];
+      if (val === '...') {
+        paginationUl.append(
+          $j('<li class="page-item disabled">')
+              .append($j('<span class="page-link">').text('...'))
+        );
+      } else {
+        (function(num) {
+          var li = $j('<li class="page-item">').toggleClass('active', num === page);
+          li.append($j('<a class="page-link" href="#">').text(num)
+              .on('click', function(e) {
+                e.preventDefault();
+                renderPage(num);
+              }));
+          paginationUl.append(li);
+        })(val);
+      }
+    }
+
+    // Next
+    var nextLi = $j('<li class="page-item">')
+        .toggleClass('disabled', page >= totalPages);
+    nextLi.append($j('<a class="page-link" href="#">&raquo;</a>')
+        .on('click', function(e) {
+          e.preventDefault();
+          if (page < totalPages) renderPage(page + 1);
+        }));
+    paginationUl.append(nextLi);
+  }
+
+  function buildPageNumbers(current, last) {
+    // Always show first, last, and a window around current
+    if (last <= 7) {
+      var all = [];
+      for (var i = 1; i <= last; i++) all.push(i);
+      return all;
+    }
+    var pages = [];
+    pages.push(1);
+    var rangeStart = Math.max(2, current - 1);
+    var rangeEnd = Math.min(last - 1, current + 1);
+    if (rangeStart > 2) pages.push('...');
+    for (var i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+    if (rangeEnd < last - 1) pages.push('...');
+    pages.push(last);
+    return pages;
+  }
+
+  function cleanup() {
+    overlay.remove();
+    $j(document).off('keydown.frameBrowse');
+  }
+
+  renderPage(currentPage);
+  panel.append(grid);
+  panel.append(paginationWrap);
+  overlay.append(panel);
+  $j('body').append(overlay);
+
+  // Close on overlay background click
+  overlay.on('click', function(e) {
+    if (e.target === overlay[0]) cleanup();
+  });
+
+  // Close on Escape
+  $j(document).on('keydown.frameBrowse', function(e) {
+    if (e.key === 'Escape') cleanup();
+  });
 };
 
 /**
  * Open a read-only browse overlay showing training folder contents.
  */
 AnnotationEditor.prototype.browseTrainingData = function() {
+  var self = this;
   var t = this.translations;
 
   // Helper: file icon class from extension
@@ -1381,11 +1574,28 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
   // Header
   var header = $j('<div>').addClass('browse-header');
-  header.append($j('<span>').text(t.BrowseTrainingData || 'Browse Training Data'));
+  header.append($j('<span>').text(t.TrainingBrowse || 'Browse Training Data'));
   var pathSpan = $j('<span>').addClass('browse-path');
   header.append(pathSpan);
+  var browseChanged = false;
+
+  var closeBrowse = function() {
+    overlay.remove();
+    if (browseChanged) {
+      $j.getJSON(thisUrl + '?request=training&action=status').done(function(data) {
+        var resp = data.response || data;
+        if (resp.stats) {
+          self.trainingStats = resp.stats;
+          if (resp.stats.class_labels) self.classLabels = resp.stats.class_labels;
+          self._renderStats();
+          self._updateSidebar();
+        }
+      });
+    }
+  };
+
   var closeBtn = $j('<button>').addClass('browse-close').html('&times;');
-  closeBtn.on('click', function() { overlay.remove(); });
+  closeBtn.on('click', closeBrowse);
   header.append(closeBtn);
   panel.append(header);
 
@@ -1403,11 +1613,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   panel.append(body);
 
   // Loading state
-  treePanel.html('<div class="browse-empty-msg">Loading...</div>');
+  treePanel.html('<div class="browse-empty-msg">' + (t.TrainingLoading || 'Loading...') + '</div>');
 
   overlay.append(panel);
   overlay.on('click', function(e) {
-    if (e.target === overlay[0]) overlay.remove();
+    if (e.target === overlay[0]) closeBrowse();
   });
   $j('body').append(overlay);
 
@@ -1502,7 +1712,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     filesArea.append(fHeader);
 
     if (files.length === 0) {
-      filesArea.append($j('<div>').addClass('browse-empty-msg').text('No files'));
+      filesArea.append($j('<div>').addClass('browse-empty-msg').text(t.TrainingNoFiles || 'No files'));
       return;
     }
 
@@ -1522,12 +1732,13 @@ AnnotationEditor.prototype.browseTrainingData = function() {
               .html('<i class="fa fa-trash"></i>');
           delBtn.on('click', function(e) {
             e.stopPropagation();
-            if (!confirm('Delete this file and its paired image/label?')) return;
+            if (!confirm(t.TrainingConfirmDeleteFile || 'Delete this file and its paired image/label?')) return;
             delBtn.prop('disabled', true);
-            $j.getJSON(thisUrl + '?request=training&action=browse_delete&path=' +
-                encodeURIComponent(file.path))
+            $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
+                encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
                 .done(function(data) {
                   var resp = data.response || data;
+                  browseChanged = true;
                   // Remove deleted files from treeData
                   if (resp.deleted) {
                     for (var d = 0; d < resp.deleted.length; d++) {
@@ -1543,7 +1754,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
                   showFiles(selectedDirPath);
                 })
                 .fail(function() {
-                  alert('Failed to delete');
+                  alert(t.TrainingDeleteFailed || 'Failed to delete');
                   delBtn.prop('disabled', false);
                 });
           });
@@ -1587,7 +1798,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       var img = $j('<img>').attr('src', fileUrl)
           .attr('alt', file.name)
           .on('error', function() {
-            pvContent.html('<em>Failed to load image</em>');
+            pvContent.html('<em>' + (t.TrainingFailedToLoadFrame || 'Failed to load image') + '</em>');
           });
       var canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
       container.append(img);
@@ -1663,16 +1874,16 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         });
       });
     } else if (isText(file.name)) {
-      pvContent.html('<em>Loading...</em>');
+      pvContent.html('<em>' + (t.TrainingLoading || 'Loading...') + '</em>');
       $j.getJSON(fileUrl).done(function(data) {
         var resp = data.response || data;
         pvContent.empty();
         pvContent.append($j('<pre>').text(resp.content || '(empty)'));
       }).fail(function() {
-        pvContent.html('<em>Failed to load file</em>');
+        pvContent.html('<em>' + (t.TrainingSaveFailed || 'Failed to load file') + '</em>');
       });
     } else {
-      pvContent.html('<em>Preview not available for this file type</em>');
+      pvContent.html('<em>' + (t.TrainingPreviewUnavailable || 'Preview not available for this file type') + '</em>');
     }
   }
 
@@ -1758,9 +1969,9 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
         if (treeData.length === 0) {
           treePanel.html('<div class="browse-empty-msg">' +
-              (t.NoTrainingData || 'No training data yet.') + '</div>');
+              (t.TrainingNoData || 'No training data yet.') + '</div>');
           filesArea.html('<div class="browse-empty-msg">' +
-              (t.NoTrainingData || 'No training data yet.') + '</div>');
+              (t.TrainingNoData || 'No training data yet.') + '</div>');
           return;
         }
 
@@ -1802,7 +2013,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       .fail(function() {
         treePanel.empty();
         treePanel.html('<div class="browse-empty-msg" style="color:#dc3545">' +
-            (t.SaveFailed || 'Failed to load') + '</div>');
+            (t.TrainingSaveFailed || 'Failed to load') + '</div>');
       });
 };
 
@@ -1865,7 +2076,7 @@ AnnotationEditor.prototype.save = function() {
   var self = this;
 
   if (!this.currentFrameId) {
-    this._setStatus(this.translations.NoFrameLoaded || 'No frame loaded', 'error');
+    this._setStatus(this.translations.TrainingNoFrameLoaded || 'No frame loaded', 'error');
     return;
   }
 
@@ -1878,12 +2089,12 @@ AnnotationEditor.prototype.save = function() {
   }
 
   if (accepted.length === 0) {
-    var msg = this.translations.BackgroundImageConfirm ||
+    var msg = this.translations.TrainingBackgroundConfirm ||
         'No objects marked. Save as a background image (no objects)?\n\nBackground images help the model learn to reduce false positives.';
     if (!confirm(msg)) return;
   }
 
-  this._setStatus(this.translations.Saving || 'Saving...', 'saving');
+  this._setStatus(this.translations.TrainingSaving || 'Saving...', 'saving');
 
   $j.ajax({
     url: thisUrl + '?request=training&action=save',
@@ -1899,13 +2110,13 @@ AnnotationEditor.prototype.save = function() {
   })
       .done(function(data) {
         if (data.result === 'Error') {
-          self._setStatus(data.message || self.translations.SaveFailed || 'Save failed', 'error');
+          self._setStatus(data.message || self.translations.TrainingSaveFailed || 'Save failed', 'error');
           return;
         }
         var resp = data.response || data;
         self.dirty = false;
         self._setStatus(
-            self.translations.AnnotationSaved || 'Annotation saved to training set',
+            self.translations.TrainingSaved || 'Training annotation saved',
             'success'
         );
         $j('#annotationSaveBtn').removeClass('btn-success').addClass('btn-saved');
@@ -1926,7 +2137,7 @@ AnnotationEditor.prototype.save = function() {
         }
       })
       .fail(function(jqxhr) {
-        self._setStatus(self.translations.SaveFailed || 'Save failed', 'error');
+        self._setStatus(self.translations.TrainingSaveFailed || 'Save failed', 'error');
         logAjaxFail(jqxhr);
       });
 };
@@ -1944,12 +2155,10 @@ AnnotationEditor.prototype._setStatus = function(msg, type) {
       .removeClass('error saving')
       .addClass(type === 'error' ? 'error' : (type === 'saving' ? 'saving' : ''));
 
-  // Clear success/saving messages after a delay
-  if (type !== 'error') {
-    setTimeout(function() {
-      el.text('');
-    }, 8000);
-  }
+  // Auto-clear all messages after a delay
+  setTimeout(function() {
+    el.text('').removeClass('error saving');
+  }, 8000);
 };
 
 /**

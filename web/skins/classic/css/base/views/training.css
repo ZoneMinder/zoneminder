@@ -12,6 +12,12 @@
   display: block;
 }
 
+/* Remove parent padding when training panel is open */
+.training-open-noPad {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Frame selector bar */
 .annotation-frame-selector {
   display: flex;
@@ -334,6 +340,14 @@
   border-radius: 3px;
   background: #fff;
   color: #212529;
+}
+
+/* Frame indicator text between canvas and action buttons */
+.annotation-frame-info {
+  font-size: 0.75rem;
+  color: #6c757d;
+  padding: 4px 0 0 0;
+  text-align: left;
 }
 
 /* Bottom action bar */
@@ -675,4 +689,97 @@
   background-color: #28a745 !important;
   border-color: #28a745 !important;
   color: #fff !important;
+}
+
+/* Frame browse overlay */
+.frame-browse-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.frame-browse-panel {
+  background: #fff;
+  border-radius: 6px;
+  width: 90vw;
+  max-width: 900px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.frame-browse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.frame-browse-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.frame-browse-close:hover {
+  color: #333;
+}
+
+.frame-browse-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+
+.frame-browse-cell {
+  width: 120px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f8f9fa;
+  transition: border-color 0.15s;
+}
+
+.frame-browse-cell:hover {
+  border-color: #4363d8;
+}
+
+.frame-browse-cell.active {
+  border-color: #e6194b;
+}
+
+.frame-browse-cell img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.frame-browse-label {
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 2px 0;
+  color: #495057;
+  background: #e9ecef;
+}
+
+.frame-browse-pagination {
+  padding: 8px 12px;
+  border-top: 1px solid #dee2e6;
+  flex-shrink: 0;
 }

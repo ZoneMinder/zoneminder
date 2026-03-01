@@ -3,26 +3,24 @@ ini_set('display_errors', '0');
 
 // Training features require the option to be enabled
 if (!defined('ZM_OPT_TRAINING') or !ZM_OPT_TRAINING) {
+  ZM\Warning('Training: access denied — ZM_OPT_TRAINING is not enabled');
   ajaxError('Training features are not enabled');
   return;
 }
 
-if (!canEdit('Events')) {
-  ajaxError('Insufficient permissions');
-  return;
-}
+$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : '';
+ZM\Debug('Training: action='.validHtmlStr($action).(isset($_REQUEST['eid']) ? ' eid='.validHtmlStr($_REQUEST['eid']) : ''));
 
 require_once('includes/Event.php');
 
 /**
- * Get the training data directory path.
- * Falls back to ZM_DIR_EVENTS/../training if ZM_TRAINING_DATA_DIR is empty.
+ * Get the training data directory path from config.
  */
 function getTrainingDataDir() {
   if (defined('ZM_TRAINING_DATA_DIR') && ZM_TRAINING_DATA_DIR != '') {
     return ZM_TRAINING_DATA_DIR;
   }
-  return dirname(ZM_DIR_EVENTS) . '/training';
+  return '';
 }
 
 /**
@@ -31,11 +29,17 @@ function getTrainingDataDir() {
  */
 function ensureTrainingDirs() {
   $base = getTrainingDataDir();
+  if ($base === '') {
+    ajaxError('ZM_TRAINING_DATA_DIR is not configured. Please set it in Options or run zmupdate.pl --freshen.');
+    return false;
+  }
   $dirs = [$base, $base.'/images', $base.'/images/all', $base.'/labels', $base.'/labels/all'];
   foreach ($dirs as $dir) {
     if (!is_dir($dir)) {
+      ZM\Debug('Training: creating directory '.$dir);
       if (!mkdir($dir, 0755, true)) {
-        ajaxError('Failed to create directory: '.$dir);
+        ZM\Error('Training: failed to create directory '.$dir);
+        ajaxError('Failed to create training directory');
         return false;
       }
     }
@@ -44,11 +48,19 @@ function ensureTrainingDirs() {
 }
 
 /**
+ * Validate a frame ID: must be a known special name or a positive integer.
+ */
+function validFrameId($fid) {
+  return in_array($fid, ['alarm', 'snapshot']) || ctype_digit($fid);
+}
+
+/**
  * Get current class labels from data.yaml in the training directory.
  * Returns array of label strings ordered by class ID.
  */
 function getClassLabels() {
   $base = getTrainingDataDir();
+  if ($base === '') return [];
   $yamlFile = $base.'/data.yaml';
   if (!file_exists($yamlFile)) return [];
 
@@ -84,6 +96,7 @@ function writeDataYaml($labels) {
     $yaml .= "  $i: $label\n";
   }
   file_put_contents($base.'/data.yaml', $yaml);
+  ZM\Debug('Training: wrote data.yaml with '.count($labels).' classes: '.implode(', ', $labels));
 }
 
 /**
@@ -92,6 +105,7 @@ function writeDataYaml($labels) {
  */
 function getTrainingStats() {
   $base = getTrainingDataDir();
+  if ($base === '') return ['total_images' => 0, 'total_classes' => 0, 'images_per_class' => [], 'class_labels' => []];
   $labelsDir = $base.'/labels/all';
   $labels = getClassLabels();
   $stats = [
@@ -141,10 +155,50 @@ function getTrainingStats() {
   return $stats;
 }
 
-switch ($_REQUEST['action']) {
+/**
+ * Recursively build a directory tree, with symlink and depth protection.
+ */
+function buildTree($dir, $base, $depth = 0) {
+  $maxDepth = 5;
+  $entries = [];
+  if ($depth > $maxDepth || !is_dir($dir)) return $entries;
+  $items = scandir($dir);
+  sort($items);
+  foreach ($items as $item) {
+    if ($item === '.' || $item === '..') continue;
+    $fullPath = $dir.'/'.$item;
+    // Skip symlinks
+    if (is_link($fullPath)) continue;
+    $relPath = ltrim(str_replace($base, '', $fullPath), '/');
+    if (is_dir($fullPath)) {
+      $entries[] = [
+        'name' => $item,
+        'path' => $relPath,
+        'type' => 'dir',
+        'children' => buildTree($fullPath, $base, $depth + 1),
+      ];
+    } else if (is_file($fullPath)) {
+      $entries[] = [
+        'name' => $item,
+        'path' => $relPath,
+        'type' => 'file',
+        'size' => filesize($fullPath),
+      ];
+    }
+  }
+  return $entries;
+}
+
+switch ($action) {
+
+  // ---- Read-only actions (canView) ----
 
   case 'load':
     // Load detection data for an event
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
     if (empty($_REQUEST['eid'])) {
       ajaxError('Event ID required');
       break;
@@ -160,9 +214,13 @@ switch ($_REQUEST['action']) {
     $objectsFile = $eventPath.'/objects.json';
     $detectionData = null;
 
+    ZM\Debug('Training: load event '.$eid.' path='.$eventPath);
     if (file_exists($objectsFile)) {
       $json = file_get_contents($objectsFile);
       $detectionData = json_decode($json, true);
+      ZM\Debug('Training: found objects.json with '.(is_array($detectionData) ? count($detectionData) : 0).' entries');
+    } else {
+      ZM\Debug('Training: no objects.json found at '.$objectsFile);
     }
 
     // Determine default frame
@@ -186,8 +244,11 @@ switch ($_REQUEST['action']) {
     // Also check if we already have a saved annotation for this event
     $base = getTrainingDataDir();
     $fid = $defaultFrameId ?: 'alarm';
-    $savedFile = $base.'/labels/all/event_'.$eid.'_frame_'.$fid.'.txt';
-    $hasSavedAnnotation = file_exists($savedFile);
+    $hasSavedAnnotation = false;
+    if ($base !== '') {
+      $savedFile = $base.'/labels/all/event_'.$eid.'_frame_'.$fid.'.txt';
+      $hasSavedAnnotation = file_exists($savedFile);
+    }
 
     $hasDetectScript = defined('ZM_TRAINING_DETECT_SCRIPT') && ZM_TRAINING_DETECT_SCRIPT != '';
 
@@ -205,8 +266,96 @@ switch ($_REQUEST['action']) {
     ]);
     break;
 
+  case 'labels':
+    // Return current class label list
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    $labels = getClassLabels();
+    ajaxResponse(['labels' => $labels]);
+    break;
+
+  case 'status':
+    // Return training dataset statistics
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    ajaxResponse(['stats' => getTrainingStats()]);
+    break;
+
+  case 'browse':
+    // Return recursive directory tree of training folder
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxResponse(['tree' => []]);
+      break;
+    }
+
+    $tree = buildTree($base, $base);
+
+    ajaxResponse([
+      'tree' => $tree,
+    ]);
+    break;
+
+  case 'browse_file':
+    // Serve an individual file from the training directory
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    if (empty($_REQUEST['path'])) {
+      ajaxError('Path required');
+      break;
+    }
+
+    $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxError('Training data directory not configured');
+      break;
+    }
+    $reqPath = detaintPath($_REQUEST['path']);
+    $fullPath = realpath($base.'/'.$reqPath);
+
+    // Validate file is within the training directory
+    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
+      ZM\Warning('Training: browse_file path rejected: '.validHtmlStr($_REQUEST['path']));
+      ajaxError('File not found or access denied');
+      break;
+    }
+
+    $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+
+    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+      // Serve raw image
+      $mimeMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
+      header('Content-Type: '.$mimeMap[$ext]);
+      header('Content-Length: '.filesize($fullPath));
+      header('Cache-Control: private, max-age=300');
+      readfile($fullPath);
+      exit;
+    } else if (in_array($ext, ['txt', 'yaml', 'yml'])) {
+      // Return text content as JSON
+      ajaxResponse(['content' => file_get_contents($fullPath)]);
+    } else {
+      ajaxError('Unsupported file type');
+    }
+    break;
+
+  // ---- Write actions (canEdit) ----
+
   case 'save':
     // Save annotation (image + YOLO label file)
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
     if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
       ajaxError('Event ID and Frame ID required');
       break;
@@ -215,8 +364,7 @@ switch ($_REQUEST['action']) {
     $eid = validCardinal($_REQUEST['eid']);
     $fid = $_REQUEST['fid'];
 
-    // Validate fid is either a known special name or a positive integer
-    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
+    if (!validFrameId($fid)) {
       ajaxError('Invalid frame ID');
       break;
     }
@@ -254,12 +402,15 @@ switch ($_REQUEST['action']) {
     }
 
     if (!file_exists($srcImage)) {
-      ajaxError('Source frame image not found: '.$fid);
+      ZM\Warning('Training: source image not found: '.$srcImage);
+      ajaxError('Source frame image not found');
       break;
     }
 
     $dstImage = $base.'/images/all/'.$stem.'.jpg';
+    ZM\Debug('Training: copying '.$srcImage.' to '.$dstImage);
     if (!copy($srcImage, $dstImage)) {
+      ZM\Error('Training: failed to copy image from '.$srcImage.' to '.$dstImage);
       ajaxError('Failed to copy image');
       break;
     }
@@ -300,7 +451,7 @@ switch ($_REQUEST['action']) {
     }
 
     $savedType = empty($annotations) ? 'background' : count($annotations).' annotation(s)';
-    ZM\Info('Saved '.$savedType.' for training event '.$eid.' frame '.$fid);
+    ZM\Debug('Training: saved '.$savedType.' for event '.$eid.' frame '.$fid);
 
     $stats = getTrainingStats();
 
@@ -311,14 +462,12 @@ switch ($_REQUEST['action']) {
     ]);
     break;
 
-  case 'labels':
-    // Return current class label list
-    $labels = getClassLabels();
-    ajaxResponse(['labels' => $labels]);
-    break;
-
   case 'delete':
     // Remove a saved annotation
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
     if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
       ajaxError('Event ID and Frame ID required');
       break;
@@ -327,13 +476,16 @@ switch ($_REQUEST['action']) {
     $eid = validCardinal($_REQUEST['eid']);
     $fid = $_REQUEST['fid'];
 
-    // Validate fid
-    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
+    if (!validFrameId($fid)) {
       ajaxError('Invalid frame ID');
       break;
     }
 
     $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxError('Training data directory not configured');
+      break;
+    }
     $stem = 'event_'.$eid.'_frame_'.$fid;
 
     $imgFile = $base.'/images/all/'.$stem.'.jpg';
@@ -344,7 +496,7 @@ switch ($_REQUEST['action']) {
     if (file_exists($lblFile)) { unlink($lblFile); $deleted = true; }
 
     if ($deleted) {
-      ZM\Info('Removed training annotation for event '.$eid.' frame '.$fid);
+      ZM\Debug('Training: removed annotation for event '.$eid.' frame '.$fid);
     }
 
     ajaxResponse([
@@ -353,94 +505,61 @@ switch ($_REQUEST['action']) {
     ]);
     break;
 
-  case 'status':
-    // Return training dataset statistics
-    ajaxResponse(['stats' => getTrainingStats()]);
-    break;
+  case 'delete_all':
+    // Delete ALL training data (images, labels, data.yaml)
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      ajaxError('POST method required for destructive operations');
+      break;
+    }
 
-  case 'browse':
-    // Return recursive directory tree of training folder
     $base = getTrainingDataDir();
-
-    function buildTree($dir, $base) {
-      $entries = [];
-      if (!is_dir($dir)) return $entries;
-      $items = scandir($dir);
-      sort($items);
-      foreach ($items as $item) {
-        if ($item === '.' || $item === '..') continue;
-        $fullPath = $dir.'/'.$item;
-        $relPath = ltrim(str_replace($base, '', $fullPath), '/');
-        if (is_dir($fullPath)) {
-          $entries[] = [
-            'name' => $item,
-            'path' => $relPath,
-            'type' => 'dir',
-            'children' => buildTree($fullPath, $base),
-          ];
-        } else if (is_file($fullPath)) {
-          $entries[] = [
-            'name' => $item,
-            'path' => $relPath,
-            'type' => 'file',
-            'size' => filesize($fullPath),
-          ];
+    if ($base === '') {
+      ajaxError('Training data directory not configured');
+      break;
+    }
+    $deleted = 0;
+    foreach (['images/all', 'labels/all'] as $sub) {
+      $dir = $base.'/'.$sub;
+      if (is_dir($dir)) {
+        foreach (glob($dir.'/*') as $file) {
+          if (is_file($file)) { unlink($file); $deleted++; }
         }
       }
-      return $entries;
     }
+    $yamlFile = $base.'/data.yaml';
+    if (file_exists($yamlFile)) { unlink($yamlFile); $deleted++; }
 
-    $tree = buildTree($base, $base);
-
+    ZM\Warning('Training: deleted ALL training data ('.$deleted.' files)');
     ajaxResponse([
-      'base' => $base,
-      'tree' => $tree,
+      'deleted' => $deleted,
+      'stats' => getTrainingStats(),
     ]);
-    break;
-
-  case 'browse_file':
-    // Serve an individual file from the training directory
-    if (empty($_REQUEST['path'])) {
-      ajaxError('Path required');
-      break;
-    }
-
-    $base = getTrainingDataDir();
-    $reqPath = detaintPath($_REQUEST['path']);
-    $fullPath = realpath($base.'/'.$reqPath);
-
-    // Validate file is within the training directory
-    if ($fullPath === false || strpos($fullPath, realpath($base)) !== 0 || !is_file($fullPath)) {
-      ajaxError('File not found or access denied');
-      break;
-    }
-
-    $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-
-    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-      // Serve raw image
-      $mimeMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
-      header('Content-Type: '.$mimeMap[$ext]);
-      header('Content-Length: '.filesize($fullPath));
-      header('Cache-Control: private, max-age=300');
-      readfile($fullPath);
-      exit;
-    } else if (in_array($ext, ['txt', 'yaml', 'yml'])) {
-      // Return text content as JSON
-      ajaxResponse(['content' => file_get_contents($fullPath)]);
-    } else {
-      ajaxError('Unsupported file type: '.$ext);
-    }
     break;
 
   case 'browse_delete':
     // Delete an image/label pair by file path, then update data.yaml
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      ajaxError('POST method required for destructive operations');
+      break;
+    }
     if (empty($_REQUEST['path'])) {
       ajaxError('Path required');
       break;
     }
 
     $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxError('Training data directory not configured');
+      break;
+    }
     $reqPath = detaintPath($_REQUEST['path']);
     $fullPath = realpath($base.'/'.$reqPath);
 
@@ -455,6 +574,7 @@ switch ($_REQUEST['action']) {
     $lblFile = $base.'/labels/all/'.$stem.'.txt';
 
     $deletedFiles = [];
+    ZM\Debug('Training: browse_delete stem='.$stem);
     if (file_exists($imgFile)) { unlink($imgFile); $deletedFiles[] = 'images/all/'.$stem.'.jpg'; }
     if (file_exists($lblFile)) { unlink($lblFile); $deletedFiles[] = 'labels/all/'.$stem.'.txt'; }
 
@@ -472,7 +592,7 @@ switch ($_REQUEST['action']) {
       }
     }
 
-    // Build old→new class ID mapping, keeping only classes still in use
+    // Build old->new class ID mapping, keeping only classes still in use
     $oldLabels = getClassLabels();
     $newLabels = [];
     $idMap = []; // oldId => newId
@@ -516,38 +636,18 @@ switch ($_REQUEST['action']) {
       if (file_exists($yamlFile)) unlink($yamlFile);
     }
 
-    ZM\Info('Browse-deleted training files for stem '.$stem);
-
     ajaxResponse([
       'deleted' => $deletedFiles,
       'stats' => getTrainingStats(),
     ]);
     break;
 
-  case 'delete_all':
-    // Delete ALL training data (images, labels, data.yaml)
-    $base = getTrainingDataDir();
-    $deleted = 0;
-    foreach (['images/all', 'labels/all'] as $sub) {
-      $dir = $base.'/'.$sub;
-      if (is_dir($dir)) {
-        foreach (glob($dir.'/*') as $file) {
-          if (is_file($file)) { unlink($file); $deleted++; }
-        }
-      }
-    }
-    $yamlFile = $base.'/data.yaml';
-    if (file_exists($yamlFile)) { unlink($yamlFile); $deleted++; }
-
-    ZM\Info('Deleted all training data ('.$deleted.' files)');
-    ajaxResponse([
-      'deleted' => $deleted,
-      'stats' => getTrainingStats(),
-    ]);
-    break;
-
   case 'detect':
     // Run object detection script on a frame image
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
     if (!defined('ZM_TRAINING_DETECT_SCRIPT') || ZM_TRAINING_DETECT_SCRIPT == '') {
       ajaxError('No detection script configured');
       break;
@@ -559,7 +659,7 @@ switch ($_REQUEST['action']) {
 
     $eid = validCardinal($_REQUEST['eid']);
     $fid = $_REQUEST['fid'];
-    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
+    if (!validFrameId($fid)) {
       ajaxError('Invalid frame ID');
       break;
     }
@@ -578,31 +678,34 @@ switch ($_REQUEST['action']) {
     }
 
     if (!file_exists($srcImage)) {
-      ajaxError('Source frame image not found: '.$fid);
+      ajaxError('Source frame image not found');
+      break;
+    }
+
+    $script = ZM_TRAINING_DETECT_SCRIPT;
+    if (!file_exists($script) || !is_executable($script)) {
+      ajaxError('Detection script not found or not executable');
       break;
     }
 
     // Copy to temp file so the script can read it
-    $tmpFile = tempnam(sys_get_temp_dir(), 'zm_detect_');
-    rename($tmpFile, $tmpFile.'.jpg');
-    $tmpFile = $tmpFile.'.jpg';
-    copy($srcImage, $tmpFile);
-
-    $script = ZM_TRAINING_DETECT_SCRIPT;
-    if (!file_exists($script)) {
-      unlink($tmpFile);
-      ajaxError('Detection script not found: '.$script);
+    $tmpFile = tempnam(sys_get_temp_dir(), 'zm_detect_').'.jpg';
+    if (!copy($srcImage, $tmpFile)) {
+      ajaxError('Failed to create temp file for detection');
       break;
     }
 
     $monitorId = $Event->MonitorId();
     $cmd = escapeshellarg($script).' -f '.escapeshellarg($tmpFile).' -m '.escapeshellarg($monitorId).' 2>&1';
+    ZM\Debug('Training: running detect command: '.$cmd);
     exec($cmd, $outputLines, $exitCode);
     $output = implode("\n", $outputLines);
-    unlink($tmpFile);
+    if (file_exists($tmpFile)) unlink($tmpFile);
 
+    ZM\Debug('Training: detect script exit code='.$exitCode.' output length='.strlen($output));
     if ($exitCode !== 0 && empty($output)) {
-      ajaxError('Detection script failed to execute (exit code '.$exitCode.')');
+      ZM\Warning('Training: detect script failed with exit code '.$exitCode.' for event '.$eid.' frame '.$fid);
+      ajaxError('Detection script failed (exit code '.$exitCode.')');
       break;
     }
 
@@ -624,6 +727,7 @@ switch ($_REQUEST['action']) {
       }
     }
 
+    ZM\Debug('Training: detect found '.count($detections).' objects for event '.$eid.' frame '.$fid);
     ajaxResponse([
       'detections' => $detections,
       'raw_output' => $output,
@@ -631,7 +735,7 @@ switch ($_REQUEST['action']) {
     break;
 
   default:
-    ajaxError('Unknown action: '.$_REQUEST['action']);
+    ajaxError('Unknown action');
     break;
 }
 ?>

@@ -123,42 +123,51 @@ var translate = {
 
 <?php if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
 var trainingTranslations = {
-  "Annotate": "<?php echo translate('Annotate') ?>",
-  "AnnotationSaved": "<?php echo translate('AnnotationSaved') ?>",
-  "AnnotationsRemoved": "<?php echo translate('AnnotationsRemoved') ?>",
-  "DeleteBox": "<?php echo translate('DeleteBox') ?>",
+  "ObjectTraining": "<?php echo translate('ObjectTraining') ?>",
+  "TrainingBackgroundConfirm": "<?php echo translate('TrainingBackgroundConfirm') ?>",
+  "TrainingBackgroundImages": "<?php echo translate('TrainingBackgroundImages') ?>",
+  "TrainingBrowse": "<?php echo translate('TrainingBrowse') ?>",
+  "TrainingBrowseFrames": "<?php echo translate('TrainingBrowseFrames') ?>",
+  "TrainingConfirmDeleteFile": "<?php echo translate('TrainingConfirmDeleteFile') ?>",
+  "TrainingDataDeleted": "<?php echo translate('TrainingDataDeleted') ?>",
+  "TrainingDataStats": "<?php echo translate('TrainingDataStats') ?>",
+  "TrainingDeleteAll": "<?php echo translate('TrainingDeleteAll') ?>",
+  "TrainingDeleteBox": "<?php echo translate('TrainingDeleteBox') ?>",
+  "TrainingDeleteFailed": "<?php echo translate('TrainingDeleteFailed') ?>",
+  "TrainingDetect": "<?php echo translate('TrainingDetect') ?>",
+  "TrainingDetectFailed": "<?php echo translate('TrainingDetectFailed') ?>",
+  "TrainingDetectNoResults": "<?php echo translate('TrainingDetectNoResults') ?>",
+  "TrainingDetectNoScript": "<?php echo translate('TrainingDetectNoScript') ?>",
+  "TrainingDetectObjects": "<?php echo translate('TrainingDetectObjects') ?>",
+  "TrainingDetectRunning": "<?php echo translate('TrainingDetectRunning') ?>",
+  "TrainingDetectedObjects": "<?php echo translate('TrainingDetectedObjects') ?>",
+  "TrainingFailedToLoadEvent": "<?php echo translate('TrainingFailedToLoadEvent') ?>",
+  "TrainingFailedToLoadFrame": "<?php echo translate('TrainingFailedToLoadFrame') ?>",
+  "TrainingGuidance": "<?php echo translate('TrainingGuidance') ?>",
+  "TrainingLoadFrameFirst": "<?php echo translate('TrainingLoadFrameFirst') ?>",
+  "TrainingLoading": "<?php echo translate('TrainingLoading') ?>",
+  "TrainingNoData": "<?php echo translate('TrainingNoData') ?>",
+  "TrainingNoFiles": "<?php echo translate('TrainingNoFiles') ?>",
+  "TrainingNoFrameLoaded": "<?php echo translate('TrainingNoFrameLoaded') ?>",
+  "TrainingPreviewUnavailable": "<?php echo translate('TrainingPreviewUnavailable') ?>",
+  "TrainingRemoved": "<?php echo translate('TrainingRemoved') ?>",
+  "TrainingSave": "<?php echo translate('TrainingSave') ?>",
+  "TrainingSaved": "<?php echo translate('TrainingSaved') ?>",
+  "TrainingSaveFailed": "<?php echo translate('TrainingSaveFailed') ?>",
+  "TrainingSaving": "<?php echo translate('TrainingSaving') ?>",
+  "TrainingSelectBoxFirst": "<?php echo translate('TrainingSelectBoxFirst') ?>",
+  "TrainingTotalClasses": "<?php echo translate('TrainingTotalClasses') ?>",
+  "TrainingTotalImages": "<?php echo translate('TrainingTotalImages') ?>",
+  "TrainingUnsaved": "<?php echo translate('TrainingUnsaved') ?>",
+  "AcceptDetection": "<?php echo translate('AcceptDetection') ?>",
+  "ConfirmDeleteTrainingData": "<?php echo translate('ConfirmDeleteTrainingData') ?>",
   "DrawBox": "<?php echo translate('DrawBox') ?>",
+  "Frame": "<?php echo translate('Frame') ?>",
   "GoToFrame": "<?php echo translate('GoToFrame') ?>",
+  "ImagesPerClass": "<?php echo translate('ImagesPerClass') ?>",
   "NewLabel": "<?php echo translate('NewLabel') ?>",
   "NoDetectionData": "<?php echo translate('NoDetectionData') ?>",
-  "SaveToTrainingSet": "<?php echo translate('SaveToTrainingSet') ?>",
-  "SelectLabel": "<?php echo translate('SelectLabel') ?>",
-  "UnsavedAnnotations": "<?php echo translate('UnsavedAnnotations') ?>",
-  "TrainingDataStats": "<?php echo translate('TrainingDataStats') ?>",
-  "TotalAnnotatedImages": "<?php echo translate('TotalAnnotatedImages') ?>",
-  "TotalClasses": "<?php echo translate('TotalClasses') ?>",
-  "ImagesPerClass": "<?php echo translate('ImagesPerClass') ?>",
-  "TrainingGuidance": "<?php echo translate('TrainingGuidance') ?>",
-  "Detect": "<?php echo translate('Detect') ?>",
-  "DetectObjects": "<?php echo translate('DetectObjects') ?>",
-  "DetectRunning": "<?php echo translate('DetectRunning') ?>",
-  "DetectNoScript": "<?php echo translate('DetectNoScript') ?>",
-  "DetectNoResults": "<?php echo translate('DetectNoResults') ?>",
-  "DetectFailed": "<?php echo translate('DetectFailed') ?>",
-  "DetectedObjects": "<?php echo translate('DetectedObjects') ?>",
-  "AcceptDetection": "<?php echo translate('AcceptDetection') ?>",
-  "FailedToLoadEvent": "<?php echo translate('FailedToLoadEvent') ?>",
-  "FailedToLoadFrame": "<?php echo translate('FailedToLoadFrame') ?>",
-  "LoadFrameFirst": "<?php echo translate('LoadFrameFirst') ?>",
-  "NoFrameLoaded": "<?php echo translate('NoFrameLoaded') ?>",
-  "NoTrainingData": "<?php echo translate('NoTrainingData') ?>",
-  "SaveFailed": "<?php echo translate('SaveFailed') ?>",
-  "BackgroundImageConfirm": "<?php echo translate('BackgroundImageConfirm') ?>",
-  "BackgroundImages": "<?php echo translate('BackgroundImages') ?>",
-  "ConfirmDeleteTrainingData": "<?php echo translate('ConfirmDeleteTrainingData') ?>",
-  "DeleteAllTrainingData": "<?php echo translate('DeleteAllTrainingData') ?>",
-  "TrainingDataDeleted": "<?php echo translate('TrainingDataDeleted') ?>",
-  "BrowseTrainingData": "<?php echo translate('BrowseTrainingData') ?>"
+  "SelectLabel": "<?php echo translate('SelectLabel') ?>"
 };
 <?php } ?>
 
@@ -175,9 +184,6 @@ $j(document).ready(function initAnnotationEditor() {
     translations: trainingTranslations
   });
   annotationEditor.init();
-
-  // Make accessible globally for debugging
-  window.annotationEditor = annotationEditor;
 
   $j('#annotateBtn').on('click', function() {
     var panel = document.getElementById('annotationPanel');
@@ -213,7 +219,7 @@ $j(document).ready(function initAnnotationEditor() {
     if (annotationEditor.selectedIndex >= 0) {
       annotationEditor.deleteAnnotation(annotationEditor.selectedIndex);
     } else {
-      annotationEditor._setStatus('<?php echo translate('SelectBoxFirst') ?>', 'error');
+      annotationEditor._setStatus('<?php echo translate('TrainingSelectBoxFirst') ?>', 'error');
     }
   });
 
@@ -229,16 +235,26 @@ $j(document).ready(function initAnnotationEditor() {
   // Frame navigation
   $j('#annotationFrameSelector').on('click', '[data-frame]', function() {
     var frame = $j(this).data('frame');
+    var current = parseInt(annotationEditor.currentFrameId);
+    var total = annotationEditor.totalFrames;
     if (frame === 'prev') {
-      var current = parseInt(annotationEditor.currentFrameId);
       if (!isNaN(current) && current > 1) {
         annotationEditor.switchFrame(String(current - 1));
       }
     } else if (frame === 'next') {
-      var current = parseInt(annotationEditor.currentFrameId);
-      if (!isNaN(current)) {
+      if (!isNaN(current) && current < total) {
         annotationEditor.switchFrame(String(current + 1));
-      } else {
+      } else if (isNaN(current)) {
+        annotationEditor.switchFrame('1');
+      }
+    } else if (frame === 'skip-back') {
+      if (!isNaN(current)) {
+        annotationEditor.switchFrame(String(Math.max(1, current - 10)));
+      }
+    } else if (frame === 'skip-forward') {
+      if (!isNaN(current) && total > 0) {
+        annotationEditor.switchFrame(String(Math.min(total, current + 10)));
+      } else if (isNaN(current)) {
         annotationEditor.switchFrame('1');
       }
     } else {
@@ -257,6 +273,10 @@ $j(document).ready(function initAnnotationEditor() {
     if (e.key === 'Enter') {
       $j('#annotationGoToFrame').click();
     }
+  });
+
+  $j('#annotationBrowseFramesBtn').on('click', function() {
+    annotationEditor.browseFrames();
   });
 });
 <?php } ?>

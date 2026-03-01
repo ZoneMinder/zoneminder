@@ -1,4 +1,6 @@
 --
+-- This updates a 1.39.0 database to 1.39.1
+--
 -- Add custom model training configuration options
 --
 
@@ -21,6 +23,7 @@ SET @s = (SELECT IF(
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SET @s = (SELECT IF(
   (SELECT COUNT(*) FROM Config WHERE Name='ZM_TRAINING_DATA_DIR') > 0,
@@ -32,15 +35,16 @@ SET @s = (SELECT IF(
     DefaultValue='',
     Hint='',
     Prompt='Training data directory',
-    Help='Filesystem path where corrected annotation images and YOLO label files are stored. The directory will be created automatically if it does not exist. Uses Roboflow-compatible YOLO directory layout (images/all/, labels/all/, data.yaml).',
+    Help='Filesystem path where corrected annotation images and YOLO label files are stored. The directory will be created automatically if it does not exist. Uses Roboflow-compatible YOLO directory layout (images/all/, labels/all/, data.yaml). The default is set from ConfigData after running zmupdate --freshen.',
     Category='config',
     Readonly='0',
     Private='0',
     System='0',
-    Requires='ZM_OPT_TRAINING'"
+    Requires='ZM_OPT_TRAINING=1'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SET @s = (SELECT IF(
   (SELECT COUNT(*) FROM Config WHERE Name='ZM_TRAINING_DETECT_SCRIPT') > 0,
@@ -57,7 +61,8 @@ SET @s = (SELECT IF(
     Readonly='0',
     Private='0',
     System='0',
-    Requires='ZM_OPT_TRAINING'"
+    Requires='ZM_OPT_TRAINING=1'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

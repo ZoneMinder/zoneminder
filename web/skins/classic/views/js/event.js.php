@@ -138,7 +138,12 @@ var trainingTranslations = {
   "TotalAnnotatedImages": "<?php echo translate('TotalAnnotatedImages') ?>",
   "TotalClasses": "<?php echo translate('TotalClasses') ?>",
   "ImagesPerClass": "<?php echo translate('ImagesPerClass') ?>",
-  "TrainingGuidance": "<?php echo translate('TrainingGuidance') ?>"
+  "TrainingGuidance": "<?php echo translate('TrainingGuidance') ?>",
+  "Detect": "<?php echo translate('Detect') ?>",
+  "DetectObjects": "<?php echo translate('DetectObjects') ?>",
+  "DetectRunning": "<?php echo translate('DetectRunning') ?>",
+  "DetectNoScript": "<?php echo translate('DetectNoScript') ?>",
+  "DetectNoResults": "<?php echo translate('DetectNoResults') ?>"
 };
 <?php } ?>
 
@@ -174,6 +179,10 @@ $j(document).ready(function initAnnotationEditor() {
 
   $j('#annotationCancelBtn').on('click', function() {
     annotationEditor.close();
+  });
+
+  $j('#annotationDetectBtn').on('click', function() {
+    annotationEditor.detect();
   });
 
   $j('#annotationDeleteBtn').on('click', function() {

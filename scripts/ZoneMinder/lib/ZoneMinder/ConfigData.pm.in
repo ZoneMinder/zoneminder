@@ -4058,6 +4058,23 @@ our @options = (
     category    => 'config',
     requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
   },
+  {
+    name        => 'ZM_TRAINING_DETECT_SCRIPT',
+    default     => '',
+    description => 'Object detection script location',
+    help        => q`
+      Full path to the object detection script (e.g.
+      /var/lib/zmeventnotification/bin/zm_detect.py). When set,
+      a Detect button appears in the annotation editor that runs
+      detection on the current frame. The script is called as:
+        <script> -f <image> -m <monitor_id>
+      and its output is parsed for bounding boxes.
+      Leave empty to disable automatic detection.
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

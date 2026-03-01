@@ -42,4 +42,22 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
-
+SET @s = (SELECT IF(
+  (SELECT COUNT(*) FROM Config WHERE Name='ZM_TRAINING_DETECT_SCRIPT') > 0,
+  "SELECT 'ZM_TRAINING_DETECT_SCRIPT already exists'",
+  "INSERT INTO Config SET
+    Name='ZM_TRAINING_DETECT_SCRIPT',
+    Value='',
+    Type='string',
+    DefaultValue='',
+    Hint='/path/to/zm_detect.py',
+    Prompt='Object detection script location',
+    Help='Full path to the object detection script (e.g. /var/lib/zmeventnotification/bin/zm_detect.py). When set, a Detect button appears in the annotation editor that runs detection on the current frame.',
+    Category='config',
+    Readonly='0',
+    Private='0',
+    System='0',
+    Requires='ZM_OPT_TRAINING'"
+));
+PREPARE stmt FROM @s;
+EXECUTE stmt;

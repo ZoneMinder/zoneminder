@@ -149,6 +149,22 @@
   margin-left: 4px;
 }
 
+.annotation-object-item .btn-accept {
+  padding: 0 4px;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #28a745;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  margin-left: 4px;
+}
+
+.annotation-object-item .btn-accept:hover {
+  opacity: 1;
+}
+
 .annotation-object-item .btn-remove {
   padding: 0 4px;
   font-size: 0.95rem;

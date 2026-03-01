@@ -254,6 +254,11 @@ $SLANG = array(
     'DeleteAndPrev'         => 'Delete &amp; Prev',
     'DeleteBox'             => 'Delete Box',
     'DeleteSavedFilter'     => 'Delete saved filter',
+    'Detect'                => 'Detect',
+    'DetectObjects'         => 'Run object detection on current frame',
+    'DetectRunning'         => 'Running detection...',
+    'DetectNoScript'        => 'No detection script configured. Set ZM_TRAINING_DETECT_SCRIPT in Options.',
+    'DetectNoResults'       => 'No objects detected in this frame.',
     'DetectedCameras'       => 'Detected Cameras',
     'DetectedProfiles'      => 'Detected Profiles',
     'DeviceChannel'         => 'Device Channel',
@@ -1073,6 +1078,10 @@ None: No frames will be decoded, live view and thumbnails will not be available~
   'ZM_TRAINING_DATA_DIR' => array(
     'Prompt' => 'Training data directory',
     'Help' => 'Filesystem path where corrected annotation images and YOLO label files are stored.~~The directory will be created automatically if it does not exist.~~Uses Roboflow-compatible YOLO directory layout:~~images/all/ - annotated frame images~~labels/all/ - YOLO format label files~~data.yaml - class definitions'
+  ),
+  'ZM_TRAINING_DETECT_SCRIPT' => array(
+    'Prompt' => 'Object detection script location',
+    'Help' => 'Full path to the object detection script (e.g. /var/lib/zmeventnotification/bin/zm_detect.py).~~When set, a Detect button appears in the annotation editor that runs detection on the current frame.~~The script is called as: script -f image -m monitor_id~~Leave empty to disable automatic detection.'
   ),
 
 //    'LANG_DEFAULT' => array(

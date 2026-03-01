@@ -155,6 +155,15 @@ AnnotationEditor.prototype.open = function() {
         self.eventPath = resp.eventPath || '';
         self.imageNaturalW = resp.width || 0;
         self.imageNaturalH = resp.height || 0;
+        self.monitorId = resp.monitorId || '';
+        self.hasDetectScript = resp.hasDetectScript || false;
+
+        // Show/hide detect button based on script availability
+        if (self.hasDetectScript) {
+          $j('#annotationDetectBtn').show();
+        } else {
+          $j('#annotationDetectBtn').hide();
+        }
 
         self._updateFrameSelector(self.availableFrames);
 
@@ -341,8 +350,13 @@ AnnotationEditor.prototype._render = function() {
  */
 AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
   var ctx = this.ctx;
-  var colorIndex = this._getColorIndex(ann.label);
-  var color = ANNOTATION_COLORS[colorIndex % ANNOTATION_COLORS.length];
+  var color;
+  if (ann.pending) {
+    color = '#ff8c00'; // orange for unconfirmed detections
+  } else {
+    var colorIndex = this._getColorIndex(ann.label);
+    color = ANNOTATION_COLORS[colorIndex % ANNOTATION_COLORS.length];
+  }
 
   var x = Math.min(ann.x1, ann.x2);
   var y = Math.min(ann.y1, ann.y2);
@@ -930,6 +944,139 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
 };
 
 /**
+ * Accept a pending detection (remove pending flag, turn green).
+ * @param {number} index
+ */
+AnnotationEditor.prototype.acceptAnnotation = function(index) {
+  if (index < 0 || index >= this.annotations.length) return;
+  if (!this.annotations[index].pending) return;
+  this._pushUndo();
+  delete this.annotations[index].pending;
+  this.dirty = true;
+  this._updateSidebar();
+  this._render();
+};
+
+/**
+ * Accept all pending detections at once.
+ */
+AnnotationEditor.prototype.acceptAllAnnotations = function() {
+  var changed = false;
+  for (var i = 0; i < this.annotations.length; i++) {
+    if (this.annotations[i].pending) {
+      if (!changed) {
+        this._pushUndo();
+        changed = true;
+      }
+      delete this.annotations[i].pending;
+    }
+  }
+  if (changed) {
+    this.dirty = true;
+    this._updateSidebar();
+    this._render();
+  }
+};
+
+/**
+ * Run object detection on the current frame via the server-side script.
+ */
+AnnotationEditor.prototype.detect = function() {
+  var self = this;
+
+  if (!this.hasDetectScript) {
+    this._setStatus(
+        this.translations.DetectNoScript || 'No detection script configured',
+        'error'
+    );
+    return;
+  }
+
+  if (!this.currentFrameId) {
+    this._setStatus('Load a frame first', 'error');
+    return;
+  }
+
+  this._setStatus(
+      this.translations.DetectRunning || 'Running detection...',
+      'saving'
+  );
+
+  $j('#annotationDetectBtn').prop('disabled', true);
+
+  $j.ajax({
+    url: thisUrl + '?request=training&action=detect',
+    method: 'POST',
+    data: {
+      eid: this.eventId,
+      fid: this.currentFrameId,
+      mid: this.monitorId
+    },
+    dataType: 'json'
+  }).done(function(data) {
+    $j('#annotationDetectBtn').prop('disabled', false);
+
+    if (data.result === 'Error') {
+      self._setStatus(data.message, 'error');
+      return;
+    }
+    var resp = data.response || data;
+    var detections = resp.detections || [];
+
+    if (detections.length === 0) {
+      self._setStatus(
+          self.translations.DetectNoResults || 'No objects detected',
+          'error'
+      );
+      return;
+    }
+
+    // Remove existing pending annotations (from a previous detect)
+    self._pushUndo();
+    var kept = [];
+    for (var i = 0; i < self.annotations.length; i++) {
+      if (!self.annotations[i].pending) {
+        kept.push(self.annotations[i]);
+      }
+    }
+    self.annotations = kept;
+
+    // Add new detections as pending (orange)
+    for (var d = 0; d < detections.length; d++) {
+      var det = detections[d];
+      var ann = {
+        label: det.label || 'unknown',
+        confidence: det.confidence || 0,
+        x1: 0,
+        y1: 0,
+        x2: 0,
+        y2: 0,
+        pending: true
+      };
+      if (det.bbox && Array.isArray(det.bbox)) {
+        ann.x1 = det.bbox[0];
+        ann.y1 = det.bbox[1];
+        ann.x2 = det.bbox[2];
+        ann.y2 = det.bbox[3];
+      }
+      self.annotations.push(ann);
+    }
+
+    self.dirty = true;
+    self._updateSidebar();
+    self._render();
+    self._setStatus(
+        detections.length + ' object(s) detected — accept or reject each',
+        'success'
+    );
+  }).fail(function(jqxhr) {
+    $j('#annotationDetectBtn').prop('disabled', false);
+    self._setStatus('Detection failed', 'error');
+    logAjaxFail(jqxhr);
+  });
+};
+
+/**
  * Change the label of an annotation.
  * @param {number} index
  * @param {string} newLabel
@@ -1002,9 +1149,10 @@ AnnotationEditor.prototype._updateSidebar = function() {
         .toggleClass('selected', isSelected)
         .attr('data-index', i);
 
+    var swatchColor = ann.pending ? '#ff8c00' : color;
     var swatch = $j('<span>')
         .addClass('color-swatch')
-        .css('background-color', color);
+        .css('background-color', swatchColor);
 
     var labelSpan = $j('<span>')
         .addClass('object-label')
@@ -1019,6 +1167,15 @@ AnnotationEditor.prototype._updateSidebar = function() {
       li.append(confSpan);
     }
 
+    if (ann.pending) {
+      var acceptBtn = $j('<button>')
+          .addClass('btn-accept')
+          .attr('title', 'Accept')
+          .html('&#10003;')
+          .attr('data-index', i);
+      li.append(acceptBtn);
+    }
+
     var removeBtn = $j('<button>')
         .addClass('btn-remove')
         .attr('title', 'Delete')
@@ -1031,9 +1188,15 @@ AnnotationEditor.prototype._updateSidebar = function() {
 
   // Bind click handlers
   list.find('.annotation-object-item').on('click', function(e) {
-    if ($j(e.target).hasClass('btn-remove')) return;
+    if ($j(e.target).hasClass('btn-remove') || $j(e.target).hasClass('btn-accept')) return;
     var idx = parseInt($j(this).attr('data-index'), 10);
     self.selectAnnotation(idx);
+  });
+
+  list.find('.btn-accept').on('click', function(e) {
+    e.stopPropagation();
+    var idx = parseInt($j(this).attr('data-index'), 10);
+    self.acceptAnnotation(idx);
   });
 
   list.find('.btn-remove').on('click', function(e) {
@@ -1205,6 +1368,19 @@ AnnotationEditor.prototype.save = function() {
     return;
   }
 
+  // Only save accepted (non-pending) annotations
+  var accepted = [];
+  for (var i = 0; i < this.annotations.length; i++) {
+    if (!this.annotations[i].pending) {
+      accepted.push(this.annotations[i]);
+    }
+  }
+
+  if (accepted.length === 0) {
+    this._setStatus('No accepted annotations to save. Accept detections first.', 'error');
+    return;
+  }
+
   this._setStatus(this.translations.Saving || 'Saving...', 'saving');
 
   $j.ajax({
@@ -1213,7 +1389,7 @@ AnnotationEditor.prototype.save = function() {
     data: {
       eid: this.eventId,
       fid: this.currentFrameId,
-      annotations: JSON.stringify(this.annotations),
+      annotations: JSON.stringify(accepted),
       width: this.imageNaturalW,
       height: this.imageNaturalH
     },

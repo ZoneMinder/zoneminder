@@ -184,6 +184,8 @@ switch ($_REQUEST['action']) {
     $savedFile = $base.'/labels/all/event_'.$eid.'_frame_'.$fid.'.txt';
     $hasSavedAnnotation = file_exists($savedFile);
 
+    $hasDetectScript = defined('ZM_TRAINING_DETECT_SCRIPT') && ZM_TRAINING_DETECT_SCRIPT != '';
+
     ajaxResponse([
       'detectionData' => $detectionData,
       'defaultFrameId' => $defaultFrameId,
@@ -192,7 +194,9 @@ switch ($_REQUEST['action']) {
       'eventPath' => $Event->Relative_Path(),
       'width' => $Event->Width(),
       'height' => $Event->Height(),
+      'monitorId' => $Event->MonitorId(),
       'hasSavedAnnotation' => $hasSavedAnnotation,
+      'hasDetectScript' => $hasDetectScript,
     ]);
     break;
 
@@ -348,6 +352,89 @@ switch ($_REQUEST['action']) {
   case 'status':
     // Return training dataset statistics
     ajaxResponse(['stats' => getTrainingStats()]);
+    break;
+
+  case 'detect':
+    // Run object detection script on a frame image
+    if (!defined('ZM_TRAINING_DETECT_SCRIPT') || ZM_TRAINING_DETECT_SCRIPT == '') {
+      ajaxError('No detection script configured');
+      break;
+    }
+    if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
+      ajaxError('Event ID and Frame ID required');
+      break;
+    }
+
+    $eid = validCardinal($_REQUEST['eid']);
+    $fid = $_REQUEST['fid'];
+    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
+      ajaxError('Invalid frame ID');
+      break;
+    }
+
+    $Event = ZM\Event::find_one(['Id' => $eid]);
+    if (!$Event) {
+      ajaxError('Event not found');
+      break;
+    }
+
+    $eventPath = $Event->Path();
+    if (in_array($fid, ['alarm', 'snapshot'])) {
+      $srcImage = $eventPath.'/'.$fid.'.jpg';
+    } else {
+      $srcImage = $eventPath.'/'.sprintf('%06d', $fid).'-capture.jpg';
+    }
+
+    if (!file_exists($srcImage)) {
+      ajaxError('Source frame image not found: '.$fid);
+      break;
+    }
+
+    // Copy to temp file so the script can read it
+    $tmpFile = tempnam(sys_get_temp_dir(), 'zm_detect_');
+    rename($tmpFile, $tmpFile.'.jpg');
+    $tmpFile = $tmpFile.'.jpg';
+    copy($srcImage, $tmpFile);
+
+    $script = ZM_TRAINING_DETECT_SCRIPT;
+    if (!file_exists($script)) {
+      unlink($tmpFile);
+      ajaxError('Detection script not found: '.$script);
+      break;
+    }
+
+    $monitorId = $Event->MonitorId();
+    $cmd = escapeshellarg($script).' -f '.escapeshellarg($tmpFile).' -m '.escapeshellarg($monitorId).' 2>&1';
+    $output = shell_exec($cmd);
+    unlink($tmpFile);
+
+    if ($output === null) {
+      ajaxError('Detection script failed to execute');
+      break;
+    }
+
+    // Parse output: "PREFIX detected:labels--SPLIT--{JSON}"
+    $detections = [];
+    if (strpos($output, '--SPLIT--') !== false) {
+      $parts = explode('--SPLIT--', $output, 2);
+      $json = json_decode(trim($parts[1]), true);
+      if ($json && isset($json['labels']) && isset($json['boxes'])) {
+        for ($i = 0; $i < count($json['labels']); $i++) {
+          $box = isset($json['boxes'][$i]) ? $json['boxes'][$i] : [0,0,0,0];
+          $conf = isset($json['confidences'][$i]) ? $json['confidences'][$i] : 0;
+          $detections[] = [
+            'label' => $json['labels'][$i],
+            'confidence' => $conf,
+            'bbox' => $box,
+          ];
+        }
+      }
+    }
+
+    ajaxResponse([
+      'detections' => $detections,
+      'raw_output' => $output,
+    ]);
     break;
 
   default:

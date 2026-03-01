@@ -253,8 +253,19 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $optionCanEdit = $canEdit && !$value['System'];
+              if ($optionCanEdit && !empty($value['Requires'])) {
+                // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
+                foreach (explode(';', $value['Requires']) as $req) {
+                  if (preg_match('/^(ZM_\w+)=(.+)$/', trim($req), $reqMatch)) {
+                    if (isset($config[$reqMatch[1]]) && $config[$reqMatch[1]]['Value'] != $reqMatch[2]) {
+                      $optionCanEdit = false;
+                      break;
+                    }
+                  }
+                }
+              }
 ?>
-          <div class="form-group form-row <?php echo $name ?>">
+          <div class="form-group form-row <?php echo $name ?>"<?php if (!empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires']).'"' ?>>
             <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
             <div class="col-md">
 <?php   
@@ -324,6 +335,49 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           </div><!--options-->
         </div><!-- .row h-100 -->
       </form>
+<script nonce="<?php echo $cspNonce ?>">
+// Dynamic enable/disable of config fields based on data-requires attribute.
+// Supports compound requires: "ZM_A=1;ZM_B=hashed" (all conditions must be met).
+document.addEventListener('DOMContentLoaded', function() {
+  var opts = document.getElementById('options');
+  if (!opts) return;
+  var depRows = opts.querySelectorAll('[data-requires]');
+
+  // Get current value of a config from the form
+  function getVal(name) {
+    var el = opts.querySelector('[name="newConfig[' + name + ']"]');
+    if (!el) return '';
+    if (el.type === 'checkbox') return el.checked ? '1' : '0';
+    if (el.type === 'radio') {
+      var checked = opts.querySelector('[name="newConfig[' + name + ']"]:checked');
+      return checked ? checked.value : '';
+    }
+    return el.value;
+  }
+
+  // Evaluate all conditions in a requires string
+  function evalRequires(req) {
+    var parts = req.split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var m = parts[i].trim().match(/^(ZM_\w+)=(.+)$/);
+      if (m && getVal(m[1]) !== m[2]) return false;
+    }
+    return true;
+  }
+
+  // Update disabled state on all dependent rows
+  function refresh() {
+    for (var i = 0; i < depRows.length; i++) {
+      var met = evalRequires(depRows[i].getAttribute('data-requires'));
+      var inputs = depRows[i].querySelectorAll('input, select, textarea');
+      for (var j = 0; j < inputs.length; j++) inputs[j].disabled = !met;
+    }
+  }
+
+  // Listen on all inputs that could be a dependency
+  opts.addEventListener('change', refresh);
+});
+</script>
 <?php
 }
 ?>

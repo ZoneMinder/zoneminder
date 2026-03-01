@@ -106,11 +106,13 @@ function getTrainingStats() {
   $classCounts = array_fill(0, count($labels), 0);
 
   $files = glob($labelsDir.'/*.txt');
-  $stats['total_images'] = count($files);
+  $annotatedCount = 0;
 
   foreach ($files as $file) {
     $seenClasses = [];
     $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (empty($lines)) continue; // skip empty label files
+    $annotatedCount++;
     foreach ($lines as $line) {
       $parts = explode(' ', trim($line));
       if (count($parts) >= 5) {
@@ -124,6 +126,7 @@ function getTrainingStats() {
       }
     }
   }
+  $stats['total_images'] = $annotatedCount;
 
   foreach ($labels as $i => $label) {
     $stats['images_per_class'][$label] = $classCounts[$i];
@@ -169,7 +172,7 @@ switch ($_REQUEST['action']) {
 
     // Check which special frames exist
     $availableFrames = [];
-    foreach (['alarm', 'snapshot', 'objdetect'] as $special) {
+    foreach (['alarm', 'snapshot'] as $special) {
       if (file_exists($eventPath.'/'.$special.'.jpg')) {
         $availableFrames[] = $special;
       }
@@ -204,7 +207,7 @@ switch ($_REQUEST['action']) {
     $fid = $_REQUEST['fid'];
 
     // Validate fid is either a known special name or a positive integer
-    if (!in_array($fid, ['alarm', 'snapshot', 'objdetect']) && !ctype_digit($fid)) {
+    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
       ajaxError('Invalid frame ID');
       break;
     }
@@ -222,6 +225,10 @@ switch ($_REQUEST['action']) {
       ajaxError('Invalid annotations data');
       break;
     }
+    if (empty($annotations)) {
+      ajaxError('No annotations to save. Draw at least one bounding box.');
+      break;
+    }
 
     $imgWidth = intval($_REQUEST['width']);
     $imgHeight = intval($_REQUEST['height']);
@@ -235,7 +242,7 @@ switch ($_REQUEST['action']) {
 
     // Copy the frame image to training dir
     $eventPath = $Event->Path();
-    if (in_array($fid, ['alarm', 'snapshot', 'objdetect'])) {
+    if (in_array($fid, ['alarm', 'snapshot'])) {
       $srcImage = $eventPath.'/'.$fid.'.jpg';
     } else {
       $srcImage = $eventPath.'/'.sprintf('%06d', $fid).'-capture.jpg';
@@ -285,9 +292,7 @@ switch ($_REQUEST['action']) {
     // Write data.yaml with the current label list
     writeDataYaml($labels);
 
-    // Audit log
-    ZM\AuditAction('update', 'training', $eid,
-      'Saved '.count($annotations).' annotations for event '.$eid.' frame '.$fid);
+    ZM\Info('Saved '.count($annotations).' training annotations for event '.$eid.' frame '.$fid);
 
     $stats = getTrainingStats();
 
@@ -315,7 +320,7 @@ switch ($_REQUEST['action']) {
     $fid = $_REQUEST['fid'];
 
     // Validate fid
-    if (!in_array($fid, ['alarm', 'snapshot', 'objdetect']) && !ctype_digit($fid)) {
+    if (!in_array($fid, ['alarm', 'snapshot']) && !ctype_digit($fid)) {
       ajaxError('Invalid frame ID');
       break;
     }
@@ -331,8 +336,7 @@ switch ($_REQUEST['action']) {
     if (file_exists($lblFile)) { unlink($lblFile); $deleted = true; }
 
     if ($deleted) {
-      ZM\AuditAction('delete', 'training', $eid,
-        'Removed annotation for event '.$eid.' frame '.$fid);
+      ZM\Info('Removed training annotation for event '.$eid.' frame '.$fid);
     }
 
     ajaxResponse([

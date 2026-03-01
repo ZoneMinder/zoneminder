@@ -215,7 +215,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 <?php
   }
   if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
-    <button id="annotateBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Annotate') ?>"><i class="fa fa-pencil-square-o"></i></button>
+    <button id="annotateBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Annotate') ?>"><i class="fa fa-crosshairs"></i></button>
 <?php
   }
   } // end if Event->Id
@@ -464,7 +464,7 @@ if ($video_tag) {
             <button class="btn btn-normal btn-sm" data-frame="prev" title="<?php echo translate('PreviousFrame') ?>"><i class="fa fa-chevron-left"></i></button>
             <button class="btn btn-normal btn-sm frame-btn" data-frame="alarm" style="display:none"><?php echo translate('Alarm') ?></button>
             <button class="btn btn-normal btn-sm frame-btn" data-frame="snapshot" style="display:none"><?php echo translate('Snapshot') ?></button>
-            <button class="btn btn-normal btn-sm frame-btn" data-frame="objdetect" style="display:none"><?php echo translate('ObjDetect') ?></button>
+
             <button class="btn btn-normal btn-sm" data-frame="next" title="<?php echo translate('NextFrame') ?>"><i class="fa fa-chevron-right"></i></button>
             <input type="number" class="form-control form-control-sm frame-input" id="annotationFrameInput" min="1" max="<?php echo $Event->Frames() ?>" placeholder="#" title="<?php echo translate('GoToFrame') ?>"/>
             <button class="btn btn-normal btn-sm" id="annotationGoToFrame"><?php echo translate('GoToFrame') ?></button>

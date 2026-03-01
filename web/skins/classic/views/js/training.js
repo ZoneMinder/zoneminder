@@ -137,6 +137,7 @@ AnnotationEditor.prototype.open = function() {
   var self = this;
 
   $j('#annotationPanel').addClass('open');
+  $j('#eventVideo').hide();
 
   // Load class labels and detection data in parallel
   this._loadLabels();
@@ -181,6 +182,7 @@ AnnotationEditor.prototype.close = function() {
   }
 
   $j('#annotationPanel').removeClass('open');
+  $j('#eventVideo').show();
   this._hideLabelPicker();
 
   // Reset state
@@ -321,10 +323,11 @@ AnnotationEditor.prototype._render = function() {
     var bw = Math.abs(this.drawCurrent.x - this.drawStart.x);
     var bh = Math.abs(this.drawCurrent.y - this.drawStart.y);
 
+    var drawScale = this.canvas.width / 900;
     ctx.save();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 3]);
+    ctx.strokeStyle = '#ff8c00';
+    ctx.lineWidth = Math.max(2, Math.round(3 * drawScale));
+    ctx.setLineDash([Math.round(8 * drawScale), Math.round(4 * drawScale)]);
     ctx.strokeRect(x, y, bw, bh);
     ctx.restore();
   }
@@ -346,17 +349,24 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
   var w = Math.abs(ann.x2 - ann.x1);
   var h = Math.abs(ann.y2 - ann.y1);
 
+  // Scale sizes relative to canvas width so they're visible at any resolution
+  var scale = this.canvas.width / 900;
+  var borderWidth = Math.max(2, Math.round((isSelected ? 4 : 3) * scale));
+  var fontSize = Math.max(14, Math.round(18 * scale));
+  var handleSize = Math.max(8, Math.round(10 * scale));
+  var textPad = Math.round(6 * scale);
+
   // Semi-transparent fill
   ctx.save();
   ctx.fillStyle = color;
-  ctx.globalAlpha = 0.1;
+  ctx.globalAlpha = 0.15;
   ctx.fillRect(x, y, w, h);
   ctx.restore();
 
   // Border
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = isSelected ? 3 : 2;
+  ctx.lineWidth = borderWidth;
   ctx.strokeRect(x, y, w, h);
   ctx.restore();
 
@@ -367,10 +377,10 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
   }
 
   ctx.save();
-  ctx.font = '12px sans-serif';
+  ctx.font = 'bold ' + fontSize + 'px sans-serif';
   var textMetrics = ctx.measureText(labelText);
-  var textW = textMetrics.width + 8;
-  var textH = 18;
+  var textW = textMetrics.width + textPad * 2;
+  var textH = Math.round(fontSize * 1.5);
   var textX = x;
   var textY = y - textH;
   if (textY < 0) textY = y; // flip below if too close to top
@@ -380,7 +390,7 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
 
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'middle';
-  ctx.fillText(labelText, textX + 4, textY + textH / 2);
+  ctx.fillText(labelText, textX + textPad, textY + textH / 2);
   ctx.restore();
 
   // Draw resize handles on selected box
@@ -389,13 +399,12 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
     var handleNames = Object.keys(handles);
     for (var i = 0; i < handleNames.length; i++) {
       var hp = handles[handleNames[i]];
-      var hs = ANNOTATION_HANDLE_SIZE;
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.fillRect(hp.x - hs / 2, hp.y - hs / 2, hs, hs);
-      ctx.strokeRect(hp.x - hs / 2, hp.y - hs / 2, hs, hs);
+      ctx.lineWidth = Math.max(1, Math.round(scale));
+      ctx.fillRect(hp.x - handleSize / 2, hp.y - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(hp.x - handleSize / 2, hp.y - handleSize / 2, handleSize, handleSize);
       ctx.restore();
     }
   }
@@ -881,6 +890,7 @@ AnnotationEditor.prototype._addAnnotation = function(label, x1, y1, x2, y2) {
  */
 AnnotationEditor.prototype.deleteAnnotation = function(index) {
   if (index < 0 || index >= this.annotations.length) return;
+  this._pushUndo();
   this.annotations.splice(index, 1);
   if (this.selectedIndex >= this.annotations.length) {
     this.selectedIndex = this.annotations.length - 1;
@@ -893,6 +903,30 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
   this.dirty = true;
   this._updateSidebar();
   this._render();
+
+  // If no annotations left, remove from training set
+  if (this.annotations.length === 0 && this.currentFrameId) {
+    var self = this;
+    $j.ajax({
+      url: thisUrl + '?request=training&action=delete',
+      method: 'POST',
+      data: {eid: this.eventId, fid: this.currentFrameId},
+      dataType: 'json'
+    }).done(function(data) {
+      var resp = data.response || data;
+      self.dirty = false;
+      self._setStatus(
+          self.translations.AnnotationsRemoved || 'Annotation removed from training set',
+          'success'
+      );
+      if (resp.stats) {
+        self.trainingStats = resp.stats;
+        self._renderStats();
+      }
+    }).fail(function(jqxhr) {
+      logAjaxFail(jqxhr);
+    });
+  }
 };
 
 /**
@@ -1062,10 +1096,8 @@ AnnotationEditor.prototype._renderStats = function() {
 
   container.empty();
 
-  if (!this.trainingStats) return;
-
-  var stats = this.trainingStats;
   var t = this.translations;
+  var stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
 
   var header = $j('<div>')
       .addClass('annotation-stats-header')
@@ -1073,56 +1105,40 @@ AnnotationEditor.prototype._renderStats = function() {
   container.append(header);
 
   var dl = $j('<dl>');
-
-  // Total annotated images
   dl.append(
       $j('<dt>').text(t.TotalAnnotatedImages || 'Total annotated images'),
-      $j('<dd>').text(stats.total_images || 0)
+      $j('<dd>').text(stats.total_images)
   );
-
-  // Total classes
-  dl.append(
-      $j('<dt>').text(t.TotalClasses || 'Total classes'),
-      $j('<dd>').text(stats.total_classes || 0)
-  );
-
   container.append(dl);
 
-  // Per-class counts
-  if (stats.images_per_class) {
-    var perClassLabel = t.ImagesPerClass || 'Images per class';
-    container.append($j('<dt>').text(perClassLabel));
+  // Per-class image counts — the main info
+  var classData = stats.images_per_class || {};
+  var classNames = Object.keys(classData);
+
+  if (classNames.length > 0) {
+    container.append($j('<div>').css({'font-weight': '600', 'margin': '6px 0 4px'}).text(t.ImagesPerClass || 'Images per class'));
 
     var hasLowClass = false;
-    var classNames = Object.keys(stats.images_per_class);
     for (var i = 0; i < classNames.length; i++) {
       var className = classNames[i];
-      var count = stats.images_per_class[className];
+      var count = classData[className];
       var row = $j('<div>').addClass('class-count');
       row.append($j('<span>').text(className));
       row.append($j('<span>').addClass('count').text(count));
       container.append(row);
-
-      if (count < 50) {
-        hasLowClass = true;
-      }
+      if (count < 50) hasLowClass = true;
     }
 
     // Training guidance
     var guidance = $j('<div>').addClass('training-guidance');
-    if (hasLowClass) {
-      guidance.text(
-          t.TrainingGuidance ||
-          'Training is generally possible with at least 50-100 images per class.'
-      );
-    } else {
-      guidance.addClass('training-ready');
-      guidance.text(
-          t.TrainingGuidance ||
-          'Training is generally possible with at least 50-100 images per class.'
-      );
-    }
+    if (!hasLowClass) guidance.addClass('training-ready');
+    guidance.text(
+        t.TrainingGuidance ||
+        'Training is generally possible with at least 50-100 images per class. For best results, aim for 200+ images per class.'
+    );
     container.append(guidance);
+  } else {
+    container.append($j('<div>').css({'color': '#6c757d', 'padding': '4px 0'}).text('No training data yet. Save annotations to build your dataset.'));
   }
 };
 
@@ -1214,6 +1230,10 @@ AnnotationEditor.prototype.save = function() {
             self.translations.AnnotationSaved || 'Annotation saved to training set',
             'success'
         );
+        $j('#annotationSaveBtn').removeClass('btn-success').addClass('btn-saved');
+        setTimeout(function() {
+          $j('#annotationSaveBtn').removeClass('btn-saved').addClass('btn-success');
+        }, 3000);
 
         // Update stats from save response
         if (resp.stats) {

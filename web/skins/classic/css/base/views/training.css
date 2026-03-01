@@ -294,20 +294,28 @@
 .annotation-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #dee2e6;
+  flex-wrap: nowrap;
 }
 
-.annotation-actions .label-select {
-  width: 150px;
+.annotation-actions .btn {
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .annotation-status {
   margin-left: auto;
-  font-size: 1rem;
+  font-size: 0.8rem;
   color: #28a745;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .annotation-status.error {

@@ -485,8 +485,6 @@ if ($video_tag) {
           </div>
 
           <div class="annotation-actions">
-            <select id="annotationLabelSelect" class="form-control form-control-sm label-select" disabled>
-            </select>
             <button id="annotationDetectBtn" class="btn btn-warning btn-sm" style="display:none" title="<?php echo translate('DetectObjects') ?>"><i class="fa fa-search"></i> <?php echo translate('Detect') ?></button>
             <button id="annotationDeleteBtn" class="btn btn-danger btn-sm"><?php echo translate('DeleteBox') ?></button>
             <button id="annotationSaveBtn" class="btn btn-success btn-sm"><?php echo translate('SaveToTrainingSet') ?></button>

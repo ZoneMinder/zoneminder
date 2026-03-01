@@ -354,8 +354,7 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
   if (ann.pending) {
     color = '#ff8c00'; // orange for unconfirmed detections
   } else {
-    var colorIndex = this._getColorIndex(ann.label);
-    color = ANNOTATION_COLORS[colorIndex % ANNOTATION_COLORS.length];
+    color = '#28a745'; // green for accepted/manual annotations
   }
 
   var x = Math.min(ann.x1, ann.x2);
@@ -1149,7 +1148,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
         .toggleClass('selected', isSelected)
         .attr('data-index', i);
 
-    var swatchColor = ann.pending ? '#ff8c00' : color;
+    var swatchColor = ann.pending ? '#ff8c00' : '#28a745';
     var swatch = $j('<span>')
         .addClass('color-swatch')
         .css('background-color', swatchColor);

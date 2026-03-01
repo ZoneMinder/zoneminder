@@ -4053,6 +4053,7 @@ our @options = (
       label files are stored. The directory will be created
       automatically if it does not exist. Uses Roboflow-compatible
       YOLO directory layout (images/all/, labels/all/, data.yaml).
+      If left empty, defaults to a training folder alongside your events storage.
       `,
     type        => $types{string},
     category    => 'config',

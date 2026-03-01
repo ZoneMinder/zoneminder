@@ -60,10 +60,26 @@
   overflow: hidden;
 }
 
+.canvas-loading-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.canvas-loading-overlay .fa-spinner {
+  font-size: 2.5rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .annotation-canvas-container canvas {
   display: block;
   width: 100%;
   cursor: crosshair;
+  transition: filter 0.2s ease, opacity 0.2s ease;
 }
 
 /* Cursor modes set by JS based on interaction state */
@@ -315,6 +331,7 @@
   padding: 4px 10px;
   border: none;
   background: #fff;
+  text-transform: none;
   color: #212529;
   text-align: left;
   cursor: pointer;
@@ -683,6 +700,10 @@
 
 .annotation-status.saving {
   color: #6c757d;
+}
+
+.annotation-status.info {
+  color: #0d6efd;
 }
 
 .btn-saved {

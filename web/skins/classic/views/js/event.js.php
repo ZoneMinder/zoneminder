@@ -149,6 +149,8 @@ var trainingTranslations = {
   "TrainingNoData": "<?php echo translate('TrainingNoData') ?>",
   "TrainingNoFiles": "<?php echo translate('TrainingNoFiles') ?>",
   "TrainingNoFrameLoaded": "<?php echo translate('TrainingNoFrameLoaded') ?>",
+  "TrainingPendingDiscard": "<?php echo translate('TrainingPendingDiscard') ?>",
+  "TrainingPendingOnly": "<?php echo translate('TrainingPendingOnly') ?>",
   "TrainingPreviewUnavailable": "<?php echo translate('TrainingPreviewUnavailable') ?>",
   "TrainingRemoved": "<?php echo translate('TrainingRemoved') ?>",
   "TrainingSave": "<?php echo translate('TrainingSave') ?>",
@@ -278,5 +280,26 @@ $j(document).ready(function initAnnotationEditor() {
   $j('#annotationBrowseFramesBtn').on('click', function() {
     annotationEditor.browseFrames();
   });
+
+  // Intercept event navigation so dirty-check happens BEFORE
+  // the stream is torn down.  The prev/next buttons call
+  // streamPrev/streamNext directly (via data-on-click-true),
+  // which kill the video stream before location.replace().
+  // If beforeunload fires and the user cancels, the stream is
+  // already dead, leaving a blank page.  By wrapping at the
+  // streamPrev/streamNext level we prompt before any teardown.
+  var _wrapNav = function(fnName) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    window[fnName] = function() {
+      if (annotationEditor.dirty) {
+        if (!confirm(trainingTranslations.TrainingUnsaved)) return;
+        annotationEditor.dirty = false;
+      }
+      orig.apply(this, arguments);
+    };
+  };
+  _wrapNav('streamPrev');
+  _wrapNav('streamNext');
 });
 <?php } ?>

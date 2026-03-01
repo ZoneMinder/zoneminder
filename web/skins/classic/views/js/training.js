@@ -139,14 +139,25 @@ AnnotationEditor.prototype.open = function() {
   $j('#annotationPanel').addClass('open');
   $j('#eventVideo').hide();
 
-  // Warn on page navigation if unsaved annotations exist
-  this._beforeUnloadHandler = function(e) {
-    if (self.dirty) {
+  // Guard against navigating away with unsaved annotations.
+  // We intercept link clicks directly instead of using beforeunload,
+  // because ZM's global beforeunload handler (skin.js) hides
+  // #content as a page-leave animation before the browser dialog
+  // appears, causing a blank screen if the user cancels.
+  this._navGuardHandler = function(e) {
+    if (!self.dirty) return;
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+    var msg = self.translations.TrainingUnsaved ||
+        'You have unsaved annotations. Discard changes?';
+    if (!confirm(msg)) {
       e.preventDefault();
-      e.returnValue = '';
+      e.stopPropagation();
+    } else {
+      self.dirty = false;
     }
   };
-  window.addEventListener('beforeunload', this._beforeUnloadHandler);
+  document.addEventListener('click', this._navGuardHandler, true);
 
   // Load class labels and detection data in parallel
   this._loadLabels();
@@ -204,9 +215,9 @@ AnnotationEditor.prototype.close = function() {
   this._hideLabelPicker();
 
   // Remove page-leave guard
-  if (this._beforeUnloadHandler) {
-    window.removeEventListener('beforeunload', this._beforeUnloadHandler);
-    this._beforeUnloadHandler = null;
+  if (this._navGuardHandler) {
+    document.removeEventListener('click', this._navGuardHandler, true);
+    this._navGuardHandler = null;
   }
 
   // Reset state
@@ -280,6 +291,19 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   this.currentFrameId = frameId;
   this._updateFrameInfo();
 
+  // Blur the current canvas and show spinner while the new frame loads
+  var container = this.canvas ? this.canvas.parentNode : null;
+  if (this.canvas) {
+    this.canvas.style.filter = 'blur(10px)';
+    this.canvas.style.opacity = '0.6';
+  }
+  if (container && !container.querySelector('.canvas-loading-overlay')) {
+    var overlay = document.createElement('div');
+    overlay.className = 'canvas-loading-overlay';
+    overlay.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    container.appendChild(overlay);
+  }
+
   var img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = function() {
@@ -291,9 +315,19 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
     self.canvas.width = img.naturalWidth;
     self.canvas.height = img.naturalHeight;
 
+    self.canvas.style.filter = '';
+    self.canvas.style.opacity = '';
+    var spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    if (spinner) spinner.remove();
     self._render();
   };
   img.onerror = function() {
+    if (self.canvas) {
+      self.canvas.style.filter = '';
+      self.canvas.style.opacity = '';
+    }
+    var spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    if (spinner) spinner.remove();
     // If numeric frame exceeds total, clamp to max and retry
     var num = parseInt(frameId, 10);
     if (!isNaN(num) && self.totalFrames > 0 && num > self.totalFrames) {
@@ -1041,7 +1075,7 @@ AnnotationEditor.prototype.detect = function() {
 
   this._setStatus(
       this.translations.TrainingDetectRunning || 'Running detection...',
-      'saving'
+      'info'
   );
 
   $j('#annotationDetectBtn').prop('disabled', true);
@@ -2082,13 +2116,28 @@ AnnotationEditor.prototype.save = function() {
 
   // Only save accepted (non-pending) annotations
   var accepted = [];
+  var pendingCount = 0;
   for (var i = 0; i < this.annotations.length; i++) {
-    if (!this.annotations[i].pending) {
+    if (this.annotations[i].pending) {
+      pendingCount++;
+    } else {
       accepted.push(this.annotations[i]);
     }
   }
 
-  if (accepted.length === 0) {
+  if (pendingCount > 0 && accepted.length === 0) {
+    // All boxes are unconfirmed — user probably forgot to accept them
+    var msg = (this.translations.TrainingPendingOnly ||
+        'You have %1 unaccepted detection(s) (orange boxes). Accept them first, or save as a background image with no objects?')
+        .replace('%1', pendingCount);
+    if (!confirm(msg)) return;
+  } else if (pendingCount > 0) {
+    // Mix of accepted and unconfirmed boxes
+    var msg = (this.translations.TrainingPendingDiscard ||
+        '%1 unaccepted detection(s) (orange boxes) will not be saved. Continue?')
+        .replace('%1', pendingCount);
+    if (!confirm(msg)) return;
+  } else if (accepted.length === 0) {
     var msg = this.translations.TrainingBackgroundConfirm ||
         'No objects marked. Save as a background image (no objects)?\n\nBackground images help the model learn to reduce false positives.';
     if (!confirm(msg)) return;
@@ -2152,12 +2201,12 @@ AnnotationEditor.prototype._setStatus = function(msg, type) {
   if (!el.length) return;
 
   el.text(msg)
-      .removeClass('error saving')
-      .addClass(type === 'error' ? 'error' : (type === 'saving' ? 'saving' : ''));
+      .removeClass('error saving info')
+      .addClass(type || '');
 
   // Auto-clear all messages after a delay
   setTimeout(function() {
-    el.text('').removeClass('error saving');
+    el.text('').removeClass('error saving info');
   }, 8000);
 };
 

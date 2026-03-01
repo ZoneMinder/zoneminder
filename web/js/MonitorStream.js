@@ -520,6 +520,9 @@ function MonitorStream(monitorData) {
             hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
           }
           */
+          this.element.onplay = (event) => {
+            getTracksFromStream(this); //HLS
+          }
           if (Hls.isSupported()) {
             this.hls = new Hls({
               maxBufferLength: 10,
@@ -528,7 +531,9 @@ function MonitorStream(monitorData) {
             this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
-              getTracksFromStream(this); //HLS
+            }, this);
+            this.hls.on(Hls.Events.BUFFER_APPENDED, function(event, data) {
+
             }, this);
             this.hls.loadSource(hlsUrl.href);
             this.hls.attachMedia(stream);

@@ -666,6 +666,7 @@ $SLANG = array(
     'TrainingDeleteBox'     => 'Delete Box',
     'TrainingDeleteFailed'  => 'Failed to delete',
     'TrainingDetect'        => 'Detect',
+    'TrainingEditAnnotation' => 'Edit annotation',
     'TrainingDetectFailed'  => 'Detection failed',
     'TrainingDetectNoResults' => 'No objects detected in this frame.',
     'TrainingDetectNoScript' => 'No detection script configured. Set ZM_TRAINING_DETECT_SCRIPT in Options.',

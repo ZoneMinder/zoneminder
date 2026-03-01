@@ -196,9 +196,10 @@ $j(document).ready(function initAnnotationEditor() {
     }
   });
 
-  // Auto-open annotation panel if linked with ?annotate=1
+  // Auto-open annotation panel if linked with ?annotate=1&frame=FRAME_ID
   if (new URLSearchParams(window.location.search).get('annotate') === '1') {
-    annotationEditor.open();
+    var urlFrame = new URLSearchParams(window.location.search).get('frame');
+    annotationEditor.open(urlFrame || undefined);
   }
 
   $j('#annotationSaveBtn').on('click', function() {

@@ -132,7 +132,7 @@ AnnotationEditor.prototype.init = function() {
 /**
  * Open the annotation panel: load detection data, show panel.
  */
-AnnotationEditor.prototype.open = function() {
+AnnotationEditor.prototype.open = function(initialFrame) {
   var self = this;
 
   $j('#annotationPanel').addClass('open');
@@ -190,8 +190,8 @@ AnnotationEditor.prototype.open = function() {
           self._loadDetectionData(resp.detectionData);
         }
 
-        var defaultFrame = resp.defaultFrameId || 'alarm';
-        self._loadFrameImage(defaultFrame);
+        var startFrame = initialFrame || resp.defaultFrameId || 'alarm';
+        self._loadFrameImage(startFrame);
       })
       .fail(function(jqxhr) {
         self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
@@ -1811,13 +1811,34 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
     var pvHeader = $j('<div>').addClass('browse-preview-header');
     pvHeader.append($j('<span>').text(file.name));
+
+    var pvActions = $j('<span>').addClass('browse-preview-actions');
+
+    // Edit button: parse event_{eid}_frame_{fid} from filename to navigate
+    var stem = file.name.replace(/\.[^.]+$/, '');
+    var match = stem.match(/^event_(\d+)_frame_(.+)$/);
+    if (match) {
+      var editBtn = $j('<button>')
+          .addClass('browse-edit-btn')
+          .attr('title', t.TrainingEditAnnotation || 'Edit annotation')
+          .html('<i class="fa fa-pencil"></i>');
+      editBtn.on('click', function() {
+        var eid = match[1];
+        var fid = match[2];
+        window.location.assign('?view=event&eid=' + eid +
+            '&annotate=1&frame=' + encodeURIComponent(fid));
+      });
+      pvActions.append(editBtn);
+    }
+
     var pvClose = $j('<button>').addClass('preview-close').html('&times;');
     pvClose.on('click', function() {
       previewArea.hide();
       filesArea.find('.browse-file-row').removeClass('selected');
       selectedFileName = null;
     });
-    pvHeader.append(pvClose);
+    pvActions.append(pvClose);
+    pvHeader.append(pvActions);
     previewArea.append(pvHeader);
 
     var pvContent = $j('<div>').addClass('browse-preview-content');

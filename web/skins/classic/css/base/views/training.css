@@ -639,6 +639,29 @@
   border-bottom: 1px solid #dee2e6;
 }
 
+.browse-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browse-edit-btn {
+  background: none;
+  border: 1px solid #6c757d;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #495057;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+
+.browse-edit-btn:hover {
+  color: #fff;
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
 .browse-preview-header .preview-close {
   background: none;
   border: none;

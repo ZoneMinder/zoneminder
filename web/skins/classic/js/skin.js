@@ -2796,7 +2796,7 @@ async function getTracksFromStream(videoFeedStream) {
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
 
-  if (stream) {
+  if (stream && stream.active) {
     videoFeedStream.audioTrack = stream.getAudioTracks()[0];
     videoFeedStream.videoTrack = stream.getVideoTracks()[0];
     videoFeedStream.mediaStream = stream;

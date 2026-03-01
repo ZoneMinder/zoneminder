@@ -1271,6 +1271,12 @@ AnnotationEditor.prototype._renderStats = function() {
       $j('<dt>').text(t.TotalAnnotatedImages || 'Total annotated images'),
       $j('<dd>').text(stats.total_images)
   );
+  if (stats.background_images > 0) {
+    dl.append(
+        $j('<dt>').text('Background images (no objects)'),
+        $j('<dd>').text(stats.background_images)
+    );
+  }
   container.append(dl);
 
   // Per-class image counts — the main info
@@ -1376,8 +1382,9 @@ AnnotationEditor.prototype.save = function() {
   }
 
   if (accepted.length === 0) {
-    this._setStatus('No accepted annotations to save. Accept detections first.', 'error');
-    return;
+    var msg = 'No objects marked. Save as a background image (no objects)?\n\n' +
+        'Background images help the model learn to reduce false positives.';
+    if (!confirm(msg)) return;
   }
 
   this._setStatus(this.translations.Saving || 'Saving...', 'saving');

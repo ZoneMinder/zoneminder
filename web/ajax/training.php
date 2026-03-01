@@ -108,10 +108,14 @@ function getTrainingStats() {
   $files = glob($labelsDir.'/*.txt');
   $annotatedCount = 0;
 
+  $backgroundCount = 0;
   foreach ($files as $file) {
     $seenClasses = [];
     $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if (empty($lines)) continue; // skip empty label files
+    if (empty($lines)) {
+      $backgroundCount++;
+      continue;
+    }
     $annotatedCount++;
     foreach ($lines as $line) {
       $parts = explode(' ', trim($line));
@@ -127,6 +131,7 @@ function getTrainingStats() {
     }
   }
   $stats['total_images'] = $annotatedCount;
+  $stats['background_images'] = $backgroundCount;
 
   foreach ($labels as $i => $label) {
     $stats['images_per_class'][$label] = $classCounts[$i];
@@ -229,10 +234,6 @@ switch ($_REQUEST['action']) {
       ajaxError('Invalid annotations data');
       break;
     }
-    if (empty($annotations)) {
-      ajaxError('No annotations to save. Draw at least one bounding box.');
-      break;
-    }
 
     $imgWidth = intval($_REQUEST['width']);
     $imgHeight = intval($_REQUEST['height']);
@@ -279,7 +280,7 @@ switch ($_REQUEST['action']) {
       }
     }
 
-    // Write YOLO label file
+    // Write YOLO label file (empty file = background/negative image)
     $labelLines = [];
     foreach ($annotations as $ann) {
       $classId = array_search($ann['label'], $labels);
@@ -291,12 +292,15 @@ switch ($_REQUEST['action']) {
       $labelLines[] = sprintf('%d %.6f %.6f %.6f %.6f', $classId, $cx, $cy, $w, $h);
     }
     $dstLabel = $base.'/labels/all/'.$stem.'.txt';
-    file_put_contents($dstLabel, implode("\n", $labelLines)."\n");
+    file_put_contents($dstLabel, empty($labelLines) ? '' : implode("\n", $labelLines)."\n");
 
-    // Write data.yaml with the current label list
-    writeDataYaml($labels);
+    // Write data.yaml with the current label list (only if we have labels)
+    if (!empty($labels)) {
+      writeDataYaml($labels);
+    }
 
-    ZM\Info('Saved '.count($annotations).' training annotations for event '.$eid.' frame '.$fid);
+    $savedType = empty($annotations) ? 'background' : count($annotations).' annotation(s)';
+    ZM\Info('Saved '.$savedType.' for training event '.$eid.' frame '.$fid);
 
     $stats = getTrainingStats();
 

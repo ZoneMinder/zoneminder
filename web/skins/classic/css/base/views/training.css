@@ -367,6 +367,14 @@
   text-align: left;
 }
 
+.annotation-hint {
+  font-size: 0.7rem;
+  color: #999;
+  font-style: italic;
+  padding: 2px 0;
+  text-align: left;
+}
+
 /* Bottom action bar */
 .annotation-actions {
   display: flex;

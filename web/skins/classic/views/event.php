@@ -495,6 +495,7 @@ if ($video_tag) {
           </div>
 
           <div id="annotationFrameInfo" class="annotation-frame-info"></div>
+          <div class="annotation-hint"><?php echo translate('TrainingShiftDrawHint') ?></div>
 
           <div class="annotation-actions">
             <button id="annotationDetectBtn" class="btn btn-warning btn-sm" style="display:none" title="<?php echo translate('TrainingDetectObjects') ?>"><i class="fa fa-search"></i> <?php echo translate('TrainingDetect') ?></button>

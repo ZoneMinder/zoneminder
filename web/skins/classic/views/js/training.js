@@ -550,29 +550,32 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
 
   var pos = this._mouseToImage(e);
 
-  // Check resize handles on selected box first
-  if (this.selectedIndex >= 0) {
-    var handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
-    if (handle) {
+  // Hold Shift to force draw mode (draw inside existing boxes)
+  if (!e.shiftKey) {
+    // Check resize handles on selected box first
+    if (this.selectedIndex >= 0) {
+      var handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
+      if (handle) {
+        this._pushUndo();
+        this.isResizing = true;
+        this.resizeHandle = handle;
+        return;
+      }
+    }
+
+    // Check if clicking on any box
+    var hitIndex = this._hitTestBoxes(pos);
+    if (hitIndex >= 0) {
       this._pushUndo();
-      this.isResizing = true;
-      this.resizeHandle = handle;
+      this.selectAnnotation(hitIndex);
+      this.isDragging = true;
+      var ann = this.annotations[hitIndex];
+      this.dragOffset = {
+        x: pos.x - Math.min(ann.x1, ann.x2),
+        y: pos.y - Math.min(ann.y1, ann.y2)
+      };
       return;
     }
-  }
-
-  // Check if clicking on any box
-  var hitIndex = this._hitTestBoxes(pos);
-  if (hitIndex >= 0) {
-    this._pushUndo();
-    this.selectAnnotation(hitIndex);
-    this.isDragging = true;
-    var ann = this.annotations[hitIndex];
-    this.dragOffset = {
-      x: pos.x - Math.min(ann.x1, ann.x2),
-      y: pos.y - Math.min(ann.y1, ann.y2)
-    };
-    return;
   }
 
   // Deselect and start drawing
@@ -625,7 +628,7 @@ AnnotationEditor.prototype._onMouseMove = function(e) {
   }
 
   // Update cursor based on what's under the mouse
-  this._updateCursor(pos);
+  this._updateCursor(pos, e);
 };
 
 /**
@@ -771,8 +774,14 @@ AnnotationEditor.prototype._doResize = function(pos) {
  * Update the cursor style based on position over handles or boxes.
  * @param {{x: number, y: number}} pos
  */
-AnnotationEditor.prototype._updateCursor = function(pos) {
+AnnotationEditor.prototype._updateCursor = function(pos, e) {
   var cursorClass = '';
+
+  // Shift held = force draw mode cursor
+  if (e && e.shiftKey) {
+    this._setCursorClass('');
+    return;
+  }
 
   // Check handles on selected box
   if (this.selectedIndex >= 0) {

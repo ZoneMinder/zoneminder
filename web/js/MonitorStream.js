@@ -800,7 +800,7 @@ function MonitorStream(monitorData) {
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
-      this.element.play().catch(er => {
+      this.element.play().catch((er) => {
         if (er.name === 'NotAllowedError' && !this.element.muted) {
           this.element.muted = true;
           this.play();

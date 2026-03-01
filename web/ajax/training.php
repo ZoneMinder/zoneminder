@@ -20,9 +20,9 @@ function getTrainingDataDir() {
   if (defined('ZM_TRAINING_DATA_DIR') && ZM_TRAINING_DATA_DIR != '') {
     return ZM_TRAINING_DATA_DIR;
   }
-  // Fall back to the same default as ConfigData.pm.in (@ZM_CACHEDIR@/training)
-  if (defined('ZM_DIR_CACHE') && ZM_DIR_CACHE != '') {
-    return ZM_DIR_CACHE . '/training';
+  // Fall back to a training folder inside the content directory (alongside events)
+  if (defined('ZM_DIR_EVENTS') && ZM_DIR_EVENTS != '') {
+    return dirname(ZM_DIR_EVENTS) . '/training';
   }
   return '';
 }

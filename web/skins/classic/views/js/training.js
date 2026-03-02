@@ -218,6 +218,12 @@ AnnotationEditor.prototype.close = function() {
   $j('#eventVideo').show();
   this._hideLabelPicker();
 
+  // Close inline browse panel if open
+  if (this._browseInline) {
+    this._browseInline.remove();
+    this._browseInline = null;
+  }
+
   // Remove page-leave guard
   if (this._navGuardHandler) {
     document.removeEventListener('click', this._navGuardHandler, true);
@@ -416,6 +422,77 @@ AnnotationEditor.prototype.switchFrame = function(frameId) {
 
   this._loadFrameImage(frameId);
   this._updateSidebar();
+};
+
+/**
+ * Switch to a different event without a full page reload.
+ * Reloads event metadata, frame list, and loads the given frame.
+ */
+AnnotationEditor.prototype.switchEvent = function(newEid, frameId) {
+  if (this.dirty) {
+    var msg = this.translations.TrainingUnsaved ||
+        'You have unsaved annotations. Discard changes?';
+    if (!confirm(msg)) return;
+  }
+
+  var self = this;
+  this.eventId = String(newEid);
+  this.annotations = [];
+  this.selectedIndex = -1;
+  this.dirty = false;
+  this.undoStack = [];
+  this._hideLabelPicker();
+
+  // Update page title and URL without reload
+  var titleEl = document.querySelector('.training-view-title');
+  if (titleEl) titleEl.innerHTML = (this.translations.ObjectTraining || 'Object Training') +
+      ' &mdash; Event ' + newEid;
+  document.title = (this.translations.ObjectTraining || 'Object Training') +
+      ' - ' + newEid;
+  var backBtn = document.getElementById('backToEventBtn');
+  if (backBtn) backBtn.href = '?view=event&eid=' + newEid;
+  history.replaceState(null, '', '?view=training&eid=' + newEid +
+      (frameId ? '&frame=' + encodeURIComponent(frameId) : ''));
+
+  // Reload event data
+  $j.getJSON(thisUrl + '?request=training&action=load&eid=' + newEid)
+      .done(function(data) {
+        if (data.result === 'Error') {
+          self._setStatus(data.message, 'error');
+          return;
+        }
+        var resp = data.response || data;
+        self.availableFrames = resp.availableFrames || [];
+        self.totalFrames = resp.totalFrames || 0;
+        self.eventPath = resp.eventPath || '';
+        self.imageNaturalW = resp.width || 0;
+        self.imageNaturalH = resp.height || 0;
+        self.monitorId = resp.monitorId || '';
+        self.hasDetectScript = resp.hasDetectScript || false;
+
+        if (self.hasDetectScript) {
+          $j('#annotationDetectBtn').show();
+        } else {
+          $j('#annotationDetectBtn').hide();
+        }
+
+        self._updateFrameSelector(self.availableFrames);
+
+        if (resp.detectionData) {
+          self._loadDetectionData(resp.detectionData);
+        }
+
+        var startFrame = frameId || resp.defaultFrameId || 'alarm';
+        self._loadFrameImage(startFrame);
+
+        if (frameId) {
+          self._loadSavedAnnotations(newEid, frameId);
+        }
+      })
+      .fail(function(jqxhr) {
+        self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
+        logAjaxFail(jqxhr);
+      });
 };
 
 /**
@@ -1647,20 +1724,29 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     return ext === 'txt' || ext === 'yaml' || ext === 'yml';
   }
 
-  // Build overlay
-  var overlay = $j('<div>').addClass('training-browse-overlay');
-  var panel = $j('<div>').addClass('training-browse-panel');
+  // Toggle: if inline panel exists, toggle visibility
+  if (this._browseInline) {
+    if (this._browseInline.is(':visible')) {
+      this._browseInline.hide();
+    } else {
+      this._browseInline.show();
+    }
+    return;
+  }
+
+  // Build inline browse panel (first time)
+  var panel = $j('<div>').addClass('training-browse-inline');
 
   // Header
   var header = $j('<div>').addClass('browse-header');
   header.append($j('<span>').text(t.TrainingBrowse || 'Browse Training Data'));
-  var pathSpan = $j('<span>').addClass('browse-path');
-  header.append(pathSpan);
   var browseChanged = false;
 
   var closeBrowse = function() {
-    overlay.remove();
+    panel.hide();
     if (browseChanged) {
+      objectsData = null;
+      backgroundsData = null;
       $j.getJSON(thisUrl + '?request=training&action=status').done(function(data) {
         var resp = data.response || data;
         if (resp.stats) {
@@ -1670,6 +1756,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           self._updateSidebar();
         }
       });
+      browseChanged = false;
     }
   };
 
@@ -1678,7 +1765,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   header.append(closeBtn);
   panel.append(header);
 
-  // Body: two-panel layout
+  // Body: tree + files stacked vertically in inline panel
   var body = $j('<div>').addClass('browse-body');
   var treePanel = $j('<div>').addClass('browse-tree');
   var rightPanel = $j('<div>').addClass('browse-right');
@@ -1694,11 +1781,9 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   // Loading state
   treePanel.html('<div class="browse-empty-msg">' + (t.TrainingLoading || 'Loading...') + '</div>');
 
-  overlay.append(panel);
-  overlay.on('click', function(e) {
-    if (e.target === overlay[0]) closeBrowse();
-  });
-  $j('body').append(overlay);
+  // Insert as first child of annotation workspace
+  $j('.annotation-workspace').prepend(panel);
+  this._browseInline = panel;
 
   // State
   var selectedDirPath = null;
@@ -1871,8 +1956,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       editBtn.on('click', function() {
         var eid = match[1];
         var fid = match[2];
-        window.location.assign('?view=event&eid=' + eid +
-            '&annotate=1&frame=' + encodeURIComponent(fid));
+        self.switchEvent(eid, fid);
       });
       pvActions.append(editBtn);
     }
@@ -2161,8 +2245,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
         cell.on('click', function() {
           if (match) {
-            window.location.assign('?view=event&eid=' + match[1] +
-                '&annotate=1&frame=' + encodeURIComponent(match[2]));
+            self.switchEvent(match[1], match[2]);
           }
         });
 

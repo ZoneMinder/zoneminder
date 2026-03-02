@@ -211,7 +211,7 @@ jobs:
           echo "artifact_name=rpm-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload RPM artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           path: artifacts/rpm
           name: ${{ env.artifact_name }}

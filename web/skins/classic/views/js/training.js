@@ -1520,6 +1520,11 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
           self.classLabels = (resp.stats && resp.stats.class_labels) ? resp.stats.class_labels : [];
           self._renderStats();
           self._setStatus(t.TrainingDataDeleted || 'All training data deleted.');
+          // Sync: refresh browse panel if open
+          if (self._browseState) {
+            self._browseState.invalidateObjects();
+            self._browseState.refreshTree();
+          }
         } else {
           self._setStatus(resp.message || 'Delete failed', 'error');
         }
@@ -1790,6 +1795,25 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   var selectedFileName = null;
   var treeData = null;
 
+  // Expose browse state on editor so save/delete can trigger cross-panel sync
+  var browseState = {
+    getSelectedDirPath: function() { return selectedDirPath; },
+    refreshFiles: function() { if (selectedDirPath !== null) showFiles(selectedDirPath); },
+    invalidateObjects: function() { objectsData = null; backgroundsData = null; browseChanged = true; },
+    refreshTree: function() {
+      $j.getJSON(thisUrl + '?request=training&action=browse')
+          .done(function(data) {
+            var resp = data.response || data;
+            treeData = resp.tree || [];
+            treePanel.empty();
+            buildTreeNodes(treePanel, treeData, 0);
+            injectObjectsFolder(treePanel);
+            if (selectedDirPath !== null) showFiles(selectedDirPath);
+          });
+    }
+  };
+  self._browseState = browseState;
+
   // Collect all files in a node (for dir nodes, list direct file children)
   function getFilesForPath(nodes, path) {
     if (path === null) return [];
@@ -1914,6 +1938,22 @@ AnnotationEditor.prototype.browseTrainingData = function() {
                     previewArea.hide();
                     selectedFileName = null;
                   }
+                  // Sync: if deleted file matches current editor frame, clear annotations
+                  var delStem = file.name.replace(/\.[^.]+$/, '');
+                  var curStem = 'event_' + self.eventId + '_frame_' +
+                      (self.currentFrameId || '');
+                  if (delStem === curStem) {
+                    self.annotations = [];
+                    self.selectedIndex = -1;
+                    self.dirty = false;
+                    self._updateSidebar();
+                    self._render();
+                  }
+                  // Always refresh stats after delete
+                  self._loadStats();
+                  // Invalidate objects cache
+                  objectsData = null;
+                  backgroundsData = null;
                   // Re-render current directory
                   showFiles(selectedDirPath);
                 })
@@ -2521,6 +2561,12 @@ AnnotationEditor.prototype.save = function() {
         if (resp.stats && resp.stats.class_labels) {
           self.classLabels = resp.stats.class_labels;
           self._updateLabelDropdown();
+        }
+
+        // Sync: refresh browse panel if open
+        if (self._browseState) {
+          self._browseState.invalidateObjects();
+          self._browseState.refreshTree();
         }
       })
       .fail(function(jqxhr) {

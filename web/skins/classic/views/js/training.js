@@ -1987,6 +1987,192 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     }
   }
 
+  // --- Virtual "Objects" folder ---
+  var objectsData = null; // cached browse_objects response
+  var backgroundsData = null; // cached background images
+
+  function injectObjectsFolder(container) {
+    var objectsNode = $j('<div>').addClass('browse-tree-node')
+        .css('padding-left', '8px')
+        .attr('data-path', '__objects__');
+    var icon = $j('<i>').addClass('fa fa-tags');
+    objectsNode.append(icon);
+    objectsNode.append($j('<span>').addClass('tree-label')
+        .text(t.TrainingObjects || 'Objects'));
+
+    var childContainer = $j('<div>').addClass('browse-tree-children').hide();
+
+    // Insert at the top of the tree panel
+    container.prepend(childContainer);
+    container.prepend(objectsNode);
+
+    objectsNode.on('click', function(e) {
+      e.stopPropagation();
+      treePanel.find('.browse-tree-node').removeClass('selected');
+      objectsNode.addClass('selected');
+
+      if (icon.hasClass('fa-tags-open')) {
+        // Collapse
+        icon.removeClass('fa-tags-open');
+        childContainer.hide();
+        return;
+      }
+
+      // Expand
+      icon.addClass('fa-tags-open');
+
+      // Fetch if not cached or data changed
+      if (objectsData && !browseChanged) {
+        renderObjectsChildren(childContainer, objectsData, backgroundsData);
+        childContainer.show();
+        showObjectsSummary(objectsData, backgroundsData);
+        return;
+      }
+
+      childContainer.html('<div style="padding:4px 8px;color:#6c757d;font-size:0.75rem">' +
+          (t.TrainingLoading || 'Loading...') + '</div>').show();
+
+      $j.getJSON(thisUrl + '?request=training&action=browse_objects')
+          .done(function(data) {
+            var resp = data.response || data;
+            objectsData = resp.objects || {};
+            backgroundsData = resp.backgrounds || [];
+            browseChanged = false;
+            renderObjectsChildren(childContainer, objectsData, backgroundsData);
+            showObjectsSummary(objectsData, backgroundsData);
+          })
+          .fail(function() {
+            childContainer.html('<div style="padding:4px 8px;color:#dc3545;font-size:0.75rem">' +
+                (t.TrainingSaveFailed || 'Failed to load') + '</div>');
+          });
+    });
+  }
+
+  function renderObjectsChildren(container, objects, backgrounds) {
+    container.empty();
+    var classNames = Object.keys(objects);
+    var hasBackgrounds = backgrounds && backgrounds.length > 0;
+    if (classNames.length === 0 && !hasBackgrounds) {
+      container.html('<div style="padding:4px 20px;color:#6c757d;font-size:0.75rem">' +
+          (t.TrainingNoObjects || 'No annotated objects yet') + '</div>');
+      return;
+    }
+    for (var ci = 0; ci < classNames.length; ci++) {
+      (function(className) {
+        var items = objects[className];
+        var classNode = $j('<div>').addClass('browse-tree-node')
+            .css('padding-left', '20px');
+        classNode.append($j('<i>').addClass('fa fa-tag'));
+        classNode.append($j('<span>').addClass('tree-label').text(className));
+        classNode.append($j('<span>').addClass('class-count-badge')
+            .text('(' + items.length + ')'));
+        container.append(classNode);
+
+        classNode.on('click', function(e) {
+          e.stopPropagation();
+          treePanel.find('.browse-tree-node').removeClass('selected');
+          classNode.addClass('selected');
+          showObjectThumbnails(className, items);
+        });
+      })(classNames[ci]);
+    }
+
+    // Background images node
+    if (hasBackgrounds) {
+      var bgNode = $j('<div>').addClass('browse-tree-node')
+          .css('padding-left', '20px');
+      bgNode.append($j('<i>').addClass('fa fa-ban'));
+      bgNode.append($j('<span>').addClass('tree-label')
+          .text(t.TrainingBackgroundImages || 'Background images'));
+      bgNode.append($j('<span>').addClass('class-count-badge')
+          .text('(' + backgrounds.length + ')'));
+      container.append(bgNode);
+
+      bgNode.on('click', function(e) {
+        e.stopPropagation();
+        treePanel.find('.browse-tree-node').removeClass('selected');
+        bgNode.addClass('selected');
+        showObjectThumbnails(
+            t.TrainingBackgroundImages || 'Background images', backgrounds);
+      });
+    }
+  }
+
+  function showObjectsSummary(objects, backgrounds) {
+    // Show a summary in the right panel when the top-level Objects node is clicked
+    filesArea.empty();
+    previewArea.hide();
+    var classNames = Object.keys(objects);
+    var totalImages = 0;
+    for (var i = 0; i < classNames.length; i++) {
+      totalImages += objects[classNames[i]].length;
+    }
+    var bgCount = backgrounds ? backgrounds.length : 0;
+    var summary = classNames.length + ' classes, ' + totalImages + ' images';
+    if (bgCount > 0) {
+      summary += ', ' + bgCount + ' background';
+    }
+    var fHeader = $j('<div>').addClass('browse-files-header');
+    fHeader.append($j('<span>').text(t.TrainingObjects || 'Objects'));
+    fHeader.append($j('<span>').addClass('file-count').text(summary));
+    filesArea.append(fHeader);
+
+    if (classNames.length === 0 && bgCount === 0) {
+      filesArea.append($j('<div>').addClass('browse-empty-msg')
+          .text(t.TrainingNoObjects || 'No annotated objects yet'));
+    }
+  }
+
+  function showObjectThumbnails(className, items) {
+    selectedDirPath = null;
+    selectedFileName = null;
+    previewArea.hide();
+    filesArea.empty();
+
+    var fHeader = $j('<div>').addClass('browse-files-header');
+    fHeader.append($j('<span>').text(className));
+    fHeader.append($j('<span>').addClass('file-count')
+        .text(items.length + ' images'));
+    filesArea.append(fHeader);
+
+    if (items.length === 0) {
+      filesArea.append($j('<div>').addClass('browse-empty-msg')
+          .text(t.TrainingNoObjects || 'No annotated objects yet'));
+      return;
+    }
+
+    var grid = $j('<div>').addClass('browse-thumb-grid');
+
+    for (var i = 0; i < items.length; i++) {
+      (function(item) {
+        var cell = $j('<div>').addClass('browse-thumb-cell');
+        var imgUrl = thisUrl + '?request=training&action=browse_file&path=' +
+            encodeURIComponent(item.imgPath);
+        var img = $j('<img>').attr('src', imgUrl).attr('alt', item.stem);
+        cell.append(img);
+
+        // Label: extract event/frame from stem
+        var label = item.stem;
+        var match = item.stem.match(/^event_(\d+)_frame_(.+)$/);
+        if (match) {
+          label = 'E' + match[1] + ' / ' + match[2];
+        }
+        cell.append($j('<div>').addClass('browse-thumb-label').text(label));
+
+        cell.on('click', function() {
+          if (match) {
+            window.location.assign('?view=event&eid=' + match[1] +
+                '&annotate=1&frame=' + encodeURIComponent(match[2]));
+          }
+        });
+
+        grid.append(cell);
+      })(items[i]);
+    }
+
+    filesArea.append(grid);
+  }
+
   // Build tree nodes recursively in the left panel
   function buildTreeNodes(container, nodes, depth) {
     for (var i = 0; i < nodes.length; i++) {
@@ -2076,6 +2262,9 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         }
 
         buildTreeNodes(treePanel, treeData, 0);
+
+        // Inject virtual "Objects" folder at the top of the tree
+        injectObjectsFolder(treePanel);
 
         // Auto-select images/all if it exists, otherwise first dir
         var autoSelect = 'images/all';

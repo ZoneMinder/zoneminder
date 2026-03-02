@@ -148,6 +148,8 @@ var trainingTranslations = {
   "TrainingLoading": "<?php echo translate('TrainingLoading') ?>",
   "TrainingNoData": "<?php echo translate('TrainingNoData') ?>",
   "TrainingNoFiles": "<?php echo translate('TrainingNoFiles') ?>",
+  "TrainingNoObjects": "<?php echo translate('TrainingNoObjects') ?>",
+  "TrainingObjects": "<?php echo translate('TrainingObjects') ?>",
   "TrainingNoFrameLoaded": "<?php echo translate('TrainingNoFrameLoaded') ?>",
   "TrainingPendingDiscard": "<?php echo translate('TrainingPendingDiscard') ?>",
   "TrainingPendingOnly": "<?php echo translate('TrainingPendingOnly') ?>",

@@ -723,6 +723,64 @@
   overflow-y: auto;
 }
 
+/* Objects virtual folder icons */
+.browse-tree-node .fa-tags,
+.browse-tree-node .fa-tag {
+  color: #6f42c1;
+}
+
+.browse-tree-node .fa-ban {
+  color: #6c757d;
+}
+
+/* Thumbnail grid in right panel */
+.browse-thumb-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.browse-thumb-cell {
+  width: 120px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f8f9fa;
+  transition: border-color 0.15s;
+}
+
+.browse-thumb-cell:hover {
+  border-color: #4363d8;
+}
+
+.browse-thumb-cell img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+
+.browse-thumb-label {
+  text-align: center;
+  font-size: 0.7rem;
+  padding: 2px 4px;
+  color: #495057;
+  background: #e9ecef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Class count badge in tree */
+.browse-tree-node .class-count-badge {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-left: 4px;
+}
+
 .browse-empty-msg {
   text-align: center;
   padding: 30px 20px;

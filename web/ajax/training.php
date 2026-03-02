@@ -366,6 +366,55 @@ switch ($action) {
     ]);
     break;
 
+  case 'browse_objects':
+    // Return images grouped by class label for the virtual "Objects" folder
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxResponse(['objects' => new stdClass()]);
+      break;
+    }
+    $labelsDir = $base.'/labels/all';
+    if (!is_dir($labelsDir)) {
+      ajaxResponse(['objects' => new stdClass()]);
+      break;
+    }
+    $labels = getClassLabels();
+    $objects = [];
+    $backgrounds = [];
+    foreach (glob($labelsDir.'/*.txt') as $file) {
+      $stem = pathinfo(basename($file), PATHINFO_FILENAME);
+      $imgPath = 'images/all/'.$stem.'.jpg';
+      if (!file_exists($base.'/'.$imgPath)) continue;
+      $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+      if (empty($lines)) {
+        $backgrounds[] = ['stem' => $stem, 'imgPath' => $imgPath];
+        continue;
+      }
+      $seenClasses = [];
+      foreach ($lines as $line) {
+        $parts = preg_split('/\s+/', trim($line));
+        if (count($parts) >= 5) {
+          $classId = intval($parts[0]);
+          if (!isset($seenClasses[$classId]) && isset($labels[$classId])) {
+            $seenClasses[$classId] = true;
+            $className = $labels[$classId];
+            if (!isset($objects[$className])) $objects[$className] = [];
+            $objects[$className][] = ['stem' => $stem, 'imgPath' => $imgPath];
+          }
+        }
+      }
+    }
+    ksort($objects);
+    ajaxResponse([
+      'objects' => empty($objects) ? new stdClass() : $objects,
+      'backgrounds' => $backgrounds,
+    ]);
+    break;
+
   case 'browse_file':
     // Serve an individual file from the training directory
     if (!canView('Events')) {

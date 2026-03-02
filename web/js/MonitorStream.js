@@ -1485,10 +1485,6 @@ function MonitorStream(monitorData) {
     // We correct the lag from real time. Relevant for long viewing and network problems.
     //const videoEl = document.getElementById("liveStream" + this.id);
     if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-      if (this.streamStartTime === 0) {
-        console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`);
-        return;
-      }
       const videoElCurrentTime = videoEl.currentTime; // Current time of playback
       const currentTime = (Date.now() / 1000);
       const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
@@ -1498,6 +1494,10 @@ function MonitorStream(monitorData) {
         //Possibly with high client CPU load. Cannot be negative.
         this.streamStartTime = currentTime - bufferEndTime;
         delayCurrent = 0;
+      }
+      if (this.streamStartTime === 0) {
+        console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`, this.started, delayCurrent);
+        return;
       }
 
       $j('#delayValue'+this.id).text((delayCurrent != 0) ? delayCurrent: '-');

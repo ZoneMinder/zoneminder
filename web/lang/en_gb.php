@@ -687,6 +687,7 @@ $SLANG = array(
     'TrainingRemoved'       => 'Training annotation removed',
     'TrainingSave'          => 'Save for Training',
     'TrainingSaved'         => 'Training annotation saved',
+    'TrainingSavedLoaded'   => 'saved annotation(s) loaded',
     'TrainingShiftDrawHint' => 'Hold Shift to draw a box inside another box',
     'TrainingSaveFailed'    => 'Save failed',
     'TrainingSaving'        => 'Saving...',

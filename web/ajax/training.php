@@ -270,6 +270,64 @@ switch ($action) {
     ]);
     break;
 
+  case 'load_saved':
+    // Load previously saved annotations for an event+frame from training data
+    if (!canView('Events')) {
+      ajaxError('Insufficient permissions');
+      break;
+    }
+    if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
+      ajaxError('Event ID and Frame ID required');
+      break;
+    }
+    $eid = validCardinal($_REQUEST['eid']);
+    $fid = $_REQUEST['fid'];
+    if (!validFrameId($fid)) {
+      ajaxError('Invalid frame ID');
+      break;
+    }
+    $base = getTrainingDataDir();
+    if ($base === '') {
+      ajaxResponse(['annotations' => []]);
+      break;
+    }
+    $stem = 'event_'.$eid.'_frame_'.$fid;
+    $lblFile = $base.'/labels/all/'.$stem.'.txt';
+    if (!file_exists($lblFile)) {
+      ajaxResponse(['annotations' => []]);
+      break;
+    }
+    $labels = getClassLabels();
+    // Need image dimensions to convert YOLO normalized back to pixels
+    $Event = ZM\Event::find_one(['Id' => $eid]);
+    if (!$Event) {
+      ajaxError('Event not found');
+      break;
+    }
+    $imgW = $Event->Width();
+    $imgH = $Event->Height();
+    $anns = [];
+    $lines = file($lblFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+      $parts = preg_split('/\s+/', trim($line));
+      if (count($parts) < 5) continue;
+      $classId = intval($parts[0]);
+      $cx = floatval($parts[1]);
+      $cy = floatval($parts[2]);
+      $bw = floatval($parts[3]);
+      $bh = floatval($parts[4]);
+      $label = isset($labels[$classId]) ? $labels[$classId] : 'class_'.$classId;
+      $anns[] = [
+        'x1' => round(($cx - $bw / 2) * $imgW),
+        'y1' => round(($cy - $bh / 2) * $imgH),
+        'x2' => round(($cx + $bw / 2) * $imgW),
+        'y2' => round(($cy + $bh / 2) * $imgH),
+        'label' => $label,
+      ];
+    }
+    ajaxResponse(['annotations' => $anns]);
+    break;
+
   case 'labels':
     // Return current class label list
     if (!canView('Events')) {

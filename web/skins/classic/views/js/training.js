@@ -192,6 +192,11 @@ AnnotationEditor.prototype.open = function(initialFrame) {
 
         var startFrame = initialFrame || resp.defaultFrameId || 'alarm';
         self._loadFrameImage(startFrame);
+
+        // If opening to a specific frame, load any saved annotations
+        if (initialFrame) {
+          self._loadSavedAnnotations(self.eventId, initialFrame);
+        }
       })
       .fail(function(jqxhr) {
         self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
@@ -338,6 +343,38 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   };
 
   img.src = thisUrl + '?view=image&eid=' + this.eventId + '&fid=' + frameId;
+};
+
+/**
+ * Load previously saved annotations from training data for the given
+ * event+frame. Populates the annotations array and re-renders.
+ */
+AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
+  var self = this;
+  $j.getJSON(thisUrl + '?request=training&action=load_saved&eid=' + eid +
+      '&fid=' + encodeURIComponent(fid))
+      .done(function(data) {
+        var resp = data.response || data;
+        var saved = resp.annotations || [];
+        if (saved.length === 0) return;
+        self.annotations = [];
+        for (var i = 0; i < saved.length; i++) {
+          self.annotations.push({
+            x1: saved[i].x1,
+            y1: saved[i].y1,
+            x2: saved[i].x2,
+            y2: saved[i].y2,
+            label: saved[i].label,
+            pending: false
+          });
+        }
+        self.selectedIndex = -1;
+        self.dirty = false;
+        self._render();
+        self._updateSidebar();
+        self._setStatus(saved.length + ' ' +
+            (self.translations.TrainingSavedLoaded || 'saved annotation(s) loaded'));
+      });
 };
 
 /**

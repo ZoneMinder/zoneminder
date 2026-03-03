@@ -339,53 +339,44 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 // Dynamic enable/disable of config fields based on data-requires attribute.
 // Supports compound requires: "ZM_A=1;ZM_B=hashed" (all conditions must be met).
 document.addEventListener('DOMContentLoaded', function() {
-  var opts = document.getElementById('options');
-  if (!opts) return;
-  var depRows = opts.querySelectorAll('[data-requires]');
+  const $opts = $j('#options');
+  if (!$opts.length) return;
+  const $depRows = $opts.find('[data-requires]');
 
-  // Get current value of a config from the form
   function getVal(name) {
-    var el = opts.querySelector('[name="newConfig[' + name + ']"]');
-    if (!el) return '';
-    if (el.type === 'checkbox') return el.checked ? '1' : '0';
-    if (el.type === 'radio') {
-      var checked = opts.querySelector('[name="newConfig[' + name + ']"]:checked');
-      return checked ? checked.value : '';
-    }
-    return el.value;
+    const $el = $opts.find('[name="newConfig[' + name + ']"]');
+    if (!$el.length) return '';
+    if ($el.is(':checkbox')) return $el.is(':checked') ? '1' : '0';
+    if ($el.is(':radio')) return $el.filter(':checked').val() || '';
+    return $el.val();
   }
 
-  // Evaluate all conditions in a requires string
   function evalRequires(req) {
-    var parts = req.split(';');
-    for (var i = 0; i < parts.length; i++) {
-      var part = parts[i].trim();
+    for (const chunk of req.split(';')) {
+      const part = chunk.trim();
       if (!part) continue;
-      var m = part.match(/^(ZM_\w+)=(.+)$/);
+      const m = part.match(/^(ZM_\w+)=(.+)$/);
       if (!m) return false;
       if (getVal(m[1]) !== m[2]) return false;
     }
     return true;
   }
 
-  // Update disabled state on all dependent rows
   function refresh() {
-    for (var i = 0; i < depRows.length; i++) {
-      var met = evalRequires(depRows[i].getAttribute('data-requires'));
-      var inputs = depRows[i].querySelectorAll('input, select, textarea');
-      for (var j = 0; j < inputs.length; j++) {
-        inputs[j].disabled = !met;
-        if (inputs[j].tagName === 'SELECT' &&
-            inputs[j].classList.contains('chosen') &&
-            window.jQuery) {
-          window.jQuery(inputs[j]).trigger('chosen:updated');
+    $depRows.each(function() {
+      const $row = $j(this);
+      const met = evalRequires($row.attr('data-requires'));
+      $row.find('input, select, textarea').each(function() {
+        const $input = $j(this);
+        $input.prop('disabled', !met);
+        if ($input.is('select.chosen')) {
+          $input.trigger('chosen:updated');
         }
-      }
-    }
+      });
+    });
   }
 
-  // Listen on all inputs that could be a dependency
-  opts.addEventListener('change', refresh);
+  $opts.on('change', refresh);
 });
 </script>
 <?php

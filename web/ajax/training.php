@@ -772,9 +772,13 @@ switch ($action) {
       break;
     }
 
-    $script = ZM_TRAINING_DETECT_SCRIPT;
-    if (!file_exists($script) || !is_executable($script)) {
-      ajaxError('Detection script not found or not executable');
+    // Split config into executable path and optional extra arguments
+    $scriptParts = preg_split('/\s+/', trim(ZM_TRAINING_DETECT_SCRIPT), 2);
+    $scriptPath = $scriptParts[0];
+    $scriptArgs = isset($scriptParts[1]) ? ' '.$scriptParts[1] : '';
+
+    if (!file_exists($scriptPath) || !is_executable($scriptPath)) {
+      ajaxError('Detection script not found or not executable: '.$scriptPath);
       break;
     }
 
@@ -791,7 +795,7 @@ switch ($action) {
     }
 
     $monitorId = $Event->MonitorId();
-    $cmd = escapeshellarg($script).' -f '.escapeshellarg($tmpFile).' -m '.escapeshellarg($monitorId).' 2>&1';
+    $cmd = escapeshellarg($scriptPath).$scriptArgs.' -f '.escapeshellarg($tmpFile).' -m '.escapeshellarg($monitorId).' 2>&1';
     ZM\Debug('Training: running detect command: '.$cmd);
     exec($cmd, $outputLines, $exitCode);
     $output = implode("\n", $outputLines);

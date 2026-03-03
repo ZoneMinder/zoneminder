@@ -71,7 +71,7 @@ getBodyTopHTML();
           <div class="annotation-sidebar-wrap">
             <div class="annotation-sidebar">
               <div class="annotation-sidebar-header">
-                <button id="annotationDeleteAllBtn" class="btn-delete-all" style="display:none" title="<?php echo translate('TrainingDeleteAll') ?>"><i class="fa fa-trash"></i></button>
+                <button id="annotationDeleteAllBtn" class="btn-delete-all" title="<?php echo translate('TrainingDeleteAll') ?>"><i class="fa fa-trash"></i></button>
                 <span><?php echo translate('Objects') ?></span>
                 <button id="annotationBrowseBtn" class="btn-browse" title="<?php echo translate('TrainingBrowse') ?>"><i class="fa fa-folder-open"></i></button>
               </div>

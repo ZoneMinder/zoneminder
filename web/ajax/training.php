@@ -55,7 +55,7 @@ function ensureTrainingDirs() {
  * Validate a frame ID: must be a known special name or a positive integer.
  */
 function validFrameId($fid) {
-  return in_array($fid, ['alarm', 'snapshot']) || ctype_digit($fid);
+  return in_array($fid, ['alarm', 'snapshot']) || (ctype_digit($fid) && intval($fid) > 0);
 }
 
 /**
@@ -88,6 +88,110 @@ function getClassLabels() {
 }
 
 /**
+ * Resolve and validate a relative path within the training directory.
+ * Returns the full filesystem path, or false if invalid/outside base.
+ */
+function resolveTrainingPath($reqPath) {
+  $base = getTrainingDataDir();
+  if ($base === '') return false;
+  $clean = detaintPath($reqPath);
+  $full = realpath($base.'/'.$clean);
+  $baseReal = rtrim(realpath($base), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+  if ($full === false || strpos($full, $baseReal) !== 0 || !is_file($full)) return false;
+  return $full;
+}
+
+/**
+ * Build the stem filename for a training data pair (e.g. "event_123_frame_alarm").
+ */
+function getFrameStem($eid, $fid) {
+  return 'event_'.$eid.'_frame_'.$fid;
+}
+
+/**
+ * Get image and label paths for a training data pair.
+ * Returns ['stem' => ..., 'img' => ..., 'lbl' => ...].
+ */
+function getFramePaths($eid, $fid) {
+  $base = getTrainingDataDir();
+  $stem = getFrameStem($eid, $fid);
+  return [
+    'stem' => $stem,
+    'img' => $base.'/images/all/'.$stem.'.jpg',
+    'lbl' => $base.'/labels/all/'.$stem.'.txt',
+  ];
+}
+
+/**
+ * Rebuild data.yaml from remaining label files, removing unused classes.
+ * If no label files remain, removes data.yaml entirely.
+ */
+function rebuildDataYaml() {
+  $base = getTrainingDataDir();
+  if ($base === '') return;
+  $labelsDir = $base.'/labels/all';
+  $yamlFile = $base.'/data.yaml';
+
+  $currentLabels = getClassLabels();
+  if (empty($currentLabels)) {
+    if (file_exists($yamlFile)) unlink($yamlFile);
+    return;
+  }
+
+  // Scan all remaining label files for used class IDs
+  $usedIds = [];
+  $files = is_dir($labelsDir) ? glob($labelsDir.'/*.txt') : [];
+  foreach ($files as $file) {
+    foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+      $parts = explode(' ', trim($line));
+      if (count($parts) >= 5) {
+        $usedIds[intval($parts[0])] = true;
+      }
+    }
+  }
+
+  if (empty($usedIds)) {
+    // No annotations remain — remove data.yaml
+    if (file_exists($yamlFile)) unlink($yamlFile);
+    return;
+  }
+
+  // Keep only labels for class IDs still in use, re-index from 0
+  $newLabels = [];
+  $idMap = []; // old ID => new ID
+  foreach ($currentLabels as $oldId => $label) {
+    if (isset($usedIds[$oldId])) {
+      $idMap[$oldId] = count($newLabels);
+      $newLabels[] = $label;
+    }
+  }
+
+  // If IDs shifted, rewrite all label files with new IDs
+  if ($idMap !== array_flip(array_keys($usedIds)) || count($newLabels) < count($currentLabels)) {
+    $needsReindex = false;
+    foreach ($idMap as $old => $new) {
+      if ($old !== $new) { $needsReindex = true; break; }
+    }
+    if ($needsReindex) {
+      foreach ($files as $file) {
+        $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $out = [];
+        foreach ($lines as $line) {
+          $parts = explode(' ', trim($line));
+          if (count($parts) >= 5 && isset($idMap[intval($parts[0])])) {
+            $parts[0] = $idMap[intval($parts[0])];
+            $out[] = implode(' ', $parts);
+          }
+        }
+        file_put_contents($file, implode("\n", $out)."\n", LOCK_EX);
+      }
+    }
+  }
+
+  writeDataYaml($newLabels);
+}
+
+/**
  * Write data.yaml in the training directory with the given labels.
  */
 function writeDataYaml($labels) {
@@ -99,7 +203,7 @@ function writeDataYaml($labels) {
   foreach ($labels as $i => $label) {
     $yaml .= "  $i: $label\n";
   }
-  file_put_contents($base.'/data.yaml', $yaml);
+  file_put_contents($base.'/data.yaml', $yaml, LOCK_EX);
   ZM\Debug('Training: wrote data.yaml with '.count($labels).' classes: '.implode(', ', $labels));
 }
 
@@ -193,16 +297,28 @@ function buildTree($dir, $base, $depth = 0) {
   return $entries;
 }
 
-switch ($action) {
+// ---- Consolidated permission and method checks ----
+$readActions = ['load', 'load_saved', 'labels', 'status', 'browse', 'browse_objects', 'browse_file'];
+$writeActions = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
+$postRequired = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
 
-  // ---- Read-only actions (canView) ----
+if (in_array($action, $readActions) && !canView('Events')) {
+  ajaxError('Insufficient permissions for user '.$user->Username());
+  return;
+}
+if (in_array($action, $writeActions) && !canEdit('Events')) {
+  ajaxError('Insufficient permissions for user '.$user->Username());
+  return;
+}
+if (in_array($action, $postRequired) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+  ajaxError('POST method required');
+  return;
+}
+
+switch ($action) {
 
   case 'load':
     // Load detection data for an event
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (empty($_REQUEST['eid'])) {
       ajaxError('Event ID required');
       break;
@@ -272,10 +388,6 @@ switch ($action) {
 
   case 'load_saved':
     // Load previously saved annotations for an event+frame from training data
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
       ajaxError('Event ID and Frame ID required');
       break;
@@ -286,14 +398,8 @@ switch ($action) {
       ajaxError('Invalid frame ID');
       break;
     }
-    $base = getTrainingDataDir();
-    if ($base === '') {
-      ajaxResponse(['annotations' => []]);
-      break;
-    }
-    $stem = 'event_'.$eid.'_frame_'.$fid;
-    $lblFile = $base.'/labels/all/'.$stem.'.txt';
-    if (!file_exists($lblFile)) {
+    $paths = getFramePaths($eid, $fid);
+    if (!file_exists($paths['lbl'])) {
       ajaxResponse(['annotations' => []]);
       break;
     }
@@ -307,7 +413,7 @@ switch ($action) {
     $imgW = $Event->Width();
     $imgH = $Event->Height();
     $anns = [];
-    $lines = file($lblFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $lines = file($paths['lbl'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
       $parts = preg_split('/\s+/', trim($line));
       if (count($parts) < 5) continue;
@@ -330,29 +436,17 @@ switch ($action) {
 
   case 'labels':
     // Return current class label list
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     $labels = getClassLabels();
     ajaxResponse(['labels' => $labels]);
     break;
 
   case 'status':
     // Return training dataset statistics
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     ajaxResponse(['stats' => getTrainingStats()]);
     break;
 
   case 'browse':
     // Return recursive directory tree of training folder
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     $base = getTrainingDataDir();
     if ($base === '') {
       ajaxResponse(['tree' => []]);
@@ -368,10 +462,6 @@ switch ($action) {
 
   case 'browse_objects':
     // Return images grouped by class label for the virtual "Objects" folder
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     $base = getTrainingDataDir();
     if ($base === '') {
       ajaxResponse(['objects' => new stdClass()]);
@@ -417,26 +507,13 @@ switch ($action) {
 
   case 'browse_file':
     // Serve an individual file from the training directory
-    if (!canView('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (empty($_REQUEST['path'])) {
       ajaxError('Path required');
       break;
     }
 
-    $base = getTrainingDataDir();
-    if ($base === '') {
-      ajaxError('Training data directory not configured');
-      break;
-    }
-    $reqPath = detaintPath($_REQUEST['path']);
-    $fullPath = realpath($base.'/'.$reqPath);
-    $baseReal = rtrim(realpath($base), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
-
-    // Validate file is within the training directory
-    if ($fullPath === false || strpos($fullPath, $baseReal) !== 0 || !is_file($fullPath)) {
+    $fullPath = resolveTrainingPath($_REQUEST['path']);
+    if ($fullPath === false) {
       ZM\Warning('Training: browse_file path rejected: '.validHtmlStr($_REQUEST['path']));
       ajaxError('File not found or access denied');
       break;
@@ -460,14 +537,8 @@ switch ($action) {
     }
     break;
 
-  // ---- Write actions (canEdit) ----
-
   case 'save':
     // Save annotation (image + YOLO label file)
-    if (!canEdit('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
       ajaxError('Event ID and Frame ID required');
       break;
@@ -502,8 +573,7 @@ switch ($action) {
       break;
     }
 
-    $base = getTrainingDataDir();
-    $stem = 'event_'.$eid.'_frame_'.$fid;
+    $paths = getFramePaths($eid, $fid);
 
     // Copy the frame image to training dir
     $eventPath = $Event->Path();
@@ -519,10 +589,9 @@ switch ($action) {
       break;
     }
 
-    $dstImage = $base.'/images/all/'.$stem.'.jpg';
-    ZM\Debug('Training: copying '.$srcImage.' to '.$dstImage);
-    if (!copy($srcImage, $dstImage)) {
-      ZM\Error('Training: failed to copy image from '.$srcImage.' to '.$dstImage);
+    ZM\Debug('Training: copying '.$srcImage.' to '.$paths['img']);
+    if (!copy($srcImage, $paths['img'])) {
+      ZM\Error('Training: failed to copy image from '.$srcImage.' to '.$paths['img']);
       ajaxError('Failed to copy image');
       break;
     }
@@ -547,15 +616,18 @@ switch ($action) {
     $labelLines = [];
     foreach ($annotations as $ann) {
       $classId = array_search($ann['label'], $labels);
+      $x1 = floatval($ann['x1']);
+      $y1 = floatval($ann['y1']);
+      $x2 = floatval($ann['x2']);
+      $y2 = floatval($ann['y2']);
       // Convert pixel coords [x1, y1, x2, y2] to YOLO normalized [cx, cy, w, h]
-      $cx = max(0.0, min(1.0, (($ann['x1'] + $ann['x2']) / 2) / $imgWidth));
-      $cy = max(0.0, min(1.0, (($ann['y1'] + $ann['y2']) / 2) / $imgHeight));
-      $w  = max(0.0, min(1.0, ($ann['x2'] - $ann['x1']) / $imgWidth));
-      $h  = max(0.0, min(1.0, ($ann['y2'] - $ann['y1']) / $imgHeight));
+      $cx = max(0.0, min(1.0, (($x1 + $x2) / 2) / $imgWidth));
+      $cy = max(0.0, min(1.0, (($y1 + $y2) / 2) / $imgHeight));
+      $w  = max(0.0, min(1.0, ($x2 - $x1) / $imgWidth));
+      $h  = max(0.0, min(1.0, ($y2 - $y1) / $imgHeight));
       $labelLines[] = sprintf('%d %.6f %.6f %.6f %.6f', $classId, $cx, $cy, $w, $h);
     }
-    $dstLabel = $base.'/labels/all/'.$stem.'.txt';
-    file_put_contents($dstLabel, empty($labelLines) ? '' : implode("\n", $labelLines)."\n");
+    file_put_contents($paths['lbl'], empty($labelLines) ? '' : implode("\n", $labelLines)."\n", LOCK_EX);
 
     // Write data.yaml with the current label list (only if we have labels)
     if (!empty($labels)) {
@@ -576,10 +648,6 @@ switch ($action) {
 
   case 'delete':
     // Remove a saved annotation
-    if (!canEdit('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (empty($_REQUEST['eid']) || !isset($_REQUEST['fid'])) {
       ajaxError('Event ID and Frame ID required');
       break;
@@ -593,21 +661,14 @@ switch ($action) {
       break;
     }
 
-    $base = getTrainingDataDir();
-    if ($base === '') {
-      ajaxError('Training data directory not configured');
-      break;
-    }
-    $stem = 'event_'.$eid.'_frame_'.$fid;
-
-    $imgFile = $base.'/images/all/'.$stem.'.jpg';
-    $lblFile = $base.'/labels/all/'.$stem.'.txt';
+    $paths = getFramePaths($eid, $fid);
 
     $deleted = false;
-    if (file_exists($imgFile)) { unlink($imgFile); $deleted = true; }
-    if (file_exists($lblFile)) { unlink($lblFile); $deleted = true; }
+    if (file_exists($paths['img'])) { unlink($paths['img']); $deleted = true; }
+    if (file_exists($paths['lbl'])) { unlink($paths['lbl']); $deleted = true; }
 
     if ($deleted) {
+      rebuildDataYaml();
       ZM\Debug('Training: removed annotation for event '.$eid.' frame '.$fid);
     }
 
@@ -619,15 +680,6 @@ switch ($action) {
 
   case 'delete_all':
     // Delete ALL training data (images, labels, data.yaml)
-    if (!canEdit('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      ajaxError('POST method required for destructive operations');
-      break;
-    }
-
     $base = getTrainingDataDir();
     if ($base === '') {
       ajaxError('Training data directory not configured');
@@ -654,34 +706,19 @@ switch ($action) {
 
   case 'browse_delete':
     // Delete an image/label pair by file path, then update data.yaml
-    if (!canEdit('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      ajaxError('POST method required for destructive operations');
-      break;
-    }
     if (empty($_REQUEST['path'])) {
       ajaxError('Path required');
       break;
     }
 
-    $base = getTrainingDataDir();
-    if ($base === '') {
-      ajaxError('Training data directory not configured');
-      break;
-    }
-    $reqPath = detaintPath($_REQUEST['path']);
-    $fullPath = realpath($base.'/'.$reqPath);
-    $baseReal = rtrim(realpath($base), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
-
-    if ($fullPath === false || strpos($fullPath, $baseReal) !== 0 || !is_file($fullPath)) {
+    $fullPath = resolveTrainingPath($_REQUEST['path']);
+    if ($fullPath === false) {
       ajaxError('File not found or access denied');
       break;
     }
 
     // Determine the stem and delete both image + label
+    $base = getTrainingDataDir();
     $stem = pathinfo(basename($fullPath), PATHINFO_FILENAME);
     $imgFile = $base.'/images/all/'.$stem.'.jpg';
     $lblFile = $base.'/labels/all/'.$stem.'.txt';
@@ -691,63 +728,7 @@ switch ($action) {
     if (file_exists($imgFile)) { unlink($imgFile); $deletedFiles[] = 'images/all/'.$stem.'.jpg'; }
     if (file_exists($lblFile)) { unlink($lblFile); $deletedFiles[] = 'labels/all/'.$stem.'.txt'; }
 
-    // Rebuild data.yaml and remap class IDs in remaining label files
-    $labelsDir = $base.'/labels/all';
-    $usedClasses = [];
-    if (is_dir($labelsDir)) {
-      foreach (glob($labelsDir.'/*.txt') as $lf) {
-        foreach (file($lf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-          $parts = explode(' ', trim($line));
-          if (count($parts) >= 5) {
-            $usedClasses[intval($parts[0])] = true;
-          }
-        }
-      }
-    }
-
-    // Build old->new class ID mapping, keeping only classes still in use
-    $oldLabels = getClassLabels();
-    $newLabels = [];
-    $idMap = []; // oldId => newId
-    if (!empty($oldLabels)) {
-      $newId = 0;
-      foreach ($oldLabels as $oldId => $label) {
-        if (isset($usedClasses[$oldId])) {
-          $idMap[$oldId] = $newId;
-          $newLabels[] = $label;
-          $newId++;
-        }
-      }
-    }
-
-    // Remap class IDs in all remaining label files if any IDs changed
-    $needsRemap = false;
-    foreach ($idMap as $old => $new) {
-      if ($old !== $new) { $needsRemap = true; break; }
-    }
-    if ($needsRemap && is_dir($labelsDir)) {
-      foreach (glob($labelsDir.'/*.txt') as $lf) {
-        $lines = file($lf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $newLines = [];
-        foreach ($lines as $line) {
-          $parts = explode(' ', trim($line));
-          if (count($parts) >= 5) {
-            $oldId = intval($parts[0]);
-            $parts[0] = isset($idMap[$oldId]) ? $idMap[$oldId] : $parts[0];
-            $newLines[] = implode(' ', $parts);
-          }
-        }
-        file_put_contents($lf, empty($newLines) ? '' : implode("\n", $newLines)."\n");
-      }
-    }
-
-    // Write updated data.yaml or remove if empty
-    if (!empty($newLabels)) {
-      writeDataYaml($newLabels);
-    } else {
-      $yamlFile = $base.'/data.yaml';
-      if (file_exists($yamlFile)) unlink($yamlFile);
-    }
+    rebuildDataYaml();
 
     ajaxResponse([
       'deleted' => $deletedFiles,
@@ -757,10 +738,6 @@ switch ($action) {
 
   case 'detect':
     // Run object detection script on a frame image
-    if (!canEdit('Events')) {
-      ajaxError('Insufficient permissions');
-      break;
-    }
     if (!defined('ZM_TRAINING_DETECT_SCRIPT') || ZM_TRAINING_DETECT_SCRIPT == '') {
       ajaxError('No detection script configured');
       break;
@@ -851,8 +828,6 @@ switch ($action) {
     ]);
     break;
 
-  default:
-    ajaxError('Unknown action');
-    break;
 }
+ajaxError('Unrecognised action '.$action.' or insufficient permissions for user '.$user->Username());
 ?>

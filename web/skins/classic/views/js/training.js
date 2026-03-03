@@ -1,10 +1,11 @@
+"use strict";
 /**
  * AnnotationEditor - Canvas-based bounding box annotation editor for
  * ZoneMinder custom model training. Allows users to view, create, edit,
  * and save object annotations on event frames in YOLO format.
  *
  * Usage:
- *   var editor = new AnnotationEditor({
+ *   let editor = new AnnotationEditor({
  *     canvasId: 'annotationCanvas',
  *     eventId: 123,
  *     translations: { ... }
@@ -13,17 +14,97 @@
  *   editor.open();
  */
 
-var ANNOTATION_COLORS = [
+const ANNOTATION_COLORS = [
   '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
   '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990',
   '#dcbeff', '#9A6324', '#800000', '#aaffc3', '#808000',
   '#000075', '#a9a9a9'
 ];
 
-var ANNOTATION_HANDLE_SIZE = 8;
-var ANNOTATION_HIT_THRESHOLD = 8;
-var ANNOTATION_MIN_BOX_SIZE = 10;
-var ANNOTATION_MAX_UNDO = 50;
+const ANNOTATION_HANDLE_SIZE = 8;
+const ANNOTATION_HIT_THRESHOLD = 8;
+const ANNOTATION_MIN_BOX_SIZE = 10;
+const ANNOTATION_MAX_UNDO = 50;
+const ANNOTATION_SCALE_REF_WIDTH = 900;
+
+// --- Pure browse-panel utility functions (no closured state) ---
+
+function browseFileIcon(name) {
+  let ext = name.split('.').pop().toLowerCase();
+  if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'fa-file-image-o';
+  if (ext === 'txt') return 'fa-file-text-o';
+  if (ext === 'yaml' || ext === 'yml') return 'fa-file-code-o';
+  return 'fa-file-o';
+}
+
+function browseIsImage(name) {
+  let ext = name.split('.').pop().toLowerCase();
+  return ext === 'jpg' || ext === 'jpeg' || ext === 'png';
+}
+
+function browseIsText(name) {
+  let ext = name.split('.').pop().toLowerCase();
+  return ext === 'txt' || ext === 'yaml' || ext === 'yml';
+}
+
+function browsePathStartsWith(full, prefix) {
+  return full === prefix || full.indexOf(prefix + '/') === 0;
+}
+
+function browseFindNode(nodes, path) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].path === path) return nodes[i];
+    if (nodes[i].type === 'dir' && nodes[i].children) {
+      let found = browseFindNode(nodes[i].children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function browseRemoveFromTree(nodes, path) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].path === path) {
+      nodes.splice(i, 1);
+      return true;
+    }
+    if (nodes[i].type === 'dir' && nodes[i].children) {
+      if (browseRemoveFromTree(nodes[i].children, path)) return true;
+    }
+  }
+  return false;
+}
+
+function browseGetRootFiles(nodes) {
+  let files = [];
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].type === 'file') files.push(nodes[i]);
+  }
+  return files;
+}
+
+function browseGetFilesForPath(nodes, path) {
+  if (path === null) return [];
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
+    if (node.type === 'dir' && node.path === path) {
+      let files = [];
+      if (node.children) {
+        for (let j = 0; j < node.children.length; j++) {
+          if (node.children[j].type === 'file') {
+            files.push(node.children[j]);
+          }
+        }
+      }
+      return files;
+    }
+    if (node.type === 'dir' && node.children) {
+      let found = browseGetFilesForPath(node.children, path);
+      if (found.length > 0 || browsePathStartsWith(path, node.path)) return found;
+    }
+  }
+  return [];
+}
 
 /**
  * @param {Object} options
@@ -85,7 +166,7 @@ AnnotationEditor.prototype.init = function() {
   }
   this.ctx = this.canvas.getContext('2d');
 
-  var self = this;
+  const self = this;
 
   this.canvas.addEventListener('mousedown', function(e) {
     self._onMouseDown(e);
@@ -133,7 +214,7 @@ AnnotationEditor.prototype.init = function() {
  * Open the annotation panel: load detection data, show panel.
  */
 AnnotationEditor.prototype.open = function(initialFrame) {
-  var self = this;
+  const self = this;
 
   $j('#annotationPanel').addClass('open');
   $j('#eventVideo').hide();
@@ -145,9 +226,9 @@ AnnotationEditor.prototype.open = function(initialFrame) {
   // appears, causing a blank screen if the user cancels.
   this._navGuardHandler = function(e) {
     if (!self.dirty) return;
-    var link = e.target.closest('a[href]');
+    let link = e.target.closest('a[href]');
     if (!link) return;
-    var msg = self.translations.TrainingUnsaved ||
+    let msg = self.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) {
       e.preventDefault();
@@ -158,61 +239,17 @@ AnnotationEditor.prototype.open = function(initialFrame) {
   };
   document.addEventListener('click', this._navGuardHandler, true);
 
-  // Load class labels and detection data in parallel
+  // Load class labels, stats, and detection data in parallel
   this._loadLabels();
   this._loadStats();
-
-  $j.getJSON(thisUrl + '?request=training&action=load&eid=' + this.eventId)
-      .done(function(data) {
-        if (data.result === 'Error') {
-          self._setStatus(data.message, 'error');
-          return;
-        }
-        var resp = data.response || data;
-        self.availableFrames = resp.availableFrames || [];
-        self.totalFrames = resp.totalFrames || 0;
-        self.eventPath = resp.eventPath || '';
-        self.imageNaturalW = resp.width || 0;
-        self.imageNaturalH = resp.height || 0;
-        self.monitorId = resp.monitorId || '';
-        self.hasDetectScript = resp.hasDetectScript || false;
-
-        // Show/hide detect button based on script availability
-        if (self.hasDetectScript) {
-          $j('#annotationDetectBtn').show();
-        } else {
-          $j('#annotationDetectBtn').hide();
-        }
-
-        self._updateFrameSelector(self.availableFrames);
-
-        if (resp.detectionData) {
-          self._loadDetectionData(resp.detectionData);
-        }
-
-        var startFrame = initialFrame || resp.defaultFrameId || 'alarm';
-        self._loadFrameImage(startFrame);
-
-        // If opening to a specific frame, load any saved annotations
-        if (initialFrame) {
-          self._loadSavedAnnotations(self.eventId, initialFrame);
-        }
-      })
-      .fail(function(jqxhr) {
-        self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
-        logAjaxFail(jqxhr);
-      });
+  this._loadEventData(this.eventId, initialFrame);
 };
 
 /**
  * Close the annotation panel. Prompts if dirty.
  */
 AnnotationEditor.prototype.close = function() {
-  if (this.dirty) {
-    var msg = this.translations.TrainingUnsaved ||
-        'You have unsaved annotations. Discard changes?';
-    if (!confirm(msg)) return;
-  }
+  if (!this._confirmDiscardIfDirty()) return;
 
   $j('#annotationPanel').removeClass('open');
   $j('#eventVideo').show();
@@ -231,13 +268,7 @@ AnnotationEditor.prototype.close = function() {
   }
 
   // Reset state
-  this.annotations = [];
-  this.selectedIndex = -1;
-  this.dirty = false;
-  this.isDrawing = false;
-  this.isDragging = false;
-  this.isResizing = false;
-  this.undoStack = [];
+  this._resetAnnotationState();
   this.image = null;
   this.currentFrameId = null;
 };
@@ -254,7 +285,7 @@ AnnotationEditor.prototype._loadDetectionData = function(data) {
   // objects.json may have different structures depending on the detector.
   // Common format: array of {label, confidence, bbox: [x1,y1,x2,y2]}
   // or: {objects: [{label, confidence, bbox: ...}]}
-  var objects = [];
+  let objects = [];
   if (Array.isArray(data)) {
     objects = data;
   } else if (data.objects && Array.isArray(data.objects)) {
@@ -263,9 +294,9 @@ AnnotationEditor.prototype._loadDetectionData = function(data) {
     objects = data.detections;
   }
 
-  for (var i = 0; i < objects.length; i++) {
-    var obj = objects[i];
-    var ann = {
+  for (let i = 0; i < objects.length; i++) {
+    let obj = objects[i];
+    let ann = {
       label: obj.label || obj.name || obj.class || 'unknown',
       confidence: obj.confidence || obj.score || 0,
       x1: 0,
@@ -297,24 +328,24 @@ AnnotationEditor.prototype._loadDetectionData = function(data) {
  * @param {string|number} frameId  Frame ID or special name
  */
 AnnotationEditor.prototype._loadFrameImage = function(frameId) {
-  var self = this;
+  const self = this;
   this.currentFrameId = frameId;
   this._updateFrameInfo();
 
   // Blur the current canvas and show spinner while the new frame loads
-  var container = this.canvas ? this.canvas.parentNode : null;
+  let container = this.canvas ? this.canvas.parentNode : null;
   if (this.canvas) {
     this.canvas.style.filter = 'blur(10px)';
     this.canvas.style.opacity = '0.6';
   }
   if (container && !container.querySelector('.canvas-loading-overlay')) {
-    var overlay = document.createElement('div');
+    let overlay = document.createElement('div');
     overlay.className = 'canvas-loading-overlay';
     overlay.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
     container.appendChild(overlay);
   }
 
-  var img = new Image();
+  let img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = function() {
     self.image = img;
@@ -327,7 +358,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
 
     self.canvas.style.filter = '';
     self.canvas.style.opacity = '';
-    var spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    let spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
     if (spinner) spinner.remove();
     self._render();
   };
@@ -336,10 +367,10 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
       self.canvas.style.filter = '';
       self.canvas.style.opacity = '';
     }
-    var spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    let spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
     if (spinner) spinner.remove();
     // If numeric frame exceeds total, clamp to max and retry
-    var num = parseInt(frameId, 10);
+    let num = parseInt(frameId, 10);
     if (!isNaN(num) && self.totalFrames > 0 && num > self.totalFrames) {
       self._setStatus(self.translations.TrainingFailedToLoadFrame || 'Failed to load frame image', 'error');
       self.switchFrame(String(self.totalFrames));
@@ -356,15 +387,15 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
  * event+frame. Populates the annotations array and re-renders.
  */
 AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
-  var self = this;
+  const self = this;
   $j.getJSON(thisUrl + '?request=training&action=load_saved&eid=' + eid +
       '&fid=' + encodeURIComponent(fid))
       .done(function(data) {
-        var resp = data.response || data;
-        var saved = resp.annotations || [];
+        let resp = data.response || data;
+        let saved = resp.annotations || [];
         if (saved.length === 0) return;
         self.annotations = [];
-        for (var i = 0; i < saved.length; i++) {
+        for (let i = 0; i < saved.length; i++) {
           self.annotations.push({
             x1: saved[i].x1,
             y1: saved[i].y1,
@@ -380,18 +411,19 @@ AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
         self._updateSidebar();
         self._setStatus(saved.length + ' ' +
             (self.translations.TrainingSavedLoaded || 'saved annotation(s) loaded'));
-      });
+      })
+      .fail(logAjaxFail);
 };
 
 /**
  * Update the "Frame: X of Y" indicator below the canvas.
  */
 AnnotationEditor.prototype._updateFrameInfo = function() {
-  var el = $j('#annotationFrameInfo');
+  let el = $j('#annotationFrameInfo');
   if (!el.length) return;
 
-  var frameLabel = this.currentFrameId;
-  var num = parseInt(frameLabel, 10);
+  let frameLabel = this.currentFrameId;
+  let num = parseInt(frameLabel, 10);
   if (!isNaN(num)) {
     frameLabel = String(num);
   }
@@ -408,17 +440,9 @@ AnnotationEditor.prototype._updateFrameInfo = function() {
  * @param {string|number} frameId
  */
 AnnotationEditor.prototype.switchFrame = function(frameId) {
-  if (this.dirty) {
-    var msg = this.translations.TrainingUnsaved ||
-        'You have unsaved annotations. Discard changes?';
-    if (!confirm(msg)) return;
-  }
+  if (!this._confirmDiscardIfDirty()) return;
 
-  this.annotations = [];
-  this.selectedIndex = -1;
-  this.dirty = false;
-  this.undoStack = [];
-  this._hideLabelPicker();
+  this._resetAnnotationState();
 
   this._loadFrameImage(frameId);
   this._updateSidebar();
@@ -429,79 +453,33 @@ AnnotationEditor.prototype.switchFrame = function(frameId) {
  * Reloads event metadata, frame list, and loads the given frame.
  */
 AnnotationEditor.prototype.switchEvent = function(newEid, frameId) {
-  if (this.dirty) {
-    var msg = this.translations.TrainingUnsaved ||
-        'You have unsaved annotations. Discard changes?';
-    if (!confirm(msg)) return;
-  }
+  if (!this._confirmDiscardIfDirty()) return;
 
-  var self = this;
   this.eventId = String(newEid);
-  this.annotations = [];
-  this.selectedIndex = -1;
-  this.dirty = false;
-  this.undoStack = [];
-  this._hideLabelPicker();
+  this._resetAnnotationState();
 
   // Update page title and URL without reload
-  var titleEl = document.querySelector('.training-view-title');
+  let titleEl = document.querySelector('.training-view-title');
   if (titleEl) titleEl.innerHTML = (this.translations.ObjectTraining || 'Object Training') +
       ' &mdash; Event ' + newEid;
   document.title = (this.translations.ObjectTraining || 'Object Training') +
       ' - ' + newEid;
-  var backBtn = document.getElementById('backToEventBtn');
+  let backBtn = document.getElementById('backToEventBtn');
   if (backBtn) backBtn.href = '?view=event&eid=' + newEid;
   history.replaceState(null, '', '?view=training&eid=' + newEid +
       (frameId ? '&frame=' + encodeURIComponent(frameId) : ''));
 
   // Reload event data
-  $j.getJSON(thisUrl + '?request=training&action=load&eid=' + newEid)
-      .done(function(data) {
-        if (data.result === 'Error') {
-          self._setStatus(data.message, 'error');
-          return;
-        }
-        var resp = data.response || data;
-        self.availableFrames = resp.availableFrames || [];
-        self.totalFrames = resp.totalFrames || 0;
-        self.eventPath = resp.eventPath || '';
-        self.imageNaturalW = resp.width || 0;
-        self.imageNaturalH = resp.height || 0;
-        self.monitorId = resp.monitorId || '';
-        self.hasDetectScript = resp.hasDetectScript || false;
-
-        if (self.hasDetectScript) {
-          $j('#annotationDetectBtn').show();
-        } else {
-          $j('#annotationDetectBtn').hide();
-        }
-
-        self._updateFrameSelector(self.availableFrames);
-
-        if (resp.detectionData) {
-          self._loadDetectionData(resp.detectionData);
-        }
-
-        var startFrame = frameId || resp.defaultFrameId || 'alarm';
-        self._loadFrameImage(startFrame);
-
-        if (frameId) {
-          self._loadSavedAnnotations(newEid, frameId);
-        }
-      })
-      .fail(function(jqxhr) {
-        self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
-        logAjaxFail(jqxhr);
-      });
+  this._loadEventData(newEid, frameId);
 };
 
 /**
  * Render the entire canvas: image, all boxes, in-progress drawing.
  */
 AnnotationEditor.prototype._render = function() {
-  var ctx = this.ctx;
-  var w = this.canvas.width;
-  var h = this.canvas.height;
+  const ctx = this.ctx;
+  const w = this.canvas.width;
+  const h = this.canvas.height;
 
   ctx.clearRect(0, 0, w, h);
 
@@ -511,18 +489,18 @@ AnnotationEditor.prototype._render = function() {
   }
 
   // Draw all annotation boxes
-  for (var i = 0; i < this.annotations.length; i++) {
+  for (let i = 0; i < this.annotations.length; i++) {
     this._drawBox(this.annotations[i], i === this.selectedIndex, i);
   }
 
   // Draw in-progress drawing rectangle
   if (this.isDrawing && this.drawStart && this.drawCurrent) {
-    var x = Math.min(this.drawStart.x, this.drawCurrent.x);
-    var y = Math.min(this.drawStart.y, this.drawCurrent.y);
-    var bw = Math.abs(this.drawCurrent.x - this.drawStart.x);
-    var bh = Math.abs(this.drawCurrent.y - this.drawStart.y);
+    let x = Math.min(this.drawStart.x, this.drawCurrent.x);
+    let y = Math.min(this.drawStart.y, this.drawCurrent.y);
+    let bw = Math.abs(this.drawCurrent.x - this.drawStart.x);
+    let bh = Math.abs(this.drawCurrent.y - this.drawStart.y);
 
-    var drawScale = this.canvas.width / 900;
+    let drawScale = this.canvas.width / ANNOTATION_SCALE_REF_WIDTH;
     ctx.save();
     ctx.strokeStyle = '#ff8c00';
     ctx.lineWidth = Math.max(2, Math.round(3 * drawScale));
@@ -539,25 +517,25 @@ AnnotationEditor.prototype._render = function() {
  * @param {number} index  Index in annotations array (for color)
  */
 AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
-  var ctx = this.ctx;
-  var color;
+  const ctx = this.ctx;
+  let color;
   if (ann.pending) {
     color = '#ff8c00'; // orange for unconfirmed detections
   } else {
     color = '#28a745'; // green for accepted/manual annotations
   }
 
-  var x = Math.min(ann.x1, ann.x2);
-  var y = Math.min(ann.y1, ann.y2);
-  var w = Math.abs(ann.x2 - ann.x1);
-  var h = Math.abs(ann.y2 - ann.y1);
+  const x = Math.min(ann.x1, ann.x2);
+  const y = Math.min(ann.y1, ann.y2);
+  const w = Math.abs(ann.x2 - ann.x1);
+  const h = Math.abs(ann.y2 - ann.y1);
 
   // Scale sizes relative to canvas width so they're visible at any resolution
-  var scale = this.canvas.width / 900;
-  var borderWidth = Math.max(2, Math.round((isSelected ? 4 : 3) * scale));
-  var fontSize = Math.max(14, Math.round(18 * scale));
-  var handleSize = Math.max(8, Math.round(10 * scale));
-  var textPad = Math.round(6 * scale);
+  const scale = this.canvas.width / ANNOTATION_SCALE_REF_WIDTH;
+  const borderWidth = Math.max(2, Math.round((isSelected ? 4 : 3) * scale));
+  const fontSize = Math.max(14, Math.round(18 * scale));
+  const handleSize = Math.max(8, Math.round(10 * scale));
+  const textPad = Math.round(6 * scale);
 
   // Semi-transparent fill
   ctx.save();
@@ -574,18 +552,18 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
   ctx.restore();
 
   // Label text above box
-  var labelText = ann.label;
+  let labelText = ann.label;
   if (ann.confidence > 0) {
     labelText += ' ' + Math.round(ann.confidence * 100) + '%';
   }
 
   ctx.save();
   ctx.font = 'bold ' + fontSize + 'px sans-serif';
-  var textMetrics = ctx.measureText(labelText);
-  var textW = textMetrics.width + textPad * 2;
-  var textH = Math.round(fontSize * 1.5);
-  var textX = x;
-  var textY = y - textH;
+  let textMetrics = ctx.measureText(labelText);
+  let textW = textMetrics.width + textPad * 2;
+  let textH = Math.round(fontSize * 1.5);
+  let textX = x;
+  let textY = y - textH;
   if (textY < 0) textY = y; // flip below if too close to top
 
   ctx.fillStyle = color;
@@ -598,10 +576,10 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
 
   // Draw resize handles on selected box
   if (isSelected) {
-    var handles = this._getHandlePositions(ann);
-    var handleNames = Object.keys(handles);
-    for (var i = 0; i < handleNames.length; i++) {
-      var hp = handles[handleNames[i]];
+    let handles = this._getHandlePositions(ann);
+    let handleNames = Object.keys(handles);
+    for (let i = 0; i < handleNames.length; i++) {
+      let hp = handles[handleNames[i]];
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = color;
@@ -619,12 +597,12 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
  * @return {Object} {nw, n, ne, e, se, s, sw, w} with {x, y}
  */
 AnnotationEditor.prototype._getHandlePositions = function(ann) {
-  var x1 = Math.min(ann.x1, ann.x2);
-  var y1 = Math.min(ann.y1, ann.y2);
-  var x2 = Math.max(ann.x1, ann.x2);
-  var y2 = Math.max(ann.y1, ann.y2);
-  var mx = (x1 + x2) / 2;
-  var my = (y1 + y2) / 2;
+  const x1 = Math.min(ann.x1, ann.x2);
+  const y1 = Math.min(ann.y1, ann.y2);
+  const x2 = Math.max(ann.x1, ann.x2);
+  const y2 = Math.max(ann.y1, ann.y2);
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
 
   return {
     nw: {x: x1, y: y1},
@@ -644,9 +622,9 @@ AnnotationEditor.prototype._getHandlePositions = function(ann) {
  * @return {{x: number, y: number}}
  */
 AnnotationEditor.prototype._mouseToImage = function(e) {
-  var rect = this.canvas.getBoundingClientRect();
-  var scaleX = this.canvas.width / rect.width;
-  var scaleY = this.canvas.height / rect.height;
+  const rect = this.canvas.getBoundingClientRect();
+  const scaleX = this.canvas.width / rect.width;
+  const scaleY = this.canvas.height / rect.height;
   return {
     x: (e.clientX - rect.left) * scaleX,
     y: (e.clientY - rect.top) * scaleY
@@ -662,13 +640,13 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
 
   this._hideLabelPicker();
 
-  var pos = this._mouseToImage(e);
+  const pos = this._mouseToImage(e);
 
   // Hold Shift to force draw mode (draw inside existing boxes)
   if (!e.shiftKey) {
     // Check resize handles on selected box first
     if (this.selectedIndex >= 0) {
-      var handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
+      let handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
       if (handle) {
         this._pushUndo();
         this.isResizing = true;
@@ -678,12 +656,12 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     }
 
     // Check if clicking on any box
-    var hitIndex = this._hitTestBoxes(pos);
+    let hitIndex = this._hitTestBoxes(pos);
     if (hitIndex >= 0) {
       this._pushUndo();
       this.selectAnnotation(hitIndex);
       this.isDragging = true;
-      var ann = this.annotations[hitIndex];
+      let ann = this.annotations[hitIndex];
       this.dragOffset = {
         x: pos.x - Math.min(ann.x1, ann.x2),
         y: pos.y - Math.min(ann.y1, ann.y2)
@@ -706,20 +684,20 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
  * @param {MouseEvent} e
  */
 AnnotationEditor.prototype._onMouseMove = function(e) {
-  var pos = this._mouseToImage(e);
+  const pos = this._mouseToImage(e);
 
   if (this.isDrawing) {
     this.drawCurrent = pos;
-    this._render();
+    this._scheduleRender();
     return;
   }
 
   if (this.isDragging && this.selectedIndex >= 0) {
-    var ann = this.annotations[this.selectedIndex];
-    var w = Math.abs(ann.x2 - ann.x1);
-    var h = Math.abs(ann.y2 - ann.y1);
-    var newX = pos.x - this.dragOffset.x;
-    var newY = pos.y - this.dragOffset.y;
+    let ann = this.annotations[this.selectedIndex];
+    let w = Math.abs(ann.x2 - ann.x1);
+    let h = Math.abs(ann.y2 - ann.y1);
+    let newX = pos.x - this.dragOffset.x;
+    let newY = pos.y - this.dragOffset.y;
 
     // Clamp to canvas bounds
     newX = Math.max(0, Math.min(newX, this.canvas.width - w));
@@ -730,19 +708,33 @@ AnnotationEditor.prototype._onMouseMove = function(e) {
     ann.x2 = newX + w;
     ann.y2 = newY + h;
     this.dirty = true;
-    this._render();
+    this._scheduleRender();
     return;
   }
 
   if (this.isResizing && this.selectedIndex >= 0) {
     this._doResize(pos);
     this.dirty = true;
-    this._render();
+    this._scheduleRender();
     return;
   }
 
   // Update cursor based on what's under the mouse
   this._updateCursor(pos, e);
+};
+
+/**
+ * Throttle render calls via requestAnimationFrame to avoid
+ * redundant repaints on every mousemove pixel.
+ */
+AnnotationEditor.prototype._scheduleRender = function() {
+  if (this._rafPending) return;
+  const self = this;
+  this._rafPending = true;
+  requestAnimationFrame(function() {
+    self._render();
+    self._rafPending = false;
+  });
 };
 
 /**
@@ -754,11 +746,12 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
 
   if (this.isDrawing) {
     this.isDrawing = false;
-    var pos = this._mouseToImage(e);
-    var x1 = Math.min(this.drawStart.x, pos.x);
-    var y1 = Math.min(this.drawStart.y, pos.y);
-    var x2 = Math.max(this.drawStart.x, pos.x);
-    var y2 = Math.max(this.drawStart.y, pos.y);
+    const pos = this._mouseToImage(e);
+    const rect = this._getNormalizedRect(this.drawStart.x, this.drawStart.y, pos.x, pos.y);
+    let x1 = rect.x1;
+    let y1 = rect.y1;
+    let x2 = rect.x2;
+    let y2 = rect.y2;
 
     // Discard if too small
     if ((x2 - x1) < ANNOTATION_MIN_BOX_SIZE ||
@@ -787,15 +780,12 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
     this.resizeHandle = null;
     // Normalize coordinates so x1 < x2, y1 < y2
     if (this.selectedIndex >= 0) {
-      var ann = this.annotations[this.selectedIndex];
-      var nx1 = Math.min(ann.x1, ann.x2);
-      var ny1 = Math.min(ann.y1, ann.y2);
-      var nx2 = Math.max(ann.x1, ann.x2);
-      var ny2 = Math.max(ann.y1, ann.y2);
-      ann.x1 = nx1;
-      ann.y1 = ny1;
-      ann.x2 = nx2;
-      ann.y2 = ny2;
+      let ann = this.annotations[this.selectedIndex];
+      let nr = this._getNormalizedRect(ann.x1, ann.y1, ann.x2, ann.y2);
+      ann.x1 = nr.x1;
+      ann.y1 = nr.y1;
+      ann.x2 = nr.x2;
+      ann.y2 = nr.y2;
     }
     this._updateSidebar();
   }
@@ -807,12 +797,12 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
  * @return {number} Index of hit box, or -1
  */
 AnnotationEditor.prototype._hitTestBoxes = function(pos) {
-  for (var i = this.annotations.length - 1; i >= 0; i--) {
-    var ann = this.annotations[i];
-    var x1 = Math.min(ann.x1, ann.x2);
-    var y1 = Math.min(ann.y1, ann.y2);
-    var x2 = Math.max(ann.x1, ann.x2);
-    var y2 = Math.max(ann.y1, ann.y2);
+  for (let i = this.annotations.length - 1; i >= 0; i--) {
+    let ann = this.annotations[i];
+    let x1 = Math.min(ann.x1, ann.x2);
+    let y1 = Math.min(ann.y1, ann.y2);
+    let x2 = Math.max(ann.x1, ann.x2);
+    let y2 = Math.max(ann.y1, ann.y2);
     if (pos.x >= x1 && pos.x <= x2 && pos.y >= y1 && pos.y <= y2) {
       return i;
     }
@@ -827,10 +817,10 @@ AnnotationEditor.prototype._hitTestBoxes = function(pos) {
  * @return {string|null} Handle name or null
  */
 AnnotationEditor.prototype._hitTestHandles = function(pos, ann) {
-  var handles = this._getHandlePositions(ann);
-  var names = Object.keys(handles);
-  for (var i = 0; i < names.length; i++) {
-    var hp = handles[names[i]];
+  let handles = this._getHandlePositions(ann);
+  let names = Object.keys(handles);
+  for (let i = 0; i < names.length; i++) {
+    let hp = handles[names[i]];
     if (Math.abs(pos.x - hp.x) <= ANNOTATION_HIT_THRESHOLD &&
         Math.abs(pos.y - hp.y) <= ANNOTATION_HIT_THRESHOLD) {
       return names[i];
@@ -844,11 +834,11 @@ AnnotationEditor.prototype._hitTestHandles = function(pos, ann) {
  * @param {{x: number, y: number}} pos
  */
 AnnotationEditor.prototype._doResize = function(pos) {
-  var ann = this.annotations[this.selectedIndex];
+  let ann = this.annotations[this.selectedIndex];
 
   // Clamp position to canvas bounds
-  var px = Math.max(0, Math.min(pos.x, this.canvas.width));
-  var py = Math.max(0, Math.min(pos.y, this.canvas.height));
+  let px = Math.max(0, Math.min(pos.x, this.canvas.width));
+  let py = Math.max(0, Math.min(pos.y, this.canvas.height));
 
   switch (this.resizeHandle) {
     case 'nw':
@@ -889,7 +879,7 @@ AnnotationEditor.prototype._doResize = function(pos) {
  * @param {{x: number, y: number}} pos
  */
 AnnotationEditor.prototype._updateCursor = function(pos, e) {
-  var cursorClass = '';
+  let cursorClass = '';
 
   // Shift held = force draw mode cursor
   if (e && e.shiftKey) {
@@ -899,7 +889,7 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
 
   // Check handles on selected box
   if (this.selectedIndex >= 0) {
-    var handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
+    let handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
     if (handle) {
       cursorClass = 'mode-resize-' + handle;
       this._setCursorClass(cursorClass);
@@ -908,7 +898,7 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
   }
 
   // Check if over any box
-  var hitIndex = this._hitTestBoxes(pos);
+  let hitIndex = this._hitTestBoxes(pos);
   if (hitIndex >= 0) {
     cursorClass = 'mode-move';
   }
@@ -921,10 +911,10 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
  * @param {string} className
  */
 AnnotationEditor.prototype._setCursorClass = function(className) {
-  var canvas = $j(this.canvas);
+  let canvas = $j(this.canvas);
   // Remove all mode-* classes
-  var classes = (canvas.attr('class') || '').split(/\s+/);
-  for (var i = 0; i < classes.length; i++) {
+  let classes = (canvas.attr('class') || '').split(/\s+/);
+  for (let i = 0; i < classes.length; i++) {
     if (classes[i].indexOf('mode-') === 0) {
       canvas.removeClass(classes[i]);
     }
@@ -943,23 +933,23 @@ AnnotationEditor.prototype._setCursorClass = function(className) {
  * @param {MouseEvent} mouseEvent
  */
 AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEvent) {
-  var self = this;
+  const self = this;
 
   this._hideLabelPicker();
 
-  var picker = document.createElement('div');
+  let picker = document.createElement('div');
   picker.className = 'annotation-label-picker';
 
   // Position near the box's top-right corner in screen coords
-  var rect = this.canvas.getBoundingClientRect();
-  var scaleX = rect.width / this.canvas.width;
-  var scaleY = rect.height / this.canvas.height;
-  var screenX = rect.left + x2 * scaleX + 5;
-  var screenY = rect.top + y1 * scaleY;
+  let rect = this.canvas.getBoundingClientRect();
+  let scaleX = rect.width / this.canvas.width;
+  let scaleY = rect.height / this.canvas.height;
+  let screenX = rect.left + x2 * scaleX + 5;
+  let screenY = rect.top + y1 * scaleY;
 
   // Keep within viewport
-  var viewW = window.innerWidth;
-  var viewH = window.innerHeight;
+  let viewW = window.innerWidth;
+  let viewH = window.innerHeight;
   if (screenX + 180 > viewW) {
     screenX = rect.left + x1 * scaleX - 180;
   }
@@ -972,10 +962,10 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
   picker.style.position = 'fixed';
 
   // Build sorted label list (most recently used first)
-  var sortedLabels = this._getSortedLabels();
+  let sortedLabels = this._getSortedLabels();
 
-  for (var i = 0; i < sortedLabels.length; i++) {
-    var btn = document.createElement('button');
+  for (let i = 0; i < sortedLabels.length; i++) {
+    let btn = document.createElement('button');
     btn.className = 'label-option';
     btn.textContent = sortedLabels[i];
     btn.setAttribute('data-label', sortedLabels[i]);
@@ -993,15 +983,15 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
   }
 
   // New label input at bottom
-  var inputDiv = document.createElement('div');
+  let inputDiv = document.createElement('div');
   inputDiv.className = 'new-label-input';
-  var input = document.createElement('input');
+  let input = document.createElement('input');
   input.type = 'text';
   input.placeholder = this.translations.NewLabel || 'New Label';
   input.addEventListener('keydown', function(e) {
     e.stopPropagation();
     if (e.key === 'Enter') {
-      var label = input.value.trim().toLowerCase();
+      let label = input.value.trim().toLowerCase();
       if (label && /^[a-zA-Z0-9_-]+$/.test(label)) {
         self._pushUndo();
         self._addAnnotation(label, x1, y1, x2, y2);
@@ -1045,12 +1035,12 @@ AnnotationEditor.prototype._hideLabelPicker = function() {
  * @return {Array<string>}
  */
 AnnotationEditor.prototype._getSortedLabels = function() {
-  var labels = this.classLabels.slice();
-  var recent = this.recentLabels;
+  let labels = this.classLabels.slice();
+  let recent = this.recentLabels;
 
   labels.sort(function(a, b) {
-    var ia = recent.indexOf(a);
-    var ib = recent.indexOf(b);
+    let ia = recent.indexOf(a);
+    let ib = recent.indexOf(b);
     // Recently used items get lower indices (higher priority)
     if (ia === -1 && ib === -1) return 0;
     if (ia === -1) return 1;
@@ -1066,7 +1056,7 @@ AnnotationEditor.prototype._getSortedLabels = function() {
  * @param {string} label
  */
 AnnotationEditor.prototype._trackLabelUsage = function(label) {
-  var idx = this.recentLabels.indexOf(label);
+  let idx = this.recentLabels.indexOf(label);
   if (idx >= 0) {
     this.recentLabels.splice(idx, 1);
   }
@@ -1112,21 +1102,20 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
   } else if (this.selectedIndex > index) {
     this.selectedIndex--;
   }
-  this.dirty = true;
   this._updateSidebar();
   this._render();
 
-  // If no annotations left, remove from training set
+  // If no annotations left, remove frame from training set
   if (this.annotations.length === 0 && this.currentFrameId) {
-    var self = this;
+    this.dirty = false;
+    const self = this;
     $j.ajax({
       url: thisUrl + '?request=training&action=delete',
       method: 'POST',
       data: {eid: this.eventId, fid: this.currentFrameId},
       dataType: 'json'
     }).done(function(data) {
-      var resp = data.response || data;
-      self.dirty = false;
+      let resp = data.response || data;
       self._setStatus(
           self.translations.TrainingRemoved || 'Training annotation removed',
           'success'
@@ -1135,9 +1124,13 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
         self.trainingStats = resp.stats;
         self._renderStats();
       }
-    }).fail(function(jqxhr) {
-      logAjaxFail(jqxhr);
-    });
+      if (self._browseState) {
+        self._browseState.invalidateObjects();
+        self._browseState.refreshTree();
+      }
+    }).fail(logAjaxFail);
+  } else {
+    this.dirty = true;
   }
 };
 
@@ -1159,8 +1152,8 @@ AnnotationEditor.prototype.acceptAnnotation = function(index) {
  * Accept all pending detections at once.
  */
 AnnotationEditor.prototype.acceptAllAnnotations = function() {
-  var changed = false;
-  for (var i = 0; i < this.annotations.length; i++) {
+  let changed = false;
+  for (let i = 0; i < this.annotations.length; i++) {
     if (this.annotations[i].pending) {
       if (!changed) {
         this._pushUndo();
@@ -1180,7 +1173,7 @@ AnnotationEditor.prototype.acceptAllAnnotations = function() {
  * Run object detection on the current frame via the server-side script.
  */
 AnnotationEditor.prototype.detect = function() {
-  var self = this;
+  const self = this;
 
   if (!this.hasDetectScript) {
     this._setStatus(
@@ -1218,8 +1211,8 @@ AnnotationEditor.prototype.detect = function() {
       self._setStatus(data.message, 'error');
       return;
     }
-    var resp = data.response || data;
-    var detections = resp.detections || [];
+    let resp = data.response || data;
+    let detections = resp.detections || [];
 
     if (detections.length === 0) {
       self._setStatus(
@@ -1230,8 +1223,8 @@ AnnotationEditor.prototype.detect = function() {
 
     // Remove existing pending annotations (from a previous detect)
     self._pushUndo();
-    var kept = [];
-    for (var i = 0; i < self.annotations.length; i++) {
+    let kept = [];
+    for (let i = 0; i < self.annotations.length; i++) {
       if (!self.annotations[i].pending) {
         kept.push(self.annotations[i]);
       }
@@ -1239,9 +1232,9 @@ AnnotationEditor.prototype.detect = function() {
     self.annotations = kept;
 
     // Add new detections as pending (orange)
-    for (var d = 0; d < detections.length; d++) {
-      var det = detections[d];
-      var ann = {
+    for (let d = 0; d < detections.length; d++) {
+      let det = detections[d];
+      let ann = {
         label: det.label || 'unknown',
         confidence: det.confidence || 0,
         x1: 0,
@@ -1302,7 +1295,7 @@ AnnotationEditor.prototype.selectAnnotation = function(index) {
  */
 AnnotationEditor.prototype._pushUndo = function() {
   // Deep copy annotations
-  var copy = JSON.parse(JSON.stringify(this.annotations));
+  let copy = JSON.parse(JSON.stringify(this.annotations));
   this.undoStack.push({
     annotations: copy,
     selectedIndex: this.selectedIndex
@@ -1317,7 +1310,7 @@ AnnotationEditor.prototype._pushUndo = function() {
  */
 AnnotationEditor.prototype.undo = function() {
   if (this.undoStack.length === 0) return;
-  var state = this.undoStack.pop();
+  let state = this.undoStack.pop();
   this.annotations = state.annotations;
   this.selectedIndex = state.selectedIndex;
   this.dirty = true;
@@ -1329,50 +1322,50 @@ AnnotationEditor.prototype.undo = function() {
  * Rebuild the sidebar object list HTML.
  */
 AnnotationEditor.prototype._updateSidebar = function() {
-  var self = this;
-  var list = $j('#annotationObjectList');
+  const self = this;
+  const list = $j('#annotationObjectList');
   if (!list.length) return;
 
   list.empty();
 
-  for (var i = 0; i < this.annotations.length; i++) {
-    var ann = this.annotations[i];
-    var isSelected = (i === this.selectedIndex);
+  for (let i = 0; i < this.annotations.length; i++) {
+    let ann = this.annotations[i];
+    let isSelected = (i === this.selectedIndex);
 
-    var li = $j('<li>')
+    let li = $j('<li>')
         .addClass('annotation-object-item')
         .toggleClass('selected', isSelected)
         .attr('data-index', i);
 
-    var swatchColor = ann.pending ? '#ff8c00' : '#28a745';
-    var swatch = $j('<span>')
+    let swatchColor = ann.pending ? '#ff8c00' : '#28a745';
+    let swatch = $j('<span>')
         .addClass('color-swatch')
         .css('background-color', swatchColor);
 
-    var labelSpan = $j('<span>')
+    let labelSpan = $j('<span>')
         .addClass('object-label')
         .text(ann.label);
 
     li.append(swatch).append(labelSpan);
 
     if (ann.confidence > 0) {
-      var confSpan = $j('<span>')
+      let confSpan = $j('<span>')
           .addClass('object-confidence')
           .text(Math.round(ann.confidence * 100) + '%');
       li.append(confSpan);
     }
 
     if (ann.pending) {
-      var acceptBtn = $j('<button>')
-          .addClass('btn-accept')
+      let acceptBtn = $j('<button>')
+          .addClass('btn-action btn-accept')
           .attr('title', self.translations.AcceptDetection || 'Accept')
           .html('&#10003;')
           .attr('data-index', i);
       li.append(acceptBtn);
     }
 
-    var removeBtn = $j('<button>')
-        .addClass('btn-remove')
+    let removeBtn = $j('<button>')
+        .addClass('btn-action btn-remove')
         .attr('title', self.translations.TrainingDeleteBox || 'Delete')
         .html('&times;')
         .attr('data-index', i);
@@ -1384,19 +1377,19 @@ AnnotationEditor.prototype._updateSidebar = function() {
   // Bind click handlers
   list.find('.annotation-object-item').on('click', function(e) {
     if ($j(e.target).hasClass('btn-remove') || $j(e.target).hasClass('btn-accept')) return;
-    var idx = parseInt($j(this).attr('data-index'), 10);
+    let idx = parseInt($j(this).attr('data-index'), 10);
     self.selectAnnotation(idx);
   });
 
   list.find('.btn-accept').on('click', function(e) {
     e.stopPropagation();
-    var idx = parseInt($j(this).attr('data-index'), 10);
+    let idx = parseInt($j(this).attr('data-index'), 10);
     self.acceptAnnotation(idx);
   });
 
   list.find('.btn-remove').on('click', function(e) {
     e.stopPropagation();
-    var idx = parseInt($j(this).attr('data-index'), 10);
+    let idx = parseInt($j(this).attr('data-index'), 10);
     self.deleteAnnotation(idx);
   });
 };
@@ -1405,11 +1398,11 @@ AnnotationEditor.prototype._updateSidebar = function() {
  * Update the label dropdown select element with current labels.
  */
 AnnotationEditor.prototype._updateLabelDropdown = function() {
-  var select = $j('#annotationLabelSelect');
+  let select = $j('#annotationLabelSelect');
   if (!select.length) return;
 
   select.empty();
-  for (var i = 0; i < this.classLabels.length; i++) {
+  for (let i = 0; i < this.classLabels.length; i++) {
     select.append(
         $j('<option>').val(this.classLabels[i]).text(this.classLabels[i])
     );
@@ -1420,10 +1413,10 @@ AnnotationEditor.prototype._updateLabelDropdown = function() {
  * Load class labels from the server.
  */
 AnnotationEditor.prototype._loadLabels = function() {
-  var self = this;
+  const self = this;
   $j.getJSON(thisUrl + '?request=training&action=labels')
       .done(function(data) {
-        var resp = data.response || data;
+        let resp = data.response || data;
         self.classLabels = resp.labels || [];
         self._updateLabelDropdown();
       })
@@ -1434,10 +1427,10 @@ AnnotationEditor.prototype._loadLabels = function() {
  * Load training stats from the server.
  */
 AnnotationEditor.prototype._loadStats = function() {
-  var self = this;
+  const self = this;
   $j.getJSON(thisUrl + '?request=training&action=status')
       .done(function(data) {
-        var resp = data.response || data;
+        let resp = data.response || data;
         self.trainingStats = resp.stats || null;
         self._renderStats();
       })
@@ -1448,33 +1441,29 @@ AnnotationEditor.prototype._loadStats = function() {
  * Build and render training stats HTML in the sidebar.
  */
 AnnotationEditor.prototype._renderStats = function() {
-  var container = $j('#annotationStats');
+  let container = $j('#annotationStats');
   if (!container.length) return;
-  var self = this;
+  const self = this;
 
   container.empty();
 
-  var t = this.translations;
-  var stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
-  var hasData = stats.total_images > 0 || stats.background_images > 0;
+  const t = this.translations;
+  let stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
+  let hasData = stats.total_images > 0 || stats.background_images > 0;
 
   // Header
-  var header = $j('<div>').addClass('annotation-stats-header');
+  let header = $j('<div>').addClass('annotation-stats-header');
   header.append($j('<span>').text(t.TrainingDataStats || 'Training Data Statistics'));
   container.append(header);
 
-  // Show/hide delete-all button in sidebar header based on data
-  var sidebarTrashBtn = $j('#annotationDeleteAllBtn');
-  if (hasData) {
-    sidebarTrashBtn.show().off('click.deleteAll').on('click.deleteAll', function() {
-      self._deleteAllTrainingData();
-    });
-  } else {
-    sidebarTrashBtn.hide();
-  }
+  // Always show delete-all button so user can clean up from any state
+  let sidebarTrashBtn = $j('#annotationDeleteAllBtn');
+  sidebarTrashBtn.show().off('click.deleteAll').on('click.deleteAll', function() {
+    self._deleteAllTrainingData();
+  });
 
   // Compact stat rows
-  var row = function(label, value) {
+  let row = function(label, value) {
     return $j('<div>').addClass('stat-row')
         .append($j('<span>').addClass('stat-label').text(label))
         .append($j('<span>').addClass('stat-value').text(value));
@@ -1486,19 +1475,19 @@ AnnotationEditor.prototype._renderStats = function() {
   }
 
   // Per-class image counts
-  var classData = stats.images_per_class || {};
-  var classNames = Object.keys(classData);
+  let classData = stats.images_per_class || {};
+  let classNames = Object.keys(classData);
 
   if (classNames.length > 0) {
     container.append($j('<div>').css({'font-weight': '600', 'margin': '4px 0 2px'}).text(t.ImagesPerClass || 'Images per class'));
 
-    var hasLowClass = false;
-    for (var i = 0; i < classNames.length; i++) {
+    let hasLowClass = false;
+    for (let i = 0; i < classNames.length; i++) {
       container.append(row(classNames[i], classData[classNames[i]]));
       if (classData[classNames[i]] < 50) hasLowClass = true;
     }
 
-    var guidance = $j('<div>').addClass('training-guidance');
+    let guidance = $j('<div>').addClass('training-guidance');
     if (!hasLowClass) guidance.addClass('training-ready');
     guidance.text(t.TrainingGuidance || 'Aim for 50-100+ images per class.');
     container.append(guidance);
@@ -1508,14 +1497,20 @@ AnnotationEditor.prototype._renderStats = function() {
 };
 
 AnnotationEditor.prototype._deleteAllTrainingData = function() {
-  var self = this;
-  var t = this.translations;
-  var answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
+  const self = this;
+  const t = this.translations;
+  let answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
   if (answer !== 'agree') return;
 
   $j.ajax({url: thisUrl + '?request=training&action=delete_all', method: 'POST', dataType: 'json'})
       .done(function(resp) {
         if (resp.result === 'Ok') {
+          self.annotations = [];
+          self.selectedIndex = -1;
+          self.dirty = false;
+          self.undoStack = [];
+          self._updateSidebar();
+          self._render();
           self.trainingStats = resp.stats || {};
           self.classLabels = (resp.stats && resp.stats.class_labels) ? resp.stats.class_labels : [];
           self._renderStats();
@@ -1539,8 +1534,8 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
  * Click a thumbnail to switch to that frame.
  */
 AnnotationEditor.prototype.browseFrames = function() {
-  var self = this;
-  var total = this.totalFrames;
+  const self = this;
+  let total = this.totalFrames;
   if (!total || total <= 0) {
     this._setStatus(this.translations.TrainingLoadFrameFirst || 'Load a frame first', 'error');
     return;
@@ -1549,64 +1544,63 @@ AnnotationEditor.prototype.browseFrames = function() {
   // Remove any existing overlay
   $j('#frameBrowseOverlay').remove();
 
-  var thumbWidth = 160;
-  var perPage = 50;
-  var totalPages = Math.ceil(total / perPage);
+  let thumbWidth = 160;
+  let perPage = 50;
+  let totalPages = Math.ceil(total / perPage);
   // Start on the page containing the current frame
-  var curNum = parseInt(this.currentFrameId, 10);
-  var currentPage = (!isNaN(curNum) && curNum > 0)
+  let curNum = parseInt(this.currentFrameId, 10);
+  let currentPage = (!isNaN(curNum) && curNum > 0)
     ? Math.ceil(curNum / perPage) : 1;
 
-  var overlay = $j('<div id="frameBrowseOverlay" class="frame-browse-overlay">');
-  var panel = $j('<div class="frame-browse-panel">');
+  let overlay = $j('<div id="frameBrowseOverlay" class="frame-browse-overlay">');
+  let panel = $j('<div class="frame-browse-panel">');
 
   // Header
-  var header = $j('<div class="frame-browse-header">');
+  let header = $j('<div class="frame-browse-header">');
   header.append($j('<span>').text(
     (this.translations.TrainingBrowseFrames || 'Browse Frames') +
     ' (' + total + ')'));
-  var closeBtn = $j('<button class="frame-browse-close">&times;</button>');
+  let closeBtn = $j('<button class="frame-browse-close">&times;</button>');
   closeBtn.on('click', function() { cleanup(); });
   header.append(closeBtn);
   panel.append(header);
 
   // Grid container
-  var grid = $j('<div class="frame-browse-grid">');
+  let grid = $j('<div class="frame-browse-grid">');
 
   // Pagination container
-  var paginationWrap = $j('<nav class="frame-browse-pagination">');
-  var paginationUl = $j('<ul class="pagination pagination-sm justify-content-center mb-0">');
+  let paginationWrap = $j('<nav class="frame-browse-pagination">');
+  let paginationUl = $j('<ul class="pagination pagination-sm justify-content-center mb-0">');
   paginationWrap.append(paginationUl);
 
   function renderPage(page) {
     currentPage = page;
     grid.empty();
 
-    var start = (page - 1) * perPage + 1;
-    var end = Math.min(page * perPage, total);
+    let start = (page - 1) * perPage + 1;
+    let end = Math.min(page * perPage, total);
 
-    for (var i = start; i <= end; i++) {
-      (function(fid) {
-        var cell = $j('<div class="frame-browse-cell">');
-        var img = $j('<img>')
-            .attr('loading', 'lazy')
-            .attr('src', thisUrl + '?view=image&eid=' + self.eventId +
-              '&fid=' + fid + '&width=' + thumbWidth)
-            .attr('alt', 'Frame ' + fid);
-        var label = $j('<div class="frame-browse-label">').text(fid);
+    for (let i = start; i <= end; i++) {
+      let fid = i;
+      let cell = $j('<div class="frame-browse-cell">');
+      let img = $j('<img>')
+          .attr('loading', 'lazy')
+          .attr('src', thisUrl + '?view=image&eid=' + self.eventId +
+            '&fid=' + fid + '&width=' + thumbWidth)
+          .attr('alt', 'Frame ' + fid);
+      let label = $j('<div class="frame-browse-label">').text(fid);
 
-        if (String(fid) === String(self.currentFrameId)) {
-          cell.addClass('active');
-        }
+      if (String(fid) === String(self.currentFrameId)) {
+        cell.addClass('active');
+      }
 
-        cell.on('click', function() {
-          cleanup();
-          self.switchFrame(String(fid));
-        });
+      cell.on('click', function() {
+        cleanup();
+        self.switchFrame(String(fid));
+      });
 
-        cell.append(img).append(label);
-        grid.append(cell);
-      })(i);
+      cell.append(img).append(label);
+      grid.append(cell);
     }
 
     // Scroll grid to top
@@ -1620,7 +1614,7 @@ AnnotationEditor.prototype.browseFrames = function() {
     paginationUl.empty();
 
     // Prev
-    var prevLi = $j('<li class="page-item">').toggleClass('disabled', page <= 1);
+    let prevLi = $j('<li class="page-item">').toggleClass('disabled', page <= 1);
     prevLi.append($j('<a class="page-link" href="#">&laquo;</a>')
         .on('click', function(e) {
           e.preventDefault();
@@ -1629,29 +1623,28 @@ AnnotationEditor.prototype.browseFrames = function() {
     paginationUl.append(prevLi);
 
     // Determine which page numbers to show
-    var pages = buildPageNumbers(page, totalPages);
-    for (var p = 0; p < pages.length; p++) {
-      var val = pages[p];
+    let pages = buildPageNumbers(page, totalPages);
+    for (let p = 0; p < pages.length; p++) {
+      let val = pages[p];
       if (val === '...') {
         paginationUl.append(
           $j('<li class="page-item disabled">')
               .append($j('<span class="page-link">').text('...'))
         );
       } else {
-        (function(num) {
-          var li = $j('<li class="page-item">').toggleClass('active', num === page);
-          li.append($j('<a class="page-link" href="#">').text(num)
-              .on('click', function(e) {
-                e.preventDefault();
-                renderPage(num);
-              }));
-          paginationUl.append(li);
-        })(val);
+        let num = val;
+        let li = $j('<li class="page-item">').toggleClass('active', num === page);
+        li.append($j('<a class="page-link" href="#">').text(num)
+            .on('click', function(e) {
+              e.preventDefault();
+              renderPage(num);
+            }));
+        paginationUl.append(li);
       }
     }
 
     // Next
-    var nextLi = $j('<li class="page-item">')
+    let nextLi = $j('<li class="page-item">')
         .toggleClass('disabled', page >= totalPages);
     nextLi.append($j('<a class="page-link" href="#">&raquo;</a>')
         .on('click', function(e) {
@@ -1664,16 +1657,16 @@ AnnotationEditor.prototype.browseFrames = function() {
   function buildPageNumbers(current, last) {
     // Always show first, last, and a window around current
     if (last <= 7) {
-      var all = [];
-      for (var i = 1; i <= last; i++) all.push(i);
+      let all = [];
+      for (let i = 1; i <= last; i++) all.push(i);
       return all;
     }
-    var pages = [];
+    let pages = [];
     pages.push(1);
-    var rangeStart = Math.max(2, current - 1);
-    var rangeEnd = Math.min(last - 1, current + 1);
+    let rangeStart = Math.max(2, current - 1);
+    let rangeEnd = Math.min(last - 1, current + 1);
     if (rangeStart > 2) pages.push('...');
-    for (var i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+    for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
     if (rangeEnd < last - 1) pages.push('...');
     pages.push(last);
     return pages;
@@ -1705,29 +1698,8 @@ AnnotationEditor.prototype.browseFrames = function() {
  * Open a read-only browse overlay showing training folder contents.
  */
 AnnotationEditor.prototype.browseTrainingData = function() {
-  var self = this;
-  var t = this.translations;
-
-  // Helper: file icon class from extension
-  function fileIcon(name) {
-    var ext = name.split('.').pop().toLowerCase();
-    if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'fa-file-image-o';
-    if (ext === 'txt') return 'fa-file-text-o';
-    if (ext === 'yaml' || ext === 'yml') return 'fa-file-code-o';
-    return 'fa-file-o';
-  }
-
-  // Helper: is image extension
-  function isImage(name) {
-    var ext = name.split('.').pop().toLowerCase();
-    return ext === 'jpg' || ext === 'jpeg' || ext === 'png';
-  }
-
-  // Helper: is text extension
-  function isText(name) {
-    var ext = name.split('.').pop().toLowerCase();
-    return ext === 'txt' || ext === 'yaml' || ext === 'yml';
-  }
+  const self = this;
+  const t = this.translations;
 
   // Toggle: if inline panel exists, toggle visibility
   if (this._browseInline) {
@@ -1740,42 +1712,42 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   }
 
   // Build inline browse panel (first time)
-  var panel = $j('<div>').addClass('training-browse-inline');
+  let panel = $j('<div>').addClass('training-browse-inline');
 
   // Header
-  var header = $j('<div>').addClass('browse-header');
+  let header = $j('<div>').addClass('browse-header');
   header.append($j('<span>').text(t.TrainingBrowse || 'Browse Training Data'));
-  var browseChanged = false;
+  let browseChanged = false;
 
-  var closeBrowse = function() {
+  let closeBrowse = function() {
     panel.hide();
     if (browseChanged) {
       objectsData = null;
       backgroundsData = null;
       $j.getJSON(thisUrl + '?request=training&action=status').done(function(data) {
-        var resp = data.response || data;
+        let resp = data.response || data;
         if (resp.stats) {
           self.trainingStats = resp.stats;
           if (resp.stats.class_labels) self.classLabels = resp.stats.class_labels;
           self._renderStats();
           self._updateSidebar();
         }
-      });
+      }).fail(logAjaxFail);
       browseChanged = false;
     }
   };
 
-  var closeBtn = $j('<button>').addClass('browse-close').html('&times;');
+  let closeBtn = $j('<button>').addClass('browse-close').html('&times;');
   closeBtn.on('click', closeBrowse);
   header.append(closeBtn);
   panel.append(header);
 
   // Body: tree + files stacked vertically in inline panel
-  var body = $j('<div>').addClass('browse-body');
-  var treePanel = $j('<div>').addClass('browse-tree');
-  var rightPanel = $j('<div>').addClass('browse-right');
-  var filesArea = $j('<div>').addClass('browse-files');
-  var previewArea = $j('<div>').addClass('browse-preview').hide();
+  let body = $j('<div>').addClass('browse-body');
+  let treePanel = $j('<div>').addClass('browse-tree');
+  let rightPanel = $j('<div>').addClass('browse-right');
+  let filesArea = $j('<div>').addClass('browse-files');
+  let previewArea = $j('<div>').addClass('browse-preview').hide();
 
   rightPanel.append(filesArea);
   rightPanel.append(previewArea);
@@ -1791,92 +1763,29 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   this._browseInline = panel;
 
   // State
-  var selectedDirPath = null;
-  var selectedFileName = null;
-  var treeData = null;
+  let selectedDirPath = null;
+  let selectedFileName = null;
+  let treeData = null;
 
   // Expose browse state on editor so save/delete can trigger cross-panel sync
-  var browseState = {
+  let browseState = {
     getSelectedDirPath: function() { return selectedDirPath; },
     refreshFiles: function() { if (selectedDirPath !== null) showFiles(selectedDirPath); },
     invalidateObjects: function() { objectsData = null; backgroundsData = null; browseChanged = true; },
     refreshTree: function() {
       $j.getJSON(thisUrl + '?request=training&action=browse')
           .done(function(data) {
-            var resp = data.response || data;
+            let resp = data.response || data;
             treeData = resp.tree || [];
             treePanel.empty();
             buildTreeNodes(treePanel, treeData, 0);
             injectObjectsFolder(treePanel);
             if (selectedDirPath !== null) showFiles(selectedDirPath);
-          });
+          })
+          .fail(logAjaxFail);
     }
   };
   self._browseState = browseState;
-
-  // Collect all files in a node (for dir nodes, list direct file children)
-  function getFilesForPath(nodes, path) {
-    if (path === null) return [];
-    for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      if (node.type === 'dir' && node.path === path) {
-        // Return file children of this dir
-        var files = [];
-        if (node.children) {
-          for (var j = 0; j < node.children.length; j++) {
-            if (node.children[j].type === 'file') {
-              files.push(node.children[j]);
-            }
-          }
-        }
-        return files;
-      }
-      if (node.type === 'dir' && node.children) {
-        var found = getFilesForPath(node.children, path);
-        if (found.length > 0 || pathStartsWith(path, node.path)) return found;
-      }
-    }
-    return [];
-  }
-
-  function pathStartsWith(full, prefix) {
-    return full === prefix || full.indexOf(prefix + '/') === 0;
-  }
-
-  // Find a specific node by path
-  function findNode(nodes, path) {
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].path === path) return nodes[i];
-      if (nodes[i].type === 'dir' && nodes[i].children) {
-        var found = findNode(nodes[i].children, path);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-
-  // Remove a node from the tree by path
-  function removeFromTree(nodes, path) {
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].path === path) {
-        nodes.splice(i, 1);
-        return true;
-      }
-      if (nodes[i].type === 'dir' && nodes[i].children) {
-        if (removeFromTree(nodes[i].children, path)) return true;
-      }
-    }
-    return false;
-  }
-
-  // Collect root-level files (files not inside any dir)
-  function getRootFiles(nodes) {
-    var files = [];
-    for (var i = 0; i < nodes.length; i++) {
-      if (nodes[i].type === 'file') files.push(nodes[i]);
-    }
-    return files;
-  }
 
   // Show files in the right panel for a given directory path
   function showFiles(dirPath) {
@@ -1885,16 +1794,16 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     previewArea.hide();
     filesArea.empty();
 
-    var files;
+    let files;
     if (dirPath === '') {
       // Root: show root-level files
-      files = getRootFiles(treeData);
+      files = browseGetRootFiles(treeData);
     } else {
-      files = getFilesForPath(treeData, dirPath);
+      files = browseGetFilesForPath(treeData, dirPath);
     }
 
     // Files header
-    var fHeader = $j('<div>').addClass('browse-files-header');
+    let fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(dirPath || '/'));
     fHeader.append($j('<span>').addClass('file-count').text(files.length + ' files'));
     filesArea.append(fHeader);
@@ -1904,74 +1813,73 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       return;
     }
 
-    for (var i = 0; i < files.length; i++) {
-      (function(file) {
-        var row = $j('<div>').addClass('browse-file-row');
-        row.append($j('<span>').addClass('file-name').text(file.name));
-        if (file.size !== undefined) {
-          row.append($j('<span>').addClass('file-size').text(human_filesize(file.size)));
-        }
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+      let row = $j('<div>').addClass('browse-file-row');
+      row.append($j('<span>').addClass('file-name').text(file.name));
+      if (file.size !== undefined) {
+        row.append($j('<span>').addClass('file-size').text(human_filesize(file.size)));
+      }
 
-        // Delete button for image/label files
-        var dirBase = (file.path || '').split('/')[0];
-        if (dirBase === 'images' || dirBase === 'labels') {
-          var delBtn = $j('<button>').addClass('browse-file-delete')
-              .attr('title', 'Delete image + label pair')
-              .html('<i class="fa fa-trash"></i>');
-          delBtn.on('click', function(e) {
-            e.stopPropagation();
-            if (!confirm(t.TrainingConfirmDeleteFile || 'Delete this file and its paired image/label?')) return;
-            delBtn.prop('disabled', true);
-            $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
-                encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
-                .done(function(data) {
-                  var resp = data.response || data;
-                  browseChanged = true;
-                  // Remove deleted files from treeData
-                  if (resp.deleted) {
-                    for (var d = 0; d < resp.deleted.length; d++) {
-                      removeFromTree(treeData, resp.deleted[d]);
-                    }
+      // Delete button for image/label files
+      let dirBase = (file.path || '').split('/')[0];
+      if (dirBase === 'images' || dirBase === 'labels') {
+        let delBtn = $j('<button>').addClass('browse-file-delete')
+            .attr('title', 'Delete image + label pair')
+            .html('<i class="fa fa-trash"></i>');
+        delBtn.on('click', function(e) {
+          e.stopPropagation();
+          if (!confirm(t.TrainingConfirmDeleteFile || 'Delete this file and its paired image/label?')) return;
+          delBtn.prop('disabled', true);
+          $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
+              encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
+              .done(function(data) {
+                let resp = data.response || data;
+                browseChanged = true;
+                // Remove deleted files from treeData
+                if (resp.deleted) {
+                  for (let d = 0; d < resp.deleted.length; d++) {
+                    browseRemoveFromTree(treeData, resp.deleted[d]);
                   }
-                  // Close preview if showing this file
-                  if (selectedFileName === file.name) {
-                    previewArea.hide();
-                    selectedFileName = null;
-                  }
-                  // Sync: if deleted file matches current editor frame, clear annotations
-                  var delStem = file.name.replace(/\.[^.]+$/, '');
-                  var curStem = 'event_' + self.eventId + '_frame_' +
-                      (self.currentFrameId || '');
-                  if (delStem === curStem) {
-                    self.annotations = [];
-                    self.selectedIndex = -1;
-                    self.dirty = false;
-                    self._updateSidebar();
-                    self._render();
-                  }
-                  // Always refresh stats after delete
-                  self._loadStats();
-                  // Invalidate objects cache
-                  objectsData = null;
-                  backgroundsData = null;
-                  // Re-render current directory
-                  showFiles(selectedDirPath);
-                })
-                .fail(function() {
-                  alert(t.TrainingDeleteFailed || 'Failed to delete');
-                  delBtn.prop('disabled', false);
-                });
-          });
-          row.append(delBtn);
-        }
-
-        row.on('click', function() {
-          filesArea.find('.browse-file-row').removeClass('selected');
-          row.addClass('selected');
-          showPreview(file);
+                }
+                // Close preview if showing this file
+                if (selectedFileName === file.name) {
+                  previewArea.hide();
+                  selectedFileName = null;
+                }
+                // Sync: if deleted file matches current editor frame, clear annotations
+                let delStem = file.name.replace(/\.[^.]+$/, '');
+                let curStem = 'event_' + self.eventId + '_frame_' +
+                    (self.currentFrameId || '');
+                if (delStem === curStem) {
+                  self.annotations = [];
+                  self.selectedIndex = -1;
+                  self.dirty = false;
+                  self._updateSidebar();
+                  self._render();
+                }
+                // Always refresh stats after delete
+                self._loadStats();
+                // Invalidate objects cache
+                objectsData = null;
+                backgroundsData = null;
+                // Re-render current directory
+                showFiles(selectedDirPath);
+              })
+              .fail(function() {
+                alert(t.TrainingDeleteFailed || 'Failed to delete');
+                delBtn.prop('disabled', false);
+              });
         });
-        filesArea.append(row);
-      })(files[i]);
+        row.append(delBtn);
+      }
+
+      row.on('click', function() {
+        filesArea.find('.browse-file-row').removeClass('selected');
+        row.addClass('selected');
+        showPreview(file);
+      });
+      filesArea.append(row);
     }
   }
 
@@ -1980,28 +1888,28 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     selectedFileName = file.name;
     previewArea.empty().show();
 
-    var pvHeader = $j('<div>').addClass('browse-preview-header');
+    let pvHeader = $j('<div>').addClass('browse-preview-header');
     pvHeader.append($j('<span>').text(file.name));
 
-    var pvActions = $j('<span>').addClass('browse-preview-actions');
+    let pvActions = $j('<span>').addClass('browse-preview-actions');
 
     // Edit button: parse event_{eid}_frame_{fid} from filename to navigate
-    var stem = file.name.replace(/\.[^.]+$/, '');
-    var match = stem.match(/^event_(\d+)_frame_(.+)$/);
+    let stem = file.name.replace(/\.[^.]+$/, '');
+    let match = stem.match(/^event_(\d+)_frame_(.+)$/);
     if (match) {
-      var editBtn = $j('<button>')
+      let editBtn = $j('<button>')
           .addClass('browse-edit-btn')
           .attr('title', t.TrainingEditAnnotation || 'Edit annotation')
           .html('<i class="fa fa-pencil"></i>');
       editBtn.on('click', function() {
-        var eid = match[1];
-        var fid = match[2];
+        let eid = match[1];
+        let fid = match[2];
         self.switchEvent(eid, fid);
       });
       pvActions.append(editBtn);
     }
 
-    var pvClose = $j('<button>').addClass('preview-close').html('&times;');
+    let pvClose = $j('<button>').addClass('preview-close').html('&times;');
     pvClose.on('click', function() {
       previewArea.hide();
       filesArea.find('.browse-file-row').removeClass('selected');
@@ -2011,39 +1919,39 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     pvHeader.append(pvActions);
     previewArea.append(pvHeader);
 
-    var pvContent = $j('<div>').addClass('browse-preview-content');
+    let pvContent = $j('<div>').addClass('browse-preview-content');
     previewArea.append(pvContent);
 
-    var fileUrl = thisUrl + '?request=training&action=browse_file&path=' +
+    let fileUrl = thisUrl + '?request=training&action=browse_file&path=' +
         encodeURIComponent(file.path);
 
-    if (isImage(file.name)) {
-      var container = $j('<div>').addClass('browse-preview-img-wrap');
-      var img = $j('<img>').attr('src', fileUrl)
+    if (browseIsImage(file.name)) {
+      let container = $j('<div>').addClass('browse-preview-img-wrap');
+      let img = $j('<img>').attr('src', fileUrl)
           .attr('alt', file.name)
           .on('error', function() {
             pvContent.html('<em>' + (t.TrainingFailedToLoadFrame || 'Failed to load image') + '</em>');
           });
-      var canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
+      let canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
       container.append(img);
       container.append(canvas);
       pvContent.append(container);
 
       // Once image loads, fetch label file and draw boxes
       img.on('load', function() {
-        var natW = img[0].naturalWidth;
-        var natH = img[0].naturalHeight;
-        var dispW = img[0].clientWidth;
-        var dispH = img[0].clientHeight;
+        let natW = img[0].naturalWidth;
+        let natH = img[0].naturalHeight;
+        let dispW = img[0].clientWidth;
+        let dispH = img[0].clientHeight;
         canvas.width = dispW;
         canvas.height = dispH;
         $j(canvas).css({width: dispW + 'px', height: dispH + 'px'});
 
         // Derive label file path from image path
-        var stem = file.name.replace(/\.[^.]+$/, '');
-        var lblPath = file.path.replace(/^images\//, 'labels/')
+        let stem = file.name.replace(/\.[^.]+$/, '');
+        let lblPath = file.path.replace(/^images\//, 'labels/')
             .replace(/\.[^.]+$/, '.txt');
-        var lblUrl = thisUrl + '?request=training&action=browse_file&path=' +
+        let lblUrl = thisUrl + '?request=training&action=browse_file&path=' +
             encodeURIComponent(lblPath);
 
         // Fetch class labels and label file in parallel
@@ -2051,31 +1959,31 @@ AnnotationEditor.prototype.browseTrainingData = function() {
             $j.getJSON(thisUrl + '?request=training&action=labels'),
             $j.getJSON(lblUrl)
         ).done(function(labelsResp, lblResp) {
-          var classLabels = (labelsResp[0].response || labelsResp[0]).labels || [];
-          var content = (lblResp[0].response || lblResp[0]).content || '';
-          var lines = content.split('\n').filter(function(l) {
+          let classLabels = (labelsResp[0].response || labelsResp[0]).labels || [];
+          let content = (lblResp[0].response || lblResp[0]).content || '';
+          let lines = content.split('\n').filter(function(l) {
             return l.trim().length > 0;
           });
           if (lines.length === 0) return;
 
-          var ctx = canvas.getContext('2d');
-          for (var li = 0; li < lines.length; li++) {
-            var parts = lines[li].trim().split(/\s+/);
+          let ctx = canvas.getContext('2d');
+          for (let li = 0; li < lines.length; li++) {
+            let parts = lines[li].trim().split(/\s+/);
             if (parts.length < 5) continue;
-            var classId = parseInt(parts[0], 10);
-            var cx = parseFloat(parts[1]);
-            var cy = parseFloat(parts[2]);
-            var bw = parseFloat(parts[3]);
-            var bh = parseFloat(parts[4]);
+            let classId = parseInt(parts[0], 10);
+            let cx = parseFloat(parts[1]);
+            let cy = parseFloat(parts[2]);
+            let bw = parseFloat(parts[3]);
+            let bh = parseFloat(parts[4]);
 
             // Convert YOLO normalized to display pixels
-            var x = (cx - bw / 2) * dispW;
-            var y = (cy - bh / 2) * dispH;
-            var w = bw * dispW;
-            var h = bh * dispH;
+            let x = (cx - bw / 2) * dispW;
+            let y = (cy - bh / 2) * dispH;
+            let w = bw * dispW;
+            let h = bh * dispH;
 
-            var color = ANNOTATION_COLORS[classId % ANNOTATION_COLORS.length];
-            var label = classLabels[classId] || ('class ' + classId);
+            let color = ANNOTATION_COLORS[classId % ANNOTATION_COLORS.length];
+            let label = classLabels[classId] || ('class ' + classId);
 
             // Draw box
             ctx.strokeStyle = color;
@@ -2084,9 +1992,9 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
             // Draw label background
             ctx.font = '11px sans-serif';
-            var textW = ctx.measureText(label).width + 6;
-            var textH = 16;
-            var labelY = y - textH;
+            let textW = ctx.measureText(label).width + 6;
+            let textH = 16;
+            let labelY = y - textH;
             if (labelY < 0) labelY = y;
             ctx.fillStyle = color;
             ctx.fillRect(x, labelY, textW, textH);
@@ -2097,10 +2005,10 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           }
         });
       });
-    } else if (isText(file.name)) {
+    } else if (browseIsText(file.name)) {
       pvContent.html('<em>' + (t.TrainingLoading || 'Loading...') + '</em>');
       $j.getJSON(fileUrl).done(function(data) {
-        var resp = data.response || data;
+        let resp = data.response || data;
         pvContent.empty();
         pvContent.append($j('<pre>').text(resp.content || '(empty)'));
       }).fail(function() {
@@ -2112,19 +2020,19 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   }
 
   // --- Virtual "Objects" folder ---
-  var objectsData = null; // cached browse_objects response
-  var backgroundsData = null; // cached background images
+  let objectsData = null; // cached browse_objects response
+  let backgroundsData = null; // cached background images
 
   function injectObjectsFolder(container) {
-    var objectsNode = $j('<div>').addClass('browse-tree-node')
+    let objectsNode = $j('<div>').addClass('browse-tree-node')
         .css('padding-left', '8px')
         .attr('data-path', '__objects__');
-    var icon = $j('<i>').addClass('fa fa-tags');
+    let icon = $j('<i>').addClass('fa fa-tags');
     objectsNode.append(icon);
     objectsNode.append($j('<span>').addClass('tree-label')
         .text(t.TrainingObjects || 'Objects'));
 
-    var childContainer = $j('<div>').addClass('browse-tree-children').hide();
+    let childContainer = $j('<div>').addClass('browse-tree-children').hide();
 
     // Insert at the top of the tree panel
     container.prepend(childContainer);
@@ -2158,7 +2066,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
       $j.getJSON(thisUrl + '?request=training&action=browse_objects')
           .done(function(data) {
-            var resp = data.response || data;
+            let resp = data.response || data;
             objectsData = resp.objects || {};
             backgroundsData = resp.backgrounds || [];
             browseChanged = false;
@@ -2174,36 +2082,35 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
   function renderObjectsChildren(container, objects, backgrounds) {
     container.empty();
-    var classNames = Object.keys(objects);
-    var hasBackgrounds = backgrounds && backgrounds.length > 0;
+    let classNames = Object.keys(objects);
+    let hasBackgrounds = backgrounds && backgrounds.length > 0;
     if (classNames.length === 0 && !hasBackgrounds) {
       container.html('<div style="padding:4px 20px;color:#6c757d;font-size:0.75rem">' +
           (t.TrainingNoObjects || 'No annotated objects yet') + '</div>');
       return;
     }
-    for (var ci = 0; ci < classNames.length; ci++) {
-      (function(className) {
-        var items = objects[className];
-        var classNode = $j('<div>').addClass('browse-tree-node')
-            .css('padding-left', '20px');
-        classNode.append($j('<i>').addClass('fa fa-tag'));
-        classNode.append($j('<span>').addClass('tree-label').text(className));
-        classNode.append($j('<span>').addClass('class-count-badge')
-            .text('(' + items.length + ')'));
-        container.append(classNode);
+    for (let ci = 0; ci < classNames.length; ci++) {
+      let className = classNames[ci];
+      let items = objects[className];
+      let classNode = $j('<div>').addClass('browse-tree-node')
+          .css('padding-left', '20px');
+      classNode.append($j('<i>').addClass('fa fa-tag'));
+      classNode.append($j('<span>').addClass('tree-label').text(className));
+      classNode.append($j('<span>').addClass('class-count-badge')
+          .text('(' + items.length + ')'));
+      container.append(classNode);
 
-        classNode.on('click', function(e) {
-          e.stopPropagation();
-          treePanel.find('.browse-tree-node').removeClass('selected');
-          classNode.addClass('selected');
-          showObjectThumbnails(className, items);
-        });
-      })(classNames[ci]);
+      classNode.on('click', function(e) {
+        e.stopPropagation();
+        treePanel.find('.browse-tree-node').removeClass('selected');
+        classNode.addClass('selected');
+        showObjectThumbnails(className, items);
+      });
     }
 
     // Background images node
     if (hasBackgrounds) {
-      var bgNode = $j('<div>').addClass('browse-tree-node')
+      let bgNode = $j('<div>').addClass('browse-tree-node')
           .css('padding-left', '20px');
       bgNode.append($j('<i>').addClass('fa fa-ban'));
       bgNode.append($j('<span>').addClass('tree-label')
@@ -2226,17 +2133,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     // Show a summary in the right panel when the top-level Objects node is clicked
     filesArea.empty();
     previewArea.hide();
-    var classNames = Object.keys(objects);
-    var totalImages = 0;
-    for (var i = 0; i < classNames.length; i++) {
+    let classNames = Object.keys(objects);
+    let totalImages = 0;
+    for (let i = 0; i < classNames.length; i++) {
       totalImages += objects[classNames[i]].length;
     }
-    var bgCount = backgrounds ? backgrounds.length : 0;
-    var summary = classNames.length + ' classes, ' + totalImages + ' images';
+    let bgCount = backgrounds ? backgrounds.length : 0;
+    let summary = classNames.length + ' classes, ' + totalImages + ' images';
     if (bgCount > 0) {
       summary += ', ' + bgCount + ' background';
     }
-    var fHeader = $j('<div>').addClass('browse-files-header');
+    let fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(t.TrainingObjects || 'Objects'));
     fHeader.append($j('<span>').addClass('file-count').text(summary));
     filesArea.append(fHeader);
@@ -2253,7 +2160,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     previewArea.hide();
     filesArea.empty();
 
-    var fHeader = $j('<div>').addClass('browse-files-header');
+    let fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(className));
     fHeader.append($j('<span>').addClass('file-count')
         .text(items.length + ' images'));
@@ -2265,32 +2172,31 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       return;
     }
 
-    var grid = $j('<div>').addClass('browse-thumb-grid');
+    let grid = $j('<div>').addClass('browse-thumb-grid');
 
-    for (var i = 0; i < items.length; i++) {
-      (function(item) {
-        var cell = $j('<div>').addClass('browse-thumb-cell');
-        var imgUrl = thisUrl + '?request=training&action=browse_file&path=' +
-            encodeURIComponent(item.imgPath);
-        var img = $j('<img>').attr('src', imgUrl).attr('alt', item.stem);
-        cell.append(img);
+    for (let i = 0; i < items.length; i++) {
+      let item = items[i];
+      let cell = $j('<div>').addClass('browse-thumb-cell');
+      let imgUrl = thisUrl + '?request=training&action=browse_file&path=' +
+          encodeURIComponent(item.imgPath);
+      let img = $j('<img>').attr('src', imgUrl).attr('alt', item.stem);
+      cell.append(img);
 
-        // Label: extract event/frame from stem
-        var label = item.stem;
-        var match = item.stem.match(/^event_(\d+)_frame_(.+)$/);
+      // Label: extract event/frame from stem
+      let label = item.stem;
+      let match = item.stem.match(/^event_(\d+)_frame_(.+)$/);
+      if (match) {
+        label = 'E' + match[1] + ' / ' + match[2];
+      }
+      cell.append($j('<div>').addClass('browse-thumb-label').text(label));
+
+      cell.on('click', function() {
         if (match) {
-          label = 'E' + match[1] + ' / ' + match[2];
+          self.switchEvent(match[1], match[2]);
         }
-        cell.append($j('<div>').addClass('browse-thumb-label').text(label));
+      });
 
-        cell.on('click', function() {
-          if (match) {
-            self.switchEvent(match[1], match[2]);
-          }
-        });
-
-        grid.append(cell);
-      })(items[i]);
+      grid.append(cell);
     }
 
     filesArea.append(grid);
@@ -2298,82 +2204,80 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
   // Build tree nodes recursively in the left panel
   function buildTreeNodes(container, nodes, depth) {
-    for (var i = 0; i < nodes.length; i++) {
-      (function(node) {
-        if (node.type === 'dir') {
-          var treeNode = $j('<div>').addClass('browse-tree-node')
-              .css('padding-left', (8 + depth * 12) + 'px')
-              .attr('data-path', node.path);
-          var icon = $j('<i>').addClass('fa fa-folder');
-          treeNode.append(icon);
-          treeNode.append($j('<span>').addClass('tree-label').text(node.name));
-          container.append(treeNode);
+    for (let i = 0; i < nodes.length; i++) {
+      let node = nodes[i];
+      if (node.type === 'dir') {
+        let treeNode = $j('<div>').addClass('browse-tree-node')
+            .css('padding-left', (8 + depth * 12) + 'px')
+            .attr('data-path', node.path);
+        let icon = $j('<i>').addClass('fa fa-folder');
+        treeNode.append(icon);
+        treeNode.append($j('<span>').addClass('tree-label').text(node.name));
+        container.append(treeNode);
 
-          var childContainer = $j('<div>').addClass('browse-tree-children');
-          container.append(childContainer);
+        let childContainer = $j('<div>').addClass('browse-tree-children');
+        container.append(childContainer);
 
-          // Click to select directory
-          treeNode.on('click', function(e) {
-            e.stopPropagation();
-            // Update selected state
-            treePanel.find('.browse-tree-node').removeClass('selected');
-            treeNode.addClass('selected');
-            // Toggle open/close icon
-            if (icon.hasClass('fa-folder-open')) {
-              icon.removeClass('fa-folder-open').addClass('fa-folder');
-              childContainer.hide();
-            } else {
-              icon.removeClass('fa-folder').addClass('fa-folder-open');
-              childContainer.show();
-            }
-            showFiles(node.path);
-          });
-
-          // Build children (initially hidden except first level)
-          if (node.children && node.children.length > 0) {
-            buildTreeNodes(childContainer, node.children, depth + 1);
+        // Click to select directory
+        treeNode.on('click', function(e) {
+          e.stopPropagation();
+          // Update selected state
+          treePanel.find('.browse-tree-node').removeClass('selected');
+          treeNode.addClass('selected');
+          // Toggle open/close icon
+          if (icon.hasClass('fa-folder-open')) {
+            icon.removeClass('fa-folder-open').addClass('fa-folder');
+            childContainer.hide();
+          } else {
+            icon.removeClass('fa-folder').addClass('fa-folder-open');
+            childContainer.show();
           }
-          if (depth > 0) childContainer.hide();
-        } else if (node.type === 'file' && depth === 0) {
-          // Root-level files (e.g., data.yaml) shown in tree
-          var fileNode = $j('<div>').addClass('browse-tree-node')
-              .css('padding-left', (8 + depth * 12) + 'px')
-              .attr('data-path', node.path);
-          fileNode.append($j('<i>').addClass('fa fa-file-text-o'));
-          fileNode.append($j('<span>').addClass('tree-label').text(node.name));
-          container.append(fileNode);
+          showFiles(node.path);
+        });
 
-          fileNode.on('click', function(e) {
-            e.stopPropagation();
-            treePanel.find('.browse-tree-node').removeClass('selected');
-            fileNode.addClass('selected');
-            // Show this single file directly in preview
-            filesArea.empty();
-            var fHeader = $j('<div>').addClass('browse-files-header');
-            fHeader.append($j('<span>').text('/'));
-            fHeader.append($j('<span>').addClass('file-count').text('1 file'));
-            filesArea.append(fHeader);
-            var row = $j('<div>').addClass('browse-file-row selected');
-            row.append($j('<i>').addClass('fa ' + fileIcon(node.name)));
-            row.append($j('<span>').addClass('file-name').text(node.name));
-            if (node.size !== undefined) {
-              row.append($j('<span>').addClass('file-size').text(human_filesize(node.size)));
-            }
-            filesArea.append(row);
-            showPreview(node);
-          });
+        // Build children (initially hidden except first level)
+        if (node.children && node.children.length > 0) {
+          buildTreeNodes(childContainer, node.children, depth + 1);
         }
-      })(nodes[i]);
+        if (depth > 0) childContainer.hide();
+      } else if (node.type === 'file' && depth === 0) {
+        // Root-level files (e.g., data.yaml) shown in tree
+        let fileNode = $j('<div>').addClass('browse-tree-node')
+            .css('padding-left', (8 + depth * 12) + 'px')
+            .attr('data-path', node.path);
+        fileNode.append($j('<i>').addClass('fa fa-file-text-o'));
+        fileNode.append($j('<span>').addClass('tree-label').text(node.name));
+        container.append(fileNode);
+
+        fileNode.on('click', function(e) {
+          e.stopPropagation();
+          treePanel.find('.browse-tree-node').removeClass('selected');
+          fileNode.addClass('selected');
+          // Show this single file directly in preview
+          filesArea.empty();
+          let fHeader = $j('<div>').addClass('browse-files-header');
+          fHeader.append($j('<span>').text('/'));
+          fHeader.append($j('<span>').addClass('file-count').text('1 file'));
+          filesArea.append(fHeader);
+          let row = $j('<div>').addClass('browse-file-row selected');
+          row.append($j('<i>').addClass('fa ' + browseFileIcon(node.name)));
+          row.append($j('<span>').addClass('file-name').text(node.name));
+          if (node.size !== undefined) {
+            row.append($j('<span>').addClass('file-size').text(human_filesize(node.size)));
+          }
+          filesArea.append(row);
+          showPreview(node);
+        });
+      }
     }
   }
 
   // Fetch tree data
   $j.getJSON(thisUrl + '?request=training&action=browse')
       .done(function(data) {
-        var resp = data.response || data;
+        let resp = data.response || data;
         treeData = resp.tree || [];
 
-        if (resp.base) pathSpan.text(resp.base);
         treePanel.empty();
 
         if (treeData.length === 0) {
@@ -2390,11 +2294,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         injectObjectsFolder(treePanel);
 
         // Auto-select images/all if it exists, otherwise first dir
-        var autoSelect = 'images/all';
-        var autoNode = findNode(treeData, autoSelect);
+        let autoSelect = 'images/all';
+        let autoNode = browseFindNode(treeData, autoSelect);
         if (!autoNode) {
           // Find first dir
-          for (var i = 0; i < treeData.length; i++) {
+          for (let i = 0; i < treeData.length; i++) {
             if (treeData[i].type === 'dir') {
               autoSelect = treeData[i].path;
               break;
@@ -2403,11 +2307,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         }
 
         // Expand parents and select
-        var parts = autoSelect.split('/');
-        var pathSoFar = '';
-        for (var p = 0; p < parts.length; p++) {
+        let parts = autoSelect.split('/');
+        let pathSoFar = '';
+        for (let p = 0; p < parts.length; p++) {
           pathSoFar = pathSoFar ? pathSoFar + '/' + parts[p] : parts[p];
-          var treeNodeEl = treePanel.find(
+          let treeNodeEl = treePanel.find(
               '.browse-tree-node[data-path="' + pathSoFar + '"]');
           if (treeNodeEl.length) {
             treeNodeEl.find('.fa-folder').removeClass('fa-folder')
@@ -2415,7 +2319,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
             treeNodeEl.next('.browse-tree-children').show();
           }
         }
-        var targetNode = treePanel.find(
+        let targetNode = treePanel.find(
             '.browse-tree-node[data-path="' + autoSelect + '"]');
         if (targetNode.length) {
           targetNode.addClass('selected');
@@ -2434,13 +2338,13 @@ AnnotationEditor.prototype.browseTrainingData = function() {
  * @param {Array<string>} availableFrames
  */
 AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
-  var self = this;
-  var container = $j('#annotationFrameSelector');
+  const self = this;
+  let container = $j('#annotationFrameSelector');
   if (!container.length) return;
 
   // Show/hide frame buttons based on availability
   container.find('.frame-btn').each(function() {
-    var frameId = $j(this).attr('data-frame');
+    let frameId = $j(this).attr('data-frame');
     if (availableFrames.indexOf(frameId) >= 0) {
       $j(this).show();
     } else {
@@ -2457,7 +2361,7 @@ AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
   // Bind click handlers
   container.find('.frame-btn').off('click.annEditor').on('click.annEditor', function(e) {
     e.preventDefault();
-    var frameId = $j(this).attr('data-frame');
+    let frameId = $j(this).attr('data-frame');
     self.switchFrame(frameId);
 
     // Update highlight
@@ -2466,11 +2370,11 @@ AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
   });
 
   // Frame number input for going to specific frame
-  var frameInput = container.find('.frame-input');
+  let frameInput = container.find('.frame-input');
   frameInput.off('keydown.annEditor').on('keydown.annEditor', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      var val = parseInt($j(this).val(), 10);
+      let val = parseInt($j(this).val(), 10);
       if (val > 0 && val <= self.totalFrames) {
         self.switchFrame(String(val));
       }
@@ -2485,7 +2389,7 @@ AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
  * Save annotations via AJAX POST.
  */
 AnnotationEditor.prototype.save = function() {
-  var self = this;
+  const self = this;
 
   if (!this.currentFrameId) {
     this._setStatus(this.translations.TrainingNoFrameLoaded || 'No frame loaded', 'error');
@@ -2493,9 +2397,9 @@ AnnotationEditor.prototype.save = function() {
   }
 
   // Only save accepted (non-pending) annotations
-  var accepted = [];
-  var pendingCount = 0;
-  for (var i = 0; i < this.annotations.length; i++) {
+  let accepted = [];
+  let pendingCount = 0;
+  for (let i = 0; i < this.annotations.length; i++) {
     if (this.annotations[i].pending) {
       pendingCount++;
     } else {
@@ -2505,18 +2409,18 @@ AnnotationEditor.prototype.save = function() {
 
   if (pendingCount > 0 && accepted.length === 0) {
     // All boxes are unconfirmed — user probably forgot to accept them
-    var msg = (this.translations.TrainingPendingOnly ||
+    let msg = (this.translations.TrainingPendingOnly ||
         'You have %1 unaccepted detection(s) (orange boxes). Accept them first, or save as a background image with no objects?')
         .replace('%1', pendingCount);
     if (!confirm(msg)) return;
   } else if (pendingCount > 0) {
     // Mix of accepted and unconfirmed boxes
-    var msg = (this.translations.TrainingPendingDiscard ||
+    let msg = (this.translations.TrainingPendingDiscard ||
         '%1 unaccepted detection(s) (orange boxes) will not be saved. Continue?')
         .replace('%1', pendingCount);
     if (!confirm(msg)) return;
   } else if (accepted.length === 0) {
-    var msg = this.translations.TrainingBackgroundConfirm ||
+    let msg = this.translations.TrainingBackgroundConfirm ||
         'No objects marked. Save as a background image (no objects)?\n\nBackground images help the model learn to reduce false positives.';
     if (!confirm(msg)) return;
   }
@@ -2540,7 +2444,7 @@ AnnotationEditor.prototype.save = function() {
           self._setStatus(data.message || self.translations.TrainingSaveFailed || 'Save failed', 'error');
           return;
         }
-        var resp = data.response || data;
+        let resp = data.response || data;
         self.dirty = false;
         self._setStatus(
             self.translations.TrainingSaved || 'Training annotation saved',
@@ -2581,34 +2485,118 @@ AnnotationEditor.prototype.save = function() {
  * @param {string} type  'success', 'error', or 'saving'
  */
 AnnotationEditor.prototype._setStatus = function(msg, type) {
-  var el = $j('#annotationStatus');
+  const el = $j('#annotationStatus');
   if (!el.length) return;
 
   el.text(msg)
-      .removeClass('error saving info')
+      .removeClass('error saving info success')
       .addClass(type || '');
 
-  // Auto-clear all messages after a delay
-  setTimeout(function() {
-    el.text('').removeClass('error saving info');
+  // Clear any previous auto-clear timer to avoid race conditions
+  if (this._statusTimer) clearTimeout(this._statusTimer);
+  this._statusTimer = setTimeout(function() {
+    el.text('').removeClass('error saving info success');
   }, 8000);
 };
 
 /**
- * Get consistent color index for a label.
- * @param {string} label
- * @return {number}
+ * Prompt the user to discard unsaved changes if dirty.
+ * @return {boolean} true if clean or user confirmed discard, false if cancelled
  */
-AnnotationEditor.prototype._getColorIndex = function(label) {
-  // Use classLabels index if available, else hash the label
-  var idx = this.classLabels.indexOf(label);
-  if (idx >= 0) return idx;
-
-  // Simple hash for labels not in classLabels
-  var hash = 0;
-  for (var i = 0; i < label.length; i++) {
-    hash = ((hash << 5) - hash) + label.charCodeAt(i);
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
+AnnotationEditor.prototype._confirmDiscardIfDirty = function() {
+  if (!this.dirty) return true;
+  let msg = this.translations.TrainingUnsaved ||
+      'You have unsaved annotations. Discard changes?';
+  if (!confirm(msg)) return false;
+  this.dirty = false;
+  return true;
 };
+
+/**
+ * Reset annotation editing state (annotations, selection, undo, drawing flags).
+ */
+AnnotationEditor.prototype._resetAnnotationState = function() {
+  this.annotations = [];
+  this.selectedIndex = -1;
+  this.dirty = false;
+  this.isDrawing = false;
+  this.isDragging = false;
+  this.isResizing = false;
+  this.undoStack = [];
+  this._hideLabelPicker();
+};
+
+/**
+ * Apply event metadata from a load response to the editor instance.
+ * Shared by open() and switchEvent().
+ * @param {Object} resp  The response payload from the load action
+ */
+AnnotationEditor.prototype._applyEventData = function(resp) {
+  this.availableFrames = resp.availableFrames || [];
+  this.totalFrames = resp.totalFrames || 0;
+  this.eventPath = resp.eventPath || '';
+  this.imageNaturalW = resp.width || 0;
+  this.imageNaturalH = resp.height || 0;
+  this.monitorId = resp.monitorId || '';
+  this.hasDetectScript = resp.hasDetectScript || false;
+
+  if (this.hasDetectScript) {
+    $j('#annotationDetectBtn').show();
+  } else {
+    $j('#annotationDetectBtn').hide();
+  }
+
+  this._updateFrameSelector(this.availableFrames);
+
+  if (resp.detectionData) {
+    this._loadDetectionData(resp.detectionData);
+  }
+};
+
+/**
+ * Load event metadata and optionally a preferred frame.
+ * Shared by open() and switchEvent() to avoid duplicating the AJAX call.
+ * @param {string|number} eid  Event ID to load
+ * @param {string} [preferredFrame]  Frame to load; falls back to defaultFrameId
+ */
+AnnotationEditor.prototype._loadEventData = function(eid, preferredFrame) {
+  const self = this;
+  $j.getJSON(thisUrl + '?request=training&action=load&eid=' + eid)
+      .done(function(data) {
+        if (data.result === 'Error') {
+          self._setStatus(data.message, 'error');
+          return;
+        }
+        let resp = data.response || data;
+        self._applyEventData(resp);
+
+        let startFrame = preferredFrame || resp.defaultFrameId || 'alarm';
+        self._loadFrameImage(startFrame);
+
+        if (preferredFrame) {
+          self._loadSavedAnnotations(self.eventId, preferredFrame);
+        }
+      })
+      .fail(function(jqxhr) {
+        self._setStatus(self.translations.TrainingFailedToLoadEvent || 'Failed to load event data', 'error');
+        logAjaxFail(jqxhr);
+      });
+};
+
+/**
+ * Normalize a rectangle so x1 <= x2, y1 <= y2.
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @return {{x1: number, y1: number, x2: number, y2: number}}
+ */
+AnnotationEditor.prototype._getNormalizedRect = function(x1, y1, x2, y2) {
+  return {
+    x1: Math.min(x1, x2),
+    y1: Math.min(y1, y2),
+    x2: Math.max(x1, x2),
+    y2: Math.max(y1, y2)
+  };
+};
+

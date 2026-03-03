@@ -2,7 +2,7 @@ name: build-deb-packages-aarch64
 
 on:
   push:
-    branches: [ release-1.38 ]
+    branches: [ release-1.38 ai_server ]
 permissions:
   contents: write
 env:
@@ -19,7 +19,7 @@ env:
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
+    if: github.repository == 'ConnorTechnology/ZoneMinder'
     strategy:
       fail-fast: false
       matrix:
@@ -136,9 +136,9 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#release-}"
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "DEPLOY_TARGET=debian/release-${VERSION}/mini-dinstall/incoming/" >> $GITHUB_ENV
+            echo "DEPLOY_TARGET=debian/${GITHUB_REF_NAME}/mini-dinstall/incoming/" >> $GITHUB_ENV
           else
-            echo "DEPLOY_TARGET=debian/master/mini-dinstall/incoming/" >> $GITHUB_ENV
+            echo "DEPLOY_TARGET=debian/${GITHUB_REF_NAME}/mini-dinstall/incoming/" >> $GITHUB_ENV
           fi
       - name: Publish to ZMREPO
         uses: easingthemes/ssh-deploy@main

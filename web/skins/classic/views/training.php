@@ -30,9 +30,6 @@ if (!$monitor->canView()) {
   return;
 }
 
-zm_session_start();
-session_write_close();
-
 xhtmlHeaders(__FILE__, translate('ObjectTraining').' - '.$Event->Id());
 getBodyTopHTML();
 ?>

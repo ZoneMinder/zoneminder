@@ -4,18 +4,7 @@
   global $monitor;
 ?>
 
-const eventData = {
-<?php if ($Event->Id()) { ?>
-    Id: '<?php echo $Event->Id() ?>',
-    Name: '<?php echo validJsStr($Event->Name()) ?>',
-    MonitorId: '<?php echo $Event->MonitorId() ?>',
-    MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
-    Width: <?php echo intval($Event->Width()) ?>,
-    Height: <?php echo intval($Event->Height()) ?>,
-    Frames: <?php echo intval($Event->Frames()) ?>,
-    Path: '<?php echo validJsStr($Event->Path()) ?>'
-<?php } ?>
-};
+const eventData = <?php echo $Event->Id() ? $Event->to_json() : '{}' ?>;
 
 const trainingTranslations = <?php
   $translationKeys = [

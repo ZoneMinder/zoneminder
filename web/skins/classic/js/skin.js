@@ -2810,6 +2810,15 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   if (stream) {
+    const timeoutStreamActive = 20000;
+    const streamActive = await waitUntil(() => stream.active, timeoutStreamActive ); // We are waiting for the stream to become active.
+    if (streamActive !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${(timeoutStreamActive/1000).toFixed(2)} seconds, the stream for monitor with   ID=${mid} did not become active.`);
+      return;
+    }
+
     videoFeedStream.audioTrack = stream.getAudioTracks()[0];
     videoFeedStream.videoTrack = stream.getVideoTracks()[0];
     videoFeedStream.mediaStream = stream;
@@ -2834,5 +2843,23 @@ async function getTracksFromStream(videoFeedStream) {
 
   //connectAudioMotion(mid);
 }
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+        clearInterval(interval);
+        resolve(false);
+      } else {
+        if (!condition()) return;
+        clearInterval(interval);
+        resolve(currentTime - startTime);
+      }
+    }, 100);
+  });
+};
 
 $j( window ).on("load", initPageGeneral);

@@ -179,8 +179,12 @@ if (
 }
 
 if (!defined('ZM_FORCE_NAVBAR_TYPE')) {
-  if($_COOKIE['zmNavbar_type'] != $navbar_type) zm_setcookie('zmNavbar_type', $navbar_type);
-  if($_SESSION['navbar_type'] != $navbar_type) $_SESSION['navbar_type'] = $navbar_type;
+  if (!isset($_COOKIE['zmNavbar_type']) || $_COOKIE['zmNavbar_type'] != $navbar_type) {
+    zm_setcookie('zmNavbar_type', $navbar_type);
+  }
+  if (!isset($_SESSION['navbar_type']) || $_SESSION['navbar_type'] != $navbar_type) {
+    $_SESSION['navbar_type'] = $navbar_type;
+  }
 }
 
 # Add Cross domain access headers

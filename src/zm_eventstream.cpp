@@ -864,10 +864,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     }
   } else if (event_data->SaveJPEGs & 1) {
     reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(reuse_filepath.c_str(), &filestat) < 0) {
+    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
       Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
-            reuse_filepath.c_str(), curr_frame_id);
-      reuse_filepathi.clear();
+            reuse_filepath_.c_str(), curr_frame_id);
+      reuse_filepath_.clear();
       // Fall through — ffmpeg_input will be tried below if available
     }
   } else if (!ffmpeg_input) {

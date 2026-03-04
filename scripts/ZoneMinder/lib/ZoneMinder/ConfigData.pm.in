@@ -4047,6 +4047,50 @@ our @options = (
     type        => $types{integer},
     category    => 'system',
   },
+  {
+    name        => 'ZM_OPT_TRAINING',
+    default     => 'no',
+    description => 'Enable custom model training features',
+    help        => q`
+      Enable annotation tools on the event view for correcting
+      object detection results. Corrected annotations are saved
+      in YOLO format for training custom models via pyzm.
+      `,
+    type        => $types{boolean},
+    category    => 'config',
+  },
+  {
+    name        => 'ZM_TRAINING_DATA_DIR',
+    default     => '@ZM_CONTENTDIR@/training',
+    description => 'Training data directory',
+    help        => q`
+      Filesystem path where corrected annotation images and YOLO
+      label files are stored. The directory will be created
+      automatically if it does not exist. Uses Roboflow-compatible
+      YOLO directory layout (images/all/, labels/all/, data.yaml).
+      If left empty, defaults to a training folder alongside your events storage.
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+  },
+  {
+    name        => 'ZM_TRAINING_DETECT_SCRIPT',
+    default     => '',
+    description => 'Object detection script location',
+    help        => q`
+      Full path to the object detection script (e.g.
+      /var/lib/zmeventnotification/bin/zm_detect.py). When set,
+      a Detect button appears in the annotation editor that runs
+      detection on the current frame. The script is called as:
+        <script> -f <image> -m <monitor_id>
+      and its output is parsed for bounding boxes.
+      Leave empty to disable automatic detection.
+      `,
+    type        => $types{string},
+    category    => 'config',
+    requires    => [ { name => 'ZM_OPT_TRAINING', value => 'yes' } ],
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

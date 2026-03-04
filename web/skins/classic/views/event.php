@@ -211,7 +211,11 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <a id="montageReviewBtn" href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
 <?php
   if (canView('System')) { ?>
-    <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
+    <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span></button>
+<?php
+  }
+  if (defined('ZM_OPT_TRAINING') and ZM_OPT_TRAINING) { ?>
+    <a id="annotateBtn" class="btn btn-normal" href="?view=training&eid=<?php echo $Event->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ObjectTraining') ?>"><i class="fa fa-crosshairs"></i></a>
 <?php
   }
   } // end if Event->Id

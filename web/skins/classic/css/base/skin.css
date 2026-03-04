@@ -1489,7 +1489,7 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Style for <input> --- */
 
-/* +++ Volume сontrol +++ */
+/* +++ Volume control +++ */
 .audio-control-mute {
   position: relative;
   cursor: pointer;
@@ -1563,7 +1563,7 @@ noUi-target {
 [id^="volumeControls"].disabled {
   opacity: 0.4;
 }
-/* --- Volume сontrol --- */
+/* --- Volume control --- */
 
 .rightInFlexContainer {
   margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */

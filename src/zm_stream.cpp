@@ -51,6 +51,10 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  // Hold monitor_mutex during disconnect/connect to prevent the command
+  // processor thread from accessing shared memory while it is remapped.
+  std::lock_guard<std::mutex> lck(monitor_mutex);
+
   if (monitor->isConnected()) {
     monitor->disconnect();
   }

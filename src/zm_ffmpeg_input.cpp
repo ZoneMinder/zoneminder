@@ -283,6 +283,18 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
       Warning("Unable to get frame.");
       return nullptr;
     }
+
+    // If the initial seek landed past the target (on a future keyframe),
+    // re-seek backward to get the keyframe before the target instead.
+    if (frame->pts > seek_target) {
+      Debug(1, "Initial seek overshot: frame pts %" PRId64 " > seek_target %" PRId64 ", seeking backward",
+            frame->pts, seek_target);
+      ret = av_seek_frame(input_format_context, stream_id, seek_target,
+                          AVSEEK_FLAG_BACKWARD);
+      if (ret >= 0) {
+        get_frame(stream_id);
+      }
+    }
   }  // end if ! frame
 
   if (

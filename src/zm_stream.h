@@ -25,6 +25,7 @@
 #include "zm_mpeg.h"
 #include "zm_time.h"
 #include <memory>
+#include <mutex>
 #include <sys/un.h>
 
 class Image;
@@ -154,6 +155,8 @@ class StreamBase {
   size_t temp_img_buffer_size;
 
  protected:
+  std::mutex monitor_mutex;  // Protects monitor connect/disconnect vs command thread access
+
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
   void updateFrameRate(double fps);

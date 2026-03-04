@@ -46,6 +46,7 @@ if ($action == 'save') {
   $oldDecodingEnabled = $monitor->DecodingEnabled();
   if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled || $newDecodingEnabled != $oldDecodingEnabled ) {
     $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled, 'DecodingEnabled'=>$newDecodingEnabled));
+    ZM\AuditAction('update', 'monitor', $mid, "Function: $oldFunction->$newFunction Enabled: $oldEnabled->$newEnabled");
 
     if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
       $monitor->zmcControl(($newFunction != 'None') ? 'restart' : 'stop');

@@ -239,11 +239,11 @@ function processRows(rows) {
       if (row.Analysing && row.Analysing != 'None') {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
+      if (row.ONVIF_Event_Listener) {
+        functionHtml += ' Use ONVIF Events';
+      }
       if (row.Recording && row.Recording != 'None') {
-        functionHtml += 'Recording: ' + row.Recording;
-        if (row.ONVIF_Event_Listener) {
-          functionHtml += ' Use ONVIF';
-        }
+        functionHtml += 'Recording: ' + row.Recording + '<br/>';
         functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';

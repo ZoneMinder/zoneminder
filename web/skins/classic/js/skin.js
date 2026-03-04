@@ -347,9 +347,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       changeButtonIcon(_this_, objIconButton);
 
-      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
-      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
-      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+      const nameFuncBefore = _this_.attr('data-flip-control-run-before-func') ? _this_.attr('data-flip-control-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-control-run-after-func') ? _this_.attr('data-flip-control-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-control-run-after-complet-func') ? _this_.attr('data-flip-control-run-after-complet-func') : null;
 
       if (nameFuncBefore) {
         $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
@@ -375,7 +375,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage visible filter bar & control button (after document ready)
     $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const cookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-control-object'));
@@ -385,7 +385,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
-      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((cookie == 'hidden') ? 'hidden' : 'visible');
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -796,6 +796,8 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = 0;
+  const content = $j("#content");
+  const scrollTop = (content.length > 0) ? content.scrollTop() : 0; // Watch page may have Scroll when Stream changes
   if (bottomEl !== false) {
     if (!bottomEl || !bottomEl.length) {
       if (container[0] && container[0].lastElementChild) {
@@ -805,7 +807,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
       }
     }
     if (bottomEl && bottomEl.length) {
-      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+      bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true) + scrollTop;
       console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
     }
   }
@@ -846,6 +848,7 @@ function isJSON(str) {
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
   } catch (e) {
+    console.warn('This is not JSON', str, e);
     return false; // This is also not JSON
   }
 }
@@ -1337,6 +1340,13 @@ function calculateOverlayDimensions(img) {
   return {width: Math.round(width), height: Math.round(height)};
 }
 
+function calculateOverlayScale(img, overlayWidth) {
+  const monitorWidth = parseInt(img.dataset.monitorWidth);
+  if (!monitorWidth || monitorWidth <= 0) return 100;
+  const scale = Math.round(100 * overlayWidth / monitorWidth);
+  return Math.max(5, Math.min(100, scale));
+}
+
 function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitorId, go2rtcSrc, go2rtcMid, useGo2rtc) {
   const existing = document.getElementById('thumb-overlay');
   if (existing) existing.remove();
@@ -1357,10 +1367,12 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   container.style.backgroundImage = 'url("' + img.src + '")';
 
   const fallbackToMjpeg = function() {
+    console.log('fallback');
     const streamSrc = img.getAttribute('stream_src');
     if (streamSrc) {
       const fallbackImg = document.createElement('img');
-      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=32');
+      const scale = calculateOverlayScale(img, dimensions.width);
+      fallbackImg.src = streamSrc.replace(/scale=\d+/, 'scale=' + scale);
       container.appendChild(fallbackImg);
     }
   };
@@ -1396,6 +1408,8 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
     createVideoElement(container, overlaySrc, eventStart, statusBar);
   } else {
     const overlayImg = document.createElement('img');
+    const scale = calculateOverlayScale(img, dimensions.width);
+    overlaySrc = overlaySrc.replace(/scale=\d+/, 'scale=' + scale);
     overlayImg.src = overlaySrc;
     container.appendChild(overlayImg);
   }
@@ -1428,7 +1442,8 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    url.search = 'src=' + mid + '_0';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_CameraDirectPrimary';
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
@@ -2390,7 +2405,7 @@ function resetSelectElement(el) {
   selectElement.change();
 }
 
-function getMonitorStream(mid) {
+function getMonitorStream(mid) { // RENAME to getStream(), but it is already in montage.js, so merge!!!
   let monitorStream_ = null;
   if (currentView == 'watch') {
     monitorStream_ = monitorStream;
@@ -2398,6 +2413,8 @@ function getMonitorStream(mid) {
     monitorStream_ = monitors.find((o) => {
       return parseInt(o["id"]) === mid;
     });
+  } else if (currentView == 'event') {
+    monitorStream_ = document.querySelector('[id ^= "videoFeedStream"]');
   }
   return monitorStream_;
 }
@@ -2528,7 +2545,7 @@ function initPageGeneral() {
         mainContentJ.css({flex: "0 1 auto"});
       }
       if (typeof ZM_WEB_ANIMATIONS === 'undefined' || !ZM_WEB_ANIMATIONS) {
-        mainContentJ.css({display: "none"});
+        // mainContentJ.css({display: "none"});
       } else {
         mainContentJ.animate({height: 0}, 300, function rollupBeforeunloadPage() {
           mainContentJ.css({display: "none"});
@@ -2625,6 +2642,224 @@ function replaceDOMElement(fromEl, toTypeEl) {
     container.appendChild(newEl);
   }
   return newEl;
+};
+
+function monitorsSetScale(id=null) {
+  id = stringToNumber(id);
+  if (!isNaN(id)) {
+    let currentMonitor;
+    if (typeof monitorStream !== 'undefined' && monitorStream !== false) {
+      //monitorStream used on Watch page.
+      currentMonitor = monitorStream;
+    } else if (typeof monitors !== 'undefined') {
+      //used on Montage, Watch & Event page.
+      currentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
+    } else {
+      console.log("Stream is missing.");
+      return;
+    }
+    _setScale(currentMonitor);
+  } else { // Not a specific stream, but all streams.
+    for ( let i = 0, length = monitors.length; i < length; i++ ) {
+      _setScale(monitors[i]);
+    } // end foreach monitor
+  }
+
+  function _setScale(currentMonitor) {
+    const id = currentMonitor.id;
+    const panZoomScale = (panZoomEnabled && typeof zmPanZoom !== 'undefined') ? zmPanZoom.panZoom[id].getScale() : 1;
+    let resize = false;
+    let width = 'auto';
+    let height = 'auto';
+    let overrideHW = false;
+    let defScale = 0;
+    const ratio = currentMonitor.width / currentMonitor.height;
+    const landscape = ratio > 1 ? true : false; //Image orientation.
+    const liveStream = currentMonitor.getElement();
+    const monitor_div = document.getElementById('monitor'+id);
+    if (!monitor_div) {
+      console.log("No monitor div for ", id);
+      return;
+    }
+    const scale = $j('#scale').val();
+    if (scale) {
+      if (scale == '0') {
+        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+      } else if (scale == '100') {
+        //Actual, 100% of original size
+        width = currentMonitor.width + 'px';
+        height = currentMonitor.height + 'px';
+        overrideHW = true;
+      } else if (scale == 'fit_to_width') {
+        //Fit to screen width
+        width = parseInt(monitor_div.clientWidth * panZoomScale) + 'px';
+        defScale = parseInt(monitor_div.clientWidth / currentMonitor.width * panZoomScale * 100);
+        overrideHW = true;
+      } else if (scale.indexOf("px") > -1) {
+        // If the aspect ratio specified in the monitor settings does not correspond to the actual aspect ratio of the video, then:
+        // - For MJPEG player, the video will be displayed according to the specified aspect ratio.
+        // - For other players, taking into account the actual video aspect ratio.
+        if (landscape) {
+          width = scale;
+          //height = parseInt(scale) / ratio + 'px';
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / currentMonitor.width * panZoomScale * 100);
+        } else {
+          width = parseInt(parseInt(scale) * ratio) + 'px';
+          //height = scale;
+          defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / currentMonitor.height * panZoomScale * 100);
+        }
+        overrideHW = true;
+      }
+      resize = true;
+    } else { // Montage page does not have "scale"
+      width = parseInt(liveStream.clientWidth * panZoomScale) + 'px';
+      height = parseInt(liveStream.clientHeight * panZoomScale) + 'px';
+    }
+
+    currentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+
+    if (overrideHW) {
+      if (scale == 'fit_to_width') {
+        liveStream.style.width = width;
+        liveStream.style.height = '';
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'auto';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else if (scale.indexOf("px") > -1) {
+        liveStream.style.width = '';
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '100%';
+        monitor_div.style.width = width;
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '100%';
+      } else if (scale == '100') {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = 'fit-content';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      } else {
+        liveStream.style.width = width;
+        liveStream.style.height = height;
+        liveStream.style.maxWidth = '';
+        monitor_div.style.width = '100%';
+        monitor_div.style.height = '';
+        monitor_div.style.maxWidth = '';
+      }
+    }
+
+    if (scale == '0') {
+      const fillVideo = true; //true = In AUTO mode it will stretch to the full width, but will spoil the proportions if they do not correspond to the actual proportions in the monitor settings!!!
+      const tagVideo = (liveStream.tagName == 'VIDEO') ? liveStream : liveStream.querySelector('video');
+      if (tagVideo) {
+        if (fillVideo) {
+          tagVideo.style.width = '';
+          tagVideo.objectFit = 'fill';
+        } else {
+          tagVideo.style.width = 'auto';
+          tagVideo.objectFit = '';
+        }
+      }
+    }
+  } // End function _setScale
+  setButtonSizeOnStream();
+} // End function monitorsSetScale
+
+/*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
+// https://habr.com/ru/companies/timeweb/articles/667148/
+async function getTracksFromStream(videoFeedStream) {
+  if (!videoFeedStream) {
+    console.log(`Unable to get tracks from stream because the stream is missing.`);
+    return;
+  }
+  const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
+  if (!mid) {
+    console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    return;
+  }
+
+  let el = null;
+  if (currentView == 'watch' || currentView == 'montage') {
+    el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
+  } else if (currentView == 'event') {
+    el = videoFeedStream.querySelector('video');
+  }
+  videoFeedStream.mediaStream = videoFeedStream.audioTrack = videoFeedStream.videoTrack = null;
+
+  if (!el) {
+    console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    return;
+  }
+  let streamCaptureNotSupported = false;
+  let stream = null;
+
+  // We should NOT call captureStream again, as there may be problems with capturing the stream!
+  let moz = false; // Detecting Firefox
+  if ("captureStream" in el) {
+    stream = await el.captureStream();
+  } else if ("mozCaptureStreamUntilEnded" in el) {
+    stream = await el.mozCaptureStreamUntilEnded();
+    moz = true;
+  } else {
+    console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
+    streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
+  }
+
+  if (stream) {
+    const timeoutStreamActive = 20000;
+    const streamActive = await waitUntil(() => stream.active, timeoutStreamActive ); // We are waiting for the stream to become active.
+    if (streamActive !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${(timeoutStreamActive/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      return;
+    }
+
+    videoFeedStream.audioTrack = stream.getAudioTracks()[0];
+    videoFeedStream.videoTrack = stream.getVideoTracks()[0];
+    videoFeedStream.mediaStream = stream;
+    if (moz && videoFeedStream.audioTrack) {
+      // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamSource(stream);
+      dest.connect(ctx.destination);
+    }
+  } else if (!streamCaptureNotSupported) {
+    console.warn(`Failed to capture stream for monitor ID=${mid} while receiving tracks.`);
+  }
+
+  console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
+  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  if (currentView == 'watch' || currentView == 'montage') {
+    (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
+  } else if (currentView == 'event') {
+
+  }
+
+  //connectAudioMotion(mid);
+}
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+        clearInterval(interval);
+        resolve(false);
+      } else {
+        if (!condition()) return;
+        clearInterval(interval);
+        resolve(currentTime - startTime);
+      }
+    }, 100);
+  });
 };
 
 $j( window ).on("load", initPageGeneral);

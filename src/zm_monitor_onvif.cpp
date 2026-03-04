@@ -20,6 +20,7 @@
 #include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_time.h"
 #include "zm_utils.h"
 
 #include <cstring>
@@ -1028,19 +1029,6 @@ void ONVIF::log_subscription_timing(const char* context) {
   }
 }
 
-
-// Format an absolute time as ISO 8601 string for ONVIF RenewRequest
-// Returns a string like "2026-01-13T15:30:45.000Z"
-std::string format_absolute_time_iso8601(time_t time) {
-  struct tm *tm_utc = gmtime(&time);
-  if (!tm_utc) {
-    return "";
-  }
-
-  char buffer[32];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
-  return std::string(buffer);
-}
 
 // Perform ONVIF subscription renewal
 // Returns true if renewal succeeded or is not supported, false on error

@@ -30,7 +30,7 @@ const ANNOTATION_SCALE_REF_WIDTH = 900;
 // --- Pure browse-panel utility functions (no closured state) ---
 
 function browseFileIcon(name) {
-  let ext = name.split('.').pop().toLowerCase();
+  const ext = name.split('.').pop().toLowerCase();
   if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'fa-file-image-o';
   if (ext === 'txt') return 'fa-file-text-o';
   if (ext === 'yaml' || ext === 'yml') return 'fa-file-code-o';
@@ -38,12 +38,12 @@ function browseFileIcon(name) {
 }
 
 function browseIsImage(name) {
-  let ext = name.split('.').pop().toLowerCase();
+  const ext = name.split('.').pop().toLowerCase();
   return ext === 'jpg' || ext === 'jpeg' || ext === 'png';
 }
 
 function browseIsText(name) {
-  let ext = name.split('.').pop().toLowerCase();
+  const ext = name.split('.').pop().toLowerCase();
   return ext === 'txt' || ext === 'yaml' || ext === 'yml';
 }
 
@@ -55,7 +55,7 @@ function browseFindNode(nodes, path) {
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i].path === path) return nodes[i];
     if (nodes[i].type === 'dir' && nodes[i].children) {
-      let found = browseFindNode(nodes[i].children, path);
+      const found = browseFindNode(nodes[i].children, path);
       if (found) return found;
     }
   }
@@ -76,7 +76,7 @@ function browseRemoveFromTree(nodes, path) {
 }
 
 function browseGetRootFiles(nodes) {
-  let files = [];
+  const files = [];
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i].type === 'file') files.push(nodes[i]);
   }
@@ -86,9 +86,9 @@ function browseGetRootFiles(nodes) {
 function browseGetFilesForPath(nodes, path) {
   if (path === null) return [];
   for (let i = 0; i < nodes.length; i++) {
-    let node = nodes[i];
+    const node = nodes[i];
     if (node.type === 'dir' && node.path === path) {
-      let files = [];
+      const files = [];
       if (node.children) {
         for (let j = 0; j < node.children.length; j++) {
           if (node.children[j].type === 'file') {
@@ -99,7 +99,7 @@ function browseGetFilesForPath(nodes, path) {
       return files;
     }
     if (node.type === 'dir' && node.children) {
-      let found = browseGetFilesForPath(node.children, path);
+      const found = browseGetFilesForPath(node.children, path);
       if (found.length > 0 || browsePathStartsWith(path, node.path)) return found;
     }
   }
@@ -226,9 +226,9 @@ AnnotationEditor.prototype.open = function(initialFrame) {
   // appears, causing a blank screen if the user cancels.
   this._navGuardHandler = function(e) {
     if (!self.dirty) return;
-    let link = e.target.closest('a[href]');
+    const link = e.target.closest('a[href]');
     if (!link) return;
-    let msg = self.translations.TrainingUnsaved ||
+    const msg = self.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) {
       e.preventDefault();
@@ -295,8 +295,8 @@ AnnotationEditor.prototype._loadDetectionData = function(data) {
   }
 
   for (let i = 0; i < objects.length; i++) {
-    let obj = objects[i];
-    let ann = {
+    const obj = objects[i];
+    const ann = {
       label: obj.label || obj.name || obj.class || 'unknown',
       confidence: obj.confidence || obj.score || 0,
       x1: 0,
@@ -333,19 +333,19 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   this._updateFrameInfo();
 
   // Blur the current canvas and show spinner while the new frame loads
-  let container = this.canvas ? this.canvas.parentNode : null;
+  const container = this.canvas ? this.canvas.parentNode : null;
   if (this.canvas) {
     this.canvas.style.filter = 'blur(10px)';
     this.canvas.style.opacity = '0.6';
   }
   if (container && !container.querySelector('.canvas-loading-overlay')) {
-    let overlay = document.createElement('div');
+    const overlay = document.createElement('div');
     overlay.className = 'canvas-loading-overlay';
     overlay.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
     container.appendChild(overlay);
   }
 
-  let img = new Image();
+  const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = function() {
     self.image = img;
@@ -358,7 +358,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
 
     self.canvas.style.filter = '';
     self.canvas.style.opacity = '';
-    let spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    const spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
     if (spinner) spinner.remove();
     self._render();
   };
@@ -367,10 +367,10 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
       self.canvas.style.filter = '';
       self.canvas.style.opacity = '';
     }
-    let spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
+    const spinner = container ? container.querySelector('.canvas-loading-overlay') : null;
     if (spinner) spinner.remove();
     // If numeric frame exceeds total, clamp to max and retry
-    let num = parseInt(frameId, 10);
+    const num = parseInt(frameId, 10);
     if (!isNaN(num) && self.totalFrames > 0 && num > self.totalFrames) {
       self._setStatus(self.translations.TrainingFailedToLoadFrame || 'Failed to load frame image', 'error');
       self.switchFrame(String(self.totalFrames));
@@ -391,8 +391,8 @@ AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
   $j.getJSON(thisUrl + '?request=training&action=load_saved&eid=' + eid +
       '&fid=' + encodeURIComponent(fid))
       .done(function(data) {
-        let resp = data.response || data;
-        let saved = resp.annotations || [];
+        const resp = data.response || data;
+        const saved = resp.annotations || [];
         if (saved.length === 0) return;
         self.annotations = [];
         for (let i = 0; i < saved.length; i++) {
@@ -419,11 +419,11 @@ AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
  * Update the "Frame: X of Y" indicator below the canvas.
  */
 AnnotationEditor.prototype._updateFrameInfo = function() {
-  let el = $j('#annotationFrameInfo');
+  const el = $j('#annotationFrameInfo');
   if (!el.length) return;
 
   let frameLabel = this.currentFrameId;
-  let num = parseInt(frameLabel, 10);
+  const num = parseInt(frameLabel, 10);
   if (!isNaN(num)) {
     frameLabel = String(num);
   }
@@ -459,12 +459,14 @@ AnnotationEditor.prototype.switchEvent = function(newEid, frameId) {
   this._resetAnnotationState();
 
   // Update page title and URL without reload
-  let titleEl = document.querySelector('.training-view-title');
-  if (titleEl) titleEl.innerHTML = (this.translations.ObjectTraining || 'Object Training') +
+  const titleEl = document.querySelector('.training-view-title');
+  if (titleEl) {
+    titleEl.innerHTML = (this.translations.ObjectTraining || 'Object Training') +
       ' &mdash; Event ' + newEid;
+  }
   document.title = (this.translations.ObjectTraining || 'Object Training') +
       ' - ' + newEid;
-  let backBtn = document.getElementById('backToEventBtn');
+  const backBtn = document.getElementById('backToEventBtn');
   if (backBtn) backBtn.href = '?view=event&eid=' + newEid;
   history.replaceState(null, '', '?view=training&eid=' + newEid +
       (frameId ? '&frame=' + encodeURIComponent(frameId) : ''));
@@ -495,12 +497,12 @@ AnnotationEditor.prototype._render = function() {
 
   // Draw in-progress drawing rectangle
   if (this.isDrawing && this.drawStart && this.drawCurrent) {
-    let x = Math.min(this.drawStart.x, this.drawCurrent.x);
-    let y = Math.min(this.drawStart.y, this.drawCurrent.y);
-    let bw = Math.abs(this.drawCurrent.x - this.drawStart.x);
-    let bh = Math.abs(this.drawCurrent.y - this.drawStart.y);
+    const x = Math.min(this.drawStart.x, this.drawCurrent.x);
+    const y = Math.min(this.drawStart.y, this.drawCurrent.y);
+    const bw = Math.abs(this.drawCurrent.x - this.drawStart.x);
+    const bh = Math.abs(this.drawCurrent.y - this.drawStart.y);
 
-    let drawScale = this.canvas.width / ANNOTATION_SCALE_REF_WIDTH;
+    const drawScale = this.canvas.width / ANNOTATION_SCALE_REF_WIDTH;
     ctx.save();
     ctx.strokeStyle = '#ff8c00';
     ctx.lineWidth = Math.max(2, Math.round(3 * drawScale));
@@ -559,10 +561,10 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
 
   ctx.save();
   ctx.font = 'bold ' + fontSize + 'px sans-serif';
-  let textMetrics = ctx.measureText(labelText);
-  let textW = textMetrics.width + textPad * 2;
-  let textH = Math.round(fontSize * 1.5);
-  let textX = x;
+  const textMetrics = ctx.measureText(labelText);
+  const textW = textMetrics.width + textPad * 2;
+  const textH = Math.round(fontSize * 1.5);
+  const textX = x;
   let textY = y - textH;
   if (textY < 0) textY = y; // flip below if too close to top
 
@@ -576,10 +578,10 @@ AnnotationEditor.prototype._drawBox = function(ann, isSelected, index) {
 
   // Draw resize handles on selected box
   if (isSelected) {
-    let handles = this._getHandlePositions(ann);
-    let handleNames = Object.keys(handles);
+    const handles = this._getHandlePositions(ann);
+    const handleNames = Object.keys(handles);
     for (let i = 0; i < handleNames.length; i++) {
-      let hp = handles[handleNames[i]];
+      const hp = handles[handleNames[i]];
       ctx.save();
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = color;
@@ -646,7 +648,7 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
   if (!e.shiftKey) {
     // Check resize handles on selected box first
     if (this.selectedIndex >= 0) {
-      let handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
+      const handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
       if (handle) {
         this._pushUndo();
         this.isResizing = true;
@@ -656,12 +658,12 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     }
 
     // Check if clicking on any box
-    let hitIndex = this._hitTestBoxes(pos);
+    const hitIndex = this._hitTestBoxes(pos);
     if (hitIndex >= 0) {
       this._pushUndo();
       this.selectAnnotation(hitIndex);
       this.isDragging = true;
-      let ann = this.annotations[hitIndex];
+      const ann = this.annotations[hitIndex];
       this.dragOffset = {
         x: pos.x - Math.min(ann.x1, ann.x2),
         y: pos.y - Math.min(ann.y1, ann.y2)
@@ -693,9 +695,9 @@ AnnotationEditor.prototype._onMouseMove = function(e) {
   }
 
   if (this.isDragging && this.selectedIndex >= 0) {
-    let ann = this.annotations[this.selectedIndex];
-    let w = Math.abs(ann.x2 - ann.x1);
-    let h = Math.abs(ann.y2 - ann.y1);
+    const ann = this.annotations[this.selectedIndex];
+    const w = Math.abs(ann.x2 - ann.x1);
+    const h = Math.abs(ann.y2 - ann.y1);
     let newX = pos.x - this.dragOffset.x;
     let newY = pos.y - this.dragOffset.y;
 
@@ -748,10 +750,10 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
     this.isDrawing = false;
     const pos = this._mouseToImage(e);
     const rect = this._getNormalizedRect(this.drawStart.x, this.drawStart.y, pos.x, pos.y);
-    let x1 = rect.x1;
-    let y1 = rect.y1;
-    let x2 = rect.x2;
-    let y2 = rect.y2;
+    const x1 = rect.x1;
+    const y1 = rect.y1;
+    const x2 = rect.x2;
+    const y2 = rect.y2;
 
     // Discard if too small
     if ((x2 - x1) < ANNOTATION_MIN_BOX_SIZE ||
@@ -780,8 +782,8 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
     this.resizeHandle = null;
     // Normalize coordinates so x1 < x2, y1 < y2
     if (this.selectedIndex >= 0) {
-      let ann = this.annotations[this.selectedIndex];
-      let nr = this._getNormalizedRect(ann.x1, ann.y1, ann.x2, ann.y2);
+      const ann = this.annotations[this.selectedIndex];
+      const nr = this._getNormalizedRect(ann.x1, ann.y1, ann.x2, ann.y2);
       ann.x1 = nr.x1;
       ann.y1 = nr.y1;
       ann.x2 = nr.x2;
@@ -798,11 +800,11 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
  */
 AnnotationEditor.prototype._hitTestBoxes = function(pos) {
   for (let i = this.annotations.length - 1; i >= 0; i--) {
-    let ann = this.annotations[i];
-    let x1 = Math.min(ann.x1, ann.x2);
-    let y1 = Math.min(ann.y1, ann.y2);
-    let x2 = Math.max(ann.x1, ann.x2);
-    let y2 = Math.max(ann.y1, ann.y2);
+    const ann = this.annotations[i];
+    const x1 = Math.min(ann.x1, ann.x2);
+    const y1 = Math.min(ann.y1, ann.y2);
+    const x2 = Math.max(ann.x1, ann.x2);
+    const y2 = Math.max(ann.y1, ann.y2);
     if (pos.x >= x1 && pos.x <= x2 && pos.y >= y1 && pos.y <= y2) {
       return i;
     }
@@ -817,10 +819,10 @@ AnnotationEditor.prototype._hitTestBoxes = function(pos) {
  * @return {string|null} Handle name or null
  */
 AnnotationEditor.prototype._hitTestHandles = function(pos, ann) {
-  let handles = this._getHandlePositions(ann);
-  let names = Object.keys(handles);
+  const handles = this._getHandlePositions(ann);
+  const names = Object.keys(handles);
   for (let i = 0; i < names.length; i++) {
-    let hp = handles[names[i]];
+    const hp = handles[names[i]];
     if (Math.abs(pos.x - hp.x) <= ANNOTATION_HIT_THRESHOLD &&
         Math.abs(pos.y - hp.y) <= ANNOTATION_HIT_THRESHOLD) {
       return names[i];
@@ -834,11 +836,11 @@ AnnotationEditor.prototype._hitTestHandles = function(pos, ann) {
  * @param {{x: number, y: number}} pos
  */
 AnnotationEditor.prototype._doResize = function(pos) {
-  let ann = this.annotations[this.selectedIndex];
+  const ann = this.annotations[this.selectedIndex];
 
   // Clamp position to canvas bounds
-  let px = Math.max(0, Math.min(pos.x, this.canvas.width));
-  let py = Math.max(0, Math.min(pos.y, this.canvas.height));
+  const px = Math.max(0, Math.min(pos.x, this.canvas.width));
+  const py = Math.max(0, Math.min(pos.y, this.canvas.height));
 
   switch (this.resizeHandle) {
     case 'nw':
@@ -889,7 +891,7 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
 
   // Check handles on selected box
   if (this.selectedIndex >= 0) {
-    let handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
+    const handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
     if (handle) {
       cursorClass = 'mode-resize-' + handle;
       this._setCursorClass(cursorClass);
@@ -898,7 +900,7 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
   }
 
   // Check if over any box
-  let hitIndex = this._hitTestBoxes(pos);
+  const hitIndex = this._hitTestBoxes(pos);
   if (hitIndex >= 0) {
     cursorClass = 'mode-move';
   }
@@ -911,9 +913,9 @@ AnnotationEditor.prototype._updateCursor = function(pos, e) {
  * @param {string} className
  */
 AnnotationEditor.prototype._setCursorClass = function(className) {
-  let canvas = $j(this.canvas);
+  const canvas = $j(this.canvas);
   // Remove all mode-* classes
-  let classes = (canvas.attr('class') || '').split(/\s+/);
+  const classes = (canvas.attr('class') || '').split(/\s+/);
   for (let i = 0; i < classes.length; i++) {
     if (classes[i].indexOf('mode-') === 0) {
       canvas.removeClass(classes[i]);
@@ -937,19 +939,19 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
 
   this._hideLabelPicker();
 
-  let picker = document.createElement('div');
+  const picker = document.createElement('div');
   picker.className = 'annotation-label-picker';
 
   // Position near the box's top-right corner in screen coords
-  let rect = this.canvas.getBoundingClientRect();
-  let scaleX = rect.width / this.canvas.width;
-  let scaleY = rect.height / this.canvas.height;
+  const rect = this.canvas.getBoundingClientRect();
+  const scaleX = rect.width / this.canvas.width;
+  const scaleY = rect.height / this.canvas.height;
   let screenX = rect.left + x2 * scaleX + 5;
   let screenY = rect.top + y1 * scaleY;
 
   // Keep within viewport
-  let viewW = window.innerWidth;
-  let viewH = window.innerHeight;
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
   if (screenX + 180 > viewW) {
     screenX = rect.left + x1 * scaleX - 180;
   }
@@ -962,10 +964,10 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
   picker.style.position = 'fixed';
 
   // Build sorted label list (most recently used first)
-  let sortedLabels = this._getSortedLabels();
+  const sortedLabels = this._getSortedLabels();
 
   for (let i = 0; i < sortedLabels.length; i++) {
-    let btn = document.createElement('button');
+    const btn = document.createElement('button');
     btn.className = 'label-option';
     btn.textContent = sortedLabels[i];
     btn.setAttribute('data-label', sortedLabels[i]);
@@ -983,15 +985,15 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
   }
 
   // New label input at bottom
-  let inputDiv = document.createElement('div');
+  const inputDiv = document.createElement('div');
   inputDiv.className = 'new-label-input';
-  let input = document.createElement('input');
+  const input = document.createElement('input');
   input.type = 'text';
   input.placeholder = this.translations.NewLabel || 'New Label';
   input.addEventListener('keydown', function(e) {
     e.stopPropagation();
     if (e.key === 'Enter') {
-      let label = input.value.trim().toLowerCase();
+      const label = input.value.trim().toLowerCase();
       if (label && /^[a-zA-Z0-9_-]+$/.test(label)) {
         self._pushUndo();
         self._addAnnotation(label, x1, y1, x2, y2);
@@ -1035,12 +1037,12 @@ AnnotationEditor.prototype._hideLabelPicker = function() {
  * @return {Array<string>}
  */
 AnnotationEditor.prototype._getSortedLabels = function() {
-  let labels = this.classLabels.slice();
-  let recent = this.recentLabels;
+  const labels = this.classLabels.slice();
+  const recent = this.recentLabels;
 
   labels.sort(function(a, b) {
-    let ia = recent.indexOf(a);
-    let ib = recent.indexOf(b);
+    const ia = recent.indexOf(a);
+    const ib = recent.indexOf(b);
     // Recently used items get lower indices (higher priority)
     if (ia === -1 && ib === -1) return 0;
     if (ia === -1) return 1;
@@ -1056,7 +1058,7 @@ AnnotationEditor.prototype._getSortedLabels = function() {
  * @param {string} label
  */
 AnnotationEditor.prototype._trackLabelUsage = function(label) {
-  let idx = this.recentLabels.indexOf(label);
+  const idx = this.recentLabels.indexOf(label);
   if (idx >= 0) {
     this.recentLabels.splice(idx, 1);
   }
@@ -1115,7 +1117,7 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
       data: {eid: this.eventId, fid: this.currentFrameId},
       dataType: 'json'
     }).done(function(data) {
-      let resp = data.response || data;
+      const resp = data.response || data;
       self._setStatus(
           self.translations.TrainingRemoved || 'Training annotation removed',
           'success'
@@ -1211,8 +1213,8 @@ AnnotationEditor.prototype.detect = function() {
       self._setStatus(data.message, 'error');
       return;
     }
-    let resp = data.response || data;
-    let detections = resp.detections || [];
+    const resp = data.response || data;
+    const detections = resp.detections || [];
 
     if (detections.length === 0) {
       self._setStatus(
@@ -1223,7 +1225,7 @@ AnnotationEditor.prototype.detect = function() {
 
     // Remove existing pending annotations (from a previous detect)
     self._pushUndo();
-    let kept = [];
+    const kept = [];
     for (let i = 0; i < self.annotations.length; i++) {
       if (!self.annotations[i].pending) {
         kept.push(self.annotations[i]);
@@ -1233,8 +1235,8 @@ AnnotationEditor.prototype.detect = function() {
 
     // Add new detections as pending (orange)
     for (let d = 0; d < detections.length; d++) {
-      let det = detections[d];
-      let ann = {
+      const det = detections[d];
+      const ann = {
         label: det.label || 'unknown',
         confidence: det.confidence || 0,
         x1: 0,
@@ -1295,7 +1297,7 @@ AnnotationEditor.prototype.selectAnnotation = function(index) {
  */
 AnnotationEditor.prototype._pushUndo = function() {
   // Deep copy annotations
-  let copy = JSON.parse(JSON.stringify(this.annotations));
+  const copy = JSON.parse(JSON.stringify(this.annotations));
   this.undoStack.push({
     annotations: copy,
     selectedIndex: this.selectedIndex
@@ -1310,7 +1312,7 @@ AnnotationEditor.prototype._pushUndo = function() {
  */
 AnnotationEditor.prototype.undo = function() {
   if (this.undoStack.length === 0) return;
-  let state = this.undoStack.pop();
+  const state = this.undoStack.pop();
   this.annotations = state.annotations;
   this.selectedIndex = state.selectedIndex;
   this.dirty = true;
@@ -1329,34 +1331,34 @@ AnnotationEditor.prototype._updateSidebar = function() {
   list.empty();
 
   for (let i = 0; i < this.annotations.length; i++) {
-    let ann = this.annotations[i];
-    let isSelected = (i === this.selectedIndex);
+    const ann = this.annotations[i];
+    const isSelected = (i === this.selectedIndex);
 
-    let li = $j('<li>')
+    const li = $j('<li>')
         .addClass('annotation-object-item')
         .toggleClass('selected', isSelected)
         .attr('data-index', i);
 
-    let swatchColor = ann.pending ? '#ff8c00' : '#28a745';
-    let swatch = $j('<span>')
+    const swatchColor = ann.pending ? '#ff8c00' : '#28a745';
+    const swatch = $j('<span>')
         .addClass('color-swatch')
         .css('background-color', swatchColor);
 
-    let labelSpan = $j('<span>')
+    const labelSpan = $j('<span>')
         .addClass('object-label')
         .text(ann.label);
 
     li.append(swatch).append(labelSpan);
 
     if (ann.confidence > 0) {
-      let confSpan = $j('<span>')
+      const confSpan = $j('<span>')
           .addClass('object-confidence')
           .text(Math.round(ann.confidence * 100) + '%');
       li.append(confSpan);
     }
 
     if (ann.pending) {
-      let acceptBtn = $j('<button>')
+      const acceptBtn = $j('<button>')
           .addClass('btn-action btn-accept')
           .attr('title', self.translations.AcceptDetection || 'Accept')
           .html('&#10003;')
@@ -1364,7 +1366,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
       li.append(acceptBtn);
     }
 
-    let removeBtn = $j('<button>')
+    const removeBtn = $j('<button>')
         .addClass('btn-action btn-remove')
         .attr('title', self.translations.TrainingDeleteBox || 'Delete')
         .html('&times;')
@@ -1377,19 +1379,19 @@ AnnotationEditor.prototype._updateSidebar = function() {
   // Bind click handlers
   list.find('.annotation-object-item').on('click', function(e) {
     if ($j(e.target).hasClass('btn-remove') || $j(e.target).hasClass('btn-accept')) return;
-    let idx = parseInt($j(this).attr('data-index'), 10);
+    const idx = parseInt($j(this).attr('data-index'), 10);
     self.selectAnnotation(idx);
   });
 
   list.find('.btn-accept').on('click', function(e) {
     e.stopPropagation();
-    let idx = parseInt($j(this).attr('data-index'), 10);
+    const idx = parseInt($j(this).attr('data-index'), 10);
     self.acceptAnnotation(idx);
   });
 
   list.find('.btn-remove').on('click', function(e) {
     e.stopPropagation();
-    let idx = parseInt($j(this).attr('data-index'), 10);
+    const idx = parseInt($j(this).attr('data-index'), 10);
     self.deleteAnnotation(idx);
   });
 };
@@ -1398,7 +1400,7 @@ AnnotationEditor.prototype._updateSidebar = function() {
  * Update the label dropdown select element with current labels.
  */
 AnnotationEditor.prototype._updateLabelDropdown = function() {
-  let select = $j('#annotationLabelSelect');
+  const select = $j('#annotationLabelSelect');
   if (!select.length) return;
 
   select.empty();
@@ -1416,7 +1418,7 @@ AnnotationEditor.prototype._loadLabels = function() {
   const self = this;
   $j.getJSON(thisUrl + '?request=training&action=labels')
       .done(function(data) {
-        let resp = data.response || data;
+        const resp = data.response || data;
         self.classLabels = resp.labels || [];
         self._updateLabelDropdown();
       })
@@ -1430,7 +1432,7 @@ AnnotationEditor.prototype._loadStats = function() {
   const self = this;
   $j.getJSON(thisUrl + '?request=training&action=status')
       .done(function(data) {
-        let resp = data.response || data;
+        const resp = data.response || data;
         self.trainingStats = resp.stats || null;
         self._renderStats();
       })
@@ -1441,29 +1443,28 @@ AnnotationEditor.prototype._loadStats = function() {
  * Build and render training stats HTML in the sidebar.
  */
 AnnotationEditor.prototype._renderStats = function() {
-  let container = $j('#annotationStats');
+  const container = $j('#annotationStats');
   if (!container.length) return;
   const self = this;
 
   container.empty();
 
   const t = this.translations;
-  let stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
-  let hasData = stats.total_images > 0 || stats.background_images > 0;
+  const stats = this.trainingStats || {total_images: 0, total_classes: 0, images_per_class: {}};
 
   // Header
-  let header = $j('<div>').addClass('annotation-stats-header');
+  const header = $j('<div>').addClass('annotation-stats-header');
   header.append($j('<span>').text(t.TrainingDataStats || 'Training Data Statistics'));
   container.append(header);
 
   // Always show delete-all button so user can clean up from any state
-  let sidebarTrashBtn = $j('#annotationDeleteAllBtn');
+  const sidebarTrashBtn = $j('#annotationDeleteAllBtn');
   sidebarTrashBtn.show().off('click.deleteAll').on('click.deleteAll', function() {
     self._deleteAllTrainingData();
   });
 
   // Compact stat rows
-  let row = function(label, value) {
+  const row = function(label, value) {
     return $j('<div>').addClass('stat-row')
         .append($j('<span>').addClass('stat-label').text(label))
         .append($j('<span>').addClass('stat-value').text(value));
@@ -1475,8 +1476,8 @@ AnnotationEditor.prototype._renderStats = function() {
   }
 
   // Per-class image counts
-  let classData = stats.images_per_class || {};
-  let classNames = Object.keys(classData);
+  const classData = stats.images_per_class || {};
+  const classNames = Object.keys(classData);
 
   if (classNames.length > 0) {
     container.append($j('<div>').css({'font-weight': '600', 'margin': '4px 0 2px'}).text(t.ImagesPerClass || 'Images per class'));
@@ -1487,7 +1488,7 @@ AnnotationEditor.prototype._renderStats = function() {
       if (classData[classNames[i]] < 50) hasLowClass = true;
     }
 
-    let guidance = $j('<div>').addClass('training-guidance');
+    const guidance = $j('<div>').addClass('training-guidance');
     if (!hasLowClass) guidance.addClass('training-ready');
     guidance.text(t.TrainingGuidance || 'Aim for 50-100+ images per class.');
     container.append(guidance);
@@ -1499,7 +1500,7 @@ AnnotationEditor.prototype._renderStats = function() {
 AnnotationEditor.prototype._deleteAllTrainingData = function() {
   const self = this;
   const t = this.translations;
-  let answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
+  const answer = prompt(t.ConfirmDeleteTrainingData || 'This will permanently delete ALL training data. Type "agree" to confirm:');
   if (answer !== 'agree') return;
 
   $j.ajax({url: thisUrl + '?request=training&action=delete_all', method: 'POST', dataType: 'json'})
@@ -1535,7 +1536,7 @@ AnnotationEditor.prototype._deleteAllTrainingData = function() {
  */
 AnnotationEditor.prototype.browseFrames = function() {
   const self = this;
-  let total = this.totalFrames;
+  const total = this.totalFrames;
   if (!total || total <= 0) {
     this._setStatus(this.translations.TrainingLoadFrameFirst || 'Load a frame first', 'error');
     return;
@@ -1544,51 +1545,53 @@ AnnotationEditor.prototype.browseFrames = function() {
   // Remove any existing overlay
   $j('#frameBrowseOverlay').remove();
 
-  let thumbWidth = 160;
-  let perPage = 50;
-  let totalPages = Math.ceil(total / perPage);
+  const thumbWidth = 160;
+  const perPage = 50;
+  const totalPages = Math.ceil(total / perPage);
   // Start on the page containing the current frame
-  let curNum = parseInt(this.currentFrameId, 10);
+  const curNum = parseInt(this.currentFrameId, 10);
   let currentPage = (!isNaN(curNum) && curNum > 0)
     ? Math.ceil(curNum / perPage) : 1;
 
-  let overlay = $j('<div id="frameBrowseOverlay" class="frame-browse-overlay">');
-  let panel = $j('<div class="frame-browse-panel">');
+  const overlay = $j('<div id="frameBrowseOverlay" class="frame-browse-overlay">');
+  const panel = $j('<div class="frame-browse-panel">');
 
   // Header
-  let header = $j('<div class="frame-browse-header">');
+  const header = $j('<div class="frame-browse-header">');
   header.append($j('<span>').text(
-    (this.translations.TrainingBrowseFrames || 'Browse Frames') +
+      (this.translations.TrainingBrowseFrames || 'Browse Frames') +
     ' (' + total + ')'));
-  let closeBtn = $j('<button class="frame-browse-close">&times;</button>');
-  closeBtn.on('click', function() { cleanup(); });
+  const closeBtn = $j('<button class="frame-browse-close">&times;</button>');
+  closeBtn.on('click', function() {
+    cleanup();
+  });
   header.append(closeBtn);
   panel.append(header);
 
   // Grid container
-  let grid = $j('<div class="frame-browse-grid">');
+  const grid = $j('<div class="frame-browse-grid">');
 
   // Pagination container
-  let paginationWrap = $j('<nav class="frame-browse-pagination">');
-  let paginationUl = $j('<ul class="pagination pagination-sm justify-content-center mb-0">');
+  const paginationWrap = $j('<nav class="frame-browse-pagination">');
+  const paginationUl = $j('<ul class="pagination pagination-sm justify-content-center mb-0">');
   paginationWrap.append(paginationUl);
 
   function renderPage(page) {
     currentPage = page;
     grid.empty();
 
-    let start = (page - 1) * perPage + 1;
-    let end = Math.min(page * perPage, total);
+    const start = (page - 1) * perPage + 1;
+    const end = Math.min(page * perPage, total);
 
     for (let i = start; i <= end; i++) {
-      let fid = i;
-      let cell = $j('<div class="frame-browse-cell">');
-      let img = $j('<img>')
+      const fid = i;
+      const cell = $j('<div class="frame-browse-cell">');
+      const img = $j('<img>')
           .attr('loading', 'lazy')
           .attr('src', thisUrl + '?view=image&eid=' + self.eventId +
             '&fid=' + fid + '&width=' + thumbWidth)
           .attr('alt', 'Frame ' + fid);
-      let label = $j('<div class="frame-browse-label">').text(fid);
+      const label = $j('<div class="frame-browse-label">').text(fid);
 
       if (String(fid) === String(self.currentFrameId)) {
         cell.addClass('active');
@@ -1614,7 +1617,7 @@ AnnotationEditor.prototype.browseFrames = function() {
     paginationUl.empty();
 
     // Prev
-    let prevLi = $j('<li class="page-item">').toggleClass('disabled', page <= 1);
+    const prevLi = $j('<li class="page-item">').toggleClass('disabled', page <= 1);
     prevLi.append($j('<a class="page-link" href="#">&laquo;</a>')
         .on('click', function(e) {
           e.preventDefault();
@@ -1623,17 +1626,17 @@ AnnotationEditor.prototype.browseFrames = function() {
     paginationUl.append(prevLi);
 
     // Determine which page numbers to show
-    let pages = buildPageNumbers(page, totalPages);
+    const pages = buildPageNumbers(page, totalPages);
     for (let p = 0; p < pages.length; p++) {
-      let val = pages[p];
+      const val = pages[p];
       if (val === '...') {
         paginationUl.append(
-          $j('<li class="page-item disabled">')
-              .append($j('<span class="page-link">').text('...'))
+            $j('<li class="page-item disabled">')
+                .append($j('<span class="page-link">').text('...'))
         );
       } else {
-        let num = val;
-        let li = $j('<li class="page-item">').toggleClass('active', num === page);
+        const num = val;
+        const li = $j('<li class="page-item">').toggleClass('active', num === page);
         li.append($j('<a class="page-link" href="#">').text(num)
             .on('click', function(e) {
               e.preventDefault();
@@ -1644,7 +1647,7 @@ AnnotationEditor.prototype.browseFrames = function() {
     }
 
     // Next
-    let nextLi = $j('<li class="page-item">')
+    const nextLi = $j('<li class="page-item">')
         .toggleClass('disabled', page >= totalPages);
     nextLi.append($j('<a class="page-link" href="#">&raquo;</a>')
         .on('click', function(e) {
@@ -1657,14 +1660,14 @@ AnnotationEditor.prototype.browseFrames = function() {
   function buildPageNumbers(current, last) {
     // Always show first, last, and a window around current
     if (last <= 7) {
-      let all = [];
+      const all = [];
       for (let i = 1; i <= last; i++) all.push(i);
       return all;
     }
-    let pages = [];
+    const pages = [];
     pages.push(1);
-    let rangeStart = Math.max(2, current - 1);
-    let rangeEnd = Math.min(last - 1, current + 1);
+    const rangeStart = Math.max(2, current - 1);
+    const rangeEnd = Math.min(last - 1, current + 1);
     if (rangeStart > 2) pages.push('...');
     for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
     if (rangeEnd < last - 1) pages.push('...');
@@ -1712,20 +1715,20 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   }
 
   // Build inline browse panel (first time)
-  let panel = $j('<div>').addClass('training-browse-inline');
+  const panel = $j('<div>').addClass('training-browse-inline');
 
   // Header
-  let header = $j('<div>').addClass('browse-header');
+  const header = $j('<div>').addClass('browse-header');
   header.append($j('<span>').text(t.TrainingBrowse || 'Browse Training Data'));
   let browseChanged = false;
 
-  let closeBrowse = function() {
+  const closeBrowse = function() {
     panel.hide();
     if (browseChanged) {
       objectsData = null;
       backgroundsData = null;
       $j.getJSON(thisUrl + '?request=training&action=status').done(function(data) {
-        let resp = data.response || data;
+        const resp = data.response || data;
         if (resp.stats) {
           self.trainingStats = resp.stats;
           if (resp.stats.class_labels) self.classLabels = resp.stats.class_labels;
@@ -1737,17 +1740,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     }
   };
 
-  let closeBtn = $j('<button>').addClass('browse-close').html('&times;');
+  const closeBtn = $j('<button>').addClass('browse-close').html('&times;');
   closeBtn.on('click', closeBrowse);
   header.append(closeBtn);
   panel.append(header);
 
   // Body: tree + files stacked vertically in inline panel
-  let body = $j('<div>').addClass('browse-body');
-  let treePanel = $j('<div>').addClass('browse-tree');
-  let rightPanel = $j('<div>').addClass('browse-right');
-  let filesArea = $j('<div>').addClass('browse-files');
-  let previewArea = $j('<div>').addClass('browse-preview').hide();
+  const body = $j('<div>').addClass('browse-body');
+  const treePanel = $j('<div>').addClass('browse-tree');
+  const rightPanel = $j('<div>').addClass('browse-right');
+  const filesArea = $j('<div>').addClass('browse-files');
+  const previewArea = $j('<div>').addClass('browse-preview').hide();
 
   rightPanel.append(filesArea);
   rightPanel.append(previewArea);
@@ -1768,14 +1771,20 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   let treeData = null;
 
   // Expose browse state on editor so save/delete can trigger cross-panel sync
-  let browseState = {
-    getSelectedDirPath: function() { return selectedDirPath; },
-    refreshFiles: function() { if (selectedDirPath !== null) showFiles(selectedDirPath); },
-    invalidateObjects: function() { objectsData = null; backgroundsData = null; browseChanged = true; },
+  const browseState = {
+    getSelectedDirPath: function() {
+      return selectedDirPath;
+    },
+    refreshFiles: function() {
+      if (selectedDirPath !== null) showFiles(selectedDirPath);
+    },
+    invalidateObjects: function() {
+      objectsData = null; backgroundsData = null; browseChanged = true;
+    },
     refreshTree: function() {
       $j.getJSON(thisUrl + '?request=training&action=browse')
           .done(function(data) {
-            let resp = data.response || data;
+            const resp = data.response || data;
             treeData = resp.tree || [];
             treePanel.empty();
             buildTreeNodes(treePanel, treeData, 0);
@@ -1803,7 +1812,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     }
 
     // Files header
-    let fHeader = $j('<div>').addClass('browse-files-header');
+    const fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(dirPath || '/'));
     fHeader.append($j('<span>').addClass('file-count').text(files.length + ' files'));
     filesArea.append(fHeader);
@@ -1814,17 +1823,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     }
 
     for (let i = 0; i < files.length; i++) {
-      let file = files[i];
-      let row = $j('<div>').addClass('browse-file-row');
+      const file = files[i];
+      const row = $j('<div>').addClass('browse-file-row');
       row.append($j('<span>').addClass('file-name').text(file.name));
       if (file.size !== undefined) {
         row.append($j('<span>').addClass('file-size').text(human_filesize(file.size)));
       }
 
       // Delete button for image/label files
-      let dirBase = (file.path || '').split('/')[0];
+      const dirBase = (file.path || '').split('/')[0];
       if (dirBase === 'images' || dirBase === 'labels') {
-        let delBtn = $j('<button>').addClass('browse-file-delete')
+        const delBtn = $j('<button>').addClass('browse-file-delete')
             .attr('title', 'Delete image + label pair')
             .html('<i class="fa fa-trash"></i>');
         delBtn.on('click', function(e) {
@@ -1834,7 +1843,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
               encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
               .done(function(data) {
-                let resp = data.response || data;
+                const resp = data.response || data;
                 browseChanged = true;
                 // Remove deleted files from treeData
                 if (resp.deleted) {
@@ -1848,8 +1857,8 @@ AnnotationEditor.prototype.browseTrainingData = function() {
                   selectedFileName = null;
                 }
                 // Sync: if deleted file matches current editor frame, clear annotations
-                let delStem = file.name.replace(/\.[^.]+$/, '');
-                let curStem = 'event_' + self.eventId + '_frame_' +
+                const delStem = file.name.replace(/\.[^.]+$/, '');
+                const curStem = 'event_' + self.eventId + '_frame_' +
                     (self.currentFrameId || '');
                 if (delStem === curStem) {
                   self.annotations = [];
@@ -1888,28 +1897,28 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     selectedFileName = file.name;
     previewArea.empty().show();
 
-    let pvHeader = $j('<div>').addClass('browse-preview-header');
+    const pvHeader = $j('<div>').addClass('browse-preview-header');
     pvHeader.append($j('<span>').text(file.name));
 
-    let pvActions = $j('<span>').addClass('browse-preview-actions');
+    const pvActions = $j('<span>').addClass('browse-preview-actions');
 
     // Edit button: parse event_{eid}_frame_{fid} from filename to navigate
-    let stem = file.name.replace(/\.[^.]+$/, '');
-    let match = stem.match(/^event_(\d+)_frame_(.+)$/);
+    const stem = file.name.replace(/\.[^.]+$/, '');
+    const match = stem.match(/^event_(\d+)_frame_(.+)$/);
     if (match) {
-      let editBtn = $j('<button>')
+      const editBtn = $j('<button>')
           .addClass('browse-edit-btn')
           .attr('title', t.TrainingEditAnnotation || 'Edit annotation')
           .html('<i class="fa fa-pencil"></i>');
       editBtn.on('click', function() {
-        let eid = match[1];
-        let fid = match[2];
+        const eid = match[1];
+        const fid = match[2];
         self.switchEvent(eid, fid);
       });
       pvActions.append(editBtn);
     }
 
-    let pvClose = $j('<button>').addClass('preview-close').html('&times;');
+    const pvClose = $j('<button>').addClass('preview-close').html('&times;');
     pvClose.on('click', function() {
       previewArea.hide();
       filesArea.find('.browse-file-row').removeClass('selected');
@@ -1919,39 +1928,36 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     pvHeader.append(pvActions);
     previewArea.append(pvHeader);
 
-    let pvContent = $j('<div>').addClass('browse-preview-content');
+    const pvContent = $j('<div>').addClass('browse-preview-content');
     previewArea.append(pvContent);
 
-    let fileUrl = thisUrl + '?request=training&action=browse_file&path=' +
+    const fileUrl = thisUrl + '?request=training&action=browse_file&path=' +
         encodeURIComponent(file.path);
 
     if (browseIsImage(file.name)) {
-      let container = $j('<div>').addClass('browse-preview-img-wrap');
-      let img = $j('<img>').attr('src', fileUrl)
+      const container = $j('<div>').addClass('browse-preview-img-wrap');
+      const img = $j('<img>').attr('src', fileUrl)
           .attr('alt', file.name)
           .on('error', function() {
             pvContent.html('<em>' + (t.TrainingFailedToLoadFrame || 'Failed to load image') + '</em>');
           });
-      let canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
+      const canvas = $j('<canvas>').addClass('browse-preview-canvas')[0];
       container.append(img);
       container.append(canvas);
       pvContent.append(container);
 
       // Once image loads, fetch label file and draw boxes
       img.on('load', function() {
-        let natW = img[0].naturalWidth;
-        let natH = img[0].naturalHeight;
-        let dispW = img[0].clientWidth;
-        let dispH = img[0].clientHeight;
+        const dispW = img[0].clientWidth;
+        const dispH = img[0].clientHeight;
         canvas.width = dispW;
         canvas.height = dispH;
         $j(canvas).css({width: dispW + 'px', height: dispH + 'px'});
 
         // Derive label file path from image path
-        let stem = file.name.replace(/\.[^.]+$/, '');
-        let lblPath = file.path.replace(/^images\//, 'labels/')
+        const lblPath = file.path.replace(/^images\//, 'labels/')
             .replace(/\.[^.]+$/, '.txt');
-        let lblUrl = thisUrl + '?request=training&action=browse_file&path=' +
+        const lblUrl = thisUrl + '?request=training&action=browse_file&path=' +
             encodeURIComponent(lblPath);
 
         // Fetch class labels and label file in parallel
@@ -1959,31 +1965,31 @@ AnnotationEditor.prototype.browseTrainingData = function() {
             $j.getJSON(thisUrl + '?request=training&action=labels'),
             $j.getJSON(lblUrl)
         ).done(function(labelsResp, lblResp) {
-          let classLabels = (labelsResp[0].response || labelsResp[0]).labels || [];
-          let content = (lblResp[0].response || lblResp[0]).content || '';
-          let lines = content.split('\n').filter(function(l) {
+          const classLabels = (labelsResp[0].response || labelsResp[0]).labels || [];
+          const content = (lblResp[0].response || lblResp[0]).content || '';
+          const lines = content.split('\n').filter(function(l) {
             return l.trim().length > 0;
           });
           if (lines.length === 0) return;
 
-          let ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d');
           for (let li = 0; li < lines.length; li++) {
-            let parts = lines[li].trim().split(/\s+/);
+            const parts = lines[li].trim().split(/\s+/);
             if (parts.length < 5) continue;
-            let classId = parseInt(parts[0], 10);
-            let cx = parseFloat(parts[1]);
-            let cy = parseFloat(parts[2]);
-            let bw = parseFloat(parts[3]);
-            let bh = parseFloat(parts[4]);
+            const classId = parseInt(parts[0], 10);
+            const cx = parseFloat(parts[1]);
+            const cy = parseFloat(parts[2]);
+            const bw = parseFloat(parts[3]);
+            const bh = parseFloat(parts[4]);
 
             // Convert YOLO normalized to display pixels
-            let x = (cx - bw / 2) * dispW;
-            let y = (cy - bh / 2) * dispH;
-            let w = bw * dispW;
-            let h = bh * dispH;
+            const x = (cx - bw / 2) * dispW;
+            const y = (cy - bh / 2) * dispH;
+            const w = bw * dispW;
+            const h = bh * dispH;
 
-            let color = ANNOTATION_COLORS[classId % ANNOTATION_COLORS.length];
-            let label = classLabels[classId] || ('class ' + classId);
+            const color = ANNOTATION_COLORS[classId % ANNOTATION_COLORS.length];
+            const label = classLabels[classId] || ('class ' + classId);
 
             // Draw box
             ctx.strokeStyle = color;
@@ -1992,8 +1998,8 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
             // Draw label background
             ctx.font = '11px sans-serif';
-            let textW = ctx.measureText(label).width + 6;
-            let textH = 16;
+            const textW = ctx.measureText(label).width + 6;
+            const textH = 16;
             let labelY = y - textH;
             if (labelY < 0) labelY = y;
             ctx.fillStyle = color;
@@ -2008,7 +2014,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     } else if (browseIsText(file.name)) {
       pvContent.html('<em>' + (t.TrainingLoading || 'Loading...') + '</em>');
       $j.getJSON(fileUrl).done(function(data) {
-        let resp = data.response || data;
+        const resp = data.response || data;
         pvContent.empty();
         pvContent.append($j('<pre>').text(resp.content || '(empty)'));
       }).fail(function() {
@@ -2024,15 +2030,15 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   let backgroundsData = null; // cached background images
 
   function injectObjectsFolder(container) {
-    let objectsNode = $j('<div>').addClass('browse-tree-node')
+    const objectsNode = $j('<div>').addClass('browse-tree-node')
         .css('padding-left', '8px')
         .attr('data-path', '__objects__');
-    let icon = $j('<i>').addClass('fa fa-tags');
+    const icon = $j('<i>').addClass('fa fa-tags');
     objectsNode.append(icon);
     objectsNode.append($j('<span>').addClass('tree-label')
         .text(t.TrainingObjects || 'Objects'));
 
-    let childContainer = $j('<div>').addClass('browse-tree-children').hide();
+    const childContainer = $j('<div>').addClass('browse-tree-children').hide();
 
     // Insert at the top of the tree panel
     container.prepend(childContainer);
@@ -2066,7 +2072,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
       $j.getJSON(thisUrl + '?request=training&action=browse_objects')
           .done(function(data) {
-            let resp = data.response || data;
+            const resp = data.response || data;
             objectsData = resp.objects || {};
             backgroundsData = resp.backgrounds || [];
             browseChanged = false;
@@ -2082,17 +2088,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
   function renderObjectsChildren(container, objects, backgrounds) {
     container.empty();
-    let classNames = Object.keys(objects);
-    let hasBackgrounds = backgrounds && backgrounds.length > 0;
+    const classNames = Object.keys(objects);
+    const hasBackgrounds = backgrounds && backgrounds.length > 0;
     if (classNames.length === 0 && !hasBackgrounds) {
       container.html('<div style="padding:4px 20px;color:#6c757d;font-size:0.75rem">' +
           (t.TrainingNoObjects || 'No annotated objects yet') + '</div>');
       return;
     }
     for (let ci = 0; ci < classNames.length; ci++) {
-      let className = classNames[ci];
-      let items = objects[className];
-      let classNode = $j('<div>').addClass('browse-tree-node')
+      const className = classNames[ci];
+      const items = objects[className];
+      const classNode = $j('<div>').addClass('browse-tree-node')
           .css('padding-left', '20px');
       classNode.append($j('<i>').addClass('fa fa-tag'));
       classNode.append($j('<span>').addClass('tree-label').text(className));
@@ -2110,7 +2116,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
     // Background images node
     if (hasBackgrounds) {
-      let bgNode = $j('<div>').addClass('browse-tree-node')
+      const bgNode = $j('<div>').addClass('browse-tree-node')
           .css('padding-left', '20px');
       bgNode.append($j('<i>').addClass('fa fa-ban'));
       bgNode.append($j('<span>').addClass('tree-label')
@@ -2133,17 +2139,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     // Show a summary in the right panel when the top-level Objects node is clicked
     filesArea.empty();
     previewArea.hide();
-    let classNames = Object.keys(objects);
+    const classNames = Object.keys(objects);
     let totalImages = 0;
     for (let i = 0; i < classNames.length; i++) {
       totalImages += objects[classNames[i]].length;
     }
-    let bgCount = backgrounds ? backgrounds.length : 0;
+    const bgCount = backgrounds ? backgrounds.length : 0;
     let summary = classNames.length + ' classes, ' + totalImages + ' images';
     if (bgCount > 0) {
       summary += ', ' + bgCount + ' background';
     }
-    let fHeader = $j('<div>').addClass('browse-files-header');
+    const fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(t.TrainingObjects || 'Objects'));
     fHeader.append($j('<span>').addClass('file-count').text(summary));
     filesArea.append(fHeader);
@@ -2160,7 +2166,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
     previewArea.hide();
     filesArea.empty();
 
-    let fHeader = $j('<div>').addClass('browse-files-header');
+    const fHeader = $j('<div>').addClass('browse-files-header');
     fHeader.append($j('<span>').text(className));
     fHeader.append($j('<span>').addClass('file-count')
         .text(items.length + ' images'));
@@ -2172,19 +2178,19 @@ AnnotationEditor.prototype.browseTrainingData = function() {
       return;
     }
 
-    let grid = $j('<div>').addClass('browse-thumb-grid');
+    const grid = $j('<div>').addClass('browse-thumb-grid');
 
     for (let i = 0; i < items.length; i++) {
-      let item = items[i];
-      let cell = $j('<div>').addClass('browse-thumb-cell');
-      let imgUrl = thisUrl + '?request=training&action=browse_file&path=' +
+      const item = items[i];
+      const cell = $j('<div>').addClass('browse-thumb-cell');
+      const imgUrl = thisUrl + '?request=training&action=browse_file&path=' +
           encodeURIComponent(item.imgPath);
-      let img = $j('<img>').attr('src', imgUrl).attr('alt', item.stem);
+      const img = $j('<img>').attr('src', imgUrl).attr('alt', item.stem);
       cell.append(img);
 
       // Label: extract event/frame from stem
       let label = item.stem;
-      let match = item.stem.match(/^event_(\d+)_frame_(.+)$/);
+      const match = item.stem.match(/^event_(\d+)_frame_(.+)$/);
       if (match) {
         label = 'E' + match[1] + ' / ' + match[2];
       }
@@ -2205,17 +2211,17 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   // Build tree nodes recursively in the left panel
   function buildTreeNodes(container, nodes, depth) {
     for (let i = 0; i < nodes.length; i++) {
-      let node = nodes[i];
+      const node = nodes[i];
       if (node.type === 'dir') {
-        let treeNode = $j('<div>').addClass('browse-tree-node')
+        const treeNode = $j('<div>').addClass('browse-tree-node')
             .css('padding-left', (8 + depth * 12) + 'px')
             .attr('data-path', node.path);
-        let icon = $j('<i>').addClass('fa fa-folder');
+        const icon = $j('<i>').addClass('fa fa-folder');
         treeNode.append(icon);
         treeNode.append($j('<span>').addClass('tree-label').text(node.name));
         container.append(treeNode);
 
-        let childContainer = $j('<div>').addClass('browse-tree-children');
+        const childContainer = $j('<div>').addClass('browse-tree-children');
         container.append(childContainer);
 
         // Click to select directory
@@ -2242,7 +2248,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         if (depth > 0) childContainer.hide();
       } else if (node.type === 'file' && depth === 0) {
         // Root-level files (e.g., data.yaml) shown in tree
-        let fileNode = $j('<div>').addClass('browse-tree-node')
+        const fileNode = $j('<div>').addClass('browse-tree-node')
             .css('padding-left', (8 + depth * 12) + 'px')
             .attr('data-path', node.path);
         fileNode.append($j('<i>').addClass('fa fa-file-text-o'));
@@ -2255,11 +2261,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           fileNode.addClass('selected');
           // Show this single file directly in preview
           filesArea.empty();
-          let fHeader = $j('<div>').addClass('browse-files-header');
+          const fHeader = $j('<div>').addClass('browse-files-header');
           fHeader.append($j('<span>').text('/'));
           fHeader.append($j('<span>').addClass('file-count').text('1 file'));
           filesArea.append(fHeader);
-          let row = $j('<div>').addClass('browse-file-row selected');
+          const row = $j('<div>').addClass('browse-file-row selected');
           row.append($j('<i>').addClass('fa ' + browseFileIcon(node.name)));
           row.append($j('<span>').addClass('file-name').text(node.name));
           if (node.size !== undefined) {
@@ -2275,7 +2281,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
   // Fetch tree data
   $j.getJSON(thisUrl + '?request=training&action=browse')
       .done(function(data) {
-        let resp = data.response || data;
+        const resp = data.response || data;
         treeData = resp.tree || [];
 
         treePanel.empty();
@@ -2295,7 +2301,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
 
         // Auto-select images/all if it exists, otherwise first dir
         let autoSelect = 'images/all';
-        let autoNode = browseFindNode(treeData, autoSelect);
+        const autoNode = browseFindNode(treeData, autoSelect);
         if (!autoNode) {
           // Find first dir
           for (let i = 0; i < treeData.length; i++) {
@@ -2307,11 +2313,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
         }
 
         // Expand parents and select
-        let parts = autoSelect.split('/');
+        const parts = autoSelect.split('/');
         let pathSoFar = '';
         for (let p = 0; p < parts.length; p++) {
           pathSoFar = pathSoFar ? pathSoFar + '/' + parts[p] : parts[p];
-          let treeNodeEl = treePanel.find(
+          const treeNodeEl = treePanel.find(
               '.browse-tree-node[data-path="' + pathSoFar + '"]');
           if (treeNodeEl.length) {
             treeNodeEl.find('.fa-folder').removeClass('fa-folder')
@@ -2319,7 +2325,7 @@ AnnotationEditor.prototype.browseTrainingData = function() {
             treeNodeEl.next('.browse-tree-children').show();
           }
         }
-        let targetNode = treePanel.find(
+        const targetNode = treePanel.find(
             '.browse-tree-node[data-path="' + autoSelect + '"]');
         if (targetNode.length) {
           targetNode.addClass('selected');
@@ -2339,12 +2345,12 @@ AnnotationEditor.prototype.browseTrainingData = function() {
  */
 AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
   const self = this;
-  let container = $j('#annotationFrameSelector');
+  const container = $j('#annotationFrameSelector');
   if (!container.length) return;
 
   // Show/hide frame buttons based on availability
   container.find('.frame-btn').each(function() {
-    let frameId = $j(this).attr('data-frame');
+    const frameId = $j(this).attr('data-frame');
     if (availableFrames.indexOf(frameId) >= 0) {
       $j(this).show();
     } else {
@@ -2361,7 +2367,7 @@ AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
   // Bind click handlers
   container.find('.frame-btn').off('click.annEditor').on('click.annEditor', function(e) {
     e.preventDefault();
-    let frameId = $j(this).attr('data-frame');
+    const frameId = $j(this).attr('data-frame');
     self.switchFrame(frameId);
 
     // Update highlight
@@ -2370,11 +2376,11 @@ AnnotationEditor.prototype._updateFrameSelector = function(availableFrames) {
   });
 
   // Frame number input for going to specific frame
-  let frameInput = container.find('.frame-input');
+  const frameInput = container.find('.frame-input');
   frameInput.off('keydown.annEditor').on('keydown.annEditor', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      let val = parseInt($j(this).val(), 10);
+      const val = parseInt($j(this).val(), 10);
       if (val > 0 && val <= self.totalFrames) {
         self.switchFrame(String(val));
       }
@@ -2397,7 +2403,7 @@ AnnotationEditor.prototype.save = function() {
   }
 
   // Only save accepted (non-pending) annotations
-  let accepted = [];
+  const accepted = [];
   let pendingCount = 0;
   for (let i = 0; i < this.annotations.length; i++) {
     if (this.annotations[i].pending) {
@@ -2409,18 +2415,18 @@ AnnotationEditor.prototype.save = function() {
 
   if (pendingCount > 0 && accepted.length === 0) {
     // All boxes are unconfirmed — user probably forgot to accept them
-    let msg = (this.translations.TrainingPendingOnly ||
+    const msg = (this.translations.TrainingPendingOnly ||
         'You have %1 unaccepted detection(s) (orange boxes). Accept them first, or save as a background image with no objects?')
         .replace('%1', pendingCount);
     if (!confirm(msg)) return;
   } else if (pendingCount > 0) {
     // Mix of accepted and unconfirmed boxes
-    let msg = (this.translations.TrainingPendingDiscard ||
+    const msg = (this.translations.TrainingPendingDiscard ||
         '%1 unaccepted detection(s) (orange boxes) will not be saved. Continue?')
         .replace('%1', pendingCount);
     if (!confirm(msg)) return;
   } else if (accepted.length === 0) {
-    let msg = this.translations.TrainingBackgroundConfirm ||
+    const msg = this.translations.TrainingBackgroundConfirm ||
         'No objects marked. Save as a background image (no objects)?\n\nBackground images help the model learn to reduce false positives.';
     if (!confirm(msg)) return;
   }
@@ -2444,7 +2450,7 @@ AnnotationEditor.prototype.save = function() {
           self._setStatus(data.message || self.translations.TrainingSaveFailed || 'Save failed', 'error');
           return;
         }
-        let resp = data.response || data;
+        const resp = data.response || data;
         self.dirty = false;
         self._setStatus(
             self.translations.TrainingSaved || 'Training annotation saved',
@@ -2505,7 +2511,7 @@ AnnotationEditor.prototype._setStatus = function(msg, type) {
  */
 AnnotationEditor.prototype._confirmDiscardIfDirty = function() {
   if (!this.dirty) return true;
-  let msg = this.translations.TrainingUnsaved ||
+  const msg = this.translations.TrainingUnsaved ||
       'You have unsaved annotations. Discard changes?';
   if (!confirm(msg)) return false;
   this.dirty = false;
@@ -2567,10 +2573,10 @@ AnnotationEditor.prototype._loadEventData = function(eid, preferredFrame) {
           self._setStatus(data.message, 'error');
           return;
         }
-        let resp = data.response || data;
+        const resp = data.response || data;
         self._applyEventData(resp);
 
-        let startFrame = preferredFrame || resp.defaultFrameId || 'alarm';
+        const startFrame = preferredFrame || resp.defaultFrameId || 'alarm';
         self._loadFrameImage(startFrame);
 
         if (preferredFrame) {

@@ -996,7 +996,7 @@ class Monitor extends ZM_Object {
         $model = new Model();
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
-        if ($this->ModelId) $this->ModelId = null;
+        if (property_exists($this, 'ModelId') and $this->ModelId) $this->ModelId = null;
         Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();

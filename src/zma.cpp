@@ -78,6 +78,7 @@ without needing live cameras.
 #include <filesystem>
 #include <getopt.h>
 #include <iostream>
+#include <unistd.h>
 
 void Usage() {
   fprintf(stderr, "zma -e <event_id> [-m <monitor_id>] [-c] [-a]\n");

@@ -530,6 +530,33 @@ function initPage() {
     table.bootstrapTable('refresh');
   };
 
+  // Set initial history state so the first filter change creates a new history entry
+  const initialUrl = '?view=events' + filterQuery + sortQuery;
+  history.replaceState({filterQuery: filterQuery, sortQuery: sortQuery}, '', initialUrl);
+
+  // Handle browser back/forward navigation
+  window.addEventListener('popstate', function(event) {
+    if (!event.state) return;
+
+    // Parse URL parameters and update form fields
+    const urlParams = new URLSearchParams(window.location.search);
+    $j('#fieldsTable input, #fieldsTable select').each(function() {
+      const el = $j(this);
+      const name = el.attr('name');
+      if (urlParams.has(name)) {
+        el.val(urlParams.get(name));
+      }
+    });
+
+    // Restore sortQuery from state if available
+    if (event.state.sortQuery !== undefined) {
+      sortQuery = event.state.sortQuery;
+    }
+
+    // Rebuild filterQuery and refresh without pushing another history entry
+    filterEvents({}, {skipPushState: true});
+  });
+
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
@@ -548,19 +575,29 @@ function initDatepickerEventsPage() {
   });
 }
 
-function filterEvents(clickedElement) {
+// Build filterQuery string from current form field values
+function buildFilterQuery() {
+  var query = '';
+  $j('#fieldsTable input, #fieldsTable select').each(function() {
+    const el = $j(this);
+    query += '&' + encodeURIComponent(el.attr('name')) + '=' + encodeURIComponent(el.val());
+  });
+  return query;
+}
+
+function filterEvents(clickedElement, options) {
+  options = options || {};
   if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
     setCookie('zmFilterArchived', clickedElement.target.value);
   }
-  filterQuery = '';
-  $j('#fieldsTable input').each(function(index) {
-    const el = $j(this);
-    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
-  });
-  $j('#fieldsTable select').each(function(index) {
-    const el = $j(this);
-    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
-  });
+  filterQuery = buildFilterQuery();
+
+  // Update URL using pushState so filter state can be shared and back/forward works
+  if (!options.skipPushState) {
+    const newUrl = '?view=events' + filterQuery + sortQuery;
+    history.pushState({filterQuery: filterQuery, sortQuery: sortQuery}, '', newUrl);
+  }
+
   table.bootstrapTable('refresh');
 }
 

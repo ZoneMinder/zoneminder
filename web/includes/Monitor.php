@@ -911,7 +911,7 @@ class Monitor extends ZM_Object {
         return false;
       }
     }
-    return ($u['Monitors'] == 'Edit');
+    return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
   function canView($u=null) {
@@ -996,7 +996,7 @@ class Monitor extends ZM_Object {
         $model = new Model();
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
-        if ($this->ModelId) $this->ModelId = null;
+        if (property_exists($this, 'ModelId') and $this->ModelId) $this->ModelId = null;
         Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();
@@ -1208,10 +1208,24 @@ class Monitor extends ZM_Object {
     }
 
     if (isset($options['zones']) and $options['zones']) {
-      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
-      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
-        $html .= $zone->svg_polygon();
-      } // end foreach zone
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 100 100" preserveAspectRatio="none">'.PHP_EOL;
+      if (is_array($options['zones'])) {
+        // Render specific zone IDs only
+        foreach ($options['zones'] as $zone_id) {
+          $zone = new Zone($zone_id);
+          if ($zone->Id() and $zone->MonitorId() == $this->Id()) {
+            $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+          }
+        }
+      } else {
+        // true: render all zones for this monitor
+        foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+          $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+        }
+      }
+      if (isset($options['zones_extra'])) {
+        $html .= $options['zones_extra'];
+      }
       $html .= '
   Sorry, your browser does not support inline SVG
 </svg>

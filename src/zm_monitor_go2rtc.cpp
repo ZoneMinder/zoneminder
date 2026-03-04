@@ -177,11 +177,11 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   auto age = std::chrono::duration_cast<std::chrono::minutes>(now - last_auth_refresh);
 
   if (age.count() < 50) {
-    Debug(3, "Go2RTC: Auth hash is %ld minutes old, no refresh needed", age.count());
+    Debug(3, "Go2RTC: Auth hash is %jd minutes old, no refresh needed", static_cast<intmax_t>(age.count()));
     return false;
   }
 
-  Debug(1, "Go2RTC: Auth hash is %ld minutes old, refreshing", age.count());
+  Debug(1, "Go2RTC: Auth hash is %jd minutes old, refreshing", static_cast<intmax_t>(age.count()));
 
   User *rtsp_user = User::find(parent->rtsp_user);
   if (!rtsp_user) {

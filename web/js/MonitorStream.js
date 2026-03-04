@@ -404,13 +404,14 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls').hide();
+    $j('#volumeControls'+this.id).hide();
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
         const url = new URL(ZM_GO2RTC_PATH);
 
         const stream = this.element = replaceDOMElement(this.getElement(), 'video-stream');
+        stream.srcObject = null;
         stream.background = true; // We do not use the document hiding/showing analysis from "video-rtc.js", because we have our own analysis
         //stream.muted = this.muted;
         const Go2RTCModUrl = url;
@@ -451,6 +452,7 @@ function MonitorStream(monitorData) {
     if (this.janusEnabled && ((!this.player) || (-1 !== this.player.indexOf('janus')))) {
       let server;
       const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+      stream.srcObject = null;
       stream.setAttribute("autoplay", "");
       stream.setAttribute("muted", this.muted);
       const video_el = document.querySelector('#liveStream'+this.id);
@@ -488,6 +490,7 @@ function MonitorStream(monitorData) {
     if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
       if (ZM_RTSP2WEB_PATH) {
         const stream = this.element = replaceDOMElement(this.getElement(), 'video');
+        stream.srcObject = null;
         stream.setAttribute("autoplay", "");
         stream.setAttribute("muted", this.muted);
         stream.setAttribute("playsinline", "");
@@ -525,7 +528,7 @@ function MonitorStream(monitorData) {
             this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
-              this.getTracksFromStream(); //HLS
+              getTracksFromStream(this); //HLS
             }, this);
             this.hls.loadSource(hlsUrl.href);
             this.hls.attachMedia(stream);
@@ -550,7 +553,7 @@ function MonitorStream(monitorData) {
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         this.streamListenerBind();
-        this.updateStreamInfo(players ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType, 'loading');
+        this.updateStreamInfo((typeof players !== "undefined" && players) ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType, 'loading');
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -559,6 +562,7 @@ function MonitorStream(monitorData) {
 
     // zms stream
     const stream = this.element = replaceDOMElement(this.getElement(), 'img');
+    stream.srcObject = null;
     if (!stream) return;
 
     this.destroyVolumeSlider();
@@ -601,6 +605,9 @@ function MonitorStream(monitorData) {
         if (match) {
           src += '&maxfps='+match[1];
         }
+      }
+      if (this.analyse_frames && -1 == src.search('analysis=')) {
+        src += '&analysis=true';
       }
       if (stream.src != src) {
         //console.log("Setting src.src", stream.src, src);
@@ -920,13 +927,13 @@ function MonitorStream(monitorData) {
 
   this.createVolumeSlider = function() {
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
     const audioStream = this.getAudioStream();
     if (!volumeSlider || !audioStream) return;
+    const iconMute = this.getIconMute();
+    $j('#volumeControls'+this.id).show();
+    if (volumeSlider.noUiSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
-    $j('#volumeControls').show();
     noUiSlider.create(volumeSlider, {
       start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
       step: 1,
@@ -989,10 +996,14 @@ function MonitorStream(monitorData) {
   };
 
   this.destroyVolumeSlider = function() {
+    $j('#volumeControls'+this.id).hide();
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
-    if (iconMute) iconMute.innerText = "";
-    if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
+    //const iconMute = this.getIconMute();
+    //if (iconMute) iconMute.innerText = "";
+    if (volumeSlider && volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
   };
 
   /*
@@ -1099,49 +1110,6 @@ function MonitorStream(monitorData) {
         volumeSlider.noUiSlider.enable();
       }
     }
-  };
-
-  /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
-  // https://habr.com/ru/companies/timeweb/articles/667148/
-  this.getTracksFromStream = async function() {
-    this.mediaStream = this.audioTrack = this.videoTrack = null;
-
-    let streamCaptureNotSupported = false;
-    const el = (-1 !== this.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+this.id+'"] video') : this.getElement();
-    let stream = null;
-
-    // We should NOT call captureStream again, as there may be problems with capturing the stream!
-    let moz = false; // Detecting Firefox
-    if ("captureStream" in el) {
-      stream = await el.captureStream();
-    } else if ("mozCaptureStreamUntilEnded" in el) {
-      stream = await el.mozCaptureStreamUntilEnded();
-      moz = true;
-    } else {
-      console.warn(`"captureStream" NOT found in STREAM for monitor ID=${this.id} or not supported by the browser.`);
-      streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
-    }
-
-    if (stream) {
-      this.audioTrack = stream.getAudioTracks()[0];
-      this.videoTrack = stream.getVideoTracks()[0];
-      this.mediaStream = stream;
-      if (moz && this.audioTrack) {
-        // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
-        const ctx = new AudioContext();
-        const dest = ctx.createMediaStreamSource(stream);
-        dest.connect(ctx.destination);
-      }
-    } else if (!streamCaptureNotSupported) {
-      console.warn(`Failed to capture stream for monitor ID=${this.id} while receiving tracks.`);
-    }
-
-    console.debug(`mediaStream for ID=${this.id}:`, this.mediaStream);
-    console.debug(`audioTrack  for ID=${this.id}:`, this.audioTrack);
-    console.debug(`videoTrack  for ID=${this.id}:`, this.videoTrack);
-    (this.audioTrack || streamCaptureNotSupported) ? this.volumeControlsHandler('enable') : this.volumeControlsHandler('disable');
-
-    //this.connectAudioMotion();
   };
 
   this.setStateClass = function(jobj, stateClass) {
@@ -1614,7 +1582,7 @@ function MonitorStream(monitorData) {
       };
     };
   }
-  this.analyse_frames = true;
+  this.analyse_frames = false;
   this.show_analyse_frames = function(toggle) {
     const streamImage = this.getElement();
     if (streamImage.nodeName == 'IMG') {
@@ -1713,7 +1681,12 @@ async function attachVideo(monitorStream) {
     console.log(`The Janus object for the camera with ID=${id} does not exist.`);
     return;
   }
-  await waitUntil(() => janus.isConnected() );
+  await waitUntil(() => (janus && ('isConnected' in janus)) ? janus.isConnected() : true );
+  if (!janus || !('isConnected' in janus)) { // Janus may crash while waiting for a connection due to network problems.
+    console.log(`The Janus object for the camera with ID=${id} does not exist.`);
+    return;
+  }
+
   janus.attach({
     plugin: "janus.plugin.streaming",
     opaqueId: "streamingtest-"+Janus.randomString(12),
@@ -1775,7 +1748,7 @@ async function attachVideo(monitorStream) {
           monitorStream.restart();
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
-        monitorStream.getTracksFromStream(); //JANUS
+        getTracksFromStream(monitorStream); //JANUS
       }
     },
     onremotetrack: function(track, mid, on) {
@@ -1799,18 +1772,6 @@ async function attachVideo(monitorStream) {
     }
   }); // janus.attach
 } //function attachVideo
-
-const waitUntil = (condition) => {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (!condition()) {
-        return;
-      }
-      clearInterval(interval);
-      resolve();
-    }, 100);
-  });
-};
 /* --- Janus */
 
 /* +++ What is this ? */
@@ -1936,7 +1897,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       error: function(xhr, status, error) {
         console.warn('Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
-        stream.kill();
+        stream.restart(stream.currentChannelStream);
       },
       complete: function() {
         //console.log('Request localDescription completed.');
@@ -1975,7 +1936,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
     stream.updateStreamInfo('', ''); //WEBRTC
-    stream.getTracksFromStream(); //WEBRTC
+    getTracksFromStream(stream); //WEBRTC
     console.log(`${webrtcSendChannel.label} for camera ID=${stream.id} has opened`);
     webrtcSendChannel.send('ping');
   };
@@ -2070,7 +2031,7 @@ function startMsePlay(context, videoEl, url) {
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
     context.updateStreamInfo('', ''); //MSE
-    context.getTracksFromStream(); //MSE
+    getTracksFromStream(context); //MSE
     context.streamStartTime = (Date.now() / 1000).toFixed(2);
     if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
       //For example, after a pause you press Play, you need to adjust the time.
@@ -2162,12 +2123,11 @@ function appendMseBuffer(packet, context) {
         secondsInBuffer = (videoEl.buffered.end(videoEl.buffered.length - 1) - videoEl.buffered.start(videoEl.buffered.length - 1)).toFixed(2);
       }
       console.warn(`${dateTimeToISOLocal(new Date())} Restarting stream due to an error adding data to the buffer '${secondsInBuffer}'sec., and length = ${videoEl.buffered.length} for ID=${context.id}`, e);
-
-      // The client's browser needs to rest 1000ms.
-      context.restart(context.currentChannelStream, 1000);
     } else {
       console.warn(`${dateTimeToISOLocal(new Date())} Error adding buffer to ID=${context.id}.`, e);
-      throw e;
+      //throw e;
     }
+    // The client's browser needs to rest 1000ms.
+    context.restart(context.currentChannelStream, 1000);
   }
 }

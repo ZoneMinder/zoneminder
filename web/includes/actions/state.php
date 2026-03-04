@@ -26,6 +26,7 @@ if (!canEdit('System')) {
 if ($action == 'state') {
   if (!empty($_REQUEST['runState'])) {
     packageControl($_REQUEST['runState']);
+    ZM\AuditAction('apply', 'state', 0, 'State: '.$_REQUEST['runState']);
     $refreshParent = true;
   }
 } else if ($action == 'save') {
@@ -39,10 +40,13 @@ if ($action == 'state') {
     if ( $_REQUEST['newState'] )
       $_REQUEST['runState'] = $_REQUEST['newState'];
     dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'], $definition));
+    ZM\AuditAction('save', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 } else if ($action == 'delete') {
-  if (isset($_REQUEST['runState']))
+  if (isset($_REQUEST['runState'])) {
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
+    ZM\AuditAction('delete', 'state', 0, 'Name: '.$_REQUEST['runState']);
+  }
 }
 $redirect = '?view='.getHomeView();
 ?>

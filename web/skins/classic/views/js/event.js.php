@@ -120,3 +120,4 @@ var translate = {
   "Archived": "<?php echo translate('Archived') ?>",
   "Emailed": "<?php echo translate('Emailed') ?>",
 };
+

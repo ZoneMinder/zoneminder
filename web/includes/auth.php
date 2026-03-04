@@ -528,7 +528,10 @@ if (ZM_OPT_USE_AUTH) {
     $ret = validateToken($_REQUEST['token'], 'any');
     $user = $ret[0];
   } else {
-    // Non token based auth
+    // Non token based auth - session required for $_SESSION access
+    if (!is_session_started()) {
+      zm_session_start();
+    }
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
@@ -604,6 +607,7 @@ if (ZM_OPT_USE_AUTH) {
       $password = $_REQUEST['password'];
 
       ZM\Info("Login successful for user \"$username\"");
+      #ZM\Audit("user=$username action=login id=".$user->Id()." from=".($_SERVER['REMOTE_ADDR'] ?? 'local'));
       $password_type = password_type($user->Password());
 
       if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {

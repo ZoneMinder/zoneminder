@@ -82,6 +82,12 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
+
+  if (!monitor) {
+    Warning("Cannot process command, monitor is not loaded");
+    return;
+  }
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -252,37 +258,44 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } status_data;
 
   status_data.id = monitor->Id();
-  if (!monitor->ShmValid()) {
-    status_data.fps = 0.0;
-    status_data.capture_fps = 0.0;
-    status_data.analysis_fps = 0.0;
-    status_data.state = Monitor::UNKNOWN;
-    //status_data.enabled = monitor->shared_data->active;
-    status_data.enabled = false;
-    status_data.forced = false;
-    status_data.buffer_level = 0;
-  } else {
-    FPSeconds elapsed = now - last_fps_update;
-    if (elapsed.count()) {
-      actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
-      last_frame_count = frame_count;
-      last_fps_update = now;
-    }
+  {
+    // Hold monitor_mutex while accessing shared memory to prevent
+    // loadMonitor() from disconnecting/remapping underneath us.
+    std::lock_guard<std::mutex> lck(monitor_mutex);
 
-    status_data.fps = actual_fps;
-    status_data.capture_fps = monitor->get_capture_fps();
-    status_data.analysis_fps = monitor->get_analysis_fps();
-    status_data.state = monitor->shared_data->state;
-    //status_data.enabled = monitor->shared_data->active;
-    status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
-    status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
-    if (playback_buffer > 0)
-      status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-    else
+    if (!monitor->ShmValid()) {
+      status_data.fps = 0.0;
+      status_data.capture_fps = 0.0;
+      status_data.analysis_fps = 0.0;
+      status_data.state = Monitor::UNKNOWN;
+      status_data.enabled = false;
+      status_data.forced = false;
       status_data.buffer_level = 0;
-    status_data.analysing = monitor->shared_data->analysing;
-    status_data.score = monitor->shared_data->last_frame_score;
-  }
+      status_data.analysing = 0;
+      status_data.score = 0;
+    } else {
+      FPSeconds elapsed = now - last_fps_update;
+      if (elapsed.count()) {
+        actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
+        last_frame_count = frame_count;
+        last_fps_update = now;
+      }
+
+      status_data.fps = actual_fps;
+      status_data.capture_fps = monitor->get_capture_fps();
+      status_data.analysis_fps = monitor->get_analysis_fps();
+      status_data.state = monitor->shared_data->state;
+      status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
+      status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
+      status_data.analysing = monitor->shared_data->analysing;
+      status_data.score = monitor->shared_data->last_frame_score;
+
+      if (playback_buffer > 0)
+        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+      else
+        status_data.buffer_level = 0;
+    }
+  } // end monitor_mutex scope
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.rate = replay_rate;
@@ -589,6 +602,15 @@ void MonitorStream::runStream() {
         zm_terminate = true;
         continue;
       }
+      // Timeout if we've never received a frame and have been waiting too long.
+      // Use ttl if set, otherwise default to 60 seconds.
+      Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+      if (now - stream_start_time > wait_timeout) {
+        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+        zm_terminate = true;
+        continue;
+      }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
@@ -810,6 +832,14 @@ void MonitorStream::runStream() {
       if (now - last_frame_sent > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
+          // Timeout if we've never received a frame from capture
+          Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
+          if (now - stream_start_time > wait_timeout) {
+            Warning("Timed out waiting for initial capture after %" PRIi64 " seconds",
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+            zm_terminate = true;
+            continue;
+          }
         } else {
           sendTextFrame("Waiting for capture");
         }

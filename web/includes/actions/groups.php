@@ -41,6 +41,7 @@ if ( $action == 'delete' ) {
   if ( !empty($_REQUEST['gid']) ) {
     foreach ( ZM\Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
       $Group->delete();
+      ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }
   }
   $redirect = '?view=groups';

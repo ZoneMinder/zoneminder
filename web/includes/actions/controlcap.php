@@ -94,6 +94,7 @@ if ( $action == 'Save' ) {
     global $error_message;
      $error_message .= "Error saving control: " . $Control->get_last_error().'</br>';
   } else {
+    ZM\AuditAction((!empty($_REQUEST['cid']) ? 'update' : 'create'), 'control', $Control->Id(), 'Name: '.($Control->Name() ?? ''));
     $redirect = '?view=options&tab=control';
   }
 } // end if action

@@ -442,6 +442,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
+
+  std::scoped_lock lck{mutex};
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -449,7 +452,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     paused = true;
     break;
   case CMD_PLAY : {
-    std::scoped_lock lck{mutex};
     Debug(1, "Got PLAY command");
     paused = false;
 
@@ -473,7 +475,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_VARPLAY : {
-    std::scoped_lock lck{mutex};
     Debug(1, "Got VARPLAY command");
     paused = false;
     replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
@@ -492,7 +493,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_FASTFWD : {
     Debug(1, "Got FAST FWD command");
-    std::scoped_lock lck{mutex};
     paused = false;
     // Set play rate
     switch (replay_rate) {
@@ -517,7 +517,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWFWD : {
-    std::scoped_lock lck{mutex};
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = 1;
@@ -527,7 +526,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   }
   case CMD_SLOWREV : {
-    std::scoped_lock lck{mutex};
     paused = true;
     replay_rate = ZM_RATE_BASE;
     step = -1;
@@ -637,8 +635,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
       offset = event_data->duration;
     }
 
-    std::scoped_lock lck{mutex};
-
     if (event_data->frames.empty()) {
       Debug(1, "No frames in event, can't seek");
       curr_frame_id = 1;
@@ -700,8 +696,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
   } status_data = {};
 
   {
-    std::scoped_lock lck{mutex};
-
     status_data.event_id = event_data->event_id;
     //status_data.duration = event_data->duration;
     status_data.duration = FPSeconds(event_data->duration).count();
@@ -870,6 +864,12 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     }
   } else if (event_data->SaveJPEGs & 1) {
     reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (stat(reuse_filepath.c_str(), &filestat) < 0) {
+      Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
+            reuse_filepath.c_str(), curr_frame_id);
+      reuse_filepathi.clear();
+      // Fall through — ffmpeg_input will be tried below if available
+    }
   } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
@@ -946,8 +946,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           Debug(2, "Not Rotating image %d", event_data->Orientation);
         } // end if have rotation
       } else {
-        Error("Unable to get a frame");
-        return false;
+        Debug(1, "Unable to get frame %d (no jpeg file and no ffmpeg_input)", curr_frame_id);
+        sendTextFrame("No frame available");
+        return true;
       }
 
       Image *send_image = prepareImage(image);
@@ -1101,9 +1102,12 @@ void EventStream::runStream() {
           zm_terminate = true;
           break;
         }
-        if (send_twice and !sendFrame(delta)) {
-          zm_terminate = true;
-          break;
+        if (send_twice) {
+          send_twice = false;
+          if (!sendFrame(delta)) {
+            zm_terminate = true;
+            break;
+          }
         }
         frame_count++;
       }

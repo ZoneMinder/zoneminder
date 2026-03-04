@@ -12,7 +12,8 @@ class Logger {
   const ERROR = -2;
   const FATAL = -3;
   const PANIC = -4;
-  const NOLOG = -5;   // Special artificial level to prevent logging
+  const AUDIT = -5;
+  const NOLOG = -6;   // Special artificial level to prevent logging
 
   private $initialised = false;
 
@@ -46,6 +47,7 @@ class Logger {
     self::ERROR => 'ERR',
     self::FATAL => 'FAT',
     self::PANIC => 'PNC',
+    self::AUDIT => 'AUD',
     self::NOLOG => 'OFF',
   );
   private static $syslogPriorities = array(
@@ -55,6 +57,7 @@ class Logger {
     self::ERROR   => LOG_ERR,
     self::FATAL   => LOG_ERR,
     self::PANIC   => LOG_ERR,
+    self::AUDIT   => LOG_NOTICE,
   );
   private static $phpErrorLevels = array(
     self::DEBUG   => E_USER_NOTICE,
@@ -63,6 +66,7 @@ class Logger {
     self::ERROR   => E_USER_WARNING,
     self::FATAL   => E_USER_ERROR,
     self::PANIC   => E_USER_ERROR,
+    self::AUDIT   => E_USER_NOTICE,
   );
 
   private function __construct() {
@@ -510,6 +514,20 @@ function Panic( $string ) {
     echo $string;
   }
   exit(1);
+}
+
+function Audit($string) {
+  Logger::fetch()->logPrint(Logger::AUDIT, $string);
+}
+
+function AuditAction($action, $target_type, $target_id, $details) {
+  global $user;
+  $username = $user ? $user->Username() : 'system';
+  $ip = !empty($_SERVER['HTTP_X_FORWARDED_FOR'])
+    ? $_SERVER['HTTP_X_FORWARDED_FOR']
+    : ($_SERVER['REMOTE_ADDR'] ?? 'local');
+  Audit("user=$username action=$action target=$target_type"
+    ." id=$target_id details=\"$details\" from=$ip");
 }
 
 function ErrorHandler( $error, $string, $file, $line ) {

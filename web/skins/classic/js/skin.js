@@ -2864,7 +2864,7 @@ const waitUntil = (condition, timeout = 0) => {
 
 // https://stackoverflow.com/a/69273090
 class ManageEventListener {
-  #listeners = {}; // # in a JS class signifies private 
+  #listeners = {}; // # in a JS class signifies private
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
@@ -2872,7 +2872,7 @@ class ManageEventListener {
     this.#privateAddEventListener(element, this.#idx, type, listener, useCapture);
     return this.#idx++;
   }
-  
+
   // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
   addEventListenerById(element, id, type, listener, useCapture = false) {
     this.#privateAddEventListener(element, id, type, listener, useCapture);

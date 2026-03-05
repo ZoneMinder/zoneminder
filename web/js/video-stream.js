@@ -60,11 +60,7 @@ class VideoStream extends VideoRTC {
 
     connectedCallback() {
         console.debug('stream.connectedCallback');
-        if (!this.video) {
-          //Execute only at the very first moment, when the video has not yet been initialized
-          //Otherwise, when hiding the page with the player stopped and then displaying the page, the player will play!!!
-          super.connectedCallback(); 
-        }
+        super.connectedCallback(); 
     }
 
     onopen() {

@@ -38,7 +38,9 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+#if HAVE_LIBCURL
 #include <curl/curl.h>
+#endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"
 
@@ -328,6 +330,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
+#if HAVE_LIBCURL
   class AmcrestAPI {
    private:
     Monitor *parent;
@@ -446,6 +449,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int get_janus_handle();
     int get_janus_plugin();
   };
+#endif  // HAVE_LIBCURL
 
 
   // These are read from the DB and thereafter remain unchanged
@@ -666,10 +670,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_ref;
   std::string diag_path_delta;
 
+#if HAVE_LIBCURL
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
+#endif  // HAVE_LIBCURL
   ONVIF *onvif;
 
   // Used in check signal
@@ -750,13 +756,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
+#if HAVE_LIBCURL
   int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
+#endif  // HAVE_LIBCURL
   bool EventPollerHealthy() const {
     if (onvif) {
       return onvif->isHealthy();
-    } else if (Amcrest_Manager) {
+    }
+#if HAVE_LIBCURL
+    else if (Amcrest_Manager) {
       return Amcrest_Manager->isHealthy();
     }
+#endif  // HAVE_LIBCURL
     return false;
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }

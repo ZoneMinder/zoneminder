@@ -26,6 +26,8 @@
 #include "zm_user.h"
 #include "zm_utils.h"
 
+#if HAVE_LIBCURL
+
 Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     : parent(parent_), Go2RTC_Healthy(false) {
 
@@ -401,4 +403,5 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
   return std::make_pair(res, response);
 }
 
+#endif  // HAVE_LIBCURL
 

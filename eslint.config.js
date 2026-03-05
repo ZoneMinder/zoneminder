@@ -21,6 +21,8 @@ const compat = new FlatCompat({
 });
 
 module.exports = defineConfig([{
+  "files": ["**/*.js", "**/*.js.php"],
+
   "languageOptions": {
     sourceType: "script",
     globals: {
@@ -78,7 +80,7 @@ module.exports = defineConfig([{
     "php/remove-php-lint": false,
   },
 }, {
-  "files": ["**/*.*php"],
+  "files": ["**/*.js.php"],
 
   "rules": {
     "eol-last": "off",

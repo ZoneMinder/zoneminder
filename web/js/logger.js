@@ -68,7 +68,7 @@ function logReport( level, message, file, line ) {
         message += ' - '+callerName+'()';
       }
     }
-  } catch (e) {
+  } catch {
     // arguments.callee unavailable in strict mode
   }
 

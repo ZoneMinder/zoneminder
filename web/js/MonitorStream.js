@@ -1788,18 +1788,6 @@ async function attachVideo(monitorStream) {
     }
   }); // janus.attach
 } //function attachVideo
-
-const waitUntil = (condition) => {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (!condition()) {
-        return;
-      }
-      clearInterval(interval);
-      resolve();
-    }, 100);
-  });
-};
 /* --- Janus */
 
 /* +++ What is this ? */

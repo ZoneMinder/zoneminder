@@ -1727,8 +1727,8 @@ class ZM_Menu {
   
   public static function buildSubMenuOptions($categoryDisplayOrder) {
     $categoriesOptionsInDB = [];
-    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $сategory_row ) {
-      array_push($categoriesOptionsInDB, $сategory_row['Category']);
+    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $category_row ) {
+      array_push($categoriesOptionsInDB, $category_row['Category']);
     }
     self::addCategoryToOptionsMenu($categoriesOptionsInDB, $categoryDisplayOrder);
   }

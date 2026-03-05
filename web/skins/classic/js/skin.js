@@ -347,9 +347,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       changeButtonIcon(_this_, objIconButton);
 
-      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
-      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
-      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+      const nameFuncBefore = _this_.attr('data-flip-control-run-before-func') ? _this_.attr('data-flip-control-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-control-run-after-func') ? _this_.attr('data-flip-control-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-control-run-after-complet-func') ? _this_.attr('data-flip-control-run-after-complet-func') : null;
 
       if (nameFuncBefore) {
         $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
@@ -375,7 +375,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage visible filter bar & control button (after document ready)
     $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const cookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-control-object'));
@@ -385,7 +385,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
-      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((cookie == 'hidden') ? 'hidden' : 'visible');
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -848,6 +848,7 @@ function isJSON(str) {
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
   } catch (e) {
+    console.warn('This is not JSON', str, e);
     return false; // This is also not JSON
   }
 }
@@ -2808,7 +2809,16 @@ async function getTracksFromStream(videoFeedStream) {
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
 
-  if (stream && stream.active) {
+  if (stream) {
+    const timeoutStreamActive = 20000;
+    const streamActive = await waitUntil(() => stream.active, timeoutStreamActive ); // We are waiting for the stream to become active.
+    if (streamActive !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${(timeoutStreamActive/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      return;
+    }
+
     videoFeedStream.audioTrack = stream.getAudioTracks()[0];
     videoFeedStream.videoTrack = stream.getVideoTracks()[0];
     videoFeedStream.mediaStream = stream;
@@ -2833,5 +2843,23 @@ async function getTracksFromStream(videoFeedStream) {
 
   //connectAudioMotion(mid);
 }
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+        clearInterval(interval);
+        resolve(false);
+      } else {
+        if (!condition()) return;
+        clearInterval(interval);
+        resolve(currentTime - startTime);
+      }
+    }, 100);
+  });
+};
 
 $j( window ).on("load", initPageGeneral);

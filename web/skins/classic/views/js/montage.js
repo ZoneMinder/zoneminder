@@ -603,7 +603,7 @@ function initPage() {
           if ($j('#monitorStatusPosition').val() == 'showOnHover') {
             $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
           }
-          hideСontrolElementsOnStream(el);
+          hideControlElementsOnStream(el);
         }
       }
     });
@@ -615,7 +615,7 @@ function initPage() {
           if ($j('#monitorStatusPosition').val() == 'showOnHover') {
             $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
           }
-          showСontrolElementsOnStream(el);
+          showControlElementsOnStream(el);
         }
       }
     });
@@ -735,13 +735,13 @@ function initPage() {
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
-function hideСontrolElementsOnStream(stream) {
+function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideUp('fast');
   $j('#ratioControl' + id).stop(true, true).slideUp('fast');
 }
 
-function showСontrolElementsOnStream(stream) {
+function showControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');

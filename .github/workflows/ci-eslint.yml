@@ -21,4 +21,4 @@ jobs:
       - name: Install ESLint
         run: npm install eslint@9 @eslint/eslintrc @eslint/js@"<10" globals eslint-config-google@0.14.0 eslint-plugin-html eslint-plugin-php-markup@6.0.0
       - name: Run ESLint
-        run: npx eslint --ext .js.php,.js .
+        run: npx eslint .

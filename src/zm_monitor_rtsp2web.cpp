@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <regex>
 
+#if HAVE_LIBCURL
+
 Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   parent(parent_),
   RTSP2Web_Healthy(false),
@@ -257,3 +259,5 @@ size_t Monitor::RTSP2WebManager::WriteCallback(void *contents, size_t size, size
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
+
+#endif  // HAVE_LIBCURL

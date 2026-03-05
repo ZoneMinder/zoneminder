@@ -1396,7 +1396,7 @@ document.onvisibilitychange = () => {
             monitorStream.stop();
           }
         } else {
-          prevStateStarted = 'stoped';
+          prevStateStarted = 'stopped';
         }
       }
     }, 15*1000);

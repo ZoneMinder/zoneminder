@@ -251,6 +251,9 @@ endif()
 set(ZM_USE_SYSTEM_JWT_CPP "OFF" CACHE BOOL
   "Set to ON to use system-installed jwt-cpp instead of the vendored version. default: OFF")
 
+if(ZM_USE_SYSTEM_JWT_CPP AND NOT (ZM_JWT_BACKEND STREQUAL "jwt_cpp"))
+  message(WARNING "ZM_USE_SYSTEM_JWT_CPP is set but will be ignored because ZM_JWT_BACKEND is not jwt_cpp")
+endif()
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")

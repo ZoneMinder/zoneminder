@@ -21,6 +21,7 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 
 ::
 
+        sudo apt install software-properties-common
         sudo add-apt-repository ppa:iconnor/zoneminder-master
         sudo apt update
 

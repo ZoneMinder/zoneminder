@@ -803,7 +803,7 @@ function MonitorStream(monitorData) {
       this.element.play().catch((er) => {
         if (er.name === 'NotAllowedError' && !this.element.muted) {
           this.element.muted = true;
-          this.play();
+          this.element.play();
         } else {
           console.warn(er);
         }

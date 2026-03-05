@@ -42,6 +42,7 @@ class VideoStream extends VideoRTC {
      */
     oninit() {
         console.debug('stream.oninit');
+        this.visibilityCheck = false;
         super.oninit();
     }
 
@@ -66,6 +67,11 @@ class VideoStream extends VideoRTC {
     ondisconnect() {
         console.debug('stream.ondisconnect');
         super.ondisconnect();
+    }
+
+    connectedCallback() {
+        console.debug('stream.connectedCallback');
+        super.connectedCallback(); 
     }
 
     onopen() {

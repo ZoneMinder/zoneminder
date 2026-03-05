@@ -59,6 +59,10 @@ if (defined('ZM_WEB_FAVICON')) {
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
 ";
+} else if ( file_exists("skins/$skin/css/$css/graphics/favicon.png") ) {
+  echo "
+  <link rel=\"icon\" href=\"skins/$skin/css/$css/graphics/favicon.png\"/>
+";
 } else {
   echo '
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
@@ -109,6 +113,14 @@ echo output_cache_busted_stylesheet_links(array(
     'css/base/views/'.$basename.'.css',
   ), true);
 
+  global $navbar_type;
+  if ($navbar_type == 'left') {
+    echo output_link_if_exists(array(
+      '/assets/pro-sidebar-template/dist/main.css',
+      '/css/base/sidebar.css',
+    ));
+  }
+
   if ( $css != 'base' ) {
     echo output_link_if_exists(array(
       'css/'.$css.'/skin.css',
@@ -117,13 +129,6 @@ echo output_cache_busted_stylesheet_links(array(
     ));
   }
 
-  global $navbar_type;
-  if ($navbar_type == 'left') {
-    echo output_link_if_exists(array(
-      '/assets/pro-sidebar-template/dist/main.css',
-      '/css/base/sidebar.css',
-    ));
-  }
 
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
@@ -135,13 +140,17 @@ echo output_cache_busted_stylesheet_links(array(
 <?php
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
   if ($baseCssPhpFile) require_once($baseCssPhpFile);
-  $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
-  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  if ($css != 'base') {
+    $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
+    if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  }
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
-  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
-  if ($viewCssPhpFile) require_once($viewCssPhpFile);
+  if ($css != 'base') {
+    $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
+    if ($viewCssPhpFile) require_once($viewCssPhpFile);
+  }
 ?>
   </style>
 <?php
@@ -315,13 +324,11 @@ function getSidebarTopHTML() {
 ' . $blockExtruder . '
     <a id="btn-collapse" class="sidebar-collapser"><i class="material-icons">chevron_left</i></a>
     <div class="image-wrapper">
-      <img src="skins/'.$skin.'/assets/pro-sidebar-template/assets/images/sidebar-bg.jpg" alt="sidebar background" />
     </div>
     <div class="sidebar-layout">
       <div class="sidebar-header">
         <div class="pro-sidebar-logo">
-          <div>ZM</div>
-          <h5>ZoneMinder</h5>
+          <div>'.ZM_HOME_CONTENT.'</div>
         </div>
       </div>
       <!-- End of header, before scrolling menu -->

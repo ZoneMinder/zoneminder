@@ -1408,7 +1408,7 @@ document.onvisibilitychange = () => {
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
     //} else if (prevStateStarted != 'paused') {
-    } else if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
       prevStateStarted = null;
     }
   }

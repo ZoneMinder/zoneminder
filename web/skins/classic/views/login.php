@@ -26,7 +26,15 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
 
       <div id="loginform">
 
+<?php 
+  if (defined('ZM_LOGIN_TITLE')) {
+    echo ZM_LOGIN_TITLE;
+  } else {
+?>
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
+<?php
+  }
+?>
         <label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
         <input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 

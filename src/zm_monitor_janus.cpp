@@ -24,6 +24,8 @@
 #include "zm_user.h"
 #include <regex>
 
+#if HAVE_LIBCURL
+
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -444,4 +446,6 @@ int Monitor::JanusManager::get_janus_handle() {
   janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
+
+#endif  // HAVE_LIBCURL
 

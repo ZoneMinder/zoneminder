@@ -322,10 +322,12 @@ Monitor::Monitor() :
   //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
+#if HAVE_LIBCURL
   RTSP2Web_Manager(nullptr),
   Go2RTC_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
+#endif  // HAVE_LIBCURL
   onvif(nullptr),
   red_val(0),
   green_val(0),
@@ -1182,6 +1184,7 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+#if HAVE_LIBCURL
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
       //RTSP2Web_Manager->add_to_RTSP2Web();
@@ -1200,6 +1203,7 @@ bool Monitor::connect() {
     if (use_Amcrest_API) {
       Amcrest_Manager = new AmcrestAPI(this);
     }
+#endif  // HAVE_LIBCURL
 
     if (onvif_event_listener) {
       // Clean up existing ONVIF object to prevent memory leak and duplicate threads
@@ -1319,9 +1323,11 @@ Monitor::~Monitor() {
     sws_freeContext(convert_context);
     convert_context = nullptr;
   }
+#if HAVE_LIBCURL
   if (Amcrest_Manager != nullptr) {
     delete Amcrest_Manager;
   }
+#endif  // HAVE_LIBCURL
   if (onvif) delete onvif;
 }  // end Monitor::~Monitor()
 
@@ -1907,6 +1913,7 @@ void Monitor::UpdateFPS() {
 bool Monitor::Poll() {
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
+#if HAVE_LIBCURL
   if (use_Amcrest_API) {
     if (Amcrest_Manager->isHealthy()) {
       Amcrest_Manager->WaitForMessage();
@@ -1935,6 +1942,7 @@ bool Monitor::Poll() {
       Janus_Manager->add_to_janus();
     }
   }
+#endif  // HAVE_LIBCURL
   std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(10));
   return true;
 } //end Poll
@@ -2000,6 +2008,7 @@ bool Monitor::Analyse() {
       }  // end ONVIF_Trigger
 #endif
 
+#if HAVE_LIBCURL
       if (Amcrest_Manager and Amcrest_Manager->isAlarmed()) {
         score += 9;
         Debug(4, "Triggered on AMCREST");
@@ -2009,6 +2018,7 @@ bool Monitor::Analyse() {
         noteSetMap[MOTION_CAUSE] = noteSet;
         cause += "AMCREST";
       }
+#endif  // HAVE_LIBCURL
 
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
@@ -3647,7 +3657,11 @@ int Monitor::PrimeCapture() {
   }  // end if rtsp_server
 
   //Poller Thread
-  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled) {
+  if (onvif_event_listener
+#if HAVE_LIBCURL
+      || janus_enabled || RTSP2Web_enabled || use_Amcrest_API || Go2RTC_enabled
+#endif  // HAVE_LIBCURL
+     ) {
     if (!Poller) {
       Debug(1, "Creating unique poller thread");
       Poller = zm::make_unique<PollThread>(this);
@@ -3780,6 +3794,7 @@ int Monitor::Close() {
   }
 
   // RTSP2Web teardown
+#if HAVE_LIBCURL
   if (RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
@@ -3796,6 +3811,7 @@ int Monitor::Close() {
     delete Janus_Manager;
     Janus_Manager = nullptr;
   }
+#endif  // HAVE_LIBCURL
 
   if (audio_fifo) {
     delete audio_fifo;

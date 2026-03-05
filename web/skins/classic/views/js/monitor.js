@@ -944,8 +944,8 @@ function selectPlayers(e) {
           selectPlayersSetZMS(select);
         } else { //Adding for the first time
           select.noneExists = true;
-          for (var i = 0; i < select.length; i++) {
-            var option_ = select.options[i];
+          for (let j = 0; j < select.length; j++) {
+            var option_ = select.options[j];
             if (option_.value != 'none') {
               option_.selected = false;
               selectPlayersChangeCheckBox(option_.value, 'remove');

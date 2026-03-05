@@ -1544,7 +1544,7 @@ function MonitorStream(monitorData) {
     } else if (params.command == CMD_PLAY) {
       this.zmsState = 'played';
     } else if (params.command == CMD_STOP || params.command == CMD_QUIT) {
-      this.zmsState = 'stoped';
+      this.zmsState = 'stopped';
     }
   };
 

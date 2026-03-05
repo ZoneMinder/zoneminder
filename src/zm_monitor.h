@@ -330,8 +330,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
-#if HAVE_LIBCURL
   class AmcrestAPI {
+#if HAVE_LIBCURL
    private:
     Monitor *parent;
     bool alarmed;
@@ -357,9 +357,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
     void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
+#else
+   public:
+    explicit AmcrestAPI(Monitor *) {}
+    void WaitForMessage() {}
+    bool isAlarmed() const { return false; }
+    bool isHealthy() const { return true; }
+    void setNotes(Event::StringSet &) {}
+#endif  // HAVE_LIBCURL
   };
 
   class RTSP2WebManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -382,9 +391,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int add_to_RTSP2Web();
     int check_RTSP2Web();
     int remove_from_RTSP2Web();
+#else
+   public:
+    explicit RTSP2WebManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_RTSP2Web() { return 0; }
+    int check_RTSP2Web() { return 1; }
+    int remove_from_RTSP2Web() { return 0; }
+#endif  // HAVE_LIBCURL
   };
 
   class Go2RTCManager {
+#if HAVE_LIBCURL
     protected:
       Monitor *parent;
       // helper class for CURL
@@ -416,9 +434,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int check_Go2RTC();
       int remove_from_Go2RTC();
       bool refresh_auth_if_needed();        // Refresh auth_hash if expired
+#else
+    public:
+      explicit Go2RTCManager(Monitor *) {}
+      void load_from_monitor() {}
+      int add_to_Go2RTC() { return 0; }
+      int check_Go2RTC() { return 1; }
+      int remove_from_Go2RTC() { return 0; }
+      bool refresh_auth_if_needed() { return false; }
+#endif  // HAVE_LIBCURL
   };
 
   class JanusManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -448,8 +476,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int get_janus_session();
     int get_janus_handle();
     int get_janus_plugin();
-  };
+#else
+   public:
+    explicit JanusManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_janus() { return 0; }
+    int check_janus() { return 1; }
+    int remove_from_janus() { return 0; }
+    int get_janus_session() { return 0; }
+    int get_janus_handle() { return 0; }
+    int get_janus_plugin() { return 0; }
 #endif  // HAVE_LIBCURL
+  };
 
 
   // These are read from the DB and thereafter remain unchanged
@@ -670,12 +708,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_ref;
   std::string diag_path_delta;
 
-#if HAVE_LIBCURL
   RTSP2WebManager *RTSP2Web_Manager;
   Go2RTCManager *Go2RTC_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
-#endif  // HAVE_LIBCURL
   ONVIF *onvif;
 
   // Used in check signal
@@ -756,18 +792,16 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
-#if HAVE_LIBCURL
-  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
-#endif  // HAVE_LIBCURL
+  int check_janus() {
+    if (Janus_Manager) return Janus_Manager->check_janus();
+    return -1;
+  }
   bool EventPollerHealthy() const {
     if (onvif) {
       return onvif->isHealthy();
-    }
-#if HAVE_LIBCURL
-    else if (Amcrest_Manager) {
+    } else if (Amcrest_Manager) {
       return Amcrest_Manager->isHealthy();
     }
-#endif  // HAVE_LIBCURL
     return false;
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }

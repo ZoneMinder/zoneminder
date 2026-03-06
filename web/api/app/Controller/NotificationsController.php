@@ -17,11 +17,9 @@ class NotificationsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    global $user;
-    $canView = (!$user) || ($user->System() != 'None');
-    if (!$canView) {
-      throw new UnauthorizedException(__('Insufficient Privileges'));
-    }
+    // Any authenticated user can manage their own notifications.
+    // Per-row ownership checks are enforced in each action.
+    // When auth is disabled ($user is null), allow all access.
   }
 
   public function index() {
@@ -117,6 +115,7 @@ class NotificationsController extends AppController {
     if (!$this->Notification->exists()) {
       throw new NotFoundException(__('Invalid notification'));
     }
+    $this->request->allowMethod('post', 'put');
 
     $existing = $this->Notification->find('first', array(
       'conditions' => array('Notification.Id' => $id),
@@ -126,31 +125,29 @@ class NotificationsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
 
-    if ($this->request->is(array('post', 'put'))) {
-      $data = $this->request->data;
-      if (isset($data['Notification'])) {
-        $data = $data['Notification'];
-      }
-      if (!$this->_isAdmin()) {
-        unset($data['UserId']);
-      }
-      if ($this->Notification->save(array('Notification' => $data))) {
-        $notification = $this->Notification->find('first', array(
-          'conditions' => array('Notification.Id' => $id),
-          'recursive' => -1,
-        ));
-        $this->set(array(
-          'notification' => $notification,
-          '_serialize' => array('notification'),
-        ));
-      } else {
-        $this->response->statusCode(400);
-        $this->set(array(
-          'message' => __('Could not save notification'),
-          'errors' => $this->Notification->validationErrors,
-          '_serialize' => array('message', 'errors'),
-        ));
-      }
+    $data = $this->request->data;
+    if (isset($data['Notification'])) {
+      $data = $data['Notification'];
+    }
+    if (!$this->_isAdmin()) {
+      unset($data['UserId']);
+    }
+    if ($this->Notification->save(array('Notification' => $data))) {
+      $notification = $this->Notification->find('first', array(
+        'conditions' => array('Notification.Id' => $id),
+        'recursive' => -1,
+      ));
+      $this->set(array(
+        'notification' => $notification,
+        '_serialize' => array('notification'),
+      ));
+    } else {
+      $this->response->statusCode(400);
+      $this->set(array(
+        'message' => __('Could not save notification'),
+        'errors' => $this->Notification->validationErrors,
+        '_serialize' => array('message', 'errors'),
+      ));
     }
   }
 

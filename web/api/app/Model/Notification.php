@@ -31,7 +31,7 @@ class Notification extends AppModel {
       'inList' => array(
         'rule' => array('inList', array('enabled', 'disabled')),
         'message' => 'PushState must be enabled or disabled',
-        'allowEmpty' => true,
+        'required' => false,
       ),
     ),
   );

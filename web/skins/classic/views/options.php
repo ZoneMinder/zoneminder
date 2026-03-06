@@ -388,6 +388,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   $opts.on('change', refresh);
+
+  // Apply initial state so dependents match current values on first render.
+  refresh();
 });
 </script>
 <?php

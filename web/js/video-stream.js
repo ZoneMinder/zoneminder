@@ -42,7 +42,19 @@ class VideoStream extends VideoRTC {
      */
     oninit() {
         console.debug('stream.oninit');
+        this.visibilityCheck = false;
         super.oninit();
+    }
+
+    onplay() {
+        const liveStream = this.closest('[id ^= "liveStream"]');
+        if (liveStream) {
+            const monitorStream = getMonitorStream(stringToNumber(liveStream.id));
+            if (monitorStream) {
+                monitorStream.streamStartTime = (Date.now() / 1000).toFixed(2);
+            }
+        }
+        super.onplay();
     }
 
     onconnect() {
@@ -55,6 +67,11 @@ class VideoStream extends VideoRTC {
     ondisconnect() {
         console.debug('stream.ondisconnect');
         super.ondisconnect();
+    }
+
+    connectedCallback() {
+        console.debug('stream.connectedCallback');
+        super.connectedCallback(); 
     }
 
     onopen() {

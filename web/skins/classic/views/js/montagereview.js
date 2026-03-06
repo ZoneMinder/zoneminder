@@ -1129,10 +1129,6 @@ function click_download() {
 
   const data = form.serializeArray();
   data[data.length] = {name: 'mergeevents', value: true};
-  data[data.length] = {name: 'minTime', value: minTime};
-  data[data.length] = {name: 'maxTime', value: maxTime};
-  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
-  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
   $j.ajax({
     url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
     data: data

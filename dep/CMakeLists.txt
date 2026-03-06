@@ -1,4 +1,7 @@
-add_subdirectory(jwt-cpp)
+# Only build vendored jwt-cpp if not using system-installed version
+if(NOT HAVE_SYSTEM_JWT_CPP)
+  add_subdirectory(jwt-cpp)
+endif()
 add_subdirectory(libbcrypt)
 add_subdirectory(RtspServer)
 add_subdirectory(span-lite)

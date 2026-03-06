@@ -7,6 +7,13 @@ class Notification extends AppModel {
   public $primaryKey = 'Id';
   public $displayField = 'Token';
 
+  public $belongsTo = array(
+    'User' => array(
+      'className' => 'User',
+      'foreignKey' => 'UserId',
+    ),
+  );
+
   public $validate = array(
     'Token' => array(
       'notBlank' => array(

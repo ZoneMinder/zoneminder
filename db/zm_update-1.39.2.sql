@@ -21,7 +21,8 @@ SET @s = (SELECT IF(
     `UpdatedOn`       timestamp       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`Id`),
     UNIQUE KEY `Notifications_Token_idx` (`Token`),
-    KEY `Notifications_UserId_idx` (`UserId`)
+    KEY `Notifications_UserId_idx` (`UserId`),
+    CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
   ) ENGINE=InnoDB"
 ));
 

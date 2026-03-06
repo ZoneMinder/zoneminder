@@ -425,7 +425,7 @@ if ( empty($_REQUEST['path']) ) {
       }
       if (!file_exists($file_path)) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        ZM\Warning("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
       if ( !is_executable(ZM_PATH_FFMPEG) ) {
@@ -444,11 +444,16 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+        $message = 'Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
 Command was: '.$command.'
 
-Output was: '.implode(PHP_EOL,$output) );
+Output was: '.implode(PHP_EOL,$output);
+        if (str_contains($Event->DefaultVideo(), 'incomplete')) {
+          ZM\Warning($message);
+        } else {
+          ZM\Error($message);
+        }
         return;
       }
       # Generating an image file will use up more disk space, so update the Event record.

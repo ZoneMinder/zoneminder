@@ -22,7 +22,7 @@ SET @s = (SELECT IF(
     PRIMARY KEY (`Id`),
     UNIQUE KEY `Notifications_Token_idx` (`Token`),
     KEY `Notifications_UserId_idx` (`UserId`),
-    CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE SET NULL
+    CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
   ) ENGINE=InnoDB"
 ));
 

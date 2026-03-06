@@ -59,6 +59,11 @@ if (
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>';
 } ?>
         <button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
+<?php 
+  if (defined('ZM_LOGIN_FOOTER')) {
+    echo ZM_LOGIN_FOOTER;
+  }
+?>
       </div>
     </form>
 <?php 

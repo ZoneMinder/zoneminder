@@ -253,8 +253,30 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $optionCanEdit = $canEdit && !$value['System'];
+              if ($optionCanEdit && !empty($value['Requires'])) {
+                // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
+                $requiresMet = true;
+                foreach (explode(';', $value['Requires']) as $req) {
+                  $req = trim($req);
+                  if (!preg_match('/^(ZM_\w+)=(.+)$/', $req, $reqMatch)) {
+                    // Malformed requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
+                  }
+                  $reqName = $reqMatch[1];
+                  $expectedValue = $reqMatch[2];
+                  if (!isset($config[$reqName]) || $config[$reqName]['Value'] != $expectedValue) {
+                    // Missing or mismatched requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
+                  }
+                }
+                if (!$requiresMet) {
+                  $optionCanEdit = false;
+                }
+              }
 ?>
-          <div class="form-group form-row <?php echo $name ?>">
+          <div class="form-group form-row <?php echo $name ?>"<?php if ($canEdit && !$value['System'] && !empty($value['Requires'])) echo ' data-requires="'.htmlspecialchars($value['Requires'], ENT_QUOTES).'"' ?>>
             <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
             <div class="col-md">
 <?php   
@@ -324,6 +346,53 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           </div><!--options-->
         </div><!-- .row h-100 -->
       </form>
+<script nonce="<?php echo $cspNonce ?>">
+// Dynamic enable/disable of config fields based on data-requires attribute.
+// Supports compound requires: "ZM_A=1;ZM_B=hashed" (all conditions must be met).
+document.addEventListener('DOMContentLoaded', function() {
+  const $opts = $j('#options');
+  if (!$opts.length) return;
+  const $depRows = $opts.find('[data-requires]');
+
+  function getVal(name) {
+    const $el = $opts.find('[name="newConfig[' + name + ']"]');
+    if (!$el.length) return '';
+    if ($el.is(':checkbox')) return $el.is(':checked') ? '1' : '0';
+    if ($el.is(':radio')) return $el.filter(':checked').val() || '';
+    return $el.val();
+  }
+
+  function evalRequires(req) {
+    for (const chunk of req.split(';')) {
+      const part = chunk.trim();
+      if (!part) continue;
+      const m = part.match(/^(ZM_\w+)=(.+)$/);
+      if (!m) return false;
+      if (getVal(m[1]) !== m[2]) return false;
+    }
+    return true;
+  }
+
+  function refresh() {
+    $depRows.each(function() {
+      const $row = $j(this);
+      const met = evalRequires($row.attr('data-requires'));
+      $row.find('input, select, textarea').each(function() {
+        const $input = $j(this);
+        $input.prop('disabled', !met);
+        if ($input.is('select.chosen')) {
+          $input.trigger('chosen:updated');
+        }
+      });
+    });
+  }
+
+  $opts.on('change', refresh);
+
+  // Apply initial state so dependents match current values on first render.
+  refresh();
+});
+</script>
 <?php
 }
 ?>

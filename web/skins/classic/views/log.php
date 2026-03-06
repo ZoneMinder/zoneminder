@@ -57,6 +57,9 @@ getBodyTopHTML();
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+<?php if ( canEdit('System') ) { ?>
+      <button id="clearLogsBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>"><i class="fa fa-trash"></i> <?php echo translate('ClearLogs') ?></button>
+<?php } ?>
       <div class="controlHeader">
       <span class="term ComponentFilter">
         <label><?php echo translate('Component') ?></label>

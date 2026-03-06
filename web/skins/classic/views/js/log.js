@@ -105,6 +105,33 @@ function updateHeaderStats(data) {
   $j('#displayLogs').text(startRow + ' to ' + stopRow);
 }
 
+function manageClearLogsModalBtns() {
+  document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
+    evt.preventDefault();
+    document.getElementById('clearLogsConfirmBtn').disabled = true;
+    clearLogs();
+  });
+  document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+    $j('#clearLogsConfirm').modal('hide');
+  });
+}
+
+function clearLogs() {
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?view=request&request=log&task=clear',
+    success: function(data) {
+      $j('#clearLogsConfirm').modal('hide');
+      table.bootstrapTable('refresh');
+    },
+    error: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#clearLogsConfirm').modal('hide');
+    }
+  });
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
 
@@ -147,6 +174,33 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+// Manage the CLEAR LOGS button
+  const clearLogsBtn = document.getElementById('clearLogsBtn');
+  if (clearLogsBtn) {
+    clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
+      evt.preventDefault();
+      if (evt.ctrlKey) {
+        clearLogs();
+      } else {
+        if (!document.getElementById('clearLogsConfirm')) {
+          $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')
+              .done(function(data) {
+                insertModalHtml('clearLogsConfirm', data.html);
+                manageClearLogsModalBtns();
+                $j('#clearLogsConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting clearlogsconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+        } else {
+          document.getElementById('clearLogsConfirmBtn').disabled = false;
+          $j('#clearLogsConfirm').modal('show');
+        }
+      }
+    });
+  }
 
   $j('#filterStartDateTime, #filterEndDateTime')
       .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterLog});

@@ -22,6 +22,13 @@ if (!isset($_REQUEST['task'])) {
   } else {
     createRequest();
   }
+} else if ($_REQUEST['task'] == 'clear') {
+  global $user;
+  if (!canEdit('System')) {
+    $message = 'Insufficient permissions to clear logs for user '.$user->Username();
+  } else {
+    dbQuery('TRUNCATE TABLE Logs');
+  }
 } else {
   // Only the query and create tasks are supported at the moment
   $message = 'Unrecognised task '.$_REQUEST['task'];

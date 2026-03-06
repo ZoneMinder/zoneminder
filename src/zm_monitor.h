@@ -20,9 +20,6 @@
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
-#if HAVE_LIBCURL
-#include <curl/curl.h>
-#endif  // HAVE_LIBCURL
 #include <sys/time.h>
 
 #include <list>
@@ -44,6 +41,10 @@
 #include "zm_poll_thread.h"
 #include "zm_utils.h"
 #include "zm_zone.h"
+
+#if HAVE_LIBCURL
+#include <curl/curl.h>
+#endif  // HAVE_LIBCURL
 
 
 #if HAVE_QUADRA

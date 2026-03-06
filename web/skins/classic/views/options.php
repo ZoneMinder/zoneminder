@@ -255,13 +255,24 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $optionCanEdit = $canEdit && !$value['System'];
               if ($optionCanEdit && !empty($value['Requires'])) {
                 // Requires can be compound: "ZM_A=1;ZM_B=hashed" (all must be true)
+                $requiresMet = true;
                 foreach (explode(';', $value['Requires']) as $req) {
-                  if (preg_match('/^(ZM_\w+)=(.+)$/', trim($req), $reqMatch)) {
-                    if (isset($config[$reqMatch[1]]) && $config[$reqMatch[1]]['Value'] != $reqMatch[2]) {
-                      $optionCanEdit = false;
-                      break;
-                    }
+                  $req = trim($req);
+                  if (!preg_match('/^(ZM_\w+)=(.+)$/', $req, $reqMatch)) {
+                    // Malformed requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
                   }
+                  $reqName = $reqMatch[1];
+                  $expectedValue = $reqMatch[2];
+                  if (!isset($config[$reqName]) || $config[$reqName]['Value'] != $expectedValue) {
+                    // Missing or mismatched requirement: treat as unmet
+                    $requiresMet = false;
+                    break;
+                  }
+                }
+                if (!$requiresMet) {
+                  $optionCanEdit = false;
                 }
               }
 ?>

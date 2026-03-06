@@ -33,6 +33,14 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
         <label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
         <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
 <?php
+if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME) {
+?>
+        <div class="form-check mt-2 mb-2">
+          <input type="checkbox" class="form-check-input" id="inputRememberMe" name="remember_me" value="1"/>
+          <label class="form-check-label" for="inputRememberMe"><?php echo translate('RememberMe') ?></label>
+        </div>
+<?php
+}
 if (
   defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
   && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') 

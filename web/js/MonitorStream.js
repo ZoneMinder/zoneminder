@@ -1779,17 +1779,17 @@ async function attachVideo(monitorStream) {
       Janus.debug(" ::: Got a remote track :::");
       Janus.debug(track);
       if (track.kind ==="audio") {
-        let stream = new MediaStream();
+        const stream = new MediaStream();
         stream.addTrack(track.clone());
         if (document.getElementById("liveAudio" + id) == null) {
-          let audioElement = document.createElement('audio');
+          const audioElement = document.createElement('audio');
           audioElement.setAttribute("id", "liveAudio" + id);
           audioElement.controls = true;
           document.getElementById("imageFeed" + id).append(audioElement);
         }
         Janus.attachMediaStream(document.getElementById("liveAudio" + id), stream);
       } else {
-        let stream = new MediaStream();
+        const stream = new MediaStream();
         stream.addTrack(track.clone());
         Janus.attachMediaStream(document.getElementById("liveStream" + id), stream);
       }

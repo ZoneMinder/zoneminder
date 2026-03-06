@@ -175,7 +175,7 @@ function initPage() {
     window.location.reload(true);
   });
 
-// Manage the CLEAR LOGS button
+  // Manage the CLEAR LOGS button
   const clearLogsBtn = document.getElementById('clearLogsBtn');
   if (clearLogsBtn) {
     clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {

@@ -590,6 +590,7 @@ $SLANG = array(
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
     'RecordAudio'		       	=> 'Whether to store the audio stream when saving an event.',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
+    'RememberMe'            => 'Remember Me',
     'RemoteHostName'        => 'Host Name',
     'RemoteHostPath'        => 'Path',
     'RemoteHostSubPath'     => 'SubPath',

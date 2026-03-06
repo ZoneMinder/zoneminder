@@ -59,8 +59,27 @@ class Zone extends ZM_Object {
     return preg_replace('/\s+/', ',', $this->Coords());
   }
 
-  public function svg_polygon() {
-    return '<polygon points="'.$this->AreaCoords().'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.$this->Name().'</title></polygon>';
+  public function svg_polygon($width=0, $height=0) {
+    $areaCoords = $this->AreaCoords();
+    if ($width && $height) {
+      $points = coordsToPoints($this->Coords());
+      $isPixel = false;
+      foreach ($points as $point) {
+        if ($point['x'] > 100 || $point['y'] > 100) {
+          $isPixel = true;
+          break;
+        }
+      }
+      if ($isPixel) {
+        foreach ($points as &$point) {
+          $point['x'] = round($point['x'] / $width * 100, 2);
+          $point['y'] = round($point['y'] / $height * 100, 2);
+        }
+        unset($point);
+        $areaCoords = preg_replace('/\s+/', ',', pointsToCoords($points));
+      }
+    }
+    return '<polygon points="'.$areaCoords.'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.$this->Name().'</title></polygon>';
   }
 } # end class Zone
 ?>

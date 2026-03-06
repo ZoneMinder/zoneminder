@@ -899,7 +899,10 @@ function streamReStart(oldId, newId) {
   const volumeControls = document.getElementById('volumeControls'+oldId);
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
-  if (volumeSlider) volumeSlider.id = 'volumeSlider'+newId;
+  if (volumeSlider) {
+    monitorStream.destroyVolumeSlider();
+    volumeSlider.id = 'volumeSlider'+newId;
+  }
   const controlMute = document.getElementById('controlMute'+oldId);
   if (controlMute) controlMute.id = 'controlMute'+newId;
 
@@ -1365,6 +1368,7 @@ function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
   //setCookie('zmWatchPlayer'+monitorId, player);
+  monitorStream.destroyVolumeSlider();
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
   monitorStream.setPlayer($j('#player').val());
@@ -1385,7 +1389,7 @@ function changePlayer() {
 // Kick everything off
 $j( window ).on("load", initPage);
 
-var prevStateStarted = false;
+var prevStateStarted = null;
 document.onvisibilitychange = () => {
   // Always clear it because the return to visibility might happen before timeout
   TimerHideShow = clearTimeout(TimerHideShow);
@@ -1394,22 +1398,29 @@ document.onvisibilitychange = () => {
       //Stop monitor when closing or hiding page
       if (monitorStream) {
         if (monitorStream.started) {
-          prevStateStarted = 'played';
-          //Stop only if playing or paused.
-          // We might want to continue status updates so that alarm sounds etc still happen
-          monitorStream.stop();
+          if ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused) {
+            prevStateStarted = 'paused';
+          } else {
+            prevStateStarted = 'played';
+            //Stop only if playing (not paused).
+            // We might want to continue status updates so that alarm sounds etc still happen
+            monitorStream.stop();
+          }
         } else {
-          prevStateStarted = false;
+          prevStateStarted = 'stopped';
         }
       }
     }, 15*1000);
   } else {
     //Start monitor when show page
     if (monitorStream && prevStateStarted == 'played' && !idleTimeoutTriggered) {
-      prevStateStarted = false;
+      prevStateStarted = null;
       onPlay(); //Set the correct state of the player buttons.
       monitorStream.start(monitorStream.currentChannelStream);
       monitorsSetScale(monitorId);
+    //} else if (prevStateStarted != 'paused') {
+    } else if (monitorStream && monitorStream.element && ((monitorStream.zmsState == 'paused') || (monitorStream.element.video && monitorStream.element.video.paused) || monitorStream.element.paused)) {
+      prevStateStarted = null;
     }
   }
 };

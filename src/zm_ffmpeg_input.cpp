@@ -56,8 +56,13 @@ int FFmpeg_Input::Open(const char *filepath) {
   /** Open the input file to read from it. */
   error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
   if ( error < 0 ) {
-    Error("Could not open input file '%s' (error '%s')",
-          filepath, av_make_error_string(error).c_str());
+    if (std::string(filepath).find("incomplete") != std::string::npos) {
+      Warning("Could not open input file '%s' (error '%s')",
+              filepath, av_make_error_string(error).c_str());
+    } else {
+      Error("Could not open input file '%s' (error '%s')",
+            filepath, av_make_error_string(error).c_str());
+    }
     input_format_context = nullptr;
     return error;
   }

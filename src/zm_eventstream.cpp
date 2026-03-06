@@ -843,27 +843,29 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     curr_frame_id = std::clamp(curr_frame_id, 1, (int)event_data->frames.size());
   }
 
-  std::string filepath;
+  // Reusable string member avoids per-frame heap allocations.
+  // After the first frame, the string's buffer is reused (unless path exceeds capacity).
+  reuse_filepath_.clear();
   struct stat filestat = {};
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
-    filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (stat(filepath.c_str(), &filestat) < 0) {
-      Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
-      filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-      if (stat(filepath.c_str(), &filestat) < 0) {
-        Debug(1, "capture file %s not found either", filepath.c_str());
-        filepath = "";
+    reuse_filepath_ = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+      Debug(1, "analyze file %s not found will try to stream from other", reuse_filepath_.c_str());
+      reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+      if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
+        Debug(1, "capture file %s not found either", reuse_filepath_.c_str());
+        reuse_filepath_.clear();
       }
     }
   } else if (event_data->SaveJPEGs & 1) {
-    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-    if (!std::filesystem::exists(filepath)) {
+    reuse_filepath_ = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (stat(reuse_filepath_.c_str(), &filestat) < 0) {
       Debug(1, "Capture file %s not found (bulk/interpolated frame %d), trying ffmpeg_input",
-          filepath.c_str(), curr_frame_id);
-      filepath = "";
+            reuse_filepath_.c_str(), curr_frame_id);
+      reuse_filepath_.clear();
       // Fall through — ffmpeg_input will be tried below if available
     }
   } else if (!ffmpeg_input) {
@@ -872,7 +874,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   }
 
   if ( type == STREAM_MPEG ) {
-    Image image(filepath.c_str());
+    Image image(reuse_filepath_.c_str());
 
     Image *send_image = prepareImage(&image);
 
@@ -880,38 +882,41 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
                                    send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
-      vid_stream->OpenStream();
+      if (!vid_stream->OpenStream()) {
+        Error("Failed to open video stream");
+        delete vid_stream;
+        vid_stream = nullptr;
+        return false;
+      }
     }
     vid_stream->EncodeFrame(send_image->Buffer(),
                             send_image->Size(),
                             config.mpeg_timed_frames,
                             delta_us.count() * 1000);
   } else {
-    bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !filepath.empty();
+    bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !reuse_filepath_.empty();
 
     if (send_raw) {
       fprintf(stdout, "--" BOUNDARY "\r\n");
-      if (!send_file(filepath)) {
-        Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
+      if (!send_file(reuse_filepath_)) {
+        Error("Can't send %s: %s", reuse_filepath_.c_str(), strerror(errno));
         return false;
       }
     } else {
       Image *image = nullptr;
 
-      if (!filepath.empty()) {
-        if (!std::filesystem::exists(filepath)) {
-          Debug(1, "File at %s does not exist", filepath.c_str());
+      if (!reuse_filepath_.empty()) {
+        if (!std::filesystem::exists(reuse_filepath_)) {
+          Debug(1, "File at %s does not exist", reuse_filepath_.c_str());
         } else {
           image = new Image();
-          if (!image->ReadJpeg(filepath.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
+          if (!image->ReadJpeg(reuse_filepath_.c_str(), ZM_COLOUR_YUVJ420P, ZM_SUBPIX_ORDER_YUVJ420P)) {
             Debug(1, "ReadJpeg failed");
             delete image;
             image = nullptr;
           }
         }
       }
-
-      if (image) Debug(1, "Have image");
 
       if ((!image) and ffmpeg_input) {
         // Get the frame from the mp4 input

@@ -94,6 +94,9 @@ if ( !isset($zone) ) {
   $zone['AreaCoords'] = preg_replace('/\s+/', ',', $zone['Coords']);
 } # end if new Zone
 
+# Auto-detect pixel coordinates and convert to percentages
+convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+
 # Ensure Zone fits within the limits of the Monitor
 limitPoints($zone['Points'], $minX, $minY, $maxX, $maxY);
 

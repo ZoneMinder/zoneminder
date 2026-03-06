@@ -347,9 +347,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       changeButtonIcon(_this_, objIconButton);
 
-      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
-      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
-      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+      const nameFuncBefore = _this_.attr('data-flip-control-run-before-func') ? _this_.attr('data-flip-control-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-control-run-after-func') ? _this_.attr('data-flip-control-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-control-run-after-complet-func') ? _this_.attr('data-flip-control-run-after-complet-func') : null;
 
       if (nameFuncBefore) {
         $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
@@ -375,7 +375,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage visible filter bar & control button (after document ready)
     $j("[data-flip-control-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
-      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
+      const cookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-control-object'));
       const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-control-object'));
@@ -385,7 +385,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
-      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((cookie == 'hidden') ? 'hidden' : 'visible');
       if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -848,6 +848,7 @@ function isJSON(str) {
     const type = Object.prototype.toString.call(result);
     return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
   } catch (e) {
+    console.log('This is not JSON', str, e);
     return false; // This is also not JSON
   }
 }
@@ -1441,7 +1442,8 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     const url = new URL(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
-    url.search = 'src=' + mid + '_0';
+    //url.search = 'src=' + mid + '_0';
+    url.search = 'src=' + mid + '_CameraDirectPrimary';
 
     const stream = document.createElement('video-stream');
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
@@ -2407,7 +2409,7 @@ function getMonitorStream(mid) { // RENAME to getStream(), but it is already in 
   let monitorStream_ = null;
   if (currentView == 'watch') {
     monitorStream_ = monitorStream;
-  } else if (currentView == 'montage') {
+  } else if (currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     monitorStream_ = monitors.find((o) => {
       return parseInt(o["id"]) === mid;
     });
@@ -2781,7 +2783,7 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   let el = null;
-  if (currentView == 'watch' || currentView == 'montage') {
+  if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
     el = (-1 !== videoFeedStream.activePlayer.indexOf('go2rtc')) ? document.querySelector('[id ^= "liveStream'+videoFeedStream.id+'"] video') : videoFeedStream.getElement();
   } else if (currentView == 'event') {
     el = videoFeedStream.querySelector('video');
@@ -2808,6 +2810,15 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   if (stream) {
+    const timeoutStreamActive = 20000;
+    const streamActive = await waitUntil(() => stream.active, timeoutStreamActive ); // We are waiting for the stream to become active.
+    if (streamActive !== false) {
+      console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
+    } else {
+      console.warn(`Within ${(timeoutStreamActive/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+      return;
+    }
+
     videoFeedStream.audioTrack = stream.getAudioTracks()[0];
     videoFeedStream.videoTrack = stream.getVideoTracks()[0];
     videoFeedStream.mediaStream = stream;
@@ -2832,5 +2843,23 @@ async function getTracksFromStream(videoFeedStream) {
 
   //connectAudioMotion(mid);
 }
+
+const waitUntil = (condition, timeout = 0) => {
+  const startTime = Date.now();
+
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      if (timeout !== 0 && ((currentTime - startTime) > timeout)) {
+        clearInterval(interval);
+        resolve(false);
+      } else {
+        if (!condition()) return;
+        clearInterval(interval);
+        resolve(currentTime - startTime);
+      }
+    }, 100);
+  });
+};
 
 $j( window ).on("load", initPageGeneral);

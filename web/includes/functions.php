@@ -1466,6 +1466,24 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
+function convertPixelPointsToPercent(&$points, $width, $height) {
+  if (!$width || !$height) return;
+  $isPixel = false;
+  foreach ($points as $point) {
+    if ($point['x'] > 100 || $point['y'] > 100) {
+      $isPixel = true;
+      break;
+    }
+  }
+  if ($isPixel) {
+    foreach ($points as &$point) {
+      $point['x'] = round($point['x'] / $width * 100, 2);
+      $point['y'] = round($point['y'] / $height * 100, 2);
+    }
+    unset($point);
+  }
+}
+
 function scalePoints(&$points, $scale) {
   foreach ( $points as &$point ) {
     $point['x'] = reScale($point['x'], $scale);

@@ -190,7 +190,9 @@ int main(int argc, char *argv[], char **envp) {
 
   getcpu();
   HwCapsDetect();
+#if HAVE_LIBCURL
   curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif  // HAVE_LIBCURL
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L2
@@ -414,7 +416,9 @@ int main(int argc, char *argv[], char **envp) {
   Debug(1, "Cleared monitors");
 
   Image::Deinitialise();
+#if HAVE_LIBCURL
   curl_global_cleanup();
+#endif  // HAVE_LIBCURL
   Debug(1, "terminating");
   dbQueue.stop();
   zmDbClose();

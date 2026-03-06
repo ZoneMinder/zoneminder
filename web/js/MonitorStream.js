@@ -6,6 +6,7 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.name = monitorData.name;
   this.started = false;
+  this.zmsState = null;
   this.muted = (currentView == 'watch') ? !!getCookie('zmWatchMuted') : true;
   this.connKey = monitorData.connKey;
   this.genConnKey = function() {
@@ -406,7 +407,8 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls').hide();
+    $j('#volumeControls'+this.id).hide();
+    $j('#delay'+this.id).addClass('hidden');
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
       if (ZM_GO2RTC_PATH) {
@@ -656,6 +658,7 @@ function MonitorStream(monitorData) {
       }
       this.webrtc = null;
       stream.srcObject = null;
+      this.streamStartTime = 0;
     } else if (-1 !== this.activePlayer.indexOf('rtsp2web')) {
       if (this.webrtc) {
         if (this.webrtc.close) this.webrtc.close();
@@ -799,15 +802,12 @@ function MonitorStream(monitorData) {
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     } else if ((this.activePlayer) && (-1 !== this.activePlayer.indexOf('rtsp2web'))) {
       /* HLS does not have "src", WebRTC and MSE have "src" */
-      this.element.play().catch(() => {
-        if (!this.element.muted) {
-          console.log('played muted');
+      this.element.play().catch((er) => {
+        if (er.name === 'NotAllowedError' && !this.element.muted) {
           this.element.muted = true;
-          this.element.play().catch((er) => {
-            console.warn(er);
-          });
+          this.element.play();
         } else {
-          console.log('not muted');
+          console.warn(er);
         }
       });
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -917,6 +917,7 @@ function MonitorStream(monitorData) {
           volumeSlider.classList.remove('noUi-mute');
         }
       }
+      this.muted = audioStream.muted;
     } else {
       console.warn(`volumeSlider for monitor with ID=${this.id} not found`);
     }
@@ -928,13 +929,13 @@ function MonitorStream(monitorData) {
 
   this.createVolumeSlider = function() {
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
     const audioStream = this.getAudioStream();
     if (!volumeSlider || !audioStream) return;
+    const iconMute = this.getIconMute();
+    $j('#volumeControls'+this.id).show();
+    if (volumeSlider.noUiSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
-    if (volumeSlider.noUiSlider) volumeSlider.noUiSlider.destroy();
 
-    $j('#volumeControls').show();
     noUiSlider.create(volumeSlider, {
       start: [(defaultVolume) ? defaultVolume : audioStream.volume * 100],
       step: 1,
@@ -997,10 +998,14 @@ function MonitorStream(monitorData) {
   };
 
   this.destroyVolumeSlider = function() {
+    $j('#volumeControls'+this.id).hide();
     const volumeSlider = this.getVolumeSlider();
-    const iconMute = this.getIconMute();
-    if (iconMute) iconMute.innerText = "";
-    if (volumeSlider && 'noUiSlider' in volumeSlider) volumeSlider.noUiSlider.destroy();
+    //const iconMute = this.getIconMute();
+    //if (iconMute) iconMute.innerText = "";
+    if (volumeSlider && volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
   };
 
   /*
@@ -1458,48 +1463,13 @@ function MonitorStream(monitorData) {
         .fail(logAjaxFail);
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
+      if (-1 !== this.element.currentMode.toLowerCase().indexOf('mse')) {
+        $j('#delay'+this.id).removeClass('hidden');
+        this.manageMSESocket(this.element.video, this.element.ws, this.element.ms);
+      }
     } else if (this.RTSP2WebEnabled && ((!this.player) || (-1 !== this.player.indexOf('rtsp2web')))) {
-      // We correct the lag from real time. Relevant for long viewing and network problems.
       if (-1 !== this.activePlayer.indexOf('mse')) {
-        const videoEl = document.getElementById("liveStream" + this.id);
-        if (this.wsMSE && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-          const videoElCurrentTime = videoEl.currentTime; // Current time of playback
-          const currentTime = (Date.now() / 1000);
-          const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
-          const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
-          let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
-          if (delayCurrent < 0) {
-            //Possibly with high client CPU load. Cannot be negative.
-            this.streamStartTime = currentTime - bufferEndTime;
-            delayCurrent = 0;
-          }
-
-          $j('#delayValue'+this.id).text(delayCurrent);
-
-          // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
-          if (!videoEl.paused && deltaRealTime > 10) {
-            // Ability to scroll through the last buffered frames when paused.
-            if (bufferEndTime - videoElCurrentTime > 2.0) {
-              // Correcting a flow lag of more than X seconds from the end of the buffer
-              // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
-              //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
-              videoEl.currentTime = bufferEndTime - 0.1;
-            }
-            if (deltaRealTime - bufferEndTime > 1.5) {
-              // Correcting the buffer end lag by more than X seconds from real time
-              console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
-
-              this.restart(this.currentChannelStream);
-            }
-          }
-        } else if (!this.wsMSE && this.started) {
-          if (this.mse.readyState == 'open') {
-            console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id} RESTART is started.`);
-            this.restart(this.currentChannelStream);
-          } else {
-            console.log(`MediaSource for camera ID=${this.id} is in state "${this.mse.readyState.toUpperCase()}"`);
-          }
-        }
+        this.manageMSESocket(document.getElementById("liveStream" + this.id), this.wsMSE, this.mse);
       } else if (-1 !== this.player.indexOf('webrtc')) {
         if ((!this.webrtc || (this.webrtc && this.webrtc.connectionState != "connected")) && this.started) {
           if (this.webrtc && (this.webrtc.connectionState == "new" || this.webrtc.connectionState == "connecting")) {
@@ -1511,6 +1481,57 @@ function MonitorStream(monitorData) {
         }
       }
     } // end if Go2RTC or RTSP2Web
+  };
+
+  this.manageMSESocket = function(videoEl, socket, mediaSource) {
+    // We correct the lag from real time. Relevant for long viewing and network problems.
+    //const videoEl = document.getElementById("liveStream" + this.id);
+    if (socket && videoEl && videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+      const videoElCurrentTime = videoEl.currentTime; // Current time of playback
+      const currentTime = (Date.now() / 1000);
+      const deltaRealTime = (currentTime - this.streamStartTime).toFixed(2); // How much real time has passed since playback started
+      const bufferEndTime = videoEl.buffered.end(videoEl.buffered.length - 1);
+      let delayCurrent = (deltaRealTime - videoElCurrentTime).toFixed(2); // Delay of playback moment from real time
+      if (delayCurrent < 0) {
+        //Possibly with high client CPU load. Cannot be negative.
+        this.streamStartTime = currentTime - bufferEndTime;
+        delayCurrent = 0;
+      }
+      if (this.streamStartTime === 0) {
+        console.log(`Since streamStartTime is not defined, MSE delay adjustment for monitor with ID=${this.id} will not be used!`, this.started, delayCurrent);
+        return;
+      }
+
+      $j('#delayValue'+this.id).text((delayCurrent != 0) ? delayCurrent: '-');
+
+      // The first 10 seconds are allocated for the start, at this point the delay can be more than 2-3 seconds. It is necessary to avoid STOP/START looping
+      if (!videoEl.paused && deltaRealTime > 10) {
+        // Ability to scroll through the last buffered frames when paused.
+        if (bufferEndTime - videoElCurrentTime > 2.0) {
+          // Correcting a flow lag of more than X seconds from the end of the buffer
+          // When the client's CPU load is 99-100%, there may be problems with constant time adjustment, but this is better than a constantly increasing lag of tens of seconds.
+          //console.debug(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id}:${(bufferEndTime - videoElCurrentTime).toFixed(2)}sec.`);
+          videoEl.currentTime = bufferEndTime - 0.1;
+        }
+        if (deltaRealTime - bufferEndTime > 1.5) {
+          // Correcting the buffer end lag by more than X seconds from real time
+          console.log(`${dateTimeToISOLocal(new Date())} Adjusting currentTime for a video object ID=${this.id} Buffer end lag from real time='${(deltaRealTime - bufferEndTime).toFixed(2)}sec. RESTART is started.`);
+
+          this.restart(this.currentChannelStream);
+        }
+      }
+    } else if (!socket && this.started) {
+      //if (mediaSource.readyState == 'open' || mediaSource.readyState == 'closed') {
+      if (mediaSource) {
+        // Go2RTC has a problem with Auto mode, as Go2RTC tries to start each one (MSE and RTC) one at a time. At this point, the socket is destroyed, which can sometimes lead to multiple restarts. Probably...
+        if (mediaSource.readyState == 'open') {
+          console.warn(`UNSCHEDULED CLOSE SOCKET for camera ID=${this.id} RESTART is started.`);
+          this.restart(this.currentChannelStream);
+        } else {
+          console.log(`MediaSource for camera ID=${this.id} is in state "${mediaSource.readyState.toUpperCase()}"`);
+        }
+      }
+    }
   };
 
   this.statusQuery = function() {
@@ -1539,6 +1560,13 @@ function MonitorStream(monitorData) {
       params.command = command;
     }
     this.streamCmdReq(params);
+    if (params.command == CMD_PAUSE) {
+      this.zmsState = 'paused';
+    } else if (params.command == CMD_PLAY) {
+      this.zmsState = 'played';
+    } else if (params.command == CMD_STOP || params.command == CMD_QUIT) {
+      this.zmsState = 'stopped';
+    }
   };
 
   this.alarmCommand = function(command) {
@@ -1769,18 +1797,6 @@ async function attachVideo(monitorStream) {
     }
   }); // janus.attach
 } //function attachVideo
-
-const waitUntil = (condition) => {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (!condition()) {
-        return;
-      }
-      clearInterval(interval);
-      resolve();
-    }, 100);
-  });
-};
 /* --- Janus */
 
 /* +++ What is this ? */
@@ -1906,7 +1922,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
       error: function(xhr, status, error) {
         console.warn('Error request localDescription:', error, xhr.responseText);
         stream.updateStreamInfo('', 'Error'); //WEBRTC
-        stream.kill();
+        stream.restart(stream.currentChannelStream);
       },
       complete: function() {
         //console.log('Request localDescription completed.');

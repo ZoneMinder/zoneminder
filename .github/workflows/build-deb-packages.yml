@@ -66,7 +66,7 @@ jobs:
           fetch-depth: 0
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.ZMREPO_GPG_PASSPHRASE }}
@@ -124,7 +124,7 @@ jobs:
           echo "artifact_name=binary-${sanitized_distro_name}" >> $GITHUB_ENV
 
       - name: Upload .deb artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           path: artifacts/deb
           name: ${{ env.artifact_name }}
@@ -153,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: dist
       - name: Compute deploy target

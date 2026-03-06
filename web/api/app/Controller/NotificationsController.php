@@ -62,11 +62,6 @@ class NotificationsController extends AppController {
       throw new BadRequestException(__('POST required'));
     }
 
-    // Push token registration requires an authenticated user
-    if (!$this->_userId()) {
-      throw new UnauthorizedException(__('Push notification registration requires authentication'));
-    }
-
     $data = $this->request->data;
     if (isset($data['Notification'])) {
       $data = $data['Notification'];

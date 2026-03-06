@@ -8,7 +8,7 @@ SET @s = (SELECT IF(
   "SELECT 'Notifications table already exists'",
   "CREATE TABLE `Notifications` (
     `Id`              int unsigned    NOT NULL AUTO_INCREMENT,
-    `UserId`          int unsigned    NOT NULL,
+    `UserId`          int unsigned    DEFAULT NULL,
     `Token`           varchar(512)    NOT NULL,
     `Platform`        enum('android','ios','web') NOT NULL,
     `MonitorList`     text            DEFAULT NULL,
@@ -22,7 +22,7 @@ SET @s = (SELECT IF(
     PRIMARY KEY (`Id`),
     UNIQUE KEY `Notifications_Token_idx` (`Token`),
     KEY `Notifications_UserId_idx` (`UserId`),
-    CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE
+    CONSTRAINT `Notifications_ibfk_1` FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE SET NULL
   ) ENGINE=InnoDB"
 ));
 

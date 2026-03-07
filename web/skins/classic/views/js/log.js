@@ -202,7 +202,22 @@ function initPage() {
     clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
       evt.preventDefault();
       if (evt.ctrlKey) {
-        deleteLogs(getIdSelections());
+        // Bypass confirmation, but ensure the modal (and its ticker) exists
+        if (!document.getElementById('clearLogsConfirm')) {
+          $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')
+              .done(function(data) {
+                insertModalHtml('clearLogsConfirm', data.html);
+                manageClearLogsModalBtns();
+                // Do not show the modal; just ensure required elements exist
+                deleteLogs(getIdSelections());
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting clearlogsconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+        } else {
+          deleteLogs(getIdSelections());
+        }
       } else {
         if (!document.getElementById('clearLogsConfirm')) {
           $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')

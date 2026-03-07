@@ -149,12 +149,16 @@ echo '</span>';
       data-auto-refresh-silent="true"
       data-show-refresh="true"
       data-auto-refresh-interval="30"
+<?php if (canEdit('System')) { ?>
       data-click-to-select="true"
+<?php } ?>
       data-id-field="Id"
     >
       <thead class="thead-highlight">
         <tr>
+<?php if (canEdit('System')) { ?>
           <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+<?php } ?>
           <th data-field="Id" data-visible="false"></th>
           <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>

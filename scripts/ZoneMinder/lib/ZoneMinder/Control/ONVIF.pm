@@ -232,6 +232,19 @@ sub open {
     }
   }
 
+  # --- Credential fallback: ONVIF_Username/Password, then User/Pass -----
+  if (!$$self{username}) {
+    if ($self->{Monitor}->{ONVIF_Username}) {
+      $$self{username} = $self->{Monitor}->{ONVIF_Username};
+      $$self{password} = $self->{Monitor}->{ONVIF_Password} if $self->{Monitor}->{ONVIF_Password};
+      Debug('Using ONVIF_Username/ONVIF_Password from Monitor');
+    } elsif ($self->{Monitor}->{User}) {
+      $$self{username} = $self->{Monitor}->{User};
+      $$self{password} = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
+      Debug('Using User/Pass from Monitor');
+    }
+  }
+
   # --- Connectivity check (non-fatal) ------------------------------------
   if ($$self{BaseURL}) {
     my $res = $self->sendCmd('/onvif/device_service',

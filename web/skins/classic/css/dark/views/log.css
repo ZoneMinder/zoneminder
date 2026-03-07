@@ -16,6 +16,12 @@
     line-height: 15px;
 }
 
+/* Selected row styles for dark mode - neutral highlight, log level colors via text */
+.bootstrap-table .fixed-table-container .table tbody tr.selected td {
+    background-color: #2d333b;
+    color: inherit;
+}
+
 tr.log-fat td {
     color: #222222;
     background-color:#ffcccc;

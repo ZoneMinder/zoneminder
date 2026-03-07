@@ -128,7 +128,7 @@ function deleteLogs(log_ids) {
   console.log('Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
 
   $j.ajax({
-    method: 'get',
+    method: 'post',
     timeout: 0,
     url: thisUrl + '?request=log&task=delete',
     data: {'ids[]': chunk},

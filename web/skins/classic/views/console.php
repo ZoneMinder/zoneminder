@@ -249,6 +249,7 @@ echo $navbar ?>
         data-click-to-select="true"
         data-maintain-meta-data="true"
         data-buttons-class="btn btn-normal"
+        data-show-advanced-search="false"
         data-mobile-responsive="true"
         class="table table-striped table-hover table-condensed consoleTable"
         style="display:none;"

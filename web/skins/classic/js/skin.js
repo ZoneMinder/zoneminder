@@ -2819,14 +2819,19 @@ async function getTracksFromStream(videoFeedStream) {
       return;
     }
 
-    videoFeedStream.audioTrack = stream.getAudioTracks()[0];
-    videoFeedStream.videoTrack = stream.getVideoTracks()[0];
-    videoFeedStream.mediaStream = stream;
-    if (moz && videoFeedStream.audioTrack) {
-      // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
-      const ctx = new AudioContext();
-      const dest = ctx.createMediaStreamSource(stream);
-      dest.connect(ctx.destination);
+    if (videoFeedStream.started) {
+      // While we were waiting for Media Stream activity, the video stream may have stopped.
+      videoFeedStream.audioTrack = stream.getAudioTracks()[0];
+      videoFeedStream.videoTrack = stream.getVideoTracks()[0];
+      videoFeedStream.mediaStream = stream;
+      if (moz && videoFeedStream.audioTrack) {
+        // Fix Firefox https://stackoverflow.com/questions/72401396/usage-of-mozcapturestream-stop-audio-output-of-video-element
+        const ctx = new AudioContext();
+        const dest = ctx.createMediaStreamSource(stream);
+        dest.connect(ctx.destination);
+      }
+    } else {
+      console.debug(`Stream for monitor ID=${mid} is not running. mediaStream is not assigned for a stream.`);
     }
   } else if (!streamCaptureNotSupported) {
     console.warn(`Failed to capture stream for monitor ID=${mid} while receiving tracks.`);

@@ -103,8 +103,8 @@ echo output_cache_busted_stylesheet_links(array(
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-    'assets/bootstrap-table-1.24.1/bootstrap-table.min.css',
-    'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+    'assets/bootstrap-table/bootstrap-table.min.css',
+    'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
     'css/base/skin.css',
     'css/base/views/'.$basename.'.css',
   ), true);
@@ -1648,14 +1648,14 @@ function xhtmlFooter() {
 
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'assets/bootstrap-table-1.24.1/bootstrap-table.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/locale/bootstrap-table-locale-all.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/export/bootstrap-table-export.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/cookie/bootstrap-table-cookie.js',
-  'assets/bootstrap-table-1.24.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/mobile/bootstrap-table-mobile.js',
+  'assets/bootstrap-table/bootstrap-table.min.js',
+  'assets/bootstrap-table/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table/extensions/export/bootstrap-table-export.min.js',
+  'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'assets/bootstrap-table/extensions/cookie/bootstrap-table-cookie.js',
+  'assets/bootstrap-table/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'assets/bootstrap-table/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'assets/bootstrap-table/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',

@@ -105,6 +105,54 @@ function updateHeaderStats(data) {
   $j('#displayLogs').text(startRow + ' to ' + stopRow);
 }
 
+function manageClearLogsModalBtns() {
+  document.getElementById('clearLogsConfirmBtn').addEventListener('click', function onClearLogsConfirmClick(evt) {
+    evt.preventDefault();
+    document.getElementById('clearLogsConfirmBtn').disabled = true;
+    deleteLogs(getIdSelections());
+  });
+  document.getElementById('clearLogsCancelBtn').addEventListener('click', function onClearLogsCancelClick(evt) {
+    $j('#clearLogsConfirm').modal('hide');
+  });
+}
+
+function getIdSelections() {
+  return $j.map(table.bootstrapTable('getSelections'), function(row) {
+    return row.Id;
+  });
+}
+
+function deleteLogs(log_ids) {
+  const ticker = document.getElementById('clearLogsProgressTicker');
+  const chunk = log_ids.splice(0, 100);
+  console.log('Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
+
+  $j.ajax({
+    method: 'post',
+    timeout: 0,
+    url: thisUrl + '?request=log&task=delete',
+    data: {'ids[]': chunk},
+    success: function(data) {
+      if (!log_ids.length) {
+        $j('#clearLogsConfirm').modal('hide');
+        table.bootstrapTable('refresh');
+      } else {
+        if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        deleteLogs(log_ids);
+      }
+    },
+    error: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#clearLogsConfirm').modal('hide');
+      table.bootstrapTable('refresh');
+    }
+  });
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
 
@@ -146,6 +194,57 @@ function initPage() {
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
+  });
+
+  // Manage the CLEAR LOGS button
+  const clearLogsBtn = document.getElementById('clearLogsBtn');
+  if (clearLogsBtn) {
+    clearLogsBtn.addEventListener('click', function onClearLogsClick(evt) {
+      evt.preventDefault();
+      if (evt.ctrlKey) {
+        // Bypass confirmation, but ensure the modal (and its ticker) exists
+        if (!document.getElementById('clearLogsConfirm')) {
+          $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')
+              .done(function(data) {
+                insertModalHtml('clearLogsConfirm', data.html);
+                manageClearLogsModalBtns();
+                // Do not show the modal; just ensure required elements exist
+                deleteLogs(getIdSelections());
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting clearlogsconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+        } else {
+          deleteLogs(getIdSelections());
+        }
+      } else {
+        if (!document.getElementById('clearLogsConfirm')) {
+          $j.getJSON(thisUrl + '?request=modal&modal=clearlogsconfirm')
+              .done(function(data) {
+                insertModalHtml('clearLogsConfirm', data.html);
+                manageClearLogsModalBtns();
+                $j('#clearLogsConfirm').modal('show');
+              })
+              .fail(function(jqXHR) {
+                console.log('error getting clearlogsconfirm', jqXHR);
+                logAjaxFail(jqXHR);
+              });
+        } else {
+          document.getElementById('clearLogsConfirmBtn').disabled = false;
+          $j('#clearLogsConfirm').modal('show');
+        }
+      }
+    });
+  }
+
+  // Enable or disable clear button based on selection
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table', function() {
+    const selections = table.bootstrapTable('getSelections');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
+    if (clearLogsBtn) {
+      clearLogsBtn.disabled = !selections.length;
+    }
   });
 
   $j('#filterStartDateTime, #filterEndDateTime')

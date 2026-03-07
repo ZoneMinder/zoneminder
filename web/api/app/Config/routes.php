@@ -45,6 +45,7 @@
 	Router::mapResources('user_preference');
 	Router::mapResources('zonepresets');
 	Router::mapResources('zones');
+	Router::mapResources('notifications');
 
 	Router::parseExtensions();
 

@@ -7,6 +7,15 @@ if (!canView('Events')) {
   return;
 }
 
+if (!file_exists(ZM_DIR_EXPORTS)) {
+  if (!(@mkdir(ZM_DIR_EXPORTS))) {
+    ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'. Probably insufficient access rights.');
+  }
+} else if (is_file(ZM_DIR_EXPORTS)) {
+  ZM\Fatal('Instead of the \''.ZM_DIR_EXPORTS.'\' directory there is a file.');
+}
+chmod(ZM_DIR_EXPORTS, 0700);
+
 $eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
 $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
@@ -33,18 +42,6 @@ if ($filter) {
       }
     }
     $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids), 'cnj' => 'and'));
-  }
-  if (isset($_REQUEST['minTimeSecs'])) {
-  }
-  if (isset($_REQUEST['maxTimeSecs'])) {
-  }
-  if (isset($_REQUEST['minTime']) and !$filter->has_term('DateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'cnj' => 'and'));
-    $exportFileName .= ' '.$_REQUEST['minTime']; 
-  }
-  if (isset($_REQUEST['maxTime']) and !$filter->has_term('DateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'));
-    $exportFileName .= ' '.$_REQUEST['maxTime']; 
   }
 }
 $total_size = 0;

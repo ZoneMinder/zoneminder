@@ -741,8 +741,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  // How many frames we need to have before we start analysing
-  ready_count = std::max(warmup_count, pre_event_count);
+  // How many frames we need to have before we start analysing.
+  // Must account for alarm_frame_count because openEvent walks back
+  // max(pre_event_count, alarm_frame_count) frames from the analysis point.
+  ready_count = std::max({warmup_count, pre_event_count, alarm_frame_count});
 
   //shared_data->image_count = 0;
   last_alarm_count = 0;
@@ -2166,11 +2168,10 @@ bool Monitor::Analyse() {
                   int zone_index = 0;
                   for (const Zone &zone : zones) {
                     const ZoneStats &stats = zone.GetStats();
-                    stats.DumpToLog("After detect motion");
                     packet->zone_stats.push_back(stats);
                     if (zone.Alarmed()) {
                       if (!packet->alarm_cause.empty()) packet->alarm_cause += ",";
-                      packet->alarm_cause += std::string(zone.Label());
+                      packet->alarm_cause += zone.Label();
                       if (zone.AlarmImage())
                         packet->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
@@ -2185,7 +2186,9 @@ bool Monitor::Analyse() {
 
                   if (motion_score) {
                     if (!cause.empty()) cause += ", ";
-                    cause += MOTION_CAUSE + std::string(":") + packet->alarm_cause;
+                    cause += MOTION_CAUSE;
+                    cause += ':';
+                    cause += packet->alarm_cause;
                     noteSetMap[MOTION_CAUSE] = zoneSet;
                     score += motion_score;
                   } // end if motion_score
@@ -2476,6 +2479,7 @@ bool Monitor::Analyse() {
     }
   }  // end scope for event_lock
   packet->analyzed = true;
+  packet->notify_all();  // Wake up event thread waiting for analyzed
 
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   packetqueue.increment_it(analysis_it, false);
@@ -2689,6 +2693,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
       packet->decoded = true;
+      packet->notify_all();
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
@@ -2880,25 +2885,48 @@ bool Monitor::Decode() {
   // Packets in decoder_queue have been sent but not yet received.
 
   if (!decoder_queue.empty()) {
-    Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
-    auto &front_lock = decoder_queue.front();
-    auto front_packet = front_lock.packet_;
+    // If decoding is on-demand and no longer needed, flush rather than
+    // trying to receive stale frames from the decoder.
+    bool needs_decoding =
+      (decoding == DECODING_ALWAYS) ||
+      (decoding == DECODING_KEYFRAMES) ||
+      ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
+      ((decoding == DECODING_KEYFRAMESONDEMAND) && hasViewers());
 
-    int ret = front_packet->receive_frame(context);
-    if (ret > 0) {
-      // Success - got a decoded frame, take ownership and process it
-      packet_lock = std::move(decoder_queue.front());
-      decoder_queue.pop_front();
-      packet = front_packet;
-      Debug(2, "Received frame for packet %d", packet->image_index);
-      // Continue to PHASE 3 (frame processing)
-    } else if (ret < 0) {
-      // Decoder error
-      return false;
+    if (!needs_decoding) {
+      Debug(1, "Flushing decoder in phase 1: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+      // Fall through to Phase 2 which will skip decoding for the current packet
     } else {
-      // EAGAIN - decoder needs more input, fall through to send another packet
-      Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
-    }
+      Debug(2, "Decoder queue has %zu packets, trying receive_frame", decoder_queue.size());
+      auto &front_lock = decoder_queue.front();
+      auto front_packet = front_lock.packet_;
+
+      int ret = front_packet->receive_frame(context);
+      if (ret > 0) {
+        // Success - got a decoded frame, take ownership and process it
+        packet_lock = std::move(decoder_queue.front());
+        decoder_queue.pop_front();
+        packet = front_packet;
+        Debug(2, "Received frame for packet %d", packet->image_index);
+        // Continue to PHASE 3 (frame processing)
+      } else if (ret < 0) {
+        // Decoder error
+        return false;
+      } else {
+        // EAGAIN - decoder needs more input, fall through to send another packet
+        Debug(2, "receive_frame returned EAGAIN for packet %d", front_packet->image_index);
+      }
+    }  // end if needs_decoding
   }
 
   // ===========================================================================
@@ -2927,19 +2955,37 @@ bool Monitor::Decode() {
     if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
       Debug(3, "Audio packet %d, marking decoded", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
       packetqueue.notify_all();  // Wake up analysis thread
       packetqueue.increment_it(decoder_it, !decoder_queue.empty());
       return true;
     }
 
     // Check if this packet needs to be sent to the decoder
-    bool dominated = packet->image || packet->in_frame || !packet->packet->size;
-    bool should_decode = !dominated && (
+    bool already_decoded = packet->image || packet->in_frame || !packet->packet->size;
+    bool should_decode = !already_decoded && (
       (decoding == DECODING_ALWAYS) ||
       ((decoding == DECODING_ONDEMAND) && (hasViewers() || shared_data->last_write_index == image_buffer_count)) ||
       ((decoding == DECODING_KEYFRAMES) && packet->keyframe) ||
       ((decoding == DECODING_KEYFRAMESONDEMAND) && (hasViewers() || packet->keyframe))
     );
+
+    if (!should_decode && !decoder_queue.empty()) {
+      // Viewer stopped (or decoding no longer needed) while packets were
+      // queued in the decoder.  Flush the codec so we don't carry stale
+      // state, and release all queued packet locks.
+      Debug(1, "Flushing decoder: %zu packets queued but decoding no longer needed",
+            decoder_queue.size());
+      avcodec_flush_buffers(context);
+      for (auto &lock : decoder_queue) {
+        if (lock.packet_) {
+          lock.packet_->decoded = true;
+          lock.packet_->notify_all();
+        }
+      }
+      decoder_queue.clear();
+      packetqueue.notify_all();
+    }
 
     if (should_decode) {
       Debug(2, "Sending packet %d to decoder", packet->image_index);
@@ -2978,6 +3024,14 @@ bool Monitor::Decode() {
     // Packet doesn't need decoding (or already has frame/image)
     Debug(2, "Packet %d doesn't need decoding: %s", packet->image_index, Decoding_Strings[decoding].c_str());
     packetqueue.increment_it(decoder_it, !decoder_queue.empty());
+
+    // Update last_write_time even when not decoding so that zmwatch
+    // doesn't think the monitor has stalled.  This matters for modes
+    // like KEYFRAMESONDEMAND where non-keyframe packets are skipped
+    // between keyframe decodes.
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    }
   }
 
   // ===========================================================================
@@ -2991,6 +3045,7 @@ bool Monitor::Decode() {
       // Hardware transfer failed - frame is unusable
       Debug(1, "Hardware frame transfer failed for packet %d", packet->image_index);
       packet->decoded = true;
+      packet->notify_all();
       packetqueue.notify_all();
       return false;
     }
@@ -3038,6 +3093,7 @@ bool Monitor::Decode() {
     if (deinterlacing_value) {
       if (!applyDeinterlacing(packet, capture_image)) {
         packet->decoded = true;
+        packet->notify_all();
         packetqueue.notify_all();  // Wake up analysis thread
         return false;
       }
@@ -3074,6 +3130,7 @@ bool Monitor::Decode() {
   }
 
   packet->decoded = true;
+  packet->notify_all();
   packetqueue.notify_all();  // Wake up analysis thread waiting for decoded packets
   return true;
 }
@@ -3189,13 +3246,23 @@ Event * Monitor::openEvent(
       logTerm();
       int fdlimit = (int)sysconf(_SC_OPEN_MAX);
       for (int i = 0; i < fdlimit; i++) close(i);
-      execlp(event_start_command.c_str(),
-             event_start_command.c_str(),
-             std::to_string(event->Id()).c_str(),
-             std::to_string(event->MonitorId()).c_str(),
-             nullptr);
-      logInit(log_id.c_str());
-      Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      if (event_start_command.find('%') != std::string::npos) {
+        std::string cmd = ReplaceAll(ReplaceAll(
+            ReplaceAll(event_start_command, "%EID%", std::to_string(event->Id())),
+            "%MID%", std::to_string(event->MonitorId())),
+            "%EC%", ShellEscape(cause));
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+      } else {
+        execlp(event_start_command.c_str(),
+               event_start_command.c_str(),
+               std::to_string(event->Id()).c_str(),
+               std::to_string(event->MonitorId()).c_str(),
+               nullptr);
+        logInit(log_id.c_str());
+        Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      }
       std::quick_exit(0);
     }
   }
@@ -3220,7 +3287,9 @@ void Monitor::closeEvent() {
   close_event_thread = std::thread([](Event *e, const std::string &command) {
     int64_t event_id = e->Id();
     int monitor_id = e->MonitorId();
+    Debug(1, "close_event_thread: deleting event %" PRId64, event_id);
     delete e;
+    Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
     if (!command.empty()) {
       if (fork() == 0) {
@@ -3229,12 +3298,22 @@ void Monitor::closeEvent() {
         logTerm();
         int fdlimit = (int)sysconf(_SC_OPEN_MAX);
         for (int i = 0; i < fdlimit; i++) close(i);
-        execlp(command.c_str(), command.c_str(),
-               std::to_string(event_id).c_str(),
-               std::to_string(monitor_id).c_str(),
-               nullptr);
-        logInit(log_id.c_str());
-        Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        if (command.find('%') != std::string::npos) {
+          std::string cmd = ReplaceAll(
+              ReplaceAll(command, "%EID%", std::to_string(event_id)),
+              "%MID%", std::to_string(monitor_id));
+          execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", cmd.c_str(), strerror(errno));
+        } else {
+          execlp(command.c_str(),
+                 command.c_str(),
+                 std::to_string(event_id).c_str(),
+                 std::to_string(monitor_id).c_str(),
+                 nullptr);
+          logInit(log_id.c_str());
+          Error("Error execing %s: %s", command.c_str(), strerror(errno));
+        }
         std::quick_exit(0);
       }
     }
@@ -3370,19 +3449,50 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end if alarm or not
   } // end if alarm
 
-  if (top_score > 0) {
-    shared_data->alarm_x = alarm_centre.x_;
-    shared_data->alarm_y = alarm_centre.y_;
+  if (shared_data) {
+    if (top_score > 0) {
+      shared_data->alarm_x = alarm_centre.x_;
+      shared_data->alarm_y = alarm_centre.y_;
 
-    Info("Got alarm centre at %d,%d, at count %d",
-         shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
-  } else {
-    shared_data->alarm_x = shared_data->alarm_y = -1;
+      Info("Got alarm centre at %d,%d, at count %d",
+           shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
+    } else {
+      shared_data->alarm_x = shared_data->alarm_y = -1;
+    }
   }
 
   // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
   return score ? score : alarm;
 } // end DetectMotion
+
+unsigned int Monitor::AnalyseFrame(const Image &frame_image, Event::StringSet &zoneSet) {
+  if (!ref_image.Buffer()) {
+    ref_image.Assign(frame_image);
+    return 0;
+  }
+
+  unsigned int score = DetectMotion(frame_image, zoneSet);
+
+  int blend = (state == ALARM) ? alarm_ref_blend_perc : ref_blend_perc;
+  ref_image.Blend(frame_image, blend);
+
+  return score;
+} // end AnalyseFrame
+
+unsigned int Monitor::AnalyseFrame(const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image) {
+  unsigned int score = AnalyseFrame(frame_image, zoneSet);
+
+  if (analysis_image && score) {
+    analysis_image->Assign(frame_image);
+    for (const Zone &zone : zones) {
+      if (zone.Alarmed() && zone.AlarmImage()) {
+        analysis_image->Overlay(*(zone.AlarmImage()));
+      }
+    }
+  }
+
+  return score;
+} // end AnalyseFrame with analysis_image
 
 // TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {

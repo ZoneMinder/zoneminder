@@ -183,7 +183,7 @@ sub detectRealm {
         } # end if
       } # end foreach auth header
     } else {
-      debug('No headers line');
+      Debug('No headers line');
     } # end if headers
   } # end if not authen
 }
@@ -567,7 +567,7 @@ sub irisAbsClose {
   Debug("Iris $CamParams{Brightness}");
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{brightness});
+  $self->getCamParams() unless($CamParams{Brightness});
   my $step = $self->getParam($params, 'step');
   my $min = 0;
 

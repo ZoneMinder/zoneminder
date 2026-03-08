@@ -35,6 +35,7 @@ require ZoneMinder::Monitor;
 require URI;
 require URI::Escape;
 require HTTP::Request;
+require IO::Socket::SSL;
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
@@ -344,6 +345,18 @@ sub get {
   }
   $url = $$self{BaseURL}.$url if $$self{BaseURL};
   my $response = $self->{ua}->get($url);
+
+  if (!$response->is_success && !$self->{ssl_verify_disabled} && $response->status_line =~ /SSL|certificate|verify/i) {
+    Warning('SSL certificate verification failed (' . $response->status_line . '), retrying without verification');
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(),
+      SSL_hostname => '',
+    );
+    $self->{ssl_verify_disabled} = 1;
+    $response = $self->{ua}->get($url);
+  }
+
   Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
   return $response;
 }
@@ -378,6 +391,18 @@ sub put {
   $req->content_type('application/x-www-form-urlencoded; charset=UTF-8') if ! $$options{'Content-Type'};
 
   my $res = $self->{ua}->request($req);
+
+  if (!$res->is_success && !$self->{ssl_verify_disabled} && $res->status_line =~ /SSL|certificate|verify/i) {
+    Warning('SSL certificate verification failed (' . $res->status_line . '), retrying without verification');
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(),
+      SSL_hostname => '',
+    );
+    $self->{ssl_verify_disabled} = 1;
+    $res = $self->{ua}->request($req);
+  }
+
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success
@@ -413,6 +438,18 @@ sub post {
   }
 
   my $res = $self->{ua}->request($req);
+
+  if (!$res->is_success && !$self->{ssl_verify_disabled} && $res->status_line =~ /SSL|certificate|verify/i) {
+    Warning('SSL certificate verification failed (' . $res->status_line . '), retrying without verification');
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE(),
+      SSL_hostname => '',
+    );
+    $self->{ssl_verify_disabled} = 1;
+    $res = $self->{ua}->request($req);
+  }
+
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success

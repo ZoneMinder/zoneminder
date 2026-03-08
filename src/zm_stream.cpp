@@ -51,6 +51,10 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  // Hold monitor_mutex during disconnect/connect to prevent the command
+  // processor thread from accessing shared memory while it is remapped.
+  std::lock_guard<std::mutex> lck(monitor_mutex);
+
   if (monitor->isConnected()) {
     monitor->disconnect();
   }
@@ -277,7 +281,12 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
       fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
-      vid_stream->OpenStream();
+      if (!vid_stream->OpenStream()) {
+        Error("Failed to open video stream");
+        delete vid_stream;
+        vid_stream = nullptr;
+        return false;
+      }
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else {

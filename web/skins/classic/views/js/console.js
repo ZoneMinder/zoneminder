@@ -239,11 +239,11 @@ function processRows(rows) {
       if (row.Analysing && row.Analysing != 'None') {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
+      if (row.ONVIF_Event_Listener) {
+        functionHtml += ' Use ONVIF Events';
+      }
       if (row.Recording && row.Recording != 'None') {
-        functionHtml += 'Recording: ' + row.Recording;
-        if (row.ONVIF_Event_Listener) {
-          functionHtml += ' Use ONVIF';
-        }
+        functionHtml += 'Recording: ' + row.Recording + '<br/>';
         functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';
@@ -463,9 +463,34 @@ function manageFunctionModal(evt) {
   $j('#modalFunction').modal('show');
 } // end function manageFunctionModal
 
+function resetSort() {
+  table.bootstrapTable('deleteCookie', 'sortName');
+  table.bootstrapTable('deleteCookie', 'sortOrder');
+  table.bootstrapTable('deleteCookie', 'sortPriority');
+  var options = table.bootstrapTable('getOptions');
+  options.sortName = 'Sequence';
+  options.sortOrder = 'asc';
+  table.bootstrapTable('refresh');
+}
+
 function initPage() {
   // Init the bootstrap-table
-  table.bootstrapTable({icons: icons});
+  table.bootstrapTable({
+    icons: icons,
+    buttons: function() {
+      return {
+        resetSort: {
+          text: 'Default Sort',
+          icon: 'fa-sort',
+          event: resetSort,
+          attributes: {
+            'aria-label': 'Reset to default sort order',
+            'title': 'Reset to default sort order (Sequence)'
+          }
+        }
+      };
+    }
+  });
   // Hide these columns on first run when no cookie is saved
   if (!getCookie('zmConsoleTable.bs.table.hiddenColumns')) {
     // table.bootstrapTable('hideColumn', 'Archived');

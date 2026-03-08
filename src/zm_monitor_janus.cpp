@@ -24,6 +24,8 @@
 #include "zm_user.h"
 #include <regex>
 
+#if HAVE_LIBCURL
+
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -110,7 +112,31 @@ int Monitor::JanusManager::check_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   CURLcode res = curl_easy_perform(curl);
+
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
+            endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
@@ -200,7 +226,31 @@ int Monitor::JanusManager::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   res = curl_easy_perform(curl);
+
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
+            endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
@@ -249,7 +299,32 @@ int Monitor::JanusManager::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   CURLcode res = curl_easy_perform(curl);
+
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
+            endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
+
   if (res != CURLE_OK) {
     Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
   } else {
@@ -279,7 +354,31 @@ int Monitor::JanusManager::get_janus_session() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   res = curl_easy_perform(curl);
+
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
+            endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
@@ -308,7 +407,31 @@ int Monitor::JanusManager::get_janus_handle() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  if (ssl_verification_failed) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  } else {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+  }
   res = curl_easy_perform(curl);
+
+  if (!ssl_verification_failed &&
+      (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
+       res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
+    Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
+            endpoint.c_str(), curl_easy_strerror(res));
+    ssl_verification_failed = true;
+    response.clear();
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    res = curl_easy_perform(curl);
+  }
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
@@ -323,4 +446,6 @@ int Monitor::JanusManager::get_janus_handle() {
   janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
+
+#endif  // HAVE_LIBCURL
 

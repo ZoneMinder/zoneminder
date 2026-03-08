@@ -104,6 +104,13 @@ class ConfigsController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		global $user;
+		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		if (!$canEdit) {
+			throw new UnauthorizedException(__('Insufficient privileges'));
+			return;
+		}
+
 		$this->Config->id = $id;
 
 		if (!$this->Config->exists($id)) {
@@ -112,9 +119,12 @@ class ConfigsController extends AppController {
 		if ($this->request->is(array('post', 'put'))) {
 			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
 			$config = $this->Config->find('first', $options);
-      if ($config['Config']['System']) {
-        throw new ForbiddenException(__('Cannot edit a system Config entry. Must be changed in /etc/zm/zm.conf'));
-      }
+			if (!empty($config['Config']['System'])) {
+				throw new ForbiddenException(__('Cannot edit a system Config entry. Must be changed in /etc/zm/zm.conf'));
+			}
+			if (!empty($config['Config']['Readonly'])) {
+				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
+			}
 			if ($this->Config->save($this->request->data)) {
 				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
 			}
@@ -132,6 +142,13 @@ class ConfigsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
+		global $user;
+		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		if (!$canEdit) {
+			throw new UnauthorizedException(__('Insufficient privileges'));
+			return;
+		}
+
 		$this->Config->id = $id;
 		if (!$this->Config->exists()) {
 			throw new NotFoundException(__('Invalid config'));

@@ -367,9 +367,9 @@ div:not(.chosen-container-active) > .chosen-drop {
 }
 
 .sidebar-main .sidebar-layout .sidebar-footer {
-  height: auto;
-  min-height: 0;
-  margin: 20px 0;
+  height: fit-content;
+  min-height: unset;
+  margin: 10px 0;
 }
 .layout-main .sidebar-main .footer-box {
   padding: 0;

@@ -228,8 +228,8 @@ echo getNavBarHTML() ?>
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
+             data-flip-control-run-after-func="applyChosen" 
+             data-flip-control-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
              </a>'.PHP_EOL;
     $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
@@ -335,7 +335,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
   </div><!--header-->
   <div id="content">
     <div class="container-fluid">
-      <div class="row flex-nowrap" >
+      <div class="row flex-md-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">
@@ -411,7 +411,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
 echo $monitor->getStreamHTML($options);
 ?>
           </div><!-- id="Monitor" -->
-          <div class="buttons" id="dvrControls">
+          <div id="bottomBlock"><div class="buttons" id="dvrControls">
 <!--
           <button type="button" id="getImageBtn" title="<?php echo translate('Download Image') ?>"/>
 -->
@@ -457,19 +457,18 @@ $muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
   ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
 ZM\Debug("Muted $muted");
 ?>
-            <span id="volumeControls" class="volume">
-              <div id="volumeSlider" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
-              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            <span id="volumeControls<?php echo $mid; ?>" class="volume disabled">
+              <div id="volumeSlider<?php echo $mid; ?>" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute<?php echo $mid; ?>" class="audio-control-mute material-icons md-22"></i>
             </span>
-          </div>
+          </div><!-- id="extButton" --></div><!-- id="bottomBlock" -->
         </div><!-- id="wrapperMonitor" -->
 
 <!-- START Control -->
 <?php
 if ( $hasPtzControls ) {
 ?>
-        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-        </div>
+        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>> </div>
 <?php
 }
 ?>

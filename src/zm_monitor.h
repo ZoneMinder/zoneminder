@@ -38,7 +38,9 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+#if HAVE_LIBCURL
 #include <curl/curl.h>
+#endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"
 
@@ -329,6 +331,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
  protected:
 
   class AmcrestAPI {
+#if HAVE_LIBCURL
    private:
     Monitor *parent;
     bool alarmed;
@@ -354,9 +357,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     bool isHealthy() const { return healthy; };
     void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
+#else
+   public:
+    explicit AmcrestAPI(Monitor *) {}
+    void WaitForMessage() {}
+    bool isAlarmed() const { return false; }
+    bool isHealthy() const { return true; }
+    void setNotes(Event::StringSet &) {}
+#endif  // HAVE_LIBCURL
   };
 
   class RTSP2WebManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -364,6 +376,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool RTSP2Web_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string RTSP2Web_endpoint;
     std::string rtsp_username;
     std::string rtsp_password;
@@ -378,9 +391,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int add_to_RTSP2Web();
     int check_RTSP2Web();
     int remove_from_RTSP2Web();
+#else
+   public:
+    explicit RTSP2WebManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_RTSP2Web() { return 0; }
+    int check_RTSP2Web() { return 1; }
+    int remove_from_RTSP2Web() { return 0; }
+#endif  // HAVE_LIBCURL
   };
 
   class Go2RTCManager {
+#if HAVE_LIBCURL
     protected:
       Monitor *parent;
       // helper class for CURL
@@ -394,6 +416,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       std::pair<CURLcode, std::string>  CURL_PUT(const std::string &endpoint, const std::string &data) const;
       bool Go2RTC_Healthy;
       bool Use_RTSP_Restream;
+      mutable bool ssl_verification_failed = false;
       std::string Go2RTC_endpoint;
       std::string rtsp_restream_path;
       std::string rtsp_restream_base_path;  // Path without auth parameter
@@ -411,9 +434,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int check_Go2RTC();
       int remove_from_Go2RTC();
       bool refresh_auth_if_needed();        // Refresh auth_hash if expired
+#else
+    public:
+      explicit Go2RTCManager(Monitor *) {}
+      void load_from_monitor() {}
+      int add_to_Go2RTC() { return 0; }
+      int check_Go2RTC() { return 1; }
+      int remove_from_Go2RTC() { return 0; }
+      bool refresh_auth_if_needed() { return false; }
+#endif  // HAVE_LIBCURL
   };
 
   class JanusManager {
+#if HAVE_LIBCURL
    protected:
     Monitor *parent;
     CURL *curl = nullptr;
@@ -421,6 +454,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
     bool Use_RTSP_Restream;
+    bool ssl_verification_failed = false;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -442,6 +476,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int get_janus_session();
     int get_janus_handle();
     int get_janus_plugin();
+#else
+   public:
+    explicit JanusManager(Monitor *) {}
+    void load_from_monitor() {}
+    int add_to_janus() { return 0; }
+    int check_janus() { return 1; }
+    int remove_from_janus() { return 0; }
+    int get_janus_session() { return 0; }
+    int get_janus_handle() { return 0; }
+    int get_janus_plugin() { return 0; }
+#endif  // HAVE_LIBCURL
   };
 
 
@@ -747,7 +792,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
-  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
+  int check_janus() {
+    if (Janus_Manager) return Janus_Manager->check_janus();
+    return -1;
+  }
   bool EventPollerHealthy() const {
     if (onvif) {
       return onvif->isHealthy();
@@ -930,6 +978,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet );
+  unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image );
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );

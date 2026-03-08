@@ -99,19 +99,20 @@ while (!$zm_terminate) {
   $event_ids = $dbh->selectcol_arrayref('SELECT EventId FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
   zmDbDo('DELETE FROM Events_Month WHERE EventId IN ('.join(',', map { '?' } @$event_ids).')', @$event_ids) if $event_ids and @$event_ids;
 
-  # Prune the Logs table if required
+  # Prune the Logs table if required (excluding AUDIT entries)
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+    my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
-      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs`';
+      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` != ?';
       my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
         or Fatal("Can't prepare '$selectLogRowCountSql': ".$dbh->errstr());
-      my $res = $selectLogRowCountSth->execute()
+      my $res = $selectLogRowCountSth->execute($audit_level)
         or Fatal("Can't execute: ".$selectLogRowCountSth->errstr());
       my $row = $selectLogRowCountSth->fetchrow_hashref();
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
-        my $rows = zmDbDo('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', $logRows - $Config{ZM_LOG_DATABASE_LIMIT});
+        my $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` != ? ORDER BY `TimeKey` ASC LIMIT ?', $audit_level, $logRows - $Config{ZM_LOG_DATABASE_LIMIT});
         Debug('Deleted '.$rows.' log table entries by count') if defined $rows;
       }
     } else {
@@ -123,11 +124,38 @@ while (!$zm_terminate) {
       }
       my $rows;
       do {
-        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100');
+        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100', $audit_level);
         Debug("Deleted $rows log table entries by time") if $rows;
       } while ($rows and ($rows == 100) and !$zm_terminate);
     }
   } # end if ZM_LOG_DATABASE_LIMIT
+
+  # Prune AUDIT log entries separately with their own retention period
+  if ( $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} ) {
+    my $audit_level = ZoneMinder::Logger::AUDIT;
+    my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT};
+    if ( $audit_limit =~ /^\d+$/ ) {
+      # Number of rows
+      my $sth = $dbh->prepare_cached('SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` = ?')
+        or Fatal("Can't prepare audit log count: ".$dbh->errstr());
+      my $res = $sth->execute($audit_level)
+        or Fatal("Can't execute audit log count: ".$sth->errstr());
+      my $row = $sth->fetchrow_hashref();
+      my $logRows = $row->{Rows};
+      if ( $logRows > $audit_limit ) {
+        my $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` = ? ORDER BY `TimeKey` ASC LIMIT ?', $audit_level, $logRows - $audit_limit);
+        Debug('Deleted '.$rows.' audit log entries by count') if defined $rows;
+      }
+    } else {
+      # Time of record
+      $audit_limit =~ s/s$//;
+      my $rows;
+      do {
+        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_limit.') LIMIT 100', $audit_level);
+        Debug("Deleted $rows audit log entries by time") if $rows;
+      } while ($rows and ($rows == 100) and !$zm_terminate);
+    }
+  } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
 
   {
     my $rows;

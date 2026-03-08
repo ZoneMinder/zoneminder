@@ -252,12 +252,16 @@ var zmPanZoom = {
       }
     }
 
+    const videoJs = document.querySelector('.video-js .vjs-tech');
+
     if (this.panZoom[id].getScale().toFixed(1) > 1) {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {
         event.preventDefault();
       }});
+      if (videoJs) videoJs.style.pointerEvents = 'none';
     } else {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {}});
+      if (videoJs) videoJs.style.pointerEvents = '';
     }
   },
 

@@ -103,8 +103,8 @@ echo output_cache_busted_stylesheet_links(array(
   echo output_link_if_exists(array(
     'js/dateTimePicker/jquery-ui-timepicker-addon.css',
     'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-    'assets/bootstrap-table-1.24.1/bootstrap-table.min.css',
-    'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+    'assets/bootstrap-table/bootstrap-table.min.css',
+    'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
     'css/base/skin.css',
     'css/base/views/'.$basename.'.css',
   ), true);
@@ -210,6 +210,7 @@ function buildSidebarMenu() {
     getOptionsHTML($forLeftBar = true) .
     getLogHTML($forLeftBar = true) .
     getDevicesHTML($forLeftBar = true) .
+    getIntelGpuHTML($forLeftBar = true) .
     getGroupsHTML($view, $forLeftBar = true) .
     getFilterHTML($view, $forLeftBar = true) .
     getSnapshotsHTML($view, $forLeftBar = true) .
@@ -511,6 +512,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getOptionsHTML();
           echo getLogHTML();
           echo getDevicesHTML();
+          echo getIntelGpuHTML();
           echo getGroupsHTML($view);
           echo getFilterHTML($view);
           echo getCycleHTML($view);
@@ -668,6 +670,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getOptionsHTML();
             echo getLogHTML();
             echo getDevicesHTML();
+            echo getIntelGpuHTML();
             echo getGroupsHTML($view);
             echo getFilterHTML($view);
             echo getCycleHTML($view);
@@ -1126,6 +1129,34 @@ function getDevicesHTML($forLeftBar = false) {
       );
     } else {
       $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.translate('Devices').'</a></li>'.PHP_EOL;
+    }
+  }
+
+  return $result;
+}
+
+// Returns the html representing the Intel GPU status menu item
+function getIntelGpuHTML($forLeftBar = false) {
+  $result = '';
+
+  // Only show if intel_gpu_top is available and user can view System
+  if (canView('System')) {
+    // Check if intel_gpu_top command exists
+    $intel_gpu_top_exists = shell_exec('which intel_gpu_top 2>/dev/null');
+    if ($intel_gpu_top_exists) {
+      if ($forLeftBar) {
+        $result .= buildMenuItem(
+          $viewItemName = 'intelgpu',
+          $id = 'getIntelGpuHTML',
+          $itemName = 'Intel GPU',
+          $href = '?view=intelgpu',
+          $icon = 'memory',
+          $classNameForTag_A = '',
+          $subMenu = ''
+        );
+      } else {
+        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">Intel GPU</a></li>'.PHP_EOL;
+      }
     }
   }
 
@@ -1617,14 +1648,14 @@ function xhtmlFooter() {
 
   echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'assets/bootstrap-table-1.24.1/bootstrap-table.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/locale/bootstrap-table-locale-all.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/export/bootstrap-table-export.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/cookie/bootstrap-table-cookie.js',
-  'assets/bootstrap-table-1.24.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
-  'assets/bootstrap-table-1.24.1/extensions/mobile/bootstrap-table-mobile.js',
+  'assets/bootstrap-table/bootstrap-table.min.js',
+  'assets/bootstrap-table/extensions/locale/bootstrap-table-locale-all.min.js',
+  'assets/bootstrap-table/extensions/export/bootstrap-table-export.min.js',
+  'assets/bootstrap-table/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'assets/bootstrap-table/extensions/cookie/bootstrap-table-cookie.js',
+  'assets/bootstrap-table/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'assets/bootstrap-table/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'assets/bootstrap-table/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/noUiSlider-15.8.1/dist/nouislider.min.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
@@ -1696,8 +1727,8 @@ class ZM_Menu {
   
   public static function buildSubMenuOptions($categoryDisplayOrder) {
     $categoriesOptionsInDB = [];
-    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $сategory_row ) {
-      array_push($categoriesOptionsInDB, $сategory_row['Category']);
+    foreach ( dbFetchAll('SELECT DISTINCT `Category` FROM `Config` ORDER BY lower(`Category`) ASC') as $category_row ) {
+      array_push($categoriesOptionsInDB, $category_row['Category']);
     }
     self::addCategoryToOptionsMenu($categoriesOptionsInDB, $categoryDisplayOrder);
   }

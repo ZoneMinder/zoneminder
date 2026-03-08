@@ -79,6 +79,7 @@ class ONVIF {
   // Retry handling
   int retry_count;
   int max_retries;
+  bool warned_pull_auth_failure;
 
   // Subscription state
   std::string event_endpoint_url_;

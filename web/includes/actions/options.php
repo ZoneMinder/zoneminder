@@ -30,27 +30,35 @@ if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
       if ( !empty($_REQUEST['markIds']) ) {
-        foreach( $_REQUEST['markIds'] as $Id )
+        foreach ( $_REQUEST['markIds'] as $Id ) {
           dbQuery('DELETE FROM Servers WHERE Id=?', array($Id));
+          ZM\AuditAction('delete', 'server', $Id, '');
+        }
       }
       $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'storage' ) {
       if ( !empty($_REQUEST['markIds']) ) {
-        foreach( $_REQUEST['markIds'] as $Id )
+        foreach ( $_REQUEST['markIds'] as $Id ) {
           dbQuery('DELETE FROM Storage WHERE Id=?', array($Id));
+          ZM\AuditAction('delete', 'storage', $Id, '');
+        }
       }
       $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'role' ) {
       if ( !empty($_REQUEST['markRids']) ) {
-        foreach( $_REQUEST['markRids'] as $Id )
+        foreach ( $_REQUEST['markRids'] as $Id ) {
           dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id));
+          ZM\AuditAction('delete', 'role', $Id, '');
+        }
       }
       $redirect = '?view=options&tab=roles';
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
-    foreach ($_REQUEST['markUids'] as $markUid)
+    foreach ($_REQUEST['markUids'] as $markUid) {
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
+      ZM\AuditAction('delete', 'user', $markUid, '');
+    }
     if ($markUid == $user->Id()) {
       userLogout();
       $redirect = '?view=login';
@@ -90,6 +98,7 @@ if ( $action == 'delete' ) {
     } # end if value changed
   } # end foreach config entry
   if ( $changed ) {
+    ZM\AuditAction('update', 'config', 0, 'Tab: '.$_REQUEST['tab']);
     switch ( $_REQUEST['tab'] ) {
     case 'system' :
     case 'config' :

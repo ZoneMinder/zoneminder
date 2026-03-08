@@ -20,6 +20,7 @@
 #include "zm_monitor_onvif.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_time.h"
 #include "zm_utils.h"
 
 #include <cstring>
@@ -67,6 +68,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,try_usernametoken_auth(false)
   ,retry_count(0)
   ,max_retries(10)
+  ,warned_pull_auth_failure(false)
   ,has_valid_subscription_(false)
   ,warned_initialized_repeat(false)
   ,pull_timeout_seconds(1)
@@ -413,7 +415,7 @@ void ONVIF::WaitForMessage() {
   bool use_wsa = parent->soap_wsa_compl;
 
   if (use_wsa) {
-    if (!do_wsa_request(subscription_address_.c_str(), "PullMessageRequest")) {
+    if (!do_wsa_request(subscription_address_.c_str(), "PullPointSubscription/PullMessagesRequest")) {
       return;
     }
   } else {
@@ -441,12 +443,20 @@ void ONVIF::WaitForMessage() {
 
         if (is_auth_error) {
           // Authorization failure - likely due to clock drift or expired credentials
-          // Log with more context to help debugging
-          Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
-                "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
-                "(timestamp_validity=%ds, camera_clock_offset=%lds)",
-              result, soap->error, fault_string, (detail ? detail : "null"),
-              timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+          // Only log as Error the first time, then demote to Debug to avoid flooding logs
+          if (!warned_pull_auth_failure) {
+            Error("ONVIF: Authorization failed for PullMessages! This may be caused by clock drift "
+                  "between ZoneMinder and camera. result=%d soap->error=%d fault=%s detail=%s "
+                  "(timestamp_validity=%ds, camera_clock_offset=%lds)",
+                result, soap->error, fault_string, (detail ? detail : "null"),
+                timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+            warned_pull_auth_failure = true;
+          } else {
+            Debug(1, "ONVIF: Authorization failed for PullMessages (repeated). result=%d soap->error=%d "
+                  "(timestamp_validity=%ds, camera_clock_offset=%lds)",
+                result, soap->error,
+                timestamp_validity_seconds, static_cast<long>(camera_clock_offset));
+          }
         } else {
           Error("Failed to get ONVIF messages! result=%d soap->error %d, soap_fault_string=%s detail=%s",
               result, soap->error, fault_string, (detail ? detail : "null"));
@@ -474,11 +484,12 @@ void ONVIF::WaitForMessage() {
         }
       }
     } else {
-      // Success - reset retry count
+      // Success - reset retry count and warning flags
       if (retry_count > 0) {
         Info("ONVIF: PullMessages succeeded after %d failed attempts", retry_count);
         retry_count = 0;
       }
+      warned_pull_auth_failure = false;
       Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
 
       // Extract TerminationTime from PullMessagesResponse for per-topic alarm expiry.
@@ -1019,19 +1030,6 @@ void ONVIF::log_subscription_timing(const char* context) {
 }
 
 
-// Format an absolute time as ISO 8601 string for ONVIF RenewRequest
-// Returns a string like "2026-01-13T15:30:45.000Z"
-std::string format_absolute_time_iso8601(time_t time) {
-  struct tm *tm_utc = gmtime(&time);
-  if (!tm_utc) {
-    return "";
-  }
-
-  char buffer[32];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
-  return std::string(buffer);
-}
-
 // Perform ONVIF subscription renewal
 // Returns true if renewal succeeded or is not supported, false on error
 bool ONVIF::Renew() {
@@ -1073,7 +1071,7 @@ bool ONVIF::Renew() {
   }
 
   if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
-    Error("ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     if (soap->error == 12) {  // ActionNotSupported
       Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
       setHealthy(true);

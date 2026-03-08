@@ -57,6 +57,9 @@ getBodyTopHTML();
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+<?php if ( canEdit('System') ) { ?>
+      <button id="clearLogsBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>" disabled><i class="fa fa-trash"></i> <?php echo translate('ClearLogs') ?></button>
+<?php } ?>
       <div class="controlHeader">
       <span class="term ComponentFilter">
         <label><?php echo translate('Component') ?></label>
@@ -146,9 +149,17 @@ echo '</span>';
       data-auto-refresh-silent="true"
       data-show-refresh="true"
       data-auto-refresh-interval="30"
+<?php if (canEdit('System')) { ?>
+      data-click-to-select="true"
+<?php } ?>
+      data-id-field="Id"
     >
       <thead class="thead-highlight">
         <tr>
+<?php if (canEdit('System')) { ?>
+          <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+<?php } ?>
+          <th data-field="Id" data-visible="false"></th>
           <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
 <?php if (count($Servers)>1) { ?>

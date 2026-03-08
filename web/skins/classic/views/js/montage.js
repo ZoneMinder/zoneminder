@@ -459,6 +459,36 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function startVisibleMonitors() {
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const isOut = isOutOfViewport(monitor.getElement());
+    if ((!isOut.all) && !monitor.started) {
+      monitor.setPlayer(monitor.player);
+      monitor.start();
+    }
+  }
+}
+
+function refreshAuthAndStartMonitors() {
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+      .done(function(data) {
+        if (data) {
+          if (data.auth) {
+            auth_hash = data.auth;
+          }
+          if (data.auth_relay) {
+            auth_relay = data.auth_relay;
+          }
+        }
+        startVisibleMonitors();
+      })
+      .fail(function() {
+        // Even if refresh fails, try to start with whatever auth we have
+        startVisibleMonitors();
+      });
+}
+
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -483,6 +513,7 @@ function startMonitors() {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
+      monitor.setPlayer(monitor.player);
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
@@ -593,39 +624,29 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+  document.querySelectorAll(".grid-monitor").forEach(function(el) {
     // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
     el.addEventListener('mouseout', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) { // This will prevent the code below from being executed if we navigate within a single monitor block.
+        if (!event.relatedTarget || (event.relatedTarget && !event.relatedTarget.closest('#m'+id))) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+          }
+          hideControlElementsOnStream(el);
         }
-      }
-      if (!event.relatedTarget) {
-        hideСontrolElementsOnStream(el);
-        return;
-      }
-      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
-        }
-        hideСontrolElementsOnStream(el);
       }
     });
 
     el.addEventListener('mouseover', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) {
+        if (event.target.closest('#m'+id)) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+          }
+          showControlElementsOnStream(el);
         }
-      }
-      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
-        }
-        showСontrolElementsOnStream(el);
       }
     });
   });
@@ -675,12 +696,7 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) {
-                    const monitor = monitors[i];
-                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
-                      monitor.start();
-                    }
-                  }
+                  refreshAuthAndStartMonitors();
                 });
                 ayswModal.modal('show');
               })
@@ -743,13 +759,13 @@ function initPage() {
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
-function hideСontrolElementsOnStream(stream) {
+function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideUp('fast');
   $j('#ratioControl' + id).stop(true, true).slideUp('fast');
 }
 
-function showСontrolElementsOnStream(stream) {
+function showControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');
@@ -866,33 +882,6 @@ function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
   monitorsSetScale();
-}
-
-function monitorsSetScale(id=null) {
-  // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  id = parseInt(id);
-  if (id || typeof monitorStream !== 'undefined') {
-    //monitorStream used on Watch page.
-    if (typeof monitorStream !== 'undefined') {
-      var currentMonitor = monitorStream;
-    } else {
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    }
-    const el = document.getElementById('liveStream'+id);
-    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
-    console.log("monitorsSetsCale", id, 'clientWidth', el.clientWidth, 'clientHeight', el.clientHeight, 'panzoomscale', panZoomScale);
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-  } else {
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-    }
-  }
-  setButtonSizeOnStream();
 }
 
 function changeMonitorRate() {
@@ -1063,15 +1052,9 @@ document.onvisibilitychange = () => {
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
     if (!idleTimeoutTriggered) {
-      //Start monitors when show page
-      for (let i = 0, length = monitors.length; i < length; i++) {
-        const monitor = monitors[i];
-
-        const isOut = isOutOfViewport(monitor.getElement());
-        if ((!isOut.all) && !monitor.started) {
-          monitor.start();
-        }
-      } // end foreach monitor
+      // Refresh auth hash before restarting streams, since browsers throttle
+      // timers for hidden tabs and the auth hash may have gone stale.
+      refreshAuthAndStartMonitors();
     } // end if not AYSW
   }
 };

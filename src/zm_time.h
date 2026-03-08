@@ -121,6 +121,7 @@ class TimeSegmentAdder {
   bool finished_;
 };
 
+std::string format_absolute_time_iso8601(time_t time);
 std::string SystemTimePointToString(SystemTimePoint tp);
 std::string SystemTimePointToMysqlString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);

@@ -1017,6 +1017,7 @@ a.flip {
   color: white;
 }
 .imageFeed {
+  border: 2px solid white; /* Because .alarm .imageFeed has a red border, so without this is jumps around */
   margin: 0 auto;
   text-align: center;
   /*
@@ -1035,14 +1036,20 @@ a.flip {
   /*
   height: 100%;
   */
-  border: 2px solid #ffffff;
 }
 .imageFeed svg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 100%;
   background: none;
+}
+.imageFeed svg.zones, #videoFeed svg.zones {
+  z-index: 3;
+}
+.colThumbnail img {
+  border-radius: 4px;
 }
 .monitor {
   position: relative;
@@ -1063,15 +1070,15 @@ a.flip {
   color: #dddddd;
 }
 
-.monitor.idle img, .monitor.idle .imageFeed {
+.monitor.idle .imageFeed {
   border: 2px solid #ffffff;
 }
 
-.monitor.alarm img, .monitor.alarm .imageFeed {
+.monitor.alarm .imageFeed {
   border: 2px solid #ff0000;
 }
 
-.monitor.alert img, .monitor.alert .imageFeed {
+.monitor.alert .imageFeed {
   border: 2px solid #ffa500;
 }
 .monitor.alert {
@@ -1490,7 +1497,7 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Style for <input> --- */
 
-/* +++ Volume сontrol +++ */
+/* +++ Volume control +++ */
 .audio-control-mute {
   position: relative;
   cursor: pointer;
@@ -1518,7 +1525,7 @@ noUi-target {
 }
 */
 
-.noUi-base, .noUi-touch-area {
+[id^="volumeControls"]:not(.disabled) .noUi-base, [id^="volumeControls"]:not(.disabled) .noUi-touch-area {
   cursor: pointer;
 }
 
@@ -1538,6 +1545,10 @@ noUi-target {
   height: 5px;
 }
 
+.noUi-handle:after {
+  left: 16px;
+}
+
 /*
 .noUi-round .noUi-connects {
   background: #c0392b;
@@ -1551,7 +1562,16 @@ noUi-target {
   right: -9px; /* half the width */
   border-radius: 9px;
 }
-/* --- Volume сontrol --- */
+
+.disabled .audio-control-mute {
+  color: var(--disabled);
+  cursor: not-allowed !important;
+}
+
+[id^="volumeControls"].disabled {
+  opacity: 0.4;
+}
+/* --- Volume control --- */
 
 .rightInFlexContainer {
   margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
@@ -1584,6 +1604,30 @@ video-stream {
   padding: 0.3em;
 }
 */
+
+/* Fix bootstrap-table */
+.fixed-table-loading {
+  overflow: hidden;
+}
+
+img[id^='liveStream'], video[id^='liveStream'], video-stream[id^='liveStream'] {
+  margin: 0 auto;
+  object-fit: fill;
+}
+
+video-stream[id^='liveStream'] video{
+  max-height: inherit;
+  max-width: inherit;
+  object-fit: fill;
+}
+
+.imageFeed,
+.nav,
+.fixed-table-body,
+*[id^='videoFeedStream']
+ {
+  border-radius: 4px;
+}
 
 /* +++ This block should always be located at the end! */
 .hidden {

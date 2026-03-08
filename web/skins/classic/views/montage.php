@@ -58,7 +58,7 @@ $monitorStatusPosition = array(
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositionSelected = 'outsideImgBottom';
+$monitorStatusPositionSelected = ZM_WEB_COMPACT_MONTAGE ? 'hidden' : 'outsideImgBottom';
 if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
@@ -251,8 +251,8 @@ echo getNavBarHTML();
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
+             data-flip-control-run-after-func="applyChosen" 
+             data-flip-control-run-after-complet-func="changeScale">
                <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
              </a>'.PHP_EOL;
     $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
@@ -355,7 +355,7 @@ foreach ($monitors as $monitor) {
       $monitor->Name()
     );
   } else {
-    $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
+    $monitor_options['state'] = true;
     $monitor_options['zones'] = $showZones;
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';

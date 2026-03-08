@@ -190,7 +190,9 @@ int main(int argc, char *argv[]) {
   logInit(log_id_string);
 
   HwCapsDetect();
+#if HAVE_LIBCURL
   curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif  // HAVE_LIBCURL
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L2
@@ -248,6 +250,7 @@ int main(int argc, char *argv[]) {
 
       while (!monitor->connect() and !zm_terminate) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
+        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
         sleep(1);
       }
       if (zm_terminate) break;
@@ -381,7 +384,9 @@ int main(int argc, char *argv[]) {
     }  // end while ! zm_terminate and connected
 
     for (std::shared_ptr<Monitor> & monitor : monitors) {
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->Close();
+      monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       monitor->disconnect();
     }
 
@@ -408,7 +413,9 @@ int main(int argc, char *argv[]) {
   Debug(1, "Cleared monitors");
 
   Image::Deinitialise();
+#if HAVE_LIBCURL
   curl_global_cleanup();
+#endif  // HAVE_LIBCURL
   Debug(1, "terminating");
   dbQueue.stop();
   zmDbClose();

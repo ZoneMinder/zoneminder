@@ -501,7 +501,11 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    auth_hash = streamStatus.auth;
+    if (streamStatus.auth != auth_hash) {
+      console.log("Changed auth from " + auth_hash + " to " + streamStatus.auth);
+      auth_hash = streamStatus.auth;
+      auth_relay = streamStatus.auth_relay;
+    }
   } // end if have a new auth hash
 } // end function getCmdResponse( respObj, respText )
 
@@ -513,8 +517,8 @@ function pauseClicked() {
     vid.pause();
   } else {
     streamReq({command: CMD_PAUSE});
+    streamPause();
   }
-  streamPause();
 }
 
 function streamPause() {
@@ -544,19 +548,12 @@ function playClicked( ) {
     }
   } else {
     if (zmsBroke) {
-      // The assumption is that the command failed because zms exited, so restart the stream.
-      const img = document.getElementById('evtStream');
-      const src = img.src;
-      const url = new URL(src);
-      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
-      img.src = '';
-      img.src = url;
-      zmsBroke = false;
+      restartZmsStream();
     } else {
       streamReq({command: CMD_PLAY});
     }
+    streamPlay();
   }
-  streamPlay();
 }
 
 function vjsPlay() { //catches if we change mode programatically
@@ -819,16 +816,48 @@ function streamPan(x, y) {
 }
 */
 
+// Restart the zms stream by resetting the <img> src. The browser makes a
+// new CGI request to zms (same connkey), spawning a fresh process. When the
+// new zms delivers its first MJPEG frame, img.onload fires as a reliable
+// signal that the command socket is ready. Optional onReady callback is
+// invoked at that point to send queued commands (e.g. CMD_SEEK).
+function restartZmsStream(onReady) {
+  const img = document.getElementById('evtStream');
+  if (!img) {
+    console.warn('restartZmsStream: no evtStream element found');
+    return;
+  }
+  const url = new URL(img.src);
+  url.searchParams.set('scale', currentScale);
+  img.src = '';
+  img.onload = function() {
+    img.onload = null;
+    zmsBroke = false;
+    if (onReady) onReady();
+  };
+  img.src = url.href;
+}
+
 function streamSeek(offset) {
   if (vid) {
     vid.currentTime(offset);
   } else {
-    streamReq({command: CMD_SEEK, offset: offset});
+    if (zmsBroke) {
+      restartZmsStream(function() {
+        streamSeek(offset);
+      });
+    } else {
+      streamReq({command: CMD_SEEK, offset: offset});
+    }
   }
 }
 
 function streamQuery() {
-  streamReq({command: CMD_QUERY});
+  if (zmsBroke !== true) {
+    streamReq({command: CMD_QUERY});
+  } else {
+    clearInterval(streamCmdInterval);
+  }
 }
 
 function getEventResponse(respObj, respText) {
@@ -1347,8 +1376,8 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', playClicked);
-    vid.on('pause', pauseClicked);
+    vid.on('play', streamPlay);
+    vid.on('pause', streamPause);
     vid.on('click', function(event) {
       handleClick(event);
     });
@@ -1727,6 +1756,9 @@ function initPage() {
       updateProgressBar();
     }, streamTimeout);
   }
+
+  const toggleZonesButton = document.getElementById('toggleZonesButton');
+  if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 } // end initPage
 
 function addOrCreateTag(tagValue) {
@@ -1855,9 +1887,6 @@ function getSelectedTags() {
       })
       .fail(logAjaxFail);
 }
-
-var toggleZonesButton = document.getElementById('toggleZonesButton');
-if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);

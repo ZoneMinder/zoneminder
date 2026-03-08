@@ -1278,7 +1278,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="SelectPlayers" class="SelectPlayers">
               <label><?php echo translate('Select players'); echo makeHelpLink('OPTIONS_SELECTPLAYERS') ?> </label>
-              <?php echo htmlSelect('SelectPlayers', $selectPlayers, $selectedPlayers, ['class'=>'chosen chosen-full-width', 'multiple'=>'', 'data-on-change'=>'selectPlayers', 'none-exists'=>$noneExists]); ?>
+              <?php echo htmlSelect('SelectPlayers', $selectPlayers, $selectedPlayers, ['class'=>'chosen chosen-full-width', 'multiple'=>'', 'data-on-change'=>'selectPlayers', 'data-none-exists'=>$noneExists]); ?>
             </li>
             <!--<li id="FunctionZMSEnabled" class='hidden-shift'>
               <label><?php //echo translate('ZMS MJPEG') ?></label>

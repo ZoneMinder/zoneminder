@@ -1337,6 +1337,16 @@ function MonitorStream(monitorData) {
           }
         } // end if canEdit.Monitors
 
+        // Verify analysis image state matches what we requested
+        if (streamStatus.analysisimage !== undefined) {
+          const want_analysis = this.analyse_frames && streamStatus.analysing != ANALYSING_NONE;
+          const got_analysis = !!streamStatus.analysisimage;
+          if (want_analysis != got_analysis) {
+            console.log('Analysis image mismatch: want=' + want_analysis + ' got=' + got_analysis + ', re-sending command');
+            this.streamCommand({command: this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF});
+          }
+        }
+
         if (this.status.auth) {
           if (this.status.auth != auth_hash) {
             // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.

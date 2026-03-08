@@ -1982,7 +1982,7 @@ function streamListener(stream) {
   return manageEventListener.addEventListener(window, 'beforeunload', function() {
     console.log('streamListener');
     stream.kill();
-  }, false);
+  }, {capture: false});
 }
 
 function mseListenerSourceopen(context, videoEl, url) {

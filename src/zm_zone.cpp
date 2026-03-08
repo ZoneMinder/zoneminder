@@ -984,54 +984,20 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
+    // Auto-detect coordinate format: decimal points mean percentages,
+    // integer-only means legacy pixel values. Units field is not trusted.
     Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if (!strcmp(Units, "Pixels")) {
-      // Legacy pixel-based coordinates: parse as integer pixel values
-      if (!ParsePolygonString(Coords, polygon)) {
+    if (strchr(Coords, '.')) {
+      // Decimal values present — treat as percentages regardless of Units field
+      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
       }
     } else {
-      // Percentage-based coordinates (default): convert to pixels using monitor dimensions.
-      // However, if any coordinate value exceeds 100, these are actually pixel values
-      // stored with incorrect Units — fall back to pixel parsing with a warning.
-      bool has_pixel_values = false;
-      {
-        const char *s = Coords;
-        while (*s != '\0') {
-          double val = strtod(s, nullptr);
-          if (val > 100.0) {
-            has_pixel_values = true;
-            break;
-          }
-          // Skip to next number: find comma then space (x,y pairs separated by spaces)
-          const char *comma = strchr(s, ',');
-          if (!comma) break;
-          val = strtod(comma + 1, nullptr);
-          if (val > 100.0) {
-            has_pixel_values = true;
-            break;
-          }
-          const char *space = strchr(comma + 1, ' ');
-          if (space) {
-            s = space + 1;
-          } else {
-            break;
-          }
-        }
-      }
-
-      if (has_pixel_values) {
-        Debug(1, "Zone %d/%s has Units=Percent but Coords contain pixel values (>100), "
-                "parsing as pixels instead", Id, Name);
-        if (!ParsePolygonString(Coords, polygon)) {
-          Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-                Coords, Id, Name, monitor->Name());
-          continue;
-        }
-      } else if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+      // Integer-only coordinates — treat as pixel values
+      if (!ParsePolygonString(Coords, polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;

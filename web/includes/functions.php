@@ -1467,7 +1467,7 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
 function convertPixelPointsToPercent(&$points, $width, $height) {
-  if (!$width || !$height) return;
+  if (!$width || !$height) return false;
   $isPixel = false;
   foreach ($points as $point) {
     if ($point['x'] > 100 || $point['y'] > 100) {
@@ -1482,6 +1482,7 @@ function convertPixelPointsToPercent(&$points, $width, $height) {
     }
     unset($point);
   }
+  return $isPixel;
 }
 
 function scalePoints(&$points, $scale) {

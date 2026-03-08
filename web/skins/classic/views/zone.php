@@ -96,6 +96,8 @@ if ( !isset($zone) ) {
 
 # Auto-detect pixel coordinates and convert to percentages
 convertPixelPointsToPercent($zone['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+# Always store as percentages
+$zone['Units'] = 'Percent';
 
 # Ensure Zone fits within the limits of the Monitor
 limitPoints($zone['Points'], $minX, $minY, $maxX, $maxY);

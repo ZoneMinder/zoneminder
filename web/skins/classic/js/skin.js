@@ -2540,6 +2540,13 @@ function initPageGeneral() {
       event.preventDefault();
       return;
     });
+    el.addEventListener("keydown", function keydownInputDisabled(event) {
+      var key = event.key || event.keyCode;
+      if (key === ' ' || key === 'Spacebar' || key === 'Enter' || key === 32 || key === 13) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
   });
 }
 

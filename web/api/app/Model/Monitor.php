@@ -60,6 +60,14 @@ class Monitor extends AppModel {
     'OutputCodec' => array (
 	    'rule' => array('inList', array (0,27,173,167,226)),
 	    'message'=>'Invalid value. Should be one of these integer values: 0(auto), 27(h264), 173(h265/hvec), 167(vp9), 226(av1)'
+    ),
+    'Device' => array(
+      'validPath' => array(
+        'rule' => array('custom', '#^(/dev/[\w/.\-]+)?$#'),
+        'message' => 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).',
+        'allowEmpty' => true,
+        'required' => false,
+      ),
     )
 
   );
@@ -170,11 +178,11 @@ class Monitor extends AppModel {
     foreach ($daemons as $daemon) {
       $args = '';
       if ($daemon == 'zmc' and $monitor['Type'] == 'Local') {
-        $args = '-d ' . $monitor['Device'];
+        $args = '-d ' . escapeshellarg($monitor['Device']);
       } else if ($daemon == 'zmcontrol.pl') {
-        $args = '--id '.$monitor['Id'];
+        $args = '--id '.escapeshellarg($monitor['Id']);
       } else {
-        $args = '-m ' . $monitor['Id'];
+        $args = '-m ' . escapeshellarg($monitor['Id']);
       }
 
       $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);

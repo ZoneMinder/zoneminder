@@ -220,7 +220,11 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       while( my $monitor = $sth->fetchrow_hashref() ) {
         if ( $monitor->{Function} ne 'None' && $monitor->{Type} ne 'WebSite' ) {
           if ( $monitor->{Type} eq 'Local' ) {
-            runCommand("zmdc.pl start zmc -d $monitor->{Device}");
+            if ($monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+              Error("Invalid device path rejected for monitor $monitor->{Id}: $monitor->{Device}");
+              next;
+            }
+            runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
           } else {
             runCommand("zmdc.pl start zmc -m $monitor->{Id}");
           }
@@ -235,7 +239,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
                 } # end if Has motion enabled
               } # end if track motion
             } # end if controllable
-          } # end if ZM_OPT_CONTROL        
+          } # end if ZM_OPT_CONTROL
         } # end if function is not none or Website
       } # end foreach monitor
       $sth->finish();

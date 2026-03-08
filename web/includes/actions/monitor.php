@@ -51,6 +51,15 @@ if ($action == 'save') {
   # For convenience
   $newMonitor = $_REQUEST['newMonitor'];
 
+  # Validate Device path to prevent command injection (CVE-worthy)
+  if (!empty($newMonitor['Device'])) {
+    $newMonitor['Device'] = validDevicePath($newMonitor['Device']);
+    if ($newMonitor['Device'] === '') {
+      $error_message .= 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).</br>';
+      return;
+    }
+  }
+
   $monitor = new ZM\Monitor($mid);
 
   // Define a field type for anything that's not simple text equivalent

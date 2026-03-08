@@ -646,9 +646,9 @@ class Monitor extends ZM_Object {
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
-        $zmcArgs = '-d '.$this->{'Device'};
+        $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
       } else {
-        $zmcArgs = '-m '.$this->{'Id'};
+        $zmcArgs = '-m '.escapeshellarg($this->{'Id'});
       }
 
       if ($mode == 'stop') {

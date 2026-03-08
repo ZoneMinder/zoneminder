@@ -342,9 +342,9 @@ class MonitorsController extends AppController {
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {
-      $args = '-d '. $monitor[0]['Device'];  
+      $args = '-d '. escapeshellarg($monitor[0]['Device']);
     } else {
-      $args = '-m '. $monitor[0]['Id'];
+      $args = '-m '. escapeshellarg($monitor[0]['Id']);
     }
 
     // Build the command, and execute it

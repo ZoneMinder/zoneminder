@@ -211,7 +211,11 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     foreach my $monitor (@monitors) {
       if (($monitor->{Capturing} ne 'None') and ($monitor->{Type} ne 'WebSite')) {
         if ( $monitor->{Type} eq 'Local' ) {
-          runCommand("zmdc.pl start zmc -d $monitor->{Device}");
+          if ($monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+            Error("Invalid device path rejected for monitor $monitor->{Id}: $monitor->{Device}");
+            next;
+          }
+          runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
         } else {
           runCommand("zmdc.pl start zmc -m $monitor->{Id}");
         }

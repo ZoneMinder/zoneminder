@@ -2868,28 +2868,28 @@ class ManageEventListener {
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
-  addEventListener(element, type, listener, useCapture = false) {
-    this.#privateAddEventListener(element, this.#idx, type, listener, useCapture);
+  addEventListener(element, type, listener, options = {}) {
+    this.#privateAddEventListener(element, this.#idx, type, listener, options);
     return this.#idx++;
   }
 
   // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
-  addEventListenerById(element, id, type, listener, useCapture = false) {
-    this.#privateAddEventListener(element, id, type, listener, useCapture);
+  addEventListenerById(element, id, type, listener, options = {}) {
+    this.#privateAddEventListener(element, id, type, listener, options);
     return id;
   }
 
-  #privateAddEventListener(element, id, type, listener, useCapture) {
+  #privateAddEventListener(element, id, type, listener, options) {
     if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
-    element.addEventListener(type, listener, useCapture);
-    this.#listeners[id] = {element, type, listener, useCapture};
+    element.addEventListener(type, listener, options);
+    this.#listeners[id] = {element, type, listener, options};
   }
 
   // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
   removeEventListener(id) {
     const listen = this.#listeners[id];
     if (listen) {
-      listen.element.removeEventListener(listen.type, listen.listener, listen.useCapture);
+      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
       delete this.#listeners[id];
     }
     return !!listen ? id : null;
@@ -2901,5 +2901,6 @@ class ManageEventListener {
   }
 }
 const manageEventListener = new ManageEventListener();
+window.manageEventListener = manageEventListener;
 
 $j( window ).on("load", initPageGeneral);

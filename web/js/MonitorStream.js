@@ -1337,13 +1337,27 @@ function MonitorStream(monitorData) {
           }
         } // end if canEdit.Monitors
 
-        // Verify analysis image state matches what we requested
+        // Update analyse_frames and button to reflect what zms is actually sending
         if (streamStatus.analysisimage !== undefined) {
-          const want_analysis = this.analyse_frames && streamStatus.analysing != ANALYSING_NONE;
           const got_analysis = !!streamStatus.analysisimage;
-          if (want_analysis != got_analysis) {
-            console.log('Analysis image mismatch: want=' + want_analysis + ' got=' + got_analysis + ', re-sending command');
-            this.streamCommand({command: this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF});
+          if (this.analyse_frames != got_analysis) {
+            console.log('Analysis image state changed: requested=' + this.analyse_frames + ' actual=' + got_analysis);
+            this.analyse_frames = got_analysis;
+            if ('analyseBtn' in this.buttons) {
+              if (got_analysis) {
+                this.buttons.analyseBtn.addClass('btn-primary');
+                this.buttons.analyseBtn.removeClass('btn-secondary');
+                if (typeof translate !== 'undefined') {
+                  this.buttons.analyseBtn.prop('title', translate['Showing Analysis']);
+                }
+              } else {
+                this.buttons.analyseBtn.removeClass('btn-primary');
+                this.buttons.analyseBtn.addClass('btn-secondary');
+                if (typeof translate !== 'undefined') {
+                  this.buttons.analyseBtn.prop('title', translate['Not Showing Analysis']);
+                }
+              }
+            }
           }
         }
 

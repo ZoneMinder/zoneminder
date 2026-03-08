@@ -179,6 +179,25 @@ if ( count($other_zones) ) {
               <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
                 <i class="material-icons md-18">play_arrow</i>
               </button>
+              <span id="playerControl">
+                <label for="player"><?php echo translate('Player') ?></label>
+<?php
+                $players = [''=>translate('Auto'), 'zms'=>'ZMS MJPEG'];
+                $players['go2rtc'] = 'Go2RTC Auto';
+                $players['go2rtc_webrtc'] = 'Go2RTC WEBRTC';
+                $players['go2rtc_mse'] = 'Go2RTC MSE';
+                $players['go2rtc_hls'] = 'Go2RTC HLS';
+                $players['rtsp2web_webrtc'] = 'RTSP2Web WEBRTC';
+                $players['rtsp2web_mse'] = 'RTSP2Web MSE';
+                $players['rtsp2web_hls'] = 'RTSP2Web HLS';
+                $players['janus'] = 'Janus';
+                $player = validHtmlStr($monitor->DefaultPlayer());
+                if (isset($_COOKIE['zmZonePlayer']) and isset($players[$_COOKIE['zmZonePlayer']])) {
+                  $player = validHtmlStr($_COOKIE['zmZonePlayer']);
+                }
+                echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
+?>
+              </span>
             </div>
             <div id="zonePoints">
               <table>

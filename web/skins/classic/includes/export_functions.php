@@ -898,6 +898,11 @@ function exportEvents(
     return false;
   }
 
+  // Sanitize user-supplied values used in file paths and shell commands
+  $export_root = preg_replace('/[^\w\-.]/', '', $export_root);
+  if (empty($export_root)) $export_root = 'zmExport';
+  $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
+
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");
     return false;
@@ -1027,7 +1032,7 @@ function exportEvents(
   } // if $exportFormat
 
   @unlink($archive_path);
-  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
+  $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
   exec($command, $output, $status);
   if ($status) {

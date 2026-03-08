@@ -760,8 +760,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
   startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0;
   col++;
 
-  // How many frames we need to have before we start analysing
-  ready_count = std::max(warmup_count, pre_event_count);
+  // How many frames we need to have before we start analysing.
+  // Must account for alarm_frame_count because openEvent walks back
+  // max(pre_event_count, alarm_frame_count) frames from the analysis point.
+  ready_count = std::max({warmup_count, pre_event_count, alarm_frame_count});
 
   //shared_data->capture_image_count = 0;
   last_alarm_count = 0;

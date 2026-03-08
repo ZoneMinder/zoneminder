@@ -2867,4 +2867,45 @@ const waitUntil = (condition, timeout = 0) => {
   });
 };
 
+// https://stackoverflow.com/a/69273090
+class ManageEventListener {
+  #listeners = {}; // # in a JS class signifies private
+  #idx = 1;
+
+  // add event listener, returns integer ID of new listener
+  addEventListener(element, type, listener, options = {}) {
+    this.#privateAddEventListener(element, this.#idx, type, listener, options);
+    return this.#idx++;
+  }
+
+  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  addEventListenerById(element, id, type, listener, options = {}) {
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
+  }
+
+  #privateAddEventListener(element, id, type, listener, options) {
+    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
+    element.addEventListener(type, listener, options);
+    this.#listeners[id] = {element, type, listener, options};
+  }
+
+  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  removeEventListener(id) {
+    const listen = this.#listeners[id];
+    if (listen) {
+      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      delete this.#listeners[id];
+    }
+    return !!listen ? id : null;
+  }
+
+  // returns number of events listeners
+  length() {
+    return Object.keys(this.#listeners).length;
+  }
+}
+const manageEventListener = new ManageEventListener();
+window.manageEventListener = manageEventListener;
+
 $j( window ).on("load", initPageGeneral);

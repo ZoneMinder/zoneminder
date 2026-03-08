@@ -924,7 +924,7 @@ function disableCheckboxesPlayerSelection() {
   if (checkBox) checkBox.classList.add('disabled');
 
   const sel = document.querySelector('select[name="SelectPlayers"]');
-  if (sel) sel.noneExists = sel.getAttribute('none-exists');
+  if (sel) sel.noneExists = sel.getAttribute('data-none-exists');
 }
 
 function selectPlayersChangeCheckBox(selectedPlayer, action) {

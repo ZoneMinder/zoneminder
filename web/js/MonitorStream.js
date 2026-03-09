@@ -637,6 +637,7 @@ function MonitorStream(monitorData) {
   this.stop = function() {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -1004,9 +1005,11 @@ function MonitorStream(monitorData) {
     }
 
     if (audioStream) {
-      audioStream.addEventListener('volumechange', (event) => {
-        this.listenerVolumechange(event);
-      });
+      this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
+          (event) => {
+            this.listenerVolumechange(event);
+          }
+      );
     }
   };
 

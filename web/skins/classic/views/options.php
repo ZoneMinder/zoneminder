@@ -141,7 +141,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_roles.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
-}  // $tab == API
+} else if ($tab == 'menu') {
+  include('_options_menu.php');
+}  // $tab == API/menu
   else { 
   $config = array();
   $configCats = array();

@@ -189,5 +189,95 @@ if ( $action == 'delete' ) {
       }
     }
   }
+} else if ($action == 'menuitems') {
+  if (!canEdit('System')) {
+    ZM\Warning('Need System permission to edit menu items');
+  } else if (isset($_REQUEST['items'])) {
+    require_once('includes/MenuItem.php');
+    $allItems = ZM\MenuItem::find();
+    foreach ($allItems as $item) {
+      $id = $item->Id();
+      $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
+      $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
+      $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();
+      if ($label === '') $label = null;
+
+      $iconType = isset($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
+      if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
+      $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
+      if ($icon === '') $icon = null;
+
+      // Handle image upload
+      if (isset($_FILES['items']['name'][$id]['IconFile'])
+          && $_FILES['items']['error'][$id]['IconFile'] == UPLOAD_ERR_OK) {
+        $uploadDir = ZM_PATH_WEB.'/graphics/menu/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+        $tmpName = $_FILES['items']['tmp_name'][$id]['IconFile'];
+        $origName = basename($_FILES['items']['name'][$id]['IconFile']);
+        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+        $allowedExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'];
+        if (in_array($ext, $allowedExts)) {
+          // Validate it's actually an image (except SVG/ICO)
+          if ($ext == 'svg' || $ext == 'ico' || getimagesize($tmpName) !== false) {
+            $safeName = 'menu_'.$id.'_'.time().'.'.$ext;
+            $destPath = $uploadDir.$safeName;
+            if (move_uploaded_file($tmpName, $destPath)) {
+              // Remove old uploaded icon if it exists
+              if ($item->IconType() == 'image' && $item->Icon() && file_exists(ZM_PATH_WEB.'/'.$item->Icon())) {
+                unlink(ZM_PATH_WEB.'/'.$item->Icon());
+              }
+              $icon = 'graphics/menu/'.$safeName;
+              $iconType = 'image';
+            }
+          }
+        }
+      }
+
+      // If user cleared icon, reset to default
+      if ($iconType != 'image' && ($icon === null || $icon === '')) {
+        $icon = null;
+      }
+
+      $item->save([
+        'Enabled' => $enabled,
+        'Label' => $label,
+        'SortOrder' => $sortOrder,
+        'Icon' => $icon,
+        'IconType' => $iconType,
+      ]);
+    }
+  }
+  $redirect = '?view=options&tab=menu';
+} else if ($action == 'resetmenu') {
+  if (!canEdit('System')) {
+    ZM\Warning('Need System permission to reset menu items');
+  } else {
+    // Clean up any uploaded icon files
+    require_once('includes/MenuItem.php');
+    $oldItems = ZM\MenuItem::find();
+    foreach ($oldItems as $item) {
+      if ($item->IconType() == 'image' && $item->Icon() && file_exists(ZM_PATH_WEB.'/'.$item->Icon())) {
+        unlink(ZM_PATH_WEB.'/'.$item->Icon());
+      }
+    }
+    dbQuery('DELETE FROM Menu_Items');
+    dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+      ('Console', 1, 10),
+      ('Montage', 1, 20),
+      ('MontageReview', 1, 30),
+      ('Events', 1, 40),
+      ('Options', 1, 50),
+      ('Log', 1, 60),
+      ('Devices', 1, 70),
+      ('IntelGpu', 1, 80),
+      ('Groups', 1, 90),
+      ('Filters', 1, 100),
+      ('Snapshots', 1, 110),
+      ('Reports', 1, 120),
+      ('ReportEventAudit', 1, 130),
+      ('Map', 1, 140)");
+  }
+  $redirect = '?view=options&tab=menu';
 } // end if object vs action
 ?>

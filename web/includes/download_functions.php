@@ -123,7 +123,7 @@ function downloadEvents(
     } else {
       ZM\Error("Can't open event images export file 'event_files.txt'");
     }
-    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy \''.$export_dir.'/'.$mergedFileName. '\' 2>&1';
+    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
     exec($cmd, $output, $return);
     ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     $exportFileList[] = $mergedFileName;
@@ -147,7 +147,7 @@ function downloadEvents(
     }
 
     if ($command) {
-      $command .= ' \''.$mergedFileName.'\''; # Name of the file to be added
+      $command .= ' '.escapeshellarg($mergedFileName); # Name of the file to be added
       if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
     }
   } # end foreach monitor
@@ -208,7 +208,7 @@ function generateFileList ($exportFormat, $exportStructure, $archive_path, $expo
     $command = 'zip -j '.escapeshellarg($archive_path);
     $command .= $exportCompressed ? ' -9' : ' -0';
   }
-  $command .= ' \''.$export_listFile.'\''; # Name of the file to be added
+  $command .= ' '.escapeshellarg($export_listFile); # Name of the file to be added
   if (executeShelCommand($command, $deleteFile = $export_listFile) === false) return false;
 
   # Let's delete the directory, it should already be empty.

@@ -321,8 +321,8 @@ function deletePath( $path ) {
   if (is_link($path)) {
     if (!unlink($path)) ZM\Debug("Failed to unlink $path");
   } else if (is_dir($path)) {
-    if (false === ($output = system('rm -rf "'.escapeshellcmd($path).'"'))) {
-      ZM\Warning('Failed doing rm -rf "'.escapeshellcmd($path).'"');
+    if (false === ($output = system('rm -rf '.escapeshellarg($path)))) {
+      ZM\Warning('Failed doing rm -rf '.escapeshellarg($path));
     }
   } else if (file_exists($path)) {
     if (!unlink($path)) ZM\Debug("Failed to delete $path");
@@ -501,6 +501,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
+    # Validate column name to prevent SQL injection via array keys
+    if ( !preg_match('/^[a-zA-Z0-9_]+$/', $key) ) {
+      ZM\Warning("Invalid column name rejected in getFormChanges: $key");
+      continue;
+    }
+
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
@@ -517,10 +523,10 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.$imageData[0];
-            $changes[$key.'Height'] = $key.'Height = '.$imageData[1];
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+            $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key." = ".dbEscape( ob_get_contents() );
@@ -532,8 +538,8 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Type'] = $key.'Type = \''.$newValues[$key]['type'].'\'';
-            $changes[$key.'Size'] = $key.'Size = '.$newValues[$key]['size'];
+            $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
+            $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
             readfile( $newValues[$key]['tmp_name'] );
             $changes[$key] = $key.' = '.dbEscape( ob_get_contents() );

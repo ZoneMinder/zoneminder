@@ -434,9 +434,12 @@ function MonitorStream(monitorData) {
         const video_el = document.querySelector('#liveStream'+this.id+' video');
         if (video_el) {
           video_el.muted = this.muted;
-          video_el.addEventListener('play', (e) => {
-            this.createVolumeSlider();
-          }, this);
+          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
+            (e) => {
+              this.createVolumeSlider();
+              getTracksFromStream(this); //Go2rtc
+            }
+          )
         }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
@@ -460,9 +463,13 @@ function MonitorStream(monitorData) {
       stream.setAttribute("muted", this.muted);
       const video_el = document.querySelector('#liveStream'+this.id);
       if (video_el) {
-        video_el.addEventListener('play', (e) => {
-          this.createVolumeSlider();
-        }, this);
+        video_el.muted = this.muted;
+        this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
+          (e) => {
+            this.createVolumeSlider();
+            getTracksFromStream(this); //Janus
+          }
+        )
       }
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -504,9 +511,12 @@ function MonitorStream(monitorData) {
         const video_el = document.querySelector('video#liveStream'+this.id);
         if (video_el) {
           video_el.muted = this.muted;
-          video_el.addEventListener('play', (e) => {
-            this.createVolumeSlider();
-          }, this);
+          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
+            (e) => {
+              this.createVolumeSlider();
+              getTracksFromStream(this); //RTSP2Web RTC, MSE, HLS
+            }
+          )
         }
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
@@ -531,7 +541,7 @@ function MonitorStream(monitorData) {
             this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
-              getTracksFromStream(this); //HLS
+              //getTracksFromStream(this); //HLS
             }, this);
             this.hls.loadSource(hlsUrl.href);
             this.hls.attachMedia(stream);
@@ -626,6 +636,7 @@ function MonitorStream(monitorData) {
 
   this.stop = function() {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -1799,7 +1810,7 @@ async function attachVideo(monitorStream) {
           monitorStream.restart();
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
-        getTracksFromStream(monitorStream); //JANUS
+        //getTracksFromStream(monitorStream); //JANUS
       }
     },
     onremotetrack: function(track, mid, on) {
@@ -1987,7 +1998,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
     stream.updateStreamInfo('', ''); //WEBRTC
-    getTracksFromStream(stream); //WEBRTC
+    //getTracksFromStream(stream); //WEBRTC
     console.log(`${webrtcSendChannel.label} for camera ID=${stream.id} has opened`);
     webrtcSendChannel.send('ping');
   };
@@ -2082,7 +2093,7 @@ function startMsePlay(context, videoEl, url) {
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
     context.updateStreamInfo('', ''); //MSE
-    getTracksFromStream(context); //MSE
+    //getTracksFromStream(context); //MSE
     context.streamStartTime = (Date.now() / 1000).toFixed(2);
     if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
       //For example, after a pause you press Play, you need to adjust the time.

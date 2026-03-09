@@ -120,6 +120,19 @@ function enableClassModal() {
   });
 }
 
+function sortMenuItems(button) {
+  if (button.classList.contains('btn-success')) {
+    $j('#menuItemsBody').sortable('disable');
+    // Update hidden sort order fields based on new row positions
+    $j('#menuItemsBody tr').each(function(index) {
+      $j(this).find('.sortOrderInput').val((index + 1) * 10);
+    });
+  } else {
+    $j('#menuItemsBody').sortable('enable');
+  }
+  button.classList.toggle('btn-success');
+}
+
 function initPage() {
   const NewStorageBtn = $j('#NewStorageBtn');
   const NewServerBtn = $j('#NewServerBtn');
@@ -159,6 +172,36 @@ function initPage() {
   });
 
   $j('.bootstraptable').bootstrapTable({icons: icons}).show();
+
+  // Menu items tab: sortable drag-and-drop and icon type toggle
+  if ($j('#menuItemsBody').length) {
+    $j('#menuItemsBody').sortable({
+      disabled: true,
+      axis: 'y',
+      cursor: 'move',
+      update: function() {
+        $j('#menuItemsBody tr').each(function(index) {
+          $j(this).find('.sortOrderInput').val((index + 1) * 10);
+        });
+      }
+    });
+
+    // Toggle between text input and file input based on icon type
+    $j('.iconTypeSelect').on('change', function() {
+      const id = $j(this).data('item-id');
+      const type = $j(this).val();
+      if (type === 'image') {
+        $j('#iconName-' + id).hide();
+        $j('#iconFile-' + id).show();
+      } else if (type === 'none') {
+        $j('#iconName-' + id).hide();
+        $j('#iconFile-' + id).hide();
+      } else {
+        $j('#iconName-' + id).show();
+        $j('#iconFile-' + id).hide();
+      }
+    });
+  }
 }
 
 $j(document).ready(function() {

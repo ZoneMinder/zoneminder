@@ -188,23 +188,129 @@ function getBodyTopHTML() {
   }
 } // end function getBodyTopHTML
 
-function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '') {
+function renderMenuIcon($icon, $iconType = 'material') {
+  if ($iconType == 'none') {
+    return '';
+  } else if ($iconType == 'fontawesome') {
+    return '<i class="fa '.htmlspecialchars($icon).'"></i>';
+  } else if ($iconType == 'image') {
+    return '<img src="'.htmlspecialchars($icon).'" alt="" style="width:24px;height:24px;object-fit:contain;"/>';
+  }
+  return '<i class="material-icons">'.htmlspecialchars($icon).'</i>';
+}
+
+// Returns icon HTML from the current $menuIconOverride, or empty string if not set
+function getNavbarIcon() {
+  global $menuIconOverride;
+  if (!isset($menuIconOverride)) return '';
+  $html = renderMenuIcon($menuIconOverride['icon'], $menuIconOverride['iconType']);
+  if ($html !== '') $html .= ' ';
+  return $html;
+}
+
+function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '', $skipTranslate = false, $iconType = 'material') {
   global $view;
+  global $menuIconOverride;
+
+  // Check for icon override from renderMenuItems
+  if (isset($menuIconOverride)) {
+    $icon = $menuIconOverride['icon'];
+    $iconType = $menuIconOverride['iconType'];
+  }
+
    /* Highlighting the active menu section */
   if ($viewItemName == 'watch') {
     $activeClass = ($view == $viewItemName && (isset($_REQUEST['cycle']) && $_REQUEST['cycle'] == "true")) ? ' active' : '';
   } else {
     $activeClass = $view == $viewItemName ? ' active' : '';
   }
-  $itemName = translate($itemName);
+  if (!$skipTranslate) $itemName = translate($itemName);
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
-                <span class="menu-icon"><i class="material-icons">' . $icon . '</i></span>
-                <span class="menu-title">'.$itemName.'</span>
+                <span class="menu-icon">'.renderMenuIcon($icon, $iconType).'</span>
+                <span class="menu-title">'.htmlspecialchars($itemName).'</span>
               </a>
             </li>'.PHP_EOL;
 
+  return $result;
+}
+
+function getMenuItemFunctions() {
+  return [
+    'Console'          => 'getConsoleHTML',
+    'Montage'          => 'getMontageHTML',
+    'MontageReview'    => 'getMontageReviewHTML',
+    'Events'           => 'getEventsHTML',
+    'Options'          => 'getOptionsHTML',
+    'Log'              => 'getLogHTML',
+    'Devices'          => 'getDevicesHTML',
+    'IntelGpu'         => 'getIntelGpuHTML',
+    'Groups'           => 'getGroupsHTML',
+    'Filters'          => 'getFilterHTML',
+    'Snapshots'        => 'getSnapshotsHTML',
+    'Reports'          => 'getReportsHTML',
+    'ReportEventAudit' => 'getRprtEvntAuditHTML',
+    'Map'              => 'getMapHTML',
+  ];
+}
+
+function getMenuItems() {
+  static $cached = null;
+  if ($cached === null) {
+    require_once('includes/MenuItem.php');
+    $cached = ZM\MenuItem::find([], ['order' => 'SortOrder ASC']);
+  }
+  return $cached;
+}
+
+// Functions that take only ($forLeftBar, $customLabel) - no $view parameter
+function getMenuFuncsNoView() {
+  return ['getConsoleHTML', 'getOptionsHTML', 'getLogHTML', 'getDevicesHTML', 'getIntelGpuHTML'];
+}
+
+function renderMenuItems($forLeftBar = false) {
+  global $view;
+  $menuItems = getMenuItems();
+  $funcMap = getMenuItemFunctions();
+  $result = '';
+
+  if (empty($menuItems)) {
+    // Fallback: no DB rows yet, render all in default order
+    foreach ($funcMap as $key => $funcName) {
+      $noViewFuncs = getMenuFuncsNoView();
+      if (in_array($funcName, $noViewFuncs)) {
+        $result .= $funcName($forLeftBar);
+      } else {
+        $result .= $funcName($view, $forLeftBar);
+      }
+    }
+  } else {
+    global $menuIconOverride;
+    $noViewFuncs = getMenuFuncsNoView();
+    foreach ($menuItems as $item) {
+      if (!$item->Enabled()) continue;
+      $key = $item->MenuKey();
+      if (!isset($funcMap[$key])) continue;
+
+      $funcName = $funcMap[$key];
+      $customLabel = ($item->Label() !== null && $item->Label() !== '') ? $item->displayLabel() : null;
+
+      // Set icon override for buildMenuItem/getOptionsHTML to pick up
+      $effIcon = $item->effectiveIcon();
+      $effIconType = $item->effectiveIconType();
+      $menuIconOverride = ['icon' => $effIcon, 'iconType' => $effIconType];
+
+      if (in_array($funcName, $noViewFuncs)) {
+        $result .= $funcName($forLeftBar, $customLabel);
+      } else {
+        $result .= $funcName($view, $forLeftBar, $customLabel);
+      }
+    }
+    $menuIconOverride = null;
+  }
+
+  $result .= getAdditionalLinksHTML($view, $forLeftBar);
   return $result;
 }
 
@@ -214,23 +320,7 @@ function buildSidebarMenu() {
   if ( $user and $user->Username() ) {
   $menuForAuthUser = '
             <li class="menu-header"><span> GENERAL </span></li> ' .
-    getConsoleHTML($forLeftBar = true) .
-    getMontageHTML($view, $forLeftBar = true) .
-    getCycleHTML($view, $forLeftBar = true) .
-    getMontageReviewHTML($view, $forLeftBar = true) .
-    getEventsHTML($view, $forLeftBar = true) .
-    getOptionsHTML($forLeftBar = true) .
-    getLogHTML($forLeftBar = true) .
-    getDevicesHTML($forLeftBar = true) .
-    getQuadraHTML($forLeftBar = true) .
-    getIntelGpuHTML($forLeftBar = true) .
-    getGroupsHTML($view, $forLeftBar = true) .
-    getFilterHTML($view, $forLeftBar = true) .
-    getSnapshotsHTML($view, $forLeftBar = true) .
-    getReportsHTML($view, $forLeftBar = true) .
-    getRprtEvntAuditHTML($view, $forLeftBar = true) .
-    getMapHTML($view, $forLeftBar = true) .
-    getAdditionalLinksHTML($view, $forLeftBar = true)
+    renderMenuItems($forLeftBar = true)
   ;
   } else { // USER IS NOT AUTHORIZED!
     $menuForAuthUser = '';
@@ -519,22 +609,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 
   // *** Build the navigation bar menu items ***
         echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
-          echo getConsoleHTML();
-          echo getOptionsHTML();
-          echo getLogHTML();
-          echo getDevicesHTML();
-          echo getQuadraHTML();
-          echo getIntelGpuHTML();
-          echo getGroupsHTML($view);
-          echo getFilterHTML($view);
-          echo getCycleHTML($view);
-          echo getMontageHTML($view);
-          echo getMontageReviewHTML($view);
-          echo getSnapshotsHTML($view);
-          echo getReportsHTML($view);
-          echo getRprtEvntAuditHTML($view);
-          echo getMapHTML($view);
-          echo getAdditionalLinksHTML($view);
+          echo renderMenuItems($forLeftBar = false);
           echo getHeaderFlipHTML();
         echo '</ul></div><div id="accountstatus">';
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
@@ -678,22 +753,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       <?php
       if ( $user and $user->Username() ) {
           echo '<ul class="navbar-nav">';
-            echo getConsoleHTML();
-            echo getOptionsHTML();
-            echo getLogHTML();
-            echo getDevicesHTML();
-            echo getQuadraHTML();
-            echo getIntelGpuHTML();
-            echo getGroupsHTML($view);
-            echo getFilterHTML($view);
-            echo getCycleHTML($view);
-            echo getMontageHTML($view);
-            echo getMontageReviewHTML($view);
-            echo getSnapshotsHTML($view);
-            echo getReportsHTML($view);
-            echo getRprtEvntAuditHTML($view);
-            echo getMapHTML($view);
-            echo getAdditionalLinksHTML($view);
+            echo renderMenuItems($forLeftBar = false);
           echo '</ul>';
       }
       ?>
@@ -973,23 +1033,26 @@ function getNavBrandHTML() {
 }
 
 // Returns the html representing the Console menu item
-function getConsoleHTML($forLeftBar = false) {
+function getConsoleHTML($forLeftBar = false, $customLabel = null) {
   global $user;
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Console';
+  $skipTranslate = $customLabel !== null;
 
   if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'console',
         $id = 'getConsoleHTML',
-        $itemName = 'Console',
+        $itemName = $label,
         $href = '?view=console',
         $icon = 'dashboard',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -997,9 +1060,10 @@ function getConsoleHTML($forLeftBar = false) {
 }
 
 // Returns the html representing the Options menu item
-function getOptionsHTML($forLeftBar = false) {
+function getOptionsHTML($forLeftBar = false, $customLabel = null) {
   global $zmMenu;
   $result = '';
+  $label = $customLabel !== null ? $customLabel : translate('Options');
 
   // Sorting order of the "Options" submenu items. If a submenu item is in the DB but is not here, it will be automatically added to the end of the list.
   $categoryDisplayOrder = [
@@ -1039,7 +1103,8 @@ function getOptionsHTML($forLeftBar = false) {
     'privacy',
     'MQTT',
     'telemetry',
-    'version'
+    'version',
+    'menu'
   ]);
   $zmMenu::buildSubMenuOptions($categoryDisplayOrder);
 
@@ -1068,16 +1133,23 @@ function getOptionsHTML($forLeftBar = false) {
       </div>
       ';
 
+      $optIcon = 'settings';
+      $optIconType = 'material';
+      if (isset($menuIconOverride)) {
+        $optIcon = $menuIconOverride['icon'];
+        $optIconType = $menuIconOverride['iconType'];
+      }
+
       $result .= '
 <li id="getOptionsHTML" class="menu-item sub-menu '.($view == "options" ? ' open' : '').'">
   <a href="#<!--?view='.$view_.'&amp;tab=system-->">
-    <span class="menu-icon"><i class="material-icons">settings</i></span>
-    <span class="menu-title">'.translate('Options').'</span>
+    <span class="menu-icon">'.renderMenuIcon($optIcon, $optIconType).'</span>
+    <span class="menu-title">'.htmlspecialchars($label).'</span>
   </a>
 ' . $subMenuOptions . '
 </li>'.PHP_EOL;
     } else {
-      $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.getNavbarIcon().htmlspecialchars($label).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1085,9 +1157,11 @@ function getOptionsHTML($forLeftBar = false) {
 }
 
 // Returns the html representing the Log menu item
-function getLogHTML($forLeftBar = false) {
+function getLogHTML($forLeftBar = false, $customLabel = null) {
   $result = '';
-  
+  $label = $customLabel !== null ? $customLabel : 'Log';
+  $skipTranslate = $customLabel !== null;
+
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
@@ -1096,18 +1170,19 @@ function getLogHTML($forLeftBar = false) {
         $result .= buildMenuItem(
           $viewItemName = 'log',
           $id = 'getLogHTML',
-          $itemName = 'Log',
+          $itemName = $label,
           $href = '?view=log',
           $icon = 'notification_important',
           $classNameForTag_A = $class,
-          $subMenu = ''
+          $subMenu = '',
+          $skipTranslate
         );
       } else {
-        $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
+        $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
       }
     }
   }
-  
+
   return $result;
 }
 
@@ -1129,22 +1204,25 @@ function getLogIconHTML() {
 }
 
 // Returns the html representing the X10 Devices menu item
-function getDevicesHTML($forLeftBar = false) {
+function getDevicesHTML($forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Devices';
+  $skipTranslate = $customLabel !== null;
 
   if ( ZM_OPT_X10 && canView('Devices') ) {
     if ($forLeftBar) {
       $result .= buildMenuItem(
         $viewItemName = 'devices',
         $id = 'getDevicesHTML',
-        $itemName = 'Devices',
+        $itemName = $label,
         $href = '?view=devices',
         $icon = 'devices_other',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.translate('Devices').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1179,8 +1257,10 @@ function getQuadraHTML($forLeftBar = false) {
   return $result;
 }
 // Returns the html representing the Intel GPU status menu item
-function getIntelGpuHTML($forLeftBar = false) {
+function getIntelGpuHTML($forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Intel GPU';
+  $skipTranslate = $customLabel !== null;
 
   // Only show if intel_gpu_top is available and user can view System
   if (canView('System')) {
@@ -1191,14 +1271,15 @@ function getIntelGpuHTML($forLeftBar = false) {
         $result .= buildMenuItem(
           $viewItemName = 'intelgpu',
           $id = 'getIntelGpuHTML',
-          $itemName = 'Intel GPU',
+          $itemName = $label,
           $href = '?view=intelgpu',
           $icon = 'memory',
           $classNameForTag_A = '',
-          $subMenu = ''
+          $subMenu = '',
+          $skipTranslate
         );
       } else {
-        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">Intel GPU</a></li>'.PHP_EOL;
+        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">'.getNavbarIcon().htmlspecialchars($label).'</a></li>'.PHP_EOL;
       }
     }
   }
@@ -1207,80 +1288,63 @@ function getIntelGpuHTML($forLeftBar = false) {
 }
 
 // Returns the html representing the Groups menu item
-function getGroupsHTML($view, $forLeftBar = false) {
+function getGroupsHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
   if ( !canView('Groups') ) return $result;
+  $label = $customLabel !== null ? $customLabel : 'Groups';
+  $skipTranslate = $customLabel !== null;
 
   $class = $view == 'groups' ? ' selected' : '';
   if ($forLeftBar) {
     $result .= buildMenuItem(
       $viewItemName = 'groups',
       $id = 'getGroupsHTML',
-      $itemName = 'Groups',
+      $itemName = $label,
       $href = '?view=groups',
       $icon = 'group',
       $classNameForTag_A = '',
-      $subMenu = ''
+      $subMenu = '',
+      $skipTranslate
     );
   } else {
-    $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+    $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;
 }
 
 // Returns the html representing the Filter menu item
-function getFilterHTML($view, $forLeftBar = false) {
+function getFilterHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
   if ( !canView('Events') ) return $result;
-  
+  $label = $customLabel !== null ? $customLabel : 'Filters';
+  $skipTranslate = $customLabel !== null;
+
   $class = $view == 'filter' ? ' selected' : '';
   if ($forLeftBar) {
     $result .= buildMenuItem(
       $viewItemName = 'filter',
       $id = 'getFilterHTML',
-      $itemName = 'Filters',
+      $itemName = $label,
       $href = '?view=filter',
       $icon = 'filter_alt',
       $classNameForTag_A = '',
-      $subMenu = ''
+      $subMenu = '',
+      $skipTranslate
     );
   } else {
-    $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
-  }
-
-  return $result;
-}
-
-// Returns the html representing the Cycle menu item
-function getCycleHTML($view, $forLeftBar = false) {
-  $result = '';
-  
-  if ( canView('Stream') ) {
-    $class = $view == 'cycle' ? ' selected' : '';
-    if ($forLeftBar) {
-      $result .= buildMenuItem(
-        $viewItemName = 'watch',
-        $id = 'getCycleHTML',
-        $itemName = 'Cycle',
-        $href = '?view=watch&amp;cycle=true',
-        //$icon = 'cyclone',
-        $icon = 'repeat',
-        $classNameForTag_A = '',
-        $subMenu = ''
-      );
-    } else {
-      $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
-    }
+    $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;
 }
 
 // Returns the html representing the Montage menu item
-function getMontageHTML($view, $forLeftBar = false) {
+function getMontageHTML($view, $forLeftBar = false, $customLabel = null) {
   global $user;
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Montage';
+  $skipTranslate = $customLabel !== null;
 
   if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
@@ -1288,14 +1352,15 @@ function getMontageHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'montage',
         $id = 'getMontageHTML',
-        $itemName = 'Montage',
+        $itemName = $label,
         $href = '?view=montage',
         $icon = 'live_tv',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1303,9 +1368,11 @@ function getMontageHTML($view, $forLeftBar = false) {
 }
 
 // Returns the html representing the MontageReview menu item
-function getMontageReviewHTML($view, $forLeftBar = false) {
+function getMontageReviewHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
-  
+  $label = $customLabel !== null ? $customLabel : 'MontageReview';
+  $skipTranslate = $customLabel !== null;
+
   if ( canView('Events') ) {
     if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
       $terms = $_REQUEST['filter']['Query']['terms'];
@@ -1327,14 +1394,15 @@ function getMontageReviewHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'montagereview',
         $id = 'getMontageReviewHTML',
-        $itemName = 'MontageReview',
+        $itemName = $label,
         $href = '?view=montagereview' .$live,
         $icon = 'movie',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1342,8 +1410,10 @@ function getMontageReviewHTML($view, $forLeftBar = false) {
 }
 
 // Returns the html representing the Montage menu item
-function getSnapshotsHTML($view, $forLeftBar = false) {
+function getSnapshotsHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Snapshots';
+  $skipTranslate = $customLabel !== null;
 
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
@@ -1351,14 +1421,15 @@ function getSnapshotsHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'snapshots',
         $id = 'getSnapshotsHTML',
-        $itemName = 'Snapshots',
+        $itemName = $label,
         $href = '?view=snapshots',
         $icon = 'preview',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+      $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1366,9 +1437,11 @@ function getSnapshotsHTML($view, $forLeftBar = false) {
 }
 
 // Returns the html representing the Events menu item
-function getEventsHTML($view, $forLeftBar = false) {
+function getEventsHTML($view, $forLeftBar = false, $customLabel = null) {
   global $user;
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Events';
+  $skipTranslate = $customLabel !== null;
 
   if (canView('Events')) {
     $class = $view == 'events' ? ' selected' : '';
@@ -1376,22 +1449,25 @@ function getEventsHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'events',
         $id = 'getEventsHTML',
-        $itemName = 'Events',
+        $itemName = $label,
         $href = '?view=events',
         $icon = 'event',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getEventsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=events">' .translate('Events'). '</a></li>'.PHP_EOL;
+      $result .= '<li id="getEventsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=events">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
   return $result;
 }
 
-function getReportsHTML($view, $forLeftBar = false) {
+function getReportsHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Reports';
+  $skipTranslate = $customLabel !== null;
 
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
@@ -1399,14 +1475,15 @@ function getReportsHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'reports',
         $id = 'getReportsHTML',
-        $itemName = 'Reports',
+        $itemName = $label,
         $href = '?view=reports',
         $icon = 'report',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1414,8 +1491,10 @@ function getReportsHTML($view, $forLeftBar = false) {
 }
 
 // Returns the html representing the Audit Events Report menu item
-function getRprtEvntAuditHTML($view, $forLeftBar = false) {
+function getRprtEvntAuditHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'ReportEventAudit';
+  $skipTranslate = $customLabel !== null;
 
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
@@ -1423,14 +1502,15 @@ function getRprtEvntAuditHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'report_event_audit',
         $id = 'getRprtEvntAuditHTML',
-        $itemName = 'ReportEventAudit',
+        $itemName = $label,
         $href = '?view=report_event_audit',
         $icon = 'shield',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1438,8 +1518,10 @@ function getRprtEvntAuditHTML($view, $forLeftBar = false) {
 }
 
 // Returns the html representing the Audit Events Report menu item
-function getMapHTML($view, $forLeftBar = false) {
+function getMapHTML($view, $forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Map';
+  $skipTranslate = $customLabel !== null;
 
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
     $class = $view == 'map' ? ' selected' : '';
@@ -1447,14 +1529,15 @@ function getMapHTML($view, $forLeftBar = false) {
       $result .= buildMenuItem(
         $viewItemName = 'map',
         $id = 'getMapHTML',
-        $itemName = 'Map',
+        $itemName = $label,
         $href = '?view=map',
         $icon = 'language',
         $classNameForTag_A = '',
-        $subMenu = ''
+        $subMenu = '',
+        $skipTranslate
       );
     } else {
-      $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.translate('Map').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 

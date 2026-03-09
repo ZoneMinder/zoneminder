@@ -267,14 +267,14 @@ echo $navbar ?>
 <?php if ( ZM_WEB_LIST_THUMBS ) { ?>
             <th data-sortable="false" data-field="Thumbnail" class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-field="Name" class="colName"><?php echo translate('Name') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Manufacturer" class="colName"><?php echo translate('Manufacturer') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Model" class="colName"><?php echo translate('Model') ?></th>
             <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Source" class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th data-sortable="true" data-field="Source" class="colSource"><?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th data-sortable="true" data-field="Storage" class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
@@ -293,13 +293,14 @@ echo $navbar ?>
           : array('cnj'=>'and', 'attr'=>'Monitor')
       );
     parseFilter($filter);
-    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"><a '
-      .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
-      .$eventCounts[$i]['title']
-      .'</a></th>'.PHP_EOL;
+    $eventsLink = canView('Events') ? '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'] : '';
+    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"'
+      .'>'
+      .htmlspecialchars($eventCounts[$i]['title'])
+      .'</th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
-            <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th data-sortable="true" data-field="ZoneCount" class="colZones"><?php echo translate('Zones') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
           </tr>
         </thead>

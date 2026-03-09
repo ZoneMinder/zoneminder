@@ -148,6 +148,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 } else if ($tab == 'ai_classes') {
   include('_options_ai_classes.php');
 }  // $tab == ai_classes
+else if ($tab == 'menu') {
+  include('_options_menu.php');
+}  // $tab == API/menu
   else { 
   $config = array();
   $configCats = array();

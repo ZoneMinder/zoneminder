@@ -556,6 +556,22 @@ function initPage() {
 
   // Make the table visible after initialization
   table.show();
+
+  // Add icons to column headers after bootstrap-table init so they don't
+  // leak into the Columns dropdown (which uses the plain text title).
+  var headerIcons = {Name: 'videocam', Source: 'settings'};
+  table.find('thead th').each(function() {
+    var field = $j(this).data('field');
+    var inner = $j(this).find('.th-inner');
+    if (!inner.length) return;
+    if (headerIcons[field]) {
+      inner.prepend('<i class="material-icons">' + headerIcons[field] + '</i>&nbsp;');
+    }
+    if (field === 'ZoneCount') {
+      var text = inner.text();
+      inner.html('<a href="?view=zones">' + text + '</a>');
+    }
+  });
 } // end function initPage
 
 function sortMonitors(button) {

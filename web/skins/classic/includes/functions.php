@@ -245,6 +245,7 @@ function getMenuItemFunctions() {
     'Options'          => 'getOptionsHTML',
     'Log'              => 'getLogHTML',
     'Devices'          => 'getDevicesHTML',
+    'Quadra'           => 'getQuadraHTML',
     'IntelGpu'         => 'getIntelGpuHTML',
     'Groups'           => 'getGroupsHTML',
     'Filters'          => 'getFilterHTML',
@@ -266,7 +267,7 @@ function getMenuItems() {
 
 // Functions that take only ($forLeftBar, $customLabel) - no $view parameter
 function getMenuFuncsNoView() {
-  return ['getConsoleHTML', 'getOptionsHTML', 'getLogHTML', 'getDevicesHTML', 'getIntelGpuHTML'];
+  return ['getConsoleHTML', 'getOptionsHTML', 'getLogHTML', 'getDevicesHTML', 'getQuadraHTML', 'getIntelGpuHTML'];
 }
 
 function renderMenuItems($forLeftBar = false) {
@@ -1230,8 +1231,10 @@ function getDevicesHTML($forLeftBar = false, $customLabel = null) {
 }
 
 // Returns the html representing the Quadra status menu item
-function getQuadraHTML($forLeftBar = false) {
+function getQuadraHTML($forLeftBar = false, $customLabel = null) {
   $result = '';
+  $label = $customLabel !== null ? $customLabel : 'Quadra';
+  $skipTranslate = $customLabel !== null;
 
   // Only show if ni_rsrc_mon is available and user can view System
   if (canView('System')) {
@@ -1242,14 +1245,14 @@ function getQuadraHTML($forLeftBar = false) {
         $result .= buildMenuItem(
           $viewItemName = 'quadra',
           $id = 'getQuadraHTML',
-          $itemName = 'Quadra',
+          $itemName = $label,
           $href = '?view=quadra',
           $icon = 'memory',
           $classNameForTag_A = '',
           $subMenu = ''
         );
       } else {
-        $result .= '<li id="getQuadraHTML" class="nav-item"><a class="nav-link" href="?view=quadra">Quadra</a></li>'.PHP_EOL;
+        $result .= '<li id="getQuadraHTML" class="nav-item"><a class="nav-link" href="?view=quadra">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
       }
     }
   }

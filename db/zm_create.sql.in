@@ -1379,6 +1379,7 @@ INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
   ('Log', 1, 60),
   ('Devices', 1, 70),
   ('IntelGpu', 1, 80),
+  ('Quadra', 1, 85),
   ('Groups', 1, 90),
   ('Filters', 1, 100),
   ('Snapshots', 1, 110),

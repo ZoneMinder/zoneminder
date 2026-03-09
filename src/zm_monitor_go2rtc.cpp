@@ -53,7 +53,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     }
     rtsp_restream_base_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     rtsp_restream_path = rtsp_restream_base_path;
-    if (ZM_OPT_USE_AUTH) {
+    if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
         std::string auth_key = rtsp_user->getAuthHash();
@@ -62,7 +62,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }
-    }  // end if ZM_OPT_USE_AUTH
+    }  // end if config.opt_use_auth
   }  // end if User_RTSP_REstream
 
   rtsp_path = parent->path;
@@ -170,7 +170,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
 bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   // Only refresh if using RTSP restream with auth
-  if (!Use_RTSP_Restream || !ZM_OPT_USE_AUTH || !parent->rtsp_user) {
+  if (!Use_RTSP_Restream || !config.opt_use_auth || !parent->rtsp_user) {
     return false;
   }
 

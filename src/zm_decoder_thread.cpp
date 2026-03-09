@@ -406,7 +406,7 @@ bool DecoderThread::Decode() {
     monitor_->shared_data->decoder_image_count++;
     SystemTimePoint now = std::chrono::system_clock::now();
     monitor_->shared_data->last_write_time = std::chrono::system_clock::to_time_t(now);
-    if (now - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
+    if (now - packet->timestamp > Seconds(static_cast<int>(config.watch_max_delay))) {
       Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
           FPSeconds(now - packet->timestamp).count());
     }

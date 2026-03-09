@@ -272,7 +272,7 @@ int main(int argc, char *argv[], char **envp) {
         }
 
         prime_capture_log_count++;
-        if (sleep_time < Seconds(ZM_WATCH_MAX_DELAY)) {
+        if (sleep_time < Seconds(static_cast<int>(config.watch_max_delay))) {
           sleep_time++;
         }
 

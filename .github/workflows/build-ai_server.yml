@@ -18,7 +18,7 @@ env:
 jobs:
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
+    #if: github.repository == 'ZoneMinder/zoneminder'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

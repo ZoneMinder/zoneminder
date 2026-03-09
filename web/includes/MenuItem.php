@@ -12,7 +12,41 @@ class MenuItem extends ZM_Object {
     'Enabled'   => 1,
     'Label'     => null,
     'SortOrder' => 0,
+    'Icon'      => null,
+    'IconType'  => 'material',
   );
+
+  // Default material icons for each menu key
+  public static $defaultIcons = array(
+    'Console'          => 'dashboard',
+    'Montage'          => 'live_tv',
+    'MontageReview'    => 'movie',
+    'Events'           => 'event',
+    'Options'          => 'settings',
+    'Log'              => 'notification_important',
+    'Devices'          => 'devices_other',
+    'IntelGpu'         => 'memory',
+    'Groups'           => 'group',
+    'Filters'          => 'filter_alt',
+    'Snapshots'        => 'preview',
+    'Reports'          => 'report',
+    'ReportEventAudit' => 'shield',
+    'Map'              => 'language',
+  );
+
+  public function effectiveIcon() {
+    if ($this->{'Icon'} !== null && $this->{'Icon'} !== '') {
+      return $this->{'Icon'};
+    }
+    return isset(self::$defaultIcons[$this->{'MenuKey'}]) ? self::$defaultIcons[$this->{'MenuKey'}] : 'menu';
+  }
+
+  public function effectiveIconType() {
+    if ($this->{'Icon'} !== null && $this->{'Icon'} !== '') {
+      return $this->{'IconType'};
+    }
+    return 'material';
+  }
 
   public static function find($parameters = array(), $options = array()) {
     return ZM_Object::_find(self::class, $parameters, $options);

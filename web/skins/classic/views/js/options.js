@@ -79,7 +79,7 @@ function initPage() {
 
   $j('.bootstraptable').bootstrapTable({icons: icons}).show();
 
-  // Menu items tab: sortable drag-and-drop
+  // Menu items tab: sortable drag-and-drop and icon type toggle
   if ($j('#menuItemsBody').length) {
     $j('#menuItemsBody').sortable({
       disabled: true,
@@ -89,6 +89,19 @@ function initPage() {
         $j('#menuItemsBody tr').each(function(index) {
           $j(this).find('.sortOrderInput').val((index + 1) * 10);
         });
+      }
+    });
+
+    // Toggle between text input and file input based on icon type
+    $j('.iconTypeSelect').on('change', function() {
+      const id = $j(this).data('item-id');
+      const type = $j(this).val();
+      if (type === 'image') {
+        $j('#iconName-' + id).hide();
+        $j('#iconFile-' + id).show();
+      } else {
+        $j('#iconName-' + id).show();
+        $j('#iconFile-' + id).hide();
       }
     });
   }

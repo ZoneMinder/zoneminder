@@ -179,8 +179,25 @@ function getBodyTopHTML() {
   }
 } // end function getBodyTopHTML
 
-function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '', $skipTranslate = false) {
+function renderMenuIcon($icon, $iconType = 'material') {
+  if ($iconType == 'fontawesome') {
+    return '<i class="fa '.htmlspecialchars($icon).'"></i>';
+  } else if ($iconType == 'image') {
+    return '<img src="'.htmlspecialchars($icon).'" alt="" style="width:24px;height:24px;object-fit:contain;"/>';
+  }
+  return '<i class="material-icons">'.htmlspecialchars($icon).'</i>';
+}
+
+function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '', $skipTranslate = false, $iconType = 'material') {
   global $view;
+  global $menuIconOverride;
+
+  // Check for icon override from renderMenuItems
+  if (isset($menuIconOverride)) {
+    $icon = $menuIconOverride['icon'];
+    $iconType = $menuIconOverride['iconType'];
+  }
+
    /* Highlighting the active menu section */
   if ($viewItemName == 'watch') {
     $activeClass = ($view == $viewItemName && (isset($_REQUEST['cycle']) && $_REQUEST['cycle'] == "true")) ? ' active' : '';
@@ -191,7 +208,7 @@ function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameFo
   $result = '
             <li id="' . $id . '" class="menu-item '.$activeClass.'">
               <a href="' . $href . '" class="' . $classNameForTag_A . '">
-                <span class="menu-icon"><i class="material-icons">' . $icon . '</i></span>
+                <span class="menu-icon">'.renderMenuIcon($icon, $iconType).'</span>
                 <span class="menu-title">'.htmlspecialchars($itemName).'</span>
               </a>
             </li>'.PHP_EOL;
@@ -249,6 +266,7 @@ function renderMenuItems($forLeftBar = false) {
       }
     }
   } else {
+    global $menuIconOverride;
     $noViewFuncs = getMenuFuncsNoView();
     foreach ($menuItems as $item) {
       if (!$item->Enabled()) continue;
@@ -258,12 +276,18 @@ function renderMenuItems($forLeftBar = false) {
       $funcName = $funcMap[$key];
       $customLabel = ($item->Label() !== null && $item->Label() !== '') ? $item->displayLabel() : null;
 
+      // Set icon override for buildMenuItem/getOptionsHTML to pick up
+      $effIcon = $item->effectiveIcon();
+      $effIconType = $item->effectiveIconType();
+      $menuIconOverride = ['icon' => $effIcon, 'iconType' => $effIconType];
+
       if (in_array($funcName, $noViewFuncs)) {
         $result .= $funcName($forLeftBar, $customLabel);
       } else {
         $result .= $funcName($view, $forLeftBar, $customLabel);
       }
     }
+    $menuIconOverride = null;
   }
 
   $result .= getAdditionalLinksHTML($view, $forLeftBar);
@@ -1088,10 +1112,17 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
       </div>
       ';
 
+      $optIcon = 'settings';
+      $optIconType = 'material';
+      if (isset($menuIconOverride)) {
+        $optIcon = $menuIconOverride['icon'];
+        $optIconType = $menuIconOverride['iconType'];
+      }
+
       $result .= '
 <li id="getOptionsHTML" class="menu-item sub-menu '.($view == "options" ? ' open' : '').'">
   <a href="#<!--?view='.$view_.'&amp;tab=system-->">
-    <span class="menu-icon"><i class="material-icons">settings</i></span>
+    <span class="menu-icon">'.renderMenuIcon($optIcon, $optIconType).'</span>
     <span class="menu-title">'.htmlspecialchars($label).'</span>
   </a>
 ' . $subMenuOptions . '

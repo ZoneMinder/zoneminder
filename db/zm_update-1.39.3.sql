@@ -13,6 +13,8 @@ SET @s = (SELECT IF(
   `Enabled`   tinyint(1) NOT NULL DEFAULT 1,
   `Label`     varchar(64) DEFAULT NULL,
   `SortOrder` smallint NOT NULL DEFAULT 0,
+  `Icon`      varchar(128) DEFAULT NULL,
+  `IconType`  enum('material','fontawesome','image') NOT NULL DEFAULT 'material',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `Menu_Items_MenuKey_idx` (`MenuKey`)
 ) ENGINE=InnoDB"
@@ -44,6 +46,34 @@ SET @s = (SELECT IF(
   ('Reports', 1, 120),
   ('ReportEventAudit', 1, 130),
   ('Map', 1, 140)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Add Icon and IconType columns if they don't exist
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Menu_Items' AND column_name = 'Icon'
+    ) > 0,
+"SELECT 'Column Icon already exists'",
+"ALTER TABLE `Menu_Items` ADD `Icon` varchar(128) DEFAULT NULL AFTER `SortOrder`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Menu_Items' AND column_name = 'IconType'
+    ) > 0,
+"SELECT 'Column IconType already exists'",
+"ALTER TABLE `Menu_Items` ADD `IconType` enum('material','fontawesome','image') NOT NULL DEFAULT 'material' AFTER `Icon`"
 ));
 
 PREPARE stmt FROM @s;

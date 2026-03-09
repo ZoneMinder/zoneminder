@@ -434,12 +434,12 @@ function MonitorStream(monitorData) {
         const video_el = document.querySelector('#liveStream'+this.id+' video');
         if (video_el) {
           video_el.muted = this.muted;
-          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
-            (e) => {
-              this.createVolumeSlider();
-              getTracksFromStream(this); //Go2rtc
-            }
-          )
+          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play',
+              (e) => {
+                this.createVolumeSlider();
+                getTracksFromStream(this); //Go2rtc
+              }
+          );
         }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
@@ -464,12 +464,12 @@ function MonitorStream(monitorData) {
       const video_el = document.querySelector('#liveStream'+this.id);
       if (video_el) {
         video_el.muted = this.muted;
-        this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
-          (e) => {
-            this.createVolumeSlider();
-            getTracksFromStream(this); //Janus
-          }
-        )
+        this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play',
+            (e) => {
+              this.createVolumeSlider();
+              getTracksFromStream(this); //Janus
+            }
+        );
       }
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -511,12 +511,12 @@ function MonitorStream(monitorData) {
         const video_el = document.querySelector('video#liveStream'+this.id);
         if (video_el) {
           video_el.muted = this.muted;
-          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play', 
-            (e) => {
-              this.createVolumeSlider();
-              getTracksFromStream(this); //RTSP2Web RTC, MSE, HLS
-            }
-          )
+          this.handlerEventListener['playStream'] = manageEventListener.addEventListener(video_el, 'play',
+              (e) => {
+                this.createVolumeSlider();
+                getTracksFromStream(this); //RTSP2Web RTC, MSE, HLS
+              }
+          );
         }
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';

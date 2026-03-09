@@ -50,7 +50,7 @@ function execONVIF($cmd) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.$_REQUEST['interface'] : '' ));
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.escapeshellarg($_REQUEST['interface']) : '' ));
   if ($lines) {
     foreach ($lines as $line) {
       $line = rtrim($line);
@@ -93,7 +93,7 @@ function probeCameras($localIp) {
 
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
-  if ($lines = @execONVIF("profiles $device_ep $soapversion $username $password")) {
+  if ($lines = @execONVIF('profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' '.escapeshellarg($password))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 

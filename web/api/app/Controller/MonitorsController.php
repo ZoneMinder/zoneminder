@@ -259,7 +259,7 @@ class MonitorsController extends AppController {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
       if ($mToken) {
-        $auth = ' -T '.$mToken;
+        $auth = ' -T '.escapeshellarg($mToken);
       } else if (ZM_AUTH_RELAY == 'hashed') {
         $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
@@ -278,13 +278,17 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user->Username().' -P '.$password;
+        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user->Username();
+        $auth = ' -U '.escapeshellarg($user->Username());
       }
     }
-    
-    $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
+
+    $shellcmd = ZM_PATH_BIN.'/zmu'
+      .($verbose ? " $verbose" : '')
+      .' -m'.escapeshellarg($id)
+      ." $q"
+      .$auth;
     $status = exec($shellcmd, $output, $rc);
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {

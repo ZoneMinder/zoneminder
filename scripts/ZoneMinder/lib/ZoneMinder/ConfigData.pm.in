@@ -2991,6 +2991,30 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_FILTER_SETTINGS_POSITION',
+    default     => 'sidebar',
+    description => 'Where to position the monitor filter settings panel on views.',
+    help        => q`
+      Controls how the monitor filter settings panel is displayed on
+      views that support it (Console, Watch, Montage, Montage Review).
+      When set to 'Embedded in Left Sidebar' (default), the filter
+      panel is moved into the left sidebar extruder. This option only
+      takes effect when ZM_WEB_NAVBAR_TYPE is set to 'left'. When
+      the navbar is not on the left, filters use the standard
+      toggle icon regardless of this setting.
+      Setting this to 'inline' makes the filter panel always visible
+      at the top of the page.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'Embedded in Left Sidebar|inline',
+      pattern     => qr|^([EiI])|i,
+      format      => q( ($1 =~ /^i/i) ? 'inline' : 'sidebar' )
+    },
+    requires    => [ { name=>'ZM_WEB_NAVBAR_TYPE', value=>'left' } ],
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_H_REFRESH_MAIN',
     default     => '240',
     introduction => q`

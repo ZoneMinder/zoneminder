@@ -118,7 +118,7 @@ class FilterTerm {
         $value = $group->MonitorIds();
         break;
       case 'AlarmedZoneId':
-        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0 LIMIT 1)';
+        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.intval($value).' AND Score > 0 LIMIT 1)';
         break;
       case 'ExistsInFileSystem':
         $value = '';

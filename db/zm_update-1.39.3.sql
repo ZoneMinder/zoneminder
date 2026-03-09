@@ -5,7 +5,7 @@
 
 -- First convert existing pixel count values to percentages WHILE columns
 -- are still INT (values 0-100 fit in INT; ALTER to DECIMAL would fail on
--- large pixel counts that exceed DECIMAL(7,2) max of 99999.99).
+-- large pixel counts that exceed DECIMAL(10,2) max of 99999.99).
 --
 -- Zone pixel area = (Zones.Area * Monitors.Width * Monitors.Height) / 10000
 -- where Zones.Area is in percentage-space (0-10000) from zm_update-1.39.2.sql.
@@ -59,9 +59,9 @@ WHERE z.Coords LIKE '%.%'
     OR z.MinFilterPixels > 100 OR z.MaxFilterPixels > 100
     OR z.MinBlobPixels > 100 OR z.MaxBlobPixels > 100);
 
--- Now change threshold columns from int to DECIMAL(7,2) to store percentages
+-- Now change threshold columns from int to DECIMAL(10,2) to store percentages
 -- with 2 decimal places (e.g. 25.50 = 25.50% of zone area).
--- Values are now 0-100 from the UPDATE above, so they fit in DECIMAL(7,2).
+-- Values are now 0-100 from the UPDATE above, so they fit in DECIMAL(10,2).
 
 SET @s = (SELECT IF(
     (SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
@@ -69,12 +69,12 @@ SET @s = (SELECT IF(
     ) = 'decimal',
 "SELECT 'Zones threshold columns already DECIMAL'",
 "ALTER TABLE `Zones`
-  MODIFY `MinAlarmPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxAlarmPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MinFilterPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxFilterPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MinBlobPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxBlobPixels` DECIMAL(7,2) unsigned default NULL"
+  MODIFY `MinAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MinFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MinBlobPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxBlobPixels` DECIMAL(10,2) unsigned default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -88,12 +88,12 @@ SET @s = (SELECT IF(
     ) = 'decimal',
 "SELECT 'ZonePresets threshold columns already DECIMAL'",
 "ALTER TABLE `ZonePresets`
-  MODIFY `MinAlarmPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxAlarmPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MinFilterPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxFilterPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MinBlobPixels` DECIMAL(7,2) unsigned default NULL,
-  MODIFY `MaxBlobPixels` DECIMAL(7,2) unsigned default NULL"
+  MODIFY `MinAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxAlarmPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MinFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxFilterPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MinBlobPixels` DECIMAL(10,2) unsigned default NULL,
+  MODIFY `MaxBlobPixels` DECIMAL(10,2) unsigned default NULL"
 ));
 
 PREPARE stmt FROM @s;

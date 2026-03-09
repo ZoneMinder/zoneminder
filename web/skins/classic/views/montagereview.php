@@ -210,7 +210,7 @@ if (count($user->unviewableMonitorIds())) {
   $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 

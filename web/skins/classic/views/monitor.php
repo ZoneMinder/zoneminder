@@ -1257,11 +1257,11 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     if (ZM\Monitor::getEnableDisableZMS()) $selectPlayers = array_merge($selectPlayers, array('none' => 'None')); // Add an option to disable all players
     $selectedPlayers = [];
     $noneExists = false; // All players are disabled
-    if ((!$monitor->ZMSEnabled() && ZM\Monitor::getEnableDisableZMS()) && (!$monitor->Go2RTCEnabled()) && (!$monitor->RTSP2WebEnabled()) && (!$monitor->JanusEnabled())) {
+    if ((ZM\Monitor::getEnableDisableZMS() && !$monitor->ZMSEnabled()) && (!$monitor->Go2RTCEnabled()) && (!$monitor->RTSP2WebEnabled()) && (!$monitor->JanusEnabled())) {
       $selectedPlayers[] = 'none';
       $noneExists = true;
     } else {
-      if (($monitor->ZMSEnabled()) || !ZM\Monitor::getEnableDisableZMS()) $selectedPlayers[] = 'zms';
+      if (!ZM\Monitor::getEnableDisableZMS() || (ZM\Monitor::getEnableDisableZMS() && $monitor->ZMSEnabled())) $selectedPlayers[] = 'zms';
       if ($monitor->Go2RTCEnabled()) $selectedPlayers[] = 'go2rtc';
       if ($monitor->RTSP2WebEnabled()) $selectedPlayers[] = 'rtsp2web';
       if ($monitor->JanusEnabled()) $selectedPlayers[] = 'janus';

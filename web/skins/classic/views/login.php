@@ -43,7 +43,7 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
 <?php
 if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME) {
 ?>
-        <div class="form-check mt-2 mb-2">
+        <div class="form-check remember_me">
           <input type="checkbox" class="form-check-input" id="inputRememberMe" name="remember_me" value="1"/>
           <label class="form-check-label" for="inputRememberMe"><?php echo translate('RememberMe') ?></label>
         </div>
@@ -59,12 +59,12 @@ if (
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>';
 } ?>
         <button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
+      </div>
 <?php 
   if (defined('ZM_LOGIN_FOOTER')) {
     echo ZM_LOGIN_FOOTER;
   }
 ?>
-      </div>
     </form>
 <?php 
 } else {

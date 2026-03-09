@@ -81,6 +81,22 @@ std::vector<Group_Permission> Group_Permission::find(int p_user_id) {
   return results;
 }
 
+std::vector<Group_Permission> Group_Permission::findByRole(int role_id) {
+  std::vector<Group_Permission> results;
+  std::string sql = stringtf("SELECT `Id`,`RoleId`,`GroupId`,`Permission`+0 FROM Role_Groups_Permissions WHERE `RoleId`='%d'", role_id);
+
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+
+  if (result) {
+    results.reserve(mysql_num_rows(result));
+    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
+      results.push_back(Group_Permission(dbrow));
+    }
+    mysql_free_result(result);
+  }
+  return results;
+}
+
 void Group_Permission::loadMonitorIds() {
   Group group(group_id);
   monitor_ids = group.MonitorIds();

@@ -147,7 +147,7 @@ function downloadEvents(
     }
 
     if ($command) {
-      $command .= ' '.escapeshellarg($mergedFileName); # Name of the file to be added
+      $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
       if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
     }
   } # end foreach monitor
@@ -160,7 +160,7 @@ function downloadEvents(
     # Create an archive if necessary
     //$exportCompressed = true; // For debugging
     if ($exportCompressed) {
-      $command = 'gzip '.escapeshellarg($archive_path); # Name of the file to be archived
+      $command = 'gzip -- '.escapeshellarg($archive_path); # Name of the file to be archived
       if (executeShelCommand($command) === false) return false;
       $archiveFileName .= '.gz';
     }

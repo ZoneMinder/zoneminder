@@ -590,7 +590,7 @@ function submitThisForm(param = null) {
       form = param.form;
     }
   }
-  if (navbar_type == 'left' && !form) {
+  if (navbar_type == 'left' && filter_settings_position != 'inline' && !form) {
     if (currentView == 'console') {
       // We get the form that we process
       form = document.getElementById('monitorFiltersForm');
@@ -1976,6 +1976,8 @@ function changeAttrTitle(collapsed = null) {
 
 /* We create a retractable extruder block with filter settings (we move filters from the top panel) and a button in the left Sidebar menu */
 function insertControlModuleMenu() {
+  if (filter_settings_position == 'inline') return;
+
   var filter = null;
   if (currentView == 'console') {
     destroyChosen(); // It is required to be performed BEFORE receiving the object and only for those pages on which we transfer the filter

@@ -111,13 +111,13 @@ body.sticky .content-main {
 }
 
 /* We don't need to see the filter and other things (that we cut out). */
-.montagereview-page .content-main .controlHeader,
-.montagereview-page .content-main #fieldsTable,
-.console-page .content-main #fbpanel,
-.console-page a[data-flip-control-object="#fbpanel"], /* Filter visibility control button */
-.montage-page .content-main #filters_form,
-.watch-page .content-main .controlHeader,
-.report_event_audit-page #content form,
+.montagereview-page:not(.filter-inline) .content-main .controlHeader,
+.montagereview-page:not(.filter-inline) .content-main #fieldsTable,
+.console-page:not(.filter-inline) .content-main #fbpanel,
+.console-page:not(.filter-inline) a[data-flip-control-object="#fbpanel"], /* Filter visibility control button */
+.montage-page:not(.filter-inline) .content-main #filters_form,
+.watch-page:not(.filter-inline) .content-main .controlHeader,
+.report_event_audit-page:not(.filter-inline) #content form,
 .events-page .content-main #fieldsTable,
 .events-page a[data-flip-control-object="#fieldsTable"], /* Filter visibility control button */
 .options-page .content-main #sidebar,

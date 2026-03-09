@@ -60,3 +60,19 @@ std::vector<Monitor_Permission> Monitor_Permission::find(int p_user_id) {
   }
   return results;
 }
+
+std::vector<Monitor_Permission> Monitor_Permission::findByRole(int role_id) {
+  std::vector<Monitor_Permission> results;
+  std::string sql = stringtf("SELECT `Id`,`RoleId`,`MonitorId`,`Permission`+0 FROM Role_Monitors_Permissions WHERE `RoleId`='%d'", role_id);
+
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+
+  if (result) {
+    results.reserve(mysql_num_rows(result));
+    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
+      results.push_back(Monitor_Permission(dbrow));
+    }
+    mysql_free_result(result);
+  }
+  return results;
+}

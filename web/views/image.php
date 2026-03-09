@@ -60,6 +60,11 @@ if (!empty($_REQUEST['proxy'])) {
   }
 
   $url_parts = parse_url($url);
+  if (!$url_parts || !isset($url_parts['scheme']) ||
+      !in_array(strtolower($url_parts['scheme']), array('http', 'https'))) {
+    ZM\Warning('Image proxy only supports http/https URLs');
+    return;
+  }
   $username = $url_parts['user'];
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 

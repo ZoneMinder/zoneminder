@@ -572,6 +572,16 @@ function streamCmdPlay() {
   playBtn.hide();
 }
 
+function changePlayer() {
+  const player = $j('#player').val();
+  setCookie('zmZonePlayer', player);
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    monitors[i].stop();
+    monitors[i].setPlayer(player);
+    monitors[i].start();
+  }
+}
+
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
@@ -683,6 +693,10 @@ function initPage() {
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
+      // Read current state from MonitorStream (server may have changed it)
+      if (monitors.length) {
+        analyse_frames = monitors[0].analyse_frames;
+      }
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
         analyseBtn.addClass('btn-primary');
@@ -701,8 +715,14 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
+  var cookiePlayer = getCookie('zmZonePlayer');
+
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
+    if (cookiePlayer !== undefined && cookiePlayer !== null) {
+      monitors[i].setPlayer(cookiePlayer);
+    }
+    monitors[i].setButton('analyseBtn', analyseBtn);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start();

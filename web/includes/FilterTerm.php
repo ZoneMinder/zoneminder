@@ -40,6 +40,12 @@ class FilterTerm {
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
       if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
       $this->op = isset($term['op']) ? $term['op'] : '=';
+      $valid_ops = array('=', '!=', '>=', '<=', '>', '<', 'LIKE', 'NOT LIKE', '=~', '!~',
+        '=[]', '![]', 'IN', 'NOT IN', 'EXISTS', 'IS', 'IS NOT');
+      if (!in_array($this->op, $valid_ops)) {
+        Warning('Invalid operator in filter term: ' . $this->op);
+        $this->op = '=';
+      }
       $this->val = isset($term['val']) ? $term['val'] : '';
       if (is_array($this->val)) $this->val = implode(',', $this->val);
       if ( isset($term['cnj']) ) {
@@ -71,7 +77,7 @@ class FilterTerm {
       }
       $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
       $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
-      $this->collate = isset($term['collate']) ? $term['collate'] : '';
+      $this->collate = isset($term['collate']) ? preg_replace('/[^a-zA-Z0-9_]/', '', $term['collate']) : '';
       $this->multiple = isset($term['multiple']) ? $term['multiple'] : '';
       $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
@@ -79,6 +85,21 @@ class FilterTerm {
       Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
+
+  private function compare($left, $op, $right) {
+    $right = floatval($right);
+    switch ($op) {
+    case '=':  return $left == $right;
+    case '!=': return $left != $right;
+    case '>':  return $left > $right;
+    case '>=': return $left >= $right;
+    case '<':  return $left < $right;
+    case '<=': return $left <= $right;
+    default:
+      Warning("Invalid operator '$op' in compare");
+      return false;
+    }
+  }
 
   # Returns an array of values.  AS term->value can be a list, we will break it apart, remove quotes etc
   public function sql_values() {
@@ -433,16 +454,9 @@ class FilterTerm {
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {
-        $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evaled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare(getLoad(), $this->op, $this->val);
+        Debug("SystemLoad compare: getLoad() {$this->op} {$this->val} = " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else {
         Error('testing unsupported pre term ' . $this->attr);
       }
@@ -459,27 +473,13 @@ class FilterTerm {
           return !file_exists($event->Path());
         }
       } else if ( $this->attr == 'DiskPercent' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare($event->Storage()->disk_usage_percent(), $this->op, $this->val);
+        Debug("DiskPercent compare: " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+        Debug("DiskBlocks compare: " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else if ( $this->attr == 'Tags' ) {
         // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
         // Debug(print_r($this, true));

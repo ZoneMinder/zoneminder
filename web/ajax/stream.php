@@ -151,7 +151,7 @@ default :
 $data = unpack('ltype', $msg);
 switch ( $data['type'] ) {
 case MSG_DATA_WATCH :
-  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/iscale/Cdelayed/Cpaused/Cenabled/Cforced/iscore/ianalysing', $msg);
+  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/iscale/Cdelayed/Cpaused/Cenabled/Cforced/iscore/ianalysing/Canalysisimage', $msg);
   $data['fps'] = round( $data['fps'], 2 );
   $data['capturefps'] = round( $data['capturefps'], 2 );
   $data['analysisfps'] = round( $data['analysisfps'], 2 );

@@ -755,9 +755,9 @@ function daemonStatus($daemon, $args=false) {
 
 function zmcStatus($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonStatus('zmc', $zmcArgs);
 }
@@ -776,9 +776,9 @@ function daemonCheck($daemon=false, $args=false) {
 
 function zmcCheck($monitor) {
   if ( $monitor['Type'] == 'Local' ) {
-    $zmcArgs = '-d '.$monitor['Device'];
+    $zmcArgs = '-d '.escapeshellarg($monitor['Device']);
   } else {
-    $zmcArgs = '-m '.$monitor['Id'];
+    $zmcArgs = '-m '.escapeshellarg($monitor['Id']);
   }
   return daemonCheck('zmc', $zmcArgs);
 }
@@ -1467,7 +1467,7 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
 function convertPixelPointsToPercent(&$points, $width, $height) {
-  if (!$width || !$height) return;
+  if (!$width || !$height) return false;
   $isPixel = false;
   foreach ($points as $point) {
     if ($point['x'] > 100 || $point['y'] > 100) {
@@ -1482,6 +1482,7 @@ function convertPixelPointsToPercent(&$points, $width, $height) {
     }
     unset($point);
   }
+  return $isPixel;
 }
 
 function scalePoints(&$points, $scale) {
@@ -1878,6 +1879,18 @@ function validCardinal($input) {
 
 function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
+}
+
+// For device path strings - must be a valid Unix device path
+function validDevicePath($input) {
+  if (is_null($input) || $input === '') return '';
+  // Only allow typical device paths: /dev/video0, /dev/v4l/by-id/..., etc.
+  // Reject any shell metacharacters
+  if (!preg_match('#^/dev/[\w/.\-]+$#', $input)) {
+    ZM\Warning("Invalid device path rejected: ".validHtmlStr($input));
+    return '';
+  }
+  return $input;
 }
 
 // For general strings

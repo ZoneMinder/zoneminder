@@ -396,7 +396,7 @@ class EventsController extends AppController {
         }
         $matches = NULL;
         $value = preg_replace('/^\s?interval\s?/i', '', $value);
-        if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
+        if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
           throw new Exception('Invalid interval: ' . $value);
         }
         $expr = trim($matches['expr']);
@@ -429,7 +429,7 @@ class EventsController extends AppController {
     $matches = NULL;
     // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
     // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
-    if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
+    if (preg_match('/^(?P<expr>[ \-.:0-9]+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
       throw new Exception('Invalid interval: ' . $interval);
     }
     $expr = trim($matches['expr']);

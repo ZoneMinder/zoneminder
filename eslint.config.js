@@ -96,7 +96,7 @@ module.exports = defineConfig([{
   "web/js/fontfaceobserver.standalone.js",
   "web/skins/classic/js/bootstrap-4.5.0.js",
   "web/skins/classic/js/bootstrap.bundle.min.js",
-  "web/skins/classic/js/bootstrap-table-1.23.5",
+  "web/skins/classic/assets",
   "web/skins/classic/js/chosen",
   "web/skins/classic/js/dateTimePicker",
   "web/skins/classic/js/jquery-*.js",

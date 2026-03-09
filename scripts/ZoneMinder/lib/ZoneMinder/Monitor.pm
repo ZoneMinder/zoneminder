@@ -360,12 +360,20 @@ sub control {
   my $command = shift;
   my $process = shift;
 
+  my $valid_device = (defined $monitor->{Device} and $monitor->{Device} =~ /^\/dev\/[\w\/.\-]+$/);
+  if ($monitor->{Type} eq 'Local' and !$valid_device) {
+    Error("Invalid device path rejected: $monitor->{Device}");
+    return;
+  } elsif (!$valid_device and defined $monitor->{Device} and length($monitor->{Device})) {
+    Warning("Monitor $$monitor{Id} has invalid device path: $monitor->{Device}");
+  }
+
   if ($command eq 'stop') {
     if ($process) {
       ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl stop zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
       }
@@ -375,7 +383,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
       }
@@ -385,7 +393,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl restart $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl restart zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl restart zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl restart zmc -m '.$monitor->{Id});
       }
@@ -511,7 +519,11 @@ sub zmcControl {
 
   if ((!$ZoneMinder::Config{ZM_SERVER_ID}) or ( $$self{ServerId} and ($ZoneMinder::Config{ZM_SERVER_ID}==$$self{ServerId}) )) {
     if ($$self{Type} eq 'Local') {
-      $zmcArgs .= '-d '.$self->{Device};
+      if (!defined $$self{Device} or $$self{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+        Error("Invalid device path rejected: $$self{Device}");
+        return;
+      }
+      $zmcArgs .= "-d '$$self{Device}'";
     } else {
       $zmcArgs .= '-m '.$self->{Id};
     }

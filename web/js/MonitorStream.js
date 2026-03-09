@@ -31,6 +31,7 @@ function MonitorStream(monitorData) {
   this.wsMSE = null;
   this.streamStartTime = 0; // Initial point of flow start time. Used for flow lag time analysis.
   this.waitingStart;
+  this.handlerEventListener = {};
   this.mseListenerSourceopenBind = null;
   this.streamListenerBind = null;
   this.mseSourceBufferListenerUpdateendBind = null;
@@ -443,7 +444,7 @@ function MonitorStream(monitorData) {
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
-        this.streamListenerBind();
+        this.handlerEventListener['killStream'] = this.streamListenerBind();
 
         if (typeof observerMontage !== 'undefined') observerMontage.observe(stream);
         this.activePlayer = 'go2rtc';
@@ -484,7 +485,7 @@ function MonitorStream(monitorData) {
       attachVideo(this);
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       this.started = true;
-      this.streamListenerBind();
+      this.handlerEventListener['killStream'] = this.streamListenerBind();
       this.activePlayer = 'janus';
       this.updateStreamInfo('Janus', 'loading');
       return;
@@ -556,7 +557,7 @@ function MonitorStream(monitorData) {
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
-        this.streamListenerBind();
+        this.handlerEventListener['killStream'] = this.streamListenerBind();
         this.updateStreamInfo((typeof players !== "undefined" && players) ? players[this.activePlayer] : 'RTSP2Web ' + this.RTSP2WebType, 'loading');
         return;
       } else {
@@ -620,12 +621,14 @@ function MonitorStream(monitorData) {
       }
     } // end if paused or not
     this.started = true;
-    this.streamListenerBind();
+    this.handlerEventListener['killStream'] = this.streamListenerBind();
     this.activePlayer = 'zms';
     this.updateStreamInfo('ZMS MJPEG');
   }; // this.start
 
   this.stop = function() {
+    manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
+
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
     if (!stream) {
@@ -1335,6 +1338,30 @@ function MonitorStream(monitorData) {
           }
         } // end if canEdit.Monitors
 
+        // Update analyse_frames and button to reflect what zms is actually sending
+        if (streamStatus.analysisimage !== undefined) {
+          const got_analysis = !!streamStatus.analysisimage;
+          if (this.analyse_frames != got_analysis) {
+            console.log('Analysis image state changed: requested=' + this.analyse_frames + ' actual=' + got_analysis);
+            this.analyse_frames = got_analysis;
+            if ('analyseBtn' in this.buttons) {
+              if (got_analysis) {
+                this.buttons.analyseBtn.addClass('btn-primary');
+                this.buttons.analyseBtn.removeClass('btn-secondary');
+                if (typeof translate !== 'undefined') {
+                  this.buttons.analyseBtn.prop('title', translate['Showing Analysis']);
+                }
+              } else {
+                this.buttons.analyseBtn.removeClass('btn-primary');
+                this.buttons.analyseBtn.addClass('btn-secondary');
+                if (typeof translate !== 'undefined') {
+                  this.buttons.analyseBtn.prop('title', translate['Not Showing Analysis']);
+                }
+              }
+            }
+          }
+        }
+
         if (this.status.auth) {
           if (this.status.auth != auth_hash) {
             // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
@@ -1977,10 +2004,10 @@ function startRTSP2WebPlay(videoEl, url, stream) {
 }
 
 function streamListener(stream) {
-  window.addEventListener('beforeunload', function(event) {
+  return manageEventListener.addEventListener(window, 'beforeunload', function() {
     console.log('streamListener');
     stream.kill();
-  });
+  }, {capture: false});
 }
 
 function mseListenerSourceopen(context, videoEl, url) {

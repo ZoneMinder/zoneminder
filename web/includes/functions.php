@@ -523,8 +523,12 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
       case 'image' :
           if ( is_array( $newValues[$key] ) ) {
             $imageData = getimagesize( $newValues[$key]['tmp_name'] );
-            $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
-            $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            if ( !is_array($imageData) ) {
+              ZM\Warning("getimagesize failed for uploaded file '$key'; skipping width/height update.");
+            } else {
+              $changes[$key.'Width'] = $key.'Width = '.intval($imageData[0]);
+              $changes[$key.'Height'] = $key.'Height = '.intval($imageData[1]);
+            }
             $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
             $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();
@@ -537,7 +541,6 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
       case 'document' :
           if ( is_array( $newValues[$key] ) ) {
-            $imageData = getimagesize( $newValues[$key]['tmp_name'] );
             $changes[$key.'Type'] = $key.'Type = '.dbEscape($newValues[$key]['type']);
             $changes[$key.'Size'] = $key.'Size = '.intval($newValues[$key]['size']);
             ob_start();

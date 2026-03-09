@@ -79,12 +79,13 @@ $canEdit = canEdit('System');
                       <option value="material" <?php echo $effIconType == 'material' ? 'selected' : '' ?>>Material</option>
                       <option value="fontawesome" <?php echo $effIconType == 'fontawesome' ? 'selected' : '' ?>>Font Awesome</option>
                       <option value="image" <?php echo $effIconType == 'image' ? 'selected' : '' ?>>Image</option>
+                      <option value="none" <?php echo $effIconType == 'none' ? 'selected' : '' ?>>None</option>
                     </select>
                     <input type="text" name="items[<?php echo $id ?>][Icon]" class="form-control form-control-sm iconNameInput"
                       id="iconName-<?php echo $id ?>"
                       value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>"
                       placeholder="<?php echo htmlspecialchars($effIcon) ?>"
-                      style="width:140px;<?php echo $effIconType == 'image' ? 'display:none;' : '' ?>"
+                      style="width:140px;<?php echo ($effIconType == 'image' || $effIconType == 'none') ? 'display:none;' : '' ?>"
                       <?php echo !$canEdit ? 'disabled' : '' ?>
                     />
                     <input type="file" name="items[<?php echo $id ?>][IconFile]" class="form-control-file form-control-sm iconFileInput"

@@ -42,6 +42,9 @@ class MenuItem extends ZM_Object {
   }
 
   public function effectiveIconType() {
+    if ($this->{'IconType'} == 'none') {
+      return 'none';
+    }
     if ($this->{'Icon'} !== null && $this->{'Icon'} !== '') {
       return $this->{'IconType'};
     }

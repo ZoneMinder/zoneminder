@@ -99,6 +99,9 @@ function initPage() {
       if (type === 'image') {
         $j('#iconName-' + id).hide();
         $j('#iconFile-' + id).show();
+      } else if (type === 'none') {
+        $j('#iconName-' + id).hide();
+        $j('#iconFile-' + id).hide();
       } else {
         $j('#iconName-' + id).show();
         $j('#iconFile-' + id).hide();

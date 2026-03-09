@@ -180,12 +180,23 @@ function getBodyTopHTML() {
 } // end function getBodyTopHTML
 
 function renderMenuIcon($icon, $iconType = 'material') {
-  if ($iconType == 'fontawesome') {
+  if ($iconType == 'none') {
+    return '';
+  } else if ($iconType == 'fontawesome') {
     return '<i class="fa '.htmlspecialchars($icon).'"></i>';
   } else if ($iconType == 'image') {
     return '<img src="'.htmlspecialchars($icon).'" alt="" style="width:24px;height:24px;object-fit:contain;"/>';
   }
   return '<i class="material-icons">'.htmlspecialchars($icon).'</i>';
+}
+
+// Returns icon HTML from the current $menuIconOverride, or empty string if not set
+function getNavbarIcon() {
+  global $menuIconOverride;
+  if (!isset($menuIconOverride)) return '';
+  $html = renderMenuIcon($menuIconOverride['icon'], $menuIconOverride['iconType']);
+  if ($html !== '') $html .= ' ';
+  return $html;
 }
 
 function buildMenuItem($viewItemName, $id, $itemName, $href, $icon, $classNameForTag_A = '', $subMenu = '', $skipTranslate = false, $iconType = 'material') {
@@ -1034,7 +1045,7 @@ function getConsoleHTML($forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1128,7 +1139,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
 ' . $subMenuOptions . '
 </li>'.PHP_EOL;
     } else {
-      $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.htmlspecialchars($label).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.getNavbarIcon().htmlspecialchars($label).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1157,7 +1168,7 @@ function getLogHTML($forLeftBar = false, $customLabel = null) {
           $skipTranslate
         );
       } else {
-        $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+        $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
       }
     }
   }
@@ -1201,7 +1212,7 @@ function getDevicesHTML($forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1231,7 +1242,7 @@ function getIntelGpuHTML($forLeftBar = false, $customLabel = null) {
           $skipTranslate
         );
       } else {
-        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">'.htmlspecialchars($label).'</a></li>'.PHP_EOL;
+        $result .= '<li id="getIntelGpuHTML" class="nav-item"><a class="nav-link" href="?view=intelgpu">'.getNavbarIcon().htmlspecialchars($label).'</a></li>'.PHP_EOL;
       }
     }
   }
@@ -1259,7 +1270,7 @@ function getGroupsHTML($view, $forLeftBar = false, $customLabel = null) {
       $skipTranslate
     );
   } else {
-    $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+    $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;
@@ -1285,7 +1296,7 @@ function getFilterHTML($view, $forLeftBar = false, $customLabel = null) {
       $skipTranslate
     );
   } else {
-    $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+    $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
   }
 
   return $result;
@@ -1312,7 +1323,7 @@ function getMontageHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1354,7 +1365,7 @@ function getMontageReviewHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1381,7 +1392,7 @@ function getSnapshotsHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1409,7 +1420,7 @@ function getEventsHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getEventsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=events">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getEventsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=events">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1435,7 +1446,7 @@ function getReportsHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1462,7 +1473,7 @@ function getRprtEvntAuditHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 
@@ -1489,7 +1500,7 @@ function getMapHTML($view, $forLeftBar = false, $customLabel = null) {
         $skipTranslate
       );
     } else {
-      $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
+      $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.getNavbarIcon().htmlspecialchars($skipTranslate ? $label : translate($label)).'</a></li>'.PHP_EOL;
     }
   }
 

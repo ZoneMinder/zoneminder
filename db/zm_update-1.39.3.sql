@@ -14,7 +14,7 @@ SET @s = (SELECT IF(
   `Label`     varchar(64) DEFAULT NULL,
   `SortOrder` smallint NOT NULL DEFAULT 0,
   `Icon`      varchar(128) DEFAULT NULL,
-  `IconType`  enum('material','fontawesome','image') NOT NULL DEFAULT 'material',
+  `IconType`  enum('material','fontawesome','image','none') NOT NULL DEFAULT 'material',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `Menu_Items_MenuKey_idx` (`MenuKey`)
 ) ENGINE=InnoDB"
@@ -73,7 +73,7 @@ SET @s = (SELECT IF(
      AND table_name = 'Menu_Items' AND column_name = 'IconType'
     ) > 0,
 "SELECT 'Column IconType already exists'",
-"ALTER TABLE `Menu_Items` ADD `IconType` enum('material','fontawesome','image') NOT NULL DEFAULT 'material' AFTER `Icon`"
+"ALTER TABLE `Menu_Items` ADD `IconType` enum('material','fontawesome','image','none') NOT NULL DEFAULT 'material' AFTER `Icon`"
 ));
 
 PREPARE stmt FROM @s;

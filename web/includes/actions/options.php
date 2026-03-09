@@ -203,7 +203,7 @@ if ( $action == 'delete' ) {
       if ($label === '') $label = null;
 
       $iconType = isset($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
-      if (!in_array($iconType, ['material', 'fontawesome', 'image'])) $iconType = 'material';
+      if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
       $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
       if ($icon === '') $icon = null;
 

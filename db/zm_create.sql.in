@@ -1360,7 +1360,7 @@ CREATE TABLE `Menu_Items` (
   `Label`     varchar(64) DEFAULT NULL,
   `SortOrder` smallint NOT NULL DEFAULT 0,
   `Icon`      varchar(128) DEFAULT NULL,
-  `IconType`  enum('material','fontawesome','image') NOT NULL DEFAULT 'material',
+  `IconType`  enum('material','fontawesome','image','none') NOT NULL DEFAULT 'material',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `Menu_Items_MenuKey_idx` (`MenuKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

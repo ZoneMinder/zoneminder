@@ -156,7 +156,10 @@ function xhtmlHeadersEnd() {
 function getBodyTopHTML() {
   global $view;
   //Needed for more flexible global governance
-  $classHTML = ' class="'.$view.'-page'.((defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) ? ' sticky"' : '"');
+  $classes = $view.'-page';
+  if (defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) $classes .= ' sticky';
+  if (defined('ZM_WEB_FILTER_SETTINGS_POSITION') and ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') $classes .= ' filter-inline';
+  $classHTML = ' class="'.$classes.'"';
   echo '
 <body data-swipe-threshold="10" data-swipe-unit="vw" data-swipe-timeout="300"'.$classHTML.'>
 <noscript>

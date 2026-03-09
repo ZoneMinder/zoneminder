@@ -281,13 +281,17 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$html = '<a class="flip" href="#"
-         data-flip-control-object="#mfbpanel"
-         data-flip-control-run-after-func="applyChosen drawGraph"
-         data-flip-control-run-after-complet-func="changeScale">
-           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-         </a>'.PHP_EOL;
-$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$html = '';
+if (!$filter_inline) {
+  $html .= '<a class="flip" href="#"
+           data-flip-control-object="#mfbpanel"
+           data-flip-control-run-after-func="applyChosen drawGraph"
+           data-flip-control-run-after-complet-func="changeScale">
+             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+           </a>'.PHP_EOL;
+}
+$html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 echo $filterbar;
 if (count($filter->terms())) {

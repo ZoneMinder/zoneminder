@@ -186,19 +186,20 @@ function initPage() {
       }
     });
 
-    // Toggle between text input and file input based on icon type
+    // Toggle icon name input visibility and placeholder based on icon type
     $j('.iconTypeSelect').on('change', function() {
       const id = $j(this).data('item-id');
       const type = $j(this).val();
-      if (type === 'image') {
-        $j('#iconName-' + id).hide();
-        $j('#iconFile-' + id).show();
-      } else if (type === 'none') {
-        $j('#iconName-' + id).hide();
-        $j('#iconFile-' + id).hide();
+      const nameInput = $j('#iconName-' + id);
+      if (type === 'none') {
+        nameInput.hide();
       } else {
-        $j('#iconName-' + id).show();
-        $j('#iconFile-' + id).hide();
+        nameInput.show();
+        if (type === 'image') {
+          nameInput.attr('placeholder', 'graphics/menu/icon.png').css('width', '200px');
+        } else {
+          nameInput.attr('placeholder', '').css('width', '140px');
+        }
       }
     });
   }

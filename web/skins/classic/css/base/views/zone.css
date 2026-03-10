@@ -1,10 +1,13 @@
+#zoneForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 #settingsPanel, .buttons, #zonePoints  {
   margin: 2px;
 }
 #settingsPanel {
-	max-width: 600px;
-  width: 50%;
-  float: right;
+  flex: 0 0 480px;
 }
 
 #zoneSettings {
@@ -27,9 +30,9 @@
 
 #imageAndPoints {
   position: relative;
-  min-width: 647px; /* extra 6 px for padding */
-  float: left;
-  width: 50%;
+  flex: 1 1 0;
+  min-width: 320px;
+  container-type: inline-size;
 }
 
 /* NB: The size of the imageFrame determines the area within which the markers
@@ -89,15 +92,31 @@
   width: 100%;
 }
 
-#zonePoints td {
-    vertical-align: top;
+#zonePoints > table {
+  border-collapse: collapse;
+  width: 100%;
+}
+#zonePoints > table > tbody > tr {
+  display: flex;
+  gap: 4px;
+}
+#zonePoints > table > tbody > tr > td {
+  flex: 1 1 0;
+  vertical-align: top;
+}
+#zonePoints > table > tbody > tr > td.pointSpacer {
+  display: none;
 }
 
-#zonePoints table {
-  border-collapse: collapse;
-	width: 100%;
-}
 #zonePoints table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+@container (max-width: 500px) {
+  #zonePoints > table > tbody > tr {
+    flex-direction: column;
+  }
 }
 
 #zonePoints table table tr.highlight {
@@ -152,6 +171,16 @@ input[name="newAlarmRgbG"],
 input[name="newAlarmRgbB"] {
 width: 25%;
 }
+/* Hide number input spinners in zone settings */
+#zoneSettings input[type="number"]::-webkit-outer-spin-button,
+#zoneSettings input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#zoneSettings input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 input[name="newZone[MinPixelThreshold]"],
 input[name="newZone[MaxPixelThreshold]"],
 input[name="newZone[FilterX]"],
@@ -164,7 +193,13 @@ input[name="newZone[MinBlobs]"],
 input[name="newZone[MaxBlobs]"],
 input[name="newZone[MinAlarmPixels]"],
 input[name="newZone[MaxAlarmPixels]"] {
-  width: 90px;
+  width: 60px;
+}
+.pxInput {
+  width: 70px;
+}
+.zoneArea {
+  font-weight: bold;
 }
 input.ZonePoint {
     width: 75px;

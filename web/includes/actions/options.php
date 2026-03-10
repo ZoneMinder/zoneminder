@@ -207,38 +207,6 @@ if ( $action == 'delete' ) {
       $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
       if ($icon === '') $icon = null;
 
-      // Handle image upload
-      if (isset($_FILES['items']['name'][$id]['IconFile'])
-          && $_FILES['items']['error'][$id]['IconFile'] == UPLOAD_ERR_OK) {
-        $uploadDir = ZM_PATH_WEB.'/graphics/menu/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-        $tmpName = $_FILES['items']['tmp_name'][$id]['IconFile'];
-        $origName = basename($_FILES['items']['name'][$id]['IconFile']);
-        $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-        $allowedExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico'];
-        if (in_array($ext, $allowedExts)) {
-          // Validate it's actually an image (except SVG/ICO)
-          if ($ext == 'svg' || $ext == 'ico' || getimagesize($tmpName) !== false) {
-            $safeName = 'menu_'.$id.'_'.time().'.'.$ext;
-            $destPath = $uploadDir.$safeName;
-            if (move_uploaded_file($tmpName, $destPath)) {
-              // Remove old uploaded icon if it exists
-              if ($item->IconType() == 'image' && $item->Icon() && file_exists(ZM_PATH_WEB.'/'.$item->Icon())) {
-                unlink(ZM_PATH_WEB.'/'.$item->Icon());
-              }
-              $icon = 'graphics/menu/'.$safeName;
-              $iconType = 'image';
-            }
-          }
-        }
-      }
-
-      // If user cleared icon, reset to default
-      if ($iconType != 'image' && ($icon === null || $icon === '')) {
-        $icon = null;
-      }
-
       $item->save([
         'Enabled' => $enabled,
         'Label' => $label,
@@ -253,14 +221,6 @@ if ( $action == 'delete' ) {
   if (!canEdit('System')) {
     ZM\Warning('Need System permission to reset menu items');
   } else {
-    // Clean up any uploaded icon files
-    require_once('includes/MenuItem.php');
-    $oldItems = ZM\MenuItem::find();
-    foreach ($oldItems as $item) {
-      if ($item->IconType() == 'image' && $item->Icon() && file_exists(ZM_PATH_WEB.'/'.$item->Icon())) {
-        unlink(ZM_PATH_WEB.'/'.$item->Icon());
-      }
-    }
     dbQuery('DELETE FROM Menu_Items');
     dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
       ('Console', 1, 10),

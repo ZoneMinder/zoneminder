@@ -385,8 +385,6 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined(ZM_SIDEBAR_FOOTER) and ZM_SIDEBAR_FOOTER) {
-    $menu .- ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>
@@ -456,13 +454,14 @@ echo $block;
 
 function getSidebarBottomHTML() {
   global $skin;
-  $block = '
+  $block = '';
+  if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
+    $block .= ZM_SIDEBAR_FOOTER;
+  }
+  $block .= '
     <div class="overlay"></div>
   </div> <!-- class="content-main" -->
 </div> <!-- class="layout-main has-sidebar fixed-sidebar fixed-header" -->
-<style>
-
-</style>
 ';
 echo $block;
 } // end function getSidebarBottomHTML

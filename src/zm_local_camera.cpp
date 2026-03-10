@@ -872,7 +872,7 @@ bool LocalCamera::GetCurrentSettings(
       queryDevice = stringtf("/dev/video%d", devIndex);
     }
 
-    if ((vid_fd =v4l2_open(queryDevice.c_str(), O_RDWR)) <= 0) {
+    if ((vid_fd = v4l2_open(queryDevice.c_str(), O_RDWR)) < 0) {
       if (!device.empty()) {
         Error("Failed to open video device %s: %s", queryDevice.c_str(), strerror(errno));
         if (verbose) {

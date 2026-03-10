@@ -242,7 +242,7 @@ echo $navbar ?>
         data-cookie-expire="2y"
         data-remember-order="false"
         data-show-columns="true"
-        data-show-export="true"
+        data-show-export="false"
         data-show-footer="true"
         data-toolbar="#toolbar"
         data-sort-name="Sequence"

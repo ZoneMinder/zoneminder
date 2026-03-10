@@ -174,6 +174,27 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 --
+-- Ensure all expected menu items exist (adds any missing entries)
+--
+
+INSERT IGNORE INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+  ('Console', 1, 10),
+  ('Watch', 1, 15),
+  ('Montage', 1, 20),
+  ('MontageReview', 1, 30),
+  ('Events', 1, 40),
+  ('Options', 1, 50),
+  ('Log', 1, 60),
+  ('Devices', 1, 70),
+  ('IntelGpu', 1, 80),
+  ('Groups', 1, 90),
+  ('Filters', 1, 100),
+  ('Snapshots', 1, 110),
+  ('Reports', 1, 120),
+  ('ReportEventAudit', 1, 130),
+  ('Map', 1, 140);
+
+--
 -- Add Icon and IconType columns if they don't exist
 --
 

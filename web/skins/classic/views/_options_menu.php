@@ -12,14 +12,19 @@ $canEdit = canEdit('System');
       <div class="col">
         <div id="contentButtons">
 <?php if ($canEdit) { ?>
-          <button type="submit" class="btn btn-primary"><?php echo translate('Save') ?></button>
-          <button type="button" id="sortMenuBtn" data-on-click-this="sortMenuItems">
+          <button type="submit" class="btn btn-primary">
+            <i class="material-icons">save</i>
+            <span class="text"><?php echo translate('Save') ?></span>
+          </button>
+          <button type="button" id="sortMenuBtn" class="btn btn-secondary" data-on-click-this="sortMenuItems">
             <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
             <span class="text"><?php echo translate('Sort') ?></span>
           </button>
           <button type="submit" name="action" value="resetmenu" class="btn btn-warning"
             onclick="return confirm('<?php echo addslashes(translate('Reset menu items to defaults?')) ?>');"
-          ><?php echo translate('Reset') ?></button>
+          ><i class="material-icons">restart_alt</i>
+            <span class="text"><?php echo translate('Reset') ?></span>
+          </button>
 <?php } ?>
         </div>
       </div>

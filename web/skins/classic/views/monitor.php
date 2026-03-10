@@ -1113,32 +1113,36 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('Object Detection Model')?></label>
 <?php
         $models = ['none'=>[]];
-        foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
-          $model = basename($model);
-          $extension = pathinfo($model, PATHINFO_EXTENSION);
-          if ($extension == 'dfp') {
-            if (defined('HAVE_MEMX')) {
-              if (!isset($models['memx'])) $models['memx'] = [];
-              $models['memx'][$model] = $model;
+        if (!(defined('ZM_DIR_MODELS') and ZM_DIR_MODELS)) {
+          echo '<span class="error">ZM_DIR_MODELS is not defined.</span>';
+        } else {
+          foreach (glob(ZM_DIR_MODELS.'/*') as $model) {
+            $model = basename($model);
+            $extension = pathinfo($model, PATHINFO_EXTENSION);
+            if ($extension == 'dfp') {
+              if (defined('HAVE_MEMX')) {
+                if (!isset($models['memx'])) $models['memx'] = [];
+                $models['memx'][$model] = $model;
+              }
+              if (defined('HAVE_MX_ACCL')) {
+                if (!isset($models['mx_accl'])) $models['mx_accl'] = [];
+                $models['mx_accl'][$model] = $model;
+              }
+            } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
+              if (!isset($models['speedai'])) $models['speedai'] = [];
+              $models['speedai'][$model] = $model;
+            } else if ($extension == 'nb' and defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA) {
+              if (!isset($models['quadra'])) $models['quadra'] = [];
+              $models['quadra'][$model] = $model;
+            } else {
+              ZM\Debug("Unkown extension in model $model");
             }
-            if (defined('HAVE_MX_ACCL')) {
-              if (!isset($models['mx_accl'])) $models['mx_accl'] = [];
-              $models['mx_accl'][$model] = $model;
+            if ($monitor->ObjectDetection() == 'none') {
+              $models['none'][$model] = $model;
             }
-          } else if ($extension == 'uxf' and defined('HAVE_UNTETHER')) {
-            if (!isset($models['speedai'])) $models['speedai'] = [];
-            $models['speedai'][$model] = $model;
-          } else if ($extension == 'nb' and defined('ZM_HAVE_QUADRA') and ZM_HAVE_QUADRA) {
-            if (!isset($models['quadra'])) $models['quadra'] = [];
-            $models['quadra'][$model] = $model;
-          } else {
-            ZM\Debug("Unkown extension in model $model");
           }
-          if ($monitor->ObjectDetection() == 'none') {
-            $models['none'][$model] = $model;
-          }
-        }
           echo htmlSelect('newMonitor[ObjectDetectionModel]', $models[$monitor->ObjectDetection()], $monitor->ObjectDetectionModel());
+        } # end if ZM_DIR_MODELS
 ?>
             </li>
             <li id="ObjectDetectionObjectThreshold" class="ObjectDetectionObjectThreshold">

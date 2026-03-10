@@ -152,6 +152,16 @@ input[name="newAlarmRgbG"],
 input[name="newAlarmRgbB"] {
 width: 25%;
 }
+/* Hide number input spinners in zone settings */
+#zoneSettings input[type="number"]::-webkit-outer-spin-button,
+#zoneSettings input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#zoneSettings input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 input[name="newZone[MinPixelThreshold]"],
 input[name="newZone[MaxPixelThreshold]"],
 input[name="newZone[FilterX]"],
@@ -164,7 +174,13 @@ input[name="newZone[MinBlobs]"],
 input[name="newZone[MaxBlobs]"],
 input[name="newZone[MinAlarmPixels]"],
 input[name="newZone[MaxAlarmPixels]"] {
-  width: 90px;
+  width: 60px;
+}
+.pxInput {
+  width: 70px;
+}
+.zoneArea {
+  font-weight: bold;
 }
 input.ZonePoint {
     width: 75px;

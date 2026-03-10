@@ -956,21 +956,21 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     col++;
     int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int FilterX = dbrow[col]?atoi(dbrow[col]):0;
     col++;
     int FilterY = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int MinBlobs = dbrow[col]?atoi(dbrow[col]):0;
     col++;
@@ -1002,6 +1002,27 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
               Coords, Id, Name, monitor->Name());
         continue;
       }
+    }
+
+    // Convert threshold values from DB format to pixel counts for runtime use.
+    // Percentage coordinates: thresholds are stored as % of zone area, convert to pixels.
+    // Legacy pixel coordinates: thresholds are already pixel counts.
+    int MinAlarmPixels, MaxAlarmPixels, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels;
+    if (strchr(Coords, '.') && polygon.Area() > 0) {
+      int zpa = polygon.Area();
+      MinAlarmPixels = MinAlarmPixels_pct > 0 ? static_cast<int>(MinAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxAlarmPixels = MaxAlarmPixels_pct > 0 ? static_cast<int>(MaxAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinFilterPixels = MinFilterPixels_pct > 0 ? static_cast<int>(MinFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxFilterPixels = MaxFilterPixels_pct > 0 ? static_cast<int>(MaxFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinBlobPixels = MinBlobPixels_pct > 0 ? static_cast<int>(MinBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxBlobPixels = MaxBlobPixels_pct > 0 ? static_cast<int>(MaxBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+    } else {
+      MinAlarmPixels = static_cast<int>(MinAlarmPixels_pct);
+      MaxAlarmPixels = static_cast<int>(MaxAlarmPixels_pct);
+      MinFilterPixels = static_cast<int>(MinFilterPixels_pct);
+      MaxFilterPixels = static_cast<int>(MaxFilterPixels_pct);
+      MinBlobPixels = static_cast<int>(MinBlobPixels_pct);
+      MaxBlobPixels = static_cast<int>(MaxBlobPixels_pct);
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {

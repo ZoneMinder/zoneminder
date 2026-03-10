@@ -33,6 +33,7 @@ SET @s = (SELECT IF(
 "SELECT 'Menu_Items already has data'",
 "INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
   ('Console', 1, 10),
+  ('Watch', 1, 15),
   ('Montage', 1, 20),
   ('MontageReview', 1, 30),
   ('Events', 1, 40),

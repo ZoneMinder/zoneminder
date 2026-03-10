@@ -440,6 +440,11 @@ function MonitorStream(monitorData) {
                 getTracksFromStream(this); //Go2rtc
               }
           );
+          this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(video_el, 'pause',
+              (e) => {
+                manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
+              }
+          );
         }
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
@@ -468,6 +473,11 @@ function MonitorStream(monitorData) {
             (e) => {
               this.createVolumeSlider();
               getTracksFromStream(this); //Janus
+            }
+        );
+        this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(video_el, 'pause',
+            (e) => {
+              manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
             }
         );
       }
@@ -515,6 +525,11 @@ function MonitorStream(monitorData) {
               (e) => {
                 this.createVolumeSlider();
                 getTracksFromStream(this); //RTSP2Web RTC, MSE, HLS
+              }
+          );
+          this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(video_el, 'pause',
+              (e) => {
+                manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
               }
           );
         }
@@ -638,6 +653,7 @@ function MonitorStream(monitorData) {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
+    manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();

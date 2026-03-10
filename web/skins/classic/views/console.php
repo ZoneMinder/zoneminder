@@ -157,7 +157,7 @@ echo $navbar ?>
 <div id="page">
   <div id="content">
 
-    <div id="fbpanel" class="filterBar hidden-shift">
+    <div id="fbpanel" class="filterBar<?php echo (defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') ? '' : ' hidden-shift' ?>">
       <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
       </form>
@@ -220,7 +220,9 @@ echo $navbar ?>
         </button>
       </div>
         
+<?php if (!defined('ZM_WEB_FILTER_SETTINGS_POSITION') || ZM_WEB_FILTER_SETTINGS_POSITION != 'inline') { ?>
         &nbsp;<a href="#" data-flip-control-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
+<?php } ?>
     
     </div><!-- contentButtons -->
     
@@ -249,6 +251,7 @@ echo $navbar ?>
         data-click-to-select="true"
         data-maintain-meta-data="true"
         data-buttons-class="btn btn-normal"
+        data-show-advanced-search="false"
         data-mobile-responsive="true"
         class="table table-striped table-hover table-condensed consoleTable"
         style="display:none;"
@@ -264,14 +267,14 @@ echo $navbar ?>
 <?php if ( ZM_WEB_LIST_THUMBS ) { ?>
             <th data-sortable="false" data-field="Thumbnail" class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-field="Name" class="colName"><?php echo translate('Name') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Manufacturer" class="colName"><?php echo translate('Manufacturer') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Model" class="colName"><?php echo translate('Model') ?></th>
             <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Source" class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th data-sortable="true" data-field="Source" class="colSource"><?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th data-sortable="true" data-field="Storage" class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
@@ -290,13 +293,14 @@ echo $navbar ?>
           : array('cnj'=>'and', 'attr'=>'Monitor')
       );
     parseFilter($filter);
-    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"><a '
-      .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
-      .$eventCounts[$i]['title']
-      .'</a></th>'.PHP_EOL;
+    $eventsLink = canView('Events') ? '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'] : '';
+    echo '<th data-sortable="true" data-field="'.$i.'Events" class="colEvents"'
+      .'>'
+      .htmlspecialchars($eventCounts[$i]['title'])
+      .'</th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
-            <th data-sortable="true" data-field="ZoneCount" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th data-sortable="true" data-field="ZoneCount" class="colZones"><?php echo translate('Zones') ?></th>
             <th data-sortable="true" data-visible="false" data-field="Sequence" class="Sequence"><?php echo translate('Sequence') ?></th>
           </tr>
         </thead>

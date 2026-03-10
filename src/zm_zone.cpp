@@ -956,21 +956,21 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     col++;
     int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxAlarmPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int FilterX = dbrow[col]?atoi(dbrow[col]):0;
     col++;
     int FilterY = dbrow[col]?atoi(dbrow[col]):0;
     col++;
-    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxFilterPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MinBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
-    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    double MaxBlobPixels_pct = dbrow[col] ? atof(dbrow[col]) : 0;
     col++;
     int MinBlobs = dbrow[col]?atoi(dbrow[col]):0;
     col++;
@@ -984,58 +984,45 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
+    // Auto-detect coordinate format: decimal points mean percentages,
+    // integer-only means legacy pixel values. Units field is not trusted.
     Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
     Polygon polygon;
-    if (!strcmp(Units, "Pixels")) {
-      // Legacy pixel-based coordinates: parse as integer pixel values
-      if (!ParsePolygonString(Coords, polygon)) {
+    if (strchr(Coords, '.')) {
+      // Decimal values present — treat as percentages regardless of Units field
+      if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
       }
     } else {
-      // Percentage-based coordinates (default): convert to pixels using monitor dimensions.
-      // However, if any coordinate value exceeds 100, these are actually pixel values
-      // stored with incorrect Units — fall back to pixel parsing with a warning.
-      bool has_pixel_values = false;
-      {
-        const char *s = Coords;
-        while (*s != '\0') {
-          double val = strtod(s, nullptr);
-          if (val > 100.0) {
-            has_pixel_values = true;
-            break;
-          }
-          // Skip to next number: find comma then space (x,y pairs separated by spaces)
-          const char *comma = strchr(s, ',');
-          if (!comma) break;
-          val = strtod(comma + 1, nullptr);
-          if (val > 100.0) {
-            has_pixel_values = true;
-            break;
-          }
-          const char *space = strchr(comma + 1, ' ');
-          if (space) {
-            s = space + 1;
-          } else {
-            break;
-          }
-        }
-      }
-
-      if (has_pixel_values) {
-        Debug(1, "Zone %d/%s has Units=Percent but Coords contain pixel values (>100), "
-                "parsing as pixels instead", Id, Name);
-        if (!ParsePolygonString(Coords, polygon)) {
-          Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
-                Coords, Id, Name, monitor->Name());
-          continue;
-        }
-      } else if (!ParsePercentagePolygon(Coords, monitor->Width(), monitor->Height(), polygon)) {
+      // Integer-only coordinates — treat as pixel values
+      if (!ParsePolygonString(Coords, polygon)) {
         Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
               Coords, Id, Name, monitor->Name());
         continue;
       }
+    }
+
+    // Convert threshold values from DB format to pixel counts for runtime use.
+    // Percentage coordinates: thresholds are stored as % of zone area, convert to pixels.
+    // Legacy pixel coordinates: thresholds are already pixel counts.
+    int MinAlarmPixels, MaxAlarmPixels, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels;
+    if (strchr(Coords, '.') && polygon.Area() > 0) {
+      int zpa = polygon.Area();
+      MinAlarmPixels = MinAlarmPixels_pct > 0 ? static_cast<int>(MinAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxAlarmPixels = MaxAlarmPixels_pct > 0 ? static_cast<int>(MaxAlarmPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinFilterPixels = MinFilterPixels_pct > 0 ? static_cast<int>(MinFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxFilterPixels = MaxFilterPixels_pct > 0 ? static_cast<int>(MaxFilterPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MinBlobPixels = MinBlobPixels_pct > 0 ? static_cast<int>(MinBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+      MaxBlobPixels = MaxBlobPixels_pct > 0 ? static_cast<int>(MaxBlobPixels_pct * zpa / 100.0 + 0.5) : 0;
+    } else {
+      MinAlarmPixels = static_cast<int>(MinAlarmPixels_pct);
+      MaxAlarmPixels = static_cast<int>(MaxAlarmPixels_pct);
+      MinFilterPixels = static_cast<int>(MinFilterPixels_pct);
+      MaxFilterPixels = static_cast<int>(MaxFilterPixels_pct);
+      MinBlobPixels = static_cast<int>(MinBlobPixels_pct);
+      MaxBlobPixels = static_cast<int>(MaxBlobPixels_pct);
     }
 
     if (atoi(dbrow[2]) == Zone::INACTIVE) {

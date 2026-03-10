@@ -112,4 +112,5 @@ var translate = {
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
   "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
   "Show Analysis": "<?php echo translate('Show Analysis') ?>",
+  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
 };

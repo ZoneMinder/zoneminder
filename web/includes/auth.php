@@ -116,6 +116,7 @@ function userLogout() {
   global $user;
   ZM\Info('User "'.($user?$user->Username():'no one').'" logged out');
   $user = null;// unset only clears the local variable
+  zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
   zm_session_clear();
 }
 

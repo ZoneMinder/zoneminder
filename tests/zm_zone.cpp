@@ -220,3 +220,106 @@ TEST_CASE("Zone: pixel values through ParsePercentagePolygon produce wrong resul
   REQUIRE(verts[1] == Vector2(static_cast<int>(width), 0));
   REQUIRE(verts[2] == Vector2(static_cast<int>(width), static_cast<int>(height)));
 }
+
+// --- Auto-detect format tests ---
+// The zone loader uses strchr(Coords, '.') to decide format:
+//   decimal point present -> ParsePercentagePolygon
+//   no decimal point      -> ParsePolygonString (legacy pixels)
+// These tests verify both parsers handle the inputs they'll receive
+// under auto-detection, and document the broken case that auto-detection prevents.
+
+TEST_CASE("Zone: ParsePolygonString truncates decimal coords via atoi", "[Zone]") {
+  // This is the bug that broke motion detection: percentage coords like
+  // "0.00,0.00 99.96,0.00 99.96,99.93 0.00,99.93" parsed by
+  // ParsePolygonString (which uses atoi) get truncated to a 99x99 pixel zone
+  Polygon polygon;
+  bool ok = Zone::ParsePolygonString("0.00,0.00 99.96,0.00 99.96,99.93 0.00,99.93", polygon);
+  REQUIRE(ok);
+
+  auto const &verts = polygon.GetVertices();
+  REQUIRE(verts.size() == 4);
+  // atoi("99.96") = 99, atoi("99.93") = 99
+  // On a 2560x1440 monitor this would be a 99x99 pixel zone — essentially no coverage
+  REQUIRE(verts[1] == Vector2(99, 0));
+  REQUIRE(verts[2] == Vector2(99, 99));
+}
+
+TEST_CASE("Zone: decimal coords through ParsePercentagePolygon give correct pixels", "[Zone]") {
+  // Same coords as above, but correctly routed to ParsePercentagePolygon
+  // by the auto-detect logic (decimal point present)
+  Polygon polygon;
+  unsigned int width = 2560;
+  unsigned int height = 1440;
+
+  bool ok = Zone::ParsePercentagePolygon(
+      "0.00,0.00 99.96,0.00 99.96,99.93 0.00,99.93", width, height, polygon);
+  REQUIRE(ok);
+
+  auto const &verts = polygon.GetVertices();
+  REQUIRE(verts.size() == 4);
+  // 99.96% of 2560 = 2558.976 -> 2559
+  REQUIRE(verts[1].x_ == 2559);
+  REQUIRE(verts[1].y_ == 0);
+  // 99.93% of 1440 = 1438.992 -> 1439
+  REQUIRE(verts[2].x_ == 2559);
+  REQUIRE(verts[2].y_ == 1439);
+}
+
+TEST_CASE("Zone: integer pixel coords stay as pixels", "[Zone]") {
+  // Legacy integer-only coords should be parsed as raw pixel values
+  // Auto-detect: no decimal point -> ParsePolygonString
+  Polygon polygon;
+  bool ok = Zone::ParsePolygonString("0,0 2559,0 2559,1439 0,1439", polygon);
+  REQUIRE(ok);
+
+  auto const &verts = polygon.GetVertices();
+  REQUIRE(verts.size() == 4);
+  REQUIRE(verts[0] == Vector2(0, 0));
+  REQUIRE(verts[1] == Vector2(2559, 0));
+  REQUIRE(verts[2] == Vector2(2559, 1439));
+  REQUIRE(verts[3] == Vector2(0, 1439));
+}
+
+TEST_CASE("Zone: auto-detect heuristic — strchr for decimal point", "[Zone]") {
+  // Verify the heuristic used by the zone loader:
+  // strchr(coords, '.') distinguishes percentage from pixel coords
+
+  // Percentage coords always have decimal points from round(..., 2)
+  const char *pct_coords = "0.00,0.00 99.96,0.00 99.96,99.93 0.00,99.93";
+  REQUIRE(strchr(pct_coords, '.') != nullptr);
+
+  // Legacy pixel coords are always integers
+  const char *px_coords = "0,0 2559,0 2559,1439 0,1439";
+  REQUIRE(strchr(px_coords, '.') == nullptr);
+
+  // Edge case: small pixel zone that looks like it could be percentages
+  // but has no decimal points — correctly detected as pixels
+  const char *small_px = "0,0 50,0 50,50 0,50";
+  REQUIRE(strchr(small_px, '.') == nullptr);
+}
+
+TEST_CASE("Zone: percentage coords at various resolutions", "[Zone]") {
+  Polygon polygon;
+
+  // The same percentage zone should produce proportional pixel coords
+  // regardless of monitor resolution
+  const char *coords = "10.00,20.00 90.00,20.00 90.00,80.00 10.00,80.00";
+
+  SECTION("640x480") {
+    bool ok = Zone::ParsePercentagePolygon(coords, 640, 480, polygon);
+    REQUIRE(ok);
+    auto const &v = polygon.GetVertices();
+    REQUIRE(v[0] == Vector2(64, 96));    // 10% of 640, 20% of 480
+    REQUIRE(v[1] == Vector2(576, 96));   // 90% of 640
+    REQUIRE(v[2] == Vector2(576, 384));  // 80% of 480
+  }
+
+  SECTION("3840x2160 (4K)") {
+    bool ok = Zone::ParsePercentagePolygon(coords, 3840, 2160, polygon);
+    REQUIRE(ok);
+    auto const &v = polygon.GetVertices();
+    REQUIRE(v[0] == Vector2(384, 432));   // 10% of 3840, 20% of 2160
+    REQUIRE(v[1] == Vector2(3456, 432));  // 90% of 3840
+    REQUIRE(v[2] == Vector2(3456, 1728)); // 80% of 2160
+  }
+}

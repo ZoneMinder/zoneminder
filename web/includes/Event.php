@@ -700,22 +700,20 @@ class Event extends ZM_Object {
   }
 
   function createVideo($format, $rate, $scale, $transform, $overwrite=false) {
-    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$this->{'Id'}.' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-    if (preg_match('/\d+x\d+/', $scale)) {
-      $command .= ' -S '.$scale;
+    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.escapeshellarg($this->{'Id'})
+      .' -f '.escapeshellarg(preg_replace('/[^\w]/', '', $format))
+      .' -r '.escapeshellarg(sprintf('%.2F', ($rate/RATE_BASE)));
+    if (preg_match('/^\d+x\d+$/', $scale)) {
+      $command .= ' -S '.escapeshellarg($scale);
     } else {
-      if ( version_compare(phpversion(), '4.3.10', '>=') )
-        $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-      else
-        $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
+      $command .= ' -s '.escapeshellarg(sprintf('%.2F', ($scale/SCALE_BASE)));
     }
     if ($transform != '') {
       $transform = preg_replace('/[^\w=]/', '', $transform);
-      $command .= ' -t '.$transform;
+      $command .= ' -t '.escapeshellarg($transform);
     }
     if ($overwrite)
       $command .= ' -o';
-    $command = escapeshellcmd($command);
     $result = exec($command, $output, $status);
     Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
     return $status ? '' : rtrim($result);

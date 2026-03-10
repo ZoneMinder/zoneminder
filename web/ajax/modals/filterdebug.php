@@ -16,7 +16,7 @@
   if ($fid) {
     $filter = new ZM\Filter($fid);
     if (!$filter->Id()) {
-      echo '<div class="error">Filter not found for id '.$_REQUEST['fid'].'</div>';
+      echo '<div class="error">Filter not found for id '.$fid.'</div>';
     }
   } else {
    $filter = new ZM\Filter();

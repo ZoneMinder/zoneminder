@@ -71,6 +71,18 @@ function submitForm(form) {
   form.elements['newZone[Coords]'].value = getCoordString();
   form.elements['newZone[Area]'].value = zone.Area;
 
+  // DB stores threshold values as percentages of zone area.
+  // If displaying in Pixels mode, convert back to percentages before submitting.
+  if (form.elements['newZone[Units]'].value == 'Pixels') {
+    var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
+    toPercent(form.elements['newZone[MinAlarmPixels]'], pixelArea);
+    toPercent(form.elements['newZone[MaxAlarmPixels]'], pixelArea);
+    toPercent(form.elements['newZone[MinFilterPixels]'], pixelArea);
+    toPercent(form.elements['newZone[MaxFilterPixels]'], pixelArea);
+    toPercent(form.elements['newZone[MinBlobPixels]'], pixelArea);
+    toPercent(form.elements['newZone[MaxBlobPixels]'], pixelArea);
+  }
+
   form.submit();
 }
 
@@ -211,8 +223,8 @@ function toPercent(field, maxValue) {
 
 function applyZoneUnits() {
   // zone.Area is in percentage-space (0-10000 for full frame)
-  // Threshold fields are stored as pixel counts in the DB
-  // Convert to pixel area for threshold display conversions
+  // Threshold fields are stored as percentages of zone area in the DB
+  // pixelArea is zone's actual pixel area, used for converting between display modes
   var pixelArea = Math.round(zone.Area / monitorArea * monitorPixelArea);
 
   var form = document.zoneForm;
@@ -237,11 +249,11 @@ function applyZoneUnits() {
 
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
-    field.value = constrainValue(
-        parseFloat(field.value),
-        parseInt(minValue),
-        parseInt(maxValue)
-    );
+    var currentValue = parseFloat(field.value);
+    var constrainedValue = constrainValue(currentValue, parseInt(minValue), parseInt(maxValue));
+    if ( constrainedValue !== currentValue ) {
+      field.value = constrainedValue;
+    }
   }
 }
 
@@ -572,6 +584,16 @@ function streamCmdPlay() {
   playBtn.hide();
 }
 
+function changePlayer() {
+  const player = $j('#player').val();
+  setCookie('zmZonePlayer', player);
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    monitors[i].stop();
+    monitors[i].setPlayer(player);
+    monitors[i].start();
+  }
+}
+
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
@@ -659,7 +681,15 @@ function initPage() {
   applyZoneType();
 
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
-    applyZoneUnits();
+    // DB stores threshold values as percentages of zone area.
+    // In Percent mode, values are already correct; just set Area display and field attributes.
+    form.elements['newZone[Area]'].value = Math.round(zone.Area / monitorArea * 100);
+    var thresholdFields = ['MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels'];
+    for (var i = 0; i < thresholdFields.length; i++) {
+      var field = form.elements['newZone[' + thresholdFields[i] + ']'];
+      field.setAttribute('step', 'any');
+      field.setAttribute('max', 100);
+    }
   }
 
   applyCheckMethod();
@@ -683,6 +713,10 @@ function initPage() {
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
+      // Read current state from MonitorStream (server may have changed it)
+      if (monitors.length) {
+        analyse_frames = monitors[0].analyse_frames;
+      }
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
         analyseBtn.addClass('btn-primary');
@@ -701,8 +735,14 @@ function initPage() {
     console.log('Analyse button not found');
   }
 
+  var cookiePlayer = getCookie('zmZonePlayer');
+
   for ( let i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
+    if (cookiePlayer !== undefined && cookiePlayer !== null) {
+      monitors[i].setPlayer(cookiePlayer);
+    }
+    monitors[i].setButton('analyseBtn', analyseBtn);
     monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start();

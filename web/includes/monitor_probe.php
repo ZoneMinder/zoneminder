@@ -253,7 +253,7 @@ function probeAmcrest($ip, $username='', $password='') {
 }
 
 function wget($method, $url, $username, $password) {
-  exec("wget --keep-session-cookies -O - $url", $output, $result_code);
+  exec('wget --keep-session-cookies -O - '.escapeshellarg($url), $output, $result_code);
   return implode("\n", $output);
 }
 

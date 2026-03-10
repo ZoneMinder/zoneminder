@@ -26,8 +26,12 @@ function zm_session_start() {
     // use_strict_mode is mandatory for security reasons.
     ini_set('session.use_strict_mode', 1);
 
-    $currentCookieParams = session_get_cookie_params(); 
-    $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+    $currentCookieParams = session_get_cookie_params();
+    if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME && empty($_COOKIE['ZM_REMEMBER_ME'])) {
+      $currentCookieParams['lifetime'] = 0;
+    } else {
+      $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+    }
     $currentCookieParams['httponly'] = true;
     if ( version_compare(phpversion(), '7.3.0', '<') ) {
       session_set_cookie_params(

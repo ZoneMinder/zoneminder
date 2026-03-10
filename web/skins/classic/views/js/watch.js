@@ -855,6 +855,7 @@ function streamStart(monitor = null) {
   monitorStream.setButton('enableAlarmButton', enableAlmBtn);
   monitorStream.setButton('forceAlarmButton', forceAlmBtn);
   monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  monitorStream.setButton('analyseBtn', analyseBtn);
   if (canEdit.Monitors) {
     // Will be enabled by streamStatus ajax
     enableAlmBtn.on('click', cmdAlarm);
@@ -1150,6 +1151,10 @@ function watchAllEvents() {
 }
 
 function toggleAnalyseFrames() {
+  // Read current state from MonitorStream (server may have changed it)
+  if (monitorStream) {
+    analyse_frames = monitorStream.analyse_frames;
+  }
   analyse_frames = !analyse_frames;
   if (analyse_frames) {
     analyseBtn.addClass('btn-primary');

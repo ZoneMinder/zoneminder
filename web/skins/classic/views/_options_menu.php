@@ -13,7 +13,7 @@ $canEdit = canEdit('System');
         <div id="contentButtons">
 <?php if ($canEdit) { ?>
           <button type="submit" class="btn btn-primary"><?php echo translate('Save') ?></button>
-          <button type="button" id="sortMenuBtn" data-on-click-this="sortMenuItems">
+          <button type="button" id="sortMenuBtn" class="btn btn-secondary" data-on-click-this="sortMenuItems">
             <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
             <span class="text"><?php echo translate('Sort') ?></span>
           </button>

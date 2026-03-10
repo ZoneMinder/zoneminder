@@ -1186,7 +1186,6 @@ int LocalCamera::Control(int vid_id, int newvalue) {
         Warning("Given control value (%d) may be out-of-range", newvalue);
       }
     }
-    v4l2_close( vid_fd );
   }
   return vid_control.value;
 }

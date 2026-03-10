@@ -1,3 +1,21 @@
+
+--
+-- Add Profile column to Notifications table
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'Notifications'
+       AND COLUMN_NAME = 'Profile'
+    ) > 0,
+    "SELECT 'Column Profile already exists in Notifications'",
+    "ALTER TABLE `Notifications` ADD `Profile` varchar(128) DEFAULT NULL AFTER `AppVersion`"
+));
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- Convert zone threshold fields (MinAlarmPixels, etc.) from pixel counts
 -- to percentages of zone area, matching the coordinate percentage migration
 -- done in zm_update-1.39.2.sql.
@@ -135,6 +153,7 @@ SET @s = (SELECT IF(
 "SELECT 'Menu_Items already has data'",
 "INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
   ('Console', 1, 10),
+  ('Watch', 1, 15),
   ('Montage', 1, 20),
   ('MontageReview', 1, 30),
   ('Events', 1, 40),

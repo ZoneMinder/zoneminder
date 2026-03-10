@@ -1343,6 +1343,7 @@ CREATE TABLE `Notifications` (
   `Interval`        int unsigned    NOT NULL DEFAULT 0,
   `PushState`       enum('enabled','disabled') NOT NULL DEFAULT 'enabled',
   `AppVersion`      varchar(32)     DEFAULT NULL,
+  `Profile`         varchar(128)    DEFAULT NULL,
   `BadgeCount`      int             NOT NULL DEFAULT 0,
   `LastNotifiedAt`  datetime        DEFAULT NULL,
   `CreatedOn`       datetime        DEFAULT NULL,

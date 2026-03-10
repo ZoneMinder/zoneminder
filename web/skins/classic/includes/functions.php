@@ -319,10 +319,7 @@ function buildSidebarMenu() {
   global $view;
   global $user;
   if ( $user and $user->Username() ) {
-  $menuForAuthUser = '
-            <li class="menu-header"><span> GENERAL </span></li> ' .
-    renderMenuItems($forLeftBar = true)
-  ;
+    $menuForAuthUser = renderMenuItems($forLeftBar = true) ;
   } else { // USER IS NOT AUTHORIZED!
     $menuForAuthUser = '';
   }
@@ -388,6 +385,8 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
+  } else if (defined(ZM_SIDEBAR_FOOTER) and ZM_SIDEBAR_FOOTER) {
+    $menu .- ZM_SIDEBAR_FOOTER;
   }
   $menu .= '
           </ul>

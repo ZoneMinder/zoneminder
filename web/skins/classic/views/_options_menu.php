@@ -3,7 +3,7 @@ require_once('includes/MenuItem.php');
 $menuItems = ZM\MenuItem::find([], ['order' => 'SortOrder ASC']);
 $canEdit = canEdit('System');
 ?>
-<form name="menuItemsForm" method="post" action="?" enctype="multipart/form-data">
+<form name="menuItemsForm" method="post" action="?">
   <input type="hidden" name="view" value="options"/>
   <input type="hidden" name="tab" value="menu"/>
   <input type="hidden" name="action" value="menuitems"/>
@@ -89,14 +89,8 @@ $canEdit = canEdit('System');
                     <input type="text" name="items[<?php echo $id ?>][Icon]" class="form-control form-control-sm iconNameInput"
                       id="iconName-<?php echo $id ?>"
                       value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>"
-                      placeholder="<?php echo htmlspecialchars($effIcon) ?>"
-                      style="width:140px;<?php echo ($effIconType == 'image' || $effIconType == 'none') ? 'display:none;' : '' ?>"
-                      <?php echo !$canEdit ? 'disabled' : '' ?>
-                    />
-                    <input type="file" name="items[<?php echo $id ?>][IconFile]" class="form-control-file form-control-sm iconFileInput"
-                      id="iconFile-<?php echo $id ?>"
-                      accept="image/*"
-                      style="width:200px;<?php echo $effIconType != 'image' ? 'display:none;' : '' ?>"
+                      placeholder="<?php echo $effIconType == 'image' ? 'graphics/menu/icon.png' : htmlspecialchars($effIcon) ?>"
+                      style="width:<?php echo $effIconType == 'image' ? '200' : '140' ?>px;<?php echo $effIconType == 'none' ? 'display:none;' : '' ?>"
                       <?php echo !$canEdit ? 'disabled' : '' ?>
                     />
                   </div>

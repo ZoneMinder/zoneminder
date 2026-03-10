@@ -945,6 +945,11 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider();
     const audioStream = this.getAudioStream();
     if (!volumeSlider || !audioStream) return;
+    this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
+        (event) => {
+          this.listenerVolumechange(event);
+        }
+    );
     const iconMute = this.getIconMute();
     $j('#volumeControls'+this.id).show();
     if (volumeSlider.noUiSlider) return;
@@ -967,15 +972,13 @@ function MonitorStream(monitorData) {
     });
     volumeSlider.allowSetValue = true;
     volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
-      if (audioStream) {
-        audioStream.volume = values[0]/100;
-        if (values[0] > 0 && !audioStream.muted) {
-          iconMute.innerHTML = 'volume_up';
-          volumeSlider.classList.remove('noUi-mute');
-        } else {
-          iconMute.innerHTML = 'volume_off';
-          volumeSlider.classList.add('noUi-mute');
-        }
+      audioStream.volume = values[0]/100;
+      if (values[0] > 0 && !audioStream.muted) {
+        iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.remove('noUi-mute');
+      } else {
+        iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.add('noUi-mute');
       }
       //console.log("Audio volume slider event: 'update'");
     });
@@ -1002,14 +1005,6 @@ function MonitorStream(monitorData) {
       this.controlMute('off');
     } else {
       this.controlMute('on');
-    }
-
-    if (audioStream) {
-      this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
-          (event) => {
-            this.listenerVolumechange(event);
-          }
-      );
     }
   };
 

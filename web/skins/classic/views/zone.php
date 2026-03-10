@@ -238,7 +238,7 @@ if ( count($other_zones) ) {
   # I think this for horizontal filler
       if ( $i < ($pointCols-1) ) {
   ?>
-                    <td>&nbsp;</td>
+                    <td class="pointSpacer">&nbsp;</td>
   <?php
       }
   } # end foreach pointcol

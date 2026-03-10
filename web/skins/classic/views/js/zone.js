@@ -341,6 +341,7 @@ function constrainValue(value, loVal, hiVal) {
 
 function updateActivePoint(index) {
   const point = $j('#point'+index);
+  if (!point.length) return;
   const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   const frameW = imageFeed.clientWidth;
   const frameH = imageFeed.clientHeight;
@@ -363,9 +364,12 @@ function updateActivePoint(index) {
   zone['Points'][index].y = y;
   document.getElementById('newZone[Points]['+index+'][x]').value = x.toFixed(2);
   document.getElementById('newZone[Points]['+index+'][y]').value = y.toFixed(2);
-  var Point = document.getElementById('zonePoly').points.getItem(index);
-  Point.x = x;
-  Point.y = y;
+  var Poly = document.getElementById('zonePoly');
+  if (index < Poly.points.numberOfItems) {
+    var Point = Poly.points.getItem(index);
+    Point.x = x;
+    Point.y = y;
+  }
   updateArea();
 } // end function updateActivePoint(index)
 

@@ -961,14 +961,16 @@ function MonitorStream(monitorData) {
     const volumeSlider = this.getVolumeSlider();
     const audioStream = this.getAudioStream();
     if (!volumeSlider || !audioStream) return;
-    this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
-        (event) => {
-          this.listenerVolumechange(event);
-        }
-    );
     const iconMute = this.getIconMute();
     $j('#volumeControls'+this.id).show();
     if (volumeSlider.noUiSlider) return;
+    if (!this.handlerEventListener['volumechange']) {
+      this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
+          (event) => {
+            this.listenerVolumechange(event);
+          }
+      );
+    }
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
 
     noUiSlider.create(volumeSlider, {

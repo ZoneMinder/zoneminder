@@ -113,10 +113,10 @@ class VideoStream extends VideoRTC {
     }
 
     pause() {
-      this.video.pause();
+        this.video.pause();
     }
     close() {
-      this.video.pause();
+        this.video.pause();
     }
 /*
     getTracksFromStream() {

@@ -1102,7 +1102,6 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
     if ($forLeftBar) {
       global $view;
 
-      $view_ = 'options';
       //$tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
       $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : '';
 
@@ -1113,7 +1112,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
       foreach ($zmMenu::$submenuOptionsItems as $name=>$value) {
         $subMenuOptions .= '
           <li class="menu-item '.$name.' '.($tab == $name ? ' active' : '').'">
-            <a href="?view='.$view_.'&amp;tab='.$name.'">
+            <a href="?view=options&amp;tab='.$name.'">
               <span class="menu-title">'.$value.'</span>
             </a>
           </li>'.PHP_EOL;
@@ -1132,8 +1131,8 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
       }
 
       $result .= '
-<li id="getOptionsHTML" class="menu-item sub-menu '.($view == "options" ? ' open' : '').'">
-  <a href="#<!--?view='.$view_.'&amp;tab=system-->">
+<li id="getOptionsHTML" class="menu-item sub-menu '.($view == 'options' ? ' open' : '').'">
+  <a href="#<!--?view=options&amp;tab=system-->">
     <span class="menu-icon">'.renderMenuIcon($optIcon, $optIconType).'</span>
     <span class="menu-title">'.htmlspecialchars($label).'</span>
   </a>

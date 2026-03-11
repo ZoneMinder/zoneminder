@@ -1123,6 +1123,7 @@ function getOptionsHTML($forLeftBar = false, $customLabel = null) {
       </div>
       ';
 
+      global $menuIconOverride;
       $optIcon = 'settings';
       $optIconType = 'material';
       if (isset($menuIconOverride)) {

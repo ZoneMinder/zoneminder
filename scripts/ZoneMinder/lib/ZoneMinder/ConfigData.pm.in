@@ -2675,7 +2675,7 @@ our @options = (
       users to change their passwords and their language settings
       `,
     type        => $types{boolean},
-    category    => 'config',
+    category    => 'auth',
   },
   {
     name        => 'ZM_OPT_CONTROL',

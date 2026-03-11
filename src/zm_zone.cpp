@@ -309,7 +309,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  stats.score_ = (100*stats.alarm_pixels_)/(max_alarm_pixels ? max_alarm_pixels : polygon.Area());
+  stats.score_ = (100*stats.alarm_pixels_)/polygon.Area();
   if (stats.score_ < 1)
     stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug(5, "Current score is %d", stats.score_);
@@ -395,10 +395,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       return false;
     }
 
-    if (max_filter_pixels != 0)
-      stats.score_ = (100*stats.alarm_filter_pixels_)/max_filter_pixels;
-    else
-      stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
+    stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
 
     if (stats.score_ < 1)
       stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
@@ -678,10 +675,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         return false;
       }
 
-      if (max_blob_pixels != 0)
-        stats.score_ = (100*stats.alarm_blob_pixels_)/max_blob_pixels;
-      else
-        stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
+      stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
 
       if (stats.score_ < 1)
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */

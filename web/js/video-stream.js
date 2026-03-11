@@ -89,7 +89,7 @@ class VideoStream extends VideoRTC {
                 case 'mp4':
                 case 'mjpeg':
                     this.divMode = msg.type.toUpperCase();
-                    this.getTracksFromStream();
+                    //this.getTracksFromStream();
                     break;
             }
         };
@@ -109,16 +109,16 @@ class VideoStream extends VideoRTC {
         if (this.pcState !== WebSocket.CLOSED) {
             this.divMode = 'RTC';
         }
-        this.getTracksFromStream();
+        //this.getTracksFromStream();
     }
 
-  pause() {
-    this.video.pause();
-  }
-  close() {
-    this.video.pause();
-  }
-
+    pause() {
+        this.video.pause();
+    }
+    close() {
+        this.video.pause();
+    }
+/*
     getTracksFromStream() {
         const liveStream = this.closest('[id ^= "liveStream"]');
         if (liveStream) {
@@ -130,6 +130,7 @@ class VideoStream extends VideoRTC {
             }
         }
     }
+*/
 }
 
 customElements.define('video-stream', VideoStream);

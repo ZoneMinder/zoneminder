@@ -397,6 +397,25 @@ function MonitorStream(monitorData) {
     return channelMap[channel] !== undefined ? channelMap[channel] : 0;
   };
 
+  this.handlerEventListenerStream = function(stream = null) {
+    if (!stream) stream = this.getAVStream();
+    if (!stream) {
+      console.debug(`Stream for monitor ID=${this.id} not found. Assigning listeners is not possible.`);
+      return;
+    }
+    this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'play',
+        (e) => {
+          this.createVolumeSlider();
+          getTracksFromStream(this); //Go2rtc
+        }
+    );
+    this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
+        (e) => {
+          manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
+        }
+    );
+  };
+
   this.start = function(streamChannel = 'default') {
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
@@ -433,13 +452,9 @@ function MonitorStream(monitorData) {
         if (-1 != this.player.indexOf('_')) {
           stream.mode = this.player.substring(this.player.indexOf('_')+1);
         }
-        const video_el = document.querySelector('#liveStream'+this.id+' video');
-        if (video_el) {
-          video_el.muted = this.muted;
-          video_el.addEventListener('play', (e) => {
-            this.createVolumeSlider();
-          }, this);
-        }
+        const video_el = this.getAVStream();
+        if (video_el) video_el.muted = this.muted;
+        this.handlerEventListenerStream(video_el);
 
         clearInterval(this.statusCmdTimer); // Fix for issues in Chromium when quickly hiding/showing a page. Doesn't clear statusCmdTimer when minimizing a page https://stackoverflow.com/questions/9501813/clearinterval-not-working
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
@@ -460,12 +475,9 @@ function MonitorStream(monitorData) {
       stream.srcObject = null;
       stream.setAttribute("autoplay", "");
       stream.setAttribute("muted", this.muted);
-      const video_el = document.querySelector('#liveStream'+this.id);
-      if (video_el) {
-        video_el.addEventListener('play', (e) => {
-          this.createVolumeSlider();
-        }, this);
-      }
+      const video_el = this.getAVStream();
+      if (video_el) video_el.muted = this.muted;
+      this.handlerEventListenerStream(video_el);
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
       } else if (this.server_id && Servers[this.server_id]) {
@@ -503,13 +515,9 @@ function MonitorStream(monitorData) {
         const useSSL = (url.protocol == 'https');
 
         const rtsp2webModUrl = url;
-        const video_el = document.querySelector('video#liveStream'+this.id);
-        if (video_el) {
-          video_el.muted = this.muted;
-          video_el.addEventListener('play', (e) => {
-            this.createVolumeSlider();
-          }, this);
-        }
+        const video_el = this.getAVStream();
+        if (video_el) video_el.muted = this.muted;
+        this.handlerEventListenerStream(video_el);
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
@@ -533,7 +541,7 @@ function MonitorStream(monitorData) {
             this.hls.on(Hls.Events.MEDIA_ATTACHED, function(event, data) {
               console.log(`Video and hls.js are now bound together for monitor ID=${this.id}`);
               this.updateStreamInfo('', ''); //HLS
-              getTracksFromStream(this); //HLS
+              //getTracksFromStream(this); //HLS
             }, this);
             this.hls.loadSource(hlsUrl.href);
             this.hls.attachMedia(stream);
@@ -628,6 +636,9 @@ function MonitorStream(monitorData) {
 
   this.stop = function() {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
+    if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
+    manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -893,7 +904,7 @@ function MonitorStream(monitorData) {
     return (document.getElementById('controlMute')) ? document.getElementById('controlMute') : document.getElementById('controlMute'+this.id);
   };
 
-  this.getAudioStream = function() {
+  this.getAVStream = function() {
     /*
     Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
     RTSP2Web uses <video id='liveStreamXX'></video>
@@ -932,10 +943,17 @@ function MonitorStream(monitorData) {
 
   this.createVolumeSlider = function() {
     const volumeSlider = this.getVolumeSlider();
-    const audioStream = this.getAudioStream();
+    const audioStream = this.getAVStream();
     if (!volumeSlider || !audioStream) return;
     const iconMute = this.getIconMute();
     $j('#volumeControls'+this.id).show();
+    if (!this.handlerEventListener['volumechange']) {
+      this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
+          (event) => {
+            this.listenerVolumechange(event);
+          }
+      );
+    }
     if (volumeSlider.noUiSlider) return;
     const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
 
@@ -956,15 +974,13 @@ function MonitorStream(monitorData) {
     });
     volumeSlider.allowSetValue = true;
     volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
-      if (audioStream) {
-        audioStream.volume = values[0]/100;
-        if (values[0] > 0 && !audioStream.muted) {
-          iconMute.innerHTML = 'volume_up';
-          volumeSlider.classList.remove('noUi-mute');
-        } else {
-          iconMute.innerHTML = 'volume_off';
-          volumeSlider.classList.add('noUi-mute');
-        }
+      audioStream.volume = values[0]/100;
+      if (values[0] > 0 && !audioStream.muted) {
+        iconMute.innerHTML = 'volume_up';
+        volumeSlider.classList.remove('noUi-mute');
+      } else {
+        iconMute.innerHTML = 'volume_off';
+        volumeSlider.classList.add('noUi-mute');
       }
       //console.log("Audio volume slider event: 'update'");
     });
@@ -991,12 +1007,6 @@ function MonitorStream(monitorData) {
       this.controlMute('off');
     } else {
       this.controlMute('on');
-    }
-
-    if (audioStream) {
-      audioStream.addEventListener('volumechange', (event) => {
-        this.listenerVolumechange(event);
-      });
     }
   };
 
@@ -1054,7 +1064,7 @@ function MonitorStream(monitorData) {
   */
   this.controlMute = function(mode = 'switch') {
     let volumeSlider = this.getVolumeSlider();
-    const audioStream = this.getAudioStream();
+    const audioStream = this.getAVStream();
     const volumeControls = this.getVolumeControls();
     const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
 
@@ -1800,7 +1810,7 @@ async function attachVideo(monitorStream) {
           monitorStream.restart();
         }
         monitorStream.updateStreamInfo('', ''); //JANUS
-        getTracksFromStream(monitorStream); //JANUS
+        //getTracksFromStream(monitorStream); //JANUS
       }
     },
     onremotetrack: function(track, mid, on) {
@@ -1988,7 +1998,7 @@ function startRTSP2WebPlay(videoEl, url, stream) {
   const webrtcSendChannel = stream.webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
     stream.updateStreamInfo('', ''); //WEBRTC
-    getTracksFromStream(stream); //WEBRTC
+    //getTracksFromStream(stream); //WEBRTC
     console.log(`${webrtcSendChannel.label} for camera ID=${stream.id} has opened`);
     webrtcSendChannel.send('ping');
   };
@@ -2083,7 +2093,7 @@ function startMsePlay(context, videoEl, url) {
   context.mse = new MediaSource();
   videoEl.onplay = (event) => {
     context.updateStreamInfo('', ''); //MSE
-    getTracksFromStream(context); //MSE
+    //getTracksFromStream(context); //MSE
     context.streamStartTime = (Date.now() / 1000).toFixed(2);
     if (videoEl.buffered.length > 0 && videoEl.currentTime < videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1) {
       //For example, after a pause you press Play, you need to adjust the time.

@@ -3036,6 +3036,19 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
+    default     => 'yes',
+    description => 'Show Back and Refresh buttons at the top of views.',
+    help        => q`
+      Controls whether the Back and Refresh navigation buttons are
+      displayed in the top-left corner of most views. If disabled,
+      the buttons are hidden to save screen space. You can still use
+      your browser's back and refresh functions.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_H_REFRESH_MAIN',
     default     => '240',
     introduction => q`

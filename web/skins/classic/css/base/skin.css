@@ -1647,4 +1647,9 @@ video-stream[id^='liveStream'] video{
 .btn-text-only .btn:has(.text) > i.fa {
   display: none;
 }
+/* Hide Back and Refresh nav buttons when config disables them */
+.hide-nav-buttons #backBtn,
+.hide-nav-buttons #refreshBtn {
+  display: none;
+}
 /* --- This block should always be located at the end! */

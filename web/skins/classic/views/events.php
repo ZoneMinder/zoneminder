@@ -176,10 +176,10 @@ echo getNavBarHTML();
               <th data-sortable="true" data-field="Location" class="Location"><?php echo translate('Location') ?></th>
 <?php } ?>
               <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>
-              <th data-sortable="true" data-field="AvgScore" class="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="true" data-field="MaxScore" class="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="true" data-field="TotScore" class="TotScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('TotalBrScore')) ?>"><?php echo translate('TotalBrScore') ?></th>
+              <th data-sortable="true" data-field="AvgScore" class="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="true" data-field="MaxScore" class="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
               <th data-sortable="false" data-field="Storage" class="Storage"><?php echo translate('Storage') ?></th>
               <th data-sortable="true" data-field="DiskSpace" data-footer-formatter="totalDiskSpaceFormatter" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
             </tr>

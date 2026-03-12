@@ -1856,11 +1856,11 @@ function setButtonSizeOnStream() {
 }
 
 function calcTextSizeOnInfoBlock(el) {
-    const w = el.offsetWidth;
-    const textLength = el.innerText.length;
-    if (textLength === 0) return false;
-    const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
-    return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
+  const w = el.offsetWidth;
+  const textLength = el.innerText.length;
+  if (textLength === 0) return false;
+  const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
+  return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
 }
 
 function setTextSizeOnInfoBlock() {

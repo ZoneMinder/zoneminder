@@ -176,6 +176,7 @@ Requires:       zip
 Requires(post): permissions
 Requires(pre):  shadow
 Recommends:     arp-scan
+Recommends:     intel-gpu-tools
 Recommends:     libgsoap-2_8_134
 Recommends:     logrotate
 Recommends:     mosquitto

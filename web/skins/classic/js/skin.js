@@ -1855,6 +1855,26 @@ function setButtonSizeOnStream() {
   });
 }
 
+function calcTextSizeOnInfoBlock(el) {
+    const w = el.offsetWidth;
+    const textLength = el.innerText.length;
+    if (textLength === 0) return false;
+    const d = (w/400 > 1) ? 1 : w/400/0.8; // If the block width is less than 400px, the text will take up more than 40% of the width, otherwise it will be difficult to read.
+    return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
+}
+
+function setTextSizeOnInfoBlock() {
+  const block = document.querySelectorAll('[id ^= "stream-info-block"]');
+  Array.prototype.forEach.call(block, (el) => {
+    if (el.innerText.length == 0) return;
+    const fontSize = calcTextSizeOnInfoBlock(el);
+    el.style.fontSize = fontSize + "px";
+    el.classList.remove("text-3d-mini", "text-3d");
+    const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
+    el.classList.add(blockClass);
+  });
+}
+
 /*
 * date - object type Date()
 * shift.offset - number (can be negative)
@@ -2769,6 +2789,7 @@ function monitorsSetScale(id=null) {
     }
   } // End function _setScale
   setButtonSizeOnStream();
+  setTextSizeOnInfoBlock();
 } // End function monitorsSetScale
 
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/

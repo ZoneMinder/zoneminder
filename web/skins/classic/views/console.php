@@ -190,31 +190,31 @@ echo $navbar ?>
   }
 ?>
         <button type="button" name="addBtn" data-on-click="addMonitor"
-        <?php echo $canCreateMonitors ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
+        <?php echo $canCreateMonitors ? 'title="'.translate('Add Monitor').'"' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
-        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled">
+        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled" title="<?php echo translate('Clone')?>">
           <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>
         </button>
-        <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
+        <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled" title="<?php echo translate('Edit')?>">
           <i class="material-icons">edit</i>
           <span class="text">&nbsp;<?php echo translate('Edit') ?></span>
         </button>
-        <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
+        <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled" title="<?php echo translate('Delete')?>">
           <i class="material-icons">delete</i>
           <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
-        <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
+        <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled" title="<?php echo translate('Select')?>">
           <i class="material-icons">view_list</i>
           <span class="text">&nbsp;<?php echo translate('Select') ?></span>
         </button>
       </div>
       <div class="rightButtons">
-        <button type="button" id="sortBtn" data-on-click-this="sortMonitors">
+        <button type="button" id="sortBtn" data-on-click-this="sortMonitors" title="<?php echo translate('Sort')?>">
         <i class="material-icons sort" title="Click and drag rows to change order">swap_vert</i>
         <span class="text"><?php echo translate('Sort') ?></span>
         </button>

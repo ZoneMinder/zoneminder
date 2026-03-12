@@ -1633,4 +1633,18 @@ video-stream[id^='liveStream'] video{
 .invisible {
     visibility: hidden;
 }
+
+/* Button style: icons only — hide text labels */
+.btn-icons-only button .text,
+.btn-icons-only .btn .text {
+  display: none;
+}
+
+/* Button style: text only — hide icons on buttons that have a text label */
+.btn-text-only button:has(.text) > i.material-icons,
+.btn-text-only button:has(.text) > i.fa,
+.btn-text-only .btn:has(.text) > i.material-icons,
+.btn-text-only .btn:has(.text) > i.fa {
+  display: none;
+}
 /* --- This block should always be located at the end! */

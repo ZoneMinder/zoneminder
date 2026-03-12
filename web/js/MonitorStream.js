@@ -656,7 +656,7 @@ function MonitorStream(monitorData) {
     imgInfoBlock.src = '';
     imgInfoBlock.src = src;
     return imgInfoBlock;
-  }
+  };
 
   this.writeTextInfoBlock = function(text, params = {}) {
     const infoBlock = document.getElementById('stream-info-block' + this.id) || this.createInfoBlock();
@@ -678,23 +678,22 @@ function MonitorStream(monitorData) {
         }
       }
     }
-  }
+  };
 
   this.hideImgForInfoBlock = function() {
     const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
     if (imgInfoBlock) imgInfoBlock.classList.add('hidden-shift');
-  }
-  
+  };
+
   this.showImgForInfoBlock = function() {
     const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
     if (imgInfoBlock) imgInfoBlock.classList.remove('hidden-shift');
-  }
+  };
 
   this.createImgForInfoBlock = function() {
     let currentImg = document.getElementById('img-stream-info-block' + this.id);
     if (!currentImg) {
       const imgInfoBlock = document.createElement('img');
-      const stream = this.getElement();
       imgInfoBlock.classList.add('img-stream-info-block');
       imgInfoBlock.id = 'img-stream-info-block' + this.id;
       imgInfoBlock.style.position = 'absolute';
@@ -708,7 +707,7 @@ function MonitorStream(monitorData) {
     }
     this.setSrcInfoBlock();
     return currentImg;
-  }
+  };
 
   this.createInfoBlock = function() {
     let currentInfoBlock = document.getElementById('stream-info-block' + this.id);
@@ -719,14 +718,14 @@ function MonitorStream(monitorData) {
       infoBlock.style.position = 'absolute';
       infoBlock.style.width = '100%';
       infoBlock.style.height = 'auto';
-      infoBlock.style.top	= '50%';
+      infoBlock.style.top = '50%';
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
       this.getElement().parentNode.appendChild(infoBlock);
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;
-  }
+  };
 
   this.stop = function() {
     if (-1 !== this.activePlayer.indexOf('zms')) {

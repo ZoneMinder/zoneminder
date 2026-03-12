@@ -537,18 +537,21 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_USE_REMEMBER_ME',
-    default     => 'no',
+    default     => 'None',
     description => 'Show a "Remember Me" option on the login page',
     help        => q`
-      When enabled, a "Remember Me" checkbox will appear on the login
-      page. If the user does not check "Remember Me", the session
-      cookie will expire when the browser is closed. If checked, the
-      session will persist for the duration configured by
-      ZM_COOKIE_LIFETIME. When this option is disabled, sessions
-      always persist for ZM_COOKIE_LIFETIME as before.
+      Controls whether a "Remember Me" checkbox appears on the login page.
+      None: No checkbox is shown. Sessions always persist for ZM_COOKIE_LIFETIME.
+      Yes: Checkbox is shown and checked by default. Users may uncheck it for a session-only cookie.
+      No: Checkbox is shown and unchecked by default. Users may check it to persist the session.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
-    type        => $types{boolean},
+    type        => {
+      db_type     => 'string',
+      hint        => 'None|Yes|No',
+      pattern     => qr|^([YyNn])|i,
+      format      => q( $1 )
+    },
     category    => 'auth',
   },
   # Google reCaptcha settings

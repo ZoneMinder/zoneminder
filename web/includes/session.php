@@ -27,7 +27,7 @@ function zm_session_start() {
     ini_set('session.use_strict_mode', 1);
 
     $currentCookieParams = session_get_cookie_params();
-    if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME && empty($_COOKIE['ZM_REMEMBER_ME'])) {
+    if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0' && empty($_COOKIE['ZM_REMEMBER_ME'])) {
       $currentCookieParams['lifetime'] = 0;
     } else {
       $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;

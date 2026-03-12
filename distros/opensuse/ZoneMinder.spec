@@ -24,12 +24,12 @@
 # CakePHP-Enum-Behavior is configured as a git submodule
 %global cakephp_commit ea90c0cd7f6e24333a90885e563b5d30b793db29
 # RtspServer is configured as a git submodule
-%global rtspserver_commit 24e6b71
+%global rtspserver_commit a071599
 # CxxUrl is configured as a git submodule
 %global cxxurl_commit eaf46c0
 
 
-Version:        1.38.1+git5.3bb76ff0c
+Version:        1.38.1+git427.6aa39892f
 Release:        0
 Summary:        A Linux based camera monitoring and analysis tool
 License:        GPL-2.0-only
@@ -418,8 +418,6 @@ echo %{version} > %{buildroot}%{_datadir}/zoneminder/version
 %{_prefix}/cmake/jwt-cpp-config-version.cmake
 %{_prefix}/cmake/jwt-cpp-config.cmake
 %{_prefix}/cmake/jwt-cpp-targets.cmake
-%{_includedir}/CxxUrl/string.hpp
-%{_includedir}/CxxUrl/url.hpp
 %{_includedir}/jwt-cpp/base.h
 %{_includedir}/jwt-cpp/jwt.h
 %{_includedir}/jwt-cpp/traits/boost-json/*.h
@@ -428,8 +426,6 @@ echo %{version} > %{buildroot}%{_datadir}/zoneminder/version
 %{_includedir}/jwt-cpp/traits/kazuho-picojson/*.h
 %{_includedir}/jwt-cpp/traits/nlohmann-json/*.h
 %{_includedir}/picojson/picojson.h
-%{_libdir}/cmake/CxxUrl/CxxUrl*.cmake
-%{_libdir}/libCxxUrl.a
 
 %post
 /sbin/ldconfig

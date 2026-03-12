@@ -1402,7 +1402,10 @@ document.onvisibilitychange = () => {
             prevStateStarted = 'played';
             //Stop only if playing (not paused).
             // We might want to continue status updates so that alarm sounds etc still happen
-            monitorStream.stop();
+            // Use kill() instead of stop() to send CMD_QUIT and terminate the zms
+            // process. stop() only sends CMD_STOP which leaves zms running, causing
+            // orphaned processes to accumulate each time the tab is hidden/shown.
+            monitorStream.kill();
           }
         } else {
           prevStateStarted = 'stopped';

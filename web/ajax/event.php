@@ -151,6 +151,42 @@ if ( canView('Events') or canView('Snapshots') ) {
       ajaxError('Download generation Failed');
     }
     break;
+  case 'getselectedtags' :
+    $sql = '
+      SELECT 
+        T.* 
+      FROM Tags 
+        AS T 
+      INNER JOIN Events_Tags 
+        AS ET 
+        ON ET.TagId = T.Id 
+      WHERE ET.EventId = ?
+    ';
+    $values = array($_REQUEST['id']);
+    $response = dbFetchAll($sql, NULL, $values);
+    ajaxResponse(array('response'=>$response));
+    break;
+  case 'addtag' :
+    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+    $values = array($_REQUEST['tid'], $_REQUEST['id'], $user->Id());
+    $response = dbFetchAll($sql, NULL, $values);
+
+    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
+    $values = array($_REQUEST['tid']);
+    dbFetchAll($sql, NULL, $values);
+
+    ajaxResponse(array('response'=>$response));
+    break;
+  case 'removetag' :
+    $tagId = validCardinal($_REQUEST['tid']);
+    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
+    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
+    if ($rowCount < 1) {
+      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
+      ajaxResponse(array('response'=>$response));
+    }
+    ajaxResponse();
+    break;
   }
 } // end if canView('Events')
 
@@ -187,42 +223,6 @@ if ( canEdit('Events') ) {
       $Event->delete();
       ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
     }
-    break;
-  case 'getselectedtags' :
-    $sql = '
-      SELECT 
-        T.* 
-      FROM Tags 
-        AS T 
-      INNER JOIN Events_Tags 
-        AS ET 
-        ON ET.TagId = T.Id 
-      WHERE ET.EventId = ?
-    ';
-    $values = array($_REQUEST['id']);
-    $response = dbFetchAll($sql, NULL, $values);
-    ajaxResponse(array('response'=>$response));
-    break;
-  case 'addtag' :
-    $sql = 'INSERT INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
-    $values = array($_REQUEST['tid'], $_REQUEST['id'], $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
-
-    $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
-    $values = array($_REQUEST['tid']);
-    dbFetchAll($sql, NULL, $values);
-
-    ajaxResponse(array('response'=>$response));
-    break;
-  case 'removetag' :
-    $tagId = validCardinal($_REQUEST['tid']);
-    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $_REQUEST['id']));
-    $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
-    if ($rowCount < 1) {
-      $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);
-      ajaxResponse(array('response'=>$response));
-    }
-    ajaxResponse();
     break;
   } // end switch action
 } // end if canEdit('Events')

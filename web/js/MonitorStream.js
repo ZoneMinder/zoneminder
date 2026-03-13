@@ -667,8 +667,7 @@ function MonitorStream(monitorData) {
         infoBlock.style.zIndex = 0;
         this.hideImgForInfoBlock();
       } else {
-        const fontSize = calcTextSizeOnInfoBlock(infoBlock);
-        infoBlock.style.fontSize = params.fontSize || (fontSize)+'px';
+        setTextSizeOnInfoBlock(infoBlock);
         infoBlock.style.zIndex = 10001;
         if (params.showImg === false) {
           this.hideImgForInfoBlock();

@@ -2571,6 +2571,20 @@ function initPageGeneral() {
       }
     });
   });
+
+  document.querySelectorAll('input.disabled').forEach(function(el) {
+    el.addEventListener("click", function clickInputDisabled(event) {
+      event.preventDefault();
+      return;
+    });
+    el.addEventListener("keydown", function keydownInputDisabled(event) {
+      var key = event.key || event.keyCode;
+      if (key === ' ' || key === 'Spacebar' || key === 'Enter' || key === 32 || key === 13) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  });
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload

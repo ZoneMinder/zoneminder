@@ -1863,16 +1863,20 @@ function calcTextSizeOnInfoBlock(el) {
   return parseInt((w/textLength) * 0.6 / d); // ~40% of the block width
 }
 
-function setTextSizeOnInfoBlock() {
+function setTextSizeOnInfoBlocks() {
   const block = document.querySelectorAll('[id ^= "stream-info-block"]');
   Array.prototype.forEach.call(block, (el) => {
-    if (el.innerText.length == 0) return;
-    const fontSize = calcTextSizeOnInfoBlock(el);
-    el.style.fontSize = fontSize + "px";
-    el.classList.remove("text-3d-mini", "text-3d");
-    const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
-    el.classList.add(blockClass);
+    setTextSizeOnInfoBlock(el);
   });
+}
+
+function setTextSizeOnInfoBlock(el) {
+  if (el.innerText.length == 0) return;
+  const fontSize = calcTextSizeOnInfoBlock(el);
+  el.style.fontSize = fontSize + "px";
+  el.classList.remove("text-3d-mini", "text-3d");
+  const blockClass = (fontSize !== fontSize || fontSize < 50) ? 'text-3d-mini' : 'text-3d';
+  el.classList.add(blockClass);
 }
 
 /*
@@ -2789,7 +2793,7 @@ function monitorsSetScale(id=null) {
     }
   } // End function _setScale
   setButtonSizeOnStream();
-  setTextSizeOnInfoBlock();
+  setTextSizeOnInfoBlocks();
 } // End function monitorsSetScale
 
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/

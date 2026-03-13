@@ -665,15 +665,17 @@ function buildStatisticsBar($forLeftBar = false) {
         ' . getBandwidthHTML($bandwidth_options, $user) .'
       </ul>
 
-      <ul class="navbar-nav list-inline justify-content-center">
-        '.
+      '.
+      ((!defined('ZM_WEB_SHOW_SERVER_STATS') or ZM_WEB_SHOW_SERVER_STATS) ?
+      '<ul class="navbar-nav list-inline justify-content-center server-stats">'.
         getSysLoadHTML().
         getCpuUsageHTML().
         getDbConHTML().
         getStorageHTML().
-        getRamHTML()
-        .'
-      </ul>
+        getRamHTML().
+      '</ul>'
+      : '')
+      .'
 
       <ul id="Version" class="nav navbar-nav justify-content-end">
         ' . getZMVersionHTML() . '
@@ -707,18 +709,18 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
           </ul>
 
-          <ul class="nav navbar-nav list-group">
-            <?php
-            echo getSysLoadHTML();
-            echo getCpuUsageHTML();
-            echo getDbConHTML();
-            echo getStorageHTML();
-            echo getRamHTML();
-            #echo getShmHTML();
-            echo getLogIconHTML();
-            ?>
-          </ul>
-
+<?php 
+    if (!defined('ZM_WEB_SHOW_SERVER_STATS') or ZM_WEB_SHOW_SERVER_STATS) {
+      echo '<ul class="nav navbar-nav list-group server-stats">';
+      echo getSysLoadHTML();
+      echo getCpuUsageHTML();
+      echo getDbConHTML();
+      echo getStorageHTML();
+      echo getRamHTML();
+      echo '</ul>';
+    }
+    echo '<ul id="LogIcon" class="navbar-nav">'.getLogIconHTML().'</ul>';
+?>
         </div>
 <?php 
   } // end if (!ZM_OPT_USE_AUTH) or $user )

@@ -3036,6 +3036,19 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_SHOW_SERVER_STATS',
+    default     => 'yes',
+    description => 'Show server statistics in the navigation bar.',
+    help        => q`
+      Controls whether the server statistics (system load, CPU usage,
+      database connections, storage, and RAM) are displayed in the
+      navigation bar header. Disabling this can reduce visual clutter
+      and the overhead of polling these stats.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_SHOW_NAV_BUTTONS',
     default     => 'yes',
     description => 'Show Back and Refresh buttons at the top of views.',

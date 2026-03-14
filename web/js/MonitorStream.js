@@ -702,6 +702,7 @@ function MonitorStream(monitorData) {
       imgInfoBlock.style.width = '100%';
       imgInfoBlock.style.height = '100%';
       imgInfoBlock.style.zIndex = 10000;
+      imgInfoBlock.style.pointerEvents = 'none';
       this.getElement().parentNode.appendChild(imgInfoBlock);
       currentImg = imgInfoBlock;
     }
@@ -721,6 +722,7 @@ function MonitorStream(monitorData) {
       infoBlock.style.top = '50%';
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
+      infoBlock.style.pointerEvents = 'none';
       this.getElement().parentNode.appendChild(infoBlock);
       currentInfoBlock = infoBlock;
     }

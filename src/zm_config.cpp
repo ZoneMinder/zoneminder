@@ -282,8 +282,9 @@ bool ConfigItem::BooleanValue() const {
     ConvertValue();
 
   if ( cfg_type != CFG_BOOLEAN ) {
-    Error("Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type);
-    exit(-1);
+    Warning("Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
+            name, type);
+    return value && value[0] && strcmp(value, "0") != 0;
   }
 
   return cfg_value.boolean_value;
@@ -294,8 +295,9 @@ int ConfigItem::IntegerValue() const {
     ConvertValue();
 
   if ( cfg_type != CFG_INTEGER ) {
-    Error("Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type);
-    exit(-1);
+    Warning("Attempt to fetch integer value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
+            name, type);
+    return value ? static_cast<int>(strtol(value, nullptr, 0)) : 0;
   }
 
   return cfg_value.integer_value;
@@ -306,8 +308,9 @@ double ConfigItem::DecimalValue() const {
     ConvertValue();
 
   if ( cfg_type != CFG_DECIMAL ) {
-    Error("Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type);
-    exit(-1);
+    Warning("Attempt to fetch decimal value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
+            name, type);
+    return value ? strtod(value, nullptr) : 0.0;
   }
 
   return cfg_value.decimal_value;
@@ -318,8 +321,8 @@ const char *ConfigItem::StringValue() const {
     ConvertValue();
 
   if ( cfg_type != CFG_STRING ) {
-    Error("Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.", name, type);
-    exit(-1);
+    Warning("Attempt to fetch string value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
+            name, type);
   }
 
   return cfg_value.string_value;

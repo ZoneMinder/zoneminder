@@ -82,7 +82,7 @@ Monitor::MonitorLink::~MonitorLink() {
 
 bool Monitor::MonitorLink::connect() {
   SystemTimePoint now = std::chrono::system_clock::now();
-  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(60)) {
+  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(1)) {
     last_connect_time = std::chrono::system_clock::to_time_t(now);
 
     // Clean up any existing resources before reconnecting to avoid fd leaks

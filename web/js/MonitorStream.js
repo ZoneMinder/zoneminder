@@ -662,8 +662,9 @@ function MonitorStream(monitorData) {
     const infoBlock = document.getElementById('stream-info-block' + this.id) || this.createInfoBlock();
     if (infoBlock) {
       if (params.color) infoBlock.style.color = params.color;
-      infoBlock.textContent = text;
-      if (text === null || text === "") {
+      const normalizedText = (text == null) ? '' : text;
+      infoBlock.textContent = normalizedText;
+      if (normalizedText === "") {
         infoBlock.style.zIndex = 0;
         this.hideImgForInfoBlock();
       } else {

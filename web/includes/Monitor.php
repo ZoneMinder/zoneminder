@@ -227,6 +227,7 @@ class Monitor extends ZM_Object {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'WhatDisplay'   => 'OnlyVideo',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
     'DefaultPlayer' => '',
     'StreamChannel'   => 'Restream',
@@ -1077,6 +1078,7 @@ class Monitor extends ZM_Object {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
   <div class="stream-info">
+    <div class="stream-info-status-track"></div>
     <div class="stream-info-status"></div>
     <div class="stream-info-mode"></div>
   </div>
@@ -1108,6 +1110,16 @@ class Monitor extends ZM_Object {
  */
   function getStreamHTML($options) {
     global $basename;
+    global $view;
+
+    $whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+    $dataNotDisplayVideo = 'false';
+
+    if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+      if (false === (strpos(strtolower($this->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+    } else {
+      if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+    }
 
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
@@ -1174,6 +1186,7 @@ class Monitor extends ZM_Object {
               class="monitorStream imageFeed"
               data-monitor-id="'. $this->Id() .'"
               data-width="'. $this->ViewWidth() .'"
+              data-not-display-video="'. $dataNotDisplayVideo .'"
               data-height="'.$this->ViewHeight() .'" style="'.
 #(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
 #(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').

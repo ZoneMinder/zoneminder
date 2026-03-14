@@ -45,6 +45,7 @@ function MonitorStream(monitorData) {
   this.server_id = monitorData.server_id;
   this.scale = monitorData.scale ? parseInt(monitorData.scale) : 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
+  this.whatDisplay = monitorData.whatDisplay;
   this.lastAlarmState = STATE_IDLE;
   this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
   this.statusCmdParms = {
@@ -635,6 +636,7 @@ function MonitorStream(monitorData) {
     this.handlerEventListener['killStream'] = this.streamListenerBind();
     this.activePlayer = 'zms';
     this.updateStreamInfo('ZMS MJPEG');
+    hideAudioMotion(this.id);
   }; // this.start
 
   this.setSrcInfoBlock = function() {
@@ -798,6 +800,7 @@ function MonitorStream(monitorData) {
     } else {
       console.log("Unknown activePlayer", this.activePlayer);
     }
+    if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
     this.activePlayer = '';
     this.started = false;
   };
@@ -936,6 +939,7 @@ function MonitorStream(monitorData) {
       }
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     }
+    if (this.audioMotion && this.audioMotion.play) this.audioMotion.play();
   };
 
   this.eventHandler = function(event) {

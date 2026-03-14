@@ -23,6 +23,24 @@ if ( !canView('System') ) {
   return;
 }
 
+// Calculate default page size based on browser height
+$defaultPageSize = 25; // Fallback default
+if (isset($_COOKIE['zmBrowserSizes'])) {
+  $zmBrowserSizes = jsonDecode($_COOKIE['zmBrowserSizes']);
+  if (!empty($zmBrowserSizes['innerHeight'])) {
+    $browserHeight = validInt($zmBrowserSizes['innerHeight']);
+    if ($browserHeight) {
+      // Subtract approximate overhead: navbar(56) + summary(30) + toolbar(66) + table header(40) + pagination(58) + margins(44)
+
+      $availableHeight = $browserHeight - 56 /* navbar */ - 18 /* (summary) */ - 66 /* toolbar */ - 25 /*table header */ - 58 /* pageination block */ - 0 /* margins */;
+      // Estimate ~32px per row // icon on mine is 26.5
+      $calculatedRows = floor($availableHeight / 27);
+      // Clamp between 10 and 100
+      $defaultPageSize = max(10, min(100, $calculatedRows));
+    }
+  }
+}
+
 xhtmlHeaders(__FILE__, translate('SystemLog'));
 getBodyTopHTML();
   echo getNavBarHTML() ?>
@@ -39,6 +57,9 @@ getBodyTopHTML();
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+<?php if ( canEdit('System') ) { ?>
+      <button id="clearLogsBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>" disabled><i class="fa fa-trash"></i> <?php echo translate('ClearLogs') ?></button>
+<?php } ?>
       <div class="controlHeader">
       <span class="term ComponentFilter">
         <label><?php echo translate('Component') ?></label>
@@ -47,8 +68,16 @@ $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component
 ZM\Debug(print_r($components, true));
 $options = [''=>translate('All')] + array_combine($components, $components);
 ZM\Debug(print_r($options, true));
+$selected_component = '';
+if (isset($_SESSION['zmLogComponent'])) {
+  if (array_search($_SESSION['zmLogComponent'], $components)) {
+    $selected_component = $_SESSION['zmLogComponent'];
+  } else {
+    unset($_SESSION['zmLogComponent']);
+  }
+}
 echo '<span class="term-value-wrapper">';
-echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent', 'class'=>'chosen'));
+echo htmlSelect('filterComponent', $options, $selected_component, array('id'=>'filterComponent', 'class'=>'chosen'));
 echo '</span>';
 ?>
       </span>
@@ -100,6 +129,7 @@ echo '</span>';
       data-side-pagination="server"
       data-ajax="ajaxRequest"
       data-pagination="true"
+      data-page-size="<?php echo $defaultPageSize ?>"
       data-page-list="[10, 25, 50, 100, 200, 300, 400, 500]"
       data-search="true"
       data-advanced-search="true"
@@ -119,9 +149,17 @@ echo '</span>';
       data-auto-refresh-silent="true"
       data-show-refresh="true"
       data-auto-refresh-interval="30"
+<?php if (canEdit('System')) { ?>
+      data-click-to-select="true"
+<?php } ?>
+      data-id-field="Id"
     >
       <thead class="thead-highlight">
         <tr>
+<?php if (canEdit('System')) { ?>
+          <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+<?php } ?>
+          <th data-field="Id" data-visible="false"></th>
           <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
 <?php if (count($Servers)>1) { ?>

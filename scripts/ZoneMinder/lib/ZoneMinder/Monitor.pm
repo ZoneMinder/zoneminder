@@ -66,8 +66,8 @@ $serial = $primary_key = 'Id';
   JanusEnabled
   JanusAudioEnabled
   Janus_Profile_Override
-  Janus_Use_RTSP_Restream
-  Janus_RTSP_User
+  Restream
+  RTSP_User
   Janus_RTSP_Session_Timeout
   LinkedMonitors
   Triggers
@@ -193,8 +193,8 @@ $fields{model} = undef;
     JanusEnabled => 0,
     JanusAudioEnabled => 0,
     Janus_Profile_Override => q`''`,
-    Janus_Use_RTSP_Restream => 0,
-    Janus_RTSP_User => undef,
+    Restream => 0,
+    RTSP_User => undef,
     Janus_RTSP_Session_Timeout => 0,
     LinkedMonitors => undef,
     Triggers => '',
@@ -347,12 +347,20 @@ sub control {
   my $command = shift;
   my $process = shift;
 
+  my $valid_device = (defined $monitor->{Device} and $monitor->{Device} =~ /^\/dev\/[\w\/.\-]+$/);
+  if ($monitor->{Type} eq 'Local' and !$valid_device) {
+    Error("Invalid device path rejected: $monitor->{Device}");
+    return;
+  } elsif (!$valid_device and defined $monitor->{Device} and length($monitor->{Device})) {
+    Warning("Monitor $$monitor{Id} has invalid device path: $monitor->{Device}");
+  }
+
   if ($command eq 'stop') {
     if ($process) {
       ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl stop zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
       }
@@ -362,7 +370,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
       }
@@ -372,7 +380,7 @@ sub control {
       ZoneMinder::General::runCommand("zmdc.pl restart $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        ZoneMinder::General::runCommand('zmdc.pl restart zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand("zmdc.pl restart zmc -d '$monitor->{Device}'");
       } else {
         ZoneMinder::General::runCommand('zmdc.pl restart zmc -m '.$monitor->{Id});
       }
@@ -498,7 +506,11 @@ sub zmcControl {
 
   if ((!$ZoneMinder::Config{ZM_SERVER_ID}) or ( $$self{ServerId} and ($ZoneMinder::Config{ZM_SERVER_ID}==$$self{ServerId}) )) {
     if ($$self{Type} eq 'Local') {
-      $zmcArgs .= '-d '.$self->{Device};
+      if (!defined $$self{Device} or $$self{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+        Error("Invalid device path rejected: $$self{Device}");
+        return;
+      }
+      $zmcArgs .= "-d '$$self{Device}'";
     } else {
       $zmcArgs .= '-m '.$self->{Id};
     }
@@ -588,7 +600,7 @@ sub model {
   
   if (@_) {
     my $new = shift;
-    if ($new ne $$self{Model}->Name()) {
+    if ((!$$self{Model}) or ($new ne $$self{Model}->Name())) {
       $$self{Model} = ZoneMinder::Model->find_one(Name=>$new);
       if (!$$self{Model}) {
         $$self{Model} = new ZoneMinder::Model();

@@ -41,7 +41,7 @@ void Fifo::file_create_if_missing(const std::string &path, bool is_fifo, bool de
   if (!is_fifo) {
     Debug(5, "Creating non fifo file as requested: %s", path.c_str());
     int fd = ::open(path.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-    ::close(fd);
+    if (fd >= 0) ::close(fd);
     return;
   }
   Debug(5, "Making fifo file of: %s", path.c_str());
@@ -63,6 +63,7 @@ bool Fifo::open() {
       Error("Can't open %s for writing: %s", path.c_str(), strerror(errno));
       return false;
     }
+    raw_fd = fileno(outfile);
   } else {
     raw_fd = ::open(path.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
     if (raw_fd < 0)
@@ -91,6 +92,8 @@ bool Fifo::open() {
 bool Fifo::close() {
   if (outfile) {
     fclose(outfile);
+    outfile = nullptr;
+    raw_fd = -1;
   }
 
   return true;

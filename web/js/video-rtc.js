@@ -163,14 +163,21 @@ export class VideoRTC extends HTMLElement {
      * https://developer.chrome.com/blog/autoplay/
      */
     play() {
-        this.video.play().catch(() => {
-            if (!this.video.muted) {
+        this.video.play().then(_ => {
+            this.onplay();
+        })
+        .catch(er => {
+            if (er.name === 'NotAllowedError' && !this.video.muted) {
                 this.video.muted = true;
-                this.video.play().catch(er => {
-                    console.warn(er);
-                });
+                this.play();
+            } else {
+                console.warn(er);
             }
         });
+    }
+
+    onplay() {
+
     }
 
     /**
@@ -237,13 +244,14 @@ export class VideoRTC extends HTMLElement {
      */
     oninit() {
         this.video = document.createElement('video');
-        this.video.controls = true;
+        this.video.controls = false;
         this.video.playsInline = true;
         this.video.preload = 'auto';
 
         this.video.style.display = 'block'; // fix bottom margin 4px
         this.video.style.width = '100%';
         this.video.style.height = '100%';
+        this.video.muted = this.muted;
 
         this.appendChild(this.video);
 
@@ -317,7 +325,7 @@ export class VideoRTC extends HTMLElement {
             this.pc = null;
         }
 
-        this.video.src = '';
+        this.video.removeAttribute('src');
         this.video.srcObject = null;
     }
 
@@ -334,8 +342,10 @@ export class VideoRTC extends HTMLElement {
                 for (const mode in this.onmessage) {
                     this.onmessage[mode](msg);
                 }
-            } else {
+            } else if (this.ondata) {
                 this.ondata(ev.data);
+            } else {
+              console.log('No ondata to handle', ev);
             }
         });
 
@@ -472,6 +482,8 @@ export class VideoRTC extends HTMLElement {
                 }
             };
         };
+
+        this.ms = ms;
     }
 
     onwebrtc() {

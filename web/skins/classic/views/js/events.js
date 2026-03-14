@@ -9,6 +9,7 @@ const downloadButton = $j('#downloadBtn');
 const deleteButton = $j('#deleteBtn');
 const table = $j('#eventTable');
 var ajax = null;
+var footerData = {DiskSpace: '', Length: 0};
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -57,6 +58,10 @@ function ajaxRequest(params) {
         return;
       }
       var rows = processRows(data.rows);
+      // Store footer totals data
+      if (data.footerData) {
+        footerData = data.footerData;
+      }
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
@@ -124,7 +129,7 @@ function getIdSelections() {
   const table = $j('#eventTable');
 
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
-    return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
+    return strip_html(row.Id); // strip the html from the element before sending
   });
 }
 
@@ -508,7 +513,8 @@ function initPage() {
     });
 
     const thumb_ndx = $j('#eventTable tr th').filter(function() {
-      return $j(this).attr('data-field').toLowerCase().trim() == 'thumbnail';
+      const data_field = $j(this).attr('data-field');
+      return data_field && data_field.toLowerCase().trim() == 'thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });
@@ -523,6 +529,33 @@ function initPage() {
     console.log('Refreshing table');
     table.bootstrapTable('refresh');
   };
+
+  // Set initial history state so the first filter change creates a new history entry
+  const initialUrl = '?view=events' + filterQuery + sortQuery;
+  history.replaceState({filterQuery: filterQuery, sortQuery: sortQuery}, '', initialUrl);
+
+  // Handle browser back/forward navigation
+  window.addEventListener('popstate', function(event) {
+    if (!event.state) return;
+
+    // Parse URL parameters and update form fields
+    const urlParams = new URLSearchParams(window.location.search);
+    $j('#fieldsTable input, #fieldsTable select').each(function() {
+      const el = $j(this);
+      const name = el.attr('name');
+      if (urlParams.has(name)) {
+        el.val(urlParams.get(name));
+      }
+    });
+
+    // Restore sortQuery from state if available
+    if (event.state.sortQuery !== undefined) {
+      sortQuery = event.state.sortQuery;
+    }
+
+    // Rebuild filterQuery and refresh without pushing another history entry
+    filterEvents({}, {skipPushState: true});
+  });
 
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
@@ -542,20 +575,49 @@ function initDatepickerEventsPage() {
   });
 }
 
-function filterEvents(clickedElement) {
+// Build filterQuery string from current form field values
+function buildFilterQuery() {
+  var query = '';
+  $j('#fieldsTable input, #fieldsTable select').each(function() {
+    const el = $j(this);
+    query += '&' + encodeURIComponent(el.attr('name')) + '=' + encodeURIComponent(el.val());
+  });
+  return query;
+}
+
+function filterEvents(clickedElement, options) {
+  options = options || {};
   if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
     setCookie('zmFilterArchived', clickedElement.target.value);
   }
-  filterQuery = '';
-  $j('#fieldsTable input').each(function(index) {
-    const el = $j(this);
-    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
-  });
-  $j('#fieldsTable select').each(function(index) {
-    const el = $j(this);
-    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
-  });
+  filterQuery = buildFilterQuery();
+
+  // Update URL using pushState so filter state can be shared and back/forward works
+  if (!options.skipPushState) {
+    const newUrl = '?view=events' + filterQuery + sortQuery;
+    history.pushState({filterQuery: filterQuery, sortQuery: sortQuery}, '', newUrl);
+  }
+
   table.bootstrapTable('refresh');
+}
+
+// Footer formatter for total duration
+function totalLengthFormatter(data) {
+  if (footerData.Length) {
+    const totalSeconds = Math.floor(footerData.Length);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return String(hours).padStart(2, '0') + ':' +
+           String(minutes).padStart(2, '0') + ':' +
+           String(seconds).padStart(2, '0');
+  }
+  return '';
+}
+
+// Footer formatter for total disk space
+function totalDiskSpaceFormatter(data) {
+  return footerData.DiskSpace || '';
 }
 
 $j(document).ready(function() {

@@ -31,21 +31,21 @@ var Server = function() {
       value: function url() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
 
-        return location.protocol + '//' + this.Hostname + (port ? ':' + port : '') + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
+        return location.protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
       }
     },
     {
       key: 'urlToZMS',
       value: function urlToZMS() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
+        return this.Protocol + '://' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
       }
     },
     {
       key: 'urlToApi',
       value: function urlToApi() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
       }
     },
     {
@@ -59,7 +59,7 @@ var Server = function() {
       key: 'urlToJanus',
       value: function urlToJanus() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + '/janus';
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + '/janus';
       }
     }
   ]);

@@ -58,7 +58,7 @@ class ZoneMinderFifoSource {
   std::thread write_thread_;
   std::atomic<bool> stop_;
 
-  std::shared_ptr<xop::RtspServer>& m_rtspServer;
+  std::shared_ptr<xop::RtspServer> m_rtspServer;
   xop::MediaSessionId m_sessionId;
   xop::MediaChannelId m_channelId;
   std::string m_fifo;

@@ -49,14 +49,14 @@ if (!$filter->Id()) {
   if (!$filter->has_term('Notes')) {
     $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
   }
-  if (!$filter->has_term('StartDateTime')) {
+  if (!$filter->has_term('StartDateTime', '>=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 
       'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeStart']) ? $_COOKIE['eventsStartDateTimeStart'] : date('Y-m-d h:i:s', time()-3600)),
       'cnj' => 'and', 'cookie'=>'eventsStartDateTimeStart'));
   }
-  if (!$filter->has_term('EndDateTime')) {
-    $filter->addTerm(array('attr' => 'EndDateTime', 'op' => '<=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsEndDateTimeEnd']) ? $_COOKIE['eventsEndDateTimeEnd'] : ''),
+  if (!$filter->has_term('StartDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeEnd']) ? $_COOKIE['eventsStartDateTimeEnd'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsEndDateTimeEnd'));
   }
   if (!$filter->has_term('Tags')) {
@@ -93,7 +93,7 @@ echo getNavBarHTML();
               <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
               <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
               <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
-        <a class="btn" href="#" data-flip-control-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
+              <a class="btn" href="#" data-flip-control-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
             </div>
           </div> <!-- .col-sm-1-->
           <div class="col-sm-9">
@@ -153,6 +153,7 @@ echo getNavBarHTML();
           data-check-on-init="true"
           data-mobile-responsive="true"
           data-min-width="562"
+          data-show-footer="true"
           class="table-sm table-borderless table"
           style="display:none;"
         >
@@ -170,17 +171,17 @@ echo getNavBarHTML();
               <th data-sortable="true" data-field="Tags" class="Tags"><?php echo translate('Tags') ?></th>
               <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
-              <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
+              <th data-sortable="true" data-field="Length" data-footer-formatter="totalLengthFormatter" class="Length"><?php echo translate('Duration') ?></th>
 <?php if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) { ?>
               <th data-sortable="true" data-field="Location" class="Location"><?php echo translate('Location') ?></th>
 <?php } ?>
               <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>
-              <th data-sortable="true" data-field="AvgScore" class="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="true" data-field="MaxScore" class="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="true" data-field="TotScore" class="TotScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('TotalBrScore')) ?>"><?php echo translate('TotalBrScore') ?></th>
+              <th data-sortable="true" data-field="AvgScore" class="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="true" data-field="MaxScore" class="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
               <th data-sortable="false" data-field="Storage" class="Storage"><?php echo translate('Storage') ?></th>
-              <th data-sortable="true" data-field="DiskSpace" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
+              <th data-sortable="true" data-field="DiskSpace" data-footer-formatter="totalDiskSpaceFormatter" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
             </tr>
           </thead>
           <tbody>

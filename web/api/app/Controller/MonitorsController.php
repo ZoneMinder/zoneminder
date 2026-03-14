@@ -259,7 +259,7 @@ class MonitorsController extends AppController {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
       if ($mToken) {
-        $auth = ' -T '.$mToken;
+        $auth = ' -T '.escapeshellarg($mToken);
       } else if (ZM_AUTH_RELAY == 'hashed') {
         $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
@@ -278,13 +278,17 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user->Username().' -P '.$password;
+        $auth = ' -U '.escapeshellarg($user->Username()).' -P '.escapeshellarg($password);
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user->Username();
+        $auth = ' -U '.escapeshellarg($user->Username());
       }
     }
-    
-    $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
+
+    $shellcmd = ZM_PATH_BIN.'/zmu'
+      .($verbose ? " $verbose" : '')
+      .' -m'.escapeshellarg($id)
+      ." $q"
+      .$auth;
     $status = exec($shellcmd, $output, $rc);
     ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
@@ -325,16 +329,16 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device', 'Function'),
+      'fields' => array('Id', 'Type', 'Device', 'Capturing'),
       'conditions' => array('Id' => $id)
     ));
 
     // Clean up the returned array
     $monitor = Set::extract('/Monitor/.', $monitor);
-    if ($monitor[0]['Function'] == 'None') {
+    if ($monitor[0]['Capturing'] == 'None') {
       $this->set(array(
         'status' => false,
-        'statustext' => 'Monitor function is set to None',
+        'statustext' => 'Monitor capturing is set to None',
         '_serialize' => array('status','statustext'),
       ));
       return;
@@ -342,9 +346,9 @@ class MonitorsController extends AppController {
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {
-      $args = '-d '. $monitor[0]['Device'];  
+      $args = '-d '. escapeshellarg($monitor[0]['Device']);
     } else {
-      $args = '-m '. $monitor[0]['Id'];
+      $args = '-m '. escapeshellarg($monitor[0]['Id']);
     }
 
     // Build the command, and execute it
@@ -369,7 +373,7 @@ class MonitorsController extends AppController {
   public function daemonControl($id, $command, $daemon=null) {
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Function', 'Device', 'ServerId'),
+      'fields' => array('Id', 'Type', 'Capturing', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
     $monitor = $monitor['Monitor'];

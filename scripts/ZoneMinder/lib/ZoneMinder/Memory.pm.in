@@ -179,6 +179,7 @@ our %mem_data = (
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
+    last_analysis_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },

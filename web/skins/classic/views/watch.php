@@ -184,7 +184,7 @@ if (isset($_REQUEST['streamQuality'])) {
 }
 $streamQualitySelected = validHtmlStr($streamQualitySelected);
 
-$streamChannelSelected = $monitor->RTSP2WebStream();
+$streamChannelSelected = $monitor->StreamChannel();
 if (isset($_REQUEST['streamChannel'])) {
   $streamChannelSelected = $_REQUEST['streamChannel'];
 } else if (isset($_COOKIE['zmStreamChannel'])) {
@@ -226,13 +226,17 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-control-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+    $html = '';
+    if (!$filter_inline) {
+      $html .= '<a class="flip" href="#"
+               data-flip-control-object="#mfbpanel"
+               data-flip-control-run-after-func="applyChosen"
+               data-flip-control-run-after-complet-func="changeScale">
+                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+               </a>'.PHP_EOL;
+    }
+    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">
@@ -298,12 +302,12 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
         </span>
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
+          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale','class'=>'chosen') ); ?>
         </span>
         <span id="streamQualityControl">
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php
-              echo htmlSelect('streamChannel', ZM\Monitor::getRTSP2WebStreamOptions(), $monitor->RTSP2WebStream(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
+              echo htmlSelect('streamChannel', ZM\Monitor::getStreamChannelOptions(), $monitor->StreamChannel(), array('data-on-change'=>'monitorChangeStreamChannel','id'=>'streamChannel','class'=>'chosen'));
               echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality','class'=>'chosen'));
           ?>
         </span>
@@ -319,7 +323,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_mse'] = 'RTSP2Web MSE';
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $players['janus'] = 'Janus';
-              $player = ''; # Auto
+              $player = validHtmlStr($monitor->DefaultPlayer());
               if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
@@ -335,7 +339,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
   </div><!--header-->
   <div id="content">
     <div class="container-fluid">
-      <div class="row flex-nowrap" >
+      <div class="row flex-md-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">
@@ -411,7 +415,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
 echo $monitor->getStreamHTML($options);
 ?>
           </div><!-- id="Monitor" -->
-          <div class="buttons" id="dvrControls">
+          <div id="bottomBlock"><div class="buttons" id="dvrControls">
 <!--
           <button type="button" id="getImageBtn" title="<?php echo translate('Download Image') ?>"/>
 -->
@@ -440,11 +444,14 @@ echo $monitor->getStreamHTML($options);
               <i class="material-icons md-18">zoom_out</i>
               </button>
           </div><!--dvrControls-->
-          <div class="buttons" id="extButton"> 
+          <div class="buttons" id="extButton">
+            <button type="button" id="analyseBtn" class="btn btn-secondary" title="<?php echo translate('Show Analysis') ?>" data-on-click="toggleAnalyseFrames">
+            <i class="material-icons md-18">assessment</i>
+            </button>
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
             <i class="material-icons md-18">fullscreen</i>
             </button>
-            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?> 
+            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?>
             </button>
 <?php 
 $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
@@ -454,19 +461,18 @@ $muted = (isset($_REQUEST['muted']) and $_REQUEST['muted'] == 'true') ? true :
   ((isset($_COOKIE['zmWatchMuted']) and $_COOKIE['zmWatchMuted'] == 'true') ? true : false);
 ZM\Debug("Muted $muted");
 ?>
-            <span id="volumeControls" class="volume">
-              <div id="volumeSlider" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
-              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            <span id="volumeControls<?php echo $mid; ?>" class="volume disabled">
+              <div id="volumeSlider<?php echo $mid; ?>" data-volume="<?php echo $volume; ?>" data-muted="<?php echo $muted ? 'true' : 'false'; ?>" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute<?php echo $mid; ?>" class="audio-control-mute material-icons md-22"></i>
             </span>
-          </div>
+          </div><!-- id="extButton" --></div><!-- id="bottomBlock" -->
         </div><!-- id="wrapperMonitor" -->
 
 <!-- START Control -->
 <?php
 if ( $hasPtzControls ) {
 ?>
-        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-        </div>
+        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>> </div>
 <?php
 }
 ?>
@@ -507,9 +513,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
 <?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>
@@ -530,7 +536,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
-  <script src="<?php echo cache_bust('js/hls-1.5.20/hls.min.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php
   } else {
     echo "There are no monitors to display\n";

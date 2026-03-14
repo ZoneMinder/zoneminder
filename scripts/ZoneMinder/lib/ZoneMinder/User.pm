@@ -19,7 +19,7 @@
 #
 # ==========================================================================
  
-package ZoneMinder::Frame;
+package ZoneMinder::User;
 
 use 5.006;
 use strict;

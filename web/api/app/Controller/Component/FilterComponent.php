@@ -63,6 +63,15 @@ class FilterComponent extends Component {
                 'IN',
 					      );
 
+  public $paramsToFilterOut = array(
+    'p', // Used in nginx api rewriting
+    'sort',
+    'page',
+    'limit',
+    'token',
+    'direction'
+  );
+
 	// Build a CakePHP find() condition based on the named parameters
 	// that are passed in
 	public function buildFilter($namedParams) {
@@ -71,8 +80,11 @@ class FilterComponent extends Component {
 			foreach ($namedParams as $attribute => $value) {
 				// We need to sanitize $attribute to avoid SQL injection.
 				$lhs = trim($attribute);
+        if ($lhs and in_array($lhs, $this->paramsToFilterOut)) {
+          continue;
+        }
 				$matches = NULL;
-				if (preg_match('/^(?P<field>[a-z0-9]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
+				if (preg_match('/^(?P<field>[a-z0-9\.]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
 					throw new Exception('Invalid argument before `:`: ' . $lhs);
 				}
 				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
@@ -88,7 +100,7 @@ class FilterComponent extends Component {
           $value = explode(',', $value);
         }
 
-				$lhs = $matches['field'] . ' ' . $operator;
+				$lhs = $matches['field'] . ($operator?' ' . $operator:'');
 				// If the named param contains an array, we want to turn it into an IN condition
 				// Otherwise, we add it right into the $conditions array
 				if (is_array($value)) {
@@ -104,11 +116,9 @@ class FilterComponent extends Component {
 					$conditions[$lhs] = $value;
 				}
 			}
-
-		}
+		}  // end if namedparams
 
 		return $conditions;
 	}
-
 }
 ?>

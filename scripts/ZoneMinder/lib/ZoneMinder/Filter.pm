@@ -165,8 +165,12 @@ sub Sql {
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $fields .= ', (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
-          $self->{Sql} .= 'T.Id';
+          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          # Don't prepend T.Id for special tag values (0="No Tag", -1="Any Tag")
+          # as those use EXISTS/NOT EXISTS subqueries instead
+          if (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1')) {
+            $self->{Sql} .= 'T.Id';
+          }
           $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           if (!($fields =~ /MonitorName/)) {
@@ -186,6 +190,12 @@ sub Sql {
         } elsif ( $term->{attr} eq 'FilterServerId' ) {
           $self->{Sql} .= (defined($Config{ZM_SERVER_ID}) ? $Config{ZM_SERVER_ID}: '0').' /* ZM_SERVER_ID */';
           # StartTime options
+        } elsif ( $term->{attr} eq 'CurrentDateTime' ) {
+          $self->{Sql} .= 'NOW()';
+        } elsif ( $term->{attr} eq 'CurrentTime' ) {
+          $self->{Sql} .= 'extract( hour_second from NOW())';
+        } elsif ( $term->{attr} eq 'CurrentDate' ) {
+          $self->{Sql} .= 'to_days(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
         } elsif ( $term->{attr} eq 'Date' ) {
@@ -268,7 +278,7 @@ sub Sql {
                 $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
               }
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
+            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' or $term->{attr} eq 'CurrentDateTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
@@ -279,7 +289,7 @@ sub Sql {
                 }
                 $value = "'$value'";
               }
-            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
@@ -292,7 +302,7 @@ sub Sql {
                 }
                 $value = "to_days( '$value' )";
               }
-            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
@@ -310,7 +320,23 @@ sub Sql {
           } # end foreach temp_value
 
           if ( $term->{op} ) {
-            if ( $term->{op} eq '=~' ) {
+            # Handle special tag values before generic operators to avoid
+            # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
+            if ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '0' ) {
+              # "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
+              if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
+                $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              } else {
+                $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              }
+            } elsif ( $term->{attr} eq 'Tags' and defined($term->{val}) and $term->{val} eq '-1' ) {
+              # "Any Tag": = means has tags (EXISTS), != means no tags (NOT EXISTS)
+              if ($term->{op} eq '!=' or $term->{op} eq 'IS NOT') {
+                $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              } else {
+                $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
+              }
+            } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {
               $self->{Sql} .= ' NOT REGEXP '.$value;
@@ -340,8 +366,6 @@ sub Sql {
               $self->{Sql} .= ' LIKE '.$value;
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
-            } elsif ( $term->{attr} eq 'Tags' and ($term->{op} eq 'LIKE' or $term->{op} eq 'IS') and $term->{val} eq '') {
-              $self->{Sql} .= 'NOT EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
             } else {
               $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }
@@ -484,7 +508,10 @@ sub getLoad {
 sub strtotime {
   my $dt_str = shift;
   require Date::Manip;
-  return Date::Manip::UnixDate($dt_str, '%s');
+
+  Date::Manip::Date_Init("SetDate=now,".$ZoneMinder::Config{ZM_TIMEZONE}) if $ZoneMinder::Config{ZM_TIMEZONE};
+  my $dt = Date::Manip::ParseDate($dt_str);
+  return Date::Manip::UnixDate($dt, '%s');
 }
 
 #

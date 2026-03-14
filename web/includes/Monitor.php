@@ -197,15 +197,16 @@ class Monitor extends ZM_Object {
 
   protected static $table = 'Monitors';
 
-  protected static $RTSP2WebStreamOptions = null;
-  public static function getRTSP2WebStreamOptions() {
-    if (!isset($RTSP2WebStreamOptions)) {
-      $RTSP2WebStreamOptions = array(
-        'Primary' => translate('Primary'),
-        'Secondary' => translate('Secondary')
+  protected static $StreamChannelOptions = null;
+  public static function getStreamChannelOptions() {
+    if (!isset($StreamChannelOptions)) {
+      $StreamChannelOptions = array(
+        'Restream' => translate('Restream'),
+        'CameraDirectPrimary' => translate('Camera Direct Primary'),
+        'CameraDirectSecondary' => translate('Camera Direct Secondary')
       );
     }
-    return $RTSP2WebStreamOptions;
+    return $StreamChannelOptions;
   }
 
   protected $defaults = array(
@@ -227,14 +228,14 @@ class Monitor extends ZM_Object {
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
-    'RTSP2WebType'   => 'HLS',
-    'RTSP2WebStream'   => 'Primary',
+    'DefaultPlayer' => '',
+    'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
-    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
-    'Janus_RTSP_User'           => null,
+    'Restream'   => array('type'=>'boolean','default'=>0),
+    'RTSP_User'           => null,
     'Janus_RTSP_Session_Timeout'  => array('type'=>'integer','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
@@ -275,8 +276,10 @@ class Monitor extends ZM_Object {
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
-    'OutputCodec' =>  '0',
+    'OutputCodecName' =>  'auto',
     'Encoder'     =>  'auto',
+    'EncoderHWAccelName'  =>  null,
+    'EncoderHWAccelDevice'  =>  null,
     'OutputContainer' => null,
     'EncoderParameters' => '',
     'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
@@ -342,6 +345,7 @@ class Monitor extends ZM_Object {
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
     'StartupDelay' => 0,
+    'initial_scale' => array('default'=>100, 'do_not_update'=>1),
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -493,7 +497,7 @@ class Monitor extends ZM_Object {
 
   public function __call($fn, array $args) {
     if (count($args)) {
-      if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {
+      if (is_array($this->defaults[$fn]) and isset($this->defaults[$fn]['type']) and $this->defaults[$fn]['type'] == 'set') {
         $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];
@@ -542,10 +546,7 @@ class Monitor extends ZM_Object {
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {
-    $streamSrc = $this->Server()->UrlToZMS(
-      ZM_MIN_STREAMING_PORT ?
-      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
-      null);
+    $streamSrc = $this->Server()->UrlToZMS(ZM_MIN_STREAMING_PORT ? ZM_MIN_STREAMING_PORT+$this->{'Id'} : null);
 
     $args['monitor'] = $this->{'Id'};
 
@@ -645,9 +646,9 @@ class Monitor extends ZM_Object {
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
-        $zmcArgs = '-d '.$this->{'Device'};
+        $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
       } else {
-        $zmcArgs = '-m '.$this->{'Id'};
+        $zmcArgs = '-m '.escapeshellarg($this->{'Id'});
       }
 
       if ($mode == 'stop') {
@@ -875,6 +876,7 @@ class Monitor extends ZM_Object {
     }
     return $this->Groups;
   }
+
   function connKey($new='') {
     if ($new)
       $this->connKey = $new;
@@ -909,7 +911,7 @@ class Monitor extends ZM_Object {
         return false;
       }
     }
-    return ($u['Monitors'] == 'Edit');
+    return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
   function canView($u=null) {
@@ -937,7 +939,40 @@ class Monitor extends ZM_Object {
         $group_permission_value = $value;
       }
     }
-  if ($group_permission_value != 'Inherit') return true;
+    if ($group_permission_value != 'Inherit') return true;
+
+    # Check role permissions if user has a role
+    $role = $u->Role();
+    if ($role) {
+      $role_monitor_permissions = $role->Monitor_Permissions();
+      foreach ($role_monitor_permissions as $rmp) {
+        if ($rmp->MonitorId() == $this->Id()) {
+          $permission = $rmp->Permission();
+          if ($permission != 'Inherit') {
+            return ($permission != 'None');
+          }
+        }
+      }
+
+      $role_group_permissions = $role->Group_Permissions();
+      $role_group_permission_value = 'Inherit';
+      foreach ($role_group_permissions as $permission) {
+        $value = $permission->MonitorPermission($this->Id());
+        if ($value == 'None') {
+          Debug('Can\'t view monitor '.$this->{'Id'}.' because of role group '.$permission->Group()->Name().' '.$permission->Permission());
+          return false;
+        }
+        if ($value == 'Edit' or $value == 'View') {
+          $role_group_permission_value = $value;
+        }
+      }
+      if ($role_group_permission_value != 'Inherit') return true;
+
+      if ($u->Monitors() == 'None' and $role->Monitors() != 'None') {
+        return true;
+      }
+    }
+
     return ($u->Monitors() != 'None');
   } # end function canView
 
@@ -994,7 +1029,7 @@ class Monitor extends ZM_Object {
         $model = new Model();
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
-        if ($this->ModelId) $this->ModelId = null;
+        if (property_exists($this, 'ModelId') and $this->ModelId) $this->ModelId = null;
         Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();
@@ -1037,9 +1072,14 @@ class Monitor extends ZM_Object {
     }
     return $this->{'Manufacturer'};
   }
+
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+  <div class="stream-info">
+    <div class="stream-info-status"></div>
+    <div class="stream-info-mode"></div>
+  </div>
 <span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
@@ -1117,7 +1157,9 @@ class Monitor extends ZM_Object {
     }
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
+
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+
     $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
 </select></div>' : '';
     $html = '
@@ -1142,11 +1184,13 @@ class Monitor extends ZM_Object {
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
                   <div class="block-button-center">
                     <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
-                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
-                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>'.
+                    ($this->canEdit() ? '<button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>' : '').'
                   </div>
                 </div>
                 <div class="zoompan">';
+
+    $player = isset($options['player']) ? $options['player'] : $this->DefaultPlayer();
 
     if ($this->Type() == 'WebSite') {
       $html .= getWebSiteUrl(
@@ -1165,11 +1209,18 @@ class Monitor extends ZM_Object {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
+    } else if ($player == 'zms') {
+      if ( $options['mode'] == 'stream' and canStream() ) {
+        $options['mode'] = 'jpeg';
+      }
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH) or ($this->Go2RTCEnabled() and ZM_GO2RTC_PATH)) {
-      $html .= '<video id="liveStream'.$this->Id().'" '.
-        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
-        ' autoplay muted controls playsinline=""></video>';
-    } else if ( $options['mode'] == 'stream' and canStream() ) {
+      $html .= '<video id="liveStream'.$this->Id().'" style="'.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width:'.validInt($options['width']).'px;':'').
+        ((isset($options['height']) and $options['height'] and $options['height'] != '0')?'height:'.validInt($options['height']).'px;':'').
+        '" autoplay muted playsinline=""></video>';
+    } else if (($options['mode'] == 'stream' or $options['mode'] == 'paused') and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
@@ -1180,6 +1231,7 @@ class Monitor extends ZM_Object {
       if ($options['mode'] == 'stream') {
         Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
       }
+      Warning("Using deprecated single stream mode {$options['mode']}");
       $options['mode'] = 'single';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,
@@ -1189,32 +1241,50 @@ class Monitor extends ZM_Object {
     }
 
     if (isset($options['zones']) and $options['zones']) {
-      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
-      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
-        $html .= $zone->svg_polygon();
-      } // end foreach zone
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 100 100" preserveAspectRatio="none">'.PHP_EOL;
+      if (is_array($options['zones'])) {
+        // Render specific zone IDs only
+        foreach ($options['zones'] as $zone_id) {
+          $zone = new Zone($zone_id);
+          if ($zone->Id() and $zone->MonitorId() == $this->Id()) {
+            $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+          }
+        }
+      } else {
+        // true: render all zones for this monitor
+        foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+          $html .= $zone->svg_polygon($this->ViewWidth(), $this->ViewHeight());
+        }
+      }
+      if (isset($options['zones_extra'])) {
+        $html .= $options['zones_extra'];
+      }
       $html .= '
   Sorry, your browser does not support inline SVG
 </svg>
 ';
     } # end if showZones
     $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
-    $html .= '
-      <div class="stream-info">
-          <div class="stream-info-status"></div>
-          <div class="stream-info-mode"></div>
-      </div>
-      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
-        <div id="audiControlPanel'.$this->Id().'" class="audio-control-panel">
-          <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
-          <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
-        </div>
-      </audio-motion>
-    '.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
     }
+    $html .= '
+      <audio-motion id="audioVisualization'.$this->Id().'" class="audio-visualization">
+    '.PHP_EOL;
+    if ($view == 'montage') {
+      $html .= '
+        <div id="audioControlPanel'.$this->Id().'" class="audio-control-panel">
+          <div id="volumeControls'.$this->Id().'" class="disabled volume">
+            <div id="volumeSlider'.$this->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+            <i id="controlMute'.$this->Id().'" class="audio-control-mute material-icons md-22"></i>
+          </div>
+        </div>
+        <canvas></canvas>
+      '.PHP_EOL;
+    }
+    $html .= '
+      </audio-motion>'.PHP_EOL;
     $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;
   } // end getStreamHTML

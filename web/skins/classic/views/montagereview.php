@@ -135,14 +135,20 @@ if (isset($_REQUEST['filter'])) {
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
+    } else if ($term['attr'] == 'DateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
+				$maxTime = $term['val'];
+			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
+				$minTime = $term['val'];
+			}
     }
   } # end foreach term
   $filter->terms($terms);
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('StartDateTime<=')));
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('StartDateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
@@ -163,11 +169,11 @@ if (!$liveMode) {
   if (!$filter->has_term('Archived')) {
     $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
   }
-  if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('StartDateTime>=')));
+  if (!$filter->has_term('DateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
   }
-  if (!$filter->has_term('StartDateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('StartDateTime<=')));
+  if (!$filter->has_term('DateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
@@ -204,7 +210,7 @@ if (count($user->unviewableMonitorIds())) {
   $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 
@@ -237,13 +243,14 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$initialDisplayInterval = 1000;
+$initialDisplayInterval = 100;
 if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {
   if ($minTime >= $maxTime) {
+    if (!isset($error_message)) $error_message = '';
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
@@ -274,13 +281,17 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$html = '<a class="flip" href="#" 
-         data-flip-control-object="#mfbpanel" 
-         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-         data-flip-сontrol-run-after-complet-func="changeScale">
-           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-         </a>'.PHP_EOL;
-$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
+$html = '';
+if (!$filter_inline) {
+  $html .= '<a class="flip" href="#"
+           data-flip-control-object="#mfbpanel"
+           data-flip-control-run-after-func="applyChosen drawGraph"
+           data-flip-control-run-after-complet-func="changeScale">
+             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+           </a>'.PHP_EOL;
+}
+$html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
 echo $filterbar;
 if (count($filter->terms())) {
@@ -308,7 +319,7 @@ if (count($filter->terms())) {
           <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
           <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
           <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
-          <button type="button" id="lasteight" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
+          <button type="button" id="last24" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
           <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
           <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
@@ -328,7 +339,7 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
-<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
+<button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-control-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
             <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
           </button>
         </div>
@@ -357,4 +368,5 @@ if (count($filter->terms())) {
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
+<script src="<?php echo cache_bust('js/EventStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

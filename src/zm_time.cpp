@@ -36,6 +36,20 @@ std::string SystemTimePointToString(SystemTimePoint tp) {
   return timeString;
 }
 
+std::string SystemTimePointToMysqlString(SystemTimePoint tp) {
+  time_t tp_sec = std::chrono::system_clock::to_time_t(tp);
+  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
+                            tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
+
+  std::string timeString;
+  timeString.reserve(64);
+  char *timePtr = &*(timeString.begin());
+  tm tp_tm = {};
+  timePtr += strftime(timePtr, timeString.capacity(), "%Y-%m-%d %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
+  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
+  return timeString;
+}
+
 std::string TimePointToString(TimePoint tp) {
   const auto tp_dur = std::chrono::duration_cast<std::chrono::system_clock::duration>(tp - std::chrono::steady_clock::now());
   time_t tp_sec = std::chrono::system_clock::to_time_t(
@@ -51,6 +65,17 @@ std::string TimePointToString(TimePoint tp) {
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
   snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
   return timeString;
+}
+
+std::string format_absolute_time_iso8601(time_t time) {
+  struct tm *tm_utc = gmtime(&time);
+  if (!tm_utc) {
+    return "";
+  }
+
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S.000Z", tm_utc);
+  return std::string(buffer);
 }
 
 SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {

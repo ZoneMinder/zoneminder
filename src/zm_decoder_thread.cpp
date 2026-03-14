@@ -14,6 +14,7 @@ DecoderThread::~DecoderThread() {
 }
 
 void DecoderThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
@@ -33,10 +34,11 @@ void DecoderThread::Run() {
   while (!(terminate_ or zm_terminate)) {
     if (!monitor_->Decode()) {
       if (!(terminate_ or zm_terminate)) {
-        // We only sleep when Decode returns false because it is an error condition and we will spin like mad if it persists.
-        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
-        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-        std::this_thread::sleep_for(sleep_for);
+        // We wait on the packetqueue condition variable instead of sleeping.
+        // This allows us to wake up immediately when new packets are queued.
+        Microseconds wait_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Waiting for %" PRId64 "us", int64(wait_for.count()));
+        monitor_->GetPacketQueue()->wait_for(wait_for);
       }
     }
   }

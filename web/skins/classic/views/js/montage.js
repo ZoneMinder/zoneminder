@@ -3,6 +3,7 @@ const monitors = new Array();
 var monitors_ul = null;
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorInitComplete = false;
+var resizeInterval = null;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -14,7 +15,7 @@ var objGridStack;
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
 
-var scrollBbarExists = null;
+var scrollBarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 var TimerHideShow = null;
 
@@ -208,61 +209,6 @@ function selectLayout(new_layout_id) {
   setCookie('zmMontageLayout', layout_id);
 } // end function selectLayout(element)
 
-
-function changeHeight() { //Not used
-/*  var height = $j('#height').val();
-  setCookie('zmMontageHeight', height);
-  for (var i = 0, length = monitors.length; i < length; i++) {
-    const monitor = monitors[i];
-    const monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
-    monitor_frame.css('height', height);
-  }
-*/}
-
-/**
- * called when the widthControl select element is changed
- */
-
-function changeWidth() { //Not used
-/*  const width = $j('#width').val();
-  const height = $j('#height').val();
-
-  selectLayout(freeform_layout_id);
-  $j('#width').val(width);
-  $j('#height').val(height);
-
-  for (let i = 0, length = monitors.length; i < length; i++) {
-    monitors[i].setScale('0', width, height, false);
-  }
-  $j('#scale').val('0');
-  setCookie('zmMontageScale', '0');
-  setCookie('zmMontageWidth', width);
-  setCookie('zmMontageHeight', height);
-*/} // end function changeSize()
-
-
-/**
- * called when the scaleControl select element is changed
- */
-function changeScale() { //Not used
-/*  const scale = $j('#scale').val();
-  if (parseInt(scale) == 0) {
-    elementResize(true); //Clear
-  } else {
-    elementResize();
-  }
-
-  //selectLayout(freeform_layout_id); // Will also clear width and height IgorA100 ВАЖНО ! Пока мешает нам
-  $j('#scale').val(scale);
-  setCookie('zmMontageScale', scale);
-  setCookie('zmMontageWidth', 'auto');
-  setCookie('zmMontageHeight', 'auto');
-  $j('#width').val('auto');
-  $j('#height').val('auto');
-
-  monitorsSetScale();
-*/}
-
 /*
 * objSel: object <select>
 */
@@ -370,17 +316,14 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
+  const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height + 'px';
+    //console.log('good height', height, objStream);
+    objStream.style['height'] = (objStream.naturalHeight === undefined || objStream.naturalHeight > 20) ? height + 'px' : 'auto';
     objStream.parentNode.style['height'] = height + 'px';
   }
-}
-
-function toGrid(value) { //Not used
-/*  return Math.round(value / 80) * 80;*/
 }
 
 // Makes monitors draggable.
@@ -516,6 +459,36 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function startVisibleMonitors() {
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const isOut = isOutOfViewport(monitor.getElement());
+    if ((!isOut.all) && !monitor.started) {
+      monitor.setPlayer(monitor.player);
+      monitor.start();
+    }
+  }
+}
+
+function refreshAuthAndStartMonitors() {
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay ? '&' + auth_relay : ''))
+      .done(function(data) {
+        if (data) {
+          if (data.auth) {
+            auth_hash = data.auth;
+          }
+          if (data.auth_relay) {
+            auth_relay = data.auth_relay;
+          }
+        }
+        startVisibleMonitors();
+      })
+      .fail(function() {
+        // Even if refresh fails, try to start with whatever auth we have
+        startVisibleMonitors();
+      });
+}
+
 function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
@@ -538,23 +511,9 @@ function handleClick(evt) {
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
-    // Why are we scaling here instead of in monitorstream?
-    /* +++ If you delete this code, then Firefox will slow down terribly... you need to UNDERSTAND the problem!!!*/
-    const obj = document.getElementById('liveStream'+monitor.id);
-    if (obj) {
-      if (obj.src) {
-        const url = new URL(obj.src);
-        let scale = parseInt(obj.clientWidth / monitor.width * 100);
-        if (scale > 100) scale = 100;
-        url.searchParams.set('scale', scale);
-        obj.src = url;
-      }
-    } else {
-      console.log(`startMonitors NOT FOUND ${'liveStream'+monitor.id}`);
-    }
-    /* --- */
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
+      monitor.setPlayer(monitor.player);
       monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
@@ -565,10 +524,11 @@ function startMonitors() {
 }
 
 function stopMonitors() { //Not working yet.
+  console.log("stop monitoirs");
   for (let i = 0, length = monitors.length; i < length; i++) {
     //monitors[i].stop();
-    //monitors[i].kill();
-    monitors[i].streamCommand(CMD_QUIT);
+    monitors[i].kill();
+    //monitors[i].streamCommand(CMD_QUIT);
   }
   monitors.length = 0;
 }
@@ -583,29 +543,6 @@ function playMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].play();
   }
-}
-
-function elementResize(clear = false) { //Only used when trying to apply "changeScale". It will be deleted in the future. We will make the container for the IMG of a fixed height with a Scale different from 0
-/*  var heightImageFeed = "";
-  const scale = $j('#scale').val();
-
-  $j('[id ^= "liveStream"]').each(function(){
-    if (!clear) {
-      if (scale != 0) {
-        const imageFeed = $j(this).closest('.imageFeed');
-        const w = $j(this).css('width');
-        const h = $j(this).css('height');
-        const ratio = imageFeed.attr('data-width') / imageFeed.attr('data-height');
-        heightImageFeed = imageFeed[0].offsetWidth / ratio + "px";
-      }
-    }
-    $j(this).closest('.imageFeed').css('height', heightImageFeed);
-  });
-*/
-}
-
-function windowResize() { //Only used when trying to apply "changeScale". It will be deleted in the future.
-  elementResize(true); //Clear
 }
 
 function buildRatioSelect(objSelect) {
@@ -647,7 +584,7 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for (var i = 0; i < arrRatioMonitors.length; i++) {
+  for (let i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
   const avg = total / arrRatioMonitors.length;
@@ -687,39 +624,29 @@ function initPage() {
   //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   //}
 
-  document.querySelectorAll(".monitorStream, .ratioControl").forEach(function(el) {
+  document.querySelectorAll(".grid-monitor").forEach(function(el) {
     // Displaying & hiding "Scale" and other buttons, at the top of the monitor image,  monitor status information
     el.addEventListener('mouseout', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) { // This will prevent the code below from being executed if we navigate within a single monitor block.
+        if (!event.relatedTarget || (event.relatedTarget && !event.relatedTarget.closest('#m'+id))) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
+          }
+          hideControlElementsOnStream(el);
         }
-      }
-      if (!event.relatedTarget) {
-        hideСontrolElementsOnStream(el);
-        return;
-      }
-      if (!event.relatedTarget.closest('#imageFeed'+id) && (!event.relatedTarget.closest('#ratioControl'+id))) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).addClass('hidden');
-        }
-        hideСontrolElementsOnStream(el);
       }
     });
 
     el.addEventListener('mouseover', function addListenerMouseover(event) {
       const id = stringToNumber(el.id);
-      if (event.target && event.relatedTarget) {
-        if (event.relatedTarget.closest('#imageFeed'+id) && event.target.closest('#imageFeed'+id)) {
-          return;
+      if (!(event.target && event.target.closest('#m'+id) && event.relatedTarget && event.relatedTarget.closest('#m'+id))) {
+        if (event.target.closest('#m'+id)) {
+          if ($j('#monitorStatusPosition').val() == 'showOnHover') {
+            $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
+          }
+          showControlElementsOnStream(el);
         }
-      }
-      if (event.target.closest('#imageFeed'+id) || event.target.closest('#ratioControl'+id)) {
-        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
-          $j('#monitors').find('#monitorStatus'+id).removeClass('hidden');
-        }
-        showСontrolElementsOnStream(el);
       }
     });
   });
@@ -727,6 +654,7 @@ function initPage() {
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const monitor = monitors[i] = new MonitorStream(monitorData[i]);
+    monitor.controlMute('on'); // Default to no audio. User can toggle audio for individual streams manually
     monitor.setGridStack(objGridStack);
     //Create a Ratio array for each monitor
     const r = monitor.width / monitor.height;
@@ -738,11 +666,10 @@ function initPage() {
 
   calculateAverageMonitorsRatio(arrRatioMonitors);
 
-  $j(window).on('resize', windowResize); //Only used when trying to apply "changeScale". It will be deleted in the future.
   document.addEventListener("fullscreenchange", fullscreenchanged);
 
   // If you click on the navigation links, shut down streaming so the browser can process it
-  document.querySelectorAll('#main-header-nav a').forEach(function(el) {
+  document.querySelectorAll('#main-header-nav a.nav-link').forEach(function(el) {
     el.onclick = function() {
       for (let i = 0, length = monitors.length; i < length; i++) {
         if (monitors[i]) monitors[i].kill();
@@ -760,7 +687,7 @@ function initPage() {
       function stopPlayback() {
         idleTimeoutTriggered = true;
         for (let i=0, length = monitors.length; i < length; i++) {
-          monitors[i].kill();
+          monitors[i].stop();
         }
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
@@ -769,12 +696,7 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 ayswModal.on('hidden.bs.modal', function() {
                   idleTimeoutTriggered = false;
-                  for (let i=0, length = monitors.length; i < length; i++) {
-                    const monitor = monitors[i];
-                    if ((!isOutOfViewport(monitor.getElement()).all) && !monitor.started) {
-                      monitor.start();
-                    }
-                  }
+                  refreshAuthAndStartMonitors();
                 });
                 ayswModal.modal('show');
               })
@@ -792,7 +714,7 @@ function initPage() {
     inactivityTime();
   }
 
-  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
+  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
         const img = getStream(item);
@@ -837,13 +759,13 @@ function initPage() {
   window.addEventListener('resize', on_scroll);
 } // end initPage
 
-function hideСontrolElementsOnStream(stream) {
+function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideUp('fast');
   $j('#ratioControl' + id).stop(true, true).slideUp('fast');
 }
 
-function showСontrolElementsOnStream(stream) {
+function showControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
   $j('#button_zoom' + id).stop(true, true).slideDown('fast');
   $j('#ratioControl' + id).stop(true, true).slideDown('fast');
@@ -852,15 +774,17 @@ function showСontrolElementsOnStream(stream) {
 
 function on_scroll() {
   if (!monitorInitComplete || idleTimeoutTriggered) return;
+
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
+    //console.log(isOut, monitor.id);
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      //monitor.stop(); // does not work without replacing SRC to stop ZMS
-      monitor.kill();
+      monitor.stop(); // does not work without replacing SRC to stop ZMS
+      //monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -889,6 +813,7 @@ function isOutOfViewport(elem) {
 };
 
 function formSubmit(form) {
+  clearInterval(resizeInterval);
   console.log("Killing streaming");
   for (let i = 0, length = monitors.length; i < length; i++) {
     if (monitors[i]) {
@@ -928,88 +853,21 @@ function initGridStack(grid=null) {
 
 function addEvents(grid, id) {
   //let g = (id !== undefined ? 'grid' + id + ' ' : '');
-  grid.on('change', function(event, items) {
-    /* Occurs when widgets change their position/size due to constrain or direct changes */
-    //items.forEach(function(item) {
-    //  const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
-    //  //setTriggerChangedMonitors(currentMonitorId);
-    //  //monitorsSetScale(currentMonitorId);
-    //  setTriggerChangedMonitors(currentMonitorId);
-    //});
+  grid.on('resizestop', function(event, el) {
+    //const width = parseInt(el.getAttribute('gs-w')) || 0;
+    // or all values...
+    const node = el.gridstackNode; // {x, y, width, height, id, ....}
+    //let rec = el.getBoundingClientRect();
+    //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
 
-    elementResize();
-  })
-      .on('added removed', function(event) {
-        //let str = '';
-        //items.forEach(function(item) { str += ' (' + item.x + ',' + item.y + ' ' + item.w + 'x' + item.h + ')'; });
-        //console.log("INFO==>", g + event.type + ' ' + items.length + ' items (x,y w h):' + str );
-      })
-      .on('enable', function(event) {
-        //let grid = event.target;
-        //console.log("INFO==>", g + 'enable');
-      })
-      .on('disable', function(event) {
-        //let grid = event.target;
-        //console.log("INFO==>", g + 'disable');
-      })
-      .on('dragstart', function(event, el) {
-        //let node = el.gridstackNode;
-        //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-        //let y = el.getAttribute('gs-y');
-        //let grid = event.target;
-        //objGridStack.float('false');
-      })
-      .on('drag', function(event, el) {
-        //let node = el.gridstackNode;
-        //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-        //let y = el.getAttribute('gs-y');
-        //console.log("INFO==>", g + 'drag ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
-      })
-      .on('dragstop', function(event, el) {
-        /*After the object has been moved*/
-        //let node = el.gridstackNode;
-        //let x = parseInt(el.getAttribute('gs-x')) || 0; // verify node (easiest) and attr are the same
-        //let y = parseInt(el.getAttribute('gs-y')) || 0;
-        // or all values...
-        //let GridStackNode = el.gridstackNode; // {x, y, width, height, id, ....}
-        //console.log("INFO==>", g + 'dragstop ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
-      })
-      .on('dropped', function(event, previousNode, newNode) {
-        //if (previousNode) {
-        //  console.log("INFO==>", g + 'dropped - Removed widget from grid:', previousNode);
-        //}
-        //if (newNode) {
-        //  console.log("INFO==>", g + 'dropped - Added widget in grid:', newNode);
-        //}
-      })
-      .on('resizestart', function(event, el) {
-        elementResize(true); //Clear. Only used when trying to apply "changeScale". It will be deleted in the future.
-        //let node = el.gridstackNode;
-        //let rec = el.getBoundingClientRect();
-        //console.log("INFO==>", `${g} resizestart ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
-        //let grid = event.target;
-        //objGridStack.float('false');
-      })
-      .on('resize', function(event, el) {
-        //let node = el.gridstackNode;
-        //let rec = el.getBoundingClientRect();
-        //console.log("INFO==>", `${g} resize ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
-      })
-      .on('resizestop', function(event, el) {
-        //const width = parseInt(el.getAttribute('gs-w')) || 0;
-        // or all values...
-        const node = el.gridstackNode; // {x, y, width, height, id, ....}
-        //let rec = el.getBoundingClientRect();
-        //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
-
-        const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === currentMonitorId;
-        });
-        //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
-        setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
-        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
-      });
+    const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
+    const currentMonitor = monitors.find((o) => {
+      return parseInt(o["id"]) === currentMonitorId;
+    });
+    //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+    setTriggerChangedMonitors(currentMonitorId); //For mode=EDITING
+    currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
+  });
 }
 
 function panZoomIn(el) {
@@ -1024,32 +882,6 @@ function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
   monitorsSetScale();
-}
-
-function monitorsSetScale(id=null) {
-  // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  id = parseInt(id);
-  if (id || typeof monitorStream !== 'undefined') {
-    //monitorStream used on Watch page.
-    if (typeof monitorStream !== 'undefined') {
-      var currentMonitor = monitorStream;
-    } else {
-      var currentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id;
-      });
-    }
-    const el = document.getElementById('liveStream'+id);
-    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-  } else {
-    for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
-    }
-  }
-  setButtonSizeOnStream();
 }
 
 function changeMonitorRate() {
@@ -1095,11 +927,14 @@ function checkEndMonitorsPlaced() {
 
     if (!movableMonitorData[id].stop) {
       //Monitor is still moving
-      const objWidth = document.getElementById('liveStream'+monitors[i].id).clientWidth;
-      if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
-        movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
-      } else {
-        movableMonitorData[id].width = objWidth;
+      const stream = document.getElementById('liveStream'+monitors[i].id);
+      if (stream) {
+        const objWidth = stream.clientWidth;
+        if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
+          movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+        } else {
+          movableMonitorData[id].width = objWidth;
+        }
       }
     }
   }
@@ -1184,12 +1019,12 @@ function changeMonitorStatusPosition() {
 // Creating a ResizeObserver Instance
 const observerMontage = new ResizeObserver((objResizes) => {
   const blockContent = document.getElementById('content');
-  const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
-  if (scrollBbarExists === null) {
-    scrollBbarExists = currentScrollBbarExists;
-  }
-  if (currentScrollBbarExists != scrollBbarExists) {
-    scrollBbarExists = currentScrollBbarExists;
+
+  const currentScrollBarExists = blockContent.scrollHeight > blockContent.clientHeight;
+  if (scrollBarExists === null) {
+    scrollBarExists = currentScrollBarExists;
+  } else if (currentScrollBarExists != scrollBarExists) {
+    scrollBarExists = currentScrollBarExists;
     return;
   }
   objResizes.forEach((obj) => {
@@ -1207,31 +1042,28 @@ document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
-      //Stop monitors when closing or hiding page
+      //Stop monitors when hiding page
+      //closing should kill, hiding should stop/pause
       for (let i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].kill();
+        // Stop instead of pause because we don't want buffering in zms
+        monitors[i].stop();
       }
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
     if (!idleTimeoutTriggered) {
-      //Start monitors when show page
-      for (let i = 0, length = monitors.length; i < length; i++) {
-        const monitor = monitors[i];
-
-        const isOut = isOutOfViewport(monitor.getElement());
-        if ((!isOut.all) && !monitor.started) {
-          monitor.start();
-        }
-      } // end foreach monitor
+      // Refresh auth hash before restarting streams, since browsers throttle
+      // timers for hidden tabs and the auth hash may have gone stale.
+      refreshAuthAndStartMonitors();
     } // end if not AYSW
   }
 };
 
 
-/*
 window.onbeforeunload = function(e) {
   console.log('unload');
+  clearInterval(resizeInterval);
+  /*
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();
@@ -1243,7 +1075,7 @@ window.onbeforeunload = function(e) {
     e.returnValue = undefined;
   }
 
+*/
   // For Safari
   return undefined;
 };
-*/

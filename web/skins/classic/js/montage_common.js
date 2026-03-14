@@ -64,26 +64,26 @@ function saveSort() {
 /// handles packing different size/aspect monitors on screen
 
 function maxfit2(divW, divH) {
-  var bestFitX = []; // how we arranged the so-far best match
-  var bestFitX2 = [];
-  var bestFitY = [];
-  var bestFitY2 = [];
+  let bestFitX = []; // how we arranged the so-far best match
+  let bestFitX2 = [];
+  let bestFitY = [];
+  let bestFitY2 = [];
 
-  var minScale = 0.05;
-  var maxScale = 5.00;
-  var bestFitArea = 0;
-  var borders_width=-1;
-  var borders_height=-1;
+  let minScale = 0.05;
+  let maxScale = 5.00;
+  let bestFitArea = 0;
+  let borders_width=-1;
+  let borders_height=-1;
 
   while (1) {
     if ( maxScale - minScale < 0.01 ) break;
-    var thisScale = (maxScale + minScale) / 2;
-    var allFit = 1;
-    var thisArea = 0;
-    var thisX = []; // top left
-    var thisY = [];
-    var thisX2 = []; // bottom right
-    var thisY2 = [];
+    const thisScale = (maxScale + minScale) / 2;
+    let allFit = 1;
+    let thisArea = 0;
+    const thisX = []; // top left
+    const thisY = [];
+    const thisX2 = []; // bottom right
+    const thisY2 = [];
 
     for ( let m = 0; m < numMonitors; m++ ) {
       // this loop places each monitor (if it can)
@@ -169,10 +169,17 @@ function maxfit2(divW, divH) {
     }
   }
   if (bestFitArea > 0) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
+    // Find bounding box of all positioned monitors and center horizontally
+    let maxRight = 0;
+    for (let m=0; m < numMonitors; m++) {
+      if (bestFitX2[m] > maxRight) maxRight = bestFitX2[m];
+    }
+    const offsetX = Math.max(0, Math.floor((divW - maxRight) / 2));
+
     for (let m=0; m < numMonitors; m++) {
       const c = document.getElementById('Monitor' + monitorPtr[m]);
       c.style.position = 'absolute';
-      c.style.left = bestFitX[m].toString() + "px";
+      c.style.left = (bestFitX[m] + offsetX).toString() + "px";
       c.style.top = bestFitY[m].toString() + "px";
       c.width = bestFitX2[m] - bestFitX[m] + 1 - borders_width;
       c.height = bestFitY2[m] - bestFitY[m] + 1 - borders_height;

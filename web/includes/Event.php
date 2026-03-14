@@ -352,11 +352,11 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
+        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
         $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
+        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
         $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
@@ -369,11 +369,11 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
-        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
+        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'});
         $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
       } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
         $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
-        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
+        $scale = intval((SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'});
         $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
       } else {
         Fatal( "No thumbnail width or height specified, please check in Options->Web" );
@@ -454,8 +454,11 @@ class Event extends ZM_Object {
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
+            if ( !is_executable(ZM_PATH_FFMPEG) ) {
+              Error('ZM_PATH_FFMPEG is not a valid executable: '.ZM_PATH_FFMPEG);
+              return '';
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '.escapeshellarg($frame['Delta']).' -i '.escapeshellarg($videoPath).' -frames:v 1 '.escapeshellarg($eventPath.'/'.$captureImage).' 2>&1';
             Debug('Running '.$command);
             $output = array();
             $retval = 0;
@@ -697,22 +700,20 @@ class Event extends ZM_Object {
   }
 
   function createVideo($format, $rate, $scale, $transform, $overwrite=false) {
-    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$this->{'Id'}.' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-    if (preg_match('/\d+x\d+/', $scale)) {
-      $command .= ' -S '.$scale;
+    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.escapeshellarg($this->{'Id'})
+      .' -f '.escapeshellarg(preg_replace('/[^\w]/', '', $format))
+      .' -r '.escapeshellarg(sprintf('%.2F', ($rate/RATE_BASE)));
+    if (preg_match('/^\d+x\d+$/', $scale)) {
+      $command .= ' -S '.escapeshellarg($scale);
     } else {
-      if ( version_compare(phpversion(), '4.3.10', '>=') )
-        $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-      else
-        $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
+      $command .= ' -s '.escapeshellarg(sprintf('%.2F', ($scale/SCALE_BASE)));
     }
     if ($transform != '') {
       $transform = preg_replace('/[^\w=]/', '', $transform);
-      $command .= ' -t '.$transform;
+      $command .= ' -t '.escapeshellarg($transform);
     }
     if ($overwrite)
       $command .= ' -o';
-    $command = escapeshellcmd($command);
     $result = exec($command, $output, $status);
     Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
     return $status ? '' : rtrim($result);

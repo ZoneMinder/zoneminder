@@ -328,7 +328,7 @@ bool zm::Socket::getBlocking(bool &blocking) {
     Error("fcntl(), errno = %d, error = %s", errno, strerror(errno));
     return false;
   }
-  blocking = flags & O_NONBLOCK;
+  blocking = !(flags & O_NONBLOCK);
   return true;
 }
 
@@ -556,12 +556,13 @@ bool zm::InetSocket::bind(const char *host, const char *serv) {
     mSd = -1;
   }
 
+  freeaddrinfo(result);   /* No longer needed */
+
   if (rp == nullptr) {               /* No address succeeded */
     Error("bind(), Could not bind");
     return false;
   }
 
-  freeaddrinfo(result);   /* No longer needed */
   return true;
 }
 
@@ -652,7 +653,7 @@ bool zm::Select::addReader(CommsBase *comms) {
 
 bool zm::Select::deleteReader(CommsBase *comms) {
   if (!comms->isOpen()) {
-    Error("Unable to add closed reader");
+    Error("Unable to delete closed reader");
     return false;
   }
   if (mReaders.erase(comms)) {
@@ -664,7 +665,7 @@ bool zm::Select::deleteReader(CommsBase *comms) {
 
 void zm::Select::clearReaders() {
   mReaders.clear();
-  mMaxFd = -1;
+  calcMaxFd();
 }
 
 bool zm::Select::addWriter(CommsBase *comms) {
@@ -687,7 +688,7 @@ bool zm::Select::deleteWriter(CommsBase *comms) {
 
 void zm::Select::clearWriters() {
   mWriters.clear();
-  mMaxFd = -1;
+  calcMaxFd();
 }
 
 int zm::Select::wait() {
@@ -721,7 +722,7 @@ int zm::Select::wait() {
       }
     }
     for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-      if (FD_ISSET((*iter)->getWriteDesc(), &rfds)) {
+      if (FD_ISSET((*iter)->getWriteDesc(), &wfds)) {
         mWriteable.push_back(*iter);
       }
     }

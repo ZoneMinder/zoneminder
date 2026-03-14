@@ -118,7 +118,7 @@ Debug("Have " . $+{PASSWORD});
   }
   # Save the base url
   $self->{BaseURL} = "http://$$self{host}:$$self{port}";
-  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} =~ /^\d+$/;
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} and ($self->{Monitor}{ControlDevice} =~ /^\d+$/);
   $$self{realm} = defined($self->{Monitor}->{ControlDevice}) ? $self->{Monitor}->{ControlDevice} : '';
 
   # Save and test the credentials

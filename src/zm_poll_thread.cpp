@@ -1,8 +1,8 @@
 #include "zm_poll_thread.h"
 
+#include "zm_logger.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_time.h"
 
 PollThread::PollThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {
@@ -14,6 +14,7 @@ PollThread::~PollThread() {
 }
 
 void PollThread::Start() {
+  Stop();  // Signal any running thread to terminate first
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   Debug(3, "Starting polling thread");

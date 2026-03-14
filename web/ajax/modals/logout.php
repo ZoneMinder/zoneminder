@@ -79,7 +79,7 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
   global $dateTimeFormatter;
   echo '
   <tr>
-    <td>'.validHtmlStr($user->Username()).'</td>
+    <td><a href="?view=user&uid='.$user->Id().'">'.validHtmlStr($user->Username()).'</a></td>
     <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
     <td>'.$dateTimeFormatter->format($row['access']).'</td>
   </tr>

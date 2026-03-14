@@ -1,3 +1,7 @@
+<?php
+require_once('includes/User_Role.php');
+$roles = ZM\User_Role::Indexed_By_Id();
+?>
 <form name="userForm" method="post" action="?">
   <input type="hidden" name="view" value="<?php echo $view ?>"/>
   <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -30,6 +34,7 @@
                 <th data-sortable="true" class="colEmail"><?php echo translate('Email') ?></th>
                 <th data-sortable="true" class="colLanguage"><?php echo translate('Language') ?></th>
                 <th data-sortable="true" class="colEnabled"><?php echo translate('Enabled') ?></th>
+                <th data-sortable="true" class="colRole"><?php echo translate('Role') ?></th>
                 <th data-sortable="true" class="colStream"><?php echo translate('Stream') ?></th>
                 <th data-sortable="true" class="colEvents"><?php echo translate('Events') ?></th>
                 <th data-sortable="true" class="colControl"><?php echo translate('Control') ?></th>
@@ -52,6 +57,7 @@
                 <td class="colEmail"><?php echo $user_row->Email()?validHtmlStr($user_row->Email()):'' ?></td>
                 <td class="colLanguage"><?php echo $user_row->Language()?validHtmlStr($user_row->Language()):'default' ?></td>
                 <td class="colEnabled"><?php echo translate($user_row->Enabled()?'Yes':'No') ?></td>
+                <td class="colRole"><?php echo ($user_row->RoleId() && isset($roles[$user_row->RoleId()])) ? makeLink('?view=role&amp;rid='.$user_row->RoleId(), validHtmlStr($roles[$user_row->RoleId()]->Name()), $canEdit) : '' ?></td>
                 <td class="colStream"><?php echo validHtmlStr($user_row->Stream()) ?></td>
                 <td class="colEvents"><?php echo validHtmlStr($user_row->Events()) ?></td>
                 <td class="colControl"><?php echo validHtmlStr($user_row->Control()) ?></td>

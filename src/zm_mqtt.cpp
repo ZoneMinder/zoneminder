@@ -9,12 +9,10 @@
 #include <string.h>
 
 MQTT::MQTT(Monitor *monitor) :
+  mosqpp::mosquittopp(("ZoneMinder"+std::to_string(monitor->Id())).c_str()),
   monitor_(monitor),
   connected_(false)
 {
-  std::string name="ZoneMinder"+std::to_string(monitor->Id());
-  mosquittopp(name.c_str());
-
   mosqpp::lib_init();
   connect();
 }
@@ -24,7 +22,7 @@ void MQTT::connect() {
     Debug(1, "MQTT setting username to %s, password to %s", config.mqtt_username, config.mqtt_password);
     int rc = mosqpp::mosquittopp::username_pw_set(config.mqtt_username, config.mqtt_password);
     if (MOSQ_ERR_SUCCESS != rc) {
-      Warning("MQTT username pw set returns %d %s", rc, strerror(rc));
+      Warning("MQTT username pw set returns %d %s", rc, mosquitto_strerror(rc));
     }
   }
   Debug(1, "MQTT connecting to %s:%d", config.mqtt_hostname, config.mqtt_port);
@@ -33,7 +31,7 @@ void MQTT::connect() {
     if (MOSQ_ERR_INVAL == rc) {
       Warning("MQTT reports invalid parameters to connect");
     } else {
-      Warning("MQTT connect returns %d %s", rc, strerror(rc));
+      Warning("MQTT connect returns %d %s", rc, mosquitto_strerror(rc));
     }
   } else {
     Debug(1, "Starting loop");
@@ -77,7 +75,7 @@ void MQTT::send(const std::string &message) {
   //int rc = publish(&mid, mqtt_topic_string.c_str(), message.length(), message.c_str(), 0, true);
   int rc = publish(nullptr, mqtt_topic_string.c_str(), message.length(), message.c_str());
   if (MOSQ_ERR_SUCCESS != rc) {
-    Warning("MQTT publish returns %d %s", rc, strerror(rc));
+    Warning("MQTT publish returns %d %s", rc, mosquitto_strerror(rc));
   }
 }
 

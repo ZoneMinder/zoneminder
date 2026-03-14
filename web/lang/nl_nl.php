@@ -597,6 +597,7 @@ $SLANG = array(
     'PostEventImageBuffer' => 'Post-gebeurtenis framebuffer',
     'PreEventImageBuffer'  => 'Pre-gebeurtenis framebuffer',
     'PreserveAspect'       => 'Beeldverhouding behouden',
+    'PreviewRate'          => 'Voorbeeldsnelheid',
     'Preset'               => 'Voorkeur',
     'Presets'              => 'Voorkeuren',
     'Prev'                 => 'Vorige',

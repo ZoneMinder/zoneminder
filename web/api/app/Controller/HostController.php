@@ -44,7 +44,7 @@ class HostController extends AppController {
       return;
     }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
-    $safe_daemon = preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count);
+    $safe_daemon = preg_replace('/[^A-Za-z0-9\-\.]/', '', $daemon, -1, $count);
     if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
     $safe_command = preg_replace('/[^a-z]/', '', $command, -1, $count);
     if ($count) Error("Invalid characters found in command string ($command). Potential attack?");
@@ -240,8 +240,8 @@ class HostController extends AppController {
 
     if ( $mid ) {
       // Get disk usage for $mid
-      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
-      $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print \$1}'");
+      $usage = shell_exec("du -s0 ".escapeshellarg($zm_dir_events.'/'.$mid)." | awk '{print \$1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(
         'fields' => array('Id', 'Name', 'WebColour')

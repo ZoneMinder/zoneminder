@@ -2,7 +2,7 @@
 # Created by mastertheknife (Kfir Itzhak)
 # For more information and installation, see the INSTALL file
 #
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.12)
 project(zoneminder)
 file(STRINGS "version.txt" zoneminder_VERSION)
 # make API version a minor of ZM version
@@ -44,6 +44,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# GCC < 9 requires linking stdc++fs for std::filesystem support
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_FLAGS "-std=c++17")
+check_cxx_source_compiles("
+  #include <filesystem>
+  int main() { std::filesystem::path p(\"/tmp\"); return 0; }
+" FILESYSTEM_NO_EXTRA_LIB)
+if(NOT FILESYSTEM_NO_EXTRA_LIB)
+  set(CMAKE_REQUIRED_LIBRARIES stdc++fs)
+  check_cxx_source_compiles("
+    #include <filesystem>
+    int main() { std::filesystem::path p(\"/tmp\"); return 0; }
+  " FILESYSTEM_NEEDS_STDC_FS)
+  unset(CMAKE_REQUIRED_LIBRARIES)
+  if(FILESYSTEM_NEEDS_STDC_FS)
+    set(FILESYSTEM_LIBRARY stdc++fs)
+  endif()
+endif()
+unset(CMAKE_REQUIRED_FLAGS)
+
 add_compile_options(-D_FILE_OFFSET_BITS=64)
 
 include(ConfigureBaseTargets)
@@ -55,15 +75,21 @@ include(CheckPlatform)
 
 # Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
 if(ZM_SYSTEM_PROC MATCHES "^arm")
+  # Suppress warnings about ABI changes for passing/returning objects of aggregate type on 32-bit ARM
+  add_compile_options(-Wno-psabi)
   if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-    exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+    execute_process(
+      COMMAND grep " neon " "/proc/cpuinfo"
+      OUTPUT_VARIABLE neonoutput
+      RESULT_VARIABLE neonresult
+      OUTPUT_QUIET ERROR_QUIET)
     if(neonresult EQUAL 0)
       set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
       set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
       set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
       set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
     else()
-      add_definitions(-DZM_STRIP_NEON=1)
+      set(ZM_STRIP_NEON 1)
       message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
     endif()
   endif()
@@ -83,7 +109,7 @@ mark_as_advanced(
   ZM_MYSQL_ENGINE
   ZM_NO_MMAP
   CMAKE_INSTALL_FULL_BINDIR
-  ZM_PERL_MM_PARMS
+  ZM_PERL_INSTALL_PATH
   ZM_PERL_SEARCH_PATH
   ZM_TARGET_DISTRO
   ZM_PATH_MAP
@@ -172,7 +198,7 @@ set(ZM_PATH_IP "" CACHE PATH
   "Full path to compatible ip binary. Leave empty for automatic detection.")
 set(ZM_PATH_IFCONFIG "" CACHE PATH
   "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
-set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
+set(ZM_CONFIG_DIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/zm" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
   "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
@@ -198,16 +224,12 @@ set(ZM_NO_PCRE "OFF" CACHE BOOL
   "Set to ON to skip libpcre2 checks and force building ZM without libpcre2. default: OFF")
 set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
-set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
-  "By default, ZoneMinder's Perl modules are installed into the Vendor folders,
-	as defined by your installation of Perl. You can change that here. Consult Perl's 
-	MakeMaker documentation for a definition of acceptable parameters. If you set this 
-	to something that causes the modules to be installed outside Perl's normal search 
-	path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly.")
+set(ZM_NO_MQTT "OFF" CACHE BOOL
+  "Set to ON to skip MQTT (Mosquitto) checks and force building ZM without MQTT support. default: OFF")
 set(ZM_PERL_SEARCH_PATH "" CACHE PATH
   "Use to add a folder to your Perl's search path. This will need to be set in cases
-	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
-	installed outside Perl's default search path.")
+	where ZM_PERL_INSTALL_PATH has been overridden such that ZoneMinder's Perl modules
+	are installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
   "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
@@ -239,6 +261,13 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
   message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
 endif()
 
+# Option to use system-installed jwt-cpp instead of vendored version
+set(ZM_USE_SYSTEM_JWT_CPP "OFF" CACHE BOOL
+  "Set to ON to use system-installed jwt-cpp instead of the vendored version. default: OFF")
+
+if(ZM_USE_SYSTEM_JWT_CPP AND NOT (ZM_JWT_BACKEND STREQUAL "jwt_cpp"))
+  message(WARNING "ZM_USE_SYSTEM_JWT_CPP is set but will be ignored because ZM_JWT_BACKEND is not jwt_cpp")
+endif()
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
@@ -270,17 +299,12 @@ elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
   set(ZM_CONFIG_SUBDIR "/usr/local/etc/zm/conf.d")
   set(ZM_WEBDIR "/usr/local/share/zoneminder/www")
   set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
-  set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
 endif()
 
 if(BUILD_MAN)
   message(STATUS "Building man pages: Yes (default)")
-  set(ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS})
 else()
   message(STATUS "Building man pages: No")
-  list(APPEND ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS}
-    "INSTALLMAN1DIR=none"
-    "INSTALLMAN3DIR=none")
 endif()
 
 # Required for certain checks to work
@@ -305,6 +329,18 @@ if(HAVE_EXECINFO_H)
   endif()
   check_function_exists("backtrace_symbols" HAVE_DECL_BACKTRACE_SYMBOLS)
 endif()
+
+# libunwind provides better backtraces than glibc's backtrace(), especially on ARM
+find_package(LibUnwind)
+if(LIBUNWIND_FOUND)
+  set(HAVE_LIBUNWIND 1)
+  list(APPEND ZM_BIN_LIBS "${LIBUNWIND_LIBRARIES}")
+  list(APPEND ZM_INCLUDE_DIRS "${LIBUNWIND_INCLUDE_DIR}")
+  set(optlibsfound "${optlibsfound} libunwind")
+else()
+  set(optlibsnotfound "${optlibsnotfound} libunwind")
+endif()
+
 check_include_file("ucontext.h" HAVE_UCONTEXT_H)
 check_include_file("sys/sendfile.h" HAVE_SYS_SENDFILE_H)
 check_include_file("sys/syscall.h" HAVE_SYS_SYSCALL_H)
@@ -321,7 +357,7 @@ find_package(ZLIB)
 if(ZLIB_FOUND)
   set(HAVE_LIBZLIB 1)
   list(APPEND ZM_BIN_LIBS "${ZLIB_LIBRARIES}")
-  include_directories("${ZLIB_INCLUDE_DIR}")
+  list(APPEND ZM_INCLUDE_DIRS "${ZLIB_INCLUDE_DIR}")
   set(CMAKE_REQUIRED_INCLUDES "${ZLIB_INCLUDE_DIR}")
   check_include_file("zlib.h" HAVE_ZLIB_H)
   set(optlibsfound "${optlibsfound} zlib")
@@ -336,7 +372,7 @@ if(NOT ZM_NO_CURL)
   if(CURL_FOUND)
     set(HAVE_LIBCURL 1)
     list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
-    include_directories(${CURL_INCLUDE_DIRS})
+    list(APPEND ZM_INCLUDE_DIRS ${CURL_INCLUDE_DIRS})
     set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
     check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
     set(optlibsfound "${optlibsfound} cURL")
@@ -351,7 +387,7 @@ if(JPEG_FOUND)
   set(HAVE_LIBJPEG 1)
   list(APPEND ZM_BIN_LIBS "${JPEG_LIBRARIES}")
   #link_directories(${JPEG_LIBRARY})
-  include_directories("${JPEG_INCLUDE_DIR}")
+  list(APPEND ZM_INCLUDE_DIRS "${JPEG_INCLUDE_DIR}")
   set(CMAKE_REQUIRED_INCLUDES "${JPEG_INCLUDE_DIR}")
   check_include_files("stdio.h;jpeglib.h" HAVE_JPEGLIB_H)
   if(NOT HAVE_JPEGLIB_H)
@@ -362,6 +398,9 @@ else()
   message(FATAL_ERROR
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
+
+set(CxxUrl_BUILD_SHARED_LIBS "OFF")
+list(APPEND ZM_BIN_LIBS chmike::CxxUrl)
 
 # libjwt
 if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
@@ -374,6 +413,24 @@ if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
   endif()
 endif()
 
+# jwt-cpp (system or vendored)
+if (${ZM_JWT_BACKEND} STREQUAL "jwt_cpp")
+  if(ZM_USE_SYSTEM_JWT_CPP)
+    find_package(jwt-cpp CONFIG REQUIRED)
+    if(TARGET jwt-cpp::jwt-cpp)
+      set(HAVE_SYSTEM_JWT_CPP 1)
+      set(optlibsfound "${optlibsfound} jwt-cpp(system)")
+      message(STATUS "Using system-installed jwt-cpp")
+    else()
+      message(FATAL_ERROR "System jwt-cpp requested but jwt-cpp::jwt-cpp target not found")
+    endif()
+  else()
+    set(HAVE_SYSTEM_JWT_CPP 0)
+    set(optlibsfound "${optlibsfound} jwt-cpp(vendored)")
+    message(STATUS "Using vendored jwt-cpp")
+  endif()
+endif()
+
 # GnuTLS
 if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
   find_library(GNUTLS_LIBRARIES gnutls REQUIRED)
@@ -382,7 +439,7 @@ if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
     list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
     find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h)
     if(GNUTLS_INCLUDE_DIR)
-      include_directories("${GNUTLS_INCLUDE_DIR}")
+      list(APPEND ZM_INCLUDE_DIRS "${GNUTLS_INCLUDE_DIR}")
       set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIR)
@@ -396,7 +453,7 @@ elseif (${ZM_CRYPTO_BACKEND} STREQUAL "openssl")
   if(OPENSSL_FOUND)
     set(HAVE_LIBOPENSSL 1)
     list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
-    include_directories("${OPENSSL_INCLUDE_DIR}")
+    list(APPEND ZM_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
     set(optlibsfound "${optlibsfound} OpenSSL")
   else()
@@ -411,7 +468,7 @@ if(PTHREAD_LIBRARIES)
   list(APPEND ZM_BIN_LIBS "${PTHREAD_LIBRARIES}")
   find_path(PTHREAD_INCLUDE_DIR pthread.h)
   if(PTHREAD_INCLUDE_DIR)
-    include_directories("${PTHREAD_INCLUDE_DIR}")
+    list(APPEND ZM_INCLUDE_DIRS "${PTHREAD_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${PTHREAD_INCLUDE_DIR}")
   endif()
   mark_as_advanced(FORCE PTHREAD_LIBRARIES PTHREAD_INCLUDE_DIR)
@@ -423,8 +480,8 @@ else()
   message(FATAL_ERROR "ZoneMinder requires pthread but it was not found on your system")
 endif()
 
-# Do not check for cURL if ZM_NO_CURL is on
-if(NOT ZM_NO_PRCE)
+# Do not check for pcre if ZM_NO_PCRE is on
+if(NOT ZM_NO_PCRE)
   # pcre (using find_library and find_path)
   find_library(PCRE_LIBRARIES pcre2-8)
   if(PCRE_LIBRARIES)
@@ -432,7 +489,7 @@ if(NOT ZM_NO_PRCE)
     list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
     find_path(PCRE_INCLUDE_DIR pcre2.h)
     if(PCRE_INCLUDE_DIR)
-      include_directories("${PCRE_INCLUDE_DIR}")
+      list(APPEND ZM_INCLUDE_DIRS "${PCRE_INCLUDE_DIR}")
       set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
@@ -446,7 +503,7 @@ endif()
 if(NOT ZM_NO_MQTT)
   find_package(MOSQUITTO)
   if(MOSQUITTO_FOUND)
-    include_directories(${MOSQUITTO_INCLUDE_DIRS})
+    list(APPEND ZM_INCLUDE_DIRS ${MOSQUITTO_INCLUDE_DIRS})
     list(APPEND ZM_BIN_LIBS "${MOSQUITTO_LIBRARY}")
     set(optlibsfound "${optlibsfound} Mosquitto")
   else()
@@ -455,7 +512,7 @@ if(NOT ZM_NO_MQTT)
 
   find_package(MOSQUITTOPP)
   if(MOSQUITTOPP_FOUND)
-    include_directories(${MOSQUITTOPP_INCLUDE_DIRS})
+    list(APPEND ZM_INCLUDE_DIRS ${MOSQUITTOPP_INCLUDE_DIRS})
     list(APPEND ZM_BIN_LIBS "${MOSQUITTOPP_LIBRARY}")
     set(optlibsfound "${optlibsfound} Mosquittopp")
   else()
@@ -470,7 +527,7 @@ if(MYSQLCLIENT_LIBRARIES)
   list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
   find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h PATH_SUFFIXES mysql)
   if(MYSQLCLIENT_INCLUDE_DIR)
-    include_directories("${MYSQLCLIENT_INCLUDE_DIR}")
+    list(APPEND ZM_INCLUDE_DIRS "${MYSQLCLIENT_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
   endif()
   mark_as_advanced(FORCE MYSQLCLIENT_LIBRARIES MYSQLCLIENT_INCLUDE_DIR)
@@ -517,7 +574,7 @@ if(NOT ZM_NO_LIBVLC)
     #list(APPEND ZM_BIN_LIBS "${LIBVLC_LIBRARIES}")
     find_path(LIBVLC_INCLUDE_DIR "vlc/vlc.h")
     if(LIBVLC_INCLUDE_DIR)
-      include_directories("${LIBVLC_INCLUDE_DIR}")
+      list(APPEND ZM_INCLUDE_DIRS "${LIBVLC_INCLUDE_DIR}")
       set(CMAKE_REQUIRED_INCLUDES "${LIBVLC_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE LIBVLC_LIBRARIES LIBVLC_INCLUDE_DIR)
@@ -536,7 +593,7 @@ if(NOT ZM_NO_LIBVNC)
     #list(APPEND ZM_BIN_LIBS "${LIBVNC_LIBRARIES}")
     find_path(LIBVNC_INCLUDE_DIR "rfb/rfb.h")
     if(LIBVNC_INCLUDE_DIR)
-      include_directories("${LIBVNC_INCLUDE_DIR}")
+      list(APPEND ZM_INCLUDE_DIRS "${LIBVNC_INCLUDE_DIR}")
       set(CMAKE_REQUIRED_INCLUDES "${LIBVNC_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE LIBVNC_LIBRARIES LIBVNC_INCLUDE_DIR)
@@ -558,7 +615,6 @@ endif()
 find_package(GSOAP 2.8.91)
 if (GSOAP_FOUND)
   set(optlibsfound "${optlibsfound} gsoap")
-  add_definitions(-DWITH_GSOAP)
 else()
   set(optlibsnotfound "${optlibsnotfound} gsoap")
 endif()
@@ -587,7 +643,7 @@ endif()
 
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
-if(HAVE_LIBPCRE AND HAVE_PCRE_H)
+if(HAVE_LIBPCRE AND HAVE_PCRE2_H)
   set(ZM_PCRE 1)
 endif()
 
@@ -620,13 +676,38 @@ if(NOT PERL_FOUND)
   message(FATAL_ERROR "ZoneMinder requires Perl 5.6.0 or newer but it was not found on your system")
 endif()
 
+# Detect Perl module installation path
+# Prefer vendorlib (standard for distro packages), fall back to sitelib
+# (used on FreeBSD and systems without vendorlib configured)
+execute_process(
+  COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{vendorlib}"
+  OUTPUT_VARIABLE _perl_lib_default
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _perl_result)
+if(NOT _perl_result EQUAL 0 OR _perl_lib_default STREQUAL "")
+  execute_process(
+    COMMAND ${PERL_EXECUTABLE} -MConfig -e "print \$Config{sitelib}"
+    OUTPUT_VARIABLE _perl_lib_default
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _perl_result)
+  if(NOT _perl_result EQUAL 0 OR _perl_lib_default STREQUAL "")
+    message(FATAL_ERROR
+      "Could not detect Perl vendorlib or sitelib path. "
+      "Set ZM_PERL_INSTALL_PATH manually.")
+  endif()
+  message(STATUS "Perl vendorlib not configured, using sitelib")
+endif()
+set(ZM_PERL_INSTALL_PATH "${_perl_lib_default}" CACHE PATH
+  "Install path for ZoneMinder Perl modules. Override for non-standard locations (also set ZM_PERL_SEARCH_PATH).")
+message(STATUS "Perl module install path: ${ZM_PERL_INSTALL_PATH}")
+
 # Checking for perl modules requires FindPerlModules.cmake
 # Check all required modules at once
 # TODO: Add checking for the optional modules
 find_package(
   PerlModules COMPONENTS Sys::Syslog DBI DBD::mysql
   Getopt::Long Time::HiRes Date::Manip LWP::UserAgent
-  ExtUtils::MakeMaker ${ZM_MMAP_PERLPACKAGE})
+  ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
   message(WARNING "Not all required perl modules were found on your system")
 endif()
@@ -674,14 +755,13 @@ if(ZM_PATH_ARP STREQUAL "")
     set(ZM_PATH_ARP "${ARP_EXECUTABLE}")
     mark_as_advanced(ARP_EXECUTABLE)
   else()
-    find_program(ARP_EXECUTABLE ip)
-    if(ARP_EXECUTABLE)
-      set(ZM_PATH_ARP "${ARP_EXECUTABLE} neigh")
-      mark_as_advanced(ARP_EXECUTABLE)
+    find_program(IP_FOR_ARP_EXECUTABLE ip)
+    if(IP_FOR_ARP_EXECUTABLE)
+      set(ZM_PATH_ARP "${IP_FOR_ARP_EXECUTABLE} neigh")
+      mark_as_advanced(IP_FOR_ARP_EXECUTABLE)
+    else()
+      message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
     endif()
-  endif()
-  if(ARP_EXECUTABLE-NOTFOUND)
-    message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
   endif()
 endif()
 
@@ -691,8 +771,7 @@ if(ZM_PATH_ARP_SCAN STREQUAL "")
   if(ARP_SCAN_EXECUTABLE)
     set(ZM_PATH_ARP_SCAN "${ARP_SCAN_EXECUTABLE}")
     mark_as_advanced(ARP_SCAN_EXECUTABLE)
-  endif()
-  if(ARP_SCAN_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
   endif()
 endif()
@@ -703,8 +782,7 @@ if(ZM_PATH_RM STREQUAL "")
   if(RM_EXECUTABLE)
     set(ZM_PATH_RM "${RM_EXECUTABLE}")
     mark_as_advanced(RM_EXECUTABLE)
-  endif()
-  if(RM_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible rm binary.")
   endif()
 endif()
@@ -715,32 +793,29 @@ if(ZM_PATH_UNAME STREQUAL "")
   if(UNAME_EXECUTABLE)
     set(ZM_PATH_UNAME "${UNAME_EXECUTABLE}")
     mark_as_advanced(UNAME_EXECUTABLE)
-  endif()
-  if(UNAME_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible uname binary.")
   endif()
 endif()
 
-# Find the path to a uname compatible executable
+# Find the path to an ip compatible executable
 if(ZM_PATH_IP STREQUAL "")
   find_program(IP_EXECUTABLE ip)
   if(IP_EXECUTABLE)
     set(ZM_PATH_IP "${IP_EXECUTABLE}")
     mark_as_advanced(IP_EXECUTABLE)
-  endif()
-  if(IP_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible ip binary.")
   endif()
 endif()
 
-# Find the path to a ifconfig compatible executable
+# Find the path to an ifconfig compatible executable
 if(ZM_PATH_IFCONFIG STREQUAL "")
   find_program(IFCONFIG_EXECUTABLE ifconfig)
   if(IFCONFIG_EXECUTABLE)
     set(ZM_PATH_IFCONFIG "${IFCONFIG_EXECUTABLE}")
     mark_as_advanced(IFCONFIG_EXECUTABLE)
-  endif()
-  if(IFCONFIG_EXECUTABLE-NOTFOUND)
+  else()
     message(WARNING "Unable to find a compatible ifconfig binary.")
   endif()
 endif()
@@ -802,7 +877,7 @@ endif()
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   add_subdirectory(distros/redhat)
-elseif()
+elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
   add_subdirectory(distros/opensuse)
 endif()
 
@@ -815,11 +890,11 @@ message(STATUS "Enabled JWT backend: ${ZM_JWT_BACKEND}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")
-execute_process(COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl RESULT_VARIABLE ZMCONFGEN_RESULT)
+execute_process(COMMAND "${PERL_EXECUTABLE}" ${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl RESULT_VARIABLE ZMCONFGEN_RESULT)
 if(ZMCONFGEN_RESULT EQUAL 0)
   message(STATUS "ZoneMinder configuration generator completed successfully")
 else()
-  message(FATAL_ERROR "ZoneMinder configuration generator failed. Exit code: ${zmconfgen_result}")
+  message(FATAL_ERROR "ZoneMinder configuration generator failed. Exit code: ${ZMCONFGEN_RESULT}")
 endif()
 
 # Install zm.conf
@@ -830,7 +905,7 @@ install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
-  IMMEDIATE @ONLY)
+  @ONLY)
 add_custom_target(uninstall
   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
 

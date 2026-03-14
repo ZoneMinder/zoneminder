@@ -2,12 +2,9 @@
 // Import constants
 //
 
-const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
-
 <?php
   global $presets;
   global $zone;
-  global $newZone;
   global $monitor;
   global $selfIntersecting;
   global $streamMode;
@@ -53,16 +50,17 @@ var zone = {
 
 zone['Points'] = new Array();
 <?php
-for ( $i = 0; $i < count($newZone['Points']); $i++ ) {
+for ( $i = 0; $i < count($zone['Points']); $i++ ) {
 ?>
-zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x'] ?>, 'y': <?php echo $newZone['Points'][$i]['y'] ?> };
+zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $zone['Points'][$i]['x'] ?>, 'y': <?php echo $zone['Points'][$i]['y'] ?> };
 <?php
 }
 ?>
 
-var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
-var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
-var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+var maxX = 100;
+var maxY = 100;
+var monitorArea = 10000;
+var monitorPixelArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
 
 var monitorData = new Array();
 monitorData[monitorData.length] = {
@@ -73,8 +71,10 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
-  'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
-  'RTSP2WebStream': '<?php echo $monitor->RTSP2WebStream() ?>',
+  'RTSPServer':<?php echo $monitor->RTSPServer() ? 'true' : 'false' ?>,
+  'StreamChannel': '<?php echo $monitor->StreamChannel() ?>',
+  'DefaultPlayer':'<?php echo $monitor->DefaultPlayer() ?>',
+  'Go2RTCEnabled': <?php echo $monitor->Go2RTCEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',

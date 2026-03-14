@@ -40,6 +40,12 @@ class FilterTerm {
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
       if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
       $this->op = isset($term['op']) ? $term['op'] : '=';
+      $valid_ops = array('=', '!=', '>=', '<=', '>', '<', 'LIKE', 'NOT LIKE', '=~', '!~',
+        '=[]', '![]', 'IN', 'NOT IN', 'EXISTS', 'IS', 'IS NOT');
+      if (!in_array($this->op, $valid_ops)) {
+        Warning('Invalid operator in filter term: ' . $this->op);
+        $this->op = '=';
+      }
       $this->val = isset($term['val']) ? $term['val'] : '';
       if (is_array($this->val)) $this->val = implode(',', $this->val);
       if ( isset($term['cnj']) ) {
@@ -71,7 +77,7 @@ class FilterTerm {
       }
       $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
       $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
-      $this->collate = isset($term['collate']) ? $term['collate'] : '';
+      $this->collate = isset($term['collate']) ? preg_replace('/[^a-zA-Z0-9_]/', '', $term['collate']) : '';
       $this->multiple = isset($term['multiple']) ? $term['multiple'] : '';
       $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
@@ -79,6 +85,21 @@ class FilterTerm {
       Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
+
+  private function compare($left, $op, $right) {
+    $right = floatval($right);
+    switch ($op) {
+    case '=':  return $left == $right;
+    case '!=': return $left != $right;
+    case '>':  return $left > $right;
+    case '>=': return $left >= $right;
+    case '<':  return $left < $right;
+    case '<=': return $left <= $right;
+    default:
+      Warning("Invalid operator '$op' in compare");
+      return false;
+    }
+  }
 
   # Returns an array of values.  AS term->value can be a list, we will break it apart, remove quotes etc
   public function sql_values() {
@@ -97,7 +118,7 @@ class FilterTerm {
         $value = $group->MonitorIds();
         break;
       case 'AlarmedZoneId':
-        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0 LIMIT 1)';
+        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.intval($value).' AND Score > 0 LIMIT 1)';
         break;
       case 'ExistsInFileSystem':
         $value = '';
@@ -132,6 +153,7 @@ class FilterTerm {
           $value = dbEscape($value);
         }
         break;
+      case 'CurrentDateTime':
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
@@ -140,6 +162,7 @@ class FilterTerm {
         } else if ( $value_upper != 'NULL' )
           $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
+      case 'CurrentDate':
       case 'Date':
       case 'StartDate':
       case 'EndDate':
@@ -149,6 +172,7 @@ class FilterTerm {
           $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
+      case 'CurrentTime':
       case 'Time':
       case 'StartTime':
       case 'EndTime':
@@ -245,6 +269,14 @@ class FilterTerm {
     case 'FilterServerId':
       return '/* ZM_SERVER_ID:*/'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
+    case 'CurrentDateTime':
+      return 'NOW()';
+    case 'CurrentDate':
+      return 'to_days(NOW())';
+    case 'CurrentTime':
+      return 'extract(hour_second FROM NOW())';
+    case 'CurrentWeekday':
+      return 'weekday(NOW()';
     case 'DateTime':
       return 'E.StartDateTime';
     case 'Date':
@@ -332,8 +364,20 @@ class FilterTerm {
         $subterms[] = $subterm;
       }
       $sql .= '('.implode(' OR ', $subterms).')';
-    } elseif (($this->attr === 'Tags') && ($values[0] === '')) {
-      $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+    } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
+      // "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
+      if ($this->op === '!=' || $this->op === 'IS NOT') {
+        $sql .= 'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+      } else {
+        $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+      }
+    } elseif (($this->attr === 'Tags') && ($values[0] === "'-1'")) {
+      // "Any Tag": = means has tags (EXISTS), != means no tags (NOT EXISTS)
+      if ($this->op === '!=' || $this->op === 'IS NOT') {
+        $sql .= 'NOT EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+      } else {
+        $sql .= 'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id)';
+      }
     } else {
       $sql .= $this->sql_attr();
       if ($this->collate) $sql .= ' COLLATE '.$this->collate;
@@ -410,16 +454,9 @@ class FilterTerm {
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {
-        $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evaled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare(getLoad(), $this->op, $this->val);
+        Debug("SystemLoad compare: getLoad() {$this->op} {$this->val} = " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else {
         Error('testing unsupported pre term ' . $this->attr);
       }
@@ -436,27 +473,13 @@ class FilterTerm {
           return !file_exists($event->Path());
         }
       } else if ( $this->attr == 'DiskPercent' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare($event->Storage()->disk_usage_percent(), $this->op, $this->val);
+        Debug("DiskPercent compare: " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
-        try {
-          $ret = eval($string_to_eval);
-          Debug("Evalled $string_to_eval = $ret");
-          if ( $ret )
-            return true;
-        } catch ( Throwable $t ) {
-          Error('Failed evaluating '.$string_to_eval);
-          return false;
-        }
+        $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+        Debug("DiskBlocks compare: " . ($ret ? 'true' : 'false'));
+        if ($ret) return true;
       } else if ( $this->attr == 'Tags' ) {
         // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
         // Debug(print_r($this, true));
@@ -504,6 +527,10 @@ class FilterTerm {
       'MonitorServerId',
       'StorageServerId',
       'FilterServerId',
+      'CurrentDateTime',
+      'CurrentDate',
+      'CurrentTime',
+      'CurrentWeekday',
       'DateTime',
       'Date',
       'Time',
@@ -547,6 +574,10 @@ class FilterTerm {
       if (!(is_integer($this->val) or ctype_digit($this->val))) 
         return false;
       return true;
+    case 'CurrentDate' :
+    case 'CurrentTime' :
+    case 'CurrentDateTime' :
+    case 'CurrentWeekday' :
     case 'EndDate' :
     case 'StartDate' :
     case 'EndDateTime' :
@@ -554,6 +585,7 @@ class FilterTerm {
       if (!$this->val)
         return false;
       break;
+    case 'Id' :
     case 'Archived' :
     case 'Tags' :
     case 'Monitor' :
@@ -563,6 +595,10 @@ class FilterTerm {
     case 'Group' :
     case 'Notes' :
       if ($this->val === '')
+        return false;
+      else if ($this->val === '[]')
+        return false;
+      else if (is_array($this->val) and !count($this->val))
         return false;
       break;
     }

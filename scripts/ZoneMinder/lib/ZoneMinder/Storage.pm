@@ -47,12 +47,17 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $serial $primark_key $table $primary_key %fields $debug/;
+use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';
 $debug = 1;
 $table = 'Storage';
 $primary_key = 'Id';
 %fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme Enabled);
+
+%defaults = (
+  Type => 'local',
+  Scheme => 'Medium',
+);
 
 sub Path {
   if ( @_ > 1 ) {
@@ -174,6 +179,10 @@ sub delete_path {
     my $storage_path = $self->Path();
     ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
     ($path) = ($path =~ /^(.*)$/); # De-taint
+    if (!$Config{ZM_PATH_RM}) {
+      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$Config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
+      $Config{ZM_PATH_RM} = '/bin/rm';
+    }
     my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
     if (ZoneMinder::General::executeShellCommand($command)) {
       Error("Error deleting event directory at $storage_path/$path using $command");

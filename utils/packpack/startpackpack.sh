@@ -118,7 +118,7 @@ commonprep () {
         fi
     fi
 
-    RTSPVER="055d81fe1293429e496b19104a9ed3360755a440"
+    RTSPVER="24e6b7153aa561ecc4123cc7c8fc1b530cde0bc9"
     if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
         echo "Found existing RtspServer ${RTSPVER} tarball..."
     else
@@ -126,6 +126,18 @@ commonprep () {
         curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: RtspServer tarball retrieval failed..."
+            exit 1
+        fi
+    fi
+
+    CxxUrlVER="eaf46c0207df24853a238d4499e7f4426d9d234c"
+    if [ -e "build/CxxUrl-${CxxUrlVER}.tar.gz" ]; then
+        echo "Found existing CxxUrl tarball..."
+    else
+        echo "Retrieving CxxUrl ${CxxUrlVER} submodule..."
+        curl -L https://github.com/chmike/CxxUrl/archive/${CxxUrlVER}.tar.gz > build/CxxUrl-${CxxUrlVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: CxxUrl tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -157,6 +169,10 @@ movecrud () {
         rmdir dep/RtspServer
         mv -f RtspServer-${RTSPVER} dep/RtspServer
     fi
+    echo "Unpacking CxxUrl..."
+    tar -xzf build/CxxUrl-${CxxUrlVER}.tar.gz
+    rm -r dep/CxxUrl
+    mv -f CxxUrl-${CxxUrlVER} dep/CxxUrl
 }
 
 # previously part of installzm.sh

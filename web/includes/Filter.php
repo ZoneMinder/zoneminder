@@ -460,6 +460,22 @@ class Filter extends ZM_Object {
         case 'FilterServerId':
           $sqlValue .= ZM_SERVER_ID;
           break;
+        case 'CurrentDateTime':
+          $sqlValue = 'NOW()';
+          $dtAttr = true;
+          break;
+        case 'CurrentDate':
+          $sqlValue = 'to_days(NOW())';
+          $dtAttr = true;
+          break;
+        case 'CurrentTime':
+          $sqlValue = 'extract(hour_second FROM NOW())';
+          $dtAttr = true;
+          break;
+        case 'CurrentWeekday':
+          $sqlValue = 'weekday(NOW())';
+          $dtAttr = true;
+          break;
         case 'DateTime':
         case 'StartDateTime':
           $sqlValue = 'E.StartDateTime';
@@ -806,6 +822,10 @@ class Filter extends ZM_Object {
         'DiskPercent' => translate('AttrDiskPercent'),
         #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
         'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'CurrentDateTime' => translate('Current DateTime'),
+        'CurrentDate' => translate('Current Date'),
+        'CurrentTime' => translate('Current Time'),
+        'CurrentWeekday' => translate('Current Weekday'),
         'DateTime'    => translate('Date Time'),
         'EndDateTime'    => translate('AttrEndDateTime'),
         'EndDate'        => translate('AttrEndDate'),
@@ -904,6 +924,9 @@ class Filter extends ZM_Object {
     return self::$archiveTypes;
   }
 
+  //
+  // This displays filters from the filters page.
+  //
   public function widget() {
     $html = '<table id="fieldsTable" class="filterTable"><tbody>';
     $opTypes = $this->opTypes();
@@ -956,7 +979,7 @@ class Filter extends ZM_Object {
         }
       }
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -983,22 +1006,16 @@ class Filter extends ZM_Object {
         if ( $term['attr'] == 'Archived' ) {
           $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-        
-        
-        
         } else if ( $term['attr'] == 'Tags') {
           // Error($term['attr']);
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $options = ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple'];
-          $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
-          // ZM\Debug('$availableTags: '.$availableTags);
-          // ZM\Debug('$selected: '.$selected);
-
-
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1068,6 +1085,9 @@ class Filter extends ZM_Object {
     return $html;
   }  # end function widget()
 
+  //
+  // This displays filters from the events page.
+  //
   public function simple_widget() {
     $html = '<div id="fieldsTable" class="filterTable">';
     $terms = $this->terms();
@@ -1092,7 +1112,7 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < 7; $i++ ) {
       $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
     }
-    $availableTags = array(''=>translate('No Tag'));
+    $availableTags = array('0'=>translate('No Tag'), '-1'=>translate('Any Tag'));
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(`Name`) ASC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
@@ -1115,6 +1135,9 @@ class Filter extends ZM_Object {
       #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
       $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
       if ( isset($term['attr']) ) {
+        if (($term['attr'] == 'Tags') and (count($availableTags)<=1)) {
+          continue;
+        }
         $html .= '<span class="term '.$term['attr'].'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
@@ -1126,27 +1149,24 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = explode(',', $term['val']);
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
+            if ((!isset($term['val']) or $term['val']=='') and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
+              $selected = json_decode($_COOKIE[$term['cookie']]);
           }
-          // These echo statements print these variables at the top of the view.
-          // echo '<pre>availableTags: '; print_r($availableTags); echo '</pre>';
-          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
-          // echo '<pre>options: '; print_r($options); echo '</pre>';
+          // These echo statements print these variables at the top of the view for debugging.
+          // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
+          // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
+          // echo '<div style="background-color:green"><pre>options: '; print_r($options); echo '</pre></div>';
 
-          $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
-          $html .= '</span>';
-          $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+            $html .= '<span class="term-value-wrapper">';
+            $html .= htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).PHP_EOL;
+            $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+            $html .= '</span>';
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($availableTags,$availableTags), $term['val'],
           // $options).'</span>'.PHP_EOL;
           // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $term['val'], $options).'</span>'.PHP_EOL;
@@ -1155,8 +1175,6 @@ class Filter extends ZM_Object {
           // Debug('$availableTags: '.$availableTags);
           // Debug('$selected: '.$selected);
           // Debug('$options: '.$options);
-
-
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span class="term-value-wrapper">';
@@ -1191,26 +1209,26 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'Group') {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
             ['class'=>'term-value chosen chosen-auto-width',
             'multiple'=>'multiple', 
             'data-placeholder'=>translate('All Groups')]).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'StateId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $states, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( strpos($term['attr'], 'Weekday') !== false ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'Monitor' ) {
           $monitors = [];
           foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
@@ -1232,8 +1250,8 @@ class Filter extends ZM_Object {
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, $options).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'MonitorName' ) {
           $monitor_names = [];
           foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
@@ -1244,14 +1262,14 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Monitors')]).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
             $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
@@ -1259,8 +1277,8 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
@@ -1293,8 +1311,8 @@ class Filter extends ZM_Object {
             'vehicle' => 'Vehicle'];
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $options, $selected, $attrs).PHP_EOL;
-          $html .= '</span>';
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
+          $html .= '</span>';
         } else {
           #$html .= $term['attr'];
           $html .= '<span class="term-value-wrapper">';

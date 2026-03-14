@@ -79,6 +79,7 @@ class Event {
 
   uint64_t  id;
   Monitor      *monitor;
+  Storage *storage;
   PacketQueue * packetqueue;
   packetqueue_iterator * packetqueue_it;
   SystemTimePoint start_time;
@@ -149,6 +150,7 @@ class Event {
 
   void Stop() {
     terminate_ = true;
+    packetqueue->notify_all();
   }
   bool Stopped() const { return terminate_; }
 

@@ -17,7 +17,7 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
   ZM_RtspServer_Authenticator() {};
   ~ZM_RtspServer_Authenticator() {};
 
-  bool Authenticate(std::shared_ptr<xop::RtspRequest> request, std::string &nonce) {
+  bool Authenticate(std::shared_ptr<xop::RtspRequest> request) {
 
     if (!config.opt_use_auth) {
       Debug(1, "Not doing auth");

@@ -67,23 +67,52 @@ function loadLocations( element ) {
 
   var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
   if ( returnLocationOptions ) {
-    for ( var i = 0; i < returnLocationOptions.length; i++ ) {
+    for ( let i = 0; i < returnLocationOptions.length; i++ ) {
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
 }
 
-function Janus_Use_RTSP_Restream_onclick(e) {
-  Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
-  if (Janus_Use_RTSP_Restream.length) {
-    const Janus_RTSP_User = $j('#Janus_RTSP_User');
-    if (Janus_Use_RTSP_Restream[0].checked) {
-      Janus_RTSP_User.show();
+function Restream_onclick(e) {
+  const Restream = $j('[name="newMonitor[Restream]"]');
+  if (Restream.length) {
+    const RTSP_User = $j('#RTSP_User');
+    if (Restream[0].checked) {
+      RTSP_User.show();
     } else {
-      Janus_RTSP_User.hide();
+      RTSP_User.hide();
     }
   } else {
-    console.log("Didn't find newMonitor[Janus_Use_RTSP_Restream]");
+    console.log("Didn't find newMonitor[Restream]");
+  }
+}
+
+function updateRestreamVisibility() {
+  const form = document.getElementById('contentForm');
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
+  const go2rtcEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  const rtsp2webEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
+
+  const anyStreamingEnabled =
+    (janusEnabled && janusEnabled.checked) ||
+    (go2rtcEnabled && go2rtcEnabled.checked) ||
+    (rtsp2webEnabled && rtsp2webEnabled.checked);
+
+  const showRestream = rtspServer && rtspServer.checked && anyStreamingEnabled;
+
+  const restreamEl = document.getElementById('FunctionRestream');
+  if (restreamEl) restreamEl.hidden = !showRestream;
+
+  // Hide RTSP_User if restream not visible or restream not checked
+  const rtspUser = document.getElementById('RTSP_User');
+  if (rtspUser) {
+    const restream = form.elements['newMonitor[Restream]'];
+    if (!showRestream || !restream || !restream.checked) {
+      rtspUser.style.display = 'none';
+    } else {
+      rtspUser.style.display = '';
+    }
   }
 }
 
@@ -102,6 +131,12 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
+    // Clear password field values before any native form submission so
+    // Chrome doesn't offer to save them.  The values are already in the
+    // database and will be repopulated when the page reloads.
+    this.querySelectorAll('input[type="password"]').forEach(function(el) {
+      el.value = '';
+    });
     if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
@@ -332,8 +367,18 @@ function initPage() {
   }
 
   // Manage the SAVE Button
-  document.getElementById("saveBtn").addEventListener("click", function onZonesClick(evt) {
+  document.getElementById("saveBtn").addEventListener("click", function onSaveClick(evt) {
     saveMonitorData();
+  });
+
+  // Manage the SAVE AND CLOSE Button - use AJAX instead of native form
+  // submit so Chrome doesn't trigger its "save password" prompt.
+  document.getElementById("saveAndCloseBtn").addEventListener("click", function onSaveAndCloseClick(evt) {
+    const form = document.getElementById('contentForm');
+    if (validateForm(form)) {
+      $j('#contentButtons').hide();
+      saveMonitorData('?view=console');
+    }
   });
 
   const form = document.getElementById('contentForm');
@@ -342,15 +387,14 @@ function initPage() {
 
   const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
   if (janusEnabled) {
+    janusEnabled.onclick = update_players;
     if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
       document.getElementById("FunctionJanusProfileOverride").hidden = true;
-      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
 
@@ -358,80 +402,63 @@ function initPage() {
       if (this.checked) {
         document.getElementById("FunctionJanusAudioEnabled").hidden = false;
         document.getElementById("FunctionJanusProfileOverride").hidden = false;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
       } else {
         document.getElementById("FunctionJanusAudioEnabled").hidden = true;
         document.getElementById("FunctionJanusProfileOverride").hidden = true;
-        document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
         document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
       }
+      updateRestreamVisibility();
     });
+  }
 
-    const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream) {
-      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
-    }
+  // Manage the Restream checkbox (visible when RTSPServer enabled AND any streaming option)
+  const Restream = form.elements['newMonitor[Restream]'];
+  if (Restream) {
+    Restream.onclick = Restream_onclick;
+  }
+
+  // Add event listeners for RTSPServer and streaming options to update Restream visibility
+  const rtspServer = form.elements['newMonitor[RTSPServer]'];
+  if (rtspServer) {
+    rtspServer.addEventListener('change', updateRestreamVisibility);
   }
 
   //Manage the RTSP2Web settings div
   const RTSP2WebEnabled = form.elements['newMonitor[RTSP2WebEnabled]'];
   const Go2RTCEnabled = form.elements['newMonitor[Go2RTCEnabled]'];
+  if (Go2RTCEnabled) Go2RTCEnabled.onclick = update_players;
+  if (RTSP2WebEnabled) RTSP2WebEnabled.onclick = update_players;
+
   if (RTSP2WebEnabled || Go2RTCEnabled) {
     if (Go2RTCEnabled.checked || RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebStream").hidden = false;
+      document.getElementById("StreamChannel").hidden = false;
     } else {
-      document.getElementById("RTSP2WebStream").hidden = true;
-    }
-
-    if (RTSP2WebEnabled.checked) {
-      document.getElementById("RTSP2WebType").hidden = false;
-    } else {
-      document.getElementById("RTSP2WebType").hidden = true;
+      document.getElementById("StreamChannel").hidden = true;
     }
 
     Go2RTCEnabled.addEventListener('change', function() {
       if (this.checked || RTSP2WebEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
+      updateRestreamVisibility();
     });
 
     RTSP2WebEnabled.addEventListener('change', function() {
       if (this.checked || Go2RTCEnabled.checked) {
-        document.getElementById("RTSP2WebStream").hidden = false;
+        document.getElementById("StreamChannel").hidden = false;
       } else {
-        document.getElementById("RTSP2WebStream").hidden = true;
+        document.getElementById("StreamChannel").hidden = true;
       }
-
-      if (this.checked) {
-        document.getElementById("RTSP2WebType").hidden = false;
-      } else {
-        document.getElementById("RTSP2WebType").hidden = true;
-      }
+      updateRestreamVisibility();
     });
   }
+  update_players();
 
-  // Amcrest API controller
-  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
-  if (ONVIF_Event_Listener) {
-    if (ONVIF_Event_Listener[0].checked) {
-      document.getElementById("function_use_Amcrest_API").hidden = false;
-    } else {
-      document.getElementById("function_use_Amcrest_API").hidden = true;
-    }
-    ONVIF_Event_Listener[0].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = false;
-      }
-    });
-    ONVIF_Event_Listener[1].addEventListener('change', function() {
-      if (this.checked) {
-        document.getElementById("function_use_Amcrest_API").hidden = true;
-      }
-    });
-  }
+  // Initialize restream visibility on page load
+  updateRestreamVisibility();
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   if (monitorPath) {
@@ -622,7 +649,7 @@ function change_WebColour() {
 function getRandomColour() {
   var letters = '0123456789ABCDEF';
   var colour = '#';
-  for (var i = 0; i < 6; i++) {
+  for (let i = 0; i < 6; i++) {
     colour += letters[Math.floor(Math.random() * 16)];
   }
   return colour;
@@ -639,7 +666,8 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value) &&
+  if (parseInt(max_image_buffer_count.value)
+    &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {
     if (this.id == 'newMonitor[PreEventCount]') {
@@ -675,13 +703,16 @@ function update_estimated_ram_use() {
 function updateMarker() {
   const latitude = document.getElementById('newMonitor[Latitude]').value;
   const longitude = document.getElementById('newMonitor[Longitude]').value;
-  console.log("Updating marker at ", latitude, longitude);
-  const latlng = new L.LatLng(latitude, longitude);
-  marker.setLatLng(latlng);
-  map.setView(latlng, 8, {animation: true});
-  setTimeout(function() {
-    map.invalidateSize(true);
-  }, 100);
+  if (typeof L !== 'undefined') {
+    const latlng = new L.LatLng(latitude, longitude);
+    marker.setLatLng(latlng);
+    map.setView(latlng, 8, {animation: true});
+    setTimeout(function() {
+      map.invalidateSize(true);
+    }, 100);
+  } else {
+    console.log('You must install leaflet');
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {
@@ -720,6 +751,38 @@ function SecondPath_onChange(e) {
   }
 }
 
+function update_players() {
+  const dropdown = $j('[name="newMonitor[DefaultPlayer]"]');
+  if (!dropdown.length) {
+    console.log("No element found for DefaultPlayer");
+    return;
+  }
+  const form = dropdown[0].form;
+  const selected_value = dropdown.val() || '';
+  const go2rtc_enabled = form.elements['newMonitor[Go2RTCEnabled]'] && form.elements['newMonitor[Go2RTCEnabled]'].checked;
+  const rtsp2web_enabled = form.elements['newMonitor[RTSP2WebEnabled]'] && form.elements['newMonitor[RTSP2WebEnabled]'].checked;
+  const janus_enabled = form.elements['newMonitor[JanusEnabled]'] && form.elements['newMonitor[JanusEnabled]'].checked;
+
+  dropdown.empty();
+  $j.each(players, function(key, entry) {
+    if (
+      ((-1 != key.indexOf('go2rtc')) && !go2rtc_enabled)
+      ||
+      ((-1 != key.indexOf('rtsp2web')) && !rtsp2web_enabled)
+      ||
+      ((-1 != key.indexOf('janus')) && !janus_enabled)
+    ) {
+      console.log("not adding ", key, go2rtc_enabled, rtsp2web_enabled, janus_enabled);
+    } else {
+      dropdown.append($j('<option></option>').attr('value', key).text(entry));
+    }
+  });
+  //dropdown.chosen("destroy");
+  //dropdown.chosen();
+  dropdown.val(selected_value);
+  if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
+}
+
 function populate_models(ManufacturerId) {
   const dropdown = $j('[name="newMonitor[ModelId]"]');
   if (!dropdown.length) {
@@ -752,9 +815,11 @@ function populate_models(ManufacturerId) {
 function ManufacturerId_onchange(ManufacturerId_select) {
   if (ManufacturerId_select.value) {
     ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'none';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = true;
     populate_models(ManufacturerId_select.value);
   } else {
-    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = '';
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].disabled = false;
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
@@ -791,9 +856,9 @@ function Manufacturer_onchange(input) {
 
 function ModelId_onchange(ModelId_select) {
   if (parseInt(ModelId_select.value)) {
-    $j('[name="newMonitor[Model]"]').hide();
+    $j('[name="newMonitor[Model]"]').hide().prop('disabled', true);
   } else {
-    $j('[name="newMonitor[Model]"]').show();
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 
@@ -815,5 +880,29 @@ function devices_onchange(devices) {
     device.style['display'] = 'inline';
   }
 }
+function ControlId_onChange(ddm) {
+  const ControlEditButton = document.getElementById('ControlEditButton');
+  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+}
+
+function ControlEdit_onClick() {
+  const ControlId = document.getElementById('ControlId');
+  if (ControlId) {
+    window.location = '?view=controlcap&cid='+ControlId.value;
+  }
+}
+
+function ControlList_onClick() {
+  window.location = '?view=options&tab=control';
+}
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+// Clear password field values when navigating away from the page so
+// Chrome doesn't offer to save/update credentials.  These are camera
+// credentials, not user login credentials.
+window.addEventListener('pagehide', function() {
+  document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
+    el.value = '';
+  });
+});

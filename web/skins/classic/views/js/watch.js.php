@@ -15,7 +15,6 @@
 // Import constants
 //
 
-var ZM_DIR_SOUNDS = "<?php echo ZM_DIR_SOUNDS ?>";
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
@@ -43,10 +42,13 @@ monitorData[monitorData.length] = {
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
-  'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
-  'RTSP2WebStream':'<?php echo $m->RTSP2WebStream() ?>',
+  'DefaultPlayer':'<?php echo $m->DefaultPlayer() ?>',
+  'RTSPServer':<?php echo $m->RTSPServer() ? 'true' : 'false' ?>,
+  'StreamChannel':'<?php echo $m->StreamChannel() ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
-  'SecondPath':'<?php echo $m->SecondPath() ?>',
+  'Path':'<?php echo validJsStr($m->Path()) ?>',
+  'SecondPath':'<?php echo validJsStr($m->SecondPath()) ?>',
+  'Restream':<?php echo $m->Restream() ? 'true' : 'false' ?>,
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $m->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
@@ -64,7 +66,7 @@ monitorData[monitorData.length] = {
   'monitorRefresh': '<?php echo $m->Refresh() ?>',
   'monitorStreamReplayBuffer': parseInt('<?php echo $m->StreamReplayBuffer() ?>'),
   'monitorControllable': <?php echo $m->Controllable()?'true':'false' ?>,
-  'streamMode': '<?php echo $monitor->getStreamMode(); ?>'
+  'streamMode': '<?php echo $m->getStreamMode(); ?>'
 };
 <?php
 } // end foreach monitor
@@ -96,6 +98,8 @@ foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, ar
   $label = $labels[$row['Preset']] = $row['Label'];
   echo 'labels['. validInt($row['Preset']) .'] = \''.validJsStr($label).'\';'.PHP_EOL;
 }
+global $players;
+echo 'players = '.json_encode($players).PHP_EOL;
 ?>
 var deleteString = "<?php echo translate('Delete') ?>";
 var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
@@ -106,4 +110,7 @@ var translate = {
   "seconds": "<?php echo translate('seconds') ?>",
   "Fullscreen": "<?php echo translate('Fullscreen') ?>",
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
+  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
+  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
 };

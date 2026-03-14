@@ -22,6 +22,17 @@ if (!isset($_REQUEST['task'])) {
   } else {
     createRequest();
   }
+} else if ($_REQUEST['task'] == 'delete') {
+  global $user;
+  if (!canEdit('System')) {
+    $message = 'Insufficient permissions to delete log entries for user '.$user->Username();
+  } else {
+    if (!empty($_REQUEST['ids'])) {
+      $ids = array_map('intval', (array)$_REQUEST['ids']);
+      $placeholders = implode(',', array_fill(0, count($ids), '?'));
+      dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+    }
+  }
 } else {
   // Only the query and create tasks are supported at the moment
   $message = 'Unrecognised task '.$_REQUEST['task'];
@@ -80,8 +91,7 @@ function queryRequest() {
   $table = 'Logs';
 
   // The names of the dB columns in the log table we are interested in
-  $columns = array('TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
-
+  $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('DateTime', 'Server');
 
@@ -139,6 +149,9 @@ function queryRequest() {
     if ($where) $where .= ' AND ';
     $where .= 'Component = ?';
     $query['values'][] = $_REQUEST['Component'];
+    zm_session_start();
+    $_SESSION['zmLogComponent'] = $_REQUEST['Component'];
+    session_write_close();
   }
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';

@@ -268,12 +268,15 @@ ul.tabList li.active a {
 }
 
 body.sticky #content {
-/*
   flex: 1 1 auto;
+  /* whether or not #content is flex is a per-view thing
   display: flex;
   flex-flow: column;
-  overflow: hidden;*/
+  */
   height: 100%;
+  /* There shouldn't be any, but if there is, at least we can scroll it
+  overflow: hidden;
+  */
 }
 
 #inner-content {
@@ -640,6 +643,45 @@ input[type=submit],
     text-align: center;
     margin-right: 3px;
 }
+/* Clear button for filter selects (general pages, not in extruder) */
+.term-value-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-term-remove-all {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  z-index: 1011;
+}
+
+.btn-term-remove-all button {
+  padding: 2px 4px;
+  min-width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-term-remove-all button:hover {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.btn-term-remove-all button .material-icons {
+  font-size: 18px;
+  color: #666;
+}
+
+.btn-term-remove-all button:hover .material-icons {
+  color: #333;
+}
 
 .btn-normal,
 .btn-normal:link {
@@ -714,10 +756,16 @@ input[type=submit]:disabled,
   .navbar-nav {
     flex-direction: row;
   }
-  .navbar-nav .nav-link {
+  .navbar-nav .nav-link,
+  #getHeaderFlipHTML a
+  {
     padding-right: 0.5rem;
     padding-left: 0.5rem;
   }
+}
+#getHeaderFlipHTML a {
+  display: block;
+  padding: .5rem 1rem;
 }
 
 .navbar-btn {
@@ -842,16 +890,98 @@ li.search-choice {
   cursor: pointer;
 }
 
-.zoom,
-.zoom-console {
-  transform-origin: 0% 00%;
-  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-  position: sticky;
-  z-index: 1001;
+#thumb-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: none;
 }
 
-#framesTable .zoom {
-  transform-origin: 100% 0%;
+.thumb-overlay-img {
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.thumb-overlay-img img,
+.thumb-overlay-img video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.thumb-overlay-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.thumb-overlay-status {
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 10px 20px;
+  margin-top: 16px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 18px;
+  min-height: 24px;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+  color: #ff4444;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 20px;
+}
+
+.live-dot {
+  width: 14px;
+  height: 14px;
+  background: #ff4444;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  animation: live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.4);
+    box-shadow: 0 0 16px rgba(255, 68, 68, 0.9);
+  }
+}
+
+.time-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+}
+
+.time-indicator .fa {
+  color: #888;
+}
+
+.time-display {
+  font-variant-numeric: tabular-nums;
 }
 
 a.flip {
@@ -887,6 +1017,7 @@ a.flip {
   color: white;
 }
 .imageFeed {
+  border: 2px solid white; /* Because .alarm .imageFeed has a red border, so without this is jumps around */
   margin: 0 auto;
   text-align: center;
   /*
@@ -905,14 +1036,20 @@ a.flip {
   /*
   height: 100%;
   */
-  border: 2px solid #ffffff;
 }
 .imageFeed svg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 100%;
   background: none;
+}
+.imageFeed svg.zones, #videoFeed svg.zones {
+  z-index: 3;
+}
+.colThumbnail img {
+  border-radius: 4px;
 }
 .monitor {
   position: relative;
@@ -921,7 +1058,10 @@ a.flip {
   clear: both;
 }
 
-.monitor .monitorStatus {
+.monitor .monitorStatus:not(.hidden) {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   position: relative;
   background-color: #FFFFFF;
 }
@@ -930,15 +1070,15 @@ a.flip {
   color: #dddddd;
 }
 
-.monitor.idle img, .monitor.idle .imageFeed {
+.monitor.idle .imageFeed {
   border: 2px solid #ffffff;
 }
 
-.monitor.alarm img, .monitor.alarm .imageFeed {
+.monitor.alarm .imageFeed {
   border: 2px solid #ff0000;
 }
 
-.monitor.alert img, .monitor.alert .imageFeed {
+.monitor.alert .imageFeed {
   border: 2px solid #ffa500;
 }
 .monitor.alert {
@@ -983,7 +1123,6 @@ a.flip {
 
 .tags-container {
   display: flex;
-  flex-wrap: wrap;
   border: 1px solid;
   border-color: #ccc;
   border-radius: 4px;
@@ -1228,6 +1367,7 @@ button.btn.btn-view-watch:hover {
     --disabled-inner: #E1E6F9;
     -webkit-appearance: none;
     -moz-appearance: none;
+    appearance: none;
     /*height: 21px;*/
     height: 18px;
     outline: none;
@@ -1349,7 +1489,7 @@ button.btn.btn-view-watch:hover {
 }
 /* --- Style for <input> --- */
 
-/* +++ Volume сontrol +++ */
+/* +++ Volume control +++ */
 .audio-control-mute {
   position: relative;
   cursor: pointer;
@@ -1370,12 +1510,14 @@ button.btn.btn-view-watch:hover {
   margin-top: 10px;*/
 }
 
-.noUi-target {
-  /*border: 1px solid var(--scrollbarBG);
-  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;*/
+/* 
+noUi-target {
+  border: 1px solid var(--scrollbarBG);
+  box-shadow: inset 0 1px 1px #f0f0f0, 0 3px 6px -5px #bbb;
 }
+*/
 
-.noUi-base, .noUi-touch-area {
+[id^="volumeControls"]:not(.disabled) .noUi-base, [id^="volumeControls"]:not(.disabled) .noUi-touch-area {
   cursor: pointer;
 }
 
@@ -1395,9 +1537,15 @@ button.btn.btn-view-watch:hover {
   height: 5px;
 }
 
-.noUi-round .noUi-connects {
-  /*background: #c0392b;*/
+.noUi-handle:after {
+  left: 16px;
 }
+
+/*
+.noUi-round .noUi-connects {
+  background: #c0392b;
+}
+*/
 
 .noUi-round .noUi-handle {
   height: 18px;
@@ -1406,17 +1554,32 @@ button.btn.btn-view-watch:hover {
   right: -9px; /* half the width */
   border-radius: 9px;
 }
-/* --- Volume сontrol --- */
+
+.disabled .audio-control-mute {
+  color: var(--disabled);
+  cursor: not-allowed !important;
+}
+
+[id^="volumeControls"].disabled {
+  opacity: 0.4;
+}
+/* --- Volume control --- */
+
+.rightInFlexContainer {
+  margin-left: auto; /* This will cause the element in the FLEX container to snap to the right side. All elements after this element will also snap to the right side. */
+}
 
 video-stream {
   position: relative;
 }
 .stream-info {
+  /*
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   padding: 12px;
+  */
   display: flex;
   justify-content: space-between;
   pointer-events: none;
@@ -1426,10 +1589,58 @@ video-stream {
   padding:0;
 }
 
+/*
 .stream-info-status, .stream-info-mode {
   background-color: rgba(0,0,0,0.3);
   color: #dddddd;
   padding: 0.3em;
+}
+*/
+
+/* Fix bootstrap-table */
+.fixed-table-loading {
+  overflow: hidden;
+}
+
+img[id^='liveStream'], video[id^='liveStream'], video-stream[id^='liveStream'] {
+  margin: 0 auto;
+  object-fit: fill;
+}
+
+video-stream[id^='liveStream'] video{
+  max-height: inherit;
+  max-width: inherit;
+  object-fit: fill;
+}
+
+.imageFeed,
+.nav,
+.fixed-table-body,
+*[id^='videoFeedStream']
+ {
+  border-radius: 4px;
+}
+
+.text-3d {
+  color: transparent;
+  text-shadow: -4px 4px hsla(0, 0%, 70%, .4),
+               -3px 3px hsla(0, 0%, 65%, .2),
+               -2px 2px hsla(0, 0%, 60%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 38%, .7),
+               3px -3px hsla(0, 0%, 37%, .8),
+               4px -4px hsla(0, 0%, 36%, .9),
+               5px -5px hsla(0, 0%, 35%, 1.0);
+}
+.text-3d-mini {
+  color: transparent;
+  text-shadow: -2px 2px hsla(0, 0%, 65%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 30%, .7);
 }
 
 /* +++ This block should always be located at the end! */
@@ -1443,5 +1654,24 @@ video-stream {
 
 .invisible {
     visibility: hidden;
+}
+
+/* Button style: icons only — hide text labels */
+.btn-icons-only button .text,
+.btn-icons-only .btn .text {
+  display: none;
+}
+
+/* Button style: text only — hide icons on buttons that have a text label */
+.btn-text-only button:has(.text) > i.material-icons,
+.btn-text-only button:has(.text) > i.fa,
+.btn-text-only .btn:has(.text) > i.material-icons,
+.btn-text-only .btn:has(.text) > i.fa {
+  display: none;
+}
+/* Hide Back and Refresh nav buttons when config disables them */
+.hide-nav-buttons #backBtn,
+.hide-nav-buttons #refreshBtn {
+  display: none;
 }
 /* --- This block should always be located at the end! */

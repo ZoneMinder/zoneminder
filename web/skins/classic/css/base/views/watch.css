@@ -40,13 +40,15 @@
 }
 
 .monitor {
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
 }
 
-.monitor .imageFeed,
-.monitor .imageFeed,
 .monitor .imageFeed {
   border: 2px solid #999999;
+  padding: 0px;
+  margin: 0px;
 }
 
 .monitor .imageFeed img,
@@ -54,7 +56,8 @@
 .monitor .imageFeed video-stream,
 .monitor .imageFeed svg {
   border: none;
-  display: inline-block;
+  /*display: inline-block;*/
+  display: block;
   width: 100%;
 }
 
@@ -126,7 +129,7 @@
 
 
 #events {
-    margin: 0 auto;
+    margin: 0 auto 10px;
 }
 
 #eventList {
@@ -197,10 +200,6 @@ body.sticky #content {
   overflow-y: auto;
 }
 
-.zoom {
-  transform-origin: 100% 00%;
-}
-
 button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
 }
@@ -208,6 +207,30 @@ button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
 #sizeControl > span {
   white-space: nowrap;
   line-height: 36px;
+}
+
+@media screen and (max-width: 767px) {
+  #sidebar {
+    width: 100%;
+    min-width: unset;
+  }
+
+  #sidebar .nav {
+    flex-wrap: wrap;
+    flex-direction: row;
+  }
+
+  #wrapperMonitor {
+    overflow-x: hidden;
+  }
+
+  #ptzControls {
+    width: 100%;
+  }
+
+  .d-flex.flex-row.justify-content-between {
+    flex-wrap: wrap;
+  }
 }
 
 /* +++ Support for old ZoomPan algorithm */

@@ -31,13 +31,13 @@ SWScale::SWScale() :
 }
 
 bool SWScale::init() {
-  input_avframe = av_frame_ptr{zm_av_frame_alloc()};
+  input_avframe = av_frame_ptr{av_frame_alloc()};
   if (!input_avframe) {
     Error("Failed allocating AVFrame for the input");
     return false;
   }
 
-  output_avframe = av_frame_ptr{zm_av_frame_alloc()};
+  output_avframe = av_frame_ptr{av_frame_alloc()};
   if (!output_avframe) {
     Error("Failed allocating AVFrame for the output");
     return false;
@@ -137,7 +137,7 @@ int SWScale::Convert(
   /* Warn if the input or output pixelformat is not supported */
   if (!sws_isSupportedInput(in_pf)) {
     Warning("swscale does not support the input format: %c%c%c%c",
-            (in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
+            (in_pf)&0xff,((in_pf>>8)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
   }
   if (!sws_isSupportedOutput(out_pf)) {
     Warning("swscale does not support the output format: %c%c%c%c",

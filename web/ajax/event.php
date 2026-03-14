@@ -113,7 +113,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
 
     if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
-    $exportFileName = preg_replace('/[^\w\-\.\(\):]+/', '', $exportFileName);
+    $exportFileName = preg_replace('/[^\p{L}\p{N}\-\.\(\)]/u', '', $exportFileName);
 
     $exportIds = [];
     if (!empty($_REQUEST['eids'])) {
@@ -135,7 +135,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       ZM\Debug("No filter");
     }
 
-    if ( $exportFile = exportEvents(
+    if ( $exportFile = downloadEvents(
       $exportIds,
       $exportFileName,
       $exportFormat,
@@ -148,44 +148,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ));
 
     } else {
-      ajaxError('Export Failed');
-    }
-    break;
-  }
-} // end if canView('Events')
-
-if ( canEdit('Events') ) {
-  switch ( $_REQUEST['action'] ) {
-  case 'rename' :
-    if ( !empty($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
-    else
-      ajaxError('No new event name supplied');
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
-    break;
-  case 'eventdetail' :
-    dbQuery(
-      'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
-      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
-    );
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
-    break;
-  case 'archive' :
-  case 'unarchive' :
-    $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
-    dbQuery(
-      'UPDATE Events SET Archived = ? WHERE Id = ?',
-      array($archiveVal, $_REQUEST['id'])
-    );
-    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
-    break;
-  case 'delete' :
-    $Event = new ZM\Event($_REQUEST['id']);
-    if ( !$Event->Id() ) {
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
-    } else {
-      $Event->delete();
-      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+      ajaxError('Download generation Failed');
     }
     break;
   case 'getselectedtags' :
@@ -223,6 +186,43 @@ if ( canEdit('Events') ) {
       ajaxResponse(array('response'=>$response));
     }
     ajaxResponse();
+    break;
+  }
+} // end if canView('Events')
+
+if ( canEdit('Events') ) {
+  switch ( $_REQUEST['action'] ) {
+  case 'rename' :
+    if ( !empty($_REQUEST['eventName']) )
+      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $_REQUEST['id']));
+    else
+      ajaxError('No new event name supplied');
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
+    break;
+  case 'eventdetail' :
+    dbQuery(
+      'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
+      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['id'])
+    );
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
+    break;
+  case 'archive' :
+  case 'unarchive' :
+    $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
+    dbQuery(
+      'UPDATE Events SET Archived = ? WHERE Id = ?',
+      array($archiveVal, $_REQUEST['id'])
+    );
+    ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
+    break;
+  case 'delete' :
+    $Event = new ZM\Event($_REQUEST['id']);
+    if ( !$Event->Id() ) {
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
+    } else {
+      $Event->delete();
+      ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true));
+    }
     break;
   } // end switch action
 } // end if canEdit('Events')

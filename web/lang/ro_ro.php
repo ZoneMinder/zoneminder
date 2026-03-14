@@ -567,6 +567,7 @@ $SLANG = array(
     'PostEventImageBuffer' => 'Zona tampon post eveniment',
     'PreEventImageBuffer'  => 'Zona tampon pre eveniment',
     'PreserveAspect'       => 'Preserve Aspect Ratio',
+    'PreviewRate'          => 'Viteză previzualizare',
     'Preset'               => 'Presetare',
     'Presets'              => 'Preset&#259;ri',
     'Prev'                 => 'Prev',

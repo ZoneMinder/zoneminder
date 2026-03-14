@@ -178,18 +178,10 @@ if ( $command =~ /^(?:start|restart)$/ ) {
        ) {
          my ( $db_major, $db_minor, $db_micro ) = split(/\./, $Config{ZM_DYN_DB_VERSION});
          my ( $major, $minor, $micro ) = split(/\./, ZM_VERSION);
-         if ( $db_major != $major or $db_minor != $minor ) {
-           Fatal('Version mismatch, system is version '.ZM_VERSION
-             .', database is '.$Config{ZM_DYN_DB_VERSION}
-             .', please run zmupdate.pl to update.'
-           );
-           exit(-1);
-         } else {
-           Error('Version mismatch, system is version '.ZM_VERSION
-             .', database is '.$Config{ZM_DYN_DB_VERSION}
-             .', please run zmupdate.pl to update.'
-           );
-         }
+         Error('Version mismatch, system is version '.ZM_VERSION
+           .', database is '.$Config{ZM_DYN_DB_VERSION}
+           .', please run zmupdate.pl to update.'
+         );
     } # end if version mismatch
 
 # Recreate the temporary directory if it's been wiped
@@ -219,7 +211,11 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     foreach my $monitor (@monitors) {
       if (($monitor->{Capturing} ne 'None') and ($monitor->{Type} ne 'WebSite')) {
         if ( $monitor->{Type} eq 'Local' ) {
-          runCommand("zmdc.pl start zmc -d $monitor->{Device}");
+          if ($monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+            Error("Invalid device path rejected for monitor $monitor->{Id}: $monitor->{Device}");
+            next;
+          }
+          runCommand("zmdc.pl start zmc -d '$monitor->{Device}'");
         } else {
           runCommand("zmdc.pl start zmc -m $monitor->{Id}");
         }

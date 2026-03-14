@@ -598,6 +598,7 @@ $SLANG = array(
     'PostEventImageBuffer'  => 'Br. frejmova poslije događaja',
     'PreEventImageBuffer'   => 'Br. frejmova prije događaja',
     'PreserveAspect'        => 'Zadrži omjer',
+    'PreviewRate'           => 'Brzina pregleda',
     'Preset'                => 'Preset',
     'Presets'               => 'Presets',
     'Prev'                  => 'Preth',

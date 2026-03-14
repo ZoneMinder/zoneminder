@@ -151,6 +151,10 @@ int VideoStream::SetupCodec(
        of which frame timestamps are represented. for fixed-fps content,
        timebase should be 1/framerate and timestamp increments should be
        identically 1. */
+    if (frame_rate <= 0.0) {
+      Warning("Invalid frame_rate %.2f in SetupCodec, defaulting to 1fps", frame_rate);
+      frame_rate = 1.0;
+    }
     codec_context->time_base.den = frame_rate;
     codec_context->time_base.num = 1;
     ost->time_base.den = frame_rate;
@@ -213,7 +217,7 @@ bool VideoStream::OpenStream( ) {
     Debug( 1, "Opened codec" );
 
     /* allocate the encoded raw picture */
-    opicture = av_frame_ptr{zm_av_frame_alloc()};
+    opicture = av_frame_ptr{av_frame_alloc()};
     if (!opicture) {
       Error("Could not allocate opicture");
       return false;
@@ -291,6 +295,7 @@ bool VideoStream::OpenStream( ) {
     Error("?_write_header failed with error %d \"%s\"", ret, av_err2str(ret));
     return false;
   }
+  stream_opened = true;
   return true;
 }
 
@@ -300,6 +305,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
   video_outbuf(nullptr),
   video_outbuf_size(0),
   last_pts( -1 ),
+  stream_opened(false),
   streaming_thread(0),
   do_streaming(true),
   add_timestamp(false),
@@ -375,7 +381,9 @@ VideoStream::~VideoStream( ) {
   }
 
   /* write the trailer, if any */
-  av_write_trailer( ofc );
+  if ( stream_opened ) {
+    av_write_trailer( ofc );
+  }
 
   /* free the streams */
   for ( unsigned int i = 0; i < ofc->nb_streams; i++ ) {

@@ -66,6 +66,7 @@ set(ZM_BIN_SRC_FILES
   zm_rtsp_server_fifo_source.cpp
   zm_rtsp_server_fifo_adts_source.cpp
   zm_rtsp_server_fifo_h264_source.cpp
+  zm_rtsp_server_fifo_av1_source.cpp
   zm_rtsp_server_fifo_audio_source.cpp
   zm_rtsp_server_fifo_video_source.cpp
   zm_sdp.cpp
@@ -92,6 +93,7 @@ if(GSOAP_FOUND)
   ${GSOAP_PLUGIN_DIR}/mecevp.c
   ${GSOAP_PLUGIN_DIR}/wsaapi.c
   ${GSOAP_PLUGIN_DIR}/wsseapi.c
+  ${GSOAP_PLUGIN_DIR}/logging.c
   ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c
   )
 
@@ -105,11 +107,18 @@ if(GSOAP_FOUND)
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapClientLib.c       PROPERTIES GENERATED TRUE )
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapC.c       PROPERTIES GENERATED TRUE )
   set_source_files_properties( ${CMAKE_BINARY_DIR}/generated/soapPullPointSubscriptionBindingProxy.cpp     PROPERTIES GENERATED TRUE )
-  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES LANGUAGE CXX)
-  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES LANGUAGE C)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES LANGUAGE CXX)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/logging.c PROPERTIES LANGUAGE C)
   set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES LANGUAGE CXX)
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/smdevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/mecevp.c PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough -Wno-implicit-function-declaration")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsaapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/wsseapi.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/logging.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
+  set_source_files_properties( ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c PROPERTIES COMPILE_FLAGS "-Wno-deprecated")
 
   #Create a cmake target that generate gsoap files
   add_custom_command(
@@ -129,6 +138,7 @@ if(GSOAP_FOUND)
         DEPENDS ${GSOAP_PLUGIN_DIR}/mecevp.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/wsaapi.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/wsseapi.c
+        DEPENDS ${GSOAP_PLUGIN_DIR}/logging.c
         DEPENDS ${GSOAP_PLUGIN_DIR}/../custom/struct_timeval.c
   )
 
@@ -142,15 +152,20 @@ target_include_directories(zm
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../dep/booleval/include
+    ${ZM_INCLUDE_DIRS}
     )
 
-if(GSOAP_FOUND)
-target_include_directories(zm
-  PUBLIC
-    ${CMAKE_BINARY_DIR}/generated
-    ${GSOAP_PLUGIN_DIR}/..
-    ${GSOAP_INCLUDE_DIR})
+if(ZM_STRIP_NEON)
+  target_compile_definitions(zm PRIVATE ZM_STRIP_NEON=1)
+endif()
 
+if(GSOAP_FOUND)
+  target_compile_definitions(zm PUBLIC WITH_GSOAP)
+  target_include_directories(zm
+    PUBLIC
+      ${CMAKE_BINARY_DIR}/generated
+      ${GSOAP_PLUGIN_DIR}/..
+      ${GSOAP_INCLUDE_DIR})
 endif()
 
 target_link_libraries(zm
@@ -163,6 +178,7 @@ target_link_libraries(zm
     FFMPEG::swscale
     libbcrypt::bcrypt
     RtspServer::RtspServer
+    chmike::CxxUrl
     martinmoene::span-lite
     ${ZM_BIN_LIBS}
   PRIVATE
@@ -198,6 +214,7 @@ if(TARGET V4L2::videodev2)
 endif()
 
 add_executable(zmc zmc.cpp)
+add_executable(zma zma.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zmbenchmark zmbenchmark.cpp)
@@ -213,6 +230,14 @@ target_link_libraries(zmc
     zm
     ${ZM_EXTRA_LIBS}
     ${CMAKE_DL_LIBS})
+
+target_link_libraries(zma
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${CMAKE_DL_LIBS}
+    ${FILESYSTEM_LIBRARY})
 
 target_link_libraries(zms
   PRIVATE
@@ -242,7 +267,7 @@ if(BUILD_MAN)
   endforeach(CBINARY zmc zmu)
 endif()
 
-install(TARGETS zmc zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS zmc zma zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/nph-zms DESTINATION "${ZM_CGIDIR}")

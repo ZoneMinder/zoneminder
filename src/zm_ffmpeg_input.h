@@ -54,6 +54,7 @@ class FFmpeg_Input {
   AVFormatContext *input_format_context;
   av_frame_ptr frame;
   int64_t last_seek_request;
+  AVBufferRef *hw_device_ctx;
 };
 
 #endif

@@ -728,11 +728,6 @@ function MonitorStream(monitorData) {
   };
 
   this.stop = function() {
-    if (-1 !== this.activePlayer.indexOf('zms')) {
-      this.writeTextInfoBlock("Stopped", {showImg: false});
-    } else {
-      this.writeTextInfoBlock("Stopped");
-    }
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
@@ -746,6 +741,11 @@ function MonitorStream(monitorData) {
     } else if (!this.started) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
       return;
+    }
+    if (-1 !== this.activePlayer.indexOf('zms')) {
+      this.writeTextInfoBlock("Stopped", {showImg: false});
+    } else {
+      this.writeTextInfoBlock("Stopped");
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);

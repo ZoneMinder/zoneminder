@@ -1621,6 +1621,28 @@ video-stream[id^='liveStream'] video{
   border-radius: 4px;
 }
 
+.text-3d {
+  color: transparent;
+  text-shadow: -4px 4px hsla(0, 0%, 70%, .4),
+               -3px 3px hsla(0, 0%, 65%, .2),
+               -2px 2px hsla(0, 0%, 60%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 38%, .7),
+               3px -3px hsla(0, 0%, 37%, .8),
+               4px -4px hsla(0, 0%, 36%, .9),
+               5px -5px hsla(0, 0%, 35%, 1.0);
+}
+.text-3d-mini {
+  color: transparent;
+  text-shadow: -2px 2px hsla(0, 0%, 65%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 30%, .7);
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

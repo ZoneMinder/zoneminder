@@ -532,6 +532,8 @@ function streamPause() {
   setButtonState('slowFwdBtn', 'inactive');
   setButtonState('slowRevBtn', 'inactive');
   setButtonState('fastRevBtn', 'unavail');
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + eventData.MonitorId);
+  if (audioMotion && audioMotion.pause) audioMotion.pause();
 }
 
 function playClicked( ) {
@@ -1376,7 +1378,10 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', streamPlay);
+    vid.on('play', function(event) {
+      streamPlay();
+      connectAudioMotion(eventData.MonitorId);
+    });
     vid.on('pause', streamPause);
     vid.on('click', function(event) {
       handleClick(event);

@@ -167,6 +167,7 @@ function streamCmdPause(action) {
   if (action && monitorStream) {
     monitorStream.pause();
   }
+  if (monitorStream.audioMotion && monitorStream.audioMotion.pause) monitorStream.audioMotion.pause();
 }
 
 function onPlay() {
@@ -1366,6 +1367,8 @@ function changePlayer() {
   const player = $j('#player').val();
   setCookie('zmWatchPlayer', player);
   //setCookie('zmWatchPlayer'+monitorId, player);
+  if (monitorStream.audioMotion && monitorStream.audioMotion.destroy) monitorStream.audioMotion.destroy();
+
   monitorStream.destroyVolumeSlider();
   streamCmdStop(true); // takes care of button state and calls stream.kill()
   console.log('setting to ', $j('#player').val());
@@ -1382,6 +1385,11 @@ function changePlayer() {
     monitorStream.start();
     onPlay();
   }, 300);*/
+}
+
+function changeWhatDisplay () {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
 }
 
 // Kick everything off

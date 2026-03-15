@@ -392,8 +392,18 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
+                <audio-motion id="audioVisualization<?php echo $monitor->Id()?>" class="audio-visualization">
+                  <div id="audioControlPanel<?php echo $monitor->Id()?>" class="audio-control-panel">
+                    <div id="volumeControls<?php echo $monitor->Id()?>" class="disabled volume">
+                      <div id="volumeSlider<?php echo $monitor->Id()?>" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute<?php echo $monitor->Id()?>" class="audio-control-mute material-icons md-22"></i>
+                    </div>
+                  </div>
+                  <canvas></canvas>
+                </audio-motion>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="stream-info-status-track"></span>
                 </div>
                 <p id="dvrControls">
                   <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">

@@ -2795,6 +2795,39 @@ function monitorsSetScale(id=null) {
   setTextSizeOnInfoBlocks();
 } // End function monitorsSetScale
 
+function connectAudioMotion(mid) {
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const monitorStream = getMonitorStream(mid);
+  const defaultWhatDisplay = (typeof eventData !== 'undefined') ? eventData.whatDisplay : (monitorStream) ? monitorStream.whatDisplay : null;
+
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('audio'))) return;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) return;
+  }
+
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.init) {
+    audioMotion.init();
+  } else {
+    console.log(`connectToMediaStreamSource not possible. 'audio-motion'=`, $j(audioMotion));
+  }
+};
+
+function hideAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.hide) {
+    audioMotion.hide();
+  }
+};
+
+function destroyAudioMotion(mid) {
+  const audioMotion = document.querySelector('audio-motion#audioVisualization' + mid);
+  if (audioMotion && audioMotion.destroy) {
+    audioMotion.destroy();
+  }
+};
+
 /*IMPORTANT DO NOT CALL WITHOUT CONSCIOUS NEED!!!*/
 // https://habr.com/ru/companies/timeweb/articles/667148/
 async function getTracksFromStream(videoFeedStream) {
@@ -2845,7 +2878,7 @@ async function getTracksFromStream(videoFeedStream) {
       return;
     }
 
-    if (videoFeedStream.started) {
+    if (videoFeedStream.started === undefined || videoFeedStream.started) { // Event page || Watch/Montage
       // While we were waiting for Media Stream activity, the video stream may have stopped.
       videoFeedStream.audioTrack = stream.getAudioTracks()[0];
       videoFeedStream.videoTrack = stream.getVideoTracks()[0];
@@ -2872,7 +2905,7 @@ async function getTracksFromStream(videoFeedStream) {
 
   }
 
-  //connectAudioMotion(mid);
+  connectAudioMotion(mid);
 }
 
 const waitUntil = (condition, timeout = 0) => {

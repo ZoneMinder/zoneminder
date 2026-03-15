@@ -332,7 +332,24 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               echo htmlSelect('codec', $players, $player, array('data-on-change'=>'changePlayer','id'=>'player','class'=>'chosen'));
 ?>
         </span>
-
+        <span id="whatDisplayControl">
+          <label for="whatDisplay"><?php echo translate('What display') ?></label>
+<?php 
+            $whatDisplay = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'default'; // Default
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+            }
+            echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+        </span><!--#whatDisplayControl-->
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->

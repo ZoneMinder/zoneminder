@@ -240,11 +240,10 @@ function processRows(rows) {
         functionHtml += 'Analysing: ' + row.Analysing + '<br/>';
       }
       if (row.ONVIF_Event_Listener) {
-        functionHtml += ' Use ONVIF Events';
+        functionHtml += ' Use ONVIF Events<br/>';
       }
       if (row.Recording && row.Recording != 'None') {
         functionHtml += 'Recording: ' + row.Recording + '<br/>';
-        functionHtml += '<br/>';
       }
       functionHtml += '<br/><div class="small text-nowrap text-muted">';
 

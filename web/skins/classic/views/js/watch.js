@@ -1387,7 +1387,7 @@ function changePlayer() {
   }, 300);*/
 }
 
-function changeWhatDisplay () {
+function changeWhatDisplay() {
   setCookie('zmWhatDisplay', $j('#whatDisplay').val());
   location.reload();
 }

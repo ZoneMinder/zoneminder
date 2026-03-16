@@ -710,9 +710,9 @@ function MonitorStream(monitorData) {
       if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
         node = document.getElementById("audioVisualization" + this.id) || this.getElement();;
       } else {
-        node = this.getElement().parentNode;
+        node = this.getElement();
       }
-      node.appendChild(infoBlock);
+      node.parentNode.appendChild(infoBlock);
       currentImg = imgInfoBlock;
     }
     this.setSrcInfoBlock();

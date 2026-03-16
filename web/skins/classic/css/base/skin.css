@@ -1595,15 +1595,14 @@ audio-motion {
   width: 100%;
 }
 
-.imageFeed[data-not-display-video="true"], /* monitor */
+.imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */
 *[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
   width:10px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. */
   height: 10px !important;
   border: none !important;
   visibility: hidden !important;
   position: absolute !important;
-  left: -10000px !important;
-  top: -10000px !important;
+  overflow: hidden !important;
 }
 
 *[id^="videoFeedStream"][data-not-display-video="true"] .video-js{  /* event */

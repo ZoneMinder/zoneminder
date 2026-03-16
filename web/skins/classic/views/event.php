@@ -174,6 +174,15 @@ if (count($filter->terms())==1 and $filter->has_term('Id')) {
 $filterQuery = $filter->querystring();
 $connkey = generateConnKey();
 
+$whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+$dataNotDisplayVideo = 'false';
+
+if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+  if (false === (strpos(strtolower($monitor->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+} else {
+  if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+}
+
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 getBodyTopHTML();
 ?>
@@ -339,7 +348,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                       <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
                     </div>
                   </div>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {

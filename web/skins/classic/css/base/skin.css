@@ -1597,8 +1597,8 @@ audio-motion {
 
 .imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */
 *[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
-  width:10px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. */
-  height: 10px !important;
+  max-width:25px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. You can't set it below 21px, as we have an analysis of 20px as a starting point for playback. */
+  max-height: 25px !important;
   border: none !important;
   visibility: hidden !important;
   position: absolute !important;

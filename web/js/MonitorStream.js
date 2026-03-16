@@ -705,7 +705,14 @@ function MonitorStream(monitorData) {
       imgInfoBlock.style.height = '100%';
       imgInfoBlock.style.zIndex = 10000;
       imgInfoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(imgInfoBlock);
+      let node = null;
+      const _imageFeed = document.getElementById('imageFeed'+this.id);
+      if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
+        node = document.getElementById("audioVisualization" + this.id) || this.getElement();;
+      } else {
+        node = this.getElement().parentNode;
+      }
+      node.appendChild(infoBlock);
       currentImg = imgInfoBlock;
     }
     this.setSrcInfoBlock();

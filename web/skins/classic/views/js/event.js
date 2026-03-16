@@ -1944,5 +1944,10 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
+function changeWhatDisplay() {
+  setCookie('zmWhatDisplay', $j('#whatDisplay').val());
+  location.reload();
+}
+
 // Kick everything off
 $j( window ).on("load", initPage);

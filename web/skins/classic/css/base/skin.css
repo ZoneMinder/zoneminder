@@ -1589,6 +1589,45 @@ video-stream {
   padding:0;
 }
 
+/* +++ Audio-motion +++ */
+audio-motion {
+  display: block;
+  width: 100%;
+}
+
+.imageFeed[data-not-display-video="true"], /* monitor */
+*[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
+  width:10px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. */
+  height: 10px !important;
+  border: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  left: -10000px !important;
+  top: -10000px !important;
+}
+
+*[id^="videoFeedStream"][data-not-display-video="true"] .video-js{  /* event */
+  height: 55px !important;
+}
+
+*[id^="videoFeedStream"][data-not-display-video="true"] .vjs-control-bar { /* event */
+ opacity: 1 !important;
+}
+
+.montage-page .monitor { /* Experimental setting */
+  border: 1px solid;
+  border-radius: 4px;
+}
+
+.montage-page .monitor .imageFeed { /* Experimental setting */
+  margin: -1px -1px 0 -1px;
+}
+
+.audio-control-panel {
+  float: right;
+}
+/* --- Audio-motion --- */
+
 /*
 .stream-info-status, .stream-info-mode {
   background-color: rgba(0,0,0,0.3);

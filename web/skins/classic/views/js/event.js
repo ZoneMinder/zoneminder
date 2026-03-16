@@ -1733,7 +1733,10 @@ function initPage() {
         //const id = stringToNumber(this.id); //Montage & Watch page
         const id = eventData.MonitorId; // Event page
         //$j('#button_zoom' + id).stop(true, true).slideDown('fast');
-        $j('#button_zoom' + id).removeClass('hidden');
+        const _imageFeed = document.getElementById('videoFeedStream'+id);
+        if (!_imageFeed || (_imageFeed && _imageFeed.getAttribute('data-not-display-video') !== 'true')) {
+          $j('#button_zoom' + id).removeClass('hidden');
+        }
       },
       function() {
         //const id = stringToNumber(this.id); //Montage & Watch page

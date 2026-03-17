@@ -107,6 +107,11 @@ class VideoStore {
   int writePacket(const std::shared_ptr<ZMPacket> pkt);
   int write_packets(PacketQueue &queue);
   void flush_codecs();
+
+  // Rotate to a new output file without destroying encoder/decoder contexts.
+  // Drains reorder queues, writes trailer, closes old file, opens new file,
+  // writes header. Encoder state (hw accel, DPB, etc.) is preserved.
+  bool rotateFile(const char *new_filename);
   const char *get_codec() {
     if (chosen_codec_data)
       return chosen_codec_data->codec_codec;

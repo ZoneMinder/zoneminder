@@ -357,13 +357,6 @@ void Event::closeSegment() {
     seg_path = video_incomplete_path;
   }
 
-  // Remux segment to faststart — segments are small so this is cheap
-  if (result == 0) {
-    if (!remux_to_faststart(seg_path)) {
-      Warning("Event %" PRIu64 " segment %d: remux to faststart failed", id, segment_index);
-    }
-  }
-
   // Record segment metadata
   FPSeconds start_delta = segment_start_time - start_time;
   FPSeconds duration = end_time - segment_start_time;
@@ -384,6 +377,86 @@ void Event::closeSegment() {
   segment_index++;
   // Note: segment_start_time for the NEXT segment is set by the caller
   // (AddPacket_ sets it to the keyframe timestamp, destructor doesn't need it)
+}
+
+void Event::rotateSegment(SystemTimePoint new_segment_start) {
+  if (!videoStore) return;
+
+  // Build segment filename for the completed segment
+  std::string seg_file = stringtf("%" PRIu64 "-%s.%s-%03d.%s",
+      id, "video", codec.c_str(), segment_index, container.c_str());
+  std::string seg_path = path + "/" + seg_file;
+
+  // Rename the incomplete file to segment name BEFORE rotateFile opens
+  // a new file at the same incomplete path.
+  // rotateFile() closes the old muxer first (writes trailer, closes avio),
+  // then we rename, then it opens the new file.
+  //
+  // We split this: first just close the old muxer without opening a new one.
+  // Actually, rotateFile does both atomically. So rename first, then rotate
+  // to the (now-free) incomplete path.
+
+  // Step 1: Close old muxer — rotateFile writes trailer and closes avio,
+  // then opens new file. We need the old file renamed before the new file
+  // overwrites it. Use a temp name for the completed segment.
+  std::string tmp_seg_path = video_incomplete_path + ".done";
+  int result = rename(video_incomplete_path.c_str(), tmp_seg_path.c_str());
+  if (result != 0) {
+    Error("Failed renaming %s to %s: %s",
+          video_incomplete_path.c_str(), tmp_seg_path.c_str(), strerror(errno));
+    // Can't proceed safely — fall back to close/reopen
+    closeSegment();
+    segment_start_time = new_segment_start;
+    openSegment();
+    return;
+  }
+
+  // Step 2: rotateFile closes the muxer (which already wrote to the renamed file)
+  // and opens a new file at the incomplete path
+  if (!videoStore->rotateFile(video_incomplete_path.c_str())) {
+    Warning("Event %" PRIu64 " segment %d: rotateFile failed, falling back to close/reopen",
+            id, segment_index);
+    // Rename temp back and do full close/reopen
+    rename(tmp_seg_path.c_str(), video_incomplete_path.c_str());
+    closeSegment();
+    segment_start_time = new_segment_start;
+    openSegment();
+    return;
+  }
+
+  // Step 3: Rename temp to final segment name
+  result = rename(tmp_seg_path.c_str(), seg_path.c_str());
+  if (result != 0) {
+    Error("Failed renaming %s to %s: %s",
+          tmp_seg_path.c_str(), seg_path.c_str(), strerror(errno));
+    seg_file = video_incomplete_file + ".done";
+    seg_path = tmp_seg_path;
+  }
+
+  // No remux here — it blocks the event thread, stalling packet consumption,
+  // which blocks the capture thread, causing heartbeat timeout.
+  // Small segments served via HLS don't need faststart since the player knows
+  // duration from the m3u8 manifest and plays each segment start-to-finish.
+
+  // Record segment metadata
+  FPSeconds start_delta = segment_start_time - start_time;
+  FPSeconds duration = new_segment_start - segment_start_time;
+
+  struct stat st = {};
+  if (stat(seg_path.c_str(), &st) != 0) {
+    Warning("Can't stat segment %s: %s", seg_path.c_str(), strerror(errno));
+  }
+
+  video_segments.push_back({
+    segment_index,
+    seg_file,
+    start_delta.count(),
+    duration.count(),
+    st.st_size
+  });
+
+  segment_index++;
+  segment_start_time = new_segment_start;
 }
 
 Event::~Event() {
@@ -706,11 +779,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
         if (seg_dur.count() >= kTargetSegmentDuration) {
           Debug(1, "Segment %d duration %.2fs >= %.1fs, rotating",
                 segment_index, seg_dur.count(), kTargetSegmentDuration);
-          closeSegment();
-          segment_start_time = packet->timestamp;
-          if (!openSegment()) {
-            Warning("Failed to open new video segment %d", segment_index);
-          }
+          rotateSegment(packet->timestamp);
         }
       }
       if (videoStore) {

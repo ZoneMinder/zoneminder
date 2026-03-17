@@ -316,6 +316,8 @@ Monitor::Monitor() :
     event_close_mode = CLOSE_ALARM;
   } else if (strcmp(config.event_close_mode, "idle") == 0) {
     event_close_mode = CLOSE_IDLE;
+  } else if (strcmp(config.event_close_mode, "duration") == 0) {
+    event_close_mode = CLOSE_DURATION;
   } else {
     Warning("Unknown value for event_close_mode: %s", config.event_close_mode);
   }
@@ -646,6 +648,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
         event_close_mode = CLOSE_ALARM;
       } else if (strcmp(config.event_close_mode, "idle") == 0) {
         event_close_mode = CLOSE_IDLE;
+      } else if (strcmp(config.event_close_mode, "duration") == 0) {
+        event_close_mode = CLOSE_DURATION;
       } else {
         Warning("Unknown value for event_close_mode %s",
                 config.event_close_mode);
@@ -2474,7 +2478,6 @@ int Monitor::Analyse() {
                 Debug(1, "CLOSE_MODE Idle");
                 if (state == IDLE) {
                   if (event->Duration() >= section_length) {
-                    //std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                          name.c_str(),
                          packet->image_index,
@@ -2486,6 +2489,17 @@ int Monitor::Analyse() {
                     closeEvent();
                   }
                 }  // end if IDLE
+              } else if (event_close_mode == CLOSE_DURATION) {
+                Debug(1, "CLOSE_MODE Duration");
+                if (event->Duration() >= section_length) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", duration reached %" PRIi64 " >= %" PRIi64,
+                       name.c_str(),
+                       packet->image_index,
+                       event->Id(),
+                       static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                       static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                }
               } else {
                 Warning("CLOSE_MODE Unknown");
               }  // end if event_close_mode

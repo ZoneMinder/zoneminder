@@ -84,12 +84,14 @@ function MonitorStream(monitorData) {
   this.img_onerror = function() {
     console.log('Image stream has been stopped! stopping streamCmd');
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.writeTextInfoBlock("Error", {showImg: false});
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for monitor ID='+this.id+' connKey='+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdQuery(); // This is to get an instant status update
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.writeTextInfoBlock("");
     }
   };
 
@@ -405,18 +407,21 @@ function MonitorStream(monitorData) {
     }
     this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'play',
         (e) => {
+          this.writeTextInfoBlock("");
           this.createVolumeSlider();
-          getTracksFromStream(this); //Go2rtc
+          getTracksFromStream(this);
         }
     );
     this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
         (e) => {
+          this.writeTextInfoBlock("Paused", {showImg: false});
           manageEventListener.removeEventListener(this.handlerEventListener['volumechange']);
         }
     );
   };
 
   this.start = function(streamChannel = 'default') {
+    this.writeTextInfoBlock("Loading...");
     if (streamChannel === null || streamChannel === '' || currentView == 'montage') streamChannel = 'default';
     // Normalize channel name for internal tracking
     if (streamChannel == 'default') {
@@ -587,12 +592,17 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
-    if (this.activePlayer == 'zms') {
-      // Only if we were already zms streaming
+    // Check if the auth hash in the current img src is still valid.
+    // On long-running pages the hash from page load may have expired.
+    const srcAuthMatch = stream.src ? stream.src.match(/auth=(\w+)/i) : null;
+    const srcAuthCurrent = srcAuthMatch && srcAuthMatch[1] === auth_hash;
+
+    if (srcAuthCurrent && this.activePlayer == 'zms') {
+      // Auth is current and zms was already the active player — just resume
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
-    } else if (-1 != stream.src.indexOf('mode=paused')) {
-      // Initial page load has zms with mode=paused
+    } else if (srcAuthCurrent && (-1 != stream.src.indexOf('mode=paused'))) {
+      // Initial page load has zms with mode=paused, auth is still valid
       this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       this.streamCommand(CMD_PLAY);
     } else {
@@ -634,6 +644,98 @@ function MonitorStream(monitorData) {
     this.updateStreamInfo('ZMS MJPEG');
   }; // this.start
 
+  this.setSrcInfoBlock = function() {
+    const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
+    if (!imgInfoBlock) return null;
+
+    let src = this.url_to_zms.replace(/mode=jpeg/i, 'mode=single');
+    if (-1 == src.search('auth')) {
+      src += '&'+auth_relay;
+    } else {
+      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    }
+    if (-1 == src.search('scale=')) {
+      src += '&scale='+this.scale;
+    }
+    if (-1 == src.search('mode=')) {
+      src += '&mode=single';
+    }
+    imgInfoBlock.src = '';
+    imgInfoBlock.src = src;
+    return imgInfoBlock;
+  };
+
+  this.writeTextInfoBlock = function(text, params = {}) {
+    const infoBlock = document.getElementById('stream-info-block' + this.id) || this.createInfoBlock();
+    if (infoBlock) {
+      if (params.color) infoBlock.style.color = params.color;
+      const normalizedText = (text == null) ? '' : text;
+      infoBlock.textContent = normalizedText;
+      if (normalizedText === "") {
+        infoBlock.style.zIndex = 0;
+        this.hideImgForInfoBlock();
+      } else {
+        setTextSizeOnInfoBlock(infoBlock);
+        infoBlock.style.zIndex = 10001;
+        if (params.showImg === false) {
+          this.hideImgForInfoBlock();
+        } else {
+          this.createImgForInfoBlock();
+          this.showImgForInfoBlock();
+        }
+      }
+    }
+  };
+
+  this.hideImgForInfoBlock = function() {
+    const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
+    if (imgInfoBlock) imgInfoBlock.classList.add('hidden-shift');
+  };
+
+  this.showImgForInfoBlock = function() {
+    const imgInfoBlock = document.getElementById('img-stream-info-block' + this.id);
+    if (imgInfoBlock) imgInfoBlock.classList.remove('hidden-shift');
+  };
+
+  this.createImgForInfoBlock = function() {
+    let currentImg = document.getElementById('img-stream-info-block' + this.id);
+    if (!currentImg) {
+      const imgInfoBlock = document.createElement('img');
+      imgInfoBlock.classList.add('img-stream-info-block');
+      imgInfoBlock.id = 'img-stream-info-block' + this.id;
+      imgInfoBlock.style.position = 'absolute';
+      imgInfoBlock.style.top = 0;
+      imgInfoBlock.style.left = 0;
+      imgInfoBlock.style.width = '100%';
+      imgInfoBlock.style.height = '100%';
+      imgInfoBlock.style.zIndex = 10000;
+      imgInfoBlock.style.pointerEvents = 'none';
+      this.getElement().parentNode.appendChild(imgInfoBlock);
+      currentImg = imgInfoBlock;
+    }
+    this.setSrcInfoBlock();
+    return currentImg;
+  };
+
+  this.createInfoBlock = function() {
+    let currentInfoBlock = document.getElementById('stream-info-block' + this.id);
+    if (!currentInfoBlock) {
+      const infoBlock = document.createElement('div');
+      infoBlock.classList.add('stream-info-block');
+      infoBlock.id = 'stream-info-block' + this.id;
+      infoBlock.style.position = 'absolute';
+      infoBlock.style.width = '100%';
+      infoBlock.style.height = 'auto';
+      infoBlock.style.top = '50%';
+      infoBlock.style.left = '50%';
+      infoBlock.style.transform = 'translate(-50%, -50%)';
+      infoBlock.style.pointerEvents = 'none';
+      this.getElement().parentNode.appendChild(infoBlock);
+      currentInfoBlock = infoBlock;
+    }
+    return currentInfoBlock;
+  };
+
   this.stop = function() {
     manageEventListener.removeEventListener(this.handlerEventListener['killStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['playStream']);
@@ -648,6 +750,11 @@ function MonitorStream(monitorData) {
     } else if (!this.started) {
       console.warn(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} has already stopped.`);
       return;
+    }
+    if (-1 !== this.activePlayer.indexOf('zms')) {
+      this.writeTextInfoBlock("Stopped", {showImg: false});
+    } else {
+      this.writeTextInfoBlock("Stopped");
     }
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
@@ -1631,6 +1738,13 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
 
     this.streamCmdReq = function(streamCmdParms) {
+      if (-1 !== this.activePlayer.indexOf('zms')) {
+        if (streamCmdParms.command == CMD_PAUSE) {
+          this.writeTextInfoBlock("Paused", {showImg: false});
+        } else if (streamCmdParms.command == CMD_PLAY) {
+          this.writeTextInfoBlock("");
+        }
+      }
       if (!(streamCmdParms.command == CMD_STOP && ((-1 !== this.activePlayer.indexOf('go2rtc')) || (-1 !== this.activePlayer.indexOf('rtsp2web'))))) {
         //Otherwise, there will be errors in the console "Socket ... does not exist" when quickly switching stop->start and we also do not need to replace SRC in getStreamCmdResponse
         this.ajaxQueue = jQuery.ajaxQueue({

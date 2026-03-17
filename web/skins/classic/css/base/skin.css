@@ -1621,6 +1621,28 @@ video-stream[id^='liveStream'] video{
   border-radius: 4px;
 }
 
+.text-3d {
+  color: transparent;
+  text-shadow: -4px 4px hsla(0, 0%, 70%, .4),
+               -3px 3px hsla(0, 0%, 65%, .2),
+               -2px 2px hsla(0, 0%, 60%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 38%, .7),
+               3px -3px hsla(0, 0%, 37%, .8),
+               4px -4px hsla(0, 0%, 36%, .9),
+               5px -5px hsla(0, 0%, 35%, 1.0);
+}
+.text-3d-mini {
+  color: transparent;
+  text-shadow: -2px 2px hsla(0, 0%, 65%, .2),
+               -1px 1px hsla(0, 0%, 55%, .2),
+               0px 0px hsla(0, 0%, 50%, .5),
+               1px -1px hsla(0, 0%, 40%, .6),
+               2px -2px hsla(0, 0%, 30%, .7);
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;
@@ -1632,6 +1654,25 @@ video-stream[id^='liveStream'] video{
 
 .invisible {
     visibility: hidden;
+}
+
+/* Button style: icons only — hide text labels */
+.btn-icons-only button .text,
+.btn-icons-only .btn .text {
+  display: none;
+}
+
+/* Button style: text only — hide icons on buttons that have a text label */
+.btn-text-only button:has(.text) > i.material-icons,
+.btn-text-only button:has(.text) > i.fa,
+.btn-text-only .btn:has(.text) > i.material-icons,
+.btn-text-only .btn:has(.text) > i.fa {
+  display: none;
+}
+/* Hide Back and Refresh nav buttons when config disables them */
+.hide-nav-buttons #backBtn,
+.hide-nav-buttons #refreshBtn {
+  display: none;
 }
 /* --- This block should always be located at the end! */
 video-stream {

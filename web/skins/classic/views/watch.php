@@ -507,9 +507,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
-              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AlarmBrFrames')) ?>"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('AvgBrScore')) ?>"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore" data-switchable-label="<?php echo str_replace('<br/>', ' ', translate('MaxBrScore')) ?>"><?php echo translate('MaxBrScore') ?></th>
 <?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php } ?>

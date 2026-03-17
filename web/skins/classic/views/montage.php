@@ -262,24 +262,6 @@ echo getNavBarHTML();
     $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
-      <div id="headerButtons">
-<?php
-if ($showControl) {
-  echo makeLink('?view=control', translate('Control'));
-}
-if (canView('System')) {
-  if ($showZones) {
-  ?>
-    <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
-  <?php
-  } else {
-  ?>
-    <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
-  <?php
-  }
-}
-?>
-      </div>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
         <input type="hidden" name="view" value="montage"/>
         <?php echo $filterbar ?>
@@ -338,6 +320,18 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
           <i class="material-icons md-18">fullscreen</i>
           </button>
+<?php
+if ($showControl) {
+  echo makeLink('?view=control', translate('Control'));
+}
+if (canView('System')) {
+  if ($showZones) {
+    echo '<a id="HideZones" href="?view=montage&amp;showZones=0">'.translate('Hide Zones').'</a>';
+  } else {
+    echo '<a id="ShowZones" href="?view=montage&amp;showZones=1">'.translate('Show Zones').'</a>';
+  }
+}
+?>
         </form>
       </div>
     </div><!--header-->

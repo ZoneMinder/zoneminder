@@ -41,10 +41,11 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
         <label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
         <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
 <?php
-if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME) {
+if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
+  $checked = (ZM_OPT_USE_REMEMBER_ME == 'Yes') ? ' checked="checked"' : '';
 ?>
         <div class="form-check remember_me">
-          <input type="checkbox" class="form-check-input" id="inputRememberMe" name="remember_me" value="1"/>
+          <input type="checkbox" class="form-check-input" id="inputRememberMe" name="remember_me" value="1"<?php echo $checked ?>/>
           <label class="form-check-label" for="inputRememberMe"><?php echo translate('RememberMe') ?></label>
         </div>
 <?php

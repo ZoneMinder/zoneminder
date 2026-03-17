@@ -504,7 +504,13 @@ function userFromSession() {
 function get_auth_relay() {
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
-      return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      $relay = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      // Include username so zms can filter by indexed Username column
+      // instead of iterating all users to validate the auth hash
+      if (!empty($_SESSION['username'])) {
+        $relay .= '&user='.$_SESSION['username'];
+      }
+      return $relay;
     } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
       return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');

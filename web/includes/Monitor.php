@@ -558,8 +558,9 @@ class Monitor extends ZM_Object {
     if (ZM_OPT_USE_AUTH) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-        # Include user so that db lookups can be more efficient
-        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';

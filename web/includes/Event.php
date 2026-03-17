@@ -295,6 +295,9 @@ class Event extends ZM_Object {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
@@ -418,6 +421,9 @@ class Event extends ZM_Object {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        // Include username so zms can filter by indexed Username column
+        // instead of iterating all users to validate the auth hash
+        if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];

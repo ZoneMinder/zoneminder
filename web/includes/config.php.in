@@ -305,7 +305,7 @@ function process_configfile($configFile) {
   if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or error_log('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
-      $str = fgets($cfg, 256);
+      $str = fgets($cfg, 512);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
       } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches) ) {

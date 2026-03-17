@@ -274,7 +274,9 @@ class Event extends ZM_Object {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
-      if ($args['mode'] == 'hls' || ($args['mode'] == 'mp4' && $this->hasVideoSegments())) {
+      // Segmented events have DefaultVideo set to an m3u8 manifest.
+      // Use the dynamic HLS view which adds auth tokens to segment URLs.
+      if (str_ends_with($this->{'DefaultVideo'}, '.m3u8') || $args['mode'] == 'hls') {
         $args['view'] = 'view_event_hls';
       } else {
         $args['view'] = 'view_video';

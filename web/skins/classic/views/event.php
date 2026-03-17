@@ -325,8 +325,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  $has_segments = $Event->hasVideoSegments();
-  if ($has_segments) {
+  if (str_ends_with($Event->DefaultVideo(), '.m3u8')) {
     $videoSrc = $Event->getStreamSrc(array('mode'=>'hls'), '&amp;');
     $sourceType = 'application/x-mpegURL';
   } else {

@@ -477,10 +477,11 @@ Event::~Event() {
     closeSegment();
   }
 
-  // Write segment records to DB and set DefaultVideo to first segment
+  // Write segment records to DB and generate static m3u8 manifest.
+  // DefaultVideo is set to the m3u8 so that existing code (frame extraction
+  // via ffmpeg -ss, file_exists, download) works — ffmpeg can read m3u8
+  // as input and handles cross-segment seeking internally.
   if (!video_segments.empty()) {
-    video_file = video_segments[0].filename;
-    video_path = path + "/" + video_file;
     for (const auto &seg : video_segments) {
       std::string sql = stringtf(
           "INSERT INTO Event_Video_Segments (EventId, SegmentIndex, Filename, StartDelta, Duration, Bytes)"
@@ -488,6 +489,38 @@ Event::~Event() {
           id, seg.index, zmDbEscapeString(seg.filename).c_str(),
           seg.start_delta, seg.duration, static_cast<intmax_t>(seg.bytes));
       dbQueue.push(std::move(sql));
+    }
+
+    // Write static m3u8 with relative paths to segment files
+    video_file = stringtf("%" PRIu64 ".m3u8", id);
+    video_path = path + "/" + video_file;
+
+    double max_duration = 0;
+    for (const auto &seg : video_segments) {
+      if (seg.duration > max_duration) max_duration = seg.duration;
+    }
+    int target_duration = static_cast<int>(max_duration) + 1;
+    if (target_duration < 1) target_duration = 10;
+
+    FILE *m3u8 = fopen(video_path.c_str(), "w");
+    if (m3u8) {
+      fprintf(m3u8, "#EXTM3U\n");
+      fprintf(m3u8, "#EXT-X-VERSION:3\n");
+      fprintf(m3u8, "#EXT-X-TARGETDURATION:%d\n", target_duration);
+      fprintf(m3u8, "#EXT-X-MEDIA-SEQUENCE:0\n");
+      fprintf(m3u8, "#EXT-X-PLAYLIST-TYPE:VOD\n");
+      for (const auto &seg : video_segments) {
+        fprintf(m3u8, "#EXTINF:%.3f,\n", seg.duration);
+        fprintf(m3u8, "%s\n", seg.filename.c_str());
+      }
+      fprintf(m3u8, "#EXT-X-ENDLIST\n");
+      fclose(m3u8);
+      Debug(1, "Wrote m3u8 manifest %s with %zu segments", video_path.c_str(), video_segments.size());
+    } else {
+      Warning("Failed to write m3u8 manifest %s: %s", video_path.c_str(), strerror(errno));
+      // Fall back to first segment
+      video_file = video_segments[0].filename;
+      video_path = path + "/" + video_file;
     }
   }
 

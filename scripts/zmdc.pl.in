@@ -659,6 +659,10 @@ sub restart {
     return;
   }
 
+  # Reset backoff delay on explicit restart so the process restarts immediately
+  # rather than inheriting accumulated delay from prior crashes
+  $process->{delay} = 0;
+
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {
@@ -888,8 +892,6 @@ sub status {
 
 sub killAll {
   my $delay = shift;
-  # Why sleep before sending term?
-  #sleep( $delay );
   my $killall;
   if ( '@HOST_OS@' eq 'BSD' ) {
     $killall = 'killall -q -';
@@ -898,16 +900,20 @@ sub killAll {
   } else {
     $killall = 'killall -q -s ';
   }
+  my $found = 0;
   foreach my $daemon ( @daemons ) {
     my $cmd = $killall ."TERM $daemon";
     Debug($cmd);
     qx($cmd);
+    $found = 1 if $? == 0;
   }
-  sleep($delay);
-  foreach my $daemon ( @daemons ) {
-    my $cmd = $killall."KILL $daemon";
-    Debug($cmd);
-    qx($cmd);
+  if ( $found ) {
+    sleep($delay);
+    foreach my $daemon ( @daemons ) {
+      my $cmd = $killall."KILL $daemon";
+      Debug($cmd);
+      qx($cmd);
+    }
   }
 }
 1;

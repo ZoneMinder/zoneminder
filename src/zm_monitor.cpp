@@ -651,8 +651,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
       } else if (strcmp(config.event_close_mode, "duration") == 0) {
         event_close_mode = CLOSE_DURATION;
       } else {
-        Warning("Unknown value for event_close_mode %s",
-                config.event_close_mode);
+        Warning("Unknown value for event_close_mode %s", config.event_close_mode);
         event_close_mode = CLOSE_IDLE;
       }
       break;
@@ -662,8 +661,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones = true, Purpose p = QUERY) {
     case CLOSE_DURATION:
       break;
     default:
-      Warning("Unknown value for event_close_mode %d, defaulting to idle",
-              event_close_mode);
+      Warning("Unknown value for event_close_mode %d, defaulting to idle", event_close_mode);
       event_close_mode = CLOSE_IDLE;
   }
 

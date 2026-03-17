@@ -184,29 +184,29 @@ static const uint32_t prefered_rgb32_formats[] = {
   V4L2_PIX_FMT_RGB32,
   V4L2_PIX_FMT_BGR24,
   V4L2_PIX_FMT_RGB24,
+  V4L2_PIX_FMT_MJPEG,     // Prefer MJPEG over raw YUV to minimize USB bandwidth
+  V4L2_PIX_FMT_JPEG,
   V4L2_PIX_FMT_YUYV,
   V4L2_PIX_FMT_UYVY,
-  V4L2_PIX_FMT_JPEG,
-  V4L2_PIX_FMT_MJPEG,
   V4L2_PIX_FMT_YUV422P,
   V4L2_PIX_FMT_YUV420
 };
 static const uint32_t prefered_rgb24_formats[] = {
   V4L2_PIX_FMT_BGR24,
   V4L2_PIX_FMT_RGB24,
+  V4L2_PIX_FMT_MJPEG,     // Prefer MJPEG over raw YUV to minimize USB bandwidth
+  V4L2_PIX_FMT_JPEG,
   V4L2_PIX_FMT_YUYV,
   V4L2_PIX_FMT_UYVY,
-  V4L2_PIX_FMT_JPEG,
-  V4L2_PIX_FMT_MJPEG,
   V4L2_PIX_FMT_YUV422P,
   V4L2_PIX_FMT_YUV420
 };
 static const uint32_t prefered_gray8_formats[] = {
   V4L2_PIX_FMT_GREY,
+  V4L2_PIX_FMT_MJPEG,     // Prefer MJPEG over raw YUV to minimize USB bandwidth
+  V4L2_PIX_FMT_JPEG,
   V4L2_PIX_FMT_YUYV,
   V4L2_PIX_FMT_UYVY,
-  V4L2_PIX_FMT_JPEG,
-  V4L2_PIX_FMT_MJPEG,
   V4L2_PIX_FMT_YUV422P,
   V4L2_PIX_FMT_YUV420
 };

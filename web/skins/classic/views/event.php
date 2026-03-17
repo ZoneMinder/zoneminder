@@ -325,13 +325,21 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
+  $has_segments = $Event->hasVideoSegments();
+  if ($has_segments) {
+    $videoSrc = $Event->getStreamSrc(array('mode'=>'hls'), '&amp;');
+    $sourceType = 'application/x-mpegURL';
+  } else {
+    $videoSrc = $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'), '&amp;');
+    $sourceType = 'video/mp4';
+  }
 ?>
                   <video id="videoobj" class="video-js"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
                   >
-                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mp4','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+                  <source src="<?php echo $videoSrc; ?>" type="<?php echo $sourceType; ?>">
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>

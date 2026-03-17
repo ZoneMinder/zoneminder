@@ -69,6 +69,8 @@ Event::Event(
   hw_device_ctx(nullptr),
   //video_file(""),
   //video_path(""),
+  segment_index(0),
+  segment_start_time(p_start_time),
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
@@ -304,6 +306,86 @@ int Event::OpenJpegCodec(AVFrame *frame) {
   return 0;
 }
 
+bool Event::openSegment() {
+  video_incomplete_path = path + "/" + video_incomplete_file;
+
+  AVCodecContext *video_ctx = monitor->GetVideoCodecContext();
+  videoStore = new VideoStore(
+      video_incomplete_path.c_str(),
+      container.c_str(),
+      monitor->GetVideoStream(),
+      video_ctx,
+      (monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr),
+      (monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr),
+      monitor);
+
+  if (!videoStore->open()) {
+    delete videoStore;
+    videoStore = nullptr;
+    return false;
+  }
+
+  if (segment_index == 0) {
+    const AVCodec *encoder = videoStore->get_video_encoder();
+    if (encoder) {
+      noteSetMap["encoder"].insert(encoder->name);
+    }
+    codec = videoStore->get_codec();
+  }
+
+  Debug(1, "Opened video segment %d for event %" PRIu64, segment_index, id);
+  return true;
+}
+
+void Event::closeSegment() {
+  if (!videoStore) return;
+
+  Debug(1, "Closing video segment %d for event %" PRIu64, segment_index, id);
+  delete videoStore;
+  videoStore = nullptr;
+
+  // Build the segment filename
+  std::string seg_file = stringtf("%" PRIu64 "-%s.%s-%03d.%s",
+      id, "video", codec.c_str(), segment_index, container.c_str());
+  std::string seg_path = path + "/" + seg_file;
+
+  int result = rename(video_incomplete_path.c_str(), seg_path.c_str());
+  if (result != 0) {
+    Error("Failed renaming %s to %s: %s",
+          video_incomplete_path.c_str(), seg_path.c_str(), strerror(errno));
+    seg_file = video_incomplete_file;
+    seg_path = video_incomplete_path;
+  }
+
+  // Remux segment to faststart — segments are small so this is cheap
+  if (result == 0) {
+    if (!remux_to_faststart(seg_path)) {
+      Warning("Event %" PRIu64 " segment %d: remux to faststart failed", id, segment_index);
+    }
+  }
+
+  // Record segment metadata
+  FPSeconds start_delta = segment_start_time - start_time;
+  FPSeconds duration = end_time - segment_start_time;
+
+  struct stat st = {};
+  if (stat(seg_path.c_str(), &st) != 0) {
+    Warning("Can't stat segment %s: %s", seg_path.c_str(), strerror(errno));
+  }
+
+  video_segments.push_back({
+    segment_index,
+    seg_file,
+    start_delta.count(),
+    duration.count(),
+    st.st_size
+  });
+
+  segment_index++;
+  // Note: segment_start_time for the NEXT segment is set by the caller
+  // (AddPacket_ sets it to the keyframe timestamp, destructor doesn't need it)
+}
+
 Event::~Event() {
   Debug(1, "~Event %" PRIu64 ": calling Stop", id);
   Stop();
@@ -319,14 +401,20 @@ Event::~Event() {
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
   if (videoStore != nullptr) {
-    Debug(1, "~Event %" PRIu64 ": deleting video store", id);
-    delete videoStore;
-    videoStore = nullptr;
-    int result = rename(video_incomplete_path.c_str(), video_path.c_str());
-    if (result != 0) {
-      Error("Failed renaming %s to %s, reason: %s", video_incomplete_path.c_str(), video_path.c_str(), strerror(errno));
-      // So that we don't update the event record
-      video_file = video_incomplete_file;
+    closeSegment();
+  }
+
+  // Write segment records to DB and set DefaultVideo to first segment
+  if (!video_segments.empty()) {
+    video_file = video_segments[0].filename;
+    video_path = path + "/" + video_file;
+    for (const auto &seg : video_segments) {
+      std::string sql = stringtf(
+          "INSERT INTO Event_Video_Segments (EventId, SegmentIndex, Filename, StartDelta, Duration, Bytes)"
+          " VALUES (%" PRIu64 ", %d, '%s', %.3f, %.3f, %jd)",
+          id, seg.index, zmDbEscapeString(seg.filename).c_str(),
+          seg.start_delta, seg.duration, static_cast<intmax_t>(seg.bytes));
+      dbQueue.push(std::move(sql));
     }
   }
 
@@ -612,7 +700,22 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
 
   if (videoStore) {
     if (have_video_keyframe) {
-      videoStore->writePacket(packet);
+      // Rotate to a new segment at keyframe boundaries when target duration exceeded
+      if (packet->codec_type == AVMEDIA_TYPE_VIDEO && packet->keyframe) {
+        FPSeconds seg_dur = packet->timestamp - segment_start_time;
+        if (seg_dur.count() >= kTargetSegmentDuration) {
+          Debug(1, "Segment %d duration %.2fs >= %.1fs, rotating",
+                segment_index, seg_dur.count(), kTargetSegmentDuration);
+          closeSegment();
+          segment_start_time = packet->timestamp;
+          if (!openSegment()) {
+            Warning("Failed to open new video segment %d", segment_index);
+          }
+        }
+      }
+      if (videoStore) {
+        videoStore->writePacket(packet);
+      }
     } else {
       Debug(2, "No video keyframe yet, not writing");
     }
@@ -1009,36 +1112,12 @@ void Event::Run() {
   video_incomplete_path = path + "/" + video_incomplete_file;
 
   if (monitor->GetOptVideoWriter() != 0) {
-    AVCodecContext *video_ctx = monitor->GetVideoCodecContext();
-
-    /* Save as video */
-    videoStore = new VideoStore(
-      video_incomplete_path.c_str(),
-      container.c_str(),
-      monitor->GetVideoStream(),
-      video_ctx,
-      ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
-      ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
-      monitor );
-
-    if (!videoStore->open()) {
-      Warning("Failed to open videostore, turning on jpegs");
-      delete videoStore;
-      videoStore = nullptr;
+    if (!openSegment()) {
+      Warning("Failed to open initial video segment, turning on jpegs");
       if (!(save_jpegs & 1)) {
         save_jpegs |= 1; // Turn on jpeg storage
         zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d, DefaultVideo='' WHERE Id=%" PRIu64, save_jpegs, id));
       }
-    } else {
-      const AVCodec *encoder = videoStore->get_video_encoder();
-      if (encoder) {
-        noteSetMap["encoder"].insert(encoder->name);
-      }
-
-      std::string codec = videoStore->get_codec();
-      video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
-      video_path = path + "/" + video_file;
-      Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
 

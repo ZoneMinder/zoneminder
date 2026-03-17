@@ -113,7 +113,14 @@ function downloadEvents(
         $maxTimeSecs = $event->EndDateTimeSecs();
         $maxTime = $event->EndDateTime();
       }
-      $eventFileList .= 'file \''.$event->Path().'/'.$event->DefaultVideo().'\''.PHP_EOL;
+      // Use individual segments if available, otherwise fall back to single file
+      if ($event->hasVideoSegments()) {
+        foreach ($event->VideoSegments() as $seg) {
+          $eventFileList .= 'file \''.$event->Path().'/'.$seg['Filename'].'\''.PHP_EOL;
+        }
+      } else {
+        $eventFileList .= 'file \''.$event->Path().'/'.$event->DefaultVideo().'\''.PHP_EOL;
+      }
     }
 
     $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';

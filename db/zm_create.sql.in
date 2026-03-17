@@ -279,6 +279,20 @@ CREATE TABLE `Events_Archived` (
   KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+DROP TABLE IF EXISTS `Event_Video_Segments`;
+CREATE TABLE `Event_Video_Segments` (
+  `Id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `EventId` bigint unsigned NOT NULL,
+  `SegmentIndex` int unsigned NOT NULL DEFAULT 0,
+  `Filename` varchar(128) NOT NULL DEFAULT '',
+  `StartDelta` decimal(10,3) NOT NULL DEFAULT 0.000,
+  `Duration` decimal(10,3) NOT NULL DEFAULT 0.000,
+  `Bytes` bigint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`Id`),
+  KEY `Event_Video_Segments_EventId_idx` (`EventId`, `SegmentIndex`),
+  CONSTRAINT `Event_Video_Segments_ibfk_1` FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 DROP TABLE IF EXISTS `Event_Data`;
 CREATE TABLE `Event_Data` (
   `Id`      BIGINT unsigned NOT NULL auto_increment,

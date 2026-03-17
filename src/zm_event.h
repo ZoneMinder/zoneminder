@@ -37,6 +37,7 @@
 #include <queue>
 #include <set>
 #include <thread>
+#include <vector>
 
 extern "C" {
   #include <libswscale/swscale.h>
@@ -114,6 +115,23 @@ class Event {
   std::string video_path;
   std::string video_incomplete_file;
   std::string video_incomplete_path;
+
+  // Video segment support
+  struct VideoSegment {
+    int index;
+    std::string filename;
+    double start_delta;  // seconds from event start
+    double duration;     // seconds
+    off_t bytes;
+  };
+  std::vector<VideoSegment> video_segments;
+  int segment_index;
+  SystemTimePoint segment_start_time;
+
+  static constexpr double kTargetSegmentDuration = 10.0;  // seconds
+
+  bool openSegment();
+  void closeSegment();
 
   int        last_db_frame;
   bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.

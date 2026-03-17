@@ -1645,3 +1645,149 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
+
+bool remux_to_faststart(const std::string &filepath) {
+  AVFormatContext *ifmt_ctx = nullptr;
+  AVFormatContext *ofmt_ctx = nullptr;
+  int ret;
+
+  std::string tmp_path = filepath + ".remux";
+
+  ret = avformat_open_input(&ifmt_ctx, filepath.c_str(), nullptr, nullptr);
+  if (ret < 0) {
+    Error("remux_to_faststart: failed to open input %s: %s",
+          filepath.c_str(), av_err2str(ret));
+    return false;
+  }
+
+  ret = avformat_find_stream_info(ifmt_ctx, nullptr);
+  if (ret < 0) {
+    Error("remux_to_faststart: failed to find stream info: %s", av_err2str(ret));
+    avformat_close_input(&ifmt_ctx);
+    return false;
+  }
+
+  ret = avformat_alloc_output_context2(&ofmt_ctx, nullptr, nullptr, tmp_path.c_str());
+  if (ret < 0 || !ofmt_ctx) {
+    Error("remux_to_faststart: failed to allocate output context: %s", av_err2str(ret));
+    avformat_close_input(&ifmt_ctx);
+    return false;
+  }
+
+  // Map all streams from input to output
+  int *stream_mapping = new int[ifmt_ctx->nb_streams];
+  int out_stream_idx = 0;
+  for (unsigned int i = 0; i < ifmt_ctx->nb_streams; i++) {
+    AVCodecParameters *in_codecpar = ifmt_ctx->streams[i]->codecpar;
+    if (in_codecpar->codec_type != AVMEDIA_TYPE_AUDIO &&
+        in_codecpar->codec_type != AVMEDIA_TYPE_VIDEO &&
+        in_codecpar->codec_type != AVMEDIA_TYPE_SUBTITLE) {
+      stream_mapping[i] = -1;
+      continue;
+    }
+    stream_mapping[i] = out_stream_idx++;
+    AVStream *out_stream = avformat_new_stream(ofmt_ctx, nullptr);
+    if (!out_stream) {
+      Error("remux_to_faststart: failed to allocate output stream");
+      delete[] stream_mapping;
+      avformat_close_input(&ifmt_ctx);
+      avformat_free_context(ofmt_ctx);
+      return false;
+    }
+    ret = avcodec_parameters_copy(out_stream->codecpar, in_codecpar);
+    if (ret < 0) {
+      Error("remux_to_faststart: failed to copy codec parameters: %s", av_err2str(ret));
+      delete[] stream_mapping;
+      avformat_close_input(&ifmt_ctx);
+      avformat_free_context(ofmt_ctx);
+      return false;
+    }
+    out_stream->codecpar->codec_tag = 0;
+    out_stream->time_base = ifmt_ctx->streams[i]->time_base;
+  }
+
+  if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
+    ret = avio_open(&ofmt_ctx->pb, tmp_path.c_str(), AVIO_FLAG_WRITE);
+    if (ret < 0) {
+      Error("remux_to_faststart: failed to open output file %s: %s",
+            tmp_path.c_str(), av_err2str(ret));
+      delete[] stream_mapping;
+      avformat_close_input(&ifmt_ctx);
+      avformat_free_context(ofmt_ctx);
+      return false;
+    }
+  }
+
+  // Non-fragmented with faststart: moov at front with full sample tables
+  AVDictionary *opts = nullptr;
+  av_dict_set(&opts, "movflags", "+faststart", 0);
+
+  ret = avformat_write_header(ofmt_ctx, &opts);
+  av_dict_free(&opts);
+  if (ret < 0) {
+    Error("remux_to_faststart: failed to write header: %s", av_err2str(ret));
+    delete[] stream_mapping;
+    avformat_close_input(&ifmt_ctx);
+    if (ofmt_ctx->pb) avio_closep(&ofmt_ctx->pb);
+    avformat_free_context(ofmt_ctx);
+    unlink(tmp_path.c_str());
+    return false;
+  }
+
+  AVPacket pkt;
+  while (true) {
+    ret = av_read_frame(ifmt_ctx, &pkt);
+    if (ret < 0) break;
+
+    if (pkt.stream_index >= (int)ifmt_ctx->nb_streams ||
+        stream_mapping[pkt.stream_index] < 0) {
+      av_packet_unref(&pkt);
+      continue;
+    }
+
+    AVStream *in_stream = ifmt_ctx->streams[pkt.stream_index];
+    pkt.stream_index = stream_mapping[pkt.stream_index];
+    AVStream *out_stream = ofmt_ctx->streams[pkt.stream_index];
+
+    // Rescale timestamps
+    pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base,
+                                static_cast<AVRounding>(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+    pkt.dts = av_rescale_q_rnd(pkt.dts, in_stream->time_base, out_stream->time_base,
+                                static_cast<AVRounding>(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+    pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
+    pkt.pos = -1;
+
+    ret = av_interleaved_write_frame(ofmt_ctx, &pkt);
+    av_packet_unref(&pkt);
+    if (ret < 0) {
+      Error("remux_to_faststart: error writing packet: %s", av_err2str(ret));
+      break;
+    }
+  }
+
+  av_write_trailer(ofmt_ctx);
+
+  // Cleanup
+  delete[] stream_mapping;
+  avformat_close_input(&ifmt_ctx);
+  if (ofmt_ctx->pb) avio_closep(&ofmt_ctx->pb);
+  avformat_free_context(ofmt_ctx);
+
+  if (ret < 0 && ret != AVERROR_EOF) {
+    Error("remux_to_faststart: remux failed, keeping original: %s", av_err2str(ret));
+    unlink(tmp_path.c_str());
+    return false;
+  }
+
+  // Replace original with remuxed file
+  ret = rename(tmp_path.c_str(), filepath.c_str());
+  if (ret != 0) {
+    Error("remux_to_faststart: failed to replace %s with remuxed file: %s",
+          filepath.c_str(), strerror(errno));
+    unlink(tmp_path.c_str());
+    return false;
+  }
+
+  Debug(1, "remux_to_faststart: successfully remuxed %s", filepath.c_str());
+  return true;
+}

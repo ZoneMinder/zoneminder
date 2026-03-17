@@ -41,11 +41,16 @@ $Event = null;
 
 if ( ! empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
-  $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
+  if (!empty($_REQUEST['file'])) {
+    // Serving a specific segment file — strip any path traversal
+    $path = $Event->Path().'/'.basename($_REQUEST['file']);
+  } else {
+    $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
+  }
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
   if (!empty($_REQUEST['file'])) {
-    $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
+    $path = $Event->Path().'/'.basename($_REQUEST['file']);
   } else {
     $path = (substr($Event->DefaultVideo(), 0, 1) == '/' ) ? $Event->DefaultVideo() : $Event->Path().'/'.$Event->DefaultVideo();
   }
@@ -84,16 +89,12 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-$path_info = pathinfo($Event->DefaultVideo());
+$serving_file = basename($path);
+$path_info = pathinfo($serving_file);
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
-# This is so that Save Image As give a useful filename
-if ($Event) {
-  header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');
-} else {
-  header('Content-Disposition: inline;');
-}
+header('Content-Disposition: inline; filename="' . $serving_file . '"');
 if ($partial) {
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");

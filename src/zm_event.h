@@ -133,6 +133,7 @@ class Event {
   bool openSegment();
   void closeSegment();
   void rotateSegment(SystemTimePoint new_segment_start);
+  void writeM3u8(bool is_complete);
 
   int        last_db_frame;
   bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.

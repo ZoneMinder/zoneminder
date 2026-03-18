@@ -142,7 +142,7 @@ Event::Event(
                       state_id,
                       monitor->getOrientation(),
                       0,
-                      video_incomplete_file.c_str(),
+                      "",  // DefaultVideo empty during recording; set to m3u8 on close
                       save_jpegs,
                       storage->SchemeString().c_str(),
                       monitor->Latitude(),
@@ -331,6 +331,15 @@ bool Event::openSegment() {
       noteSetMap["encoder"].insert(encoder->name);
     }
     codec = videoStore->get_codec();
+
+    // Set DefaultVideo to m3u8 filename immediately so the web UI
+    // knows this event uses HLS, even during recording.
+    video_file = stringtf("%" PRIu64 ".m3u8", id);
+    video_path = path + "/" + video_file;
+    std::string sql = stringtf(
+        "UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,
+        zmDbEscapeString(video_file).c_str(), id);
+    dbQueue.push(std::move(sql));
   }
 
   Debug(1, "Opened video segment %d for event %" PRIu64, segment_index, id);
@@ -457,6 +466,54 @@ void Event::rotateSegment(SystemTimePoint new_segment_start) {
 
   segment_index++;
   segment_start_time = new_segment_start;
+
+  // Update m3u8 manifest and DB DefaultVideo after each segment completes.
+  // Omit EXT-X-ENDLIST so HLS players treat it as a live/growing playlist.
+  writeM3u8(false);
+}
+
+void Event::writeM3u8(bool is_complete) {
+  if (video_segments.empty()) return;
+
+  video_file = stringtf("%" PRIu64 ".m3u8", id);
+  video_path = path + "/" + video_file;
+
+  double max_duration = 0;
+  for (const auto &seg : video_segments) {
+    if (seg.duration > max_duration) max_duration = seg.duration;
+  }
+  int target_duration = static_cast<int>(max_duration) + 1;
+  if (target_duration < 1) target_duration = 10;
+
+  FILE *m3u8 = fopen(video_path.c_str(), "w");
+  if (m3u8) {
+    fprintf(m3u8, "#EXTM3U\n");
+    fprintf(m3u8, "#EXT-X-VERSION:3\n");
+    fprintf(m3u8, "#EXT-X-TARGETDURATION:%d\n", target_duration);
+    fprintf(m3u8, "#EXT-X-MEDIA-SEQUENCE:0\n");
+    if (is_complete) {
+      fprintf(m3u8, "#EXT-X-PLAYLIST-TYPE:VOD\n");
+    }
+    for (const auto &seg : video_segments) {
+      fprintf(m3u8, "#EXTINF:%.3f,\n", seg.duration);
+      fprintf(m3u8, "%s\n", seg.filename.c_str());
+    }
+    if (is_complete) {
+      fprintf(m3u8, "#EXT-X-ENDLIST\n");
+    }
+    fclose(m3u8);
+    Debug(1, "Wrote m3u8 manifest %s with %zu segments%s",
+          video_path.c_str(), video_segments.size(),
+          is_complete ? " (VOD)" : " (live)");
+  } else {
+    Warning("Failed to write m3u8 manifest %s: %s", video_path.c_str(), strerror(errno));
+  }
+
+  // Update DB so the web UI can find the m3u8 immediately
+  std::string sql = stringtf(
+      "UPDATE Events SET DefaultVideo='%s' WHERE Id=%" PRIu64,
+      zmDbEscapeString(video_file).c_str(), id);
+  dbQueue.push(std::move(sql));
 }
 
 Event::~Event() {
@@ -477,10 +534,7 @@ Event::~Event() {
     closeSegment();
   }
 
-  // Write segment records to DB and generate static m3u8 manifest.
-  // DefaultVideo is set to the m3u8 so that existing code (frame extraction
-  // via ffmpeg -ss, file_exists, download) works — ffmpeg can read m3u8
-  // as input and handles cross-segment seeking internally.
+  // Write segment records to DB and finalize m3u8 manifest as VOD.
   if (!video_segments.empty()) {
     for (const auto &seg : video_segments) {
       std::string sql = stringtf(
@@ -491,37 +545,9 @@ Event::~Event() {
       dbQueue.push(std::move(sql));
     }
 
-    // Write static m3u8 with relative paths to segment files
-    video_file = stringtf("%" PRIu64 ".m3u8", id);
-    video_path = path + "/" + video_file;
-
-    double max_duration = 0;
-    for (const auto &seg : video_segments) {
-      if (seg.duration > max_duration) max_duration = seg.duration;
-    }
-    int target_duration = static_cast<int>(max_duration) + 1;
-    if (target_duration < 1) target_duration = 10;
-
-    FILE *m3u8 = fopen(video_path.c_str(), "w");
-    if (m3u8) {
-      fprintf(m3u8, "#EXTM3U\n");
-      fprintf(m3u8, "#EXT-X-VERSION:3\n");
-      fprintf(m3u8, "#EXT-X-TARGETDURATION:%d\n", target_duration);
-      fprintf(m3u8, "#EXT-X-MEDIA-SEQUENCE:0\n");
-      fprintf(m3u8, "#EXT-X-PLAYLIST-TYPE:VOD\n");
-      for (const auto &seg : video_segments) {
-        fprintf(m3u8, "#EXTINF:%.3f,\n", seg.duration);
-        fprintf(m3u8, "%s\n", seg.filename.c_str());
-      }
-      fprintf(m3u8, "#EXT-X-ENDLIST\n");
-      fclose(m3u8);
-      Debug(1, "Wrote m3u8 manifest %s with %zu segments", video_path.c_str(), video_segments.size());
-    } else {
-      Warning("Failed to write m3u8 manifest %s: %s", video_path.c_str(), strerror(errno));
-      // Fall back to first segment
-      video_file = video_segments[0].filename;
-      video_path = path + "/" + video_file;
-    }
+    // Final m3u8 with EXT-X-ENDLIST marks it as VOD (complete).
+    // Prior rotateSegment() calls wrote live manifests without ENDLIST.
+    writeM3u8(true);
   }
 
   // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.

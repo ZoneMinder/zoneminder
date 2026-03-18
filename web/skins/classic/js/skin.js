@@ -2596,7 +2596,7 @@ function initPageGeneral() {
             return parseInt(o["id"]) === mid;
           });
           currentMonitor.controlMute(setStateMuted);
-        })
+        });
       } else {
         if (currentView == 'watch') {
           monitorStream.controlMute('switch');
@@ -3000,11 +3000,11 @@ createVolumeSlider = function(volumeSlider, audioStream=null) {
         const iconMute = getIconMute(mid);
         if (iconMute) iconMute.innerHTML = (valueSlider > 0) ? 'volume_up' : 'volume_off';
         if (stream) stream.muted = (valueSlider > 0) ? false : true;
-      })
+      });
     }
     //console.log("Audio volume slider event: 'slide'");
   });
-}
+};
 
 destroyVolumeSlider = function(volumeSlider) {
   if (volumeSlider && volumeSlider.noUiSlider) {
@@ -3048,7 +3048,6 @@ controlMute = function(mid, mode = 'switch') {
   const audioStream = getAVStream(mid);
   const volumeControls = getVolumeControls(mid);
   const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
-//console.trace("mode==>", mode, mid);
 
   if (volumeSlider && volumeSlider.noUiSlider) {
     (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();

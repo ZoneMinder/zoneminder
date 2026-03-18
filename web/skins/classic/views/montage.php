@@ -316,6 +316,19 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
 ?>
           </span>
+<?php
+      if (strpos(strtolower($whatDisplaySelected), 'onlyvideo') !== 0) {
+        $htmlAudioControlPanel = '
+          <span id="audioControlPanel" class="audio-control-panel">
+            <div id="volumeControls" class="disabled volume">
+              <div id="volumeSlider" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+              <i id="controlMute" class="audio-control-mute material-icons md-22"></i>
+            </div>
+          </span>
+        '.PHP_EOL;
+        echo $htmlAudioControlPanel;
+      }
+?>
           <span id="layoutControl">
             <label for="zmMontageLayout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>

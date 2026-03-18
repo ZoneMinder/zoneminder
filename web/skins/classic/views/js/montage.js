@@ -743,7 +743,7 @@ function initPage() {
             // Experimental setting only if audio visualization is used. Blank spaces will be filled.
             //objGridStack.column(1, 'compact');
             //objGridStack.column(layoutColumns, 'compact');
-            objGridStack.column(1, 'list'); // Вероятно баг или фича GridStack, если это не вызывать, то не произойдет перестроение.
+            objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
             objGridStack.column(layoutColumns, 'list');
           }
         } else {
@@ -788,6 +788,12 @@ function initPage() {
       window.scrollEndTimer = setTimeout(on_scroll, 100);
     };
   }
+
+  createVolumeSlider(getVolumeSlider());
+  const volumeControl = getVolumeControls();
+  if (volumeControl) volumeControl.classList.remove("disabled");
+  const iconMute = getIconMute();
+  controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage
 

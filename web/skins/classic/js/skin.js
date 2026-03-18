@@ -2583,15 +2583,29 @@ function initPageGeneral() {
 
   document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
     el.addEventListener("click", function clickControlMute(event) {
-      const mid = (stringToNumber(event.target.id) || stringToNumber(document.querySelector('[id ^= "liveStream"]').id));
-      if (!mid) return;
-      if (currentView == 'watch') {
-        monitorStream.controlMute('switch');
-      } else if (currentView == 'montage') {
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === mid;
-        });
-        currentMonitor.controlMute('switch');
+      let mid = (stringToNumber(event.target.id));
+      if (isNaN(mid)) { // For example, a common one on the Montage page
+        // You can't call it with MODE='switch' here, as some monitors may have the volume on, while others may have the volume off. You need to get the current state of the MUTED icon!!!
+        const setStateMuted = (event.target.textContent == "volume_off") ? 'off' : 'on';
+        controlMute(null, setStateMuted);
+        document.querySelectorAll('[id ^= "controlMute"]').forEach(function(el) {
+          // Let's specify the button state for each monitor on the page.
+          mid = (stringToNumber(el.id));
+          if (isNaN(mid)) return; // For all monitors
+          const currentMonitor = monitors.find((o) => {
+            return parseInt(o["id"]) === mid;
+          });
+          currentMonitor.controlMute(setStateMuted);
+        })
+      } else {
+        if (currentView == 'watch') {
+          monitorStream.controlMute('switch');
+        } else if (currentView == 'montage') {
+          const currentMonitor = monitors.find((o) => {
+            return parseInt(o["id"]) === mid;
+          });
+          currentMonitor.controlMute('switch');
+        }
       }
     });
   });
@@ -2924,6 +2938,193 @@ const waitUntil = (condition, timeout = 0) => {
       }
     }, 100);
   });
+};
+
+createVolumeSlider = function(volumeSlider, audioStream=null) {
+  if (!volumeSlider) return;
+  const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
+  const iconMute = getIconMute(stringToNumber(volumeSlider.id));
+
+  noUiSlider.create(volumeSlider, {
+    start: [(defaultVolume) ? defaultVolume : (audioStream) ? audioStream.volume * 100 : 50],
+    step: 1,
+    //behaviour: 'unconstrained',
+    behaviour: 'tap',
+    connect: [true, false],
+    range: {
+      'min': 0,
+      'max': 100
+    },
+    /*tooltips: [
+      //true,
+      { to: function(value) { return value.toFixed(0) + '%'; } }
+    ],*/
+  });
+  volumeSlider.allowSetValue = true;
+  volumeSlider.noUiSlider.on('update', function onUpdateUiSlider(values, handle) {
+    const valueSlider = values[0];
+    if (audioStream) audioStream.volume = valueSlider/100;
+    if (valueSlider > 0 && (!audioStream || (audioStream && !audioStream.muted))) {
+      iconMute.innerHTML = 'volume_up';
+      volumeSlider.classList.remove('noUi-mute');
+    } else {
+      iconMute.innerHTML = 'volume_off';
+      volumeSlider.classList.add('noUi-mute');
+    }
+    //console.log("Audio volume slider event: 'update'");
+  });
+  volumeSlider.noUiSlider.on('end', function onEndUiSlider(values, handle) {
+    volumeSlider.allowSetValue = true;
+    //console.log("Audio volume slider event: 'end'");
+  });
+  volumeSlider.noUiSlider.on('start', function onStartUiSlider(values, handle) {
+    volumeSlider.allowSetValue = false; // Let's prohibit changing the Value using the "Set" method, otherwise there will be lags and collapse when directly moving the slider with the mouse...
+    //console.log("Audio volume slider event: 'start'");
+  });
+  volumeSlider.noUiSlider.on('set', function onSetUiSlider(values, handle) {
+    //console.log("Audio volume slider event: 'set'");
+  });
+  volumeSlider.noUiSlider.on('slide', function onSlideUiSlider(values, handle) {
+    if (audioStream) {
+      if (audioStream.volume > 0 && audioStream.muted) {
+        iconMute.innerHTML = 'volume_up';
+        audioStream.muted = false;
+      }
+    } else { // For all monitors
+      document.querySelectorAll('[id ^= "volumeSlider"]').forEach(function(el) {
+        mid = stringToNumber(el.id);
+        if (isNaN(mid)) return;
+        const stream = getAVStream(mid);
+        const valueSlider = values[0];
+        if (stream) stream.volume = valueSlider/100;
+        const iconMute = getIconMute(mid);
+        if (iconMute) iconMute.innerHTML = (valueSlider > 0) ? 'volume_up' : 'volume_off';
+        if (stream) stream.muted = (valueSlider > 0) ? false : true;
+      })
+    }
+    //console.log("Audio volume slider event: 'slide'");
+  });
+}
+
+destroyVolumeSlider = function(volumeSlider) {
+  if (volumeSlider && volumeSlider.noUiSlider) {
+    volumeSlider.noUiSlider.destroy();
+    volumeSlider.noUiSlider = null;
+  }
+};
+
+changeStateIconMute = function(mid, volume) {
+  const volumeControls = getVolumeControls(mid);
+  const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
+  const iconMute = getIconMute(mid);
+  if (!disabled && iconMute) {
+    iconMute.innerHTML = (volume == 'on')? 'volume_up' : 'volume_off';
+  }
+  return iconMute;
+};
+
+changeVolumeSlider = function(mid, volume) {
+  const volumeControls = getVolumeControls(mid);
+  const volumeSlider = getVolumeSlider(mid);
+  if (volumeSlider) {
+    let disabled = false;
+    if (volumeControls) {
+      disabled = volumeControls.classList.contains('disabled');
+    }
+    if (volume == 'on') {
+      volumeSlider.classList.remove('noUi-mute');
+    } else if (volume == 'off') {
+      volumeSlider.classList.add('noUi-mute');
+    }
+    if (volumeSlider.noUiSlider) {
+      (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
+    }
+  }
+  return volumeSlider;
+};
+
+controlMute = function(mid, mode = 'switch') {
+  let volumeSlider = getVolumeSlider(mid);
+  const audioStream = getAVStream(mid);
+  const volumeControls = getVolumeControls(mid);
+  const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
+//console.trace("mode==>", mode, mid);
+
+  if (volumeSlider && volumeSlider.noUiSlider) {
+    (disabled) ? volumeSlider.noUiSlider.disable() : volumeSlider.noUiSlider.enable();
+  }
+
+  if (disabled) {
+    console.log(`Volume control is disabled in controlMute for monitor ID=${mid}`);
+    return;
+  }
+  if (mid && !audioStream) {
+    console.log(`No audiostream! in controlMute for monitor ID=${mid}`);
+    return;
+  }
+
+  if (mode=='switch') {
+    if (audioStream.muted) {
+      changeStateIconMute(mid, 'on');
+      volumeSlider = changeVolumeSlider(mid, 'on');
+      if (mid) {
+        audioStream.muted = false;
+        if (volumeSlider && volumeSlider.noUiSlider) {
+          audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+        }
+      } else { // For all monitors
+
+      }
+    } else {
+      changeStateIconMute(mid, 'off');
+      changeVolumeSlider(mid, 'off');
+      if (mid) {
+        audioStream.muted = true;
+      } else { // For all monitors
+
+      }
+    }
+  } else if (mode=='on') {
+    changeStateIconMute(mid, 'off');
+    changeVolumeSlider(mid, 'off');
+    if (mid) {
+      audioStream.muted = true;
+    } else { // For all monitors
+
+    }
+  } else if (mode=='off') {
+    changeStateIconMute(mid, 'on');
+    volumeSlider = changeVolumeSlider(mid, 'on');
+    if (mid) {
+      audioStream.muted = false;
+      if (volumeSlider && volumeSlider.noUiSlider) {
+        audioStream.volume = volumeSlider.noUiSlider.get() / 100;
+      }
+    } else { // For all monitors
+
+    }
+  }
+};
+
+getVolumeControls = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('volumeControls'+mid) : document.getElementById('volumeControls');
+};
+
+getVolumeSlider = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('volumeSlider'+mid) : document.getElementById('volumeSlider');
+};
+
+getIconMute = function(mid=null) {
+  return (mid && !isNaN(mid)) ? document.getElementById('controlMute'+mid) : document.getElementById('controlMute');
+};
+
+getAVStream = function(mid) {
+  /*
+  Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
+  RTSP2Web uses <video id='liveStreamXX'></video>
+  This.getElement() may need to be changed, but the implications of such a change need to be analyzed
+  */
+  return (document.querySelector('#liveStream'+mid + ' video') || document.getElementById('liveStream'+mid));
 };
 
 // https://stackoverflow.com/a/69273090

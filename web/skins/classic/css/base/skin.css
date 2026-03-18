@@ -1622,7 +1622,11 @@ audio-motion {
   margin: -1px -1px 0 -1px;
 }
 
-.audio-control-panel {
+.audio-control-panel .volume {
+  display: inline-block;
+}
+
+.audio-visualization .audio-control-panel {
   float: right;
 }
 /* --- Audio-motion --- */

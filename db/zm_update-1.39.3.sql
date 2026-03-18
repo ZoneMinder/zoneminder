@@ -40,37 +40,37 @@ SET
     WHEN z.MinAlarmPixels IS NULL THEN NULL
     WHEN z.MinAlarmPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MinAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MinAlarmPixels END,
   z.MaxAlarmPixels = CASE
     WHEN z.MaxAlarmPixels IS NULL THEN NULL
     WHEN z.MaxAlarmPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MaxAlarmPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MaxAlarmPixels END,
   z.MinFilterPixels = CASE
     WHEN z.MinFilterPixels IS NULL THEN NULL
     WHEN z.MinFilterPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MinFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MinFilterPixels END,
   z.MaxFilterPixels = CASE
     WHEN z.MaxFilterPixels IS NULL THEN NULL
     WHEN z.MaxFilterPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MaxFilterPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MaxFilterPixels END,
   z.MinBlobPixels = CASE
     WHEN z.MinBlobPixels IS NULL THEN NULL
     WHEN z.MinBlobPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MinBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MinBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MinBlobPixels END,
   z.MaxBlobPixels = CASE
     WHEN z.MaxBlobPixels IS NULL THEN NULL
     WHEN z.MaxBlobPixels = 0 THEN 0
     WHEN z.Area > 0 AND m.Width > 0 AND m.Height > 0
-      THEN LEAST(ROUND(z.MaxBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height)), 100)
+      THEN LEAST(ROUND(z.MaxBlobPixels * 1000000.0 / (z.Area * m.Width * m.Height), 2), 100)
     ELSE z.MaxBlobPixels END
 WHERE z.Coords LIKE '%.%'
   AND (z.MinAlarmPixels > 100 OR z.MaxAlarmPixels > 100

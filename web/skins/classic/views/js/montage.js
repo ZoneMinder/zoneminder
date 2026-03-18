@@ -792,7 +792,6 @@ function initPage() {
   createVolumeSlider(getVolumeSlider());
   const volumeControl = getVolumeControls();
   if (volumeControl) volumeControl.classList.remove("disabled");
-  const iconMute = getIconMute();
   controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage

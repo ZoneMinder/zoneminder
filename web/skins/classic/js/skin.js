@@ -2444,6 +2444,11 @@ function getMonitorStream(mid) { // RENAME to getStream(), but it is already in 
   return monitorStream_;
 }
 
+function getMediaStreamSource(mid) {
+  // Go2RTC || RTSP2Web on Watch page || Event page
+  return (document.querySelector(`#liveStream${mid} video`) || document.getElementById('liveStream'+mid)) || document.querySelector(`#videoFeedStream${mid} video`);
+};
+
 function initPageGeneral() {
   $j(document).on('keyup.global keydown.global', function handleKey(e) {
     shifted = e.shiftKey ? e.shiftKey : e.shift;

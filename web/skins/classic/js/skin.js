@@ -3018,7 +3018,7 @@ destroyVolumeSlider = function(volumeSlider) {
 };
 
 changeStateIconMute = function(mid, volume) {
-  const volumeControls = getVolumeControls(mid);
+  //const volumeControls = getVolumeControls(mid);
   //const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
   const iconMute = getIconMute(mid);
   if (iconMute) {

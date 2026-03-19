@@ -431,7 +431,8 @@ function MonitorStream(monitorData) {
 
     //console.log('start go2rtcenabled:', this.Go2RTCEnabled, 'this.player:', this.player, 'muted', this.muted);
 
-    $j('#volumeControls'+this.id).hide();
+    //$j('#volumeControls'+this.id).hide();
+    $j('#volumeControls'+this.id).addClass('disabled');
     $j('#delay'+this.id).addClass('hidden');
 
     if (this.Go2RTCEnabled && ((!this.player) || (-1 !== this.player.indexOf('go2rtc')))) {
@@ -1054,7 +1055,8 @@ function MonitorStream(monitorData) {
     const audioStream = this.getAVStream();
     if (!volumeSlider || !audioStream) return;
 
-    $j('#volumeControls'+this.id).show();
+    //$j('#volumeControls'+this.id).show();
+    $j('#volumeControls'+this.id).removeClass('disabled');
     if (!this.handlerEventListener['volumechange']) {
       this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
           (event) => {
@@ -1066,15 +1068,16 @@ function MonitorStream(monitorData) {
 
     createVolumeSlider(volumeSlider, audioStream);
 
-    if (volumeSlider.getAttribute("data-muted") !== "true") {
-      this.controlMute('off');
-    } else {
-      this.controlMute('on');
-    }
+    //if (volumeSlider.getAttribute("data-muted") !== "true") {
+    //  this.controlMute('off');
+    //} else {
+    //  this.controlMute('on');
+    //}
   };
 
   this.destroyVolumeSlider = function() {
-    $j('#volumeControls'+this.id).hide();
+    //$j('#volumeControls'+this.id).hide();
+    $j('#volumeControls'+this.id).addClass('disabled');
     const volumeSlider = this.getVolumeSlider();
     destroyVolumeSlider(volumeSlider);
     //const iconMute = this.getIconMute();

@@ -3007,18 +3007,22 @@ createVolumeSlider = function(volumeSlider, audioStream=null) {
 };
 
 destroyVolumeSlider = function(volumeSlider) {
-  if (volumeSlider && volumeSlider.noUiSlider) {
-    volumeSlider.noUiSlider.destroy();
-    volumeSlider.noUiSlider = null;
+  if (volumeSlider) {
+    if (volumeSlider.noUiSlider) {
+      volumeSlider.noUiSlider.destroy();
+      volumeSlider.noUiSlider = null;
+    }
+    const mid = stringToNumber(volumeSlider.id);
+    if (!isNaN(mid)) changeStateIconMute(mid, '');
   }
 };
 
 changeStateIconMute = function(mid, volume) {
   const volumeControls = getVolumeControls(mid);
-  const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
+  //const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
   const iconMute = getIconMute(mid);
-  if (!disabled && iconMute) {
-    iconMute.innerHTML = (volume == 'on')? 'volume_up' : 'volume_off';
+  if (iconMute) {
+    iconMute.innerHTML = (volume == 'on') ? 'volume_up' : (volume == 'off') ? 'volume_off' : '';
   }
   return iconMute;
 };

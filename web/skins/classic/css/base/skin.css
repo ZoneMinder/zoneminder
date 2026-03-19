@@ -1590,7 +1590,7 @@ video-stream {
 }
 
 /* +++ Audio-motion +++ */
-audio-motion {
+audio-motion, audio-motion canvas {
   display: block;
   width: 100%;
 }

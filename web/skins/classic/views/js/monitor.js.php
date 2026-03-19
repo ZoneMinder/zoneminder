@@ -151,7 +151,7 @@ function validateForm(form) {
 
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadAlarmFrameCount') ?>";
-    if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
+    if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 10 ) )
       errors[errors.length] = "<?php echo translate('BadSectionLength') ?>";
     if ( !form.elements['newMonitor[AnalysisUpdateDelay]'].value || !(parseInt(form.elements['newMonitor[AnalysisUpdateDelay]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";

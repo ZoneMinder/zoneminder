@@ -734,7 +734,7 @@ function MonitorStream(monitorData) {
       let node = null;
       const _imageFeed = document.getElementById('imageFeed'+this.id);
       if (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') {
-        node = document.getElementById("audioVisualization" + this.id) || this.getElement();;
+        node = document.getElementById("audioVisualization" + this.id) || this.getElement();
       } else {
         node = this.getElement();
       }

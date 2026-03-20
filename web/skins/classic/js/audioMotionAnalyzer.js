@@ -10,7 +10,7 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     this.initCompleted = false;
     this.getTracksFromStreamTimeout = 20000;
     if (currentView == 'watch' || currentView == 'event') {
-      this.maxFPS = 50;
+      this.maxFPS = 30;
       this.loRes = false;
     } else {
       this.maxFPS = 5; // We'll limit the processing speed, as this affects the client's CPU load.

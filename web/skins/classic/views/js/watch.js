@@ -914,7 +914,7 @@ function streamReStart(oldId, newId) {
 
   //Set global variables from the current monitor
   streamMode = currentMonitor.streamMode;
-
+  controlWhatDisplay(oldId, newId);
   eventListTable.bootstrapTable('destroy');
   applyMonitorControllable();
   //manageChannelStream();
@@ -1387,9 +1387,31 @@ function changePlayer() {
   }, 300);*/
 }
 
+function controlWhatDisplay(oldId, newId) {
+  const selectorWhatDisplay = document.getElementById('whatDisplay');
+  const defaultWhatDisplay = (monitorStream) ? monitorStream.whatDisplay : 'OnlyVideo';
+  const imageFeed = document.getElementById('imageFeed'+monitorId);
+  let noAudioMotion = false;
+  let noVideo = false;
+  if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('audio'))) noAudioMotion = true;
+    if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) noVideo = true;
+  } else {
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) noAudioMotion = true;;
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) noVideo = true;;
+  }
+  if (noAudioMotion) {
+    destroyAudioMotion(oldId);
+    document.querySelector('.stream-info-status-track').innerText = '';
+  } else {
+    connectAudioMotion(newId);
+  }
+  if (imageFeed) imageFeed.setAttribute("data-not-display-video", noVideo);
+}
+
 function changeWhatDisplay() {
   setCookie('zmWhatDisplay', $j('#whatDisplay').val());
-  location.reload();
+  controlWhatDisplay(monitorId, monitorId);
 }
 
 // Kick everything off

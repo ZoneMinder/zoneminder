@@ -1397,8 +1397,8 @@ function controlWhatDisplay(oldId, newId) {
     if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('audio'))) noAudioMotion = true;
     if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) noVideo = true;
   } else {
-    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) noAudioMotion = true;;
-    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) noVideo = true;;
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('audio')) noAudioMotion = true;
+    if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) noVideo = true;
   }
   if (noAudioMotion) {
     destroyAudioMotion(oldId);

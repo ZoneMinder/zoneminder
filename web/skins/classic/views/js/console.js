@@ -390,9 +390,7 @@ function selectMonitor(element) {
 function reloadWindow() {
   // Use table refresh instead of full page reload
   if (table && table.length) {
-    const scrollPosition = table.bootstrapTable('getScrollPosition');
     table.bootstrapTable('refresh', {silent: true, reinit: false});
-    table.bootstrapTable('scrollTo', scrollPosition);
   } else {
     window.location.replace(thisUrl);
   }

@@ -14,6 +14,19 @@ class Monitor extends ZM_Object {
   private $shm_id = null;
   private $connected = false;
 
+  private static $enableDisableZMS = false; // This setting is for future use, in case we decide to disable ALL players, including ZMS. 
+  // To be able to disable/enable the ZMS player, you need to run the following code in the database:
+  // "ALTER TABLE `Monitors` ADD COLUMN `ZMSEnabled` BOOLEAN NOT NULL default true AFTER `Decoding`"
+
+  public function __construct($IdOrRow = NULL) {  
+    parent::__construct($IdOrRow);
+    if (self::$enableDisableZMS) $this->defaults['ZMSEnabled'] = array('type'=>'integer','default'=>1);
+  }
+
+  public static function getEnableDisableZMS() {
+    return self::$enableDisableZMS;
+  }
+
   private $shm_offsets = ['SharedData' => [
     'size'             => [ 'type'=>'uint32', 'offset'=>0, 'size'=>4 ],
     'last_write_index' => [ 'type'=>'int32', 'offset'=>4, 'size'=>4 ],

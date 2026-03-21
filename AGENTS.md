@@ -211,6 +211,7 @@ When creating migrations: test upgrade path AND verify fresh install matches mig
 
 - **C++17** standard, follow existing patterns in file/module
 - **Memory**: RAII, smart pointers where appropriate
+- **Line wrap at 120 columns
 - **Error handling**: Exceptions for exceptional cases, return codes for expected errors
 - **Logging**: Use printf-style `Debug(1, "msg %s", val)`, `Info(...)`, `Warning(...)`, `Error(...)`, `Fatal(...)` — NOT iostream style. The number in Debug() is verbosity level (1-9).
 

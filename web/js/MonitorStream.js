@@ -952,7 +952,7 @@ function MonitorStream(monitorData) {
       }
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
     }
-    if (this.audioMotion && this.audioMotion.play) this.audioMotion.play();
+    if (this.audioMotion && this.audioMotion.init) this.audioMotion.init();
   };
 
   this.eventHandler = function(event) {

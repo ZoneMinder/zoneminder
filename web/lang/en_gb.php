@@ -1030,6 +1030,11 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
      ',
     ),
+  'OPTIONS_WHATTODISPLAY' => array(
+     'Help' => '
+     On the Watch, Montage, Event page, you can display either a video stream, or an audio stream visualization, or both a video stream and an audio visualization.
+     ',
+    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When to perform motion detection on the captured video.  

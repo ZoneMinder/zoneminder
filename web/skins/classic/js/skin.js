@@ -2600,7 +2600,7 @@ function initPageGeneral() {
       } else {
         if (currentView == 'watch') {
           monitorStream.controlMute('switch');
-        } else if (currentView == 'montage') {
+        } else if (currentView == 'montage' || currentView == 'event') {
           const currentMonitor = monitors.find((o) => {
             return parseInt(o["id"]) === mid;
           });

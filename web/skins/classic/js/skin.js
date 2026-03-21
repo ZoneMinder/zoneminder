@@ -2992,7 +2992,7 @@ createVolumeSlider = function(volumeSlider, audioStream=null) {
       }
     } else { // For all monitors
       document.querySelectorAll('[id ^= "volumeSlider"]').forEach(function(el) {
-        mid = stringToNumber(el.id);
+        const mid = stringToNumber(el.id);
         if (isNaN(mid)) return;
         const stream = getAVStream(mid);
         const valueSlider = values[0];

@@ -259,7 +259,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
               'OnlyAudioVisualization'=>translate('Only audio visualization'),
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
-            $whatDisplaySelected = 'default'; // Default
+            $whatDisplaySelected = 'Default'; // Default
             if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {

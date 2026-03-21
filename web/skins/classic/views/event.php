@@ -253,19 +253,19 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <div id="whatDisplayControl">
           <label for="whatDisplay"><?php echo translate('What display') ?></label>
 <?php 
-            $whatDisplay = [
+            $whatDisplayOptions = [
               'Default'=>translate('Default'),
               'OnlyVideo'=>translate('Only video'),
               'OnlyAudioVisualization'=>translate('Only audio visualization'),
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
-            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
             }
-            echo htmlSelect('whatDisplay', $whatDisplay, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+            echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
 ?>
         </div><!--#whatDisplayControl-->
       </div>

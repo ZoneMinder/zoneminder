@@ -388,7 +388,7 @@ function buildSidebarMenu() {
               </a>
             </li>
 ';
-  } else if (defined(ZM_SIDEBAR_FOOTER) and ZM_SIDEBAR_FOOTER) {
+  } else if (defined('ZM_SIDEBAR_FOOTER') and ZM_SIDEBAR_FOOTER) {
     $menu .- ZM_SIDEBAR_FOOTER;
   }
   $menu .= '

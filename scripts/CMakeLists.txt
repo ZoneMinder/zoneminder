@@ -16,7 +16,6 @@ configure_file(zmtrack.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmtrack.pl" @ONLY)
 configure_file(zmtrigger.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmtrigger.pl" @ONLY)
 configure_file(zmupdate.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmupdate.pl" @ONLY)
 configure_file(zmvideo.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl" @ONLY)
-configure_file(zmwatch.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl" @ONLY)
 configure_file(zmstats.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmstats.pl" @ONLY)
 configure_file(zmcamtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl" @ONLY)
 configure_file(zmeventtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmeventtool.pl" @ONLY)
@@ -53,7 +52,6 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/zmtrigger.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmupdate.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl"
-  "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmeventtool.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmtelemetry.pl"

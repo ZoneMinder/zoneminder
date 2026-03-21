@@ -99,7 +99,6 @@ my @daemons = (
   'zmaudit.pl',
   'zmtrigger.pl',
   'zmx10.pl',
-  'zmwatch.pl',
   'zmupdate.pl',
   'zmstats.pl',
   'zmtrack.pl',
@@ -122,7 +121,7 @@ if ( $command eq 'version' ) {
   print ZoneMinder::Base::ZM_VERSION."\n";
   exit(0);
 }
-my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot|version)/;
+my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot|version|state)/;
 my $daemon = shift @ARGV;
 if ( $needs_daemon && !$daemon ) {
   print(STDERR "No daemon given\n");
@@ -137,6 +136,15 @@ if ( $needs_daemon ) {
   } else {
     print(STDERR "Invalid daemon '$daemon' specified");
     pod2usage(-exitstatus => -1);
+  }
+}
+
+if ( $command eq 'state' && $daemon ) {
+  if ( $daemon =~ /^([\w.-]+)$/ ) {
+    $daemon = $1;
+  } else {
+    print(STDERR "Invalid state name '$daemon' specified\n");
+    exit(-1);
   }
 }
 
@@ -186,7 +194,7 @@ if (!$server_up) {
   if ( $command eq 'check' ) {
     print("stopped\n");
     exit();
-  } elsif ( $command ne 'startup' ) {
+  } elsif ( $command ne 'startup' && $command ne 'state' ) {
     print('Unable to connect to server using socket at '.SOCK_FILE."\n");
     exit(-1);
   }
@@ -256,17 +264,25 @@ use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use ZoneMinder::Server;
+use ZoneMinder::Monitor;
+use ZoneMinder::State;
+use ZoneMinder::Filter;
+use ZoneMinder::Memory qw(zmMemVerify zmMemRead zmGetLastWriteTime zmGetLastReadTime zmGetStartupTime zmMemTidy);
 #use Data::Dumper;
 
 use constant KILL_DELAY => 30; # seconds to wait between sending TERM and sending KILL
 # ffmpeg connect can take up to 30 seconds at least and doesn't seem to ack signals
 # or get back to zm code so we can exit gracefully
+use constant START_DELAY => 30; # seconds before watchdog checks begin after orchestration
 
 our %cmd_hash;
 our %pid_hash;
 our %terminating_processes;
 our %pids_to_reap;
 our $zm_terminate = 0;
+our $orchestrate_time = 0;
+our $watchdog_active = 0;
+our $re_orchestrate_pending = 0;
 
 sub run {
 
@@ -293,6 +309,8 @@ sub run {
   my $dbh = zmDbConnect(1);
   logInit();
 
+  $ZoneMinder::Object::no_cache = 1;
+
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
       .strftime('%y/%m/%d %H:%M:%S', localtime())
       ."\n"
@@ -314,6 +332,9 @@ sub run {
   $SIG{TERM} = \&shutdown_sig_handler;
   $SIG{ABRT} = \&shutdown_sig_handler;
   $SIG{HUP} = \&logrot;
+
+  eval { orchestrate() };
+  Error("Orchestration failed: $@") if $@;
 
   my $rin = '';
   vec($rin, fileno(SERVER), 1) = 1;
@@ -346,8 +367,16 @@ sub run {
         }
         ZoneMinder::Database::end_transaction($dbh, $in_transaction); 
       }
-      $secs_count += 1;
     }
+    # Watchdog: check monitor health periodically
+    if ($watchdog_active && !$re_orchestrate_pending
+        && $Config{ZM_WATCH_CHECK_INTERVAL}
+        && !($secs_count % $Config{ZM_WATCH_CHECK_INTERVAL})) {
+      eval { watchdog_check() };
+      Error("Watchdog check failed: $@") if $@;
+    }
+    $secs_count += 1;
+
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
@@ -382,6 +411,8 @@ sub run {
           }
         } elsif ( $command eq 'logrot' ) {
           logrot();
+        } elsif ( $command eq 'state' ) {
+          apply_state($daemon);
         } else {
           dPrint(ZoneMinder::Logger::ERROR, "Invalid command '$command'\n");
         }
@@ -406,6 +437,11 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
+    if ($re_orchestrate_pending && !%terminating_processes && !%pids_to_reap) {
+      $re_orchestrate_pending = 0;
+      eval { orchestrate() };
+      Error("Re-orchestration failed: $@") if $@;
+    }
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
@@ -795,7 +831,370 @@ sub restartPending {
   }
 }
 
+sub orchestrate {
+  my $dbh = zmDbConnect();
+  if (!$dbh) {
+    Error('Cannot connect to database during orchestration');
+    return;
+  }
+
+  if ($Config{ZM_DYN_DB_VERSION}
+      and ($Config{ZM_DYN_DB_VERSION} ne ZM_VERSION)) {
+    Error('Version mismatch, system is version '.ZM_VERSION
+      .', database is '.$Config{ZM_DYN_DB_VERSION}
+      .', please run zmupdate.pl to update.');
+  }
+
+  verifyFolder('@ZM_TMPDIR@');
+  verifyFolder('@ZM_RUNDIR@');
+  verifyFolder('@ZM_SOCKDIR@');
+
+  zmMemTidy();
+
+  isActiveSanityCheck();
+
+  my $Server = undef;
+  my @monitors;
+  if ($Config{ZM_SERVER_ID}) {
+    Info("Multi-server: starting services for server $Config{ZM_SERVER_ID}");
+    $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+    @monitors = ZoneMinder::Monitor->find(Deleted=>0, ServerId=>$Config{ZM_SERVER_ID});
+  } else {
+    Info('Single server: starting services.');
+    @monitors = ZoneMinder::Monitor->find(Deleted=>0);
+  }
+
+  foreach my $monitor (@monitors) {
+    if (($monitor->{Capturing} ne 'None') and ($monitor->{Type} ne 'WebSite')) {
+      if ($monitor->{Type} eq 'Local') {
+        if ($monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
+          Error("Invalid device path rejected for monitor $monitor->{Id}: $monitor->{Device}");
+          next;
+        }
+        start('zmc', '-d', $monitor->{Device});
+      } else {
+        start('zmc', '-m', $monitor->{Id});
+      }
+      if ($Config{ZM_OPT_CONTROL} && $monitor->{Controllable}) {
+        start('zmcontrol.pl', '--id', $monitor->{Id});
+        if ($monitor->{TrackMotion}) {
+          if ($monitor->{Analysing} ne 'None') {
+            start('zmtrack.pl', '-m', $monitor->{Id});
+          } else {
+            Warning('Monitor is set to track motion, but does not have motion detection enabled.');
+          }
+        }
+      }
+    }
+  }
+
+  my @filters = ZoneMinder::Filter->find(Background=>1);
+  foreach my $filter (@filters) {
+    start('zmfilter.pl', '--filter_id='.$$filter{Id}, '--daemon');
+  }
+
+  if ($Config{ZM_RUN_AUDIT}) {
+    if ($Server and exists $$Server{zmaudit} and !$$Server{zmaudit}) {
+      Debug('Not running zmaudit.pl because it is turned off for this server.');
+    } else {
+      start('zmaudit.pl', '-c');
+    }
+  }
+  if ($Config{ZM_OPT_TRIGGERS}) {
+    if ($Server and exists $$Server{zmtrigger} and !$$Server{zmtrigger}) {
+      Debug('Not running zmtrigger.pl because it is turned off for this server.');
+    } else {
+      start('zmtrigger.pl');
+    }
+  }
+  if ($Config{ZM_OPT_X10}) {
+    start('zmx10.pl', '-c', 'start');
+  }
+  if ($Config{ZM_CHECK_FOR_UPDATES}) {
+    start('zmupdate.pl', '-c');
+  }
+  if ($Config{ZM_TELEMETRY_DATA}) {
+    start('zmtelemetry.pl');
+  }
+  if ($Config{ZM_OPT_USE_EVENTNOTIFICATION}) {
+    if ($Server and exists $$Server{zmeventnotification} and !$$Server{zmeventnotification}) {
+      Debug('Not running zmeventnotification.pl because it is turned off for this server.');
+    } else {
+      start('zmeventnotification.pl');
+    }
+  }
+  if ($Server and exists $$Server{zmstats} and !$$Server{zmstats}) {
+    Debug('Not running zmstats.pl because it is turned off for this server.');
+  } else {
+    start('zmstats.pl');
+  }
+  if ($Config{ZM_MIN_RTSP_PORT}) {
+    start('zm_rtsp_server');
+  }
+  if ($Config{ZM_OPT_USE_AISERVER}) {
+    start('zm_ai_server');
+  }
+  if ($Config{ZM_OPT_USE_ALARMSERVER}) {
+    my @als_args = ($Config{ZM_OPT_ALS_PORT});
+    push @als_args, $Config{ZM_OPT_ALS_LOGENTRY} ? '--log=y' : '--log=n';
+    push @als_args, $Config{ZM_OPT_ALS_TRIGGEREVENT} ? '--event=y' : '--event=n';
+    push @als_args, $Config{ZM_OPT_ALS_ALARM} ? '--alarm=y' : '--alarm=n';
+    start('zmalarm-server.py', @als_args);
+  }
+
+  $watchdog_active = 1;
+  $orchestrate_time = time();
+  Info('Orchestration complete');
+}
+
+sub apply_state {
+  my $state_name = shift;
+
+  my $dbh = zmDbConnect();
+  if (!$dbh) {
+    dPrint(ZoneMinder::Logger::ERROR, "Cannot connect to database for state change\n");
+    return;
+  }
+
+  my $state = ZoneMinder::State->find_one(Name => $state_name);
+  if (!$state) {
+    dPrint(ZoneMinder::Logger::ERROR, "Invalid state '$state_name'\n");
+    return;
+  }
+
+  # Parse state definitions
+  my @definitions;
+  foreach (split(',', $state->{Definition})) {
+    my @parts = split(':', $_);
+    my ($id, $capturing, $analysing, $recording);
+    if (@parts == 3) {
+      ($id, my $function, my $enabled) = @parts;
+      if (!$enabled) {
+        ($capturing, $analysing, $recording) = ('None','None','None');
+      } elsif ($function eq 'None') {
+        ($capturing, $analysing, $recording) = ('None','None','None');
+      } elsif ($function eq 'Monitor') {
+        ($capturing, $analysing, $recording) = ('Always','None','None');
+      } elsif ($function eq 'Modect') {
+        ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
+      } elsif ($function eq 'Mocord') {
+        ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
+      } elsif ($function eq 'Record') {
+        ($capturing, $analysing, $recording) = ('Always','Always','Always');
+      } else {
+        Error("Unknown function $function");
+      }
+    } elsif (@parts == 4) {
+      ($id, $capturing, $analysing, $recording) = @parts;
+    } else {
+      Error("Unknown state definition: @parts");
+    }
+    push @definitions, {Id=>$id, Capturing=>$capturing, Analysing=>$analysing, Recording=>$recording};
+  }
+
+  # Apply state definitions to monitors
+  Info("Applying state: $state_name");
+  foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0,
+      ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()), order=>'Id ASC')
+  ) {
+    foreach my $definition (@definitions) {
+      if ($monitor->{Id} =~ /^$definition->{Id}$/) {
+        if (($monitor->{Capturing} ne $definition->{Capturing})
+            or ($monitor->{Analysing} ne $definition->{Analysing})
+            or ($monitor->{Recording} ne $definition->{Recording})
+        ) {
+          $monitor->save({ map { $_ => $$definition{$_} } qw(Capturing Analysing Recording) });
+          last;
+        }
+      }
+    }
+  }
+
+  resetStates();
+  Info("Marking $state_name as Enabled");
+  $state->save({IsActive => 1});
+
+  # Stop all managed processes and schedule re-orchestration
+  dPrint(ZoneMinder::Logger::INFO, "State '$state_name' applied, restarting daemons\n");
+  foreach my $command (keys %cmd_hash) {
+    my $process = $cmd_hash{$command};
+    if ($process->{pid} && $pid_hash{$process->{pid}}) {
+      send_stop(1, $process);
+    }
+  }
+  $re_orchestrate_pending = 1;
+}
+
+sub watchdog_check {
+  return if (time() - $orchestrate_time < START_DELAY);
+
+  my $dbh = zmDbConnect();
+  if (!$dbh or !$dbh->ping()) {
+    if (!($dbh = zmDbConnect())) {
+      Warning('Database not available for watchdog check');
+      return;
+    }
+  }
+
+  foreach my $monitor (ZoneMinder::Monitor->find(Deleted=>0,
+      $Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())
+  ) {
+    next if $monitor->{Capturing} eq 'None';
+    next if $monitor->{Type} eq 'WebSite';
+
+    my $now = time();
+
+    if (!zmMemVerify($monitor)) {
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
+      restart_monitor($monitor);
+      next;
+    }
+
+    my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
+    my $heartbeat_elapsed = $now - $heartbeat_time;
+    if ($heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, "
+        ."$now - heartbeat time $heartbeat_time $heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}");
+      restart_monitor($monitor);
+      next;
+    } else {
+      Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time "
+        ."$now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
+    }
+
+    next if $monitor->{Capturing} eq 'Ondemand';
+    next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
+
+    # Check we have got an image recently
+    my $capture_time = zmGetLastWriteTime($monitor);
+    if (!defined($capture_time)) {
+      Warning('LastWriteTime is not defined.');
+      next;
+    }
+    Debug("Monitor $$monitor{Id} LastWriteTime is $capture_time.");
+    if (!$capture_time) {
+      my $startup_time = zmGetStartupTime($monitor);
+      my $startup_elapsed = $now - $startup_time;
+      if ($startup_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+        Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time "
+          ."$now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
+        if ($monitor->ControlId()) {
+          my $control = $monitor->Control();
+          if ($control and $control->CanReboot() and $control->open()) {
+            $control->reboot();
+          }
+        }
+        Warning("Restarting capture daemon for $monitor->{Id} $$monitor{Name}, no image since startup. "
+          ."Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}");
+        restart_monitor($monitor);
+      }
+      next;
+    }
+
+    my $max_image_delay = (
+      $monitor->{MaxFPS}
+      && ($monitor->{MaxFPS} > 0)
+      && ($monitor->{MaxFPS} < 1)
+    ) ? (3 / $monitor->{MaxFPS})
+      : $Config{ZM_WATCH_MAX_DELAY};
+
+    my $image_delay = $now - $capture_time;
+    Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
+    if ($image_delay > $max_image_delay) {
+      Warning("Restarting capture daemon for $monitor->{Name}, "
+        ."time since last capture $image_delay seconds ($now-$capture_time)");
+      restart_monitor($monitor);
+      next;
+    }
+
+    if ($monitor->{Analysing} ne 'None') {
+      my $image_time = zmGetLastReadTime($monitor);
+      if (!defined($image_time)) {
+        Error("Error reading shared data for $$monitor{Id} $$monitor{Name}");
+        restart_monitor($monitor);
+        next;
+      } elsif (!$image_time) {
+        Debug("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
+      } else {
+        my $max_analyse_delay = (
+          $monitor->{MaxFPS}
+          && ($monitor->{MaxFPS} > 0)
+          && ($monitor->{MaxFPS} < 1)
+        ) ? (3 / $monitor->{MaxFPS})
+          : $Config{ZM_WATCH_MAX_DELAY};
+        my $analyse_delay = $now - $image_time;
+        Debug("Monitor $monitor->{Id} last analysed $analyse_delay seconds ago, max is $max_analyse_delay");
+        if ($analyse_delay > $max_analyse_delay) {
+          Warning("Daemon for $$monitor{Id} $$monitor{Name} needs restarting, "
+            ."time since last analysis $analyse_delay seconds ($now-$image_time)");
+          restart_monitor($monitor);
+          next;
+        }
+      }
+    }
+  }
+}
+
+sub restart_monitor {
+  my $monitor = shift;
+  if ($monitor->{Type} eq 'Local') {
+    restart('zmc', '-d', $monitor->{Device});
+  } else {
+    restart('zmc', '-m', $monitor->{Id});
+  }
+}
+
+sub verifyFolder {
+  my $folder = shift;
+  if (!-e $folder) {
+    Debug("Recreating directory '$folder'");
+    mkdir($folder, 0774)
+      or Fatal("Can't create missing directory '$folder': $!");
+    my ($runName) = getpwuid($>);
+    if ($runName ne $Config{ZM_WEB_USER}) {
+      my ($webName, $webPass, $webUid, $webGid) = getpwnam($Config{ZM_WEB_USER})
+        or Fatal("Can't get details for web user '$Config{ZM_WEB_USER}': $!");
+      chown($webUid, $webGid, $folder)
+        or Fatal("Can't change ownership of '$folder' to '"
+          .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!");
+    }
+  }
+}
+
+sub isActiveSanityCheck {
+  Info('Sanity checking States table...');
+  my $dbh = zmDbConnect();
+
+  my @states = ZoneMinder::State->find(Name=>'default', order=>'Id ASC');
+
+  my $default_state;
+  while (@states > 1) {
+    my $state = shift @states;
+    $state->delete();
+  }
+  if (!@states) {
+    $default_state = new ZoneMinder::State();
+    $default_state->save({Name=>'default', Definition=>'', IsActive=>1});
+  } else {
+    $default_state = shift @states;
+  }
+
+  @states = ZoneMinder::State->find(IsActive=>1);
+  if (@states != 1) {
+    Info('Fixing States table so only one run state is active');
+    resetStates();
+    $default_state->save({IsActive=>1});
+  }
+}
+
+sub resetStates {
+  my $dbh = zmDbConnect();
+  $dbh->do('UPDATE `States` SET `IsActive`=0')
+    or Fatal("Can't execute: ".$dbh->errstr());
+}
+
 sub shutdownAll {
+  zmMemTidy();
   foreach my $pid ( keys %pid_hash ) {
 # This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
     next if ! $pid_hash{$pid};

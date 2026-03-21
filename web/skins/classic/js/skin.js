@@ -2940,7 +2940,7 @@ const waitUntil = (condition, timeout = 0) => {
   });
 };
 
-createVolumeSlider = function(volumeSlider, audioStream=null) {
+const createVolumeSlider = function(volumeSlider, audioStream=null) {
   if (!volumeSlider) return;
   const defaultVolume = (volumeSlider.getAttribute("data-volume") || 50);
   const iconMute = getIconMute(stringToNumber(volumeSlider.id));
@@ -3006,7 +3006,7 @@ createVolumeSlider = function(volumeSlider, audioStream=null) {
   });
 };
 
-destroyVolumeSlider = function(volumeSlider) {
+const destroyVolumeSlider = function(volumeSlider) {
   if (volumeSlider) {
     if (volumeSlider.noUiSlider) {
       volumeSlider.noUiSlider.destroy();
@@ -3017,7 +3017,7 @@ destroyVolumeSlider = function(volumeSlider) {
   }
 };
 
-changeStateIconMute = function(mid, volume) {
+const changeStateIconMute = function(mid, volume) {
   //const volumeControls = getVolumeControls(mid);
   //const disabled = (volumeControls) ? volumeControls.classList.contains('disabled') : false;
   const iconMute = getIconMute(mid);
@@ -3027,7 +3027,7 @@ changeStateIconMute = function(mid, volume) {
   return iconMute;
 };
 
-changeVolumeSlider = function(mid, volume) {
+const changeVolumeSlider = function(mid, volume) {
   const volumeControls = getVolumeControls(mid);
   const volumeSlider = getVolumeSlider(mid);
   if (volumeSlider) {
@@ -3047,7 +3047,7 @@ changeVolumeSlider = function(mid, volume) {
   return volumeSlider;
 };
 
-controlMute = function(mid, mode = 'switch') {
+const controlMute = function(mid, mode = 'switch') {
   let volumeSlider = getVolumeSlider(mid);
   const audioStream = getAVStream(mid);
   const volumeControls = getVolumeControls(mid);
@@ -3109,19 +3109,19 @@ controlMute = function(mid, mode = 'switch') {
   }
 };
 
-getVolumeControls = function(mid=null) {
+const getVolumeControls = function(mid=null) {
   return (mid && !isNaN(mid)) ? document.getElementById('volumeControls'+mid) : document.getElementById('volumeControls');
 };
 
-getVolumeSlider = function(mid=null) {
+const getVolumeSlider = function(mid=null) {
   return (mid && !isNaN(mid)) ? document.getElementById('volumeSlider'+mid) : document.getElementById('volumeSlider');
 };
 
-getIconMute = function(mid=null) {
+const getIconMute = function(mid=null) {
   return (mid && !isNaN(mid)) ? document.getElementById('controlMute'+mid) : document.getElementById('controlMute');
 };
 
-getAVStream = function(mid) {
+const getAVStream = function(mid) {
   /*
   Go2RTC uses <video-stream id='liveStreamXX'><video></video></video-stream>,
   RTSP2Web uses <video id='liveStreamXX'></video>

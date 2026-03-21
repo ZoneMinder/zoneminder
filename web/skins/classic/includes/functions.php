@@ -1786,7 +1786,7 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
+  <script nonce="<?php echo $cspNonce; ?>" type="module" src="skins/<?php echo $skin ?>/js/audioMotionAnalyzer.js"></script>
   </body>
 </html>
 <?php

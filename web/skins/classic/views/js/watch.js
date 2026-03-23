@@ -1351,10 +1351,11 @@ function panZoomEventPanzoomchange(event) {
 }
 
 function monitorChangeStreamChannel() {
+  const streamChannel = $j('#streamChannel').val();
+  monitorStream.currentChannelStream = streamChannel;
+  setCookie('zmStreamChannel', streamChannel);
   if ((monitorStream.activePlayer) && (-1 !== monitorStream.activePlayer.indexOf('go2rtc') || -1 !== monitorStream.activePlayer.indexOf('rtsp2web'))) {
     streamCmdStop(true);
-    const streamChannel = $j('#streamChannel').val();
-    setCookie('zmStreamChannel', streamChannel);
     setTimeout(function() {
       monitorStream.start(streamChannel);
       onPlay();

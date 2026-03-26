@@ -1029,7 +1029,7 @@ function MonitorStream(monitorData) {
       volumeSlider.setAttribute('data-volume', parseInt(audioStream.volume * 100));
       if (volumeSlider.allowSetValue) {
         volumeSlider.noUiSlider.set(audioStream.volume * 100);
-        if (audioStream.muted === true) {
+        if (audioStream.muted === true || audioStream.volume === 0) {
           this.changeStateIconMute('off');
           volumeSlider.classList.add('noUi-mute');
         } else {

@@ -2393,7 +2393,7 @@ bool Monitor::Analyse() {
                   }
                 }  // end if IDLE
               } else {
-                Warning("CLOSE_MODE Unknown");
+                Warning("CLOSE_MODE Unknown %d", event_close_mode);
               }  // end if event_close_mode
             } else if (shared_data->recording == RECORDING_ONMOTION) {
               if (event->Duration() > section_length or (IDLE==state and (analysis_image_count - last_alarm_count > post_event_count))) {

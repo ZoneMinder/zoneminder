@@ -708,10 +708,7 @@ function MonitorStream(monitorData) {
       imgInfoBlock.style.height = '100%';
       imgInfoBlock.style.zIndex = 10000;
       imgInfoBlock.style.pointerEvents = 'none';
-      const imageFeed = document.getElementById('imageFeed'+this.id);
-      if (imageFeed) {
-        imageFeed.appendChild(infoBlock);
-      }
+      this.getElement().parentNode.appendChild(imgInfoBlock);
       currentImg = imgInfoBlock;
     }
     this.setSrcInfoBlock();
@@ -731,7 +728,10 @@ function MonitorStream(monitorData) {
       infoBlock.style.left = '50%';
       infoBlock.style.transform = 'translate(-50%, -50%)';
       infoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(infoBlock);
+      const imageFeed = document.getElementById('imageFeed'+this.id);
+      if (imageFeed) {
+        imageFeed.appendChild(infoBlock);
+      }
       currentInfoBlock = infoBlock;
     }
     return currentInfoBlock;

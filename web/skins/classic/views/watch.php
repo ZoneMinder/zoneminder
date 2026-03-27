@@ -408,7 +408,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
           </ul>
         </nav>
-        <div style="padding-right:1px; margin-right: -1px;"></div> <!-- REQUIRED https://github.com/ZoneMinder/zoneminder/pull/4721 -->
         <div id="wrapperMonitor" class="container-fluid col">
           <div id="monitor" class="monitor hidden-shift"
 >

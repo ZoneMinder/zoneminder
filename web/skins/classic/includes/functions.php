@@ -427,7 +427,9 @@ function getSidebarTopHTML() {
       <div class="sidebar-footer hidden-for-collapsed">
         <div class="footer-box">
           <div>
+            <ul>
 ' . getAccountCircleHTML($skin, $user, $forLeftBar = true) . '
+            </ul>
           </div>
           <div style="padding: 0 10px">
             <span style="display: block; margin-bottom: 10px">

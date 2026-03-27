@@ -174,6 +174,15 @@ if (count($filter->terms())==1 and $filter->has_term('Id')) {
 $filterQuery = $filter->querystring();
 $connkey = generateConnKey();
 
+$whatDisplay = (isset($_COOKIE["zmWhatDisplay"])) ? strtolower($_COOKIE["zmWhatDisplay"]) : 'default';
+$dataNotDisplayVideo = 'false';
+
+if (false !== strpos($whatDisplay, 'default')) { // Default monitor settings
+  if (false === (strpos(strtolower($monitor->WhatDisplay()), 'video'))) $dataNotDisplayVideo = 'true';
+} else {
+  if (false === (strpos($whatDisplay, 'video'))) $dataNotDisplayVideo = 'true';
+}
+
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 getBodyTopHTML();
 ?>
@@ -241,6 +250,24 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <label for="codec"><?php echo translate('Codec') ?></label>
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
+        <div id="whatDisplayControl">
+          <label for="whatDisplay"><?php echo translate('What display') ?></label>
+<?php 
+            $whatDisplayOptions = [
+              'Default'=>translate('Default'),
+              'OnlyVideo'=>translate('Only video'),
+              'OnlyAudioVisualization'=>translate('Only audio visualization'),
+              'VideoAudioVisualization'=>translate('Video and audio visualization')
+            ];
+            $whatDisplaySelected = 'Default'; // Default
+            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
+            } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
+              $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
+            }
+            echo htmlSelect('whatDisplay', $whatDisplayOptions, $whatDisplaySelected, array('data-on-change'=>'changeWhatDisplay','id'=>'whatDisplay','class'=>'chosen'));
+?>
+        </div><!--#whatDisplayControl-->
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
@@ -321,7 +348,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                       <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
                     </div>
                   </div>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
@@ -392,8 +419,18 @@ if ($video_tag) {
   Sorry, your browser does not support inline SVG
                   </svg>
                 </div><!--videoFeed-->
+                <audio-motion id="audioVisualization<?php echo $monitor->Id()?>" class="audio-visualization">
+                  <div id="audioControlPanel<?php echo $monitor->Id()?>" class="audio-control-panel">
+                    <div id="volumeControls<?php echo $monitor->Id()?>" class="disabled volume">
+                      <div id="volumeSlider<?php echo $monitor->Id()?>" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
+                      <i id="controlMute<?php echo $monitor->Id()?>" class="audio-control-mute material-icons md-22"></i>
+                    </div>
+                  </div>
+                  <canvas></canvas>
+                </audio-motion>
                 <div class="monitorStatus">
                   <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                  <span class="stream-info-status-track"></span>
                 </div>
                 <p id="dvrControls">
                   <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">

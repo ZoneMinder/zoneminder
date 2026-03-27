@@ -98,7 +98,8 @@ sub Execute {
     $sql =~ s/zmSystemLoad/$load/g;
   }
 
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql);
+  Debug("Filter::Execute SQL ($sql)");
+  my $sth = $ZoneMinder::Database::dbh->prepare($sql);
   if (!$sth) {
     Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
     return;

@@ -432,11 +432,11 @@ function getSidebarTopHTML() {
             </ul>
           </div>
           <div style="padding: 0 10px">
-            <span style="display: block; margin-bottom: 10px">
+            <div style="margin-bottom: 10px">
               <ul id="versionSidebar">
 ' . getZMVersionHTML() . '
               </ul>
-            </span>
+            </div>
             <ul id="statusSidebar">
 ' . getStatusBtnHTML(runtimeStatus($running)) . '
             </ul>

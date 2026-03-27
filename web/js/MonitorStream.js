@@ -708,7 +708,10 @@ function MonitorStream(monitorData) {
       imgInfoBlock.style.height = '100%';
       imgInfoBlock.style.zIndex = 10000;
       imgInfoBlock.style.pointerEvents = 'none';
-      this.getElement().parentNode.appendChild(imgInfoBlock);
+      const imageFeed = document.getElementById('imageFeed'+this.id);
+      if (imageFeed) {
+        imageFeed.appendChild(infoBlock);
+      }
       currentImg = imgInfoBlock;
     }
     this.setSrcInfoBlock();

@@ -100,7 +100,7 @@ sub Execute {
 
 
   Debug("Filter::Execute SQL ($sql)");
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+  my $sth = $ZoneMinder::Database::dbh->prepare($sql)
     or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
   my $res = $sth->execute();
   if ( !$res ) {

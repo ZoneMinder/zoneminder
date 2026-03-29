@@ -64,6 +64,8 @@ class Camera {
   int64_t     mFirstAudioPTS;
   int64_t     mLastVideoPTS;
   int64_t     mLastAudioPTS;
+  int64_t     mLastVideoDTS;
+  int64_t     mLastAudioDTS;
   unsigned int  bytes;
   bool mIsPrimed;
 

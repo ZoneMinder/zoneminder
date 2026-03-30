@@ -789,7 +789,7 @@ uint8_t* Image::WriteBuffer(
 
   if ( imagePixFormat == AV_PIX_FMT_YUV420P or imagePixFormat == AV_PIX_FMT_YUVJ420P) {
     u_buffer = buffer + width * height;
-    v_buffer = u_buffer + (width * height / 2);
+    v_buffer = u_buffer + (width * height / 4);
   } else {
     u_buffer = nullptr;
     v_buffer = nullptr;
@@ -6168,11 +6168,12 @@ AVPixelFormat Image::AVPixFormat(AVPixelFormat new_pixelformat) {
       subpixelorder = ZM_SUBPIX_ORDER_NONE;
       break;
     case AV_PIX_FMT_YUYV422:
-      // Packed YUV 4:2:2 (2 bytes/pixel) — cannot be stored natively because
+    case AV_PIX_FMT_YUVJ422P:
+      // YUV 4:2:2 formats (2 bytes/pixel) — cannot be stored natively because
       // Image buffers are sized for planar YUV420P (1.5 bytes/pixel).
       // Keep the current target format so Assign() converts via sws_scale.
-      Debug(1, "YUYV422 input will be converted to %s on Assign",
-            av_get_pix_fmt_name(imagePixFormat));
+      Debug(1, "%s input will be converted to %s on Assign",
+            av_get_pix_fmt_name(new_pixelformat), av_get_pix_fmt_name(imagePixFormat));
       return imagePixFormat;
     default:
       Error("Unknown pixelformat %d %s", new_pixelformat, av_get_pix_fmt_name(new_pixelformat));

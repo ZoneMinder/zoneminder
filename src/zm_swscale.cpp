@@ -78,14 +78,26 @@ int SWScale::Convert(
   AVFrame *out_frame
 ) {
 
-  AVPixelFormat format = fix_deprecated_pix_fmt((AVPixelFormat)in_frame->format);
+  AVPixelFormat in_fmt = fix_deprecated_pix_fmt((AVPixelFormat)in_frame->format);
+  AVPixelFormat out_fmt = fix_deprecated_pix_fmt((AVPixelFormat)out_frame->format);
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
-                                     in_frame->width, in_frame->height, format,
-                                     out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+                                     in_frame->width, in_frame->height, in_fmt,
+                                     out_frame->width, out_frame->height, out_fmt,
                                      SWS_FAST_BILINEAR, NULL, NULL, NULL);
-  if ( swscale_ctx == NULL ) {
-    Error("Failed getting swscale context");
+  if (swscale_ctx == NULL) {
+    // SWS_FAST_BILINEAR uses a JIT scaler that needs mprotect(PROT_EXEC).
+    // Falls back to SWS_BILINEAR when mprotect is blocked (SELinux/seccomp).
+    Warning("Fast bilinear scaler unavailable, falling back to bilinear");
+    swscale_ctx = sws_getCachedContext(swscale_ctx,
+                                       in_frame->width, in_frame->height, in_fmt,
+                                       out_frame->width, out_frame->height, out_fmt,
+                                       SWS_BILINEAR, NULL, NULL, NULL);
+  }
+  if (swscale_ctx == NULL) {
+    Error("Failed getting swscale context for %dx%d %s -> %dx%d %s",
+          in_frame->width, in_frame->height, av_get_pix_fmt_name(in_fmt),
+          out_frame->width, out_frame->height, av_get_pix_fmt_name(out_fmt));
     return -6;
   }
   /* Do the conversion */
@@ -170,7 +182,16 @@ int SWScale::Convert(
                                      new_width, new_height, out_pf,
                                      SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
   if (swscale_ctx == nullptr) {
-    Error("Failed getting swscale context");
+    Warning("Fast bilinear scaler unavailable, falling back to bilinear");
+    swscale_ctx = sws_getCachedContext(swscale_ctx,
+                                       width, height, in_pf,
+                                       new_width, new_height, out_pf,
+                                       SWS_BILINEAR, nullptr, nullptr, nullptr);
+  }
+  if (swscale_ctx == nullptr) {
+    Error("Failed getting swscale context for %dx%d %s -> %dx%d %s",
+          width, height, av_get_pix_fmt_name(in_pf),
+          new_width, new_height, av_get_pix_fmt_name(out_pf));
     return -6;
   }
 

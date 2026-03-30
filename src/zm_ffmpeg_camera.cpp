@@ -224,6 +224,26 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
   }
 
+  // Check DTS for significant backward jumps. Some cameras/encoders produce
+  // non-monotonic DTS (B-frames, stream restarts) that PTS checks won't catch.
+  if (packet->dts != AV_NOPTS_VALUE) {
+    int64_t lastDTS = (packet->stream_index == mVideoStreamId) ? mLastVideoDTS : mLastAudioDTS;
+    if (lastDTS != AV_NOPTS_VALUE) {
+      int64_t dts_delta = packet->dts - lastDTS;
+      if (dts_delta < -10*stream->time_base.den) {
+        double dts_time = static_cast<double>(av_rescale_q(packet->dts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        double last_dts_time = static_cast<double>(av_rescale_q(lastDTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+        logPrintf(Logger::WARNING + monitor->Importance(),
+            "Stream dts jumped back in time too far. dts %.2f - last dts %.2f = %.2f > 10seconds stream %d",
+            dts_time, last_dts_time, dts_time - last_dts_time, packet->stream_index);
+        if (error_count > 5)
+          return -1;
+        error_count += 1;
+        return 0;
+      }
+    }
+  }
+
   av_packet_guard pkt_guard{packet};
 
 
@@ -245,6 +265,12 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
       mLastAudioPTS = packet->pts - mFirstAudioPTS;
     }
+  }
+  if (packet->dts != AV_NOPTS_VALUE) {
+    if (packet->stream_index == mVideoStreamId)
+      mLastVideoDTS = packet->dts;
+    else if (packet->stream_index == mAudioStreamId)
+      mLastAudioDTS = packet->dts;
   }
 
   return 1;
@@ -619,6 +645,8 @@ int FfmpegCamera::Close() {
   mIsPrimed = false;
   mLastVideoPTS = 0;
   mLastAudioPTS = 0;
+  mLastVideoDTS = AV_NOPTS_VALUE;
+  mLastAudioDTS = AV_NOPTS_VALUE;
 
   if (mVideoCodecContext) {
     //avcodec_close(mVideoCodecContext);

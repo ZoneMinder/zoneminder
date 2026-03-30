@@ -1834,7 +1834,7 @@ function cache_bust($file) {
   ) {
     return 'cache/'.$cacheFile;
   } else {
-    ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
+    ZM\Warning('Failed linking '.ZM_PATH_WEB.'/'.$file.' to '.ZM_DIR_CACHE.'/'.$cacheFile);
   }
   return $file;
 }

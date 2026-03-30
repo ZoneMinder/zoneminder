@@ -86,6 +86,7 @@ sub open {
   $$self{username} = 'admin' unless $$self{username};
   $$self{password} = '' unless $$self{password};
   $$self{port} = 80 unless $$self{port};
+  $$self{protocol} = 'http';
   
   Debug("Reolink HTTP: Using credentials for $$self{host}:$$self{port}, user: $$self{username}");
   
@@ -133,16 +134,41 @@ sub login {
   };
   
   my $json = encode_json([$login_cmd]);
-  my $url = 'http://'.$$self{host}.':'. $$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
-  
+  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+
   $self->printMsg($json, 'Tx');
-  
+
   my $req = HTTP::Request->new(POST => $url);
   $req->content_type('application/json');
   $req->content($json);
-  
+
   my $res = $self->{ua}->request($req);
-  
+
+  # Handle 302 redirect (camera redirecting HTTP to HTTPS)
+  if ($res->is_redirect) {
+    my $location = $res->header('Location');
+    if ($location) {
+      Debug("Reolink login got redirect to: $location");
+      my $redirect_uri = URI->new($location);
+      $$self{protocol} = $redirect_uri->scheme if $redirect_uri->scheme;
+      $$self{host} = $redirect_uri->host if $redirect_uri->host;
+      $$self{port} = $redirect_uri->port if $redirect_uri->port;
+
+      # Disable SSL certificate verification for self-signed camera certs
+      if ($$self{protocol} eq 'https') {
+        $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+      }
+
+      # Retry with the redirected URL
+      $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+      Debug("Reolink retrying login at: $url");
+      $req = HTTP::Request->new(POST => $url);
+      $req->content_type('application/json');
+      $req->content($json);
+      $res = $self->{ua}->request($req);
+    }
+  }
+
   if ($res->is_success) {
     my $content = $res->decoded_content;
     Debug("Login response: $content");
@@ -223,7 +249,7 @@ sub sendApiCmd {
   $self->printMsg($json, 'Tx');
   
   # Construct URL with token
-  my $url = 'http://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
+  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
   
   my $req = HTTP::Request->new(POST => $url);
   $req->content_type('application/json');

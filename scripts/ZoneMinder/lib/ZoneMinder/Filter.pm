@@ -100,7 +100,7 @@ sub Execute {
 
 
   Debug("Filter::Execute SQL ($sql)");
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+  my $sth = $ZoneMinder::Database::dbh->prepare($sql)
     or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
   my $res = $sth->execute();
   if ( !$res ) {
@@ -137,6 +137,10 @@ sub Sql {
   $$self{Sql} = shift if @_;
   if ( !$$self{Sql} ) {
     $self->{Sql} = '';
+    $self->{PostSQLConditions} = [];
+    $self->{HasDiskPercent} = 0;
+    $self->{HasDiskBlocks} = 0;
+    $self->{HasSystemLoad} = 0;
     if ( !$self->{Query_json} ) {
       Warning('No query in Filter!');
       return;

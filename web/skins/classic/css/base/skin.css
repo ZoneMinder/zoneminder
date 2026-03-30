@@ -1685,6 +1685,10 @@ video-stream[id^='liveStream'] video{
                2px -2px hsla(0, 0%, 30%, .7);
 }
 
+*[data-on-click-this="toggle_password_visibility"] {
+  cursor: pointer;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;
